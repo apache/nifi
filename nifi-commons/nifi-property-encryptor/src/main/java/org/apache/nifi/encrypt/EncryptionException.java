@@ -24,11 +24,11 @@ public class EncryptionException extends RuntimeException {
 
     private static final long serialVersionUID = 19802342398832L;
 
-    public EncryptionException(String message, Throwable cause) {
+    public EncryptionException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public EncryptionException(String message) {
+    public EncryptionException(final String message) {
         super(message);
     }
 }

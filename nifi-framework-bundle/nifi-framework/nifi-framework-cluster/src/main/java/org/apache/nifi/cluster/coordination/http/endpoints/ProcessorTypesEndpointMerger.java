@@ -30,7 +30,7 @@ public class ProcessorTypesEndpointMerger extends AbstractNodeStatusEndpoint<Pro
     public static final String PROCESSOR_TYPES_URI_PATTERN = "/nifi-api/flow/processor-types";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PROCESSOR_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class ProcessorTypesEndpointMerger extends AbstractNodeStatusEndpoint<Pro
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(ProcessorTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final ProcessorTypesEntity entity) {
         return entity.getProcessorTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

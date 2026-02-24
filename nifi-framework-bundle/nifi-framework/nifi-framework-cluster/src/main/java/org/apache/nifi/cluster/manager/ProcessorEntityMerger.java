@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 
 public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEntity>, ComponentEntityStatusMerger<ProcessorStatusDTO> {
     @Override
-    public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
+    public void merge(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
             final ProcessorEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -63,8 +63,8 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
     }
 
     @Override
-    public void mergeStatus(ProcessorStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessorStatusDTO status, boolean statusReadablePermission, NodeIdentifier
-            statusNodeIdentifier) {
+    public void mergeStatus(final ProcessorStatusDTO clientStatus, final boolean clientStatusReadablePermission, final ProcessorStatusDTO status,
+            final boolean statusReadablePermission, final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }
@@ -103,7 +103,7 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client

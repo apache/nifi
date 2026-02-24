@@ -61,8 +61,8 @@ public class JsonContentConversionExceptionMapperTest {
         }
     }
 
-    private InvalidFormatException buildInvalidFormatException(String value) {
-        InvalidFormatException ife = InvalidFormatException.from(mockParser, "Some message", value, Integer.class);
+    private InvalidFormatException buildInvalidFormatException(final String value) {
+        final InvalidFormatException ife = InvalidFormatException.from(mockParser, "Some message", value, Integer.class);
         wrapWithPath(ife, new JsonMappingException.Reference("RemoteProcessGroupDTO", "proxyPort"));
         wrapWithPath(ife, new JsonMappingException.Reference("RemoteProcessGroupEntity", "component"));
 

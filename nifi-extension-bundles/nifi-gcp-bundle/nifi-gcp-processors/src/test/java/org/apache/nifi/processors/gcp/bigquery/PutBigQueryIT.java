@@ -100,16 +100,16 @@ public class PutBigQueryIT {
         final Map<PropertyDescriptor, String> propertiesMap = new HashMap<>();
         propertiesMap.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE, SERVICE_ACCOUNT_JSON);
-        Credentials credentials = credentialsProviderFactory.getGoogleCredentials(propertiesMap, new ProxyAwareTransportFactory(null));
+        final Credentials credentials = credentialsProviderFactory.getGoogleCredentials(propertiesMap, new ProxyAwareTransportFactory(null));
 
-        BigQueryOptions bigQueryOptions = BigQueryOptions.newBuilder()
+        final BigQueryOptions bigQueryOptions = BigQueryOptions.newBuilder()
             .setProjectId(PROJECT_ID)
             .setCredentials(credentials)
             .build();
 
         bigquery = bigQueryOptions.getService();
 
-        DatasetInfo datasetInfo = DatasetInfo.newBuilder(RemoteBigQueryHelper.generateDatasetName()).build();
+        final DatasetInfo datasetInfo = DatasetInfo.newBuilder(RemoteBigQueryHelper.generateDatasetName()).build();
         dataset = bigquery.create(datasetInfo);
     }
 
@@ -118,7 +118,7 @@ public class PutBigQueryIT {
         bigquery.delete(dataset.getDatasetId(), BigQuery.DatasetDeleteOption.deleteContents());
     }
 
-    protected TestRunner setCredentialsControllerService(TestRunner runner) throws InitializationException {
+    protected TestRunner setCredentialsControllerService(final TestRunner runner) throws InitializationException {
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
 
         final Map<String, String> propertiesMap = new HashMap<>();
@@ -144,7 +144,7 @@ public class PutBigQueryIT {
 
     @Test
     public void testStreamingNoError() throws Exception {
-        String tableName = prepareTable(STREAM_TYPE);
+        final String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
         runner.enqueue(Paths.get("src/test/resources/bigquery/streaming-correct-data.json"));
@@ -160,7 +160,7 @@ public class PutBigQueryIT {
 
     @Test
     public void testStreamingFullError() throws Exception {
-        String tableName = prepareTable(STREAM_TYPE);
+        final String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
         runner.enqueue(Paths.get("src/test/resources/bigquery/streaming-bad-data.json"));
@@ -169,7 +169,7 @@ public class PutBigQueryIT {
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_FAILURE, 1);
         runner.getFlowFilesForRelationship(PutBigQuery.REL_FAILURE).get(0).assertAttributeEquals(PutBigQuery.JOB_NB_RECORDS_ATTR, "0");
 
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
         assertFalse(result.getValues().iterator().hasNext());
 
         deleteTable(tableName);
@@ -177,7 +177,7 @@ public class PutBigQueryIT {
 
     @Test
     public void testStreamingPartialError() throws Exception {
-        String tableName = prepareTable(STREAM_TYPE);
+        final String tableName = prepareTable(STREAM_TYPE);
         addRecordReader();
 
         runner.setProperty(SKIP_INVALID_ROWS, "true");
@@ -188,10 +188,10 @@ public class PutBigQueryIT {
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(PutBigQuery.REL_SUCCESS).get(0).assertAttributeEquals(PutBigQuery.JOB_NB_RECORDS_ATTR, "1");
 
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
-        Iterator<FieldValueList> iterator = result.getValues().iterator();
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final Iterator<FieldValueList> iterator = result.getValues().iterator();
 
-        FieldValueList firstElt = iterator.next();
+        final FieldValueList firstElt = iterator.next();
         assertFalse(iterator.hasNext());
         assertEquals(firstElt.get("name").getStringValue(), "Jane Doe");
 
@@ -200,7 +200,7 @@ public class PutBigQueryIT {
 
     @Test
     public void testStreamingNoErrorWithDate() throws Exception {
-        String tableName = prepareTable(STREAM_TYPE);
+        final String tableName = prepareTable(STREAM_TYPE);
         addRecordReaderWithSchema("src/test/resources/bigquery/schema-correct-data-with-date.avsc");
 
         runner.enqueue(Paths.get("src/test/resources/bigquery/streaming-correct-data-with-date.json"));
@@ -216,7 +216,7 @@ public class PutBigQueryIT {
 
     @Test
     public void testStreamingNoErrorWithDateFormat() throws Exception {
-        String tableName = prepareTable(STREAM_TYPE);
+        final String tableName = prepareTable(STREAM_TYPE);
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
@@ -244,10 +244,10 @@ public class PutBigQueryIT {
 
     @Test
     public void testBatchSmallPayload() throws Exception {
-        String tableName = prepareTable(BATCH_TYPE);
+        final String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
 
-        String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Daniel is great\"}\r\n";
+        final String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Daniel is great\"}\r\n";
         runner.enqueue(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
         runner.run();
 
@@ -259,10 +259,10 @@ public class PutBigQueryIT {
 
     @Test
     public void testQueryBatchBadRecord() throws Exception {
-        String tableName = prepareTable(BATCH_TYPE);
+        final String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
 
-        String str = "{\"field_1\":\"Daniel is great\"}\r\n";
+        final String str = "{\"field_1\":\"Daniel is great\"}\r\n";
         runner.enqueue(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
         runner.run();
 
@@ -273,17 +273,17 @@ public class PutBigQueryIT {
 
     @Test
     public void testBatchLargePayload() throws InitializationException, IOException {
-        String tableName = prepareTable(BATCH_TYPE);
+        final String tableName = prepareTable(BATCH_TYPE);
         addRecordReader();
         runner.setProperty(PutBigQuery.APPEND_RECORD_COUNT, "5000");
 
-        String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Here's to the crazy ones. The misfits. The rebels. The troublemakers." +
+        final String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Here's to the crazy ones. The misfits. The rebels. The troublemakers." +
             " The round pegs in the square holes. The ones who see things differently. They're not fond of rules. And they have no respect" +
             " for the status quo. You can quote them, disagree with them, glorify or vilify them. About the only thing you can't do is ignore" +
             " them. Because they change things. They push the human race forward. And while some may see them as the crazy ones, we see genius." +
             " Because the people who are crazy enough to think they can change the world, are the ones who do.\"}\n";
-        Path tempFile = Files.createTempFile(tableName, "");
-        int recordCount = 100_000;
+        final Path tempFile = Files.createTempFile(tableName, "");
+        final int recordCount = 100_000;
         try (BufferedWriter writer = Files.newBufferedWriter(tempFile)) {
             for (int i = 0; i < recordCount; i++) {
                 writer.write(str);
@@ -300,14 +300,14 @@ public class PutBigQueryIT {
 
     @Test
     public void testAvroDecimalType() throws InitializationException, IOException {
-        String tableName = UUID.randomUUID().toString();
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
-        Field avrodecimal = Field.newBuilder("avrodecimal", StandardSQLTypeName.BIGNUMERIC).setMode(Field.Mode.NULLABLE).build();
+        final String tableName = UUID.randomUUID().toString();
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        final Field avrodecimal = Field.newBuilder("avrodecimal", StandardSQLTypeName.BIGNUMERIC).setMode(Field.Mode.NULLABLE).build();
 
         // Table schema definition
         schema = Schema.of(avrodecimal);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        final TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        final TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
         // create table
         bigquery.create(tableInfo);
@@ -316,7 +316,7 @@ public class PutBigQueryIT {
         runner.setProperty(TABLE_NAME, tableName);
         runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
 
-        AvroReader reader = new AvroReader();
+        final AvroReader reader = new AvroReader();
         runner.addControllerService("reader", reader);
 
         final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avrodecimal.avsc")));
@@ -331,9 +331,9 @@ public class PutBigQueryIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
 
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
-        Iterator<FieldValueList> iterator = result.getValues().iterator();
-        FieldValueList firstElt = iterator.next();
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final Iterator<FieldValueList> iterator = result.getValues().iterator();
+        final FieldValueList firstElt = iterator.next();
         assertEquals(firstElt.get(0).getNumericValue().intValue(), 0);
 
         deleteTable(tableName);
@@ -341,14 +341,14 @@ public class PutBigQueryIT {
 
     @Test
     public void testAvroFloatType() throws InitializationException, IOException {
-        String tableName = UUID.randomUUID().toString();
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
-        Field avrofloat = Field.newBuilder("avrofloat", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
+        final String tableName = UUID.randomUUID().toString();
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        final Field avrofloat = Field.newBuilder("avrofloat", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
 
         // Table schema definition
         schema = Schema.of(avrofloat);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        final TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        final TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
         // create table
         bigquery.create(tableInfo);
@@ -357,7 +357,7 @@ public class PutBigQueryIT {
         runner.setProperty(TABLE_NAME, tableName);
         runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
 
-        AvroReader reader = new AvroReader();
+        final AvroReader reader = new AvroReader();
         runner.addControllerService("reader", reader);
 
         final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avrofloat.avsc")));
@@ -372,9 +372,9 @@ public class PutBigQueryIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
 
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
-        Iterator<FieldValueList> iterator = result.getValues().iterator();
-        FieldValueList firstElt = iterator.next();
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final Iterator<FieldValueList> iterator = result.getValues().iterator();
+        final FieldValueList firstElt = iterator.next();
         assertEquals(firstElt.get(0).getDoubleValue(), 1.0);
 
         deleteTable(tableName);
@@ -382,14 +382,14 @@ public class PutBigQueryIT {
 
     @Test
     public void testAvroIntType() throws InitializationException, IOException {
-        String tableName = UUID.randomUUID().toString();
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
-        Field avrofloat = Field.newBuilder("avroint", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
+        final String tableName = UUID.randomUUID().toString();
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        final Field avrofloat = Field.newBuilder("avroint", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
 
         // Table schema definition
         schema = Schema.of(avrofloat);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        final TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        final TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
         // create table
         bigquery.create(tableInfo);
@@ -398,7 +398,7 @@ public class PutBigQueryIT {
         runner.setProperty(TABLE_NAME, tableName);
         runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
 
-        AvroReader reader = new AvroReader();
+        final AvroReader reader = new AvroReader();
         runner.addControllerService("reader", reader);
 
         final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avroint.avsc")));
@@ -413,16 +413,16 @@ public class PutBigQueryIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
 
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
-        Iterator<FieldValueList> iterator = result.getValues().iterator();
-        FieldValueList firstElt = iterator.next();
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final Iterator<FieldValueList> iterator = result.getValues().iterator();
+        final FieldValueList firstElt = iterator.next();
         assertEquals(firstElt.get(0).getDoubleValue(), 1.0);
 
         deleteTable(tableName);
     }
 
-    private String prepareTable(AllowableValue transferType) {
-        String tableName = UUID.randomUUID().toString();
+    private String prepareTable(final AllowableValue transferType) {
+        final String tableName = UUID.randomUUID().toString();
 
         if (STREAM_TYPE.equals(transferType)) {
             createTableForStream(tableName);
@@ -438,97 +438,97 @@ public class PutBigQueryIT {
     }
 
     private void addRecordReader() throws InitializationException {
-        JsonTreeReader jsonReader = new JsonTreeReader();
+        final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
         runner.enableControllerService(jsonReader);
 
         runner.setProperty(RECORD_READER, "reader");
     }
 
-    private void addRecordReaderWithSchema(String schema) throws InitializationException, IOException {
-        JsonTreeReader jsonReader = new JsonTreeReader();
+    private void addRecordReaderWithSchema(final String schema) throws InitializationException, IOException {
+        final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
         runner.setProperty(RECORD_READER, "reader");
 
-        String recordSchema = new String(Files.readAllBytes(Paths.get(schema)));
+        final String recordSchema = new String(Files.readAllBytes(Paths.get(schema)));
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
 
         runner.enableControllerService(jsonReader);
     }
 
-    private void createTableForStream(String tableName) {
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+    private void createTableForStream(final String tableName) {
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
 
         // Table field definition
-        Field id = Field.newBuilder("id", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build();
-        Field name = Field.newBuilder("name", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
-        Field alias = Field.newBuilder("alias", LegacySQLTypeName.STRING).setMode(Field.Mode.REPEATED).build();
+        final Field id = Field.newBuilder("id", LegacySQLTypeName.INTEGER).setMode(Field.Mode.REQUIRED).build();
+        final Field name = Field.newBuilder("name", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field alias = Field.newBuilder("alias", LegacySQLTypeName.STRING).setMode(Field.Mode.REPEATED).build();
 
-        Field zip = Field.newBuilder("zip", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
-        Field city = Field.newBuilder("city", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
-        Field addresses = Field.newBuilder("addresses", LegacySQLTypeName.RECORD, zip, city).setMode(Field.Mode.REPEATED).build();
+        final Field zip = Field.newBuilder("zip", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field city = Field.newBuilder("city", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field addresses = Field.newBuilder("addresses", LegacySQLTypeName.RECORD, zip, city).setMode(Field.Mode.REPEATED).build();
 
-        Field position = Field.newBuilder("position", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
-        Field company = Field.newBuilder("company", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
-        Field job = Field.newBuilder("job", LegacySQLTypeName.RECORD, position, company).setMode(Field.Mode.NULLABLE).build();
+        final Field position = Field.newBuilder("position", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field company = Field.newBuilder("company", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field job = Field.newBuilder("job", LegacySQLTypeName.RECORD, position, company).setMode(Field.Mode.NULLABLE).build();
 
-        Field date = Field.newBuilder("date", LegacySQLTypeName.DATE).setMode(Field.Mode.NULLABLE).build();
-        Field time = Field.newBuilder("time", LegacySQLTypeName.TIME).setMode(Field.Mode.NULLABLE).build();
-        Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Field.Mode.NULLABLE).build();
-        Field datetime = Field.newBuilder("datetime", StandardSQLTypeName.DATETIME).setMode(Field.Mode.NULLABLE).build();
-        Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full, datetime).setMode(Field.Mode.NULLABLE).build();
+        final Field date = Field.newBuilder("date", LegacySQLTypeName.DATE).setMode(Field.Mode.NULLABLE).build();
+        final Field time = Field.newBuilder("time", LegacySQLTypeName.TIME).setMode(Field.Mode.NULLABLE).build();
+        final Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Field.Mode.NULLABLE).build();
+        final Field datetime = Field.newBuilder("datetime", StandardSQLTypeName.DATETIME).setMode(Field.Mode.NULLABLE).build();
+        final Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full, datetime).setMode(Field.Mode.NULLABLE).build();
 
-        Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build();
-        Field floatc = Field.newBuilder("floatc", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
-        Field json = Field.newBuilder("json", StandardSQLTypeName.JSON).setMode(Field.Mode.NULLABLE).build();
+        final Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build();
+        final Field floatc = Field.newBuilder("floatc", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
+        final Field json = Field.newBuilder("json", StandardSQLTypeName.JSON).setMode(Field.Mode.NULLABLE).build();
 
         // Table schema definition
         schema = Schema.of(id, name, alias, addresses, job, birth, numeric, floatc, json);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        final TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        final TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
         // create table
         bigquery.create(tableInfo);
     }
 
-    private void createTableForBatch(String tableName) {
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+    private void createTableForBatch(final String tableName) {
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
 
         // Table field definition
-        Field field1 = Field.newBuilder("field_1", LegacySQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build();
-        Field field2 = Field.newBuilder("field_2", LegacySQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build();
-        Field field3 = Field.newBuilder("field_3", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
+        final Field field1 = Field.newBuilder("field_1", LegacySQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build();
+        final Field field2 = Field.newBuilder("field_2", LegacySQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build();
+        final Field field3 = Field.newBuilder("field_3", LegacySQLTypeName.STRING).setMode(Field.Mode.NULLABLE).build();
 
         // Table schema definition
         schema = Schema.of(field1, field2, field3);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        final TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        final TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
 
         // create table
         bigquery.create(tableInfo);
     }
 
-    private void deleteTable(String tableName) {
-        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+    private void deleteTable(final String tableName) {
+        final TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
         bigquery.delete(tableId);
     }
 
-    private void assertStreamingData(String tableName) {
+    private void assertStreamingData(final String tableName) {
         assertStreamingData(tableName, false, false);
     }
 
-    private void assertStreamingData(String tableName, boolean assertDate, boolean assertDateFormatted) {
-        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
-        Iterator<FieldValueList> iterator = result.getValues().iterator();
+    private void assertStreamingData(final String tableName, final boolean assertDate, final boolean assertDateFormatted) {
+        final TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        final Iterator<FieldValueList> iterator = result.getValues().iterator();
 
-        FieldValueList firstElt = iterator.next();
-        FieldValueList sndElt = iterator.next();
+        final FieldValueList firstElt = iterator.next();
+        final FieldValueList sndElt = iterator.next();
         assertTrue(firstElt.get("name").getStringValue().endsWith("Doe"));
         assertTrue(sndElt.get("name").getStringValue().endsWith("Doe"));
 
-        FieldValueList john;
-        FieldValueList jane;
+        final FieldValueList john;
+        final FieldValueList jane;
         john = firstElt.get("name").getStringValue().equals("John Doe") ? firstElt : sndElt;
         jane = firstElt.get("name").getStringValue().equals("Jane Doe") ? firstElt : sndElt;
 
@@ -537,23 +537,23 @@ public class PutBigQueryIT {
         assertTrue(john.get("addresses").getRepeatedValue().get(0).getRecordValue().get(0).getStringValue().endsWith("000"));
 
         if (assertDate) {
-            FieldValueList johnFields = john.get("birth").getRecordValue();
-            FieldValueList janeFields = jane.get("birth").getRecordValue();
+            final FieldValueList johnFields = john.get("birth").getRecordValue();
+            final FieldValueList janeFields = jane.get("birth").getRecordValue();
 
-            ZonedDateTime johnDateTime = Instant.parse("2021-07-18T12:35:24Z").atZone(ZoneId.systemDefault());
+            final ZonedDateTime johnDateTime = Instant.parse("2021-07-18T12:35:24Z").atZone(ZoneId.systemDefault());
             assertEquals(johnDateTime.toLocalDate().format(DateTimeFormatter.ISO_DATE), johnFields.get(0).getStringValue());
             assertEquals(johnDateTime.toLocalTime().format(DateTimeFormatter.ISO_TIME), johnFields.get(1).getStringValue());
             assertEquals(johnDateTime.toInstant().toEpochMilli(), (johnFields.get(2).getTimestampValue() / 1000));
 
-            ZonedDateTime janeDateTime = Instant.parse("1992-01-01T00:00:00Z").atZone(ZoneId.systemDefault());
+            final ZonedDateTime janeDateTime = Instant.parse("1992-01-01T00:00:00Z").atZone(ZoneId.systemDefault());
             assertEquals(janeDateTime.toLocalDate().format(DateTimeFormatter.ISO_DATE), janeFields.get(0).getStringValue());
             assertEquals(janeDateTime.toLocalTime().format(DateTimeFormatter.ISO_TIME), janeFields.get(1).getStringValue());
             assertEquals(janeDateTime.toInstant().toEpochMilli(), (janeFields.get(2).getTimestampValue() / 1000));
         }
 
         if (assertDateFormatted) {
-            FieldValueList johnFields = john.get("birth").getRecordValue();
-            FieldValueList janeFields = jane.get("birth").getRecordValue();
+            final FieldValueList johnFields = john.get("birth").getRecordValue();
+            final FieldValueList janeFields = jane.get("birth").getRecordValue();
 
             assertEquals("2021-07-18", johnFields.get(0).getStringValue());
             assertEquals("12:35:24", johnFields.get(1).getStringValue());

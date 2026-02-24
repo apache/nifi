@@ -189,7 +189,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("csv-reader-csv-parser", CSV_PARSER.getName());
         config.renameProperty("Trim double quote", TRIM_DOUBLE_QUOTE.getName());

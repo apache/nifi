@@ -31,7 +31,7 @@ public class VersionedReportingTaskImportRequestEntity extends Entity {
         return reportingTaskSnapshot;
     }
 
-    public void setReportingTaskSnapshot(VersionedReportingTaskSnapshot reportingTaskSnapshot) {
+    public void setReportingTaskSnapshot(final VersionedReportingTaskSnapshot reportingTaskSnapshot) {
         this.reportingTaskSnapshot = reportingTaskSnapshot;
     }
 
@@ -40,7 +40,7 @@ public class VersionedReportingTaskImportRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

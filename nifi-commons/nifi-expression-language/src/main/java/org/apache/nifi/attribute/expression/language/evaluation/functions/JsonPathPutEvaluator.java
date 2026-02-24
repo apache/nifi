@@ -40,17 +40,17 @@ public class JsonPathPutEvaluator extends JsonPathUpdateEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext context) {
-        DocumentContext documentContext = getDocumentContext(context);
+    public QueryResult<String> evaluate(final EvaluationContext context) {
+        final DocumentContext documentContext = getDocumentContext(context);
         final JsonPath compiledJsonPath = getJsonPath(context);
 
         final Object value = valueEvaluator.evaluate(context).getValue();
         final String key = keyEvaluator.evaluate(context).getValue().toString();
 
-        String result;
+        final String result;
         try {
             result = documentContext.put(compiledJsonPath, key, value).jsonString();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to put value {} at key {} at path {}", value, key, compiledJsonPath, e);
             // assume the path did not match anything in the document
             return EMPTY_RESULT;

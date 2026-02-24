@@ -101,7 +101,7 @@ public class TestFetchDistributedMapCache {
 
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -123,7 +123,7 @@ public class TestFetchDistributedMapCache {
 
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -146,7 +146,7 @@ public class TestFetchDistributedMapCache {
 
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "key");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -207,7 +207,7 @@ public class TestFetchDistributedMapCache {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
-        public void setFailOnCalls(boolean failOnCalls) {
+        public void setFailOnCalls(final boolean failOnCalls) {
             this.failOnCalls = failOnCalls;
         }
 

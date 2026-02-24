@@ -106,8 +106,8 @@ public class GetHDFSTest {
 
     @Test
     public void testValidators() {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -118,7 +118,7 @@ public class GetHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Directory is required"));
         }
 
@@ -141,91 +141,91 @@ public class GetHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Minimum File Age cannot be greater than Maximum File Age"));
         }
     }
 
     @Test
     public void testGetFilesWithFilter() {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(4, flowFiles.size());
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
             assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).startsWith("random"));
         }
     }
 
     @Test
     public void testDirectoryDoesNotExist() {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "does/not/exist/${now():format('yyyyMMdd')}");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
     @Test
     public void testAutomaticDecompression() throws IOException {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
         flowFile.assertContentEquals(expected);
     }
 
     @Test
     public void testInferCompressionCodecDisabled() throws IOException {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "NONE");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
         flowFile.assertContentEquals(expected);
     }
 
     @Test
     public void testFileExtensionNotACompressionCodec() throws IOException {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, tempDir.getAbsolutePath());
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
@@ -238,8 +238,8 @@ public class GetHDFSTest {
 
     @Test
     public void testDirectoryUsesUnrecognizedEL() {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
@@ -249,8 +249,8 @@ public class GetHDFSTest {
 
     @Test
     public void testDirectoryUsesInvalidEL() {
-        GetHDFS proc = new GetHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final GetHDFS proc = new GetHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):foo()}");
         runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
@@ -261,7 +261,7 @@ public class GetHDFSTest {
     @Test
     public void testDirectoryCheckWrappedInUGICallWhenDirectoryExists() throws IOException, InterruptedException {
         // GIVEN, WHEN
-        boolean directoryExists = true;
+        final boolean directoryExists = true;
 
         // THEN
         directoryExistsWrappedInUGICall(directoryExists);
@@ -270,26 +270,26 @@ public class GetHDFSTest {
     @Test
     public void testDirectoryCheckWrappedInUGICallWhenDirectoryDoesNotExist() throws IOException, InterruptedException {
         // GIVEN, WHEN
-        boolean directoryExists = false;
+        final boolean directoryExists = false;
 
         // THEN
         directoryExistsWrappedInUGICall(directoryExists);
     }
 
-    private void directoryExistsWrappedInUGICall(boolean directoryExists) throws IOException, InterruptedException {
+    private void directoryExistsWrappedInUGICall(final boolean directoryExists) throws IOException, InterruptedException {
         // GIVEN
-        FileSystem mockFileSystem = mock(FileSystem.class);
-        UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
+        final FileSystem mockFileSystem = mock(FileSystem.class);
+        final UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
 
-        GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
-        TestRunner runner = TestRunners.newTestRunner(testSubject);
+        final GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
+        final TestRunner runner = TestRunners.newTestRunner(testSubject);
         runner.setProperty(GetHDFS.DIRECTORY, tempDir.getAbsolutePath());
 
         // WHEN
-        Answer<?> answer = new Answer<>() {
+        final Answer<?> answer = new Answer<>() {
             private int callCounter = 0;
             @Override
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+            public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
                 final Object result;
                 if (callCounter == 0) {
                     when(mockFileSystem.exists(any(Path.class))).thenReturn(directoryExists);
@@ -316,11 +316,11 @@ public class GetHDFSTest {
 
     @Test
     public void testGSSExceptionOnExists() throws Exception {
-        FileSystem mockFileSystem = mock(FileSystem.class);
-        UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
+        final FileSystem mockFileSystem = mock(FileSystem.class);
+        final UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
 
-        GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
-        TestRunner runner = TestRunners.newTestRunner(testSubject);
+        final GetHDFS testSubject = new TestableGetHDFSForUGI(mockFileSystem, mockUserGroupInformation);
+        final TestRunner runner = TestRunners.newTestRunner(testSubject);
         runner.setProperty(GetHDFS.DIRECTORY, tempDir.getAbsolutePath());
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenThrow(new IOException(new GSSException(13)));
         runner.run();
@@ -335,7 +335,7 @@ public class GetHDFSTest {
         private final FileSystem mockFileSystem;
         private final UserGroupInformation mockUserGroupInformation;
 
-        public TestableGetHDFSForUGI(FileSystem mockFileSystem, UserGroupInformation mockUserGroupInformation) {
+        public TestableGetHDFSForUGI(final FileSystem mockFileSystem, final UserGroupInformation mockUserGroupInformation) {
             this.mockFileSystem = mockFileSystem;
             this.mockUserGroupInformation = mockUserGroupInformation;
         }

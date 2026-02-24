@@ -48,16 +48,16 @@ public class FlowPersistenceProviderMigrator {
     private static final Logger log = LoggerFactory.getLogger(FlowPersistenceProviderMigrator.class);
     public static final int PARSE_EXCEPTION = 1;
 
-    public void doMigrate(MetadataService fromMetadata, FlowPersistenceProvider fromProvider, FlowPersistenceProvider toProvider) {
-        for (BucketEntity bucket : fromMetadata.getAllBuckets()) {
-            for (FlowEntity flow : fromMetadata.getFlowsByBucket(bucket.getId())) {
-                for (FlowSnapshotEntity flowSnapshot : fromMetadata.getSnapshots(flow.getId())) {
-                    StandardFlowSnapshotContext context = new StandardFlowSnapshotContext.Builder(
+    public void doMigrate(final MetadataService fromMetadata, final FlowPersistenceProvider fromProvider, final FlowPersistenceProvider toProvider) {
+        for (final BucketEntity bucket : fromMetadata.getAllBuckets()) {
+            for (final FlowEntity flow : fromMetadata.getFlowsByBucket(bucket.getId())) {
+                for (final FlowSnapshotEntity flowSnapshot : fromMetadata.getSnapshots(flow.getId())) {
+                    final StandardFlowSnapshotContext context = new StandardFlowSnapshotContext.Builder(
                             BucketMappings.map(bucket),
                             FlowMappings.map(bucket, flow),
                             FlowMappings.map(bucket, flowSnapshot)).build();
 
-                    int version = flowSnapshot.getVersion();
+                    final int version = flowSnapshot.getVersion();
 
                     toProvider.saveFlowContent(context, fromProvider.getFlowContent(bucket.getId(), flow.getId(), version));
 
@@ -67,15 +67,15 @@ public class FlowPersistenceProviderMigrator {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        Options options = new Options();
+    public static void main(final String[] args) throws IOException {
+        final Options options = new Options();
         options.addOption("t", "to", true, "Providers xml to migrate to.");
-        CommandLineParser parser = new DefaultParser();
+        final CommandLineParser parser = new DefaultParser();
 
         CommandLine commandLine = null;
         try {
             commandLine = parser.parse(options, args);
-        } catch (ParseException e) {
+        } catch (final ParseException e) {
             log.error("Unable to parse command line.", e);
             HelpFormatter.builder()
                     .setShowSince(false)
@@ -84,12 +84,12 @@ public class FlowPersistenceProviderMigrator {
             System.exit(PARSE_EXCEPTION);
         }
 
-        NiFiRegistryProperties fromProperties = NiFiRegistry.initializeProperties();
+        final NiFiRegistryProperties fromProperties = NiFiRegistry.initializeProperties();
 
-        DataSource dataSource = new DataSourceFactory(fromProperties).getDataSource();
-        DatabaseMetadataService fromMetadataService = new DatabaseMetadataService(new JdbcTemplate(dataSource));
-        FlowPersistenceProvider fromPersistenceProvider = createFlowPersistenceProvider(fromProperties, dataSource);
-        FlowPersistenceProvider toPersistenceProvider = createFlowPersistenceProvider(createToProperties(commandLine, fromProperties), dataSource);
+        final DataSource dataSource = new DataSourceFactory(fromProperties).getDataSource();
+        final DatabaseMetadataService fromMetadataService = new DatabaseMetadataService(new JdbcTemplate(dataSource));
+        final FlowPersistenceProvider fromPersistenceProvider = createFlowPersistenceProvider(fromProperties, dataSource);
+        final FlowPersistenceProvider toPersistenceProvider = createFlowPersistenceProvider(createToProperties(commandLine, fromProperties), dataSource);
 
         new FlowPersistenceProviderMigrator().doMigrate(fromMetadataService, fromPersistenceProvider, toPersistenceProvider);
     }
@@ -104,10 +104,10 @@ public class FlowPersistenceProviderMigrator {
         return toProperties;
     }
 
-    private static FlowPersistenceProvider createFlowPersistenceProvider(NiFiRegistryProperties niFiRegistryProperties, DataSource dataSource) {
-        ExtensionManager fromExtensionManager = new ExtensionManager(niFiRegistryProperties);
+    private static FlowPersistenceProvider createFlowPersistenceProvider(final NiFiRegistryProperties niFiRegistryProperties, final DataSource dataSource) {
+        final ExtensionManager fromExtensionManager = new ExtensionManager(niFiRegistryProperties);
         fromExtensionManager.discoverExtensions();
-        StandardProviderFactory fromProviderFactory = new StandardProviderFactory(niFiRegistryProperties, fromExtensionManager, dataSource);
+        final StandardProviderFactory fromProviderFactory = new StandardProviderFactory(niFiRegistryProperties, fromExtensionManager, dataSource);
         fromProviderFactory.initialize();
         return fromProviderFactory.getFlowPersistenceProvider();
     }

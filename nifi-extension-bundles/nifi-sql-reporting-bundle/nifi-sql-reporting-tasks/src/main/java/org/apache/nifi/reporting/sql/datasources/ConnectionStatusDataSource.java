@@ -75,8 +75,7 @@ public class ConnectionStatusDataSource implements ResettableDataSource {
         if (groupStatus == lastFetchedStatus) {
             connectionStatuses = lastConnectionStatuses;
         } else {
-            lastConnectionStatuses = gatherConnectionStatuses(groupStatus);
-            connectionStatuses = lastConnectionStatuses;
+            connectionStatuses = lastConnectionStatuses = gatherConnectionStatuses(groupStatus);
         }
 
         lastFetchedStatus = groupStatus;

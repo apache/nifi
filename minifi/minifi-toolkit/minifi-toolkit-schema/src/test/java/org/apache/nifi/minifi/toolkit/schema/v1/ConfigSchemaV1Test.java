@@ -43,34 +43,34 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 public class ConfigSchemaV1Test {
     @Test
     public void testValid() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
-        ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
-        List<String> validationIssues = configSchema.getValidationIssues();
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        final ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
+        final List<String> validationIssues = configSchema.getValidationIssues();
         assertEquals(new ArrayList<>(), validationIssues);
     }
     @Test
     public void testValidationIssuesFromNewer() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
-        ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
-        List<String> validationIssues = configSchema.getValidationIssues();
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
+        final ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
+        final List<String> validationIssues = configSchema.getValidationIssues();
         assertNotEquals(0, validationIssues.size());
     }
 
     @Test
     public void testInvalidSourceAndDestinationNames() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
-        List<Map<String, Object>> connections = (List<Map<String, Object>>) yamlAsMap.get(CommonPropertyKeys.CONNECTIONS_KEY);
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        final List<Map<String, Object>> connections = (List<Map<String, Object>>) yamlAsMap.get(CommonPropertyKeys.CONNECTIONS_KEY);
         assertEquals(1, connections.size());
 
-        String fakeSource = "fakeSource";
-        String fakeDestination = "fakeDestination";
+        final String fakeSource = "fakeSource";
+        final String fakeDestination = "fakeDestination";
 
-        Map<String, Object> connection = connections.get(0);
+        final Map<String, Object> connection = connections.get(0);
         connection.put(ConnectionSchemaV1.SOURCE_NAME_KEY, fakeSource);
         connection.put(ConnectionSchemaV1.DESTINATION_NAME_KEY, fakeDestination);
 
-        ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
-        List<String> validationIssues = configSchema.getValidationIssues();
+        final ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
+        final List<String> validationIssues = configSchema.getValidationIssues();
         assertEquals(4, validationIssues.size());
         assertEquals(BaseSchema.getIssueText(ConnectionSchema.DESTINATION_ID_KEY, "Connection(id: 0401b747-1dca-31c7-ab4b-cdacf7e6c44b, name: TailToSplit)",
                 BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED), validationIssues.get(0));
@@ -82,7 +82,7 @@ public class ConfigSchemaV1Test {
 
     @Test
     public void testGetUniqueIdConflicts() {
-        Set<UUID> ids = new HashSet<>();
+        final Set<UUID> ids = new HashSet<>();
         assertEquals("56e7ae5d-aae1-351e-bca9-cdc4446c6386", ConfigSchemaV1.getUniqueId(ids, "test/id"));
         assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834d8", ConfigSchemaV1.getUniqueId(ids, "test$id"));
         assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834d9", ConfigSchemaV1.getUniqueId(ids, "test$id"));
@@ -93,7 +93,7 @@ public class ConfigSchemaV1Test {
 
     @Test
     public void testGetUniqueIdEmptySet() {
-        String testId = "testId";
+        final String testId = "testId";
         assertEquals("17841b04-ce22-34a3-9603-d95ec31d02dc", ConfigSchemaV1.getUniqueId(new HashSet<>(), testId + "/ $"));
     }
 }

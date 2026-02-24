@@ -93,11 +93,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             "specified it defaults to the ZooKeeper client port default of 2181")
         .addValidator(new Validator() {
             @Override
-            public ValidationResult validate(String subject, String input, ValidationContext context) {
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 final String connectionString = context.getProperty(CONNECTION_STRING).getValue();
                 try {
                     new ConnectStringParser(connectionString);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     return new ValidationResult.Builder().subject(subject).input(input).explanation("Invalid Connect String: " + connectionString).valid(false).build();
                 }
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
@@ -141,7 +141,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private ZooKeeperClientConfig zooKeeperClientConfig;
 
     @StateProviderContext
-    public void setNiFiProperties(NiFiProperties properties) {
+    public void setNiFiProperties(final NiFiProperties properties) {
         this.nifiProperties = properties;
     }
 
@@ -175,11 +175,11 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
      * @param additionalProperties Additional properties that can be used to override properties in the given NiFiProperties
      * @return NiFiProperties that contains the combined properties
      */
-    static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
+    static NiFiProperties combineProperties(final NiFiProperties nifiProps, final Properties additionalProperties) {
         return new NiFiProperties() {
 
             @Override
-            public String getProperty(String key) {
+            public String getProperty(final String key) {
                 // Get the additional properties as preference over the NiFiProperties value. Will return null if the property
                 // is not available through either object.
                 return additionalProperties.getProperty(key, nifiProps != null ? nifiProps.getProperty(key) : null);
@@ -187,7 +187,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
             @Override
             public Set<String> getPropertyKeys() {
-                Set<String> prop = additionalProperties.keySet().stream().map(key -> (String) key).collect(Collectors.toSet());
+                final Set<String> prop = additionalProperties.keySet().stream().map(key -> (String) key).collect(Collectors.toSet());
                 prop.addAll(nifiProps.getPropertyKeys());
                 return prop;
             }
@@ -210,7 +210,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     // visible for testing
     synchronized ZooKeeper getZooKeeper() throws IOException {
 
-        ZooKeeperClientConfig clientConfig = getZooKeeperConfig();
+        final ZooKeeperClientConfig clientConfig = getZooKeeperConfig();
 
         if (zooKeeper != null && !zooKeeper.getState().isAlive()) {
             invalidateClient();
@@ -218,7 +218,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
         if (zooKeeper == null) {
             if (clientConfig != null && clientConfig.isClientSecure()) {
-                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
+                final SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
                 try {
                     zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new NoOpWatcher(), true);
                     logger.debug("Secure ZooKeeper Client connection [{}] created", connectionString);
@@ -241,7 +241,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private ZooKeeperClientConfig getZooKeeperConfig() {
         if (zooKeeperClientConfig == null) {
-            Properties stateProviderProperties = new Properties();
+            final Properties stateProviderProperties = new Properties();
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, timeoutMillis + " millis");
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, timeoutMillis + " millis");
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
@@ -360,7 +360,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             } catch (final NoNodeException nne) {
                 try {
                     createNode(path, data, acl);
-                } catch (NodeExistsException nee) {
+                } catch (final NodeExistsException nee) {
                     setState(stateValues, componentId);
                 }
             }

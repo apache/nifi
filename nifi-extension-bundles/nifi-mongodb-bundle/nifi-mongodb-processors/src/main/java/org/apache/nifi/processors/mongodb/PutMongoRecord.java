@@ -171,14 +171,14 @@ public class PutMongoRecord extends AbstractMongoProcessor {
 
         final WriteConcern writeConcern = clientService.getWriteConcern();
 
-        int ceiling = context.getProperty(INSERT_COUNT).asInteger();
+        final int ceiling = context.getProperty(INSERT_COUNT).asInteger();
         int written = 0;
         boolean error = false;
 
-        boolean ordered = context.getProperty(ORDERED).asBoolean();
-        boolean bypass = context.getProperty(BYPASS_VALIDATION).asBoolean();
+        final boolean ordered = context.getProperty(ORDERED).asBoolean();
+        final boolean bypass = context.getProperty(BYPASS_VALIDATION).asBoolean();
 
-        Map<String, List<String>> updateKeyFieldPathToFieldChain = new LinkedHashMap<>();
+        final Map<String, List<String>> updateKeyFieldPathToFieldChain = new LinkedHashMap<>();
         if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
             Arrays.stream(context.getProperty(UPDATE_KEY_FIELDS).getValue().split("\\s*,\\s*"))
                 .forEach(updateKeyField -> updateKeyFieldPathToFieldChain.put(
@@ -187,7 +187,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 ));
         }
 
-        BulkWriteOptions bulkWriteOptions = new BulkWriteOptions();
+        final BulkWriteOptions bulkWriteOptions = new BulkWriteOptions();
         bulkWriteOptions.ordered(ordered);
         bulkWriteOptions.bypassDocumentValidation(bypass);
 
@@ -195,7 +195,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             final InputStream inStream = session.read(flowFile);
             final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger());
         ) {
-            RecordSchema schema = reader.getSchema();
+            final RecordSchema schema = reader.getSchema();
 
             final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
 
@@ -204,17 +204,17 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             Record record;
             while ((record = reader.nextRecord()) != null) {
                 // Convert each Record to HashMap and put into the Mongo document
-                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-                Document document = new Document();
-                for (String name : schema.getFieldNames()) {
+                final Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+                final Document document = new Document();
+                for (final String name : schema.getFieldNames()) {
                     document.put(name, contentMap.get(name));
                 }
-                Document readyToUpsert = convertArrays(document);
+                final Document readyToUpsert = convertArrays(document);
 
-                WriteModel<Document> writeModel;
+                final WriteModel<Document> writeModel;
                 if (context.getProperty(UPDATE_KEY_FIELDS).isSet()) {
-                    Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
-                    UpdateMethod mongoUpdateMode = context.getProperty(UPDATE_MODE).asAllowableValue(UpdateMethod.class);
+                    final Bson[] filters = buildFilters(updateKeyFieldPathToFieldChain, readyToUpsert);
+                    final UpdateMethod mongoUpdateMode = context.getProperty(UPDATE_MODE).asAllowableValue(UpdateMethod.class);
                     if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, mongoUpdateMode, flowFile)) {
                         writeModel = new UpdateOneModel<>(
                             Filters.and(filters),
@@ -228,7 +228,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                             new UpdateOptions().upsert(true)
                         );
                     } else {
-                        String flowfileUpdateMode = flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE);
+                        final String flowfileUpdateMode = flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE);
                         throw new ProcessException("Unrecognized '" + ATTRIBUTE_MONGODB_UPDATE_MODE + "' value '" + flowfileUpdateMode + "'");
                     }
                 } else {
@@ -245,7 +245,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             if (!writeModels.isEmpty()) {
                 collection.bulkWrite(writeModels, bulkWriteOptions);
             }
-        } catch (ProcessException | SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
+        } catch (final ProcessException | SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
             getLogger().error("PutMongoRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
@@ -259,7 +259,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("insert_count", INSERT_COUNT.getName());
@@ -269,9 +269,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         config.renameProperty("update-mode", UPDATE_MODE.getName());
     }
 
-    private Document convertArrays(Document doc) {
-        Document retVal = new Document();
-        for (Map.Entry<String, Object> entry : doc.entrySet()) {
+    private Document convertArrays(final Document doc) {
+        final Document retVal = new Document();
+        for (final Map.Entry<String, Object> entry : doc.entrySet()) {
             if (entry.getValue() != null && entry.getValue().getClass().isArray()) {
                 retVal.put(entry.getKey(), convertArrays((Object[]) entry.getValue()));
             } else if (entry.getValue() != null && (entry.getValue() instanceof Map || entry.getValue() instanceof Document)) {
@@ -284,9 +284,9 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         return retVal;
     }
 
-    private List<Object> convertArrays(Object[] input) {
-        List<Object> retVal = new ArrayList<>();
-        for (Object o : input) {
+    private List<Object> convertArrays(final Object[] input) {
+        final List<Object> retVal = new ArrayList<>();
+        for (final Object o : input) {
             if (o != null && o.getClass().isArray()) {
                 retVal.add(convertArrays((Object[]) o));
             } else if (o instanceof Map) {
@@ -299,16 +299,16 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         return retVal;
     }
 
-    private Bson[] buildFilters(Map<String, List<String>> updateKeyFieldPathToFieldChain, Document readyToUpsert) {
-        Bson[] filters = updateKeyFieldPathToFieldChain.entrySet()
+    private Bson[] buildFilters(final Map<String, List<String>> updateKeyFieldPathToFieldChain, final Document readyToUpsert) {
+        final Bson[] filters = updateKeyFieldPathToFieldChain.entrySet()
             .stream()
             .map(updateKeyFieldPath__fieldChain -> {
-                String fieldPath = updateKeyFieldPath__fieldChain.getKey();
-                List<String> fieldChain = updateKeyFieldPath__fieldChain.getValue();
+                final String fieldPath = updateKeyFieldPath__fieldChain.getKey();
+                final List<String> fieldChain = updateKeyFieldPath__fieldChain.getValue();
 
                 Object value = readyToUpsert;
                 String previousField = null;
-                for (String field : fieldChain) {
+                for (final String field : fieldChain) {
                     if (!(value instanceof Map)) {
                         throw new ProcessException("field '" + previousField + "' (from field expression '" + fieldPath + "') is not an embedded document");
                     }
@@ -322,7 +322,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                     previousField = field;
                 }
 
-                Bson filter = Filters.eq(fieldPath, value);
+                final Bson filter = Filters.eq(fieldPath, value);
                 return filter;
             })
             .toArray(Bson[]::new);

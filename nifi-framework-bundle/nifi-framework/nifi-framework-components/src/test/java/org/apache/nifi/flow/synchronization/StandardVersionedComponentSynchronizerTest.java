@@ -439,7 +439,7 @@ public class StandardVersionedComponentSynchronizerTest {
         final Map<String, VersionedPropertyDescriptor> proposedDescriptors =
                 Map.of(versionedDescriptorCS.getName(), versionedDescriptorCS);
 
-        ControllerServiceNode controllerServiceNode = createMockControllerService();
+        final ControllerServiceNode controllerServiceNode = createMockControllerService();
         when(flowManager.createControllerService(any(), any(), any(), anySet(), eq(true), eq(true), eq(null))).thenReturn(controllerServiceNode);
         when(flowManager.createProcessor(any(), any(), any(), eq(true))).thenReturn(processorNode);
         setReferences(controllerServiceNode, processorNode);
@@ -1466,12 +1466,12 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Override
-        public void onScheduledStateChange(ControllerServiceNode controllerService, final ScheduledState intendedState) {
+        public void onScheduledStateChange(final ControllerServiceNode controllerService, final ScheduledState intendedState) {
             serviceUpdates.add(new ControllerServiceStateUpdate(controllerService, controllerService.getState()));
         }
 
         @Override
-        public void onScheduledStateChange(ReportingTaskNode reportingTask, final ScheduledState intendedState) {
+        public void onScheduledStateChange(final ReportingTaskNode reportingTask, final ScheduledState intendedState) {
             reportingTaskUpdates.add(new ScheduledStateUpdate<>(reportingTask, reportingTask.getScheduledState()));
         }
 
@@ -1480,7 +1480,7 @@ public class StandardVersionedComponentSynchronizerTest {
             portUpdates.add(new ScheduledStateUpdate<>(port, port.getScheduledState()));
         }
 
-        void assertNumProcessorUpdates(int expectedNum) {
+        void assertNumProcessorUpdates(final int expectedNum) {
             assertEquals(expectedNum, processorUpdates.size(), "Expected " + expectedNum + " processor state changes");
         }
 
@@ -1501,17 +1501,17 @@ public class StandardVersionedComponentSynchronizerTest {
     private static class TestControllerService implements ControllerService {
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         }
 
         @Override
@@ -1525,7 +1525,7 @@ public class StandardVersionedComponentSynchronizerTest {
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
         }
     }
 }

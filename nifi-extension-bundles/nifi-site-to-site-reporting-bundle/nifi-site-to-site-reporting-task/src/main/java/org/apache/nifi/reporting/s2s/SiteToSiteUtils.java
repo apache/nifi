@@ -120,7 +120,7 @@ public class SiteToSiteUtils {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static SiteToSiteClient getClient(PropertyContext reportContext, ComponentLog logger, StateManager stateManager) {
+    public static SiteToSiteClient getClient(final PropertyContext reportContext, final ComponentLog logger, final StateManager stateManagerArg) {
         final SSLContextProvider sslContextProvider = reportContext.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextProvider.class);
         final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
         final SiteToSiteEventReporter eventReporter = (severity, category, message) -> {
@@ -152,9 +152,8 @@ public class SiteToSiteUtils {
         }
 
         // If no state manager was provided and this context supports retrieving it, do so
-        if (stateManager == null && reportContext instanceof ReportingContext) {
-            stateManager = ((ReportingContext) reportContext).getStateManager();
-        }
+        final StateManager stateManager = (stateManagerArg == null && reportContext instanceof ReportingContext)
+                ? ((ReportingContext) reportContext).getStateManager() : stateManagerArg;
         return new SiteToSiteClient.Builder()
                 .urls(ClusterUrlParser.parseClusterUrls(destinationUrl))
                 .portName(reportContext.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
@@ -179,7 +178,7 @@ public class SiteToSiteUtils {
                         .subject(subject)
                         .valid(true)
                         .build();
-            } catch (IllegalArgumentException ex) {
+            } catch (final IllegalArgumentException ex) {
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)

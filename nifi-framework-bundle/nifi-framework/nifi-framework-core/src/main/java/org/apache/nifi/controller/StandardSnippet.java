@@ -46,7 +46,7 @@ public class StandardSnippet implements Snippet {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -55,7 +55,7 @@ public class StandardSnippet implements Snippet {
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -64,7 +64,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(connections);
     }
 
-    public void addConnections(Map<String, Revision> ids) {
+    public void addConnections(final Map<String, Revision> ids) {
         connections.putAll(ids);
     }
 
@@ -73,7 +73,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(funnels);
     }
 
-    public void addFunnels(Map<String, Revision> ids) {
+    public void addFunnels(final Map<String, Revision> ids) {
         funnels.putAll(ids);
     }
 
@@ -82,7 +82,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(inputPorts);
     }
 
-    public void addInputPorts(Map<String, Revision> ids) {
+    public void addInputPorts(final Map<String, Revision> ids) {
         inputPorts.putAll(ids);
     }
 
@@ -91,7 +91,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(outputPorts);
     }
 
-    public void addOutputPorts(Map<String, Revision> ids) {
+    public void addOutputPorts(final Map<String, Revision> ids) {
         outputPorts.putAll(ids);
     }
 
@@ -100,7 +100,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(labels);
     }
 
-    public void addLabels(Map<String, Revision> ids) {
+    public void addLabels(final Map<String, Revision> ids) {
         labels.putAll(ids);
     }
 
@@ -109,7 +109,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(processGroups);
     }
 
-    public void addProcessGroups(Map<String, Revision> ids) {
+    public void addProcessGroups(final Map<String, Revision> ids) {
         processGroups.putAll(ids);
     }
 
@@ -118,7 +118,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(processors);
     }
 
-    public void addProcessors(Map<String, Revision> ids) {
+    public void addProcessors(final Map<String, Revision> ids) {
         processors.putAll(ids);
     }
 
@@ -127,7 +127,7 @@ public class StandardSnippet implements Snippet {
         return Collections.unmodifiableMap(remoteProcessGroups);
     }
 
-    public void addRemoteProcessGroups(Map<String, Revision> ids) {
+    public void addRemoteProcessGroups(final Map<String, Revision> ids) {
         remoteProcessGroups.putAll(ids);
     }
 

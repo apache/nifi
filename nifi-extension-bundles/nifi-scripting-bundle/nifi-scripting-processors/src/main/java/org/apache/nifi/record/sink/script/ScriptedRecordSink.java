@@ -104,7 +104,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
@@ -143,7 +143,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                 throw new ProcessException("No script runner available!");
             }
             // get the engine and ensure its invocable
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
@@ -234,7 +234,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                     } else {
                         throw new ScriptException("No RecordSinkService was defined by the script.");
                     }
-                } catch (ScriptException se) {
+                } catch (final ScriptException se) {
                     throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
                 }
             }
@@ -244,11 +244,11 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         if (recordSink.get() != null) {
             try {
                 return recordSink.get().sendData(recordSet, attributes, sendZeroResults);
-            } catch (UndeclaredThrowableException ute) {
+            } catch (final UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }
         }

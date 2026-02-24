@@ -33,7 +33,7 @@ public class ProcessGroupImportEntity extends ProcessGroupDescriptorEntity {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(final RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 }

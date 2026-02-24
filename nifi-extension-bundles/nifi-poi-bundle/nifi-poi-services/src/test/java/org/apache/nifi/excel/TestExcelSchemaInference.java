@@ -75,10 +75,10 @@ public class TestExcelSchemaInference {
     public static void cleanUpAfterAll() {
         final Path tempDir = Path.of(System.getProperty("java.io.tmpdir")).resolve("poifiles");
         try (DirectoryStream<Path> directoryStream = newDirectoryStream(tempDir, "tmp-[0-9]*.xlsx")) {
-            for (Path tmpFile : directoryStream) {
+            for (final Path tmpFile : directoryStream) {
                 Files.deleteIfExists(tmpFile);
             }
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
         }
     }
 

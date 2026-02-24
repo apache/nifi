@@ -95,7 +95,7 @@ public class TweetStreamService {
         this.backoffTime = context.getProperty(ConsumeTwitter.BACKOFF_TIME).asTimePeriod(TimeUnit.SECONDS);
         this.maximumBackoff = context.getProperty(ConsumeTwitter.MAXIMUM_BACKOFF_TIME).asTimePeriod(TimeUnit.SECONDS);
 
-        ApiClient client = new ApiClient();
+        final ApiClient client = new ApiClient();
         final int connectTimeout = context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int readTimeout = context.getProperty(ConsumeTwitter.READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final TwitterCredentialsBearer bearer = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
@@ -139,7 +139,7 @@ public class TweetStreamService {
         if (stream != null) {
             try {
                 stream.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Closing response stream failed", e);
             }
         }
@@ -149,7 +149,7 @@ public class TweetStreamService {
     }
 
     private Long calculateBackoffDelay() {
-        long backoff = backoffMultiplier * backoffTime;
+        final long backoff = backoffMultiplier * backoffTime;
         return Math.min(backoff, maximumBackoff);
     }
 
@@ -159,7 +159,7 @@ public class TweetStreamService {
             throw new ProcessException(String.format("Connection failed after maximum attempts [%d]", attemptCounter));
         }
         attemptCounter += 1;
-        long delay = calculateBackoffDelay();
+        final long delay = calculateBackoffDelay();
         backoffMultiplier *= 2;
         logger.info("Scheduling new stream connection after delay [{} s]", delay);
         executorService.schedule(new TweetStreamStarter(), delay, TimeUnit.SECONDS);

@@ -21,8 +21,8 @@ import java.util.Arrays;
 
 public class TestLogStdErr {
 
-    public static void main(String[] args) throws IOException, URISyntaxException {
-        char[] chars = new char[1024 * 1024];
+    public static void main(final String[] args) throws IOException, URISyntaxException {
+        final char[] chars = new char[1024 * 1024];
         Arrays.fill(chars, 'f');
         System.arraycopy("ÄÖÜäöüß".toCharArray(), 0, chars, 0, 7);
         System.err.println(new String(chars));

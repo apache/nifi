@@ -46,7 +46,7 @@ public class PGCreate extends AbstractNiFiCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_NAME.createOption());
     }
 

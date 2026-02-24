@@ -363,7 +363,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 warningsResult.outcome(ConfigVerificationResult.Outcome.FAILED)
                         .explanation("Elasticsearch Warnings received during request (see logs for details)");
             }
-        } catch (ElasticsearchException | IOException ex) {
+        } catch (final ElasticsearchException | IOException ex) {
             getLogger().warn("Unable to connect to Elasticsearch", ex);
 
             connectionResult.outcome(ConfigVerificationResult.Outcome.FAILED)
@@ -1070,7 +1070,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
 
         if (getLogger().isDebugEnabled()) {
-            StringBuilder builder = new StringBuilder(1000);
+            final StringBuilder builder = new StringBuilder(1000);
             builder.append("Dumping Elasticsearch REST request...\n")
                     .append("HTTP Method: ")
                     .append(method)
@@ -1101,11 +1101,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return client.performRequest(request);
     }
 
-    private String readContentAsUtf8String(HttpEntity entity) throws IOException {
+    private String readContentAsUtf8String(final HttpEntity entity) throws IOException {
         return this.readContentAsString(entity, StandardCharsets.UTF_8);
     }
 
-    private String readContentAsString(HttpEntity entity, Charset charset) throws IOException {
+    private String readContentAsString(final HttpEntity entity, final Charset charset) throws IOException {
         try (InputStream responseStream = entity.getContent()) {
             return new String(responseStream.readAllBytes(), charset);
         }

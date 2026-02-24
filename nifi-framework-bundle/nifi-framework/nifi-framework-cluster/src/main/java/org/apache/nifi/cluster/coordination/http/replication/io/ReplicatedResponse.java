@@ -114,7 +114,7 @@ public class ReplicatedResponse extends Response {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T readEntity(Class<T> entityType) {
+    public <T> T readEntity(final Class<T> entityType) {
         final InputStream responseBodyStream = getResponseBodyStream();
 
         if (InputStream.class.equals(entityType)) {
@@ -140,17 +140,17 @@ public class ReplicatedResponse extends Response {
     }
 
     @Override
-    public <T> T readEntity(GenericType<T> entityType) {
+    public <T> T readEntity(final GenericType<T> entityType) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> T readEntity(Class<T> entityType, Annotation[] annotations) {
+    public <T> T readEntity(final Class<T> entityType, final Annotation[] annotations) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> T readEntity(GenericType<T> entityType, Annotation[] annotations) {
+    public <T> T readEntity(final GenericType<T> entityType, final Annotation[] annotations) {
         throw new UnsupportedOperationException();
     }
 
@@ -235,17 +235,17 @@ public class ReplicatedResponse extends Response {
     }
 
     @Override
-    public boolean hasLink(String relation) {
+    public boolean hasLink(final String relation) {
         return false;
     }
 
     @Override
-    public Link getLink(String relation) {
+    public Link getLink(final String relation) {
         return null;
     }
 
     @Override
-    public Builder getLinkBuilder(String relation) {
+    public Builder getLinkBuilder(final String relation) {
         return null;
     }
 

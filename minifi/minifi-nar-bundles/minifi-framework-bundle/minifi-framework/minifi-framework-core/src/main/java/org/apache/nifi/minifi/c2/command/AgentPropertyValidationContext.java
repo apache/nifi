@@ -31,7 +31,7 @@ import java.util.function.Function;
 public class AgentPropertyValidationContext implements ValidationContext {
 
     @Override
-    public boolean isExpressionLanguageSupported(String propertyName) {
+    public boolean isExpressionLanguageSupported(final String propertyName) {
         return false;
     }
 
@@ -51,7 +51,7 @@ public class AgentPropertyValidationContext implements ValidationContext {
     }
 
     @Override
-    public ValidationContext getControllerServiceValidationContext(ControllerService controllerService) {
+    public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         throw new UnsupportedOperationException();
     }
 
@@ -61,7 +61,7 @@ public class AgentPropertyValidationContext implements ValidationContext {
     }
 
     @Override
-    public PropertyValue newPropertyValue(String value) {
+    public PropertyValue newPropertyValue(final String value) {
         throw new UnsupportedOperationException();
     }
 
@@ -71,12 +71,12 @@ public class AgentPropertyValidationContext implements ValidationContext {
     }
 
     @Override
-    public boolean isValidationRequired(ControllerService service) {
+    public boolean isValidationRequired(final ControllerService service) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isExpressionLanguagePresent(String value) {
+    public boolean isExpressionLanguagePresent(final String value) {
         throw new UnsupportedOperationException();
     }
 
@@ -86,27 +86,27 @@ public class AgentPropertyValidationContext implements ValidationContext {
     }
 
     @Override
-    public Collection<String> getReferencedParameters(String propertyName) {
+    public Collection<String> getReferencedParameters(final String propertyName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isParameterDefined(String parameterName) {
+    public boolean isParameterDefined(final String parameterName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isParameterSet(String parameterName) {
+    public boolean isParameterSet(final String parameterName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isDependencySatisfied(PropertyDescriptor propertyDescriptor, Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+    public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public PropertyValue getProperty(PropertyDescriptor descriptor) {
+    public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         throw new UnsupportedOperationException();
     }
 }

@@ -48,7 +48,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return flowFileRepositoryStorageUsage;
     }
 
-    public void setFlowFileRepositoryStorageUsage(RepositoryUsageDTO flowFileRepositoryStorageUsage) {
+    public void setFlowFileRepositoryStorageUsage(final RepositoryUsageDTO flowFileRepositoryStorageUsage) {
         this.flowFileRepositoryStorageUsage = flowFileRepositoryStorageUsage;
     }
 
@@ -57,7 +57,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return contentRepositoryStorageUsage;
     }
 
-    public void setContentRepositoryStorageUsage(Set<RepositoryUsageDTO> contentRepositoryStorageUsage) {
+    public void setContentRepositoryStorageUsage(final Set<RepositoryUsageDTO> contentRepositoryStorageUsage) {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
     }
 
@@ -66,7 +66,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return provenanceRepositoryStorageUsage;
     }
 
-    public void setProvenanceRepositoryStorageUsage(Set<RepositoryUsageDTO> provenanceRepositoryStorageUsage) {
+    public void setProvenanceRepositoryStorageUsage(final Set<RepositoryUsageDTO> provenanceRepositoryStorageUsage) {
         this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
     }
 
@@ -75,7 +75,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxHeapBytes;
     }
 
-    public void setMaxHeapBytes(Long heapBytes) {
+    public void setMaxHeapBytes(final Long heapBytes) {
         this.maxHeapBytes = heapBytes;
     }
 
@@ -84,7 +84,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxHeap;
     }
 
-    public void setMaxHeap(String maxHeap) {
+    public void setMaxHeap(final String maxHeap) {
         this.maxHeap = maxHeap;
     }
 
@@ -93,7 +93,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return cpuCores;
     }
 
-    public void setCpuCores(Integer cpuCores) {
+    public void setCpuCores(final Integer cpuCores) {
         this.cpuCores = cpuCores;
     }
 
@@ -102,7 +102,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return cpuLoadAverage;
     }
 
-    public void setCpuLoadAverage(Double cpuLoadAverage) {
+    public void setCpuLoadAverage(final Double cpuLoadAverage) {
         this.cpuLoadAverage = cpuLoadAverage;
     }
 
@@ -111,7 +111,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return physicalMemoryBytes;
     }
 
-    public void setPhysicalMemoryBytes(Long memoryBytes) {
+    public void setPhysicalMemoryBytes(final Long memoryBytes) {
         this.physicalMemoryBytes = memoryBytes;
     }
 
@@ -120,7 +120,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return physicalMemory;
     }
 
-    public void setPhysicalMemory(String memory) {
+    public void setPhysicalMemory(final String memory) {
         this.physicalMemory = memory;
     }
 
@@ -129,7 +129,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return openFileDescriptors;
     }
 
-    public void setOpenFileDescriptors(Long openFileDescriptors) {
+    public void setOpenFileDescriptors(final Long openFileDescriptors) {
         this.openFileDescriptors = openFileDescriptors;
     }
 
@@ -138,7 +138,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxOpenFileDescriptors;
     }
 
-    public void setMaxOpenFileDescriptors(Long maxOpenFileDescriptors) {
+    public void setMaxOpenFileDescriptors(final Long maxOpenFileDescriptors) {
         this.maxOpenFileDescriptors = maxOpenFileDescriptors;
     }
 
@@ -147,7 +147,7 @@ public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {
         return garbageCollectionDiagnostics;
     }
 
-    public void setGarbageCollectionDiagnostics(List<GarbageCollectionDiagnosticsDTO> garbageCollectionDiagnostics) {
+    public void setGarbageCollectionDiagnostics(final List<GarbageCollectionDiagnosticsDTO> garbageCollectionDiagnostics) {
         this.garbageCollectionDiagnostics = garbageCollectionDiagnostics;
     }
 

@@ -49,7 +49,7 @@ public enum SessionVariable {
 
     public static List<String> getAllVariableNames() {
         final List<String> names = new ArrayList<>();
-        for (SessionVariable variable : values()) {
+        for (final SessionVariable variable : values()) {
             names.add(variable.getVariableName());
         }
         return names;

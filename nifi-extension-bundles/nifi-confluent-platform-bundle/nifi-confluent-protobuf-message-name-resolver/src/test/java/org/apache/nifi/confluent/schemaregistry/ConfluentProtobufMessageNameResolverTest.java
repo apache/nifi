@@ -142,7 +142,7 @@ class ConfluentProtobufMessageNameResolverTest {
     @BeforeEach
     void setUp() throws Exception {
         resolver = new ConfluentProtobufMessageNameResolver();
-        TestRunner testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
         testRunner.addControllerService("messageNameResolver", resolver);
         testRunner.enableControllerService(resolver);
 

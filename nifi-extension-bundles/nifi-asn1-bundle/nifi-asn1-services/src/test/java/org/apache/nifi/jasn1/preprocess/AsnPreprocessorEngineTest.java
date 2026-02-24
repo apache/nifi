@@ -64,12 +64,12 @@ public class AsnPreprocessorEngineTest {
         helper = mock(AsnPreprocessorEngine.class);
         testSubject = new AsnPreprocessorEngine() {
             @Override
-            List<String> readAsnLines(ComponentLog componentLog, String inputFile, Path inputFilePath) {
+            List<String> readAsnLines(final ComponentLog componentLog, final String inputFile, final Path inputFilePath) {
                 return helper.readAsnLines(componentLog, inputFile, inputFilePath);
             }
 
             @Override
-            void writePreprocessedAsn(ComponentLog componentLog, String preprocessedAsn, Path preprocessedAsnPath) {
+            void writePreprocessedAsn(final ComponentLog componentLog, final String preprocessedAsn, final Path preprocessedAsnPath) {
                 helper.writePreprocessedAsn(componentLog, preprocessedAsn, preprocessedAsnPath);
             }
 
@@ -83,23 +83,23 @@ public class AsnPreprocessorEngineTest {
     @Test
     void testPreprocess() {
         // GIVEN
-        Path asnFile1Path = Paths.get("path", "to", "asn_file_1");
-        Path asnFile2Path = Paths.get("path", "to", "asn_file_2");
+        final Path asnFile1Path = Paths.get("path", "to", "asn_file_1");
+        final Path asnFile2Path = Paths.get("path", "to", "asn_file_2");
 
-        String asnFilesString = new StringJoiner(",")
+        final String asnFilesString = new StringJoiner(",")
                 .add(asnFile1Path.toString())
                 .add(asnFile2Path.toString())
                 .toString();
 
-        String outputDirectory = Paths.get("path", "to", "directory_for_transformed_asn_files").toString();
+        final String outputDirectory = Paths.get("path", "to", "directory_for_transformed_asn_files").toString();
 
-        List<String> originalLines1 = Arrays.asList("original_lines_1_1", "original_lines_1_2");
-        List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1", "preprocessed_lines_1_1_2");
-        List<String> preprocessedLines1_2 = Arrays.asList("final_lines_1_1", "final_lines_1_2");
+        final List<String> originalLines1 = Arrays.asList("original_lines_1_1", "original_lines_1_2");
+        final List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1", "preprocessed_lines_1_1_2");
+        final List<String> preprocessedLines1_2 = Arrays.asList("final_lines_1_1", "final_lines_1_2");
 
-        List<String> originalLines2 = Arrays.asList("original_lines_2_1", "original_lines_2_2");
-        List<String> preprocessedLines2_1 = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
-        List<String> preprocessedLines2_2 = Arrays.asList("final_lines_2_1", "final_lines_2_2");
+        final List<String> originalLines2 = Arrays.asList("original_lines_2_1", "original_lines_2_2");
+        final List<String> preprocessedLines2_1 = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
+        final List<String> preprocessedLines2_2 = Arrays.asList("final_lines_2_1", "final_lines_2_2");
 
         when(helper.readAsnLines(eq(log), eq(asnFile1Path.toString()), eq(asnFile1Path)))
                 .thenReturn(originalLines1);
@@ -111,13 +111,13 @@ public class AsnPreprocessorEngineTest {
         when(mockPreprocessor1.preprocessAsn(originalLines2)).thenReturn(preprocessedLines2_1);
         when(mockPreprocessor2.preprocessAsn(preprocessedLines2_1)).thenReturn(preprocessedLines2_2);
 
-        String expected = new StringJoiner(",")
+        final String expected = new StringJoiner(",")
                 .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_1").toString())
                 .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_2").toString())
                 .toString();
 
         // WHEN
-        String actual = testSubject.preprocess(log, asnFilesString, outputDirectory);
+        final String actual = testSubject.preprocess(log, asnFilesString, outputDirectory);
 
         // THEN
         assertEquals(expected, actual);
@@ -148,18 +148,18 @@ public class AsnPreprocessorEngineTest {
     void testComplexPreprocessing() throws Exception {
         testSubject = new AsnPreprocessorEngine();
 
-        String input = "test_complex_for_preprocessing.asn";
+        final String input = "test_complex_for_preprocessing.asn";
 
-        String preprocessedFile = testSubject.preprocess(
+        final String preprocessedFile = testSubject.preprocess(
                 log,
                 new File(getClass().getClassLoader().getResource(input).toURI()).getAbsolutePath(),
                 additionalPreprocessingOutputDirectory.getAbsolutePath()
         );
 
-        String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
+        final String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
                 .replace("\n", System.lineSeparator());
 
-        String actual = new String(Files.readAllBytes(Paths.get(preprocessedFile)), StandardCharsets.UTF_8);
+        final String actual = new String(Files.readAllBytes(Paths.get(preprocessedFile)), StandardCharsets.UTF_8);
 
         assertEquals(expected, actual);
     }

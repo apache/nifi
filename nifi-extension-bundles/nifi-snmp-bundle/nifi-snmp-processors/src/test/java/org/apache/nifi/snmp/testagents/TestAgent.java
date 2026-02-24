@@ -77,10 +77,10 @@ public abstract class TestAgent extends BaseAgent {
     protected void registerManagedObjects() {
     }
 
-    public void registerManagedObject(ManagedObject mo) {
+    public void registerManagedObject(final ManagedObject mo) {
         try {
             server.register(mo, null);
-        } catch (DuplicateRegistrationException ex) {
+        } catch (final DuplicateRegistrationException ex) {
             throw new RuntimeException(ex);
         }
     }

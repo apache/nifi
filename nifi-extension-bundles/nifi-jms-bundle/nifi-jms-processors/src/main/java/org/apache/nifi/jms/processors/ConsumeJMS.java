@@ -259,7 +259,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     ).toList();
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Durable subscription", DURABLE_SUBSCRIBER.getName());
         config.renameProperty("Shared subscription", SHARED_SUBSCRIBER.getName());
@@ -283,18 +283,18 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     }
 
     @OnScheduled
-    public void onSchedule(ProcessContext context) {
+    public void onSchedule(final ProcessContext context) {
         if (context.getMaxConcurrentTasks() > 1 && isDurableSubscriber(context) && !isShared(context)) {
             throw new ProcessException("Durable non shared subscriptions cannot work on multiple threads. Check javax/jms/Session#createDurableConsumer API doc.");
         }
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
-        String destinationType = validationContext.getProperty(DESTINATION_TYPE).getValue();
-        String errorQueue = validationContext.getProperty(ERROR_QUEUE).getValue();
+        final String destinationType = validationContext.getProperty(DESTINATION_TYPE).getValue();
+        final String errorQueue = validationContext.getProperty(ERROR_QUEUE).getValue();
 
         if (errorQueue != null && !QUEUE.equals(destinationType)) {
             validationResults.add(new ValidationResult.Builder()
@@ -330,7 +330,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             } else {
                 processMessages(context, processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error while trying to process JMS message", e);
             consumer.setValid(false);
             context.yield();
@@ -338,10 +338,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         }
     }
 
-    private void processMessages(ProcessContext context, ProcessSession processSession, JMSConsumer consumer, String destinationName, String errorQueueName,
-                                 boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+    private void processMessages(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer, final String destinationName, final String errorQueueName,
+                                 final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector, final String charset) {
 
-        int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, batchSize, jmsResponses -> {
             jmsResponses.forEach(response -> {
                 try {
@@ -360,22 +360,22 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         });
     }
 
-    private FlowFile createFlowFileFromMessage(ProcessSession processSession, String destinationName, JMSResponse response) {
+    private FlowFile createFlowFileFromMessage(final ProcessSession processSession, final String destinationName, final JMSResponse response) {
         FlowFile flowFile = processSession.create();
         flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
 
         final Map<String, String> jmsHeaders = response.getMessageHeaders();
         final Map<String, String> jmsProperties = response.getMessageProperties();
-        Map<String, String> attributes = mergeJmsAttributes(jmsHeaders, jmsProperties);
+        final Map<String, String> attributes = mergeJmsAttributes(jmsHeaders, jmsProperties);
         attributes.put(JMS_SOURCE_DESTINATION_NAME, destinationName);
         attributes.put(JMS_MESSAGETYPE, response.getMessageType());
         return processSession.putAllAttributes(flowFile, attributes);
     }
 
-    private void processMessagesAsRecords(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName, String errorQueueName,
-                                          boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+    private void processMessagesAsRecords(final ProcessContext context, final ProcessSession session, final JMSConsumer consumer, final String destinationName, final String errorQueueName,
+                                          final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector, final String charset) {
 
-        int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = readerFactory == null ? null : context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final OutputStrategy outputStrategy = readerFactory == null ? null : context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
@@ -392,7 +392,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, batchSize, jmsResponses -> {
             flowFileWriter.write(session, jmsResponses, new FlowFileWriterCallback<>() {
                 @Override
-                public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
+                public void onSuccess(final FlowFile flowFile, final List<JMSResponse> processedMessages, final List<JMSResponse> failedMessages) {
                     session.getProvenanceReporter().receive(flowFile, destinationName);
                     session.adjustCounter(COUNTER_RECORDS_RECEIVED, processedMessages.size() + failedMessages.size(), false);
                     session.adjustCounter(COUNTER_RECORDS_PROCESSED, processedMessages.size(), false);
@@ -405,7 +405,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                 }
 
                 @Override
-                public void onParseFailure(FlowFile flowFile, JMSResponse message, Exception e) {
+                public void onParseFailure(final FlowFile flowFile, final JMSResponse message, final Exception e) {
                     session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
 
                     final FlowFile failedMessage = createFlowFileFromMessage(session, destinationName, message);
@@ -413,7 +413,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                 }
 
                 @Override
-                public void onFailure(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages, Exception e) {
+                public void onFailure(final FlowFile flowFile, final List<JMSResponse> processedMessages, final List<JMSResponse> failedMessages, final Exception e) {
                     reject(processedMessages, failedMessages);
                     // It would be nicer to call rollback and yield here, but we are rethrowing the exception to have the same error handling with processSingleMessage.
                     throw new ProcessException(e);
@@ -439,16 +439,16 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         findLastBatchedJmsResponse(processedMessages, failedMessages).reject();
     }
 
-    private void withLog(Runnable runnable) {
+    private void withLog(final Runnable runnable) {
         try {
             runnable.run();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("An error happened during commitAsync callback", e);
             throw e;
         }
     }
 
-    private JMSResponse findLastBatchedJmsResponse(List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
+    private JMSResponse findLastBatchedJmsResponse(final List<JMSResponse> processedMessages, final List<JMSResponse> failedMessages) {
         return Stream.of(processedMessages, failedMessages).flatMap(Collection::stream).max(Comparator.comparing(JMSResponse::getBatchOrder)).get();
     }
 
@@ -456,11 +456,11 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * Will create an instance of {@link JMSConsumer}
      */
     @Override
-    protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
-        int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
+    protected JMSConsumer finishBuildingJmsWorker(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate, final ProcessContext processContext) {
+        final int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
 
-        long timeout = processContext.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final long timeout = processContext.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         jmsTemplate.setReceiveTimeout(timeout);
 
         return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
@@ -489,7 +489,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * client identifier.</i>
      */
     @Override
-    protected void setClientId(ProcessContext context, SingleConnectionFactory cachingFactory) {
+    protected void setClientId(final ProcessContext context, final SingleConnectionFactory cachingFactory) {
         if (isDurableSubscriber(context) && !isShared(context)) {
             cachingFactory.setClientId(getClientId(context));
         } else {
@@ -497,7 +497,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         }
     }
 
-    private Map<String, String> mergeJmsAttributes(Map<String, String> headers, Map<String, String> properties) {
+    private Map<String, String> mergeJmsAttributes(final Map<String, String> headers, final Map<String, String> properties) {
         final Map<String, String> jmsAttributes = new HashMap<>(headers);
         properties.forEach((key, value) -> {
             if (jmsAttributes.containsKey(key)) {

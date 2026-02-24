@@ -89,7 +89,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return parameterStatus;
     }
 
-    public void setParameterStatus(Set<ParameterStatusDTO> parameterStatus) {
+    public void setParameterStatus(final Set<ParameterStatusDTO> parameterStatus) {
         this.parameterStatus = parameterStatus;
     }
 
@@ -223,7 +223,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -236,7 +236,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -249,7 +249,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return customUiUrl;
     }
 
-    public void setCustomUiUrl(String customUiUrl) {
+    public void setCustomUiUrl(final String customUiUrl) {
         this.customUiUrl = customUiUrl;
     }
 
@@ -262,7 +262,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return annotationData;
     }
 
-    public void setAnnotationData(String annotationData) {
+    public void setAnnotationData(final String annotationData) {
         this.annotationData = annotationData;
     }
 
@@ -278,7 +278,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -289,7 +289,7 @@ public class ParameterProviderDTO extends ComponentDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 

@@ -39,7 +39,7 @@ public class ComponentManifest implements Serializable {
         return (apis != null ? Collections.unmodifiableList(apis) : null);
     }
 
-    public void setApis(List<DefinedType> apis) {
+    public void setApis(final List<DefinedType> apis) {
         this.apis = apis;
     }
 
@@ -48,7 +48,7 @@ public class ComponentManifest implements Serializable {
         return (controllerServices != null ? Collections.unmodifiableList(controllerServices) : null);
     }
 
-    public void setControllerServices(List<ControllerServiceDefinition> controllerServices) {
+    public void setControllerServices(final List<ControllerServiceDefinition> controllerServices) {
         this.controllerServices = controllerServices;
     }
 
@@ -57,7 +57,7 @@ public class ComponentManifest implements Serializable {
         return (processors != null ? Collections.unmodifiableList(processors) : null);
     }
 
-    public void setProcessors(List<ProcessorDefinition> processors) {
+    public void setProcessors(final List<ProcessorDefinition> processors) {
         this.processors = processors;
     }
 
@@ -66,7 +66,7 @@ public class ComponentManifest implements Serializable {
         return (reportingTasks != null ? Collections.unmodifiableList(reportingTasks) : null);
     }
 
-    public void setReportingTasks(List<ReportingTaskDefinition> reportingTasks) {
+    public void setReportingTasks(final List<ReportingTaskDefinition> reportingTasks) {
         this.reportingTasks = reportingTasks;
     }
 
@@ -75,7 +75,7 @@ public class ComponentManifest implements Serializable {
         return (parameterProviders != null ? Collections.unmodifiableList(parameterProviders) : null);
     }
 
-    public void setParameterProviders(List<ParameterProviderDefinition> parameterProviders) {
+    public void setParameterProviders(final List<ParameterProviderDefinition> parameterProviders) {
         this.parameterProviders = parameterProviders;
     }
 
@@ -84,7 +84,7 @@ public class ComponentManifest implements Serializable {
         return (flowAnalysisRules != null ? Collections.unmodifiableList(flowAnalysisRules) : null);
     }
 
-    public void setFlowAnalysisRules(List<FlowAnalysisRuleDefinition> flowAnalysisRules) {
+    public void setFlowAnalysisRules(final List<FlowAnalysisRuleDefinition> flowAnalysisRules) {
         this.flowAnalysisRules = flowAnalysisRules;
     }
 
@@ -93,7 +93,7 @@ public class ComponentManifest implements Serializable {
         return (flowRegistryClients != null ? Collections.unmodifiableList(flowRegistryClients) : null);
     }
 
-    public void setFlowRegistryClients(List<FlowRegistryClientDefinition> flowRegistryClients) {
+    public void setFlowRegistryClients(final List<FlowRegistryClientDefinition> flowRegistryClients) {
         this.flowRegistryClients = flowRegistryClients;
     }
 

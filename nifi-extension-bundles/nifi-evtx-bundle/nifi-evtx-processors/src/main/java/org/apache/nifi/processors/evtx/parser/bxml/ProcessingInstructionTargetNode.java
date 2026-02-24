@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ProcessingInstructionTargetNode extends BxmlNodeWithTokenAndString {
-    public ProcessingInstructionTargetNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public ProcessingInstructionTargetNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
     }
@@ -37,7 +37,7 @@ public class ProcessingInstructionTargetNode extends BxmlNodeWithTokenAndString 
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 

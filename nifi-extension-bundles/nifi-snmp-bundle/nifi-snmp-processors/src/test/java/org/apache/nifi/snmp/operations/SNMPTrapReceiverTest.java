@@ -72,7 +72,7 @@ class SNMPTrapReceiverTest {
 
     @Test
     void testReceiveTrapWithNullPduLogsError() {
-        CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
+        final CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
 
         snmpTrapReceiver.processPdu(mockEvent);
 

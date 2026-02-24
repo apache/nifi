@@ -226,7 +226,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 if (StringUtils.isNotBlank(input)) {
                     try {
                         DateTimeFormatter.ofPattern(input);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         return new ValidationResult.Builder().valid(false).subject(subject).input(input)
                                 .explanation("Must be a valid java.time.DateTimeFormatter pattern, e.g. " + RecordFieldType.TIMESTAMP.getDefaultFormat())
                                 .build();
@@ -552,7 +552,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
         DateTimeFormatter dateTimeFormatter = null;
         try {
             dateTimeFormatter = getDateTimeFormatter(validationContext);
-        } catch (IllegalArgumentException iae) {
+        } catch (final IllegalArgumentException iae) {
             validationResults.add(new ValidationResult.Builder().valid(false)
                     .subject(TIMESTAMP_FORMAT.getName())
                     .explanation(String.format("%s must be a valid java.time.DateTimeFormatter format", TIMESTAMP_FORMAT.getDisplayName()))
@@ -572,7 +572,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                 try {
                     // check the streamTimestamp can be formatted
                     getStartStreamTimestamp(validationContext, dateTimeFormatter);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     validationResults.add(new ValidationResult.Builder().valid(false)
                             .subject(STREAM_POSITION_TIMESTAMP.getName())
                             .explanation(String.format("%s must be parsable by %s", STREAM_POSITION_TIMESTAMP.getDisplayName(),
@@ -603,7 +603,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
 
     @OnScheduled
     @Override
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         stopped.set(false);
         workerState.set(null);
         super.onScheduled(context);
@@ -825,7 +825,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
     private String generateSchedulerId() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName() + ":" + UUID.randomUUID();
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             throw new ProcessException(e);
         }
     }

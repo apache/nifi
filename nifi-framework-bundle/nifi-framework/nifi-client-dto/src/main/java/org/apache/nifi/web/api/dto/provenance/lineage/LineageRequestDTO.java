@@ -56,7 +56,7 @@ public class LineageRequestDTO {
         return eventId;
     }
 
-    public void setEventId(Long eventId) {
+    public void setEventId(final Long eventId) {
         this.eventId = eventId;
     }
 
@@ -72,7 +72,7 @@ public class LineageRequestDTO {
         return lineageRequestType;
     }
 
-    public void setLineageRequestType(LineageRequestType lineageRequestType) {
+    public void setLineageRequestType(final LineageRequestType lineageRequestType) {
         this.lineageRequestType = lineageRequestType;
     }
 
@@ -84,7 +84,7 @@ public class LineageRequestDTO {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 
@@ -97,7 +97,7 @@ public class LineageRequestDTO {
         return uuid;
     }
 
-    public void setUuid(String uuid) {
+    public void setUuid(final String uuid) {
         this.uuid = uuid;
     }
 

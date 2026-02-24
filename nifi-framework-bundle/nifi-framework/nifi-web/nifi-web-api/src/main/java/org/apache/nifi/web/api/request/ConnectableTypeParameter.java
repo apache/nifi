@@ -27,10 +27,10 @@ public class ConnectableTypeParameter {
 
     private ConnectableType type;
 
-    public ConnectableTypeParameter(String rawConnectionType) {
+    public ConnectableTypeParameter(final String rawConnectionType) {
         try {
             type = ConnectableType.valueOf(rawConnectionType.toUpperCase());
-        } catch (IllegalArgumentException pe) {
+        } catch (final IllegalArgumentException pe) {
             throw new IllegalArgumentException(String.format(INVALID_CONNECTABLE_TYPE_MESSAGE, rawConnectionType));
         }
     }

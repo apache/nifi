@@ -25,7 +25,7 @@ public class ConnectionHealth implements java.io.Serializable {
         return queuedCount;
     }
 
-    public void setQueuedCount(int queuedCount) {
+    public void setQueuedCount(final int queuedCount) {
         this.queuedCount = queuedCount;
     }
 
@@ -33,12 +33,12 @@ public class ConnectionHealth implements java.io.Serializable {
         return queuedBytes;
     }
 
-    public void setQueuedBytes(long queuedBytes) {
+    public void setQueuedBytes(final long queuedBytes) {
         this.queuedBytes = queuedBytes;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -46,7 +46,7 @@ public class ConnectionHealth implements java.io.Serializable {
             return false;
         }
 
-        ConnectionHealth that = (ConnectionHealth) o;
+        final ConnectionHealth that = (ConnectionHealth) o;
 
         if (getQueuedCount() != that.getQueuedCount()) {
             return false;

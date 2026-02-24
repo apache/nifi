@@ -50,7 +50,7 @@ class ProcessorEntityMergerTest {
         entityMap.put(getNodeIdentifier("node2", 8002), nodeEntity2);
         entityMap.put(getNodeIdentifier("node3", 8003), nodeEntity3);
 
-        ProcessorEntityMerger merger = new ProcessorEntityMerger();
+        final ProcessorEntityMerger merger = new ProcessorEntityMerger();
         merger.merge(clientEntity, entityMap);
 
         assertEquals("STOPPING", clientEntity.getPhysicalState());
@@ -70,7 +70,7 @@ class ProcessorEntityMergerTest {
         entityMap.put(getNodeIdentifier("node2", 8002), nodeEntity2);
         entityMap.put(getNodeIdentifier("node3", 8003), nodeEntity3);
 
-        ProcessorEntityMerger merger = new ProcessorEntityMerger();
+        final ProcessorEntityMerger merger = new ProcessorEntityMerger();
         merger.merge(clientEntity, entityMap);
 
         assertEquals("STARTING", clientEntity.getPhysicalState());
@@ -88,7 +88,7 @@ class ProcessorEntityMergerTest {
         entityMap.put(getNodeIdentifier("node1", 8001), nodeEntity1);
         entityMap.put(getNodeIdentifier("node2", 8002), nodeEntity2);
 
-        ProcessorEntityMerger merger = new ProcessorEntityMerger();
+        final ProcessorEntityMerger merger = new ProcessorEntityMerger();
         merger.merge(clientEntity, entityMap);
 
         assertEquals("RUNNING", clientEntity.getPhysicalState());

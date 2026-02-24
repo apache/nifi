@@ -33,7 +33,7 @@ public class UnknownNodeExceptionMapper implements ExceptionMapper<UnknownNodeEx
     private static final Logger logger = LoggerFactory.getLogger(UnknownNodeExceptionMapper.class);
 
     @Override
-    public Response toResponse(UnknownNodeException exception) {
+    public Response toResponse(final UnknownNodeException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.NOT_FOUND);
 

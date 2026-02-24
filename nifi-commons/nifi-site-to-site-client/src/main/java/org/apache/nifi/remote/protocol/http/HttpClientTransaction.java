@@ -39,12 +39,12 @@ public class HttpClientTransaction extends AbstractTransaction {
     private SiteToSiteRestApiClient apiClient;
     private String transactionUrl;
 
-    public HttpClientTransaction(final int protocolVersion, final Peer peer, TransferDirection direction,
-                                 final boolean useCompression, final String portId, int penaltyMillis, SiteToSiteEventReporter eventReporter) {
+    public HttpClientTransaction(final int protocolVersion, final Peer peer, final TransferDirection direction,
+                                 final boolean useCompression, final String portId, final int penaltyMillis, final SiteToSiteEventReporter eventReporter) {
         super(peer, direction, useCompression, new StandardFlowFileCodec(), eventReporter, protocolVersion, penaltyMillis, portId);
     }
 
-    public void initialize(SiteToSiteRestApiClient apiUtil, String transactionUrl) throws IOException {
+    public void initialize(final SiteToSiteRestApiClient apiUtil, final String transactionUrl) throws IOException {
         this.transactionUrl = transactionUrl;
         this.apiClient = apiUtil;
         if (TransferDirection.RECEIVE.equals(direction)) {
@@ -56,9 +56,9 @@ public class HttpClientTransaction extends AbstractTransaction {
 
     @Override
     protected Response readTransactionResponse() throws IOException {
-        HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
+        final HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final DataOutputStream dos = new DataOutputStream(bos);
         if (TransferDirection.RECEIVE.equals(direction)) {
             switch (state) {
                 case TRANSACTION_STARTED:
@@ -73,11 +73,11 @@ public class HttpClientTransaction extends AbstractTransaction {
                             logger.debug("{} {} There's no transaction to confirm.", this, peer);
                             ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, "");
                         } else {
-                            TransactionResultEntity transactionResult
+                            final TransactionResultEntity transactionResult
                                     = apiClient.commitReceivingFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION, commSession.getChecksum());
-                            ResponseCode responseCode = ResponseCode.fromCode(transactionResult.getResponseCode());
+                            final ResponseCode responseCode = ResponseCode.fromCode(transactionResult.getResponseCode());
                             if (responseCode.containsMessage()) {
-                                String message = transactionResult.getMessage();
+                                final String message = transactionResult.getMessage();
                                 responseCode.writeResponse(dos, message == null ? "" : message);
                             } else {
                                 responseCode.writeResponse(dos);
@@ -94,8 +94,8 @@ public class HttpClientTransaction extends AbstractTransaction {
                     ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, commSession.getChecksum());
                     break;
                 case TRANSACTION_CONFIRMED:
-                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
-                    ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    final TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CONFIRM_TRANSACTION);
+                    final ResponseCode responseCode = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (responseCode.containsMessage()) {
                         responseCode.writeResponse(dos, resultEntity.getMessage());
                     } else {
@@ -104,13 +104,13 @@ public class HttpClientTransaction extends AbstractTransaction {
                     break;
             }
         }
-        ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+        final ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
         return Response.read(new DataInputStream(bis));
     }
 
     @Override
-    protected void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException {
-        HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
+    protected void writeTransactionResponse(final ResponseCode response, final String explanation, final boolean flush) throws IOException {
+        final HttpCommunicationsSession commSession = (HttpCommunicationsSession) peer.getCommunicationsSession();
         if (TransferDirection.RECEIVE.equals(direction)) {
             switch (response) {
                 case CONFIRM_TRANSACTION:
@@ -122,8 +122,8 @@ public class HttpClientTransaction extends AbstractTransaction {
                     break;
                 case CANCEL_TRANSACTION:
                     logger.debug("{} Canceling transaction. explanation={}", this, explanation);
-                    TransactionResultEntity resultEntity = apiClient.commitReceivingFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION, null);
-                    ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    final TransactionResultEntity resultEntity = apiClient.commitReceivingFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION, null);
+                    final ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (cancelResponse == ResponseCode.CANCEL_TRANSACTION) {
                         logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
                     } else {
@@ -138,30 +138,31 @@ public class HttpClientTransaction extends AbstractTransaction {
                     logger.debug("{} Finished sending flow files.", this);
                     break;
                 case BAD_CHECKSUM: {
-                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
-                    ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    final TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
+                    final ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (badChecksumCancelResponse == ResponseCode.CANCEL_TRANSACTION) {
                         logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
                     } else {
                         logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
                     }
-                    break;
+
                 }
+                    break;
                 case CONFIRM_TRANSACTION:
                     // The actual HTTP request will be sent in readTransactionResponse.
                     logger.debug("{} Transaction is confirmed.", this);
                     break;
                 case CANCEL_TRANSACTION: {
                     logger.debug("{} Canceling transaction.", this);
-                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION);
-                    ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    final TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION);
+                    final ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (cancelResponse == ResponseCode.CANCEL_TRANSACTION) {
                         logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
                     } else {
                         logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
                     }
-                    break;
                 }
+                    break;
             }
         }
     }

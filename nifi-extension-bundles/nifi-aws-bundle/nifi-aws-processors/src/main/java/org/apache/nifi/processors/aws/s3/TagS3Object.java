@@ -130,7 +130,7 @@ public class TagS3Object extends AbstractS3Processor {
         final S3Client client;
         try {
             client = getClient(context, flowFile.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -215,21 +215,21 @@ public class TagS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("tag-key", TAG_KEY.getName());
         config.renameProperty("tag-value", TAG_VALUE.getName());
         config.renameProperty("append-tag", APPEND_TAG.getName());
     }
 
-    private void failFlowWithBlankEvaluatedProperty(ProcessSession session, FlowFile flowFile, PropertyDescriptor pd) {
+    private void failFlowWithBlankEvaluatedProperty(final ProcessSession session, final FlowFile flowFile, final PropertyDescriptor pd) {
         getLogger().error("{} value is blank after attribute expression language evaluation", pd.getName());
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+        final FlowFile penalizedFlowFile = session.penalize(flowFile);
+        session.transfer(penalizedFlowFile, REL_FAILURE);
     }
 
-    private FlowFile setTagAttributes(ProcessSession session, FlowFile flowFile, List<Tag> tags) {
-        flowFile = session.removeAllAttributes(flowFile, Pattern.compile("^s3\\.tag\\..*"));
+    private FlowFile setTagAttributes(final ProcessSession session, final FlowFile flowFileArg, final List<Tag> tags) {
+        FlowFile flowFile = session.removeAllAttributes(flowFileArg, Pattern.compile("^s3\\.tag\\..*"));
 
         final Map<String, String> tagAttrs = new HashMap<>();
         tags.forEach(t -> tagAttrs.put("s3.tag." + t.key(), t.value()));

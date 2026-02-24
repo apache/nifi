@@ -377,7 +377,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         try {
             return Files.getFileStore(path).name();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return null;
         }
     }
@@ -441,7 +441,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         updateContentClaims(records, partitionIndex);
     }
 
-    protected void updateContentClaims(Collection<RepositoryRecord> repositoryRecords, final int partitionIndex) {
+    protected void updateContentClaims(final Collection<RepositoryRecord> repositoryRecords, final int partitionIndex) {
         // The below code is not entirely thread-safe, but we are OK with that because the results aren't really harmful.
         // Specifically, if two different threads call updateRepository with DELETE records for the same Content Claim,
         // it's quite possible for claimant count to be 0 below, which results in two different threads adding the Content
@@ -701,7 +701,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // If we have already loaded the records from the write-ahead logs, use them. Otherwise, recover the records now.
         // We do this because a call to #findQueuesWithFlowFiles will recover the records, and we don't want to have to re-read
         // the entire repository, so that method will stash the records away.
-        Collection<SerializedRepositoryRecord> recordList;
+        final Collection<SerializedRepositoryRecord> recordList;
         if (recoveredRecords == null) {
             // Since we used to use the MinimalLockingWriteAheadRepository, we need to ensure that if the FlowFile
             // Repo was written using that impl, that we properly recover from the implementation.

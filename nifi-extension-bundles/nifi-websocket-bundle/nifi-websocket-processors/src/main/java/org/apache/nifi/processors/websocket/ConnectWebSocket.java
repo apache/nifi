@@ -99,7 +99,7 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("websocket-client-controller-service", PROP_WEBSOCKET_CLIENT_SERVICE.getName());
         config.renameProperty("websocket-client-id", PROP_WEBSOCKET_CLIENT_ID.getName());
     }

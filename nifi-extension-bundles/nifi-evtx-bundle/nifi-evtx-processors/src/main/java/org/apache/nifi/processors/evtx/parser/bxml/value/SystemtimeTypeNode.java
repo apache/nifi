@@ -33,17 +33,17 @@ public class SystemtimeTypeNode extends VariantTypeNode {
 
     private final String value;
 
-    public SystemtimeTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public SystemtimeTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        int year = binaryReader.readWord();
-        int month = binaryReader.readWord();
+        final int year = binaryReader.readWord();
+        final int month = binaryReader.readWord();
         final int monthOfYear = month + 1;
         binaryReader.readWord(); // dayOfWeek
-        int day = binaryReader.readWord();
-        int hour = binaryReader.readWord();
-        int minute = binaryReader.readWord();
-        int second = binaryReader.readWord();
-        int millisecond = binaryReader.readWord();
+        final int day = binaryReader.readWord();
+        final int hour = binaryReader.readWord();
+        final int minute = binaryReader.readWord();
+        final int second = binaryReader.readWord();
+        final int millisecond = binaryReader.readWord();
         final int nanosecond = millisecond * 1000000;
         final LocalDateTime localDateTime = LocalDateTime.of(year, monthOfYear, day, hour, minute, second, nanosecond);
         value = FORMATTER.format(localDateTime);

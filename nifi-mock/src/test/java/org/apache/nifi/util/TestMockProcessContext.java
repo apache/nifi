@@ -117,7 +117,7 @@ public class TestMockProcessContext {
         }
 
         public int getUpdateCount(final PropertyDescriptor descriptor) {
-            Integer updateCount = propertyModifiedCount.get(descriptor);
+            final Integer updateCount = propertyModifiedCount.get(descriptor);
             return (updateCount == null) ? 0 : updateCount;
         }
 

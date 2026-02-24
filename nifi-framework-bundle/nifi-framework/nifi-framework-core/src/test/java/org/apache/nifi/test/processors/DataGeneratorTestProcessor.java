@@ -51,7 +51,7 @@ public class DataGeneratorTestProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        FlowFile toRemove = session.get();
+        final FlowFile toRemove = session.get();
         if (toRemove != null) {
             LOG.warn("Removing flow file");
             session.remove(toRemove);

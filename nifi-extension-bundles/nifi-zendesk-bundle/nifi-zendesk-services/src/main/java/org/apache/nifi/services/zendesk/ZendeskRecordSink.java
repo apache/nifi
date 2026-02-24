@@ -141,23 +141,23 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
-        List<ObjectNode> zendeskTickets = new ArrayList<>();
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
+        final List<ObjectNode> zendeskTickets = new ArrayList<>();
 
         Record record;
         while ((record = recordSet.next()) != null) {
-            ObjectNode baseTicketNode = mapper.createObjectNode();
+            final ObjectNode baseTicketNode = mapper.createObjectNode();
 
             addField("/comment/body", commentBody, baseTicketNode, record);
             addField("/subject", subject, baseTicketNode, record);
             addField("/priority", priority, baseTicketNode, record);
             addField("/type", type, baseTicketNode, record);
 
-            for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
+            for (final Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
                 addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
             }
 
-            ObjectNode ticketNode = recordCache.getIfPresent(baseTicketNode.toString());
+            final ObjectNode ticketNode = recordCache.getIfPresent(baseTicketNode.toString());
             if (ticketNode == null) {
                 recordCache.put(baseTicketNode.toString(), baseTicketNode);
                 zendeskTickets.add(baseTicketNode);
@@ -173,7 +173,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
                 if (response.statusCode() != HttpResponseStatus.CREATED.getCode() && response.statusCode() != HttpResponseStatus.OK.getCode()) {
                     getLogger().error("Failed to create zendesk ticket, HTTP status={}, response={}", response.statusCode(), getResponseBody(response));
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new IOException("Failed to post request to Zendesk", e);
             }
         }
@@ -212,7 +212,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
         config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
         config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
@@ -226,12 +226,12 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
         config.renameProperty("cache-expiration", CACHE_EXPIRATION.getName());
     }
 
-    private URI createUri(int numberOfTickets) {
+    private URI createUri(final int numberOfTickets) {
         final String resource = numberOfTickets > 1 ? ZENDESK_CREATE_TICKETS_RESOURCE : ZENDESK_CREATE_TICKET_RESOURCE;
         return uriBuilder(resource).build();
     }
 
-    HttpUriBuilder uriBuilder(String resourcePath) {
+    HttpUriBuilder uriBuilder(final String resourcePath) {
         return zendeskClient.uriBuilder(resourcePath);
     }
 }

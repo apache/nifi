@@ -27,7 +27,7 @@ public class BucketEntityRowMapper implements RowMapper<BucketEntity> {
 
     @Nullable
     @Override
-    public BucketEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public BucketEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final BucketEntity b = new BucketEntity();
         b.setId(rs.getString("ID"));
         b.setName(rs.getString("NAME"));

@@ -92,7 +92,7 @@ public class StartSnowflakeIngest extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -112,9 +112,9 @@ public class StartSnowflakeIngest extends AbstractProcessor {
         final StagedFileWrapper stagedFile = new StagedFileWrapper(stagedFilePath);
         try {
             snowflakeIngestManager.ingestFile(stagedFile, null);
-        } catch (URISyntaxException | IOException  e) {
+        } catch (final URISyntaxException | IOException  e) {
             throw new ProcessException(String.format("Failed to ingest Snowflake file [%s]", stagedFilePath), e);
-        } catch (IngestResponseException e) {
+        } catch (final IngestResponseException e) {
             getLogger().error("Failed to ingest Snowflake file [{}]", stagedFilePath, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
@@ -123,7 +123,7 @@ public class StartSnowflakeIngest extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("ingest-manager-provider", INGEST_MANAGER_PROVIDER.getName());
     }
 }

@@ -147,7 +147,7 @@ public class MonitorMemory extends AbstractReportingTask {
     private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        final List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(MEMORY_POOL_PROPERTY);
         _propertyDescriptors.add(THRESHOLD_PROPERTY);
         _propertyDescriptors.add(REPORTING_INTERVAL);
@@ -174,8 +174,8 @@ public class MonitorMemory extends AbstractReportingTask {
 
         final List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans();
         for (int i = 0; i < memoryPoolBeans.size() && monitoredBean == null; i++) {
-            MemoryPoolMXBean memoryPoolBean = memoryPoolBeans.get(i);
-            String memoryPoolName = memoryPoolBean.getName();
+            final MemoryPoolMXBean memoryPoolBean = memoryPoolBeans.get(i);
+            final String memoryPoolName = memoryPoolBean.getName();
             if (desiredMemoryPoolName.equals(memoryPoolName)) {
                 monitoredBean = memoryPoolBean;
                 if (memoryPoolBean.isCollectionUsageThresholdSupported()) {

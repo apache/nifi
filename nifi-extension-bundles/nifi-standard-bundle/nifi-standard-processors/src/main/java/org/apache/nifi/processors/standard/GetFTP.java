@@ -87,7 +87,7 @@ public class GetFTP extends GetFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         FTPTransfer.migrateProxyProperties(config);
         config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
         config.renameProperty(FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName());
@@ -99,7 +99,7 @@ public class GetFTP extends GetFileTransfer {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         FTPTransfer.validateProxySpec(validationContext, results);
         return results;

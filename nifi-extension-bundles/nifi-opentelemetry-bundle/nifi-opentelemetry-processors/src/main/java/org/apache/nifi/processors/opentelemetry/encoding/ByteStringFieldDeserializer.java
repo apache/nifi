@@ -82,7 +82,7 @@ public class ByteStringFieldDeserializer<T extends Message, V extends Message.Bu
                 try {
                     final byte[] decoded = Hex.decodeHex(encoded);
                     value = ByteString.copyFrom(decoded);
-                } catch (DecoderException e) {
+                } catch (final DecoderException e) {
                     throw new IOException(String.format("Hexadecimal Field [%s] decoding failed", jsonName), e);
                 }
             }

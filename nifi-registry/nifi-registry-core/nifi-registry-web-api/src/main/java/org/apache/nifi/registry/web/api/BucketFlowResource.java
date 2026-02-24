@@ -339,7 +339,7 @@ public class BucketFlowResource extends ApplicationResource {
 
         final VersionedFlowSnapshot createdSnapshot = serviceFacade.importVersionedFlowSnapshot(versionedFlowSnapshot, bucketId, flowId, comments);
         publish(EventFactory.flowVersionCreated(createdSnapshot));
-        String locationUri = createdSnapshot.getSnapshotMetadata().getLink().getUri().getPath();
+        final String locationUri = createdSnapshot.getSnapshotMetadata().getLink().getUri().getPath();
         return generateCreatedResponse(URI.create(locationUri), createdSnapshot).build();
     }
 
@@ -555,7 +555,7 @@ public class BucketFlowResource extends ApplicationResource {
         return Response.status(Response.Status.OK).entity(result).build();
     }
 
-    private static void verifyPathParamsMatchBody(String bucketIdParam, BucketItem bodyBucketItem) throws BadRequestException {
+    private static void verifyPathParamsMatchBody(final String bucketIdParam, final BucketItem bodyBucketItem) throws BadRequestException {
         if (StringUtils.isBlank(bucketIdParam)) {
             throw new BadRequestException("Bucket id path parameter cannot be blank");
         }
@@ -569,7 +569,7 @@ public class BucketFlowResource extends ApplicationResource {
         }
     }
 
-    private static void verifyPathParamsMatchBody(String bucketIdParam, String flowIdParam, BucketItem bodyBucketItem) throws BadRequestException {
+    private static void verifyPathParamsMatchBody(final String bucketIdParam, final String flowIdParam, final BucketItem bodyBucketItem) throws BadRequestException {
         verifyPathParamsMatchBody(bucketIdParam, bodyBucketItem);
 
         if (StringUtils.isBlank(flowIdParam)) {
@@ -581,7 +581,7 @@ public class BucketFlowResource extends ApplicationResource {
         }
     }
 
-    private static void verifyPathParamsMatchBody(String bucketIdParam, String flowIdParam, VersionedFlowSnapshot flowSnapshot) throws BadRequestException {
+    private static void verifyPathParamsMatchBody(final String bucketIdParam, final String flowIdParam, final VersionedFlowSnapshot flowSnapshot) throws BadRequestException {
         if (StringUtils.isBlank(bucketIdParam)) {
             throw new BadRequestException("Bucket id path parameter cannot be blank");
         }
@@ -604,9 +604,9 @@ public class BucketFlowResource extends ApplicationResource {
     }
 
     private static void setBucketItemMetadataIfMissing(
-            @NotNull String bucketIdParam,
-            @NotNull String bucketItemIdParam,
-            @NotNull BucketItem bucketItem) {
+            final @NotNull String bucketIdParam,
+            final @NotNull String bucketItemIdParam,
+            final @NotNull BucketItem bucketItem) {
         if (bucketItem.getBucketIdentifier() == null) {
             bucketItem.setBucketIdentifier(bucketIdParam);
         }
@@ -617,9 +617,9 @@ public class BucketFlowResource extends ApplicationResource {
     }
 
     private static void setSnaphotMetadataIfMissing(
-            @NotNull String bucketIdParam,
-            @NotNull String flowIdParam,
-            @NotNull VersionedFlowSnapshot flowSnapshot) {
+            final @NotNull String bucketIdParam,
+            final @NotNull String flowIdParam,
+            final @NotNull VersionedFlowSnapshot flowSnapshot) {
 
         VersionedFlowSnapshotMetadata metadata = flowSnapshot.getSnapshotMetadata();
         if (metadata == null) {

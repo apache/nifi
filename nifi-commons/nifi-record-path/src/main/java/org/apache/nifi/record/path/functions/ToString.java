@@ -38,19 +38,19 @@ public class ToString extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
                     final Charset charset = getCharset(this.charsetSegment, context);
-                    Object value = fv.getValue();
+                    final Object value = fv.getValue();
                     final String stringValue;
 
                     if (value instanceof Object[]) {
-                        Object[] o = (Object[]) value;
+                        final Object[] o = (Object[]) value;
                         if (o.length > 0) {
 
-                            byte[] dest = new byte[o.length];
+                            final byte[] dest = new byte[o.length];
                             for (int i = 0; i < o.length; i++) {
                                 dest[i] = (byte) o[i];
                             }

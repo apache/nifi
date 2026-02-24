@@ -31,7 +31,7 @@ public class AdaptedDataFlow {
         return flow;
     }
 
-    public void setFlow(byte[] flow) {
+    public void setFlow(final byte[] flow) {
         this.flow = flow;
     }
 
@@ -39,7 +39,7 @@ public class AdaptedDataFlow {
         return snippets;
     }
 
-    public void setSnippets(byte[] snippets) {
+    public void setSnippets(final byte[] snippets) {
         this.snippets = snippets;
     }
 
@@ -47,7 +47,7 @@ public class AdaptedDataFlow {
         return authorizerFingerprint;
     }
 
-    public void setAuthorizerFingerprint(byte[] authorizerFingerprint) {
+    public void setAuthorizerFingerprint(final byte[] authorizerFingerprint) {
         this.authorizerFingerprint = authorizerFingerprint;
     }
 
@@ -55,7 +55,7 @@ public class AdaptedDataFlow {
         return missingComponents;
     }
 
-    public void setMissingComponents(Set<String> missingComponents) {
+    public void setMissingComponents(final Set<String> missingComponents) {
         this.missingComponents = missingComponents;
     }
 

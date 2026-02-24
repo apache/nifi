@@ -32,7 +32,7 @@ public enum JoltTransformStrategy implements DescribedValue {
     MODIFIER_OVERWRITER("jolt-transform-modify-overwrite", "Modify - Overwrite", "Always overwrite value"),
     MODIFIER_DEFINER("jolt-transform-modify-define", "Modify - Define", "Writes when key is missing");
 
-    JoltTransformStrategy(String value, String displayName, String description) {
+    JoltTransformStrategy(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
@@ -57,7 +57,7 @@ public enum JoltTransformStrategy implements DescribedValue {
         return description;
     }
 
-    public static JoltTransformStrategy get(String value) {
+    public static JoltTransformStrategy get(final String value) {
         return Arrays.stream(values())
                 .filter(strategy -> strategy.getValue().equals(value))
                 .findFirst()

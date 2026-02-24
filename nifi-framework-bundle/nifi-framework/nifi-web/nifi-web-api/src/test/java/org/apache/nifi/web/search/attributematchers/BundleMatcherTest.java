@@ -33,7 +33,7 @@ class BundleMatcherTest extends AbstractAttributeMatcherTest {
         givenBundleId("nifi-lorem-nar");
         givenDefaultSearchTerm();
 
-        BundleMatcher<ComponentNode> testSubject = new BundleMatcher<>();
+        final BundleMatcher<ComponentNode> testSubject = new BundleMatcher<>();
         testSubject.match(component, searchQuery, matches);
 
         thenMatchConsistsOf("Bundle: nifi-lorem-nar");
@@ -44,14 +44,14 @@ class BundleMatcherTest extends AbstractAttributeMatcherTest {
         givenBundleId("nifi-standard-nar");
         givenDefaultSearchTerm();
 
-        BundleMatcher<ComponentNode> testSubject = new BundleMatcher<>();
+        final BundleMatcher<ComponentNode> testSubject = new BundleMatcher<>();
         testSubject.match(component, searchQuery, matches);
 
         thenNoMatches();
     }
 
-    private void givenBundleId(String id) {
-        BundleCoordinate coordinate = new BundleCoordinate(null, id, null);
+    private void givenBundleId(final String id) {
+        final BundleCoordinate coordinate = new BundleCoordinate(null, id, null);
         when(component.getBundleCoordinate()).thenReturn(coordinate);
     }
 }

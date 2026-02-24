@@ -52,7 +52,7 @@ public class SocketOutput implements CommunicationsOutput {
     public void setTimeout(final int timeout) {
         try {
             socket.setSoTimeout(timeout);
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
             LOG.warn("Failed to set socket timeout.", e);
         }
     }

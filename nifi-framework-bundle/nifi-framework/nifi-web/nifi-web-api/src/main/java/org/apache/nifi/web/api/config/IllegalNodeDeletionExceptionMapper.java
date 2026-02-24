@@ -33,7 +33,7 @@ public class IllegalNodeDeletionExceptionMapper implements ExceptionMapper<Illeg
     private static final Logger logger = LoggerFactory.getLogger(IllegalNodeDeletionExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalNodeDeletionException exception) {
+    public Response toResponse(final IllegalNodeDeletionException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

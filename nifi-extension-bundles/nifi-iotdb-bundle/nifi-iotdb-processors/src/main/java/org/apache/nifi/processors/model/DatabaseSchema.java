@@ -33,7 +33,7 @@ public class DatabaseSchema {
     private final List<String> fieldNames;
 
     @JsonCreator
-    public DatabaseSchema(@JsonProperty("fields") List<DatabaseField> fields) {
+    public DatabaseSchema(final @JsonProperty("fields") List<DatabaseField> fields) {
         this.fieldMap = new LinkedHashMap<>();
         this.fieldNames = new ArrayList<>();
         fields.forEach(
@@ -43,7 +43,7 @@ public class DatabaseSchema {
                 });
     }
 
-    public List<String> getFieldNames(String prefix) {
+    public List<String> getFieldNames(final String prefix) {
         return fieldNames.stream()
                 .map(field -> prefix + field)
                 .collect(Collectors.toList());
@@ -67,15 +67,15 @@ public class DatabaseSchema {
                 .collect(Collectors.toList());
     }
 
-    public TSDataType getDataType(String fieldName) {
+    public TSDataType getDataType(final String fieldName) {
         return fieldMap.get(fieldName).getDataType();
     }
 
-    public TSEncoding getEncodingType(String fieldName) {
+    public TSEncoding getEncodingType(final String fieldName) {
         return fieldMap.get(fieldName).getEncoding();
     }
 
-    public CompressionType getCompressionType(String fieldName) {
+    public CompressionType getCompressionType(final String fieldName) {
         return fieldMap.get(fieldName).getCompressionType();
     }
 

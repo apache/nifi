@@ -91,7 +91,7 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testRepositoryInitializesWithEmptyContent() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertNull(testRepository.findResourcesGlobalHash().getDigest());
@@ -101,12 +101,12 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testRepositoryInitializesWithExistingContent() throws IOException {
-        ResourcesGlobalHash resourcesGlobalHash = resourcesGlobalHash("digest", "hashType");
-        ResourceItem resourceItem = resourceItem("resourceId", null, ASSET);
-        ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(resourcesGlobalHash, List.of(resourceItem));
+        final ResourcesGlobalHash resourcesGlobalHash = resourcesGlobalHash("digest", "hashType");
+        final ResourceItem resourceItem = resourceItem("resourceId", null, ASSET);
+        final ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(resourcesGlobalHash, List.of(resourceItem));
         saveRepository(initialRepositoryDescriptor);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals("digest", testRepository.findResourcesGlobalHash().getDigest());
@@ -125,18 +125,18 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testSaveGlobalHashSuccess() throws IOException {
-        ResourcesGlobalHash originalGlobalHash = resourcesGlobalHash("digest1", "hashType1");
-        ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(originalGlobalHash, List.of());
+        final ResourcesGlobalHash originalGlobalHash = resourcesGlobalHash("digest1", "hashType1");
+        final ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(originalGlobalHash, List.of());
         saveRepository(initialRepositoryDescriptor);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals("digest1", testRepository.findResourcesGlobalHash().getDigest());
         assertEquals("hashType1", testRepository.findResourcesGlobalHash().getHashType());
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourcesGlobalHash updatedGlobalHash = resourcesGlobalHash("digest2", "hashType2");
+        final ResourcesGlobalHash updatedGlobalHash = resourcesGlobalHash("digest2", "hashType2");
         testRepository.saveResourcesGlobalHash(updatedGlobalHash);
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -147,22 +147,22 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testSaveGlobalHashSuccessFailure() throws IOException {
-        ResourcesGlobalHash originalGlobalHash = resourcesGlobalHash("digest1", "hashType1");
-        ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(originalGlobalHash, List.of());
+        final ResourcesGlobalHash originalGlobalHash = resourcesGlobalHash("digest1", "hashType1");
+        final ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(originalGlobalHash, List.of());
         saveRepository(initialRepositoryDescriptor);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals("digest1", testRepository.findResourcesGlobalHash().getDigest());
         assertEquals("hashType1", testRepository.findResourcesGlobalHash().getHashType());
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        Optional<ResourcesGlobalHash> result;
+        final Optional<ResourcesGlobalHash> result;
         try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
             mockedFiles.when(() -> writeString(any(), any(), eq(CREATE), eq(TRUNCATE_EXISTING), eq(WRITE), eq(SYNC))).thenThrow(new IOException());
 
-            ResourcesGlobalHash updatedGlobalHash = resourcesGlobalHash("digest2", "hashType2");
+            final ResourcesGlobalHash updatedGlobalHash = resourcesGlobalHash("digest2", "hashType2");
             result = testRepository.saveResourcesGlobalHash(updatedGlobalHash);
 
         }
@@ -175,55 +175,55 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testResourceItemBinaryPresent() throws IOException {
-        String content = "content";
-        String digest = sha512Hex(content);
-        ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "SHA-512", digest);
+        final String content = "content";
+        final String digest = sha512Hex(content);
+        final ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "SHA-512", digest);
         createResourceBinary(resourceItem, content);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
-        boolean result = testRepository.resourceItemBinaryPresent(resourceItem);
+        final boolean result = testRepository.resourceItemBinaryPresent(resourceItem);
         assertTrue(result);
     }
 
     @Test
     public void testResourceItemBinaryPresentHashMismatch() throws IOException {
-        String content = "content";
-        ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "SHA-512", "not_matching_hash");
+        final String content = "content";
+        final ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "SHA-512", "not_matching_hash");
         createResourceBinary(resourceItem, content);
 
-        FileResourceRepository testRepository = createTestRepository();
-        boolean result = testRepository.resourceItemBinaryPresent(resourceItem);
+        final FileResourceRepository testRepository = createTestRepository();
+        final boolean result = testRepository.resourceItemBinaryPresent(resourceItem);
         assertFalse(result);
     }
 
     @Test
     public void testResourceItemBinaryPresentUnsupportedHashAlgorithm() throws IOException {
-        String content = "content";
-        ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "unsupported_algorithm", "some_hash");
+        final String content = "content";
+        final ResourceItem resourceItem = resourceItem("resource1", null, ASSET, "unsupported_algorithm", "some_hash");
         createResourceBinary(resourceItem, content);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
         assertThrowsExactly(RuntimeException.class, () -> testRepository.resourceItemBinaryPresent(resourceItem));
     }
 
     @Test
     public void testAddResourceItemsWithoutContent() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
-        Optional<ResourceItem> firstResult = testRepository.addResourceItem(firstNewItem);
+        final ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
+        final Optional<ResourceItem> firstResult = testRepository.addResourceItem(firstNewItem);
 
         assertTrue(firstResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals(1, testRepository.findAllResourceItems().size());
         assertEquals("resource1", testRepository.findAllResourceItems().getFirst().getResourceId());
 
-        ResourceItem secondNewItem = resourceItem("resource2", null, ASSET);
-        Optional<ResourceItem> secondResult = testRepository.addResourceItem(secondNewItem);
+        final ResourceItem secondNewItem = resourceItem("resource2", null, ASSET);
+        final Optional<ResourceItem> secondResult = testRepository.addResourceItem(secondNewItem);
 
         assertTrue(secondResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -233,13 +233,13 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testAddResourceItemsWithoutContentErrorCase() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
-        Optional<ResourceItem> result;
+        final ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
+        final Optional<ResourceItem> result;
         try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
             mockedFiles.when(() -> writeString(any(), any(), eq(CREATE), eq(TRUNCATE_EXISTING), eq(WRITE), eq(SYNC))).thenThrow(new IOException());
 
@@ -250,15 +250,15 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testAddResourceItemsWithContent() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
-        Path firstItemTempPath = createTempBinary();
-        Path firstItemExpectedPath = resourcePath(firstNewItem);
-        Optional<ResourceItem> firstResult = testRepository.addResourceItem(firstNewItem, firstItemTempPath);
+        final ResourceItem firstNewItem = resourceItem("resource1", null, ASSET);
+        final Path firstItemTempPath = createTempBinary();
+        final Path firstItemExpectedPath = resourcePath(firstNewItem);
+        final Optional<ResourceItem> firstResult = testRepository.addResourceItem(firstNewItem, firstItemTempPath);
 
         assertTrue(firstResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -267,10 +267,10 @@ public class FileResourceRepositoryTest {
         assertFalse(exists(firstItemTempPath));
         assertTrue(exists(firstItemExpectedPath));
 
-        ResourceItem secondNewItem = resourceItem("resource2", "subdirectory", ASSET);
-        Path secondItemTempPath = createTempBinary();
-        Path secondItemExpectedPath = resourcePath(secondNewItem);
-        Optional<ResourceItem> secondResult = testRepository.addResourceItem(secondNewItem, secondItemTempPath);
+        final ResourceItem secondNewItem = resourceItem("resource2", "subdirectory", ASSET);
+        final Path secondItemTempPath = createTempBinary();
+        final Path secondItemExpectedPath = resourcePath(secondNewItem);
+        final Optional<ResourceItem> secondResult = testRepository.addResourceItem(secondNewItem, secondItemTempPath);
 
         assertTrue(secondResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -280,10 +280,10 @@ public class FileResourceRepositoryTest {
         assertTrue(exists(firstItemExpectedPath));
         assertTrue(exists(secondItemExpectedPath));
 
-        ResourceItem thirdNewItem = resourceItem("resource3", null, EXTENSION);
-        Path thirdItemTempPath = createTempBinary();
-        Path thirdItemExpectedPath = resourcePath(thirdNewItem);
-        Optional<ResourceItem> thirdResult = testRepository.addResourceItem(thirdNewItem, thirdItemTempPath);
+        final ResourceItem thirdNewItem = resourceItem("resource3", null, EXTENSION);
+        final Path thirdItemTempPath = createTempBinary();
+        final Path thirdItemExpectedPath = resourcePath(thirdNewItem);
+        final Optional<ResourceItem> thirdResult = testRepository.addResourceItem(thirdNewItem, thirdItemTempPath);
 
         assertTrue(thirdResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -297,16 +297,16 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testAddResourceItemsWithContentErrorWhenCopying() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourceItem resourceItem = resourceItem("resource1", null, ASSET);
-        Path resourceItemTempPath = Path.of("non_existing_path");
-        Path resourceItemExpectedPath = resourcePath(resourceItem);
+        final ResourceItem resourceItem = resourceItem("resource1", null, ASSET);
+        final Path resourceItemTempPath = Path.of("non_existing_path");
+        final Path resourceItemExpectedPath = resourcePath(resourceItem);
 
-        Optional<ResourceItem> result = testRepository.addResourceItem(resourceItem, resourceItemTempPath);
+        final Optional<ResourceItem> result = testRepository.addResourceItem(resourceItem, resourceItemTempPath);
 
         assertTrue(result.isEmpty());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
@@ -317,16 +317,16 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testDeleteResourceItem() throws IOException {
-        ResourceItem firstItem = resourceItem("resource1", null, ASSET);
-        Path firstItemPath = createResourceBinary(firstItem, RESOURCE_BINARY_CONTENT);
-        ResourceItem secondItem = resourceItem("resource2", null, ASSET);
-        Path secondItemPath = createResourceBinary(secondItem, RESOURCE_BINARY_CONTENT);
-        ResourceItem thirdItem = resourceItem("resource3", null, ASSET);
-        Path thirdItemPath = createResourceBinary(thirdItem, RESOURCE_BINARY_CONTENT);
-        ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(new ResourcesGlobalHash(), List.of(firstItem, secondItem, thirdItem));
+        final ResourceItem firstItem = resourceItem("resource1", null, ASSET);
+        final Path firstItemPath = createResourceBinary(firstItem, RESOURCE_BINARY_CONTENT);
+        final ResourceItem secondItem = resourceItem("resource2", null, ASSET);
+        final Path secondItemPath = createResourceBinary(secondItem, RESOURCE_BINARY_CONTENT);
+        final ResourceItem thirdItem = resourceItem("resource3", null, ASSET);
+        final Path thirdItemPath = createResourceBinary(thirdItem, RESOURCE_BINARY_CONTENT);
+        final ResourceRepositoryDescriptor initialRepositoryDescriptor = new ResourceRepositoryDescriptor(new ResourcesGlobalHash(), List.of(firstItem, secondItem, thirdItem));
         saveRepository(initialRepositoryDescriptor);
 
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals(3, testRepository.findAllResourceItems().size());
@@ -335,7 +335,7 @@ public class FileResourceRepositoryTest {
         assertTrue(exists(secondItemPath));
         assertTrue(exists(thirdItemPath));
 
-        Optional<ResourceItem> firstResult = testRepository.deleteResourceItem(firstItem);
+        final Optional<ResourceItem> firstResult = testRepository.deleteResourceItem(firstItem);
         assertTrue(firstResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals(2, testRepository.findAllResourceItems().size());
@@ -344,7 +344,7 @@ public class FileResourceRepositoryTest {
         assertTrue(exists(secondItemPath));
         assertTrue(exists(thirdItemPath));
 
-        Optional<ResourceItem> secondResult = testRepository.deleteResourceItem(thirdItem);
+        final Optional<ResourceItem> secondResult = testRepository.deleteResourceItem(thirdItem);
         assertTrue(secondResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals(1, testRepository.findAllResourceItems().size());
@@ -353,7 +353,7 @@ public class FileResourceRepositoryTest {
         assertTrue(exists(secondItemPath));
         assertFalse(exists(thirdItemPath));
 
-        Optional<ResourceItem> thirdResult = testRepository.deleteResourceItem(secondItem);
+        final Optional<ResourceItem> thirdResult = testRepository.deleteResourceItem(secondItem);
         assertTrue(thirdResult.isPresent());
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertEquals(0, testRepository.findAllResourceItems().size());
@@ -365,12 +365,12 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testDeleteResourceItemErrorCase() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
         assertRepositoryInMemoryContentEqualsPersistedContent(testRepository);
         assertTrue(testRepository.findAllResourceItems().isEmpty());
 
-        ResourceItem toDeleteItem = resourceItem("resource1", null, ASSET);
-        Optional<ResourceItem> result;
+        final ResourceItem toDeleteItem = resourceItem("resource1", null, ASSET);
+        final Optional<ResourceItem> result;
         try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
             mockedFiles.when(() -> writeString(any(), any(), eq(CREATE), eq(TRUNCATE_EXISTING), eq(WRITE), eq(SYNC))).thenThrow(new IOException());
 
@@ -381,21 +381,21 @@ public class FileResourceRepositoryTest {
 
     @Test
     public void testGetRelativePathReturnsEmptyInCaseOfResourceNotAvailable() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
+        final FileResourceRepository testRepository = createTestRepository();
 
-        Optional<Path> relativePath = testRepository.getAbsolutePath("non_existing_resource_id");
+        final Optional<Path> relativePath = testRepository.getAbsolutePath("non_existing_resource_id");
 
         assertTrue(relativePath.isEmpty());
     }
 
     @Test
     public void testGetRelativePath() throws IOException {
-        FileResourceRepository testRepository = createTestRepository();
-        ResourceItem resourceItem = resourceItem("resource1", "subfolder", ASSET);
-        Path resourceItemPath = createResourceBinary(resourceItem, RESOURCE_BINARY_CONTENT);
+        final FileResourceRepository testRepository = createTestRepository();
+        final ResourceItem resourceItem = resourceItem("resource1", "subfolder", ASSET);
+        final Path resourceItemPath = createResourceBinary(resourceItem, RESOURCE_BINARY_CONTENT);
         testRepository.addResourceItem(resourceItem);
 
-        Optional<Path> relativePath = testRepository.getAbsolutePath("resource1");
+        final Optional<Path> relativePath = testRepository.getAbsolutePath("resource1");
 
         assertTrue(relativePath.isPresent());
         assertEquals(resourceItemPath.toString(), relativePath.get().toString());
@@ -405,7 +405,7 @@ public class FileResourceRepositoryTest {
         return c2Serializer.deserialize(readString(repositoryFile), ResourceRepositoryDescriptor.class).orElse(null);
     }
 
-    private void saveRepository(ResourceRepositoryDescriptor resourceRepositoryDescriptor) throws IOException {
+    private void saveRepository(final ResourceRepositoryDescriptor resourceRepositoryDescriptor) throws IOException {
         writeString(repositoryFile, c2Serializer.serialize(resourceRepositoryDescriptor).orElse(EMPTY), CREATE, TRUNCATE_EXISTING, WRITE, SYNC);
     }
 
@@ -413,19 +413,19 @@ public class FileResourceRepositoryTest {
         return new FileResourceRepository(assetRepositoryDirectory, extensionDirectory, configDirectoryPath, c2Serializer);
     }
 
-    private ResourcesGlobalHash resourcesGlobalHash(String digest, String hashType) {
-        ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
+    private ResourcesGlobalHash resourcesGlobalHash(final String digest, final String hashType) {
+        final ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
         resourcesGlobalHash.setDigest(digest);
         resourcesGlobalHash.setHashType(hashType);
         return resourcesGlobalHash;
     }
 
-    private ResourceItem resourceItem(String id, String path, ResourceType resourceType) {
+    private ResourceItem resourceItem(final String id, final String path, final ResourceType resourceType) {
         return resourceItem(id, path, resourceType, null, null);
     }
 
-    private ResourceItem resourceItem(String id, String path, ResourceType resourceType, String hashType, String digest) {
-        ResourceItem resourceItem = new ResourceItem();
+    private ResourceItem resourceItem(final String id, final String path, final ResourceType resourceType, final String hashType, final String digest) {
+        final ResourceItem resourceItem = new ResourceItem();
         resourceItem.setResourceId(id);
         resourceItem.setResourceName(id);
         resourceItem.setResourcePath(path);
@@ -435,35 +435,35 @@ public class FileResourceRepositoryTest {
         return resourceItem;
     }
 
-    private void assertRepositoryInMemoryContentEqualsPersistedContent(FileResourceRepository testRepository) throws IOException {
+    private void assertRepositoryInMemoryContentEqualsPersistedContent(final FileResourceRepository testRepository) throws IOException {
         assertTrue(exists(repositoryFile));
-        ResourceRepositoryDescriptor loadedRepositoryDescriptor = loadRepository();
+        final ResourceRepositoryDescriptor loadedRepositoryDescriptor = loadRepository();
         assertNotNull(loadedRepositoryDescriptor);
         assertEquals(loadedRepositoryDescriptor.resourcesGlobalHash(), testRepository.findResourcesGlobalHash());
         assertIterableEquals(loadedRepositoryDescriptor.resourceItems(), testRepository.findAllResourceItems());
     }
 
-    private Path resourcePath(ResourceItem item) {
-        Path resourcePath = switch (item.getResourceType()) {
+    private Path resourcePath(final ResourceItem item) {
+        final Path resourcePath = switch (item.getResourceType()) {
             case ASSET -> assetRepositoryDirectory.resolve(isBlank(item.getResourcePath()) ? item.getResourceName() : item.getResourcePath() + "/" + item.getResourceName());
             case EXTENSION -> extensionDirectory.resolve(item.getResourceName());
         };
         return resourcePath.toAbsolutePath();
     }
 
-    private Path createResourceBinary(ResourceItem resourceItem, String content) throws IOException {
-        Path resourcePath = resourcePath(resourceItem);
+    private Path createResourceBinary(final ResourceItem resourceItem, final String content) throws IOException {
+        final Path resourcePath = resourcePath(resourceItem);
         createFile(resourcePath, content);
         return resourcePath;
     }
 
     private Path createTempBinary() throws IOException {
-        Path resourcePath = testBaseDirectory.resolve(randomUUID().toString());
+        final Path resourcePath = testBaseDirectory.resolve(randomUUID().toString());
         createFile(resourcePath, RESOURCE_BINARY_CONTENT);
         return resourcePath;
     }
 
-    private void createFile(Path path, String content) throws IOException {
+    private void createFile(final Path path, final String content) throws IOException {
         createDirectories(path.getParent());
         writeString(path, content);
     }

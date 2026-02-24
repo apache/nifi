@@ -69,7 +69,7 @@ public class TestSelectiveRecordReaderEventIterator {
         files.add(file2000);
         files.add(file3000);
 
-        List<Long> eventIds = new ArrayList<>();
+        final List<Long> eventIds = new ArrayList<>();
         eventIds.add(1048L);
         eventIds.add(2048L);
         eventIds.add(3048L);
@@ -94,7 +94,7 @@ public class TestSelectiveRecordReaderEventIterator {
         final List<File> files = new ArrayList<>();
         files.add(file1);
 
-        List<Long> eventIds = new ArrayList<>();
+        final List<Long> eventIds = new ArrayList<>();
         eventIds.add(1L);
         eventIds.add(5L);
 
@@ -136,7 +136,7 @@ public class TestSelectiveRecordReaderEventIterator {
         files.add(journalFile);
         files.add(new File(dir, "100000000.prov"));
 
-        boolean loopForever = true;
+        final boolean loopForever = true;
         while (loopForever) {
             final long start = System.nanoTime();
             for (int i = 0; i < 1000; i++) {

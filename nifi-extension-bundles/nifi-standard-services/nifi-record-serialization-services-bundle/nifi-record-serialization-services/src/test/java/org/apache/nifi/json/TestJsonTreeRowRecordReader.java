@@ -859,7 +859,7 @@ class TestJsonTreeRowRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
+        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
             try (final InputStream in = new FileInputStream("src/test/resources/json/single-bank-account-wrong-field-type.json");
                  final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
 
@@ -876,9 +876,9 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testMergeOfSimilarRecords() throws Exception {
-        String jsonPath = "src/test/resources/json/similar-records.json";
+        final String jsonPath = "src/test/resources/json/similar-records.json";
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()),
             new RecordField("booleanOrString", RecordFieldType.CHOICE.getChoiceDataType(
@@ -888,7 +888,7 @@ class TestJsonTreeRowRecordReader {
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedSchema, Map.of(
                     "integer", 1,
                     "boolean", true,
@@ -906,24 +906,24 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testChoiceOfEmbeddedSimilarRecords() throws Exception {
-        String jsonPath = "src/test/resources/json/choice-of-embedded-similar-records.json";
+        final String jsonPath = "src/test/resources/json/choice-of-embedded-similar-records.json";
 
-        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
         ));
-        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
                         RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)
                 ))
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedRecordChoiceSchema, Map.of(
                     "record", new MapRecord(expectedRecordSchema1, Map.of(
                             "integer", 1,
@@ -947,39 +947,39 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
-        String jsonPath = "src/test/resources/json/choice-of-different-arrays-with-extra-fields.json";
+        final String jsonPath = "src/test/resources/json/choice-of-different-arrays-with-extra-fields.json";
 
-        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
         ));
-        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
 
-        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema1)),
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema2))
                 ))
         ));
 
-        RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
                         RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
                 )
                 )));
 
-        SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
         ));
-        SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema1)),
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema2))
@@ -989,9 +989,9 @@ class TestJsonTreeRowRecordReader {
         // Since the actual arrays have records with either (INT, BOOLEAN, STRING) or (INT, STRING, STRING)
         //  while the explicit schema defines only (INT, BOOLEAN) and (INT, STRING) we can't tell which record schema to chose
         //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
-        SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
+        final SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
 
-        List<Object> expected = List.of(
+        final List<Object> expected = List.of(
             new MapRecord(expectedRecordChoiceSchema, Map.of(
                 "record", new Object[] {
                     new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, Map.of(
@@ -1027,14 +1027,14 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromNestedArray() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested-array.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested-array.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = List.of(
+        final List<Object> expected = List.of(
             new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)),
             new MapRecord(expectedRecordSchema, Map.of("id", 43, "balance", 48212.38))
         );
@@ -1044,28 +1044,28 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromNestedObject() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = List.of(new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)));
+        final List<Object> expected = List.of(new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)));
 
         testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "account");
     }
 
     @Test
     void testStartFromMultipleNestedField() throws Exception {
-        String jsonPath = "src/test/resources/json/multiple-nested-field.json";
+        final String jsonPath = "src/test/resources/json/multiple-nested-field.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.STRING.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = List.of(
+        final List<Object> expected = List.of(
             new MapRecord(expectedRecordSchema, Map.of("id", "n312kj3", "type", "employee")),
             new MapRecord(expectedRecordSchema, Map.of("id", "dl2kdff", "type", "security"))
         );
@@ -1075,17 +1075,17 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name");
     }
 
     @Test
     void testStartFromNonExistentFieldWithDefinedSchema() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
-        List<Object> expected = Collections.emptyList();
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
+        final List<Object> expected = Collections.emptyList();
 
         testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
                 "notfound", SchemaApplicationStrategy.SELECTED_PART);
@@ -1093,7 +1093,7 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromNestedFieldThenStartObject() throws Exception {
-        String jsonPath = "src/test/resources/json/nested-array-then-start-object.json";
+        final String jsonPath = "src/test/resources/json/nested-array-then-start-object.json";
 
         final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
@@ -1111,7 +1111,7 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromNestedObjectWithWholeJsonSchemaScope() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
@@ -1134,20 +1134,20 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromNestedArrayWithWholeJsonSchemaScope() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-nested-array.json";
+        final String jsonPath = "src/test/resources/json/single-element-nested-array.json";
 
-        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountSchema)))
         ));
 
-        RecordSchema expectedRecordSchema = accountSchema;
+        final RecordSchema expectedRecordSchema = accountSchema;
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedRecordSchema, Map.of("id", 42, "balance", 4750.89)),
             new MapRecord(expectedRecordSchema, Map.of("id", 43, "balance", 48212.38))
         );
@@ -1158,9 +1158,9 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testStartFromDeepNestedObject() throws Exception {
-        String jsonPath = "src/test/resources/json/single-element-deep-nested.json";
+        final String jsonPath = "src/test/resources/json/single-element-deep-nested.json";
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("rootInt", RecordFieldType.INT.getDataType()),
                 new RecordField("rootString", RecordFieldType.STRING.getDataType()),
                 new RecordField("nestedLevel1Record", RecordFieldType.RECORD.getRecordDataType(
@@ -1177,12 +1177,12 @@ class TestJsonTreeRowRecordReader {
                 ))
         ));
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
                 new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Collections.singletonList(
+        final List<Object> expected = Collections.singletonList(
                 new MapRecord(expectedRecordSchema, Map.of(
                         "nestedLevel2Int", 111,
                         "nestedLevel2String", "root.level1.level2:string"
@@ -1195,26 +1195,26 @@ class TestJsonTreeRowRecordReader {
 
     @Test
     void testCaptureFields() throws Exception {
-        Map<String, String> expectedCapturedFields = new HashMap<>();
+        final Map<String, String> expectedCapturedFields = new HashMap<>();
         expectedCapturedFields.put("id", "1");
         expectedCapturedFields.put("zipCode", "11111");
         expectedCapturedFields.put("country", "USA");
         expectedCapturedFields.put("job", null);
-        Set<String> fieldsToCapture = expectedCapturedFields.keySet();
-        BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
-        String startingFieldName = "accounts";
+        final Set<String> fieldsToCapture = expectedCapturedFields.keySet();
+        final BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
+        final String startingFieldName = "accounts";
 
-        SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        SimpleRecordSchema jobRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema jobRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("salary", RecordFieldType.INT.getDataType()),
                 new RecordField("position", RecordFieldType.STRING.getDataType())
         ));
 
-        SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountRecordSchema))),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
@@ -1227,20 +1227,20 @@ class TestJsonTreeRowRecordReader {
         ));
 
         try (InputStream in = new FileInputStream("src/test/resources/json/capture-fields.json")) {
-            JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, recordSchema, dateFormat, timeFormat, timestampFormat,
+            final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, recordSchema, dateFormat, timeFormat, timestampFormat,
                     StartingFieldStrategy.NESTED_FIELD, startingFieldName, SchemaApplicationStrategy.SELECTED_PART,
                     capturePredicate, false, null);
 
             while (reader.nextRecord() != null) {
                 // continue reading
             }
-            Map<String, String> capturedFields = reader.getCapturedFields();
+            final Map<String, String> capturedFields = reader.getCapturedFields();
 
             assertEquals(expectedCapturedFields, capturedFields);
         }
     }
 
-    private void testReadRecords(String jsonFilename, List<Object> expected) throws Exception {
+    private void testReadRecords(final String jsonFilename, final List<Object> expected) throws Exception {
         final File jsonFile = new File(jsonFilename);
         try (final InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             final RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
@@ -1248,48 +1248,48 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath,
-                                 List<Object> expected,
-                                 StartingFieldStrategy strategy,
-                                 String startingFieldName)
+    private void testReadRecords(final String jsonPath,
+                                 final List<Object> expected,
+                                 final StartingFieldStrategy strategy,
+                                 final String startingFieldName)
             throws Exception {
 
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
+            final RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
             testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 
-    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws Exception {
+    private void testReadRecords(final String jsonPath, final RecordSchema schema, final List<Object> expected) throws Exception {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected);
         }
     }
 
-    private void testReadRecords(String jsonPath,
-                                 RecordSchema schema,
-                                 List<Object> expected,
-                                 StartingFieldStrategy strategy,
-                                 String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy) throws Exception {
+    private void testReadRecords(final String jsonPath,
+                                 final RecordSchema schema,
+                                 final List<Object> expected,
+                                 final StartingFieldStrategy strategy,
+                                 final String startingFieldName,
+                                 final SchemaApplicationStrategy schemaApplicationStrategy) throws Exception {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
         }
     }
 
-    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws Exception {
+    private void testReadRecords(final InputStream jsonStream, final RecordSchema schema, final List<Object> expected) throws Exception {
         try (JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(jsonStream, schema)) {
-            List<Object> actual = new ArrayList<>();
+            final List<Object> actual = new ArrayList<>();
             Record record;
             while ((record = reader.nextRecord()) != null) {
-                List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
+                final List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
                 actual.addAll(dataCollection);
             }
 
-            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+            final List<Function<Object, Object>> propertyProviders = Arrays.asList(
                 _object -> ((Record) _object).getSchema(),
                 _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                     if (value != null && value.getClass().isArray()) {
@@ -1300,31 +1300,31 @@ class TestJsonTreeRowRecordReader {
                 }).collect(Collectors.toList())
             );
 
-            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
-            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
 
             assertEquals(wrappedExpected, wrappedActual);
         }
     }
 
-    private void testReadRecords(InputStream jsonStream,
-                                 RecordSchema schema,
-                                 List<Object> expected,
-                                 StartingFieldStrategy strategy,
-                                 String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy)
+    private void testReadRecords(final InputStream jsonStream,
+                                 final RecordSchema schema,
+                                 final List<Object> expected,
+                                 final StartingFieldStrategy strategy,
+                                 final String startingFieldName,
+                                 final SchemaApplicationStrategy schemaApplicationStrategy)
             throws Exception {
 
         try (JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(jsonStream, schema, dateFormat, timeFormat, timestampFormat,
                 strategy, startingFieldName, schemaApplicationStrategy, null, false, null)) {
-            List<Object> actual = new ArrayList<>();
+            final List<Object> actual = new ArrayList<>();
             Record record;
 
             while ((record = reader.nextRecord()) != null) {
                 actual.add(record);
             }
 
-            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+            final List<Function<Object, Object>> propertyProviders = Arrays.asList(
                     _object -> ((Record) _object).getSchema(),
                     _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                         if (value != null && value.getClass().isArray()) {
@@ -1335,15 +1335,15 @@ class TestJsonTreeRowRecordReader {
                     }).collect(Collectors.toList())
             );
 
-            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
-            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
 
             assertEquals(wrappedExpected, wrappedActual, "Expected: " + expected + ", Actual: " + actual);
         }
     }
 
-    private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
-        RecordSchema schema = new InferSchemaAccessStrategy<>(
+    private RecordSchema inferSchema(final InputStream jsonStream, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
+        final RecordSchema schema = new InferSchemaAccessStrategy<>(
             (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName, new JsonParserFactory()),
             new JsonSchemaInference(new TimeValueInference(null, null, null)), log
         ).getSchema(Collections.emptyMap(), jsonStream, null);
@@ -1353,13 +1353,15 @@ class TestJsonTreeRowRecordReader {
         return schema;
     }
 
-    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream inputStream, RecordSchema recordSchema) throws Exception {
+    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(final InputStream inputStream, final RecordSchema recordSchema) throws Exception {
         return createJsonTreeRowRecordReader(inputStream, recordSchema, dateFormat, timeFormat, timestampFormat, null, null, null, null, false, null);
     }
 
-    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(InputStream inputStream, RecordSchema recordSchema, String dateFormat, String timeFormat, String timestampFormat,
-                                                                  StartingFieldStrategy startingFieldStrategy, String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy,
-                                                                  BiPredicate<String, String> captureFieldPredicate, boolean allowComments, StreamReadConstraints streamReadConstraints)
+    private JsonTreeRowRecordReader createJsonTreeRowRecordReader(final InputStream inputStream, final RecordSchema recordSchema,
+            final String dateFormat, final String timeFormat, final String timestampFormat,
+            final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
+            final SchemaApplicationStrategy schemaApplicationStrategy, final BiPredicate<String, String> captureFieldPredicate,
+            final boolean allowComments, final StreamReadConstraints streamReadConstraints)
             throws Exception {
 
         final TokenParserFactory tokenParserFactory;

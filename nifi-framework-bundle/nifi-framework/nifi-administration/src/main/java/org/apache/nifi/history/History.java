@@ -34,7 +34,7 @@ public class History {
         return actions;
     }
 
-    public void setActions(Collection<Action> actions) {
+    public void setActions(final Collection<Action> actions) {
         this.actions = actions;
     }
 
@@ -42,7 +42,7 @@ public class History {
         return total;
     }
 
-    public void setTotal(Integer totalRecordCount) {
+    public void setTotal(final Integer totalRecordCount) {
         this.total = totalRecordCount;
     }
 
@@ -50,7 +50,7 @@ public class History {
         return lastRefreshed;
     }
 
-    public void setLastRefreshed(Date lastRefreshed) {
+    public void setLastRefreshed(final Date lastRefreshed) {
         this.lastRefreshed = lastRefreshed;
     }
 

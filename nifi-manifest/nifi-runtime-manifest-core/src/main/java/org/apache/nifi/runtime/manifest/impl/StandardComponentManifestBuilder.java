@@ -68,7 +68,7 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     }
 
     @Override
-    public ComponentManifestBuilder addParameterProvider(ParameterProviderDefinition parameterProviderDefinition) {
+    public ComponentManifestBuilder addParameterProvider(final ParameterProviderDefinition parameterProviderDefinition) {
         if (parameterProviderDefinition == null) {
             throw new IllegalArgumentException("Parameter Provider definition cannot be null");
         }
@@ -77,7 +77,7 @@ public class StandardComponentManifestBuilder implements ComponentManifestBuilde
     }
 
     @Override
-    public ComponentManifestBuilder addFlowAnalysisRule(FlowAnalysisRuleDefinition flowAnalysisRuleDefinition) {
+    public ComponentManifestBuilder addFlowAnalysisRule(final FlowAnalysisRuleDefinition flowAnalysisRuleDefinition) {
         if (flowAnalysisRuleDefinition == null) {
             throw new IllegalArgumentException("Flow Analysis Rule definition cannot be null");
         }

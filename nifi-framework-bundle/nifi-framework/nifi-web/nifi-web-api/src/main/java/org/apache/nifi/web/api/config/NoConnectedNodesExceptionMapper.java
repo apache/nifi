@@ -33,7 +33,7 @@ public class NoConnectedNodesExceptionMapper implements ExceptionMapper<NoConnec
     private static final Logger logger = LoggerFactory.getLogger(NoConnectedNodesException.class);
 
     @Override
-    public Response toResponse(NoConnectedNodesException ex) {
+    public Response toResponse(final NoConnectedNodesException ex) {
         // log the error
         logger.info("Cluster failed processing request: {}. Returning {} response.", ex, Response.Status.INTERNAL_SERVER_ERROR);
 

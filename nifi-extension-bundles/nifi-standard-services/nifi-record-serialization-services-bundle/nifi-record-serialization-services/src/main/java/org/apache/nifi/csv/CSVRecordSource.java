@@ -43,7 +43,7 @@ public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
         final Reader reader;
         try {
             reader = new InputStreamReader(BOMInputStream.builder().setInputStream(in).get(), charset);
-        } catch (UnsupportedEncodingException e) {
+        } catch (final UnsupportedEncodingException e) {
             throw new ProcessException(e);
         }
 

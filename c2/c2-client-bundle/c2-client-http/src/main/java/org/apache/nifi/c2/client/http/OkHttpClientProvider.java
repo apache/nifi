@@ -40,15 +40,15 @@ public class OkHttpClientProvider {
 
     private final C2ClientConfig clientConfig;
 
-    public OkHttpClientProvider(C2ClientConfig clientConfig) {
+    public OkHttpClientProvider(final C2ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
     }
 
     public OkHttpClient okHttpClient() {
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
+        final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
         // Configure request and response logging
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor(logger::debug);
+        final HttpLoggingInterceptor logging = new HttpLoggingInterceptor(logger::debug);
         logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
         okHttpClientBuilder.addInterceptor(logging);
 
@@ -65,7 +65,7 @@ public class OkHttpClientProvider {
         if (StringUtils.isNotBlank(clientConfig.getKeystoreFilename())) {
             try {
                 setSslSocketFactory(okHttpClientBuilder);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new IllegalStateException("OkHttp TLS configuration failed", e);
             }
         }
@@ -73,13 +73,13 @@ public class OkHttpClientProvider {
         return okHttpClientBuilder.build();
     }
 
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder) throws Exception {
-        String keystoreLocation = clientConfig.getKeystoreFilename();
-        String keystoreType = clientConfig.getKeystoreType();
-        String keystorePass = clientConfig.getKeystorePass();
+    private void setSslSocketFactory(final OkHttpClient.Builder okHttpClientBuilder) throws Exception {
+        final String keystoreLocation = clientConfig.getKeystoreFilename();
+        final String keystoreType = clientConfig.getKeystoreType();
+        final String keystorePass = clientConfig.getKeystorePass();
         assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
 
-        KeyStore keyStore;
+        final KeyStore keyStore;
         try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
             keyStore = new StandardKeyStoreBuilder()
                 .type(keystoreType)
@@ -88,12 +88,12 @@ public class OkHttpClientProvider {
                 .build();
         }
 
-        String truststoreLocation = clientConfig.getTruststoreFilename();
-        String truststorePass = clientConfig.getTruststorePass();
-        String truststoreType = clientConfig.getTruststoreType();
+        final String truststoreLocation = clientConfig.getTruststoreFilename();
+        final String truststorePass = clientConfig.getTruststorePass();
+        final String truststoreType = clientConfig.getTruststoreType();
         assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
 
-        KeyStore truststore;
+        final KeyStore truststore;
         try (FileInputStream trustStoreStream = new FileInputStream(truststoreLocation)) {
             truststore = new StandardKeyStoreBuilder()
                 .type(truststoreType)
@@ -102,18 +102,18 @@ public class OkHttpClientProvider {
                 .build();
         }
 
-        X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
-        SSLContext sslContext = new StandardSslContextBuilder()
+        final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
+        final SSLContext sslContext = new StandardSslContextBuilder()
             .keyStore(keyStore)
             .keyPassword(keystorePass.toCharArray())
             .trustStore(truststore)
             .build();
-        SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
         okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
     }
 
-    private void assertKeystorePropertiesSet(String location, String password, String type) {
+    private void assertKeystorePropertiesSet(final String location, final String password, final String type) {
         if (location == null || location.isEmpty()) {
             throw new IllegalArgumentException(clientConfig.getKeystoreFilename() + " is null or is empty");
         }
@@ -127,7 +127,7 @@ public class OkHttpClientProvider {
         }
     }
 
-    private void assertTruststorePropertiesSet(String location, String password, String type) {
+    private void assertTruststorePropertiesSet(final String location, final String password, final String type) {
         if (location == null || location.isEmpty()) {
             throw new IllegalArgumentException("The client's truststore filename is not set or is empty");
         }

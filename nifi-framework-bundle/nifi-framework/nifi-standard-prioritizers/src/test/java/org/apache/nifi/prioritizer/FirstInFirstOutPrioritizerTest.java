@@ -33,9 +33,9 @@ public class FirstInFirstOutPrioritizerTest {
 
     @Test
     public void testPrioritizer() {
-        MockFlowFile flowFile1 = testRunner.enqueue("created first but 'enqueued' later");
+        final MockFlowFile flowFile1 = testRunner.enqueue("created first but 'enqueued' later");
         flowFile1.setLastEnqueuedDate(830822400000L);
-        MockFlowFile flowFile2 = testRunner.enqueue("created second but 'enqueued' earlier");
+        final MockFlowFile flowFile2 = testRunner.enqueue("created second but 'enqueued' earlier");
         flowFile2.setLastEnqueuedDate(795916800000L);
 
         assertEquals(0, prioritizer.compare(null, null));

@@ -30,7 +30,7 @@ public enum ClientAuth {
     private final String type;
     private final String description;
 
-    ClientAuth(String type, String description) {
+    ClientAuth(final String type, final String description) {
         this.type = type;
         this.description = description;
     }
@@ -45,7 +45,7 @@ public enum ClientAuth {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("[SslContextFactory]");
+        final StringBuilder sb = new StringBuilder("[SslContextFactory]");
         sb.append("type=").append(type);
         sb.append("description=").append(description);
         return sb.toString();
@@ -57,7 +57,7 @@ public enum ClientAuth {
      * @param type the raw type string
      * @return true if the type is valid
      */
-    public static boolean isValidClientAuthType(String type) {
+    public static boolean isValidClientAuthType(final String type) {
         if (type == null || type.replaceAll("\\s", "").isEmpty()) {
             return false;
         }

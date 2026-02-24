@@ -46,11 +46,11 @@ public class ScriptEventHookProvider
 
     @Override
     public void handle(final Event event) {
-        List<String> command = new ArrayList<>();
+        final List<String> command = new ArrayList<>();
         command.add(scriptFile.getAbsolutePath());
         command.add(event.getEventType().name());
 
-        for (EventField arg : event.getFields()) {
+        for (final EventField arg : event.getFields()) {
             command.add(arg.getValue());
         }
 
@@ -61,13 +61,13 @@ public class ScriptEventHookProvider
 
         try {
             builder.start();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Command Execution Failed: {}", commandString, e);
         }
     }
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         super.onConfigured(configurationContext);
 
         final Map<String, String> props = configurationContext.getProperties();
@@ -85,7 +85,7 @@ public class ScriptEventHookProvider
             try {
                 workDirFile = new File(workdir);
                 FileUtils.ensureDirectoryExistAndCanRead(workDirFile);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProviderCreationException("The working directory " + workdir + " cannot be read.");
             }
         }

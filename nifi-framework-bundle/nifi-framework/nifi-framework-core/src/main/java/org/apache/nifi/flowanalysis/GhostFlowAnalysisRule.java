@@ -64,7 +64,7 @@ public class GhostFlowAnalysisRule implements FlowAnalysisRule {
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
     }
 
     @Override
@@ -83,7 +83,7 @@ public class GhostFlowAnalysisRule implements FlowAnalysisRule {
     }
 
     @Override
-    public void initialize(FlowAnalysisRuleInitializationContext context) throws InitializationException {
+    public void initialize(final FlowAnalysisRuleInitializationContext context) throws InitializationException {
 
     }
 }

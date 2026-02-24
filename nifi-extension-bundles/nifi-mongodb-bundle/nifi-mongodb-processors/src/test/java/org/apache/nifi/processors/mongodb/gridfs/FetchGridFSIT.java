@@ -59,10 +59,10 @@ public class FetchGridFSIT extends GridFSITTestBase {
     public void testGetOneByName() {
         final String fileName = "get_by_name.txt";
         final String content  = "Hello, world";
-        ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
+        final ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
         assertNotNull(id);
 
-        String query = String.format("{\"filename\": \"%s\"}", fileName);
+        final String query = String.format("{\"filename\": \"%s\"}", fileName);
         runner.enqueue(query);
         runner.run();
         runner.assertTransferCount(FetchGridFS.REL_FAILURE, 0);
@@ -87,17 +87,17 @@ public class FetchGridFSIT extends GridFSITTestBase {
 
     @Test
     public void testGetMany() {
-        String baseName = "test_file_%d.txt";
-        String content  = "Hello, world take %d";
+        final String baseName = "test_file_%d.txt";
+        final String content  = "Hello, world take %d";
         for (int index = 0; index < 5; index++) {
-            ObjectId id = writeTestFile(String.format(baseName, index), String.format(content, index), BUCKET, new HashMap<>());
+            final ObjectId id = writeTestFile(String.format(baseName, index), String.format(content, index), BUCKET, new HashMap<>());
             assertNotNull(id);
         }
 
-        AllowableValue[] values = new AllowableValue[] {QueryHelper.MODE_MANY_COMMITS, QueryHelper.MODE_ONE_COMMIT};
+        final AllowableValue[] values = new AllowableValue[] {QueryHelper.MODE_MANY_COMMITS, QueryHelper.MODE_ONE_COMMIT};
 
-        for (AllowableValue value : values) {
-            String query = "{}";
+        for (final AllowableValue value : values) {
+            final String query = "{}";
             runner.setProperty(FetchGridFS.OPERATION_MODE, value);
             runner.enqueue(query);
             runner.run();
@@ -137,7 +137,7 @@ public class FetchGridFSIT extends GridFSITTestBase {
         id = writeTestFile(fileName, content, BUCKET, Map.of("lookupKey", "xyz"));
         assertNotNull(id);
 
-        String query = "{ \"metadata\": { \"lookupKey\": \"xyz\" }}";
+        final String query = "{ \"metadata\": { \"lookupKey\": \"xyz\" }}";
 
         runner.removeProperty(FetchGridFS.FILE_NAME);
         runner.setProperty(FetchGridFS.QUERY, query);
@@ -167,17 +167,17 @@ public class FetchGridFSIT extends GridFSITTestBase {
 
     @Test
     public void testGetQueryFromFileNameParam() {
-        Map<String, String> attr = new HashMap<>();
+        final Map<String, String> attr = new HashMap<>();
         attr.put(CoreAttributes.FILENAME.key(), "get_by_name.txt");
         runner.setProperty(FetchGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()));
         runner.enqueue("test", attr);
         testQueryFromSource(0, 1, 1);
     }
 
-    private void testQueryFromSource(int failure, int original, int success) {
+    private void testQueryFromSource(final int failure, final int original, final int success) {
         final String fileName = "get_by_name.txt";
         final String content  = "Hello, world";
-        ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
+        final ObjectId id = writeTestFile(fileName, content, BUCKET, new HashMap<>());
         assertNotNull(id);
 
         runner.run();

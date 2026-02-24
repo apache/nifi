@@ -31,13 +31,13 @@ import org.apache.nifi.web.UiExtensionType;
 
 class ProcessorWebUtils {
 
-    static ComponentDetails getComponentDetails(final NiFiWebConfigurationContext configurationContext, final String processorId, HttpServletRequest request) {
+    static ComponentDetails getComponentDetails(final NiFiWebConfigurationContext configurationContext, final String processorId, final HttpServletRequest request) {
         final NiFiWebRequestContext requestContext = getRequestContext(processorId, request);
         return configurationContext.getComponentDetails(requestContext);
     }
 
-    static Response.ResponseBuilder applyCacheControl(Response.ResponseBuilder response) {
-        CacheControl cacheControl = new CacheControl();
+    static Response.ResponseBuilder applyCacheControl(final Response.ResponseBuilder response) {
+        final CacheControl cacheControl = new CacheControl();
         cacheControl.setPrivate(true);
         cacheControl.setNoCache(true);
         cacheControl.setNoStore(true);
@@ -45,7 +45,7 @@ class ProcessorWebUtils {
     }
 
     static NiFiWebConfigurationRequestContext getRequestContext(final String processorId, final Long revision, final String clientId,
-                                                                final Boolean isDisconnectionAcknowledged, HttpServletRequest request) {
+                                                                final Boolean isDisconnectionAcknowledged, final HttpServletRequest request) {
 
         return new HttpServletConfigurationRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
@@ -65,7 +65,7 @@ class ProcessorWebUtils {
         };
     }
 
-    private static NiFiWebRequestContext getRequestContext(final String processorId, HttpServletRequest request) {
+    private static NiFiWebRequestContext getRequestContext(final String processorId, final HttpServletRequest request) {
         return new HttpServletRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
             public String getId() {

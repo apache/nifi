@@ -95,8 +95,8 @@ public class TestParseNetflowv5 {
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).getFirst();
 
-        byte[] rawJson = mff.toByteArray();
-        JsonNode record = new ObjectMapper().readTree(rawJson).get("record");
+        final byte[] rawJson = mff.toByteArray();
+        final JsonNode record = new ObjectMapper().readTree(rawJson).get("record");
 
         assertEquals(3, record.get("input").intValue());
         assertEquals(5, record.get("output").intValue());
@@ -113,10 +113,10 @@ public class TestParseNetflowv5 {
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
         for (int i = 0; i < 3; i++) {
             final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).get(i);
-            byte[] rawJson = mff.toByteArray();
-            JsonNode results = new ObjectMapper().readTree(rawJson);
-            JsonNode header = results.get("header");
-            JsonNode record = results.get("record");
+            final byte[] rawJson = mff.toByteArray();
+            final JsonNode results = new ObjectMapper().readTree(rawJson);
+            final JsonNode header = results.get("header");
+            final JsonNode record = results.get("record");
 
             assertEquals(4586, header.get("flow_sequence").longValue());
             assertEquals(80685252, record.get("first").longValue());
@@ -148,8 +148,8 @@ public class TestParseNetflowv5 {
         runner.assertTransferCount(ParseNetflowv5.REL_ORIGINAL, 1);
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ParseNetflowv5.REL_SUCCESS).getFirst();
 
-        byte[] rawJson = mff.toByteArray();
-        JsonNode results = new ObjectMapper().readTree(rawJson);
+        final byte[] rawJson = mff.toByteArray();
+        final JsonNode results = new ObjectMapper().readTree(rawJson);
 
         assertEquals(2055, results.get("port").intValue());
     }

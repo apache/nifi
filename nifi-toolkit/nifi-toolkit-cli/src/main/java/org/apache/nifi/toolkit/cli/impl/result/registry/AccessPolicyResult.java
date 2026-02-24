@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class AccessPolicyResult extends AbstractWritableResult<AccessPolicy> {
     private final AccessPolicy accessPolicy;
 
-    public AccessPolicyResult(ResultType resultType, AccessPolicy accessPolicy) {
+    public AccessPolicyResult(final ResultType resultType, final AccessPolicy accessPolicy) {
         super(resultType);
         this.accessPolicy = Objects.requireNonNull(accessPolicy);
     }
@@ -41,7 +41,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicy> {
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         output.printf("Resource: %s\nAction  : %s\nUsers   : %s\nGroups  : %s\n",
             accessPolicy.getResource(),
             accessPolicy.getAction(),
@@ -50,7 +50,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicy> {
         );
     }
 
-    private String joinTenantIdentities(Set<Tenant> tenants) {
+    private String joinTenantIdentities(final Set<Tenant> tenants) {
         return tenants.stream()
             .map(tenant -> tenant.getIdentity())
             .collect(Collectors.joining(", "));

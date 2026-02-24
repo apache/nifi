@@ -168,7 +168,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         try {
 
             final long maxCacheEntrySize = context.getProperty(CACHE_ENTRY_MAX_BYTES).asDataSize(DataUnit.B).longValue();
-            long flowFileSize = flowFile.getSize();
+            final long flowFileSize = flowFile.getSize();
 
             // too big flow file
             if (flowFileSize > maxCacheEntrySize) {
@@ -187,7 +187,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
             // get flow file content
             final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             session.exportTo(flowFile, byteStream);
-            byte[] cacheValue = byteStream.toByteArray();
+            final byte[] cacheValue = byteStream.toByteArray();
             final String updateStrategy = context.getProperty(CACHE_UPDATE_STRATEGY).getValue();
             boolean cached = false;
 
@@ -218,7 +218,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Cache update strategy", CACHE_UPDATE_STRATEGY.getName());
         config.renameProperty("Max cache entry size", CACHE_ENTRY_MAX_BYTES.getName());
     }

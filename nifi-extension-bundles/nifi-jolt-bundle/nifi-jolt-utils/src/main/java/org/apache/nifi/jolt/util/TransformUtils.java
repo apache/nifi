@@ -25,12 +25,12 @@ import java.util.Map;
 
 public class TransformUtils {
 
-    public static Object transform(JoltTransform joltTransform, Object input) {
+    public static Object transform(final JoltTransform joltTransform, final Object input) {
         return joltTransform instanceof ContextualTransform
                 ? ((ContextualTransform) joltTransform).transform(input, Collections.emptyMap()) : ((Transform) joltTransform).transform(input);
     }
 
-    public static Object transform(JoltTransform joltTransform, Object input, Map<String, Object> contextMap) {
+    public static Object transform(final JoltTransform joltTransform, final Object input, final Map<String, Object> contextMap) {
         return joltTransform instanceof ContextualTransform
                 ? ((ContextualTransform) joltTransform).transform(input, contextMap) : ((Transform) joltTransform).transform(input);
     }

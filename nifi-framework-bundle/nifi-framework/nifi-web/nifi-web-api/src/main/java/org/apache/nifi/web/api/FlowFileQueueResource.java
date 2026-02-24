@@ -463,7 +463,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         final String connectionId;
         final String listingRequestId;
 
-        public ListingEntity(String connectionId, String listingRequestId) {
+        public ListingEntity(final String connectionId, final String listingRequestId) {
             this.connectionId = connectionId;
             this.listingRequestId = listingRequestId;
         }
@@ -673,7 +673,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         final String connectionId;
         final String dropRequestId;
 
-        public DropEntity(String connectionId, String dropRequestId) {
+        public DropEntity(final String connectionId, final String dropRequestId) {
             this.connectionId = connectionId;
             this.dropRequestId = dropRequestId;
         }

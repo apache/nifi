@@ -50,7 +50,7 @@ public abstract class BasicAuthIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public AuthenticationRequest extractCredentials(HttpServletRequest servletRequest) {
+    public AuthenticationRequest extractCredentials(final HttpServletRequest servletRequest) {
 
         if (servletRequest == null) {
             logger.debug("Cannot extract user credentials from null servletRequest");
@@ -68,21 +68,21 @@ public abstract class BasicAuthIdentityProvider implements IdentityProvider {
             return null;
         }
 
-        AuthenticationRequest authenticationRequest;
+        final AuthenticationRequest authenticationRequest;
 
         try {
 
             // Authorization: Basic {base64credentials}
-            String base64Credentials = authorization.substring(BASIC.length()).trim();
-            String credentials = new String(Base64.getDecoder().decode(base64Credentials), StandardCharsets.UTF_8);
+            final String base64Credentials = authorization.substring(BASIC.length()).trim();
+            final String credentials = new String(Base64.getDecoder().decode(base64Credentials), StandardCharsets.UTF_8);
             // credentials = username:password
             final String[] credentialParts = credentials.split(":", 2);
-            String username = credentialParts[0];
-            String password = credentialParts[1];
+            final String username = credentialParts[0];
+            final String password = credentialParts[1];
 
             authenticationRequest = new UsernamePasswordAuthenticationRequest(username, password);
 
-        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+        } catch (final IllegalArgumentException | IndexOutOfBoundsException e) {
             logger.info("Failed to extract user identity credentials.");
             logger.debug("", e);
             return null;
@@ -93,7 +93,7 @@ public abstract class BasicAuthIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public boolean supports(Class<? extends AuthenticationRequest> authenticationRequestClazz) {
+    public boolean supports(final Class<? extends AuthenticationRequest> authenticationRequestClazz) {
         return UsernamePasswordAuthenticationRequest.class.isAssignableFrom(authenticationRequestClazz);
     }
 

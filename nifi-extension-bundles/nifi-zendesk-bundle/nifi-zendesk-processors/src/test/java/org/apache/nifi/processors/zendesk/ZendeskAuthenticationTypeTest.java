@@ -37,7 +37,7 @@ public class ZendeskAuthenticationTypeTest {
 
     @ParameterizedTest
     @MethodSource("userNameAuthenticationTypeAndExpectedUserNameArguments")
-    public void testUserNameIsEnrichedAccordingToAuthenticationType(String userName, ZendeskAuthenticationType authenticationType, String expectedUserName) {
+    public void testUserNameIsEnrichedAccordingToAuthenticationType(final String userName, final ZendeskAuthenticationType authenticationType, final String expectedUserName) {
         assertEquals(expectedUserName, authenticationType.enrichUserName(userName));
     }
 }

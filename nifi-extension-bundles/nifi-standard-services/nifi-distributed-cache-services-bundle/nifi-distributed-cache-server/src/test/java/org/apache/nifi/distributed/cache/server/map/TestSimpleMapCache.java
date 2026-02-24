@@ -38,8 +38,8 @@ public class TestSimpleMapCache {
         final ByteBuffer key2 = ByteBuffer.wrap("key2".getBytes());
         final ByteBuffer key3 = ByteBuffer.wrap("key3".getBytes());
         ByteBuffer value1 = ByteBuffer.wrap("value1-0".getBytes());
-        ByteBuffer value2 = ByteBuffer.wrap("value2-0".getBytes());
-        ByteBuffer value3 = ByteBuffer.wrap("value3-0".getBytes());
+        final ByteBuffer value2 = ByteBuffer.wrap("value2-0".getBytes());
+        final ByteBuffer value3 = ByteBuffer.wrap("value3-0".getBytes());
 
         // Initial state.
         assertNull(cache.get(key1));
@@ -79,7 +79,7 @@ public class TestSimpleMapCache {
         assertEquals(0, putResult.getRecord().getRevision());
 
         // Delete 2nd key.
-        ByteBuffer removed = cache.remove(key2);
+        final ByteBuffer removed = cache.remove(key2);
         assertNotNull(removed);
         assertEquals("value2-0", new String(removed.array()));
 
@@ -91,7 +91,7 @@ public class TestSimpleMapCache {
         assertEquals(0, putResult.getRecord().getRevision(), "Revision should start from 0");
 
         // Get multiple keys
-        Map<ByteBuffer, ByteBuffer> results = cache.subMap(Arrays.asList(key1, key2, key3));
+        final Map<ByteBuffer, ByteBuffer> results = cache.subMap(Arrays.asList(key1, key2, key3));
         assertEquals(3, results.size());
 
     }

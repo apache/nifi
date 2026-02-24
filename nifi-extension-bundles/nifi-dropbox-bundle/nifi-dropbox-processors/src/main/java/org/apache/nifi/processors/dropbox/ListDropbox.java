@@ -164,7 +164,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
         config.renameProperty("folder", FOLDER.getName());
@@ -187,7 +187,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
 
-        for (DropboxFlowFileAttribute attribute : DropboxFlowFileAttribute.values()) {
+        for (final DropboxFlowFileAttribute attribute : DropboxFlowFileAttribute.values()) {
             Optional.ofNullable(attribute.getValue(entity))
                     .ifPresent(value -> attributes.put(attribute.getName(), value));
         }
@@ -201,8 +201,8 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
     }
 
     @Override
-    protected List<DropboxFileInfo> performListing(ProcessContext context, Long minTimestamp,
-            ListingMode listingMode) throws IOException {
+    protected List<DropboxFileInfo> performListing(final ProcessContext context, final Long minTimestamp,
+            final ListingMode listingMode) throws IOException {
         final List<DropboxFileInfo> listing = new ArrayList<>();
 
         final String folderName = getPath(context);
@@ -210,7 +210,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         try {
-            Predicate<FileMetadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
+            final Predicate<FileMetadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
 
             final DbxUserListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
             ListFolderResult result = listFolderBuilder
@@ -235,7 +235,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
 
                 listing.add(builder.build());
             }
-        } catch (DbxException e) {
+        } catch (final DbxException e) {
             throw new IOException("Failed to list Dropbox folder [" + folderName + "]", e);
         }
 
@@ -269,7 +269,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         return format("Dropbox Folder [%s]", getPath(context));
     }
 
-    private Predicate<FileMetadata> createMetadataFilter(Long minTimestamp, Long minAge) {
+    private Predicate<FileMetadata> createMetadataFilter(final Long minTimestamp, final Long minAge) {
         Predicate<FileMetadata> metadataFilter = FileMetadata::getIsDownloadable;
 
         if (minTimestamp != null && minTimestamp > 0) {
@@ -277,13 +277,13 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         }
 
         if (minAge != null && minAge > 0) {
-            long maxTimestamp = System.currentTimeMillis() - minAge;
+            final long maxTimestamp = System.currentTimeMillis() - minAge;
             metadataFilter = metadataFilter.and(metadata -> metadata.getServerModified().getTime() < maxTimestamp);
         }
         return metadataFilter;
     }
 
-    private List<FileMetadata> filterMetadata(ListFolderResult result, Predicate<FileMetadata> metadataFilter) {
+    private List<FileMetadata> filterMetadata(final ListFolderResult result, final Predicate<FileMetadata> metadataFilter) {
         return result.getEntries().stream()
                 .filter(metadata -> metadata instanceof FileMetadata)
                 .map(FileMetadata.class::cast)

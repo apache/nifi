@@ -163,7 +163,7 @@ public class TestAzureEventHubRecordSink {
         return new SimpleRecordSchema(Collections.singletonList(idField));
     }
 
-    private static Record[] getRecords(int numberOfRecords) {
+    private static Record[] getRecords(final int numberOfRecords) {
         final Map<String, Object> values = Collections.singletonMap(ID_FIELD, ID_FIELD_VALUE);
         final Record record = new MapRecord(RECORD_SCHEMA, values);
         final Record[] records = new Record[numberOfRecords];

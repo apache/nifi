@@ -33,8 +33,8 @@ final class ComponentStateCheckpointStoreUtils {
     private ComponentStateCheckpointStoreUtils() {
     }
 
-    static PartitionOwnership convertOwnership(String key, String value) {
-        PartitionContext context = convertPartitionContext(key);
+    static PartitionOwnership convertOwnership(final String key, final String value) {
+        final PartitionContext context = convertPartitionContext(key);
 
         final String[] parts = value.split("/", 3);
         if (parts.length != 3) {
@@ -51,8 +51,8 @@ final class ComponentStateCheckpointStoreUtils {
                 .setETag(parts[2]);
     }
 
-    static Checkpoint convertCheckpoint(String key, String value) {
-        PartitionContext context = convertPartitionContext(key);
+    static Checkpoint convertCheckpoint(final String key, final String value) {
+        final PartitionContext context = convertPartitionContext(key);
 
         final String[] parts = value.split("/", 2);
         if (parts.length != 2) {
@@ -68,7 +68,7 @@ final class ComponentStateCheckpointStoreUtils {
                 .setSequenceNumber(StringUtils.isNotEmpty(parts[1]) ? Long.parseLong(parts[1]) : null);
     }
 
-    static PartitionContext convertPartitionContext(String key) {
+    static PartitionContext convertPartitionContext(final String key) {
         final String[] parts = key.split("/", 5);
         if (parts.length != 5) {
             throw new ProcessException(String.format("Invalid entry key: %s", key));
@@ -87,7 +87,7 @@ final class ComponentStateCheckpointStoreUtils {
         );
     }
 
-    static String createOwnershipKey(PartitionOwnership partitionOwnership) {
+    static String createOwnershipKey(final PartitionOwnership partitionOwnership) {
         return createKey(
                 OWNERSHIP.keyPrefix(),
                 partitionOwnership.getFullyQualifiedNamespace(),
@@ -97,7 +97,7 @@ final class ComponentStateCheckpointStoreUtils {
         );
     }
 
-    static String createCheckpointKey(Checkpoint checkpoint) {
+    static String createCheckpointKey(final Checkpoint checkpoint) {
         return createKey(
                 CHECKPOINT.keyPrefix(),
                 checkpoint.getFullyQualifiedNamespace(),
@@ -107,7 +107,7 @@ final class ComponentStateCheckpointStoreUtils {
         );
     }
 
-    private static String createKey(String kind, String fullyQualifiedNamespace, String eventHubName, String consumerGroup, String partitionId) {
+    private static String createKey(final String kind, final String fullyQualifiedNamespace, final String eventHubName, final String consumerGroup, final String partitionId) {
         return String.format(
                 "%s/%s/%s/%s/%s",
                 kind,
@@ -118,20 +118,20 @@ final class ComponentStateCheckpointStoreUtils {
         );
     }
 
-    static String createOwnershipValue(PartitionOwnership partitionOwnership) {
+    static String createOwnershipValue(final PartitionOwnership partitionOwnership) {
         return String.format("%s/%s/%s",
                 partitionOwnership.getOwnerId(),
                 partitionOwnership.getLastModifiedTime(),
                 partitionOwnership.getETag());
     }
 
-    static String createCheckpointValue(Checkpoint checkpoint) {
+    static String createCheckpointValue(final Checkpoint checkpoint) {
         return String.format("%s/%s",
                 checkpoint.getOffsetString() != null ? checkpoint.getOffsetString() : "",
                 checkpoint.getSequenceNumber() != null ? checkpoint.getSequenceNumber().toString() : "");
     }
 
-    static String ownershipToString(PartitionOwnership partitionOwnership) {
+    static String ownershipToString(final PartitionOwnership partitionOwnership) {
         return "PartitionOwnership{" +
                 "fullyQualifiedNamespace='" + partitionOwnership.getFullyQualifiedNamespace() + '\'' +
                 ", eventHubName='" + partitionOwnership.getEventHubName() + '\'' +
@@ -143,13 +143,13 @@ final class ComponentStateCheckpointStoreUtils {
                 '}';
     }
 
-    static List<String> ownershipListToString(List<PartitionOwnership> partitionOwnershipList) {
+    static List<String> ownershipListToString(final List<PartitionOwnership> partitionOwnershipList) {
         return partitionOwnershipList.stream()
                 .map(ComponentStateCheckpointStoreUtils::ownershipToString)
                 .collect(Collectors.toList());
     }
 
-    static String checkpointToString(Checkpoint checkpoint) {
+    static String checkpointToString(final Checkpoint checkpoint) {
         return "Checkpoint{" +
                 "fullyQualifiedNamespace='" + checkpoint.getFullyQualifiedNamespace() + '\'' +
                 ", eventHubName='" + checkpoint.getEventHubName() + '\'' +

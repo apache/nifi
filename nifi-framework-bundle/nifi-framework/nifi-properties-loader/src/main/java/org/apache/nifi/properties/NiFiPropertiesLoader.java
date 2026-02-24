@@ -115,7 +115,7 @@ public class NiFiPropertiesLoader {
      * @return the NiFiProperties instance
      * @see NiFiPropertiesLoader#load(File)
      */
-    public NiFiProperties load(String path) {
+    public NiFiProperties load(final String path) {
         if (path != null && !path.isBlank()) {
             return load(new File(path));
         } else {
@@ -211,8 +211,8 @@ public class NiFiPropertiesLoader {
         }
 
         @Override
-        public Object put(Object key, Object value) {
-            Object existingValue = super.put(key, value);
+        public Object put(final Object key, final Object value) {
+            final Object existingValue = super.put(key, value);
             if (existingValue != null) {
                 if (existingValue.toString().equals(value.toString())) {
                     redundantKeys.add(key.toString());

@@ -56,7 +56,7 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final CreateBoxFileMetadataInstance testSubject = new CreateBoxFileMetadataInstance() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };
@@ -71,7 +71,7 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.setProperty(CreateBoxFileMetadataInstance.RECORD_READER, "json-reader");
     }
 
-    private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
+    private void configureJsonRecordReader(final TestRunner runner) throws InitializationException {
         final JsonTreeReader readerService = new JsonTreeReader();
 
         runner.addControllerService("json-reader", readerService);
@@ -176,7 +176,7 @@ public class CreateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
-    private static Date createLegacyDate(int year, int month, int day) {
+    private static Date createLegacyDate(final int year, final int month, final int day) {
         final LocalDate date = LocalDate.of(year, month, day);
         final Instant instant = date.atStartOfDay(UTC).toInstant();
         return Date.from(instant);

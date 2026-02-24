@@ -23,15 +23,15 @@ public class ControllerServiceInstantiationException extends RuntimeException {
     public ControllerServiceInstantiationException() {
     }
 
-    public ControllerServiceInstantiationException(String message) {
+    public ControllerServiceInstantiationException(final String message) {
         super(message);
     }
 
-    public ControllerServiceInstantiationException(Throwable cause) {
+    public ControllerServiceInstantiationException(final Throwable cause) {
         super(cause);
     }
 
-    public ControllerServiceInstantiationException(String message, Throwable cause) {
+    public ControllerServiceInstantiationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

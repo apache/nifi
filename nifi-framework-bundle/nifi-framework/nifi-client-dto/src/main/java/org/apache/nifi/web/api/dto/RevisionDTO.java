@@ -46,7 +46,7 @@ public class RevisionDTO {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -64,7 +64,7 @@ public class RevisionDTO {
         return version;
     }
 
-    public void setVersion(Long version) {
+    public void setVersion(final Long version) {
         this.version = version;
     }
 
@@ -78,7 +78,7 @@ public class RevisionDTO {
         return lastModifier;
     }
 
-    public void setLastModifier(String lastModifier) {
+    public void setLastModifier(final String lastModifier) {
         this.lastModifier = lastModifier;
     }
 

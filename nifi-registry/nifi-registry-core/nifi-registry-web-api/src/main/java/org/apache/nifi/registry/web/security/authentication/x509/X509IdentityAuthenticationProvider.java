@@ -36,14 +36,14 @@ import java.util.Set;
 
 public class X509IdentityAuthenticationProvider extends IdentityAuthenticationProvider {
 
-    public X509IdentityAuthenticationProvider(Authorizer authorizer, IdentityProvider identityProvider, IdentityMapper identityMapper) {
+    public X509IdentityAuthenticationProvider(final Authorizer authorizer, final IdentityProvider identityProvider, final IdentityMapper identityMapper) {
         super(authorizer, identityProvider, identityMapper);
     }
 
     @Override
     protected AuthenticationSuccessToken buildAuthenticatedToken(
-            AuthenticationRequestToken requestToken,
-            AuthenticationResponse response) {
+            final AuthenticationRequestToken requestToken,
+            final AuthenticationResponse response) {
 
         final AuthenticationRequest authenticationRequest = requestToken.getAuthenticationRequest();
 
@@ -79,7 +79,7 @@ public class X509IdentityAuthenticationProvider extends IdentityAuthenticationPr
             final Set<String> groups = getUserGroups(identity);
 
             // Only set the client address for client making the request because we don't know the clientAddress of the proxied entities
-            String clientAddress = (proxy == null) ? requestToken.getClientAddress() : null;
+            final String clientAddress = (proxy == null) ? requestToken.getClientAddress() : null;
             proxy = createUser(identity, groups, proxy, clientAddress, isAnonymous);
         }
 
@@ -97,7 +97,7 @@ public class X509IdentityAuthenticationProvider extends IdentityAuthenticationPr
      * @param isAnonymous   if true, an anonymous user will be returned (identity will be ignored)
      * @return the populated user
      */
-    private static NiFiUser createUser(String identity, Set<String> groups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
+    private static NiFiUser createUser(final String identity, final Set<String> groups, final NiFiUser chain, final String clientAddress, final boolean isAnonymous) {
         if (isAnonymous) {
             return StandardNiFiUser.populateAnonymousUser(chain, clientAddress);
         } else {

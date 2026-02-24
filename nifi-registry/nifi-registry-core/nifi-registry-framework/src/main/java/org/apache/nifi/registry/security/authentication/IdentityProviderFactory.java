@@ -58,7 +58,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
     private static JAXBContext initializeJaxbContext() {
         try {
             return JAXBContext.newInstance(JAXB_GENERATED_PATH, IdentityProviderFactory.class.getClassLoader());
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.");
         }
     }
@@ -86,7 +86,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
     }
 
     @Override
-    public IdentityProvider getIdentityProvider(String identifier) {
+    public IdentityProvider getIdentityProvider(final String identifier) {
         return identityProviders.get(identifier);
     }
 
@@ -142,12 +142,12 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
 
                 // attempt to unmarshal
                 final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-                XMLStreamReader xsr = provider.getStreamReader(new StreamSource(loginIdentityProvidersConfigurationFile));
+                final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(loginIdentityProvidersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
                 final JAXBElement<IdentityProviders> element = unmarshaller.unmarshal(xsr, IdentityProviders.class);
                 return element.getValue();
-            } catch (SAXException | JAXBException e) {
+            } catch (final SAXException | JAXBException e) {
                 throw new Exception("Unable to load the login identity provider configuration file at: " + loginIdentityProvidersConfigurationFile.getAbsolutePath());
             }
         } else {

@@ -27,7 +27,7 @@ public enum MqttVersion {
     private final int versionCode;
     private final String displayName;
 
-    MqttVersion(int versionCode, String displayName) {
+    MqttVersion(final int versionCode, final String displayName) {
         this.versionCode = versionCode;
         this.displayName = displayName;
     }
@@ -40,8 +40,8 @@ public enum MqttVersion {
         return displayName;
     }
 
-    public static MqttVersion fromVersionCode(int versionCode) {
-        for (MqttVersion version : values()) {
+    public static MqttVersion fromVersionCode(final int versionCode) {
+        for (final MqttVersion version : values()) {
             if (version.getVersionCode() == versionCode) {
                 return version;
             }

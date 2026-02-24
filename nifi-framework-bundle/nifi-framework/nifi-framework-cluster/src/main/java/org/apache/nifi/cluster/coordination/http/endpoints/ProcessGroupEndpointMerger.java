@@ -49,7 +49,8 @@ public class ProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<Pro
     }
 
     @Override
-    protected void mergeResponses(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ProcessGroupEntity clientEntity, final Map<NodeIdentifier, ProcessGroupEntity> entityMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         processGroupEntityMerger.merge(clientEntity, entityMap);
     }
 }

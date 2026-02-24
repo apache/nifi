@@ -39,13 +39,13 @@ public class MockBinlogClient extends BinaryLogClient {
 
     SSLSocketFactory sslSocketFactory;
 
-    public MockBinlogClient(String hostname, int port, String username, String password) {
+    public MockBinlogClient(final String hostname, final int port, final String username, final String password) {
         super(hostname, port, username, password);
         this.password = password;
     }
 
     @Override
-    public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
+    public void connect(final long timeoutInMilliseconds) throws IOException, TimeoutException {
         if (connectionTimeout) {
             throw new TimeoutException("Connection timed out");
         }
@@ -64,36 +64,36 @@ public class MockBinlogClient extends BinaryLogClient {
     }
 
     @Override
-    public void registerEventListener(BinaryLogClient.EventListener eventListener) {
+    public void registerEventListener(final BinaryLogClient.EventListener eventListener) {
         if (!eventListeners.contains(eventListener)) {
             eventListeners.add(eventListener);
         }
     }
 
     @Override
-    public void unregisterEventListener(BinaryLogClient.EventListener eventListener) {
+    public void unregisterEventListener(final BinaryLogClient.EventListener eventListener) {
         eventListeners.remove(eventListener);
     }
 
     @Override
-    public void registerLifecycleListener(BinaryLogClient.LifecycleListener lifecycleListener) {
+    public void registerLifecycleListener(final BinaryLogClient.LifecycleListener lifecycleListener) {
         if (!lifecycleListeners.contains(lifecycleListener)) {
             lifecycleListeners.add(lifecycleListener);
         }
     }
 
     @Override
-    public void unregisterLifecycleListener(BinaryLogClient.LifecycleListener lifecycleListener) {
+    public void unregisterLifecycleListener(final BinaryLogClient.LifecycleListener lifecycleListener) {
         lifecycleListeners.remove(lifecycleListener);
     }
 
     @Override
-    public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+    public void setSslSocketFactory(final SSLSocketFactory sslSocketFactory) {
         super.setSslSocketFactory(sslSocketFactory);
         this.sslSocketFactory = sslSocketFactory;
     }
 
-    public void sendEvent(Event event) {
+    public void sendEvent(final Event event) {
         eventListeners.forEach(eventListener -> eventListener.onEvent(event));
     }
 
@@ -102,11 +102,11 @@ public class MockBinlogClient extends BinaryLogClient {
         return connected;
     }
 
-    public void setConnectionTimeout(boolean connectionTimeout) {
+    public void setConnectionTimeout(final boolean connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
     }
 
-    public void setConnectionError(boolean connectionError) {
+    public void setConnectionError(final boolean connectionError) {
         this.connectionError = connectionError;
     }
 

@@ -181,7 +181,7 @@ public class FormatUtils {
         return utilization + "%";
     }
 
-    public static DateTimeFormatter prepareLenientCaseInsensitiveDateTimeFormatter(String pattern) {
+    public static DateTimeFormatter prepareLenientCaseInsensitiveDateTimeFormatter(final String pattern) {
         return new DateTimeFormatterBuilder()
                 .parseLenient()
                 .parseCaseInsensitive()

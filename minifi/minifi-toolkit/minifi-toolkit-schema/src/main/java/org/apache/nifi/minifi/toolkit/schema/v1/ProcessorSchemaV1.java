@@ -59,7 +59,7 @@ public class ProcessorSchemaV1 extends BaseSchema implements ConvertableSchema<P
     private List<String> autoTerminatedRelationshipsList = DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST;
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
 
-    public ProcessorSchemaV1(Map map) {
+    public ProcessorSchemaV1(final Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, PROCESSORS_KEY);
         processorClass = getRequiredKeyAsType(map, CLASS_KEY, String.class, PROCESSORS_KEY);
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, PROCESSORS_KEY);
@@ -78,7 +78,7 @@ public class ProcessorSchemaV1 extends BaseSchema implements ConvertableSchema<P
 
     @Override
     public ProcessorSchema convert() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(NAME_KEY, name);
         map.put(CLASS_KEY, processorClass);
         map.put(MAX_CONCURRENT_TASKS_KEY, maxConcurrentTasks);

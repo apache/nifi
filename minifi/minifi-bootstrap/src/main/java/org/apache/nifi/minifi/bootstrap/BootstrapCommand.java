@@ -21,7 +21,7 @@ import java.util.Optional;
 public enum BootstrapCommand {
     START, RUN, STOP, STATUS, DUMP, RESTART, ENV, FLOWSTATUS, UNKNOWN;
 
-    public static Optional<BootstrapCommand> fromString(String val) {
+    public static Optional<BootstrapCommand> fromString(final String val) {
         return Optional.ofNullable(val).map(String::toUpperCase).map(BootstrapCommand::valueOf).filter(command -> command != UNKNOWN);
     }
 }

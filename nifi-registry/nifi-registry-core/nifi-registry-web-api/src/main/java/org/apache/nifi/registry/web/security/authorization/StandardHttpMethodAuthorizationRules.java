@@ -28,12 +28,12 @@ public class StandardHttpMethodAuthorizationRules implements HttpMethodAuthoriza
         this(Set.of(HttpMethod.values()));
     }
 
-    public StandardHttpMethodAuthorizationRules(Set<HttpMethod> methodsRequiringAuthorization) {
+    public StandardHttpMethodAuthorizationRules(final Set<HttpMethod> methodsRequiringAuthorization) {
         this.methodsRequiringAuthorization = methodsRequiringAuthorization;
     }
 
     @Override
-    public boolean requiresAuthorization(HttpMethod httpMethod) {
+    public boolean requiresAuthorization(final HttpMethod httpMethod) {
         return methodsRequiringAuthorization.contains(httpMethod);
     }
 }

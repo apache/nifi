@@ -258,10 +258,10 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
         final long startNanos = System.nanoTime();
         try {
 
-            Participant participant;
+            final Participant participant;
             try {
                 participant = role.getLeaderSelector().getLeader();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn("Unable to determine leader for role [{}]", roleName, e);
                 return Optional.empty();
             }
@@ -301,11 +301,11 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
         try (CuratorFramework client = createClient()) {
             final LeaderSelectorListener electionListener = new LeaderSelectorListener() {
                 @Override
-                public void stateChanged(CuratorFramework client, ConnectionState newState) {
+                public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
                 }
 
                 @Override
-                public void takeLeadership(CuratorFramework client) {
+                public void takeLeadership(final CuratorFramework client) {
                 }
             };
 
@@ -600,7 +600,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
         }
 
         @Override
-        public ZooKeeper newZooKeeper(String connectString, int sessionTimeout, Watcher watcher, boolean canBeReadOnly) throws Exception {
+        public ZooKeeper newZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher, final boolean canBeReadOnly) throws Exception {
             return new ZooKeeperAdmin(connectString, sessionTimeout, watcher, zkSecureClientConfig);
         }
     }

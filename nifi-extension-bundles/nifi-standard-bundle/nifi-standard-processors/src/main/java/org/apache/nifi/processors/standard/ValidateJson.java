@@ -101,7 +101,7 @@ public class ValidateJson extends AbstractProcessor {
                 "A URL or file path to the JSON schema or the actual JSON schema is specified by the '" + SCHEMA_CONTENT_PROPERTY_NAME + "' Property. " +
                         "No matter how the JSON schema is specified, it must be a valid JSON schema");
 
-        JsonSchemaStrategy(String displayName, String description) {
+        JsonSchemaStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -236,8 +236,8 @@ public class ValidateJson extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> validationResults = new ArrayList<>();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> validationResults = new ArrayList<>();
 
         final JsonSchemaStrategy schemaAccessStrategy = getSchemaAccessStrategy(validationContext);
         if (schemaAccessStrategy.equals(JsonSchemaStrategy.SCHEMA_NAME_PROPERTY) && !validationContext.getProperty(SCHEMA_REGISTRY).isSet()) {
@@ -290,7 +290,7 @@ public class ValidateJson extends AbstractProcessor {
                 final JsonSchema jsonSchema = jsonSchemaRegistry.retrieveSchema(schemaName);
                 final SchemaRegistry registry = schemaRegistries.get(jsonSchema.getSchemaVersion());
                 schema = registry.getSchema(jsonSchema.getSchemaText());
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Could not retrieve JSON schema for {}", flowFile, e);
                 session.getProvenanceReporter().route(flowFile, REL_FAILURE);
                 session.transfer(flowFile, REL_FAILURE);
@@ -327,7 +327,7 @@ public class ValidateJson extends AbstractProcessor {
         }
     }
 
-    private String getPropertyValidateMessage(JsonSchemaStrategy schemaAccessStrategy, PropertyDescriptor property) {
+    private String getPropertyValidateMessage(final JsonSchemaStrategy schemaAccessStrategy, final PropertyDescriptor property) {
         return "The '" + schemaAccessStrategy.getValue() + "' Schema Access Strategy requires that the " + property.getDisplayName() + " property be set.";
     }
 
@@ -347,7 +347,7 @@ public class ValidateJson extends AbstractProcessor {
         throw new IllegalArgumentException("Unsupported schema version: " + schemaVersion);
     }
 
-    private JsonSchemaStrategy getSchemaAccessStrategy(PropertyContext context) {
+    private JsonSchemaStrategy getSchemaAccessStrategy(final PropertyContext context) {
         return context.getProperty(SCHEMA_ACCESS_STRATEGY).asAllowableValue(JsonSchemaStrategy.class);
     }
 }

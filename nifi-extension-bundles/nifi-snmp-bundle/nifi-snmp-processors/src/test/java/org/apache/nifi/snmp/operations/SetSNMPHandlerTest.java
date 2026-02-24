@@ -58,7 +58,7 @@ class SetSNMPHandlerTest {
     public void init() {
         mockTarget = mock(Target.class);
         mockSnmpManager = mock(Snmp.class);
-        PDUFactory mockPduFactory = mock(PDUFactory.class);
+        final PDUFactory mockPduFactory = mock(PDUFactory.class);
         mockPdu = mock(PDU.class);
         mockResponsePdu = mock(PDU.class);
         mockResponseEvent = mock(ResponseEvent.class);

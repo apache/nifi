@@ -21,7 +21,7 @@ import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 public class BundleTypeAdapter extends XmlAdapter<String, BundleType> {
 
     @Override
-    public BundleType unmarshal(String v) throws Exception {
+    public BundleType unmarshal(final String v) throws Exception {
         if (v == null) {
             return null;
         }

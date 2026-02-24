@@ -131,7 +131,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         final String jsonDocument = context.getProperty(JSON_DOCUMENT).evaluateAttributeExpressions().getValue();
 
-        BatchGetItemRequest batchGetItemRequest;
+        final BatchGetItemRequest batchGetItemRequest;
 
         try {
             batchGetItemRequest = getBatchGetItemRequest(context, attributes);
@@ -276,15 +276,15 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
         } catch (final AwsServiceException exception) {
             getLogger().error("Could not process flowFiles due to service exception", exception);
-            List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final SdkException exception) {
             getLogger().error("Could not process flowFiles due to SDK exception", exception);
-            List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final Exception exception) {
             getLogger().error("Could not process flowFiles", exception);
-            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
     }

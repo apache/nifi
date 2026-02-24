@@ -43,7 +43,7 @@ class ControllerServiceEntityMergerTest {
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneControllerserviceEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoControllerServiceEntity);
 
-        ControllerServiceEntityMerger merger = new ControllerServiceEntityMerger();
+        final ControllerServiceEntityMerger merger = new ControllerServiceEntityMerger();
         merger.merge(nodeOneControllerserviceEntity, entityMap);
         assertEquals("Stopped", nodeOneControllerserviceEntity.getStatus().getRunStatus());
     }

@@ -32,8 +32,8 @@ class Util {
      * @param contentDisposition The Content-Disposition header to be parsed
      * @return the parsed content disposition.
      */
-    public static ParsedContentDisposition parseContentDisposition(String contentDisposition) {
-        Matcher m = CONTENT_DISPOSITION_PATTERN.matcher(contentDisposition);
+    public static ParsedContentDisposition parseContentDisposition(final String contentDisposition) {
+        final Matcher m = CONTENT_DISPOSITION_PATTERN.matcher(contentDisposition);
         if (m.find() && m.groupCount() == 2) {
             return new ParsedContentDisposition(m.group(1), m.group(2));
         }
@@ -44,7 +44,7 @@ class Util {
         private final String contentDispositionType;
         private final String fileName;
 
-        private ParsedContentDisposition(String contentDispositionType, String fileName) {
+        private ParsedContentDisposition(final String contentDispositionType, final String fileName) {
             this.contentDispositionType = contentDispositionType;
             this.fileName = fileName;
         }

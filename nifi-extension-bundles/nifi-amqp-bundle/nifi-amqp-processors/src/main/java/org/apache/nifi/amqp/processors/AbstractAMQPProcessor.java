@@ -171,18 +171,18 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         resourceQueue = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
-        boolean userConfigured = context.getProperty(USER).isSet();
-        boolean passwordConfigured = context.getProperty(PASSWORD).isSet();
-        boolean sslServiceConfigured = context.getProperty(SSL_CONTEXT_SERVICE).isSet();
-        boolean useCertAuthentication = context.getProperty(CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED).asBoolean();
+        final boolean userConfigured = context.getProperty(USER).isSet();
+        final boolean passwordConfigured = context.getProperty(PASSWORD).isSet();
+        final boolean sslServiceConfigured = context.getProperty(SSL_CONTEXT_SERVICE).isSet();
+        final boolean useCertAuthentication = context.getProperty(CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED).asBoolean();
 
         if (useCertAuthentication && (userConfigured || passwordConfigured)) {
             results.add(new ValidationResult.Builder()
@@ -225,7 +225,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         if (resource == null) {
             try {
                 resource = createResource(context);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Failed to initialize AMQP client", e);
                 context.yield();
                 return;
@@ -239,11 +239,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                 getLogger().info("Worker queue is full, closing AMQP client");
                 closeResource(resource);
             }
-        } catch (AMQPException | AMQPRollbackException e) {
+        } catch (final AMQPException | AMQPRollbackException e) {
             getLogger().error("AMQP failure, dropping the client", e);
             context.yield();
             closeResource(resource);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Processor failure", e);
             context.yield();
         }
@@ -260,10 +260,10 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         }
     }
 
-    private void closeResource(AMQPResource<T> resource) {
+    private void closeResource(final AMQPResource<T> resource) {
         try {
             resource.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to close AMQP Connection", e);
         }
     }
@@ -284,17 +284,17 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     private AMQPResource<T> createResource(final ProcessContext context) {
         Connection connection = null;
         try {
-            ExecutorService executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
+            final ExecutorService executor = Executors.newSingleThreadExecutor(BasicThreadFactory.builder()
                     .namingPattern("AMQP Consumer: " + getIdentifier())
                     .build());
             connection = createConnection(context, executor);
-            T worker = createAMQPWorker(context, connection);
+            final T worker = createAMQPWorker(context, connection);
             return new AMQPResource<>(connection, worker, executor);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (connection != null && connection.isOpen()) {
                 try {
                     connection.close();
-                } catch (Exception closingEx) {
+                } catch (final Exception closingEx) {
                     getLogger().error("Failed to close AMQP Connection", closingEx);
                 }
             }
@@ -303,11 +303,11 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
     }
 
     private Address[] createHostsList(final ProcessContext context) {
-        String evaluatedUrls = context.getProperty(BROKERS).evaluateAttributeExpressions().getValue();
+        final String evaluatedUrls = context.getProperty(BROKERS).evaluateAttributeExpressions().getValue();
         return Address.parseAddresses(evaluatedUrls);
     }
 
-    protected Connection createConnection(ProcessContext context, ExecutorService executor) {
+    protected Connection createConnection(final ProcessContext context, final ExecutorService executor) {
         final ConnectionFactory cf = new ConnectionFactory();
         cf.setUsername(context.getProperty(USER).evaluateAttributeExpressions().getValue());
         cf.setPassword(context.getProperty(PASSWORD).getValue());
@@ -340,15 +340,15 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         cf.setAutomaticRecoveryEnabled(false);
         cf.setExceptionHandler(new DefaultExceptionHandler() {
             @Override
-            public void handleUnexpectedConnectionDriverException(Connection conn, Throwable exception) {
+            public void handleUnexpectedConnectionDriverException(final Connection conn, final Throwable exception) {
                 getLogger().error("Connection lost to server {}:{}.", conn.getAddress(), conn.getPort(), exception);
             }
         });
 
         try {
-            Connection connection;
+            final Connection connection;
             if (context.getProperty(BROKERS).isSet()) {
-                Address[] hostsList = createHostsList(context);
+                final Address[] hostsList = createHostsList(context);
                 connection = cf.newConnection(executor, hostsList);
             } else {
                 cf.setHost(context.getProperty(HOST).evaluateAttributeExpressions().getValue());
@@ -357,7 +357,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             }
 
             return connection;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException(String.format("Failed to establish connection with AMQP Broker: %s:%s", cf.getHost(), cf.getPort()), e);
         }
     }

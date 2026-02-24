@@ -33,12 +33,12 @@ public interface FileListingTestTrait {
     BoxFolder getMockBoxFolder();
 
     default void mockFetchedFileList(
-        String id,
-        String filename,
-        Collection<String> pathParts,
-        Long size,
-        Long createdTime,
-        Long modifiedTime
+        final String id,
+        final String filename,
+        final Collection<String> pathParts,
+        final Long size,
+        final Long createdTime,
+        final Long modifiedTime
     ) {
         doReturn(singletonList(createFileInfo(
                                 id,
@@ -61,17 +61,17 @@ public interface FileListingTestTrait {
     }
 
     default BoxFile.Info createFileInfo(
-        String id,
-        String name,
-        Collection<String> pathParts,
-        Long size,
-        Long createdTime,
-        Long modifiedTime
+        final String id,
+        final String name,
+        final Collection<String> pathParts,
+        final Long size,
+        final Long createdTime,
+        final Long modifiedTime
     ) {
-        BoxFile.Info fileInfo = mock(BoxFile.Info.class);
+        final BoxFile.Info fileInfo = mock(BoxFile.Info.class);
 
-        List<BoxFolder.Info> pathCollection = pathParts.stream().map(pathPart -> {
-            BoxFolder.Info folderInfo = mock(BoxFolder.Info.class);
+        final List<BoxFolder.Info> pathCollection = pathParts.stream().map(pathPart -> {
+            final BoxFolder.Info folderInfo = mock(BoxFolder.Info.class);
             when(folderInfo.getName()).thenReturn(pathPart);
             when(folderInfo.getID()).thenReturn("not0");
 

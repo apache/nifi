@@ -267,7 +267,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, null, null);
 
         config.renameProperty("default-credentials", USE_DEFAULT_CREDENTIALS.getName());
@@ -324,7 +324,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         final CredentialsStrategy selectedStrategy = selectPrimaryStrategy(validationContext);
         final List<ValidationResult> validationFailureResults = new ArrayList<>();
 
-        for (CredentialsStrategy strategy : strategies) {
+        for (final CredentialsStrategy strategy : strategies) {
             final Collection<ValidationResult> strategyValidationFailures = strategy.validate(validationContext,
                 selectedStrategy);
             if (strategyValidationFailures != null) {

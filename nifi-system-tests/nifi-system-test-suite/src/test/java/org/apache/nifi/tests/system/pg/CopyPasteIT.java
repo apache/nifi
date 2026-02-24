@@ -139,7 +139,7 @@ public class CopyPasteIT extends NiFiSystemIT {
         assertEquals(1, copyResponseEntity.getInputPorts().size());
         assertFalse(copyResponseEntity.getInputPorts().iterator().next().getAllowRemoteAccess());
 
-        PasteRequestEntity pasteRequestEntity = new PasteRequestEntity();
+        final PasteRequestEntity pasteRequestEntity = new PasteRequestEntity();
         pasteRequestEntity.setCopyResponse(copyResponseEntity);
         pasteRequestEntity.setRevision(topLevel.getRevision());
 
@@ -361,7 +361,7 @@ public class CopyPasteIT extends NiFiSystemIT {
         // Commit as Version 2 of the group.
         final ProcessGroupEntity innerGroup = getClientUtil().createProcessGroup("Inner 1", topLevel1.getId());
         ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", innerGroup.getId());
-        VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
+        final VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
         assertEquals("1", vciEntity.getVersionControlInformation().getVersion());
 
         // Now that the inner group is under version control, copy it and paste it to a new PG.
@@ -411,8 +411,8 @@ public class CopyPasteIT extends NiFiSystemIT {
 
         // Create a lower level PG and add a Processor.  Commit as Version 1 of the PG.
         final ProcessGroupEntity innerGroup = getClientUtil().createProcessGroup("Inner 1", topLevel1.getId());
-        ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", innerGroup.getId());
-        VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
+        final ProcessorEntity terminate1 = getClientUtil().createProcessor("TerminateFlowFile", innerGroup.getId());
+        final VersionControlInformationEntity vciEntity = getClientUtil().startVersionControl(innerGroup, clientEntity, TEST_FLOWS_BUCKET, FIRST_FLOW_ID);
         assertEquals("1", vciEntity.getVersionControlInformation().getVersion());
 
         // Modify the processor and wait for the group to show it has local changes

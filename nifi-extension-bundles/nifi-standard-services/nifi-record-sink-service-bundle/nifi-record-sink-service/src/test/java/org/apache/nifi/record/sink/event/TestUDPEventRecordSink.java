@@ -172,7 +172,7 @@ class TestUDPEventRecordSink {
     private EventServer createServer(final TestRunner runner, final int port) throws Exception {
         messages = new LinkedBlockingQueue<>();
         final InetAddress listenAddress = InetAddress.getByName(LOCALHOST);
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
                 runner.getLogger(),
                 listenAddress,
                 port,

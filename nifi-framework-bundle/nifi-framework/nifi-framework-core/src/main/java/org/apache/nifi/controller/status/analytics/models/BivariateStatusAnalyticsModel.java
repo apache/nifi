@@ -32,12 +32,12 @@ public abstract class BivariateStatusAnalyticsModel implements StatusAnalyticsMo
     public abstract void learn(Stream<Double[]> features, Stream<Double> labels);
 
     @Override
-    public Double predict(Double[] feature) {
+    public Double predict(final Double[] feature) {
         return predictY(feature[0]);
     }
 
     @Override
-    public Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label) {
+    public Double predictVariable(final Integer predictVariableIndex, final Map<Integer, Double> knownVariablesWithIndex, final Double label) {
         return predictY(label);
     }
 

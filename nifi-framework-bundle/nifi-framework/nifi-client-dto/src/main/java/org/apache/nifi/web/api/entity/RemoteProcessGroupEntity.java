@@ -47,7 +47,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     }
 
     @Override
-    public void setComponent(RemoteProcessGroupDTO component) {
+    public void setComponent(final RemoteProcessGroupDTO component) {
         this.component = component;
     }
 
@@ -60,7 +60,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
         return status;
     }
 
-    public void setStatus(RemoteProcessGroupStatusDTO status) {
+    public void setStatus(final RemoteProcessGroupStatusDTO status) {
         this.status = status;
     }
 
@@ -73,7 +73,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
         return inputPortCount;
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
+    public void setInputPortCount(final Integer inputPortCount) {
         this.inputPortCount = inputPortCount;
     }
 
@@ -86,7 +86,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
         return outputPortCount;
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
+    public void setOutputPortCount(final Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
     }
 
@@ -101,7 +101,7 @@ public class RemoteProcessGroupEntity extends ComponentEntity implements Permiss
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 }

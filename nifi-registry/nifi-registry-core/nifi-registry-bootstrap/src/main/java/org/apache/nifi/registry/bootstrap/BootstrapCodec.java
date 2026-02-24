@@ -85,8 +85,8 @@ public class BootstrapCodec {
                 writer.write("OK");
                 writer.newLine();
                 writer.flush();
-                break;
             }
+            break;
             case "STARTED": {
                 if (args.length != 1) {
                     throw new InvalidCommandException("STARTED command must contain a status argument");
@@ -101,8 +101,8 @@ public class BootstrapCodec {
                 writer.write("OK");
                 writer.newLine();
                 writer.flush();
-                break;
             }
+            break;
         }
     }
 }

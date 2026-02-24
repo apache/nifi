@@ -45,7 +45,7 @@ public class CreateParamProvider extends AbstractNiFiCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_PROVIDER_NAME.createOption());
         addOption(CommandOption.PARAM_PROVIDER_TYPE.createOption());

@@ -45,7 +45,7 @@ public class Revision implements Serializable {
      */
     private final String componentId;
 
-    public Revision(Long version, String clientId, String componentId) {
+    public Revision(final Long version, final String clientId, final String componentId) {
         if (version == null) {
             throw new IllegalArgumentException("The revision must be specified.");
         }
@@ -93,7 +93,7 @@ public class Revision implements Serializable {
             return false;
         }
 
-        Revision thatRevision = (Revision) obj;
+        final Revision thatRevision = (Revision) obj;
         // ensure that component ID's are the same (including null)
         if (thatRevision.getComponentId() == null && getComponentId() != null) {
             return false;

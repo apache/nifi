@@ -102,37 +102,37 @@ public class NarThreadContextClassLoader extends URLClassLoader {
     }
 
     @Override
-    public URL getResource(String name) {
+    public URL getResource(final String name) {
         return lookupClassLoader().getResource(name);
     }
 
     @Override
-    public InputStream getResourceAsStream(String name) {
+    public InputStream getResourceAsStream(final String name) {
         return lookupClassLoader().getResourceAsStream(name);
     }
 
     @Override
-    public Enumeration<URL> getResources(String name) throws IOException {
+    public Enumeration<URL> getResources(final String name) throws IOException {
         return lookupClassLoader().getResources(name);
     }
 
     @Override
-    public Class<?> loadClass(String name) throws ClassNotFoundException {
+    public Class<?> loadClass(final String name) throws ClassNotFoundException {
         return lookupClassLoader().loadClass(name);
     }
 
     @Override
-    public void setClassAssertionStatus(String className, boolean enabled) {
+    public void setClassAssertionStatus(final String className, final boolean enabled) {
         lookupClassLoader().setClassAssertionStatus(className, enabled);
     }
 
     @Override
-    public void setDefaultAssertionStatus(boolean enabled) {
+    public void setDefaultAssertionStatus(final boolean enabled) {
         lookupClassLoader().setDefaultAssertionStatus(enabled);
     }
 
     @Override
-    public void setPackageAssertionStatus(String packageName, boolean enabled) {
+    public void setPackageAssertionStatus(final String packageName, final boolean enabled) {
         lookupClassLoader().setPackageAssertionStatus(packageName, enabled);
     }
 
@@ -240,10 +240,10 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
             try {
                 constructor = desiredClass.getConstructor(NiFiProperties.class);
-            } catch (NoSuchMethodException nsme) {
+            } catch (final NoSuchMethodException nsme) {
                 try {
                     constructor = desiredClass.getConstructor();
-                } catch (NoSuchMethodException nsme2) {
+                } catch (final NoSuchMethodException nsme2) {
                     throw new IllegalStateException("Failed to find constructor which takes NiFiProperties as argument as well as the default constructor on "
                             + desiredClass.getName(), nsme2);
                 }
@@ -254,7 +254,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
                 } else {
                     return typeDefinition.cast(constructor.newInstance(nifiProperties));
                 }
-            } catch (InvocationTargetException ite) {
+            } catch (final InvocationTargetException ite) {
                 throw new IllegalStateException("Failed to instantiate a component due to (see target exception)", ite);
             }
         } finally {

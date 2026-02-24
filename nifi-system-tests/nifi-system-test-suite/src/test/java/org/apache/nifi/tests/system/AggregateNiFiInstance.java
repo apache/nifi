@@ -33,7 +33,7 @@ public class AggregateNiFiInstance implements NiFiInstance {
     }
 
     @Override
-    public void start(boolean waitForCompletion) {
+    public void start(final boolean waitForCompletion) {
         final Map<Thread, NiFiInstance> startupThreads = new HashMap<>();
 
         for (final NiFiInstance instance : instances) {

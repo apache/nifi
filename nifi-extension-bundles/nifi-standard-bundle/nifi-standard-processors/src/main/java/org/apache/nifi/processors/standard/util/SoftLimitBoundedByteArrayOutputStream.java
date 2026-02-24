@@ -31,11 +31,11 @@ public class SoftLimitBoundedByteArrayOutputStream extends OutputStream {
     private int limit;
     private int count;
 
-    public SoftLimitBoundedByteArrayOutputStream(int capacity) {
+    public SoftLimitBoundedByteArrayOutputStream(final int capacity) {
         this(capacity, capacity);
     }
 
-    public SoftLimitBoundedByteArrayOutputStream(int capacity, int limit) {
+    public SoftLimitBoundedByteArrayOutputStream(final int capacity, final int limit) {
         if ((capacity < limit) || (capacity | limit) < 0) {
             throw new IllegalArgumentException("Invalid capacity/limit");
         }
@@ -45,7 +45,7 @@ public class SoftLimitBoundedByteArrayOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         if (count >= limit) {
             return;
         }
@@ -53,26 +53,29 @@ public class SoftLimitBoundedByteArrayOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length)
-                || ((off + len) < 0)) {
+    public void write(final byte[] b, final int off, final int lenArg) throws IOException {
+        if ((off < 0) || (off > b.length) || (lenArg < 0) || ((off + lenArg) > b.length)
+                || ((off + lenArg) < 0)) {
             throw new IndexOutOfBoundsException();
-        } else if (len == 0) {
+        } else if (lenArg == 0) {
             return;
         }
 
-        if (count + len > limit) {
+        final int len;
+        if (count + lenArg > limit) {
             len = limit - count;
             if (len == 0) {
                 return;
             }
+        } else {
+            len = lenArg;
         }
 
         System.arraycopy(b, off, buffer, count, len);
         count += len;
     }
 
-    public void reset(int newlim) {
+    public void reset(final int newlim) {
         if (newlim > buffer.length) {
             throw new IndexOutOfBoundsException("Limit exceeds buffer size");
         }

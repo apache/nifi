@@ -72,7 +72,7 @@ public class SchemaNamePropertyStrategy implements SchemaAccessStrategy {
             if (!StringUtils.isBlank(schemaVersion)) {
                 try {
                     identifierBuilder.version(Integer.valueOf(schemaVersion));
-                } catch (NumberFormatException nfe) {
+                } catch (final NumberFormatException nfe) {
                     throw new SchemaNotFoundException("Could not retrieve schema with name '" + schemaName
                             + "' because a non-numeric version was supplied '" + schemaVersion + "'", nfe);
                 }

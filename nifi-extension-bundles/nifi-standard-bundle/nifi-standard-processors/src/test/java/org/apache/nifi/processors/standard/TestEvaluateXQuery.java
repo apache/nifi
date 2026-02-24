@@ -77,75 +77,81 @@ public class TestEvaluateXQuery {
                 }
             }
         }
-        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", false, false);
-        assertEquals(1, formattedResults.size());
-        String expectedXml
-                = """
-                <?xml version="1.0" encoding="UTF-8"?><fruit xmlns:ns="http://namespace/1" taste="crisp">
-                <!-- Apples are my favorite -->
-                    <name>apple</name>
-                    <color>red</color>
-                  </fruit>""";
-        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-
-        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "html", false, false);
-        assertEquals(1, formattedResults.size());
-        expectedXml
-                = """
-                <fruit xmlns:ns="http://namespace/1" taste="crisp">
+        {
+            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", false, false);
+            assertEquals(1, formattedResults.size());
+            final String expectedXml
+                    = """
+                    <?xml version="1.0" encoding="UTF-8"?><fruit xmlns:ns="http://namespace/1" taste="crisp">
                     <!-- Apples are my favorite -->
-                    <name>apple</name>
-                    <color>red</color>
-                  </fruit>""";
-        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+                        <name>apple</name>
+                        <color>red</color>
+                      </fruit>""";
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+        }
+        {
+            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "html", false, false);
+            assertEquals(1, formattedResults.size());
+            final String expectedXml
+                    = """
+                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                        <!-- Apples are my favorite -->
+                        <name>apple</name>
+                        <color>red</color>
+                      </fruit>""";
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+        }
+        {
+            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "text", false, false);
+            assertEquals(1, formattedResults.size());
+            final String expectedXml
+                    = """
 
-        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "text", false, false);
-        assertEquals(1, formattedResults.size());
-        expectedXml
-                = """
-
-                   \s
-                    apple
-                    red
-                  \
-                """;
-        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-
-        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, false);
-        assertEquals(1, formattedResults.size());
-        expectedXml
-                = """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <fruit xmlns:ns="http://namespace/1" taste="crisp">
-                    <!-- Apples are my favorite -->
-                    <name>apple</name>
-                    <color>red</color>
-                  </fruit>
-                """;
-        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
-
-        formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, true);
-        assertEquals(1, formattedResults.size());
-        expectedXml
-                = """
-                <fruit xmlns:ns="http://namespace/1" taste="crisp">
-                    <!-- Apples are my favorite -->
-                    <name>apple</name>
-                    <color>red</color>
-                  </fruit>
-                """;
-        assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+                       \s
+                        apple
+                        red
+                      \
+                    """;
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+        }
+        {
+            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, false);
+            assertEquals(1, formattedResults.size());
+            final String expectedXml
+                    = """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                        <!-- Apples are my favorite -->
+                        <name>apple</name>
+                        <color>red</color>
+                      </fruit>
+                    """;
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+        }
+        {
+            formattedResults = getFormattedResult(XML_SNIPPET, singleElementNodeQuery, "xml", true, true);
+            assertEquals(1, formattedResults.size());
+            final String expectedXml
+                    = """
+                    <fruit xmlns:ns="http://namespace/1" taste="crisp">
+                        <!-- Apples are my favorite -->
+                        <name>apple</name>
+                        <color>red</color>
+                      </fruit>
+                    """;
+            assertEquals(spaceTrimmed(expectedXml), spaceTrimmed(formattedResults.getFirst()));
+        }
     }
 
-    private String spaceTrimmed(String str) {
+    private String spaceTrimmed(final String str) {
         return Arrays.stream(str.split("\n")).map(String :: trim).reduce("", String :: concat);
     }
 
-    private List<String> getFormattedResult(Path xml, final String xQuery, final String method, final boolean indent, final boolean omitDeclaration) throws Exception {
+    private List<String> getFormattedResult(final Path xml, final String xQuery, final String method, final boolean indent, final boolean omitDeclaration) throws Exception {
 
-        Map<String, String> runnerProps = new HashMap<>();
-        List<MockFlowFile> resultFlowFiles;
-        List<String> resultStrings = new ArrayList<>();
+        final Map<String, String> runnerProps = new HashMap<>();
+        final List<MockFlowFile> resultFlowFiles;
+        final List<String> resultStrings = new ArrayList<>();
 
         runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_CONTENT);
         runnerProps.put(EvaluateXQuery.XML_OUTPUT_METHOD.getName(), method);
@@ -292,9 +298,9 @@ public class TestEvaluateXQuery {
 
     }
 
-    private void doXqueryTest(Path xml, String xQuery, List<String> expectedResults) throws Exception {
+    private void doXqueryTest(final Path xml, final String xQuery, final List<String> expectedResults) throws Exception {
 
-        Map<String, String> runnerProps = new HashMap<>();
+        final Map<String, String> runnerProps = new HashMap<>();
         List<MockFlowFile> resultFlowFiles;
 
         // test read from content, write to attribute
@@ -334,15 +340,15 @@ public class TestEvaluateXQuery {
         }
     }
 
-    private List<MockFlowFile> runXquery(Path xml, Map<String, String> runnerProps) throws Exception {
+    private List<MockFlowFile> runXquery(final Path xml, final Map<String, String> runnerProps) throws Exception {
         return runXquery(xml, runnerProps, new HashMap<>());
     }
 
-    private List<MockFlowFile> runXquery(Path xml, Map<String, String> runnerProps, Map<String, String> flowFileAttributes) throws Exception {
+    private List<MockFlowFile> runXquery(final Path xml, final Map<String, String> runnerProps, final Map<String, String> flowFileAttributes) throws Exception {
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
 
-        for (Entry<String, String> entry : runnerProps.entrySet()) {
+        for (final Entry<String, String> entry : runnerProps.entrySet()) {
             testRunner.setProperty(entry.getKey(), entry.getValue());
         }
 
@@ -603,7 +609,7 @@ public class TestEvaluateXQuery {
             final MockFlowFile out = flowFilesForRelMatch.get(i);
             final byte[] outData = testRunner.getContentAsByteArray(out);
             final String outXml = new String(outData, StandardCharsets.UTF_8);
-            String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
+            final String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
             assertEquals(expectedXml, outXml.trim());
         }
     }
@@ -623,7 +629,7 @@ public class TestEvaluateXQuery {
 
         for (int i = 0; i < fruitNames.length; i++) {
             final String outXml = out.getAttribute("some.property." + (i + 1));
-            String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
+            final String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
             assertEquals(expectedXml, outXml.trim());
         }
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).getFirst().assertContentEquals(XML_SNIPPET);

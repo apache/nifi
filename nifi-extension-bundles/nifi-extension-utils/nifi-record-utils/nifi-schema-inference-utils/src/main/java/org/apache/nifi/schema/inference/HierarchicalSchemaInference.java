@@ -58,7 +58,7 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
             }
         }
 
-        RecordSchema inferredSchema = createSchema(typeMap, rootElementName);
+        final RecordSchema inferredSchema = createSchema(typeMap, rootElementName);
         // Replace array<null> with array<string> in the typeMap. We use array<null> internally for empty arrays because for example if we encounter an empty array in the first record,
         // we have no way of knowing the type of elements. If we just decide to use STRING as the type like was previously done, this can cause problems because anything can be coerced
         // into a STRING, and if we later encounter an array of Records there, we end up inferring that as a STRING so we end up converting the Record objects into STRINGs.
@@ -100,7 +100,7 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
                 final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
                 forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
 
-                DataType elementDataType = arrayElementTypeInference.toDataType();
+                final DataType elementDataType = arrayElementTypeInference.toDataType();
                 final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
                 typeInference.addPossibleDataType(arrayDataType);
             }
@@ -114,8 +114,8 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
      * after all inferences have been completed.
      */
     private RecordSchema defaultArrayTypes(final RecordSchema recordSchema) {
-        List<RecordField> newRecordFields = new ArrayList<>(recordSchema.getFieldCount());
-        for (RecordField childRecordField : recordSchema.getFields()) {
+        final List<RecordField> newRecordFields = new ArrayList<>(recordSchema.getFieldCount());
+        for (final RecordField childRecordField : recordSchema.getFields()) {
             newRecordFields.add(defaultArrayTypes(childRecordField));
         }
         return new SimpleRecordSchema(newRecordFields, recordSchema.getIdentifier());
@@ -193,7 +193,7 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
                 final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
                 forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
 
-                DataType elementDataType = arrayElementTypeInference.toDataType();
+                final DataType elementDataType = arrayElementTypeInference.toDataType();
                 final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
                 typeInference.addPossibleDataType(arrayDataType);
             }

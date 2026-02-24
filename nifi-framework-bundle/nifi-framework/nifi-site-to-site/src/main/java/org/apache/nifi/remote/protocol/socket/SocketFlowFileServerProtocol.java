@@ -55,14 +55,14 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     private PeerDescriptionModifier peerDescriptionModifier;
 
     @Override
-    public void setPeerDescriptionModifier(PeerDescriptionModifier modifier) {
+    public void setPeerDescriptionModifier(final PeerDescriptionModifier modifier) {
         peerDescriptionModifier = modifier;
     }
 
     @Override
-    protected HandshakeProperties doHandshake(Peer peer) throws IOException {
+    protected HandshakeProperties doHandshake(final Peer peer) throws IOException {
 
-        HandshakeProperties confirmed = new HandshakeProperties();
+        final HandshakeProperties confirmed = new HandshakeProperties();
 
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
@@ -91,8 +91,8 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
 
         try {
             validateHandshakeRequest(confirmed, peer, properties);
-        } catch (HandshakeException e) {
-            ResponseCode handshakeResult = e.getResponseCode();
+        } catch (final HandshakeException e) {
+            final ResponseCode handshakeResult = e.getResponseCode();
             if (handshakeResult.containsMessage()) {
                 handshakeResult.writeResponse(dos, e.getMessage());
             } else {
@@ -174,7 +174,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
 
         logger.debug("{} Advertising Remote Input host name {}", this, peer);
 
-        List<NodeInformation> nodeInfos;
+        final List<NodeInformation> nodeInfos;
         if (clusterNodeInfo.isPresent()) {
             nodeInfos = new ArrayList<>(clusterNodeInfo.get().getNodeInformation());
         } else {
@@ -228,8 +228,8 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
     @Override
-    protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
-        String transitUriPrefix = handshakeProperties.getTransitUriPrefix();
+    protected String createTransitUri(final Peer peer, final String sourceFlowFileIdentifier) {
+        final String transitUriPrefix = handshakeProperties.getTransitUriPrefix();
         return (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
     }
 }

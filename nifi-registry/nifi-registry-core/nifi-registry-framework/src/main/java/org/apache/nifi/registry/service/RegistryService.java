@@ -102,7 +102,7 @@ public class RegistryService {
         this.validator = Objects.requireNonNull(validator);
     }
 
-    private <T> void validate(T t, String invalidMessage) {
+    private <T> void validate(final T t, final String invalidMessage) {
         final Set<ConstraintViolation<T>> violations = validator.validate(t);
         if (!violations.isEmpty()) {
             throw new ConstraintViolationException(invalidMessage, violations);
@@ -946,12 +946,12 @@ public class RegistryService {
      * @param flowDifferences The differences to group together by component
      * @return A set of componentDifferenceGroups where each entry contains a set of differences specific to that group
      */
-    private Set<ComponentDifferenceGroup> getStringComponentDifferenceGroupMap(Set<FlowDifference> flowDifferences) {
-        Map<String, ComponentDifferenceGroup> differenceGroups = new HashMap<>();
-        for (FlowDifference diff : flowDifferences) {
-            ComponentDifferenceGroup group;
+    private Set<ComponentDifferenceGroup> getStringComponentDifferenceGroupMap(final Set<FlowDifference> flowDifferences) {
+        final Map<String, ComponentDifferenceGroup> differenceGroups = new HashMap<>();
+        for (final FlowDifference diff : flowDifferences) {
+            final ComponentDifferenceGroup group;
             // A component may only exist on only one version for new/removed components
-            VersionedComponent component = ObjectUtils.firstNonNull(diff.getComponentA(), diff.getComponentB());
+            final VersionedComponent component = ObjectUtils.firstNonNull(diff.getComponentA(), diff.getComponentB());
             if (differenceGroups.containsKey(component.getIdentifier())) {
                 group = differenceGroups.get(component.getIdentifier());
             } else {

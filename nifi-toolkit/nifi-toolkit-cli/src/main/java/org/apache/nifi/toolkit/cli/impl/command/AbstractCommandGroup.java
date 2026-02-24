@@ -85,7 +85,7 @@ public abstract class AbstractCommandGroup implements CommandGroup {
                     if (c.isReferencable()) {
                         appendable.appendParagraph("PRODUCES BACK-REFERENCES");
                     }
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException("Unable to print command usage for " + c.getName(), e);
                 }
             });

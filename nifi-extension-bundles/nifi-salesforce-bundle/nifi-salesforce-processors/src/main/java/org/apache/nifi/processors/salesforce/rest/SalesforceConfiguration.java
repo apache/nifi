@@ -25,14 +25,14 @@ public final class SalesforceConfiguration {
     private final Supplier<String> accessTokenProvider;
     private final int responseTimeoutMillis;
 
-    private SalesforceConfiguration(String instanceUrl, String version, Supplier<String> accessTokenProvider, int responseTimeoutMillis) {
+    private SalesforceConfiguration(final String instanceUrl, final String version, final Supplier<String> accessTokenProvider, final int responseTimeoutMillis) {
         this.instanceUrl = instanceUrl;
         this.version = version;
         this.accessTokenProvider = accessTokenProvider;
         this.responseTimeoutMillis = responseTimeoutMillis;
     }
 
-    public static SalesforceConfiguration create(String instanceUrl, String version, Supplier<String> accessTokenProvider, int responseTimeoutMillis) {
+    public static SalesforceConfiguration create(final String instanceUrl, final String version, final Supplier<String> accessTokenProvider, final int responseTimeoutMillis) {
         return new SalesforceConfiguration(instanceUrl, version, accessTokenProvider, responseTimeoutMillis);
     }
 

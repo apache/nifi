@@ -30,12 +30,12 @@ import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
  */
 public class ServerSideS3EncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configurePutObjectRequest(final PutObjectRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
     }
 
     @Override
-    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configureCreateMultipartUploadRequest(final CreateMultipartUploadRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
     }
 }

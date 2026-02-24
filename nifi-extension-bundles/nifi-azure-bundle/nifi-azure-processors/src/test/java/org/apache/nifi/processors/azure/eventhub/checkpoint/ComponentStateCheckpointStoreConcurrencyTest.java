@@ -64,8 +64,8 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
     @Test
     void testConcurrentClaimDifferentOwnerships() throws IOException {
-        StateMap state1 = new MockStateMap(initMap(), 1);
-        StateMap state2 = new MockStateMap(initMap(partitionOwnership1), 2);
+        final StateMap state1 = new MockStateMap(initMap(), 1);
+        final StateMap state2 = new MockStateMap(initMap(partitionOwnership1), 2);
 
         when(stateManager.getState(Scope.CLUSTER))
                 .thenReturn(state1)
@@ -74,24 +74,24 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         when(stateManager.replace(eq(state1), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
         when(stateManager.replace(eq(state2), anyMap(), eq(Scope.CLUSTER))).thenReturn(true);
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
+        final List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
         checkpointStore.claimOwnership(requestedOwnerships).subscribe(claimedOwnerships::add);
 
         assertEquals(1, claimedOwnerships.size());
-        PartitionOwnership claimedOwnership = claimedOwnerships.getFirst();
+        final PartitionOwnership claimedOwnership = claimedOwnerships.getFirst();
         assertClaimedOwnership(partitionOwnership2, claimedOwnership);
 
         verify(stateManager, times(2)).getState(eq(Scope.CLUSTER));
         verify(stateManager, times(2)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
-        Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
+        final Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
         assertEquals(1, updatedMap1.size());
         assertOwnershipFound(updatedMap1, partitionOwnership2);
 
-        Map<String, String> updatedMap2 = updatedMapCaptor.getAllValues().get(1);
+        final Map<String, String> updatedMap2 = updatedMapCaptor.getAllValues().get(1);
         assertEquals(2, updatedMap2.size());
         assertOwnershipFound(updatedMap2, partitionOwnership1);
         assertOwnershipFound(updatedMap2, partitionOwnership2);
@@ -99,8 +99,8 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
     @Test
     void testConcurrentClaimSameOwnership() throws IOException {
-        StateMap state1 = new MockStateMap(initMap(), 1);
-        StateMap state2 = new MockStateMap(initMap(partitionOwnership1), 2);
+        final StateMap state1 = new MockStateMap(initMap(), 1);
+        final StateMap state2 = new MockStateMap(initMap(partitionOwnership1), 2);
 
         when(stateManager.getState(Scope.CLUSTER))
                 .thenReturn(state1)
@@ -108,9 +108,9 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
         when(stateManager.replace(eq(state1), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership1);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership1);
 
-        List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
+        final List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
         checkpointStore.claimOwnership(requestedOwnerships).subscribe(claimedOwnerships::add);
 
         assertTrue(claimedOwnerships.isEmpty());
@@ -119,15 +119,15 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         verify(stateManager, times(1)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
-        Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
+        final Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
         assertEquals(1, updatedMap1.size());
         assertOwnershipFound(updatedMap1, partitionOwnership1);
     }
 
     @Test
     void testConcurrentUpdateCheckpoint() throws IOException {
-        StateMap state1 = new MockStateMap(initMap(partitionOwnership1), 1);
-        StateMap state2 = new MockStateMap(initMap(partitionOwnership1, partitionOwnership2), 2);
+        final StateMap state1 = new MockStateMap(initMap(partitionOwnership1), 1);
+        final StateMap state2 = new MockStateMap(initMap(partitionOwnership1, partitionOwnership2), 2);
 
         when(stateManager.getState(Scope.CLUSTER))
                 .thenReturn(state1)
@@ -142,12 +142,12 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         verify(stateManager, times(2)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
-        Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
+        final Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
         assertEquals(2, updatedMap1.size());
         assertOwnershipFound(updatedMap1, partitionOwnership1);
         assertCheckpointFound(updatedMap1, checkpoint1);
 
-        Map<String, String> updatedMap2 = updatedMapCaptor.getAllValues().get(1);
+        final Map<String, String> updatedMap2 = updatedMapCaptor.getAllValues().get(1);
         assertEquals(3, updatedMap2.size());
         assertOwnershipFound(updatedMap2, partitionOwnership1);
         assertOwnershipFound(updatedMap2, partitionOwnership2);
@@ -156,8 +156,8 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
 
     @Test
     void testConcurrentCleanUp() throws IOException {
-        StateMap state1 = new MockStateMap(initMap(partitionOwnership1), 1);
-        StateMap state2 = new MockStateMap(initMap(), 2);
+        final StateMap state1 = new MockStateMap(initMap(partitionOwnership1), 1);
+        final StateMap state2 = new MockStateMap(initMap(), 2);
 
         when(stateManager.getState(Scope.CLUSTER))
                 .thenReturn(state1)
@@ -171,7 +171,7 @@ class ComponentStateCheckpointStoreConcurrencyTest extends AbstractComponentStat
         verify(stateManager, times(1)).replace(any(StateMap.class), updatedMapCaptor.capture(), eq(Scope.CLUSTER));
         verifyNoMoreInteractions(stateManager);
 
-        Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
+        final Map<String, String> updatedMap1 = updatedMapCaptor.getAllValues().getFirst();
         assertTrue(updatedMap1.isEmpty());
     }
 

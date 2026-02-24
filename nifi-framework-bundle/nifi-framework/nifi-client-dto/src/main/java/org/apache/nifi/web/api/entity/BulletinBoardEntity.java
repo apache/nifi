@@ -36,7 +36,7 @@ public class BulletinBoardEntity extends Entity {
         return messages;
     }
 
-    public void setBulletinBoard(BulletinBoardDTO messages) {
+    public void setBulletinBoard(final BulletinBoardDTO messages) {
         this.messages = messages;
     }
 

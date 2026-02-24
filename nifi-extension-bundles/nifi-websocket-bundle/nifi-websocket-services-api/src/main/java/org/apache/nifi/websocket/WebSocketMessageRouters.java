@@ -52,7 +52,7 @@ public class WebSocketMessageRouters {
         try {
             final WebSocketMessageRouter router = getRouterOrFail(endpointId);
             return router.isProcessorRegistered(processor);
-        } catch (WebSocketConfigurationException e) {
+        } catch (final WebSocketConfigurationException e) {
             return false;
         }
     }

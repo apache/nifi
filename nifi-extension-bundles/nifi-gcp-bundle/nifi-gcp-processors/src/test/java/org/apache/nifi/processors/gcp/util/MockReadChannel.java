@@ -27,7 +27,7 @@ public class MockReadChannel implements ReadChannel {
     private boolean finished;
     private boolean isOpen;
 
-    public MockReadChannel(String textToRead) {
+    public MockReadChannel(final String textToRead) {
         this.toRead = textToRead.getBytes();
         this.isOpen = true;
         this.finished = false;
@@ -39,10 +39,10 @@ public class MockReadChannel implements ReadChannel {
     }
 
     @Override
-    public void seek(long l) { }
+    public void seek(final long l) { }
 
     @Override
-    public void setChunkSize(int i) { }
+    public void setChunkSize(final int i) { }
 
     @Override
     public RestorableState<ReadChannel> capture() {
@@ -50,14 +50,14 @@ public class MockReadChannel implements ReadChannel {
     }
 
     @Override
-    public int read(ByteBuffer dst) {
+    public int read(final ByteBuffer dst) {
         if (this.finished) {
             return -1;
         } else {
             if (dst.remaining() > this.toRead.length) {
                 this.finished = true;
             }
-            int toWrite = Math.min(this.toRead.length - position, dst.remaining());
+            final int toWrite = Math.min(this.toRead.length - position, dst.remaining());
 
             dst.put(this.toRead, this.position, toWrite);
             this.position += toWrite;

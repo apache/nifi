@@ -33,7 +33,7 @@ public class FlowRequestMessage extends ProtocolMessage {
         return nodeId;
     }
 
-    public void setNodeId(NodeIdentifier nodeId) {
+    public void setNodeId(final NodeIdentifier nodeId) {
         this.nodeId = nodeId;
     }
 

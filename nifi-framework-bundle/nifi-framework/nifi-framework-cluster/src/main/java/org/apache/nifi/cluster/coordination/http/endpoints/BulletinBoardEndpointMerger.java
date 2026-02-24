@@ -36,7 +36,7 @@ public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<Bulle
     public static final Pattern BULLETIN_BOARD_URI_PATTERN = Pattern.compile("/nifi-api/flow/bulletin-board");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && BULLETIN_BOARD_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -46,12 +46,13 @@ public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<Bulle
     }
 
     @Override
-    protected BulletinBoardDTO getDto(BulletinBoardEntity entity) {
+    protected BulletinBoardDTO getDto(final BulletinBoardEntity entity) {
         return entity.getBulletinBoard();
     }
 
     @Override
-    protected void mergeResponses(BulletinBoardDTO clientDto, Map<NodeIdentifier, BulletinBoardDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final BulletinBoardDTO clientDto, final Map<NodeIdentifier, BulletinBoardDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         final Map<NodeIdentifier, List<BulletinEntity>> bulletinEntities = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, BulletinBoardDTO> entry : dtoMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();

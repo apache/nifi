@@ -248,7 +248,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
             return clientResponse;
         }
 
-        EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
+        final EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
         if (merger == null) {
             return clientResponse;
         }

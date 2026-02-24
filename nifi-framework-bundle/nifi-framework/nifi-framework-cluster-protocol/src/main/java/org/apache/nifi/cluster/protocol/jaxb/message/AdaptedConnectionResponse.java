@@ -41,7 +41,7 @@ public class AdaptedConnectionResponse {
         return dataFlow;
     }
 
-    public void setDataFlow(DataFlow dataFlow) {
+    public void setDataFlow(final DataFlow dataFlow) {
         this.dataFlow = dataFlow;
     }
 
@@ -50,7 +50,7 @@ public class AdaptedConnectionResponse {
         return nodeIdentifier;
     }
 
-    public void setNodeIdentifier(NodeIdentifier nodeIdentifier) {
+    public void setNodeIdentifier(final NodeIdentifier nodeIdentifier) {
         this.nodeIdentifier = nodeIdentifier;
     }
 
@@ -58,7 +58,7 @@ public class AdaptedConnectionResponse {
         return tryLaterSeconds;
     }
 
-    public void setTryLaterSeconds(int tryLaterSeconds) {
+    public void setTryLaterSeconds(final int tryLaterSeconds) {
         this.tryLaterSeconds = tryLaterSeconds;
     }
 
@@ -74,7 +74,7 @@ public class AdaptedConnectionResponse {
         return tryLaterSeconds > 0;
     }
 
-    public void setInstanceId(String instanceId) {
+    public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
 
@@ -82,7 +82,7 @@ public class AdaptedConnectionResponse {
         return instanceId;
     }
 
-    public void setNodeConnectionStatuses(List<NodeConnectionStatus> connectionStatuses) {
+    public void setNodeConnectionStatuses(final List<NodeConnectionStatus> connectionStatuses) {
         this.nodeStatuses = connectionStatuses;
     }
 
@@ -94,7 +94,7 @@ public class AdaptedConnectionResponse {
         return componentRevisions;
     }
 
-    public void setComponentRevisions(ComponentRevisionSnapshot componentRevisions) {
+    public void setComponentRevisions(final ComponentRevisionSnapshot componentRevisions) {
         this.componentRevisions = componentRevisions;
     }
 }

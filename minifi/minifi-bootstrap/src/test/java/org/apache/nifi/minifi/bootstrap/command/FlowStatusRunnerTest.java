@@ -49,7 +49,7 @@ class FlowStatusRunnerTest {
 
     @Test
     void testRunCommandShouldReturnErrorCodeWhenArgsLengthIsNotTwo() {
-        int statusCode = flowStatusRunner.runCommand(new String[0]);
+        final int statusCode = flowStatusRunner.runCommand(new String[0]);
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoInteractions(periodicStatusReporterManager);
@@ -57,23 +57,23 @@ class FlowStatusRunnerTest {
 
     @Test
     void testRunCommandShouldReturnOkCodeWhenArgsLengthIsTwo() {
-        FlowStatusReport flowStatusReport = aFlowStatusReport();
+        final FlowStatusReport flowStatusReport = aFlowStatusReport();
         when(periodicStatusReporterManager.statusReport(STATUS_REQUEST)).thenReturn(flowStatusReport);
 
-        int statusCode = flowStatusRunner.runCommand(new String[] {"flowStatus", STATUS_REQUEST});
+        final int statusCode = flowStatusRunner.runCommand(new String[] {"flowStatus", STATUS_REQUEST});
 
         assertEquals(OK.getStatusCode(), statusCode);
     }
 
     private FlowStatusReport aFlowStatusReport() {
-        FlowStatusReport flowStatusReport = new FlowStatusReport();
-        InstanceStatus instanceStatus = new InstanceStatus();
-        InstanceHealth instanceHealth = new InstanceHealth();
+        final FlowStatusReport flowStatusReport = new FlowStatusReport();
+        final InstanceStatus instanceStatus = new InstanceStatus();
+        final InstanceHealth instanceHealth = new InstanceHealth();
         instanceHealth.setQueuedCount(2);
         instanceHealth.setActiveThreads(3);
         instanceStatus.setInstanceHealth(instanceHealth);
         flowStatusReport.setInstanceStatus(instanceStatus);
-        ProcessorStatusBean processorStatusBean = new ProcessorStatusBean();
+        final ProcessorStatusBean processorStatusBean = new ProcessorStatusBean();
         processorStatusBean.setId("processorId");
         flowStatusReport.setProcessorStatusList(Collections.singletonList(processorStatusBean));
         return flowStatusReport;

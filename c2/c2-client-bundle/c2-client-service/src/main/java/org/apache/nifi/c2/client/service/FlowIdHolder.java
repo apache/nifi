@@ -34,7 +34,7 @@ public class FlowIdHolder {
     private volatile String flowId;
     private final String configDirectoryName;
 
-    public FlowIdHolder(String configDirectoryName) {
+    public FlowIdHolder(final String configDirectoryName) {
         this.configDirectoryName = configDirectoryName;
         this.flowId = readFlowId();
     }
@@ -43,40 +43,40 @@ public class FlowIdHolder {
         return flowId;
     }
 
-    public void setFlowId(String flowId) {
+    public void setFlowId(final String flowId) {
         this.flowId = flowId;
         persistFlowId(flowId);
     }
 
-    private void persistFlowId(String flowId) {
-        File flowIdFile = new File(configDirectoryName, FLOW_IDENTIFIER_FILENAME);
+    private void persistFlowId(final String flowId) {
+        final File flowIdFile = new File(configDirectoryName, FLOW_IDENTIFIER_FILENAME);
         try {
             FileUtils.ensureDirectoryExistAndCanAccess(flowIdFile.getParentFile());
             saveFlowId(flowIdFile, flowId);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Persisting Flow [{}] failed", flowId, e);
         }
     }
 
-    private void saveFlowId(File flowUpdateInfoFile, String flowId) {
+    private void saveFlowId(final File flowUpdateInfoFile, final String flowId) {
         try {
             Files.write(flowUpdateInfoFile.toPath(), singletonList(flowId));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Writing Flow [{}] failed", flowId, e);
         }
     }
 
     private String readFlowId() {
-        File flowUpdateInfoFile = new File(configDirectoryName, FLOW_IDENTIFIER_FILENAME);
+        final File flowUpdateInfoFile = new File(configDirectoryName, FLOW_IDENTIFIER_FILENAME);
         String flowId = null;
         if (flowUpdateInfoFile.exists()) {
             try {
-                List<String> fileLines = Files.readAllLines(flowUpdateInfoFile.toPath());
+                final List<String> fileLines = Files.readAllLines(flowUpdateInfoFile.toPath());
                 if (fileLines.size() != 1) {
                     throw new IllegalStateException(String.format("The file %s for the persisted flow id has the incorrect format.", flowUpdateInfoFile));
                 }
                 flowId = fileLines.get(0);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new IllegalStateException(String.format("Could not read file %s for persisted flow id.", flowUpdateInfoFile), e);
             }
         }

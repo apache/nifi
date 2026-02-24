@@ -133,21 +133,22 @@ public class JdbcCommon {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final boolean convertNames) throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, null, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, boolean convertNames)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final String recordName, final boolean convertNames)
             throws SQLException, IOException {
         return convertToAvroStream(rs, outStream, recordName, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, boolean convertNames)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final String recordName, final ResultSetRowCallback callback, final boolean convertNames)
             throws IOException, SQLException {
         return convertToAvroStream(rs, outStream, recordName, callback, 0, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows, boolean convertNames)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, final String recordName,
+            final ResultSetRowCallback callback, final int maxRows, final boolean convertNames)
             throws SQLException, IOException {
         final AvroConversionOptions options = AvroConversionOptions.builder()
                 .recordName(recordName)
@@ -178,8 +179,8 @@ public class JdbcCommon {
         private final int defaultScale;
         private final CodecFactory codec;
 
-        private AvroConversionOptions(String recordName, int maxRows, boolean convertNames, boolean useLogicalTypes,
-                int defaultPrecision, int defaultScale, CodecFactory codec) {
+        private AvroConversionOptions(final String recordName, final int maxRows, final boolean convertNames, final boolean useLogicalTypes,
+                final int defaultPrecision, final int defaultScale, final CodecFactory codec) {
             this.recordName = recordName;
             this.maxRows = maxRows;
             this.convertNames = convertNames;
@@ -217,37 +218,37 @@ public class JdbcCommon {
             /**
              * Specify a priori record name to use if it cannot be determined from the result set.
              */
-            public Builder recordName(String recordName) {
+            public Builder recordName(final String recordName) {
                 this.recordName = recordName;
                 return this;
             }
 
-            public Builder maxRows(int maxRows) {
+            public Builder maxRows(final int maxRows) {
                 this.maxRows = maxRows;
                 return this;
             }
 
-            public Builder convertNames(boolean convertNames) {
+            public Builder convertNames(final boolean convertNames) {
                 this.convertNames = convertNames;
                 return this;
             }
 
-            public Builder useLogicalTypes(boolean useLogicalTypes) {
+            public Builder useLogicalTypes(final boolean useLogicalTypes) {
                 this.useLogicalTypes = useLogicalTypes;
                 return this;
             }
 
-            public Builder defaultPrecision(int defaultPrecision) {
+            public Builder defaultPrecision(final int defaultPrecision) {
                 this.defaultPrecision = defaultPrecision;
                 return this;
             }
 
-            public Builder defaultScale(int defaultScale) {
+            public Builder defaultScale(final int defaultScale) {
                 this.defaultScale = defaultScale;
                 return this;
             }
 
-            public Builder codecFactory(String codec) {
+            public Builder codecFactory(final String codec) {
                 this.codec = AvroUtil.getCodecFactory(codec);
                 return this;
             }
@@ -281,10 +282,10 @@ public class JdbcCommon {
 
                     // Need to handle CLOB and NCLOB before getObject() is called, due to ResultSet's maximum portability statement
                     if (javaSqlType == CLOB || javaSqlType == NCLOB) {
-                        Clob clob = rs.getClob(i);
+                        final Clob clob = rs.getClob(i);
                         if (clob != null) {
-                            StringBuilder sb = new StringBuilder();
-                            char[] buffer = new char[32 * 1024]; // 32K default buffer
+                            final StringBuilder sb = new StringBuilder();
+                            final char[] buffer = new char[32 * 1024]; // 32K default buffer
                             try (Reader reader = clob.getCharacterStream()) {
                                 int charsRead;
                                 while ((charsRead = reader.read(buffer)) != -1) {
@@ -294,7 +295,7 @@ public class JdbcCommon {
                             rec.put(i - 1, sb.toString());
                             try {
                                 clob.free();
-                            } catch (SQLFeatureNotSupportedException sfnse) {
+                            } catch (final SQLFeatureNotSupportedException sfnse) {
                                 // The driver doesn't support free, but allow processing to continue
                                 logger.debug("Database Driver does not support freeing clob objects");
                             }
@@ -305,10 +306,10 @@ public class JdbcCommon {
                     }
 
                     if (javaSqlType == BLOB) {
-                        Blob blob = rs.getBlob(i);
+                        final Blob blob = rs.getBlob(i);
                         if (blob != null) {
-                            long numChars = blob.length();
-                            byte[] buffer = new byte[(int) numChars];
+                            final long numChars = blob.length();
+                            final byte[] buffer = new byte[(int) numChars];
                             try (InputStream is = blob.getBinaryStream()) {
                                 int index = 0;
                                 int c = is.read();
@@ -317,11 +318,11 @@ public class JdbcCommon {
                                     c = is.read();
                                 }
                             }
-                            ByteBuffer bb = ByteBuffer.wrap(buffer);
+                            final ByteBuffer bb = ByteBuffer.wrap(buffer);
                             rec.put(i - 1, bb);
                             try {
                                 blob.free();
-                            } catch (SQLFeatureNotSupportedException sfnse) {
+                            } catch (final SQLFeatureNotSupportedException sfnse) {
                                 // The driver doesn't support free, but allow processing to continue
                                 logger.debug("Database Driver does not support freeing blob objects");
                             }
@@ -346,7 +347,7 @@ public class JdbcCommon {
                             if (value == null) {
                                 value = rs.getObject(i);
                             }
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             // The cause of the exception is not known, but we'll fall back to call getObject() and handle any "real" exception there
                             value = rs.getObject(i);
                         }
@@ -359,8 +360,8 @@ public class JdbcCommon {
 
                     } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY) {
                         // bytes requires little bit different handling
-                        byte[] bytes = rs.getBytes(i);
-                        ByteBuffer bb = ByteBuffer.wrap(bytes);
+                        final byte[] bytes = rs.getBytes(i);
+                        final ByteBuffer bb = ByteBuffer.wrap(bytes);
                         rec.put(i - 1, bb);
                     } else if (javaSqlType == 100) { // Handle Oracle BINARY_FLOAT data type
                         rec.put(i - 1, rs.getFloat(i));
@@ -392,13 +393,13 @@ public class JdbcCommon {
                         // Otherwise, Avro can't handle BigInteger as a number - it will throw an AvroRuntimeException
                         // such as: "Unknown datum type: java.math.BigInteger: 38". In this case the schema is expecting a string.
                         if (javaSqlType == BIGINT) {
-                            int precision = meta.getPrecision(i);
+                            final int precision = meta.getPrecision(i);
                             if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
                                 rec.put(i - 1, value.toString());
                             } else {
                                 try {
                                     rec.put(i - 1, ((BigInteger) value).longValueExact());
-                                } catch (ArithmeticException ae) {
+                                } catch (final ArithmeticException ae) {
                                     // Since the value won't fit in a long, convert it to a string
                                     rec.put(i - 1, value.toString());
                                 }
@@ -409,14 +410,14 @@ public class JdbcCommon {
 
                     } else if (value instanceof Number || value instanceof Boolean) {
                         if (javaSqlType == BIGINT) {
-                            int precision = meta.getPrecision(i);
+                            final int precision = meta.getPrecision(i);
                             if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
                                 rec.put(i - 1, value.toString());
                             } else {
                                 rec.put(i - 1, value);
                             }
                         } else if ((value instanceof Long) && meta.getPrecision(i) < MAX_DIGITS_IN_INT) {
-                            int intValue = ((Long) value).intValue();
+                            final int intValue = ((Long) value).intValue();
                             rec.put(i - 1, intValue);
                         } else {
                             rec.put(i - 1, value);
@@ -434,7 +435,7 @@ public class JdbcCommon {
                             // Delegate mapping to AvroTypeUtil in order to utilize logical types.
                             // AvroTypeUtil.convertToAvroObject() expects java.sql.Date object as a UTC normalized date (UTC 00:00:00)
                             // but it comes from the driver in JVM's local time zone 00:00:00 and needs to be converted.
-                            java.sql.Date normalizedDate = DataTypeUtils.convertDateToUTC((java.sql.Date) value);
+                            final java.sql.Date normalizedDate = DataTypeUtils.convertDateToUTC((java.sql.Date) value);
                             rec.put(i - 1, AvroTypeUtil.convertToAvroObject(normalizedDate, fieldSchema));
                         } else {
                             // As string for backward compatibility.
@@ -463,10 +464,10 @@ public class JdbcCommon {
                 try {
                     dataFileWriter.append(rec);
                     nrOfRows += 1;
-                } catch (DataFileWriter.AppendWriteException awe) {
-                    Throwable rootCause = ExceptionUtils.getRootCause(awe);
+                } catch (final DataFileWriter.AppendWriteException awe) {
+                    final Throwable rootCause = ExceptionUtils.getRootCause(awe);
                     if (rootCause instanceof UnresolvedUnionException) {
-                        UnresolvedUnionException uue = (UnresolvedUnionException) rootCause;
+                        final UnresolvedUnionException uue = (UnresolvedUnionException) rootCause;
                         throw new RuntimeException(
                                 "Unable to resolve union for value " + uue.getUnresolvedDatum() +
                                 " with type " + uue.getUnresolvedDatum().getClass().getCanonicalName() +
@@ -490,15 +491,15 @@ public class JdbcCommon {
         return createSchema(rs, null, false);
     }
 
-    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
+    public static Schema createSchema(final ResultSet rs, final String recordName, final boolean convertNames) throws SQLException {
         final AvroConversionOptions options = AvroConversionOptions.builder().recordName(recordName).convertNames(convertNames).build();
         return createSchema(rs, options);
     }
 
     private static void addNullableField(
-            FieldAssembler<Schema> builder,
-            String columnName,
-            Function<BaseTypeBuilder<UnionAccumulator<NullDefault<Schema>>>, UnionAccumulator<NullDefault<Schema>>> func
+            final FieldAssembler<Schema> builder,
+            final String columnName,
+            final Function<BaseTypeBuilder<UnionAccumulator<NullDefault<Schema>>>, UnionAccumulator<NullDefault<Schema>>> func
     ) {
         final BaseTypeBuilder<UnionAccumulator<NullDefault<Schema>>> and = builder.name(columnName).type().unionOf().nullBuilder().endNull().and();
         func.apply(and).endUnion().noDefault();
@@ -513,12 +514,12 @@ public class JdbcCommon {
      * @return A Schema object representing the result set converted to an Avro record
      * @throws SQLException if any error occurs during conversion
      */
-    public static Schema createSchema(final ResultSet rs, AvroConversionOptions options) throws SQLException {
+    public static Schema createSchema(final ResultSet rs, final AvroConversionOptions options) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(options.recordName) ? "NiFi_ExecuteSQL_Record" : options.recordName;
         if (nrOfColumns > 0) {
-            String tableNameFromMeta = meta.getTableName(1);
+            final String tableNameFromMeta = meta.getTableName(1);
             if (!StringUtils.isBlank(tableNameFromMeta)) {
                 tableName = tableNameFromMeta;
             }
@@ -537,8 +538,8 @@ public class JdbcCommon {
              * So it may be a better option to check for columnLabel first and if in case it is null in some implementation,
              * check for alias. Postgres is the one that has the null column names for calculated fields.
              */
-            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) : meta.getColumnName(i);
-            String columnName = options.convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
+            final String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) : meta.getColumnName(i);
+            final String columnName = options.convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:
@@ -575,7 +576,7 @@ public class JdbcCommon {
                     // Check the precision of the BIGINT. Some databases allow arbitrary precision (> 19), but Avro won't handle that.
                     // If the precision > 19 (or is negative), use a string for the type, otherwise use a long. The object(s) will be converted
                     // to strings as necessary
-                    int precision = meta.getPrecision(i);
+                    final int precision = meta.getPrecision(i);
                     if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
                         builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     } else {
@@ -694,7 +695,7 @@ public class JdbcCommon {
         return builder.endRecord();
     }
 
-    public static String normalizeNameForAvro(String inputName) {
+    public static String normalizeNameForAvro(final String inputName) {
         String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
         if (Character.isDigit(normalizedName.charAt(0))) {
             normalizedName = "_" + normalizedName;
@@ -755,9 +756,9 @@ public class JdbcCommon {
                 JdbcCommon.setParameter(stmt, sqlArgumentIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);
             } catch (final NumberFormatException nfe) {
                 throw new SQLDataException("The value of the " + sqlArgumentValueAttributeName + " is '" + sqlArgumentLogValue + "', which cannot be converted into the necessary data type", nfe);
-            } catch (ParseException pe) {
+            } catch (final ParseException pe) {
                 throw new SQLDataException("The value of the " + sqlArgumentValueAttributeName + " is '" + sqlArgumentLogValue + "', which cannot be converted to a timestamp", pe);
-            } catch (UnsupportedEncodingException uee) {
+            } catch (final UnsupportedEncodingException uee) {
                 throw new SQLDataException("The value of the " + sqlArgumentValueAttributeName + " is '" + sqlArgumentLogValue + "', which cannot be converted to UTF-8", uee);
             }
         }
@@ -810,7 +811,7 @@ public class JdbcCommon {
                     stmt.setBigDecimal(parameterIndex, new BigDecimal(parameterValue));
                     break;
                 case Types.DATE:
-                    java.sql.Date date;
+                    final java.sql.Date date;
 
                     if (valueFormat.equals("")) {
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
@@ -821,14 +822,14 @@ public class JdbcCommon {
                         }
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
-                        LocalDate parsedDate = LocalDate.parse(parameterValue, dtFormatter);
+                        final LocalDate parsedDate = LocalDate.parse(parameterValue, dtFormatter);
                         date = new java.sql.Date(java.sql.Date.from(parsedDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()).getTime());
                     }
 
                     stmt.setDate(parameterIndex, date);
                     break;
                 case Types.TIME:
-                    Time time;
+                    final Time time;
 
                     if (valueFormat.equals("")) {
                         if (LONG_PATTERN.matcher(parameterValue).matches()) {
@@ -839,16 +840,16 @@ public class JdbcCommon {
                         }
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
-                        LocalTime parsedTime = LocalTime.parse(parameterValue, dtFormatter);
-                        LocalDateTime localDateTime = parsedTime.atDate(LocalDate.ofEpochDay(0));
-                        Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
+                        final LocalTime parsedTime = LocalTime.parse(parameterValue, dtFormatter);
+                        final LocalDateTime localDateTime = parsedTime.atDate(LocalDate.ofEpochDay(0));
+                        final Instant instant = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
                         time = new Time(instant.toEpochMilli());
                     }
 
                     stmt.setTime(parameterIndex, time);
                     break;
                 case Types.TIMESTAMP:
-                    Timestamp ts;
+                    final Timestamp ts;
 
                     // Backwards compatibility note: Format was unsupported for a timestamp field.
                     if (valueFormat.equals("")) {
@@ -862,7 +863,7 @@ public class JdbcCommon {
                         ts = new Timestamp(lTimestamp);
                     } else {
                         final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
-                        LocalDateTime ldt = LocalDateTime.parse(parameterValue, dtFormatter);
+                        final LocalDateTime ldt = LocalDateTime.parse(parameterValue, dtFormatter);
                         ts = Timestamp.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
                     }
 
@@ -871,7 +872,7 @@ public class JdbcCommon {
                 case Types.BINARY:
                 case Types.VARBINARY:
                 case Types.LONGVARBINARY:
-                    byte[] bValue;
+                    final byte[] bValue;
 
                     switch (valueFormat) {
                         case "":
@@ -894,7 +895,7 @@ public class JdbcCommon {
 
                     try {
                         stmt.setBinaryStream(parameterIndex, new ByteArrayInputStream(bValue), bValue.length);
-                    } catch (Exception ex) {
+                    } catch (final Exception ex) {
                         stmt.setBytes(parameterIndex, bValue);
                     }
 
@@ -922,7 +923,7 @@ public class JdbcCommon {
         }
     }
 
-    public static DateTimeFormatter getDateTimeFormatter(String pattern) {
+    public static DateTimeFormatter getDateTimeFormatter(final String pattern) {
         return switch (pattern) {
             case "BASIC_ISO_DATE" -> DateTimeFormatter.BASIC_ISO_DATE;
             case "ISO_LOCAL_DATE" -> DateTimeFormatter.ISO_LOCAL_DATE;

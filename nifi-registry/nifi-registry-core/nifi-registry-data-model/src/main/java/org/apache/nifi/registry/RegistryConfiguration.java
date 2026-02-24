@@ -38,7 +38,7 @@ public class RegistryConfiguration {
         return supportsManagedAuthorizer;
     }
 
-    public void setSupportsManagedAuthorizer(Boolean supportsManagedAuthorizer) {
+    public void setSupportsManagedAuthorizer(final Boolean supportsManagedAuthorizer) {
         this.supportsManagedAuthorizer = supportsManagedAuthorizer;
     }
 
@@ -53,7 +53,7 @@ public class RegistryConfiguration {
         return supportsConfigurableUsersAndGroups;
     }
 
-    public void setSupportsConfigurableUsersAndGroups(Boolean supportsConfigurableUsersAndGroups) {
+    public void setSupportsConfigurableUsersAndGroups(final Boolean supportsConfigurableUsersAndGroups) {
         this.supportsConfigurableUsersAndGroups = supportsConfigurableUsersAndGroups;
     }
 
@@ -68,7 +68,7 @@ public class RegistryConfiguration {
         return supportsConfigurableAuthorizer;
     }
 
-    public void setSupportsConfigurableAuthorizer(Boolean supportsConfigurableAuthorizer) {
+    public void setSupportsConfigurableAuthorizer(final Boolean supportsConfigurableAuthorizer) {
         this.supportsConfigurableAuthorizer = supportsConfigurableAuthorizer;
     }
 

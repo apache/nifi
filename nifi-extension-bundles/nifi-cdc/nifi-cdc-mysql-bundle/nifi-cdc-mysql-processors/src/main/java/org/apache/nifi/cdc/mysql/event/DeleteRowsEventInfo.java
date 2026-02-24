@@ -26,11 +26,11 @@ import java.io.Serializable;
  */
 public class DeleteRowsEventInfo extends BaseBinlogRowEventInfo<Serializable[]> {
 
-    public DeleteRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, Long binlogPosition, DeleteRowsEventData data) {
+    public DeleteRowsEventInfo(final TableInfo tableInfo, final Long timestamp, final String binlogFilename, final Long binlogPosition, final DeleteRowsEventData data) {
         super(tableInfo, DELETE_EVENT, timestamp, binlogFilename, binlogPosition, data.getIncludedColumns(), data.getRows());
     }
 
-    public DeleteRowsEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, DeleteRowsEventData data) {
+    public DeleteRowsEventInfo(final TableInfo tableInfo, final Long timestamp, final String binlogGtidSet, final DeleteRowsEventData data) {
         super(tableInfo, DELETE_EVENT, timestamp, binlogGtidSet, data.getIncludedColumns(), data.getRows());
     }
 }

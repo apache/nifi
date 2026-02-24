@@ -120,7 +120,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
             properties.putAll(props);
 
             super.addControllerServices(context);
-        } catch (IllegalArgumentException ignored) {
+        } catch (final IllegalArgumentException ignored) {
             // do nothing...the service is being loaded
         }
     }
@@ -214,7 +214,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return new MockPropertyValue(propValue, this, descriptor, alreadyEvaluated, environmentVariables, parameterLookup);
     }
 
-    private List<ValidatedPropertyDependency> determineUnsatisfiedDependencies(PropertyDescriptor descriptor) {
+    private List<ValidatedPropertyDependency> determineUnsatisfiedDependencies(final PropertyDescriptor descriptor) {
         return validatedDependencies(descriptor).stream().filter(not(ValidatedPropertyDependency::isSatisfied)).toList();
     }
 
@@ -242,16 +242,16 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     record ValidatedPropertyDependency(PropertyDependency dependency, String value) {
         public boolean isSatisfied() {
-            Set<String> dependentValues = dependency.getDependentValues();
+            final Set<String> dependentValues = dependency.getDependentValues();
 
             return dependentValues == null ? value != null : dependentValues.contains(value);
         }
 
         @Override
         public String toString() {
-            String result = isSatisfied() ? "satisfied" : "not satisfied";
-            Set<String> dependentValues = dependency.getDependentValues();
-            String reason = dependentValues == null
+            final String result = isSatisfied() ? "satisfied" : "not satisfied";
+            final Set<String> dependentValues = dependency.getDependentValues();
+            final String reason = dependentValues == null
                     ? "requires any value" : "requires one of the values %s".formatted(dependentValues);
             return "Dependency \"%s\" is %s with value of %s; %s".formatted(dependency.getPropertyName(), result, value, reason);
         }
@@ -307,9 +307,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     public boolean removeProperty(final String property) {
         Objects.requireNonNull(property);
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(property);
-        final String value = properties.remove(fullyPopulatedDescriptor);
+        String value = null;
 
-        if (value != null) {
+        if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {
             if (!value.equals(fullyPopulatedDescriptor.getDefaultValue())) {
                 component.onPropertyModified(fullyPopulatedDescriptor, value, null);
             }
@@ -404,7 +404,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         results.addAll(serviceResults);
 
         // verify all controller services are enabled
-        for (Map.Entry<String, ControllerServiceConfiguration> service : getControllerServices().entrySet()) {
+        for (final Map.Entry<String, ControllerServiceConfiguration> service : getControllerServices().entrySet()) {
             if (!service.getValue().isEnabled()) {
                 results.add(new ValidationResult.Builder()
                         .explanation("Controller service " + service.getKey() + " for " + this.getName() + " is not enabled")
@@ -554,7 +554,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     @Override
-    public boolean hasConnection(Relationship relationship) {
+    public boolean hasConnection(final Relationship relationship) {
         return this.connections.contains(relationship);
     }
 
@@ -607,7 +607,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return componentName;
     }
 
-    public void setMaxConcurrentTasks(int maxConcurrentTasks) {
+    public void setMaxConcurrentTasks(final int maxConcurrentTasks) {
         this.maxConcurrentTasks = maxConcurrentTasks;
     }
 
@@ -626,7 +626,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return isPrimaryNode;
     }
 
-    public void setClustered(boolean clustered) {
+    public void setClustered(final boolean clustered) {
         isClustered = clustered;
     }
 
@@ -634,7 +634,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         this.isConfiguredForClustering = isConfiguredForClustering;
     }
 
-    public void setPrimaryNode(boolean primaryNode) {
+    public void setPrimaryNode(final boolean primaryNode) {
         if (!isConfiguredForClustering && primaryNode) {
             throw new IllegalArgumentException("Primary node is only available in cluster. Use setIsConfiguredForClustering(true) first.");
         }
@@ -646,7 +646,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         return inputRequirement;
     }
 
-    public void setConnected(boolean connected) {
+    public void setConnected(final boolean connected) {
         isConnected = connected;
     }
 
@@ -661,7 +661,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     @Override
-    public boolean isRelationshipRetried(Relationship relationship) {
+    public boolean isRelationshipRetried(final Relationship relationship) {
         return false;
     }
 

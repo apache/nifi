@@ -114,8 +114,8 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     private volatile SendTrapSNMPHandler snmpHandler;
 
     @OnScheduled
-    public void init(ProcessContext context) {
-        Instant startTime = Instant.now();
+    public void init(final ProcessContext context) {
+        final Instant startTime = Instant.now();
         initSnmpManager(context);
         snmpHandler = new SendTrapSNMPHandler(snmpManager, startTime, getLogger());
     }
@@ -139,7 +139,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 }
 
                 final String specificTrapType = context.getProperty(V1TrapProperties.SPECIFIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue();
-                V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
+                final V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
                         .enterpriseOid(enterpriseOid)
                         .agentAddress(agentAddress)
                         .genericTrapType(genericTrapType)
@@ -152,7 +152,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 snmpHandler.sendTrap(attributes, v1TrapConfiguration, target);
             } else {
                 final String trapOidValue = context.getProperty(V2TrapProperties.TRAP_OID_VALUE).evaluateAttributeExpressions(flowFile).getValue();
-                V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(trapOidValue);
+                final V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(trapOidValue);
                 attributes.put("trapOidValue", trapOidValue);
                 snmpHandler.sendTrap(attributes, v2TrapConfiguration, target);
             }
@@ -161,10 +161,10 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             final String managerPort = context.getProperty(SNMP_MANAGER_PORT).evaluateAttributeExpressions(flowFile).getValue();
             processSession.getProvenanceReporter().send(flowFile, "snmp://%s:%s".formatted(managerHost, managerPort));
             processSession.transfer(flowFile, REL_SUCCESS);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             getLogger().error("Invalid trap configuration.", e);
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
         }
@@ -177,7 +177,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("snmp-trap-manager-host", SNMP_MANAGER_HOST.getName());
         config.renameProperty("snmp-trap-manager-port", SNMP_MANAGER_PORT.getName());

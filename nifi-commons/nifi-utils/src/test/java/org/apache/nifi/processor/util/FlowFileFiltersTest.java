@@ -119,7 +119,7 @@ class FlowFileFiltersTest {
                 }
 
                 @Override
-                public String getAttribute(String key) {
+                public String getAttribute(final String key) {
                     return null;
                 }
 
@@ -134,7 +134,7 @@ class FlowFileFiltersTest {
                 }
 
                 @Override
-                public int compareTo(FlowFile o) {
+                public int compareTo(final FlowFile o) {
                     return 0;
                 }
             };

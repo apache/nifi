@@ -205,7 +205,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("source", SOURCE.getName());
         config.renameProperty("source-type", SOURCE_TYPE.getName());

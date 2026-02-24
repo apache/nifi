@@ -125,7 +125,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         }
     }
 
-    private boolean hasExactlyOneKeyRemoved(Map<String, String> currentState, Map<String, String> newState) {
+    private boolean hasExactlyOneKeyRemoved(final Map<String, String> currentState, final Map<String, String> newState) {
         // Check if newState has exactly one less key
         if (currentState.size() - newState.size() != 1) {
             return false;
@@ -178,7 +178,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
     }
 
     @Override
-    public StateMap getState(final FlowAnalysisRuleNode flowAnalysisRule, Scope scope) {
+    public StateMap getState(final FlowAnalysisRuleNode flowAnalysisRule, final Scope scope) {
         return getState(flowAnalysisRule.getIdentifier(), scope);
     }
 

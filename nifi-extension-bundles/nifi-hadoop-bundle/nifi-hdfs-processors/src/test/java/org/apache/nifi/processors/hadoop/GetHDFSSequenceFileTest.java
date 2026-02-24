@@ -61,7 +61,7 @@ public class GetHDFSSequenceFileTest {
 
     private void init() throws IOException {
         final MockProcessContext context = new MockProcessContext(getHDFSSequenceFile);
-        ProcessorInitializationContext mockProcessorInitializationContext = mock(ProcessorInitializationContext.class);
+        final ProcessorInitializationContext mockProcessorInitializationContext = mock(ProcessorInitializationContext.class);
         when(mockProcessorInitializationContext.getLogger()).thenReturn(new MockComponentLog("GetHDFSSequenceFileTest", getHDFSSequenceFile));
         getHDFSSequenceFile.initialize(mockProcessorInitializationContext);
         getHDFSSequenceFile.init(mockProcessorInitializationContext);
@@ -70,10 +70,10 @@ public class GetHDFSSequenceFileTest {
 
     @Test
     public void getFlowFilesWithUgiAndNewTicketShouldCallDoAsAndNotRelogin() throws Exception {
-        SequenceFileReader reader = mock(SequenceFileReader.class);
-        Path file = mock(Path.class);
+        final SequenceFileReader reader = mock(SequenceFileReader.class);
+        final Path file = mock(Path.class);
         getHDFSSequenceFile.getFlowFiles(configuration, fileSystem, reader, file);
-        ArgumentCaptor<PrivilegedExceptionAction> privilegedExceptionActionArgumentCaptor = ArgumentCaptor.forClass(PrivilegedExceptionAction.class);
+        final ArgumentCaptor<PrivilegedExceptionAction> privilegedExceptionActionArgumentCaptor = ArgumentCaptor.forClass(PrivilegedExceptionAction.class);
         verifyNoMoreInteractions(reader);
         verify(userGroupInformation).doAs(privilegedExceptionActionArgumentCaptor.capture());
         privilegedExceptionActionArgumentCaptor.getValue().run();
@@ -86,8 +86,8 @@ public class GetHDFSSequenceFileTest {
         getHDFSSequenceFile = new TestableGetHDFSSequenceFile(null);
         hdfsResourcesLocal = new HdfsResources(configuration, fileSystem, null, null);
         init();
-        SequenceFileReader reader = mock(SequenceFileReader.class);
-        Path file = mock(Path.class);
+        final SequenceFileReader reader = mock(SequenceFileReader.class);
+        final Path file = mock(Path.class);
         getHDFSSequenceFile.getFlowFiles(configuration, fileSystem, reader, file);
         verify(reader).readSequenceFile(file, configuration, fileSystem);
     }
@@ -96,17 +96,17 @@ public class GetHDFSSequenceFileTest {
 
         UserGroupInformation userGroupInformation;
 
-        public TestableGetHDFSSequenceFile(UserGroupInformation ugi) {
+        public TestableGetHDFSSequenceFile(final UserGroupInformation ugi) {
             userGroupInformation = ugi;
         }
 
         @Override
-        HdfsResources resetHDFSResources(final List<String> resourceLocations, ProcessContext context) {
+        HdfsResources resetHDFSResources(final List<String> resourceLocations, final ProcessContext context) {
             return hdfsResourcesLocal;
         }
 
         @Override
-        public void onScheduled(ProcessContext context) throws IOException {
+        public void onScheduled(final ProcessContext context) throws IOException {
             abstractOnScheduled(context);
         }
 

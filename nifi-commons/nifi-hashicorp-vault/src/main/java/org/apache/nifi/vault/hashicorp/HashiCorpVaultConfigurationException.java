@@ -23,11 +23,11 @@ public class HashiCorpVaultConfigurationException extends RuntimeException {
     public HashiCorpVaultConfigurationException() {
     }
 
-    public HashiCorpVaultConfigurationException(String message) {
+    public HashiCorpVaultConfigurationException(final String message) {
         super(message);
     }
 
-    public HashiCorpVaultConfigurationException(String message, Throwable cause) {
+    public HashiCorpVaultConfigurationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

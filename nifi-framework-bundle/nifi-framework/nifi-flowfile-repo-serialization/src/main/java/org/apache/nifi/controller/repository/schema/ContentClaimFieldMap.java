@@ -76,7 +76,7 @@ public class ContentClaimFieldMap implements Record {
             return false;
         }
 
-        ContentClaimFieldMap other = (ContentClaimFieldMap) obj;
+        final ContentClaimFieldMap other = (ContentClaimFieldMap) obj;
         if (contentClaimOffset != other.contentClaimOffset) {
             return false;
         }

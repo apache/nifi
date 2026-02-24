@@ -27,7 +27,7 @@ public enum WritingStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    WritingStrategy(String displayName, String description) {
+    WritingStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

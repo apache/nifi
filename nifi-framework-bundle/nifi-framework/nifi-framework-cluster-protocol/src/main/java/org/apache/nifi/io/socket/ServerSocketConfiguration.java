@@ -38,7 +38,7 @@ public final class ServerSocketConfiguration {
         return socketTimeout;
     }
 
-    public void setSocketTimeout(Integer socketTimeout) {
+    public void setSocketTimeout(final Integer socketTimeout) {
         this.socketTimeout = socketTimeout;
     }
 
@@ -46,7 +46,7 @@ public final class ServerSocketConfiguration {
         return needClientAuth;
     }
 
-    public void setNeedClientAuth(boolean needClientAuth) {
+    public void setNeedClientAuth(final boolean needClientAuth) {
         this.needClientAuth = needClientAuth;
     }
 
@@ -54,7 +54,7 @@ public final class ServerSocketConfiguration {
         return reuseAddress;
     }
 
-    public void setReuseAddress(Boolean reuseAddress) {
+    public void setReuseAddress(final Boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
     }
 
@@ -62,7 +62,7 @@ public final class ServerSocketConfiguration {
         return receiveBufferSize;
     }
 
-    public void setReceiveBufferSize(Integer receiveBufferSize) {
+    public void setReceiveBufferSize(final Integer receiveBufferSize) {
         this.receiveBufferSize = receiveBufferSize;
     }
 

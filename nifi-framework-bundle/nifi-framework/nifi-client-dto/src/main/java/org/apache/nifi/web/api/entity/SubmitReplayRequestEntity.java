@@ -34,7 +34,7 @@ public class SubmitReplayRequestEntity extends Entity {
         return eventId;
     }
 
-    public void setEventId(Long eventId) {
+    public void setEventId(final Long eventId) {
         this.eventId = eventId;
     }
 
@@ -44,7 +44,7 @@ public class SubmitReplayRequestEntity extends Entity {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 }

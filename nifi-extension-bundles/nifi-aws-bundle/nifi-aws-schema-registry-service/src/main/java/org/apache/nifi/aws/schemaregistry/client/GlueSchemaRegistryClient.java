@@ -71,7 +71,7 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(UUID schemaVersionId) throws SchemaNotFoundException {
+    public RecordSchema getSchema(final UUID schemaVersionId) throws SchemaNotFoundException {
         final GetSchemaVersionResponse schemaVersionResponse = client.getSchemaVersion(
                 GetSchemaVersionRequest.builder()
                         .schemaVersionId(schemaVersionId.toString())

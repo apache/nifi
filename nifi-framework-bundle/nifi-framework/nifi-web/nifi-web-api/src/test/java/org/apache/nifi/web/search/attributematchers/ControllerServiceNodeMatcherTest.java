@@ -60,17 +60,17 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
     private static class LoremControllerService implements ControllerService {
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         }
 
         @Override
@@ -84,7 +84,7 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) {
+        public void initialize(final ControllerServiceInitializationContext context) {
         }
     }
 }

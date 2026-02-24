@@ -45,7 +45,7 @@ class ElasticSearchStringLookupServiceTest {
     public void setup() throws Exception {
         mockClientService = new TestElasticSearchClientService();
         lookupService = new ElasticSearchStringLookupService();
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", mockClientService);
         runner.addControllerService("lookupService", lookupService);
         runner.enableControllerService(mockClientService);
@@ -57,15 +57,15 @@ class ElasticSearchStringLookupServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     void simpleLookupTest() throws Exception {
-        Map<String, Object> coordinates = new HashMap<>();
+        final Map<String, Object> coordinates = new HashMap<>();
         coordinates.put(ElasticSearchStringLookupService.ID, "12345");
 
-        Optional<String> result = lookupService.lookup(coordinates);
+        final Optional<String> result = lookupService.lookup(coordinates);
 
         assertNotNull(result);
         assertTrue(result.isPresent());
-        String json = result.get();
-        Map<String, Object> parsed = MAPPER.readValue(json, Map.class);
+        final String json = result.get();
+        final Map<String, Object> parsed = MAPPER.readValue(json, Map.class);
         assertEquals(((TestElasticSearchClientService) mockClientService).getData(), parsed);
     }
 }

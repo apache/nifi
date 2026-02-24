@@ -65,7 +65,7 @@ public interface MultipartFormDataStreamBuilder {
      * @param inputStream Stream content of part to be added
      * @return Builder
      */
-    default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, InputStream inputStream) {
+    default MultipartFormDataStreamBuilder addPart(final String name, final String fileName, final HttpContentType httpContentType, final InputStream inputStream) {
         return addPart(name, httpContentType, inputStream);
     }
 
@@ -78,7 +78,7 @@ public interface MultipartFormDataStreamBuilder {
      * @param bytes Byte array content of part to be added
      * @return Builder
      */
-    default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, byte[] bytes) {
+    default MultipartFormDataStreamBuilder addPart(final String name, final String fileName, final HttpContentType httpContentType, final byte[] bytes) {
         return addPart(name, httpContentType, bytes);
     }
 }

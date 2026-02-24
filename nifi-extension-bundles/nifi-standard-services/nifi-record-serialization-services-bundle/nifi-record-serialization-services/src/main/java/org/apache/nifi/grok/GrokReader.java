@@ -148,7 +148,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     @OnEnabled
     public void preCompile(final ConfigurationContext context) throws GrokException, IOException {
-        GrokCompiler grokCompiler = GrokCompiler.newInstance();
+        final GrokCompiler grokCompiler = GrokCompiler.newInstance();
 
         try (final Reader defaultPatterns = getDefaultPatterns()) {
             grokCompiler.register(defaultPatterns);
@@ -241,7 +241,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         return new SimpleRecordSchema(new ArrayList<>(fields));
     }
 
-    private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final Collection<RecordField> fields) {
+    private static void populateSchemaFieldNames(final Grok grok, final String grokExpressionArg, final Collection<RecordField> fields) {
+        String grokExpression = grokExpressionArg;
         final Set<String> namedGroups = GrokUtils.getNameGroups(GrokUtils.GROK_PATTERN.pattern());
         while (grokExpression.length() > 0) {
             final Matcher matcher = GrokUtils.GROK_PATTERN.matcher(grokExpression);
@@ -258,7 +259,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                     final String subExpression = grok.getPatterns().get(subPatternName);
                     populateSchemaFieldNames(grok, subExpression, fields);
                 } else {
-                    DataType dataType = RecordFieldType.STRING.getDataType();
+                    final DataType dataType = RecordFieldType.STRING.getDataType();
                     final RecordField recordField = new RecordField(subName, dataType);
                     fields.add(recordField);
                 }
@@ -301,7 +302,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
             @Override
-            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
+            public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) {
                 return recordSchema;
             }
 
@@ -319,7 +320,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Grok Pattern File", GROK_PATTERNS.getName());
         config.renameProperty("Grok Expression", GROK_EXPRESSION.getName());

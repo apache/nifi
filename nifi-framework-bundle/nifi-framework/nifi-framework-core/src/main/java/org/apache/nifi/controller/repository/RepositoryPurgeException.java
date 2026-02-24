@@ -28,15 +28,15 @@ public class RepositoryPurgeException extends RuntimeException {
     public RepositoryPurgeException() {
     }
 
-    public RepositoryPurgeException(String message) {
+    public RepositoryPurgeException(final String message) {
         super(message);
     }
 
-    public RepositoryPurgeException(Throwable cause) {
+    public RepositoryPurgeException(final Throwable cause) {
         super(cause);
     }
 
-    public RepositoryPurgeException(String message, Throwable cause) {
+    public RepositoryPurgeException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

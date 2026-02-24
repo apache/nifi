@@ -31,7 +31,7 @@ public class ProvenanceEventEndpointMerger extends AbstractSingleDTOEndpoint<Pro
     public static final Pattern PROVENANCE_EVENT_URI = Pattern.compile("/nifi-api/provenance/events/[0-9]+");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PROVENANCE_EVENT_URI.matcher(uri.getPath()).matches();
     }
 
@@ -41,12 +41,13 @@ public class ProvenanceEventEndpointMerger extends AbstractSingleDTOEndpoint<Pro
     }
 
     @Override
-    protected ProvenanceEventDTO getDto(ProvenanceEventEntity entity) {
+    protected ProvenanceEventDTO getDto(final ProvenanceEventEntity entity) {
         return entity.getProvenanceEvent();
     }
 
     @Override
-    protected void mergeResponses(ProvenanceEventDTO clientDto, Map<NodeIdentifier, ProvenanceEventDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ProvenanceEventDTO clientDto, final Map<NodeIdentifier, ProvenanceEventDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         // The request for a Provenance Event is replicated to a single Node. We simply update its cluster node info.
         // However, we only do this if the cluster node info isn't set, because if this is replicated across the cluster,
         // the cluster coordinator will have already set it, and we will be receiving the response from the cluster

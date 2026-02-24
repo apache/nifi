@@ -40,7 +40,7 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
         final ArgumentCaptor<Date> fromArgumentCaptor = ArgumentCaptor.forClass(Date.class);
         final ArgumentCaptor<Date> toArgumentCaptor = ArgumentCaptor.forClass(Date.class);
 
-        JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
+        final JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
         factory.setStatusHistoryRepository(statusHistoryRepository);
 
         factory.create(days);
@@ -63,7 +63,7 @@ public class JsonNodeStatusHistoryDumpFactoryTest {
         final int negativeDays = -1;
         final StatusHistoryRepository statusHistoryRepository = mock(StatusHistoryRepository.class);
 
-        JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
+        final JsonNodeStatusHistoryDumpFactory factory = new JsonNodeStatusHistoryDumpFactory();
         factory.setStatusHistoryRepository(statusHistoryRepository);
 
         final IllegalArgumentException zeroDaysException = assertThrows(IllegalArgumentException.class,

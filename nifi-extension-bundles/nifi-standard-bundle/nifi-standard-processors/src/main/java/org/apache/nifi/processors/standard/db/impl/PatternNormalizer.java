@@ -24,12 +24,12 @@ import java.util.regex.Pattern;
 public class PatternNormalizer implements NameNormalizer {
     private final Pattern pattern;
 
-    public PatternNormalizer(Pattern pattern) {
+    public PatternNormalizer(final Pattern pattern) {
         this.pattern = pattern;
     }
 
     @Override
-    public String getNormalizedName(String colName) {
+    public String getNormalizedName(final String colName) {
 
         if (pattern == null) {
             return colName;

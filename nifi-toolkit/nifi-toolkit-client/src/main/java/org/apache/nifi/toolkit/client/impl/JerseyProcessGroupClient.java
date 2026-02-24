@@ -69,7 +69,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public ProcessGroupEntity createProcessGroup(final String parentGroupdId, final ProcessGroupEntity entity, boolean keepExisting)
+    public ProcessGroupEntity createProcessGroup(final String parentGroupdId, final ProcessGroupEntity entity, final boolean keepExisting)
             throws NiFiClientException, IOException {
 
         if (StringUtils.isBlank(parentGroupdId)) {
@@ -292,7 +292,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public DropRequestEntity emptyQueues(String processGroupId) throws NiFiClientException, IOException {
+    public DropRequestEntity emptyQueues(final String processGroupId) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
         }
@@ -307,7 +307,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public DropRequestEntity getEmptyQueuesRequest(String processGroupId, String requestId)
+    public DropRequestEntity getEmptyQueuesRequest(final String processGroupId, final String requestId)
             throws NiFiClientException, IOException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
@@ -335,13 +335,13 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
         try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
             Files.copy(responseInputStream, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return outputFile;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException("Unable to write content due to: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public CopyResponseEntity copy(String processGroupId, CopyRequestEntity copyRequestEntity) throws NiFiClientException, IOException {
+    public CopyResponseEntity copy(final String processGroupId, final CopyRequestEntity copyRequestEntity) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
         }
@@ -362,7 +362,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public PasteResponseEntity paste(String processGroupId, PasteRequestEntity pasteRequestEntity) throws NiFiClientException, IOException {
+    public PasteResponseEntity paste(final String processGroupId, final PasteRequestEntity pasteRequestEntity) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(processGroupId)) {
             throw new IllegalArgumentException("Process group id cannot be null or blank");
         }
@@ -383,7 +383,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
     }
 
     @Override
-    public ProcessGroupEntity upload(String parentPgId, File file, String pgName, Double posX, Double posY) throws NiFiClientException, IOException {
+    public ProcessGroupEntity upload(final String parentPgId, final File file, final String pgName, final Double posX, final Double posY) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(parentPgId)) {
             throw new IllegalArgumentException("Parent process group id cannot be null or blank");
         }
@@ -394,7 +394,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
             throw new IllegalArgumentException("Specified file is not a local readable file: " + file.getAbsolutePath());
         }
 
-        FormDataMultiPart form = new FormDataMultiPart();
+        final FormDataMultiPart form = new FormDataMultiPart();
 
         form.field("id", parentPgId);
         form.field("groupName", pgName);

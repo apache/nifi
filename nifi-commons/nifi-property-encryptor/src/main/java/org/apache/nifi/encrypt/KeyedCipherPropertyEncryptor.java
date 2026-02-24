@@ -69,7 +69,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
      * @return Cipher for Encryption
      */
     @Override
-    protected Cipher getEncryptionCipher(byte[] encodedParameters) {
+    protected Cipher getEncryptionCipher(final byte[] encodedParameters) {
         return getCipher(encodedParameters, Cipher.ENCRYPT_MODE);
     }
 
@@ -80,7 +80,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
      * @return Cipher Binary for decryption
      */
     @Override
-    protected byte[] getCipherBinary(byte[] encryptedBinary) {
+    protected byte[] getCipherBinary(final byte[] encryptedBinary) {
         return Arrays.copyOfRange(encryptedBinary, INITIALIZATION_VECTOR_LENGTH, encryptedBinary.length);
     }
 

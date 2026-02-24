@@ -92,7 +92,7 @@ public class DatabaseMetadataService implements MetadataService {
         final String sql = "SELECT * FROM BUCKET WHERE id = ?";
         try {
             return jdbcTemplate.queryForObject(sql, new BucketEntityRowMapper(), bucketIdentifier);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -282,7 +282,7 @@ public class DatabaseMetadataService implements MetadataService {
         final String sql = "SELECT * FROM FLOW f, BUCKET_ITEM item WHERE f.id = ? AND item.id = f.id";
         try {
             return jdbcTemplate.queryForObject(sql, new FlowEntityRowMapper(), flowIdentifier);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -384,7 +384,7 @@ public class DatabaseMetadataService implements MetadataService {
         try {
             return jdbcTemplate.queryForObject(sql, new FlowSnapshotEntityRowMapper(),
                     flowIdentifier, version);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -395,7 +395,7 @@ public class DatabaseMetadataService implements MetadataService {
 
         try {
             return jdbcTemplate.queryForObject(sql, new FlowSnapshotEntityRowMapper(), flowIdentifier);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -502,7 +502,7 @@ public class DatabaseMetadataService implements MetadataService {
             }
 
             return entity;
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -523,7 +523,7 @@ public class DatabaseMetadataService implements MetadataService {
             }
 
             return entity;
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -598,7 +598,7 @@ public class DatabaseMetadataService implements MetadataService {
     }
 
     @Override
-    public List<BundleEntity> getBundlesByBucketAndGroup(String bucketId, String groupId) {
+    public List<BundleEntity> getBundlesByBucketAndGroup(final String bucketId, final String groupId) {
         final StringBuilder sqlBuilder = new StringBuilder(BASE_BUNDLE_SQL)
                 .append(" AND b.id = ?")
                 .append(" AND eb.group_id = ?")
@@ -712,7 +712,7 @@ public class DatabaseMetadataService implements MetadataService {
                 " AND ebv.bundle_id = ? AND ebv.version = ?";
         try {
             return jdbcTemplate.queryForObject(sql, new BundleVersionEntityRowMapper(), extensionBundleId, version);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -727,7 +727,7 @@ public class DatabaseMetadataService implements MetadataService {
 
         try {
             return jdbcTemplate.queryForObject(sql, new BundleVersionEntityRowMapper(), bucketId, groupId, artifactId, version);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -771,7 +771,7 @@ public class DatabaseMetadataService implements MetadataService {
         return bundleVersionEntities;
     }
 
-    private void addIdentifiersInClause(StringBuilder sqlBuilder, String idFieldName, Set<String> identifiers) {
+    private void addIdentifiersInClause(final StringBuilder sqlBuilder, final String idFieldName, final Set<String> identifiers) {
         sqlBuilder.append(idFieldName).append(" IN (");
         for (int i = 0; i < identifiers.size(); i++) {
             if (i > 0) {
@@ -938,7 +938,7 @@ public class DatabaseMetadataService implements MetadataService {
         final String selectSql = BASE_EXTENSION_SQL + " AND e.id = ?";
         try {
             return jdbcTemplate.queryForObject(selectSql, new ExtensionEntityRowMapper(), id);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -948,7 +948,7 @@ public class DatabaseMetadataService implements MetadataService {
         final String selectSql = BASE_EXTENSION_SQL + " AND e.bundle_version_id = ? AND e.name = ?";
         try {
             return jdbcTemplate.queryForObject(selectSql, new ExtensionEntityRowMapper(), bundleVersionId, name);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }
@@ -963,7 +963,7 @@ public class DatabaseMetadataService implements MetadataService {
                 entity.setAdditionalDetails(Optional.ofNullable(rs.getString("ADDITIONAL_DETAILS")));
                 return entity;
             }, bundleVersionId, name);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (final EmptyResultDataAccessException e) {
             return null;
         }
     }

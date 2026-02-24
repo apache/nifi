@@ -70,7 +70,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         initMockBoxFolderMap();
         final PutBoxFile testSubject = new PutBoxFile() {
             @Override
-            BoxFolder getFolder(String folderId) {
+            BoxFolder getFolder(final String folderId) {
                 return mockBoxFolders.get(folderId);
             }
         };

@@ -64,7 +64,7 @@ public abstract class AbstractConfigurableAccessPolicyProvider implements Config
             doOnConfigured(configurationContext);
 
             LOGGER.debug("Done configuring {}", getClass().getCanonicalName());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SecurityProviderCreationException(e);
         }
     }

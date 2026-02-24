@@ -100,7 +100,7 @@ public class JMSConnectionFactoryProperties {
      */
     private static class NonEmptyBrokerURIValidator implements Validator {
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }

@@ -26,7 +26,7 @@ public class TestVersionedRemoteProcessGroup {
     @Test
     public void testGetTargetUriAndGetTargetUris() {
 
-        VersionedRemoteProcessGroup vRPG = new VersionedRemoteProcessGroup();
+        final VersionedRemoteProcessGroup vRPG = new VersionedRemoteProcessGroup();
 
         /* targetUri is null, targetUris varies */
 

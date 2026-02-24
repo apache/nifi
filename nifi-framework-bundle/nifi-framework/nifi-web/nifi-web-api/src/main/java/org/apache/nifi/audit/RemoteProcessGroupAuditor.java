@@ -117,9 +117,9 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.RemoteProcessGroup createRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO))")
-    public RemoteProcessGroup createRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public RemoteProcessGroup createRemoteProcessGroupAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = (RemoteProcessGroup) proceedingJoinPoint.proceed();
+        final RemoteProcessGroup remoteProcessGroup = (RemoteProcessGroup) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the remote process group action...
         // get the creation audits
@@ -151,7 +151,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
          * @param hasInput a function that returns whether the property is being updated by a request
          * @param getValue a function that returns value of the property
          */
-        private ConfigurationRecorder(String name, Function<DTO, Boolean> hasInput, Function<CMP, Object> getValue) {
+        private ConfigurationRecorder(final String name, final Function<DTO, Boolean> hasInput, final Function<CMP, Object> getValue) {
             this.name = name;
             this.hasInput = hasInput;
             this.getValue = getValue;
@@ -193,7 +193,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             final String previousStr = previousValue != null ? previousValue.toString() : "";
             if (hasInput.apply(input) && !updatedStr.equals(previousStr)) {
 
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                final FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName(convertName != null ? convertName.apply(updated, name) : name);
                 configDetails.setPreviousValue(convertRawValue(previousStr));
                 configDetails.setValue(convertRawValue(updatedStr));
@@ -250,7 +250,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             + "args(remoteProcessGroupDTO) && "
             + "target(remoteProcessGroupDAO)")
     public RemoteProcessGroup auditUpdateProcessGroupConfiguration(
-            ProceedingJoinPoint proceedingJoinPoint, RemoteProcessGroupDTO remoteProcessGroupDTO, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+            final ProceedingJoinPoint proceedingJoinPoint, final RemoteProcessGroupDTO remoteProcessGroupDTO, final RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId());
 
         // record the current value of this remoteProcessGroups configuration for comparisons later
@@ -276,7 +276,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             if (!details.isEmpty()) {
 
                 // create the actions
-                for (ActionDetails detail : details) {
+                for (final ActionDetails detail : details) {
                     // create a configure action for each updated property
                     final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                             updatedRemoteProcessGroup, remoteProcessGroupDetails);
@@ -290,7 +290,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // determine the new executing state
             // using isConfiguredToTransmit() as opposed to isTransmitting()
             // to capture case where port is still in process of shutting down.
-            boolean updatedConfiguredToTransmitState = updatedRemoteProcessGroup.isConfiguredToTransmit();
+            final boolean updatedConfiguredToTransmitState = updatedRemoteProcessGroup.isConfiguredToTransmit();
             // determine if the running state has been set to change
             if (transmissionState != updatedConfiguredToTransmitState) {
                 // create a remote process group action
@@ -341,9 +341,9 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             + "execution(void deleteRemoteProcessGroup(java.lang.String)) && "
             + "args(remoteProcessGroupId) && "
             + "target(remoteProcessGroupDAO)")
-    public void removeRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint, String remoteProcessGroupId, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+    public void removeRemoteProcessGroupAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String remoteProcessGroupId, final RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
         // get the remote process group before removing it
-        RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
+        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
 
         // remove the remote process group
         proceedingJoinPoint.proceed();
@@ -357,8 +357,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         }
     }
 
-    private RemoteGroupPort auditUpdateProcessGroupPortConfiguration(ProceedingJoinPoint proceedingJoinPoint, RemoteProcessGroupPortDTO remoteProcessGroupPortDto,
-                                                                     RemoteProcessGroup remoteProcessGroup, RemoteGroupPort remoteProcessGroupPort) throws Throwable {
+    private RemoteGroupPort auditUpdateProcessGroupPortConfiguration(final ProceedingJoinPoint proceedingJoinPoint, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto,
+                                                                     final RemoteProcessGroup remoteProcessGroup, final RemoteGroupPort remoteProcessGroupPort) throws Throwable {
         final Map<String, Object> previousValues = ConfigurationRecorder.capturePreviousValues(PORT_CONFIG_RECORDERS, remoteProcessGroupPort);
 
         // perform the underlying operation
@@ -377,9 +377,9 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             final FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = createFlowChangeDetails(remoteProcessGroup);
 
             // save the actions if necessary
-            for (ActionDetails detail : details) {
+            for (final ActionDetails detail : details) {
                 // create a configure action for each updated property
-                FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
+                final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                         remoteProcessGroup, remoteProcessGroupDetails);
                 remoteProcessGroupAction.setOperation(Operation.Configure);
                 remoteProcessGroupAction.setActionDetails(detail);
@@ -411,8 +411,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             + "args(remoteProcessGroupId, remoteProcessGroupPortDto) && "
             + "target(remoteProcessGroupDAO)")
     public RemoteGroupPort auditUpdateProcessGroupInputPortConfiguration(
-            ProceedingJoinPoint proceedingJoinPoint, String remoteProcessGroupId,
-            RemoteProcessGroupPortDTO remoteProcessGroupPortDto, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+            final ProceedingJoinPoint proceedingJoinPoint, final String remoteProcessGroupId,
+            final RemoteProcessGroupPortDTO remoteProcessGroupPortDto, final RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
 
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort remoteProcessGroupPort = remoteProcessGroup.getInputPort(remoteProcessGroupPortDto.getId());
@@ -434,8 +434,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             + "args(remoteProcessGroupId, remoteProcessGroupPortDto) && "
             + "target(remoteProcessGroupDAO)")
     public RemoteGroupPort auditUpdateProcessGroupOutputPortConfiguration(
-            ProceedingJoinPoint proceedingJoinPoint, String remoteProcessGroupId,
-            RemoteProcessGroupPortDTO remoteProcessGroupPortDto, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+            final ProceedingJoinPoint proceedingJoinPoint, final String remoteProcessGroupId,
+            final RemoteProcessGroupPortDTO remoteProcessGroupPortDto, final RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
 
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort remoteProcessGroupPort = remoteProcessGroup.getOutputPort(remoteProcessGroupPortDto.getId());
@@ -443,8 +443,8 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
         return auditUpdateProcessGroupPortConfiguration(proceedingJoinPoint, remoteProcessGroupPortDto, remoteProcessGroup, remoteProcessGroupPort);
     }
 
-    private FlowChangeRemoteProcessGroupDetails createFlowChangeDetails(RemoteProcessGroup remoteProcessGroup) {
-        FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
+    private FlowChangeRemoteProcessGroupDetails createFlowChangeDetails(final RemoteProcessGroup remoteProcessGroup) {
+        final FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
         remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri());
         return remoteProcessGroupDetails;
     }
@@ -456,7 +456,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation) {
+    public Action generateAuditRecord(final RemoteProcessGroup remoteProcessGroup, final Operation operation) {
         return generateAuditRecord(remoteProcessGroup, operation, null);
     }
 
@@ -468,12 +468,12 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final RemoteProcessGroup remoteProcessGroup, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the remote process group details
-            FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = createFlowChangeDetails(remoteProcessGroup);
+            final FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = createFlowChangeDetails(remoteProcessGroup);
 
             // create the remote process group action
             action = createFlowChangeAction();

@@ -39,7 +39,7 @@ public class SchemaLoader {
     private static final Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> configSchemaFactories = initConfigSchemaFactories();
 
     private static Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> initConfigSchemaFactories() {
-        Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> result = new HashMap<>();
+        final Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> result = new HashMap<>();
         result.put(String.valueOf((Object) null), ConfigSchemaV1::new);
         result.put("", ConfigSchemaV1::new);
         result.put(Integer.toString(ConfigSchemaV1.CONFIG_VERSION), ConfigSchemaV1::new);
@@ -48,9 +48,9 @@ public class SchemaLoader {
         return result;
     }
 
-    public static Map<String, Object> loadYamlAsMap(InputStream sourceStream) throws IOException, SchemaLoaderException {
+    public static Map<String, Object> loadYamlAsMap(final InputStream sourceStream) throws IOException, SchemaLoaderException {
         try {
-            Yaml yaml = new Yaml();
+            final Yaml yaml = new Yaml();
 
             // Parse the YAML file
             final Object loadedObject = yaml.load(sourceStream);
@@ -61,37 +61,37 @@ public class SchemaLoader {
             } else {
                 throw new SchemaLoaderException("Provided YAML configuration is not a Map");
             }
-        } catch (YAMLException e) {
+        } catch (final YAMLException e) {
             throw new IOException(e);
         } finally {
             sourceStream.close();
         }
     }
 
-    public static void toYaml(ConfigSchema schema, Writer writer) {
+    public static void toYaml(final ConfigSchema schema, final Writer writer) {
         final DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
 
-        Yaml yaml = new Yaml(options);
+        final Yaml yaml = new Yaml(options);
         yaml.dump(schema.toMap(), writer);
     }
 
-    public static ConfigSchema loadConfigSchemaFromYaml(InputStream sourceStream) throws IOException, SchemaLoaderException {
+    public static ConfigSchema loadConfigSchemaFromYaml(final InputStream sourceStream) throws IOException, SchemaLoaderException {
         return loadConfigSchemaFromYaml(loadYamlAsMap(sourceStream));
     }
 
-    public static ConfigSchema loadConfigSchemaFromYaml(Map<String, Object> yamlAsMap) throws SchemaLoaderException {
+    public static ConfigSchema loadConfigSchemaFromYaml(final Map<String, Object> yamlAsMap) throws SchemaLoaderException {
         return loadConvertableSchemaFromYaml(yamlAsMap).convert();
     }
 
-    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(InputStream inputStream) throws SchemaLoaderException, IOException {
+    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(final InputStream inputStream) throws SchemaLoaderException, IOException {
         return loadConvertableSchemaFromYaml(loadYamlAsMap(inputStream));
     }
 
-    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(Map<String, Object> yamlAsMap) throws SchemaLoaderException {
-        String version = String.valueOf(yamlAsMap.get(ConfigSchema.VERSION));
-        Function<Map, ConvertableSchema<ConfigSchema>> schemaFactory = configSchemaFactories.get(version);
+    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(final Map<String, Object> yamlAsMap) throws SchemaLoaderException {
+        final String version = String.valueOf(yamlAsMap.get(ConfigSchema.VERSION));
+        final Function<Map, ConvertableSchema<ConfigSchema>> schemaFactory = configSchemaFactories.get(version);
         if (schemaFactory == null) {
             throw new SchemaLoaderException("YAML configuration version " + version + " not supported.  Supported versions: "
                     + configSchemaFactories.keySet().stream().filter(s -> !StringUtil.isNullOrEmpty(s) && !String.valueOf((Object) null).equals(s)).sorted().collect(Collectors.joining(", ")));

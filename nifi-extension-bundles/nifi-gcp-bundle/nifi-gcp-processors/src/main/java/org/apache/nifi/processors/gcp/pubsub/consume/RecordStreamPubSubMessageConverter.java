@@ -33,12 +33,12 @@ public class RecordStreamPubSubMessageConverter extends AbstractPubSubMessageCon
     }
 
     @Override
-    protected Record getRecord(Record record, ReceivedMessage message) {
+    protected Record getRecord(final Record record, final ReceivedMessage message) {
         return record;
     }
 
     @Override
-    protected RecordSchema getRecordSchema(RecordSchema recordSchema) {
+    protected RecordSchema getRecordSchema(final RecordSchema recordSchema) {
         return recordSchema;
     }
 }

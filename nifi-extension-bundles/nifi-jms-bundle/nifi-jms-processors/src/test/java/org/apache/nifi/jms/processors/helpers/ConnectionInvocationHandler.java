@@ -39,7 +39,7 @@ final class ConnectionInvocationHandler implements InvocationHandler {
     private final List<SessionInvocationHandler> handlers = new CopyOnWriteArrayList<>();
     private final AtomicInteger openedSessions = new AtomicInteger();
 
-    public ConnectionInvocationHandler(Connection connection) {
+    public ConnectionInvocationHandler(final Connection connection) {
         this.connection = Objects.requireNonNull(connection);
     }
 
@@ -48,18 +48,18 @@ final class ConnectionInvocationHandler implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         final Object o = connection.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(connection, args);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Method {} called on {}", method.getName(), connection);
         }
         if (method.getName().equals("createSession")) {
-            Session session = (Session) o;
+            final Session session = (Session) o;
             LOGGER.info("Session created {} using connection {}", session, connection);
             openedSessions.incrementAndGet();
-            SessionInvocationHandler sp = new SessionInvocationHandler(session);
+            final SessionInvocationHandler sp = new SessionInvocationHandler(session);
             handlers.add(sp);
-            Session sessionProxy = (Session) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {Session.class}, sp);
+            final Session sessionProxy = (Session) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {Session.class}, sp);
             return sessionProxy;
         }
         if ("close".equals(method.getName())) {
@@ -74,8 +74,8 @@ final class ConnectionInvocationHandler implements InvocationHandler {
      */
     public boolean isClosed() {
         boolean closed = closeCalled.get() >= 1;
-        for (SessionInvocationHandler handler : handlers) {
-            boolean handlerClosed = handler.isClosed();
+        for (final SessionInvocationHandler handler : handlers) {
+            final boolean handlerClosed = handler.isClosed();
             closed = closed && handlerClosed;
             if (!handlerClosed) {
                 LOGGER.warn("Session is not closed {}", handler.getSession());
@@ -89,7 +89,7 @@ final class ConnectionInvocationHandler implements InvocationHandler {
      */
     public int openedProducers() {
         int producers = 0;
-        for (SessionInvocationHandler handler : handlers) {
+        for (final SessionInvocationHandler handler : handlers) {
             producers += handler.openedProducers();
         }
         return producers;

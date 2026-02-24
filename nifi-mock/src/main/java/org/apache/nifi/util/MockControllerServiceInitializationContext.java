@@ -118,7 +118,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
         return isPrimaryNode;
     }
 
-    public void setClustered(boolean clustered) {
+    public void setClustered(final boolean clustered) {
         isClustered = clustered;
     }
 
@@ -126,7 +126,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
         this.isConfiguredForClustering = configuredForClustering;
     }
 
-    public void setPrimaryNode(boolean primaryNode) {
+    public void setPrimaryNode(final boolean primaryNode) {
         if (!isClustered && primaryNode) {
             throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
         }

@@ -40,7 +40,7 @@ import java.nio.charset.UnsupportedCharsetException;
 public class GroovySessionFile extends SessionFile implements GroovyObject {
     private transient MetaClass metaClass;
 
-    protected GroovySessionFile(ProcessSessionWrap session, FlowFile f) {
+    protected GroovySessionFile(final ProcessSessionWrap session, final FlowFile f) {
         super(session, f);
         setMetaClass(null); //set default meta-class
     }
@@ -50,7 +50,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * alias method to getAttribute that will act in groovy as a property except for `size` and `attributes`
      */
     @Override
-    public Object getProperty(String key) {
+    public Object getProperty(final String key) {
         if ("size".equals(key)) {
             return getSize();
         }
@@ -64,7 +64,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * Calls putAttribute if value defined and removeAttribute if value is null
      */
     @Override
-    public void setProperty(String key, Object value) {
+    public void setProperty(final String key, final Object value) {
         if (value == null) {
             this.removeAttribute(key);
         } else if (value instanceof String) {
@@ -86,7 +86,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * GroovyObject support method
      */
     @Override
-    public void setMetaClass(MetaClass metaClass) {
+    public void setMetaClass(final MetaClass metaClass) {
         this.metaClass = metaClass == null ? InvokerHelper.getMetaClass(this.getClass()) : metaClass;
     }
 
@@ -94,7 +94,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * GroovyObject support method
      */
     @Override
-    public Object invokeMethod(String name, Object args) {
+    public Object invokeMethod(final String name, final Object args) {
         return this.metaClass.invokeMethod(this, name, args);
     }
     /*----------------------<< GroovyObject methods---------------------------*/
@@ -108,9 +108,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       Closure that will receive writer as a parameter to write file content
      * @return reference to self
      */
-    public GroovySessionFile write(String charset, Closure<?> c) {
+    public GroovySessionFile write(final String charset, final Closure<?> c) {
         this.write(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             c.call(w);
             w.flush();
             w.close();
@@ -125,9 +125,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       content
      * @return reference to self
      */
-    public GroovySessionFile write(String charset, CharSequence c) {
+    public GroovySessionFile write(final String charset, final CharSequence c) {
         this.write(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             w.append(c);
             w.flush();
             w.close();
@@ -142,9 +142,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       content defined as writable
      * @return reference to self
      */
-    public GroovySessionFile write(String charset, Writable c) {
+    public GroovySessionFile write(final String charset, final Writable c) {
         this.write(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             c.writeTo(w);
             w.flush();
             w.close();
@@ -159,7 +159,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      *          or two parameters InputStream and OutputStream to perform read and write.
      * @return reference to self
      */
-    public GroovySessionFile write(Closure<?> c) {
+    public GroovySessionFile write(final Closure<?> c) {
         if (c.getMaximumNumberOfParameters() == 1) {
             this.write(out -> c.call(out));
         } else {
@@ -174,7 +174,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c Closure that receives one parameter OutputStream to perform append.
      * @return reference to self
      */
-    public GroovySessionFile append(Closure<?> c) {
+    public GroovySessionFile append(final Closure<?> c) {
         this.append(c::call);
         return this;
     }
@@ -186,9 +186,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       content to append.
      * @return reference to self
      */
-    public GroovySessionFile append(String charset, Writable c) {
+    public GroovySessionFile append(final String charset, final Writable c) {
         this.append(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             c.writeTo(w);
             w.flush();
             w.close();
@@ -203,9 +203,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       Closure with one parameter - Writer.
      * @return reference to self
      */
-    public GroovySessionFile append(String charset, Closure<?> c) {
+    public GroovySessionFile append(final String charset, final Closure<?> c) {
         this.append(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             c.call(w);
             w.flush();
             w.close();
@@ -220,9 +220,9 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param c       content to append.
      * @return reference to self
      */
-    public GroovySessionFile append(String charset, CharSequence c) {
+    public GroovySessionFile append(final String charset, final CharSequence c) {
         this.append(out -> {
-            Writer w = new OutputStreamWriter(out, charset);
+            final Writer w = new OutputStreamWriter(out, charset);
             w.append(c);
             w.flush();
             w.close();
@@ -235,7 +235,7 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      *
      * @param c Closure with one parameter InputStream.
      */
-    public void read(Closure<?> c) {
+    public void read(final Closure<?> c) {
         this.read(c::call);
     }
 
@@ -245,39 +245,39 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      * @param charset charset to use for Reader
      * @param c       Closure with one parameter Reader.
      */
-    public void read(String charset, Closure<?> c) {
+    public void read(final String charset, final Closure<?> c) {
         this.read(in -> {
-            InputStreamReader r = new InputStreamReader(in, charset);
+            final InputStreamReader r = new InputStreamReader(in, charset);
             c.call(r);
             r.close();
         });
     }
 
-    public Object withInputStream(Closure<?> c) throws IOException {
-        InputStream inStream = session.read(this);
+    public Object withInputStream(final Closure<?> c) throws IOException {
+        final InputStream inStream = session.read(this);
         final Object returnObject = c.call(inStream);
         inStream.close();
         return returnObject;
     }
 
-    public Object withOutputStream(Closure<?> c) throws IOException {
-        OutputStream outStream = session.write(this);
+    public Object withOutputStream(final Closure<?> c) throws IOException {
+        final OutputStream outStream = session.write(this);
         final Object returnObject = c.call(outStream);
         outStream.close();
         return returnObject;
     }
 
-    public Object withReader(String charset, Closure<?> c) throws IOException, UnsupportedCharsetException {
-        InputStream inStream = session.read(this);
-        BufferedReader br = new BufferedReader(new InputStreamReader(inStream, charset));
+    public Object withReader(final String charset, final Closure<?> c) throws IOException, UnsupportedCharsetException {
+        final InputStream inStream = session.read(this);
+        final BufferedReader br = new BufferedReader(new InputStreamReader(inStream, charset));
         final Object returnObject = c.call(br);
         br.close();
         return returnObject;
     }
 
-    public Object withWriter(String charset, Closure<?> c) throws IOException, UnsupportedCharsetException {
-        OutputStream outStream = session.write(this);
-        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outStream, charset));
+    public Object withWriter(final String charset, final Closure<?> c) throws IOException, UnsupportedCharsetException {
+        final OutputStream outStream = session.write(this);
+        final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outStream, charset));
         final Object returnObject = c.call(bw);
         bw.close();
         return returnObject;

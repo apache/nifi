@@ -36,7 +36,7 @@ public class PropertyDescriptorEntity extends Entity {
         return propertyDescriptor;
     }
 
-    public void setPropertyDescriptor(PropertyDescriptorDTO propertyDescriptor) {
+    public void setPropertyDescriptor(final PropertyDescriptorDTO propertyDescriptor) {
         this.propertyDescriptor = propertyDescriptor;
     }
 

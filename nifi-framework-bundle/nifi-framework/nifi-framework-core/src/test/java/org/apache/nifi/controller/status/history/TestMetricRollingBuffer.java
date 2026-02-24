@@ -42,7 +42,7 @@ public class TestMetricRollingBuffer {
         final long startTime = System.currentTimeMillis();
         final List<Date> timestamps = new ArrayList<>();
 
-        int iterations = 1440;
+        final int iterations = 1440;
         for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
@@ -82,7 +82,7 @@ public class TestMetricRollingBuffer {
 
         final long startTime = System.currentTimeMillis();
 
-        int iterations = 1440;
+        final int iterations = 1440;
         for (int i = 0; i < iterations; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
@@ -105,7 +105,7 @@ public class TestMetricRollingBuffer {
         assertEquals(0, buffer.size());
 
         // Ensure that we can now properly add data again
-        long insertStart = lastTimestamp + 10_000L;
+        final long insertStart = lastTimestamp + 10_000L;
         final List<Date> timestamps = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);

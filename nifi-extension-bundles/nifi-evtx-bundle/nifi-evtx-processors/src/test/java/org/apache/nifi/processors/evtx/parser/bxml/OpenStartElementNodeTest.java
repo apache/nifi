@@ -57,14 +57,14 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
     @Test
     public void testInit() {
         assertEquals(tagName, openStartElementNode.getTagName());
-        List<BxmlNode> children = openStartElementNode.getChildren();
+        final List<BxmlNode> children = openStartElementNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(CloseEmptyElementNode.class, children.get(0));
     }
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         openStartElementNode.accept(mock);
         verify(mock).visit(openStartElementNode);
         verifyNoMoreInteractions(mock);
@@ -72,7 +72,7 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testWithFlagAndEmbeddedNameStringNode() throws IOException {
-        byte token = (byte) (0x04 << 4 | getToken());
+        final byte token = (byte) (0x04 << 4 | getToken());
         stringOffset = 5;
         tagName = "teststring";
         testBinaryReaderBuilder = new TestBinaryReaderBuilder();
@@ -90,7 +90,7 @@ public class OpenStartElementNodeTest extends BxmlNodeWithTokenTestBase {
 
         testBinaryReaderBuilder.put((byte) BxmlNode.CLOSE_EMPTY_ELEMENT_TOKEN);
 
-        BinaryReader binaryReader = testBinaryReaderBuilder.build();
+        final BinaryReader binaryReader = testBinaryReaderBuilder.build();
         when(chunkHeader.addNameStringNode(stringOffset, binaryReader)).thenAnswer(invocation -> new NameStringNode(binaryReader, chunkHeader));
         openStartElementNode = new OpenStartElementNode(binaryReader, chunkHeader, parent);
 

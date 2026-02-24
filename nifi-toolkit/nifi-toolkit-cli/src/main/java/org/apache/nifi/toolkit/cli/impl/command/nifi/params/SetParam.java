@@ -48,7 +48,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
         addOption(CommandOption.PARAM_NAME.createOption());

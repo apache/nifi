@@ -52,7 +52,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -61,7 +61,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -70,7 +70,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return type;
     }
 
-    public void setType(ExtensionType type) {
+    public void setType(final ExtensionType type) {
         this.type = type;
     }
 
@@ -79,7 +79,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -88,7 +88,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return deprecationNotice;
     }
 
-    public void setDeprecationNotice(DeprecationNotice deprecationNotice) {
+    public void setDeprecationNotice(final DeprecationNotice deprecationNotice) {
         this.deprecationNotice = deprecationNotice;
     }
 
@@ -97,7 +97,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return tags;
     }
 
-    public void setTags(List<String> tags) {
+    public void setTags(final List<String> tags) {
         this.tags = tags;
     }
 
@@ -106,7 +106,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return restricted;
     }
 
-    public void setRestricted(Restricted restricted) {
+    public void setRestricted(final Restricted restricted) {
         this.restricted = restricted;
     }
 
@@ -115,7 +115,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return providedServiceAPIs;
     }
 
-    public void setProvidedServiceAPIs(List<ProvidedServiceAPI> providedServiceAPIs) {
+    public void setProvidedServiceAPIs(final List<ProvidedServiceAPI> providedServiceAPIs) {
         this.providedServiceAPIs = providedServiceAPIs;
     }
 
@@ -124,7 +124,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return bundleInfo;
     }
 
-    public void setBundleInfo(BundleInfo bundleInfo) {
+    public void setBundleInfo(final BundleInfo bundleInfo) {
         this.bundleInfo = bundleInfo;
     }
 
@@ -133,7 +133,7 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
         return hasAdditionalDetails;
     }
 
-    public void setHasAdditionalDetails(boolean hasAdditionalDetails) {
+    public void setHasAdditionalDetails(final boolean hasAdditionalDetails) {
         this.hasAdditionalDetails = hasAdditionalDetails;
     }
 
@@ -147,19 +147,19 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
     }
 
     @Override
-    public void setLinkDocs(Link link) {
+    public void setLinkDocs(final Link link) {
         this.linkDocs = link;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ExtensionMetadata extension = (ExtensionMetadata) o;
+        final ExtensionMetadata extension = (ExtensionMetadata) o;
         return Objects.equals(name, extension.name);
     }
 

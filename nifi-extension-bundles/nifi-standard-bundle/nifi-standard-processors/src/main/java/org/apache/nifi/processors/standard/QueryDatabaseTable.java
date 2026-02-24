@@ -124,7 +124,7 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, NORMALIZE_NAMES_FOR_AVRO.getName());
         config.renameProperty(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, USE_AVRO_LOGICAL_TYPES.getName());
@@ -133,7 +133,7 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
     }
 
     @Override
-    protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context) {
+    protected SqlWriter configureSqlWriter(final ProcessSession session, final ProcessContext context) {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();

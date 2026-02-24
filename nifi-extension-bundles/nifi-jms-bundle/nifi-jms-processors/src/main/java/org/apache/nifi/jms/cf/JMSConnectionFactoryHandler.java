@@ -45,14 +45,14 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
     private final Set<PropertyDescriptor> propertyDescriptors;
     private final ComponentLog logger;
 
-    public JMSConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandler(final ConfigurationContext context, final ComponentLog logger) {
         super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
-    public JMSConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandler(final ProcessContext context, final ComponentLog logger) {
         super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
@@ -72,7 +72,7 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
             setConnectionFactoryProperties(connectionFactory);
 
             return connectionFactory;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Failed to configure {}", getClass().getSimpleName(), e);
             throw new IllegalStateException(e);
         }
@@ -121,10 +121,10 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
      * @see <a href="https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_7.1.0/com.ibm.mq.javadoc.doc/WMQJMSClasses/com/ibm/mq/jms/MQConnectionFactory.html#setConnectionNameList_java.lang.String_">setConnectionNameList(String hosts)</a>
      * @see #setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue)
      */
-    void setConnectionFactoryProperties(ConnectionFactory connectionFactory) {
-        String connectionFactoryValue = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
+    void setConnectionFactoryProperties(final ConnectionFactory connectionFactory) {
+        final String connectionFactoryValue = context.getProperty(JMS_CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue();
         if (context.getProperty(JMS_BROKER_URI).isSet()) {
-            String brokerValue = context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue();
+            final String brokerValue = context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue();
             if (connectionFactoryValue.startsWith("org.apache.activemq")) {
                 setProperty(connectionFactory, "brokerURL", brokerValue);
             } else if (connectionFactoryValue.startsWith("com.tibco.tibjms")) {
@@ -132,11 +132,11 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
             } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
                 setProperty(connectionFactory, "remoteURI", brokerValue);
             } else {
-                String[] brokerList = brokerValue.split(",");
+                final String[] brokerList = brokerValue.split(",");
                 if (connectionFactoryValue.startsWith("com.ibm.mq.jms")) {
-                    List<String> ibmConList = new ArrayList<>();
-                    for (String broker : brokerList) {
-                        String[] hostPort = broker.split(":");
+                    final List<String> ibmConList = new ArrayList<>();
+                    for (final String broker : brokerList) {
+                        final String[] hostPort = broker.split(":");
                         if (hostPort.length == 2) {
                             ibmConList.add(hostPort[0] + "(" + hostPort[1] + ")");
                         } else {
@@ -146,7 +146,7 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
                     setProperty(connectionFactory, "connectionNameList", String.join(",", ibmConList));
                 } else {
                     // Try to parse broker URI as colon separated host/port pair. Use first pair if multiple given.
-                    String[] hostPort = brokerList[0].split(":");
+                    final String[] hostPort = brokerList[0].split(":");
                     if (hostPort.length == 2) {
                         // If broker URI indeed was colon separated host/port pair
                         setProperty(connectionFactory, "hostName", hostPort[0]);
@@ -156,9 +156,9 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
             }
         }
 
-        SSLContextService sslContextService = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextService sslContextService = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
-            SSLContext sslContext = sslContextService.createContext();
+            final SSLContext sslContext = sslContextService.createContext();
             if (connectionFactoryValue.startsWith("org.apache.activemq")) {
                 if (sslContextService.isTrustStoreConfigured()) {
                     setProperty(connectionFactory, "trustStore", sslContextService.getTrustStoreFile());
@@ -182,8 +182,8 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
         propertyDescriptors.stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .forEach(descriptor -> {
-                    String propertyName = descriptor.getName();
-                    String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
+                    final String propertyName = descriptor.getName();
+                    final String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
                     setProperty(connectionFactory, propertyName, propertyValue);
                 });
     }
@@ -206,13 +206,13 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
      * follow bean convention and all their properties using Java primitives as
      * arguments.
      */
-    void setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue) {
-        String methodName = toMethodName(propertyName);
-        Method[] methods = Utils.findMethods(methodName, connectionFactory.getClass());
+    void setProperty(final ConnectionFactory connectionFactory, final String propertyName, final Object propertyValue) {
+        final String methodName = toMethodName(propertyName);
+        final Method[] methods = Utils.findMethods(methodName, connectionFactory.getClass());
         if (methods != null && methods.length > 0) {
             try {
-                for (Method method : methods) {
-                    Class<?> returnType = method.getParameterTypes()[0];
+                for (final Method method : methods) {
+                    final Class<?> returnType = method.getParameterTypes()[0];
                     if (String.class.isAssignableFrom(returnType)) {
                         method.invoke(connectionFactory, propertyValue);
                         return;
@@ -228,7 +228,7 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
                     }
                 }
                 methods[0].invoke(connectionFactory, propertyValue);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new IllegalStateException("Failed to set property " + propertyName, e);
             }
         } else if (propertyName.equals("hostName")) {
@@ -241,8 +241,8 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
      * example, 'channel' property will correspond to 'setChannel method and
      * 'queueManager' property will correspond to setQueueManager method name
      */
-    private String toMethodName(String propertyName) {
-        char[] c = propertyName.toCharArray();
+    private String toMethodName(final String propertyName) {
+        final char[] c = propertyName.toCharArray();
         c[0] = Character.toUpperCase(c[0]);
         return "set" + new String(c);
     }

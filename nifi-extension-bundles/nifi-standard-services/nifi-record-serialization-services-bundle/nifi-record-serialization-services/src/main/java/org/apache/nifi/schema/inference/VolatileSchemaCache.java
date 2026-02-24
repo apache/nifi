@@ -113,7 +113,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("max-cache-size", MAX_SIZE.getName());
     }
 
@@ -121,7 +121,7 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new AssertionError(e);
         }
 

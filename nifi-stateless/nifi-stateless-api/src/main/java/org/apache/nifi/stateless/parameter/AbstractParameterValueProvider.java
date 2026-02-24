@@ -45,7 +45,7 @@ public abstract class AbstractParameterValueProvider extends AbstractConfigurabl
      * An empty method that is intended for subclasses to optionally override in order to provide initialization
      * @param context the initialization context
      */
-    protected void init(ParameterValueProviderInitializationContext context) {
+    protected void init(final ParameterValueProviderInitializationContext context) {
 
     }
 }

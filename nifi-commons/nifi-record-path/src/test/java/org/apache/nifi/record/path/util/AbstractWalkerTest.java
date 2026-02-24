@@ -55,23 +55,22 @@ public abstract class AbstractWalkerTest {
         return new SimpleRecordSchema(mapRecordFields);
     }
 
-    protected void testNodeDepth(List<FieldValue> nodesToTest, int expectedPathDepth) {
+    protected void testNodeDepth(final List<FieldValue> nodesToTest, final int expectedPathDepth) {
         final List<FieldValue> callBackValues = new ArrayList<>();
         nodesToTest.forEach((value) -> FieldValueWalker.walk(value, callBackValues::add));
         assertEquals(nodesToTest.size() * expectedPathDepth, callBackValues.size());
     }
 
-    protected Map<String, Object> buildMapRecord(int seed) {
+    protected Map<String, Object> buildMapRecord(final int seed) {
         final Map<String, Object> mapRecordValues = new HashMap<>();
         mapRecordValues.put("intArray", new Object[] {seed});
         return mapRecordValues;
     }
 
-    protected Object[] buildMapRecordArray(int seed, int count) {
+    protected Object[] buildMapRecordArray(final int seed, final int count) {
         final List<MapRecord> list = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            list.add(new MapRecord(getMapRecordSchema(), buildMapRecord(seed)));
-            seed++;
+            list.add(new MapRecord(getMapRecordSchema(), buildMapRecord(seed + i)));
         }
         return list.toArray();
     }
@@ -89,8 +88,8 @@ public abstract class AbstractWalkerTest {
         return new FieldValueLogicalPathBuilder.Builder().build();
     }
 
-    protected FieldValueLogicalPathBuilder getLogicalPathBuilder(CharSequence delimiter, CharSequence left,
-        CharSequence right) {
+    protected FieldValueLogicalPathBuilder getLogicalPathBuilder(final CharSequence delimiter, final CharSequence left,
+        final CharSequence right) {
         return new FieldValueLogicalPathBuilder.Builder()
             .withArrayIndexWrapperLeft(left)
             .withArrayIndexWrapperRight(right)

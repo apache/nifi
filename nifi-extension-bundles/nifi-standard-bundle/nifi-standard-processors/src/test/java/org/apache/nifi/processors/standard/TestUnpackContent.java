@@ -64,8 +64,8 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.enqueue(dataPath.resolve("data.tar"));
-        Map<String, String> attributes = new HashMap<>(1);
-        Map<String, String> attributes2 = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
         attributes2.put("mime.type", "application/tar");
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
@@ -99,9 +99,9 @@ public class TestUnpackContent {
             assertEquals("jmcarey", flowFile.getAttribute(UnpackContent.FILE_OWNER_ATTRIBUTE));
             assertEquals("mkpasswd", flowFile.getAttribute(UnpackContent.FILE_GROUP_ATTRIBUTE));
 
-            String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
+            final String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
             assertDoesNotThrow(() -> TIMESTAMP_FORMATTER.parse(modifiedTimeAsString));
-            String creationTimeAsString = flowFile.getAttribute("file.creationTime");
+            final String creationTimeAsString = flowFile.getAttribute("file.creationTime");
             assertDoesNotThrow(() -> TIMESTAMP_FORMATTER.parse(creationTimeAsString));
 
             assertTrue(Files.exists(path));
@@ -118,8 +118,8 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.enqueue(dataPath.resolve("data.tar"));
-        Map<String, String> attributes = new HashMap<>(1);
-        Map<String, String> attributes2 = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", "application/x-tar");
         attributes2.put("mime.type", "application/tar");
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
@@ -166,7 +166,7 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("data.zip"));
         runner.enqueue(dataPath.resolve("data.zip"));
-        Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
@@ -220,7 +220,7 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
         runner.enqueue(dataPath.resolve("invalid_data.zip"));
         runner.enqueue(dataPath.resolve("invalid_data.zip"));
-        Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("invalid_data.zip"), attributes);
@@ -261,7 +261,7 @@ public class TestUnpackContent {
     }
     @Test
     public void testZipWithCp437Encoding() throws IOException {
-        String zipFilename = "windows-with-cp437.zip";
+        final String zipFilename = "windows-with-cp437.zip";
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ZIP_FILENAME_CHARSET, "Cp437");
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); // just forces this to be exercised
@@ -272,7 +272,7 @@ public class TestUnpackContent {
         runner.enqueue(dataPath.resolve(zipFilename));
         runner.enqueue(dataPath.resolve(zipFilename));
 
-        Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve(zipFilename), attributes);
@@ -305,9 +305,9 @@ public class TestUnpackContent {
 
         final char[] streamPassword = password.toCharArray();
         final String contents = TestRunner.class.getCanonicalName();
-        String specialChar = "\u00E4";
-        String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
-        String filename = "filename_with_special_char%s.txt".formatted(specialChar);
+        final String specialChar = "\u00E4";
+        final String pathInZip = "path_with_special_%s_char/".formatted(specialChar);
+        final String filename = "filename_with_special_char%s.txt".formatted(specialChar);
         final byte[] zipEncrypted = createZipEncryptedCp437(EncryptionMethod.AES, streamPassword, contents, pathInZip.concat(filename));
         autoUnpackRunner.enqueue(zipEncrypted);
         autoUnpackRunner.run();
@@ -362,7 +362,7 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         runner.enqueue(dataPath.resolve("data.zip"));
         runner.enqueue(dataPath.resolve("data.zip"));
-        Map<String, String> attributes = new HashMap<>(1);
+        final Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
@@ -556,12 +556,12 @@ public class TestUnpackContent {
     public void testThreadSafetyUsingAutoDetect() throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT);
 
-        Map<String, String> attrsTar = new HashMap<>(1);
-        Map<String, String> attrsFFv3 = new HashMap<>(1);
+        final Map<String, String> attrsTar = new HashMap<>(1);
+        final Map<String, String> attrsFFv3 = new HashMap<>(1);
         attrsTar.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
         attrsFFv3.put("mime.type", UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.getMimeType());
 
-        int numThreads = 50;
+        final int numThreads = 50;
         runner.setThreadCount(numThreads);
 
         for (int i = 0; i < numThreads; i++) {
@@ -630,7 +630,7 @@ public class TestUnpackContent {
         return outputStream.toByteArray();
     }
 
-    private byte[] createZipEncryptedCp437(final EncryptionMethod encryptionMethod, final char[] password, final String contents, String filename) throws IOException {
+    private byte[] createZipEncryptedCp437(final EncryptionMethod encryptionMethod, final char[] password, final String contents, final String filename) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password, Charsets.toCharset("Cp437"));
 

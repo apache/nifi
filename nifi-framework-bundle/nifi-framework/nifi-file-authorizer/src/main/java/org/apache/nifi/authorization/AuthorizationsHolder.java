@@ -61,9 +61,9 @@ public class AuthorizationsHolder {
      * @return a map from resource identifier to policies
      */
     private Map<String, Set<AccessPolicy>> createResourcePolicyMap(final Set<AccessPolicy> allPolicies) {
-        Map<String, Set<AccessPolicy>> resourcePolicies = new HashMap<>();
+        final Map<String, Set<AccessPolicy>> resourcePolicies = new HashMap<>();
 
-        for (AccessPolicy policy : allPolicies) {
+        for (final AccessPolicy policy : allPolicies) {
             final String resource = policy.getResource();
             final Set<AccessPolicy> policies = resourcePolicies.computeIfAbsent(resource, k -> new HashSet<>());
             policies.add(policy);
@@ -79,8 +79,8 @@ public class AuthorizationsHolder {
      * @return the Map from policy identifier to AccessPolicy
      */
     private Map<String, AccessPolicy> createPoliciesByIdMap(final Set<AccessPolicy> policies) {
-        Map<String, AccessPolicy> policyMap = new HashMap<>();
-        for (AccessPolicy policy : policies) {
+        final Map<String, AccessPolicy> policyMap = new HashMap<>();
+        for (final AccessPolicy policy : policies) {
             policyMap.put(policy.getIdentifier(), policy);
         }
         return policyMap;
@@ -108,7 +108,7 @@ public class AuthorizationsHolder {
             return null;
         }
 
-        for (AccessPolicy accessPolicy : resourcePolicies) {
+        for (final AccessPolicy accessPolicy : resourcePolicies) {
             if (accessPolicy.getAction() == action) {
                 return accessPolicy;
             }

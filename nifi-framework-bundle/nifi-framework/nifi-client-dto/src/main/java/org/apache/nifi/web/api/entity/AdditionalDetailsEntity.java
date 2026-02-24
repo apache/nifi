@@ -27,7 +27,7 @@ public class AdditionalDetailsEntity extends Entity {
         return additionalDetails;
     }
 
-    public void setAdditionalDetails(String additionalDetails) {
+    public void setAdditionalDetails(final String additionalDetails) {
         this.additionalDetails = additionalDetails;
     }
 

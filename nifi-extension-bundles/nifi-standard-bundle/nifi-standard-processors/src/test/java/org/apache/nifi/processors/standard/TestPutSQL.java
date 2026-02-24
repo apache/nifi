@@ -223,9 +223,9 @@ public class TestPutSQL {
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 2);
 
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
-        for (ProvenanceEventRecord event: provenanceEvents) {
+        for (final ProvenanceEventRecord event: provenanceEvents) {
             assertEquals(ProvenanceEventType.SEND, event.getEventType());
         }
     }
@@ -281,16 +281,16 @@ public class TestPutSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, flowFileCount);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
         for (int i = 0; i < flowFileCount; i++) {
-            MockFlowFile flowFile = flowFiles.get(i);
+            final MockFlowFile flowFile = flowFiles.get(i);
             assertEquals(statements[i], flowFile.getContent());
             assertEquals(String.valueOf(i), flowFile.getAttribute("sql.args.1.value"));
         }
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(flowFileCount, provenanceEvents.size());
         for (int i = 0; i < flowFileCount; i++) {
-            ProvenanceEventRecord event = provenanceEvents.get(i);
+            final ProvenanceEventRecord event = provenanceEvents.get(i);
             assertEquals(String.valueOf(i), event.getAttribute("sql.args.1.value"));
         }
     }
@@ -527,7 +527,7 @@ public class TestPutSQL {
         final String arg2TS = "2001-01-01 00:01:01.001";
         final String art3TS = "2002-02-02 12:02:02.002";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-        java.util.Date parsedDate = Date.from(LocalDateTime.parse(arg2TS, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant());
+        final java.util.Date parsedDate = Date.from(LocalDateTime.parse(arg2TS, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
@@ -607,12 +607,12 @@ public class TestPutSQL {
         final String timeStr = "02:03:04";
 
         final DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_LOCAL_TIME;
-        LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);
-        Time expectedTime = Time.valueOf(parsedTime);
+        final LocalTime parsedTime = LocalTime.parse(timeStr, timeFormatter);
+        final Time expectedTime = Time.valueOf(parsedTime);
 
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
-        LocalDate parsedDate = LocalDate.parse(dateStr, dateFormatter);
-        Date expectedDate = new Date(Date.from(parsedDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()).getTime());
+        final LocalDate parsedDate = LocalDate.parse(dateStr, dateFormatter);
+        final Date expectedDate = new Date(Date.from(parsedDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()).getTime());
 
         final long expectedTimeInLong = expectedTime.getTime();
         final long expectedDateInLong = expectedDate.getTime();
@@ -631,9 +631,9 @@ public class TestPutSQL {
         // Since Derby database which is used for unit test does not have timezone in DATE and TIME type,
         // and PutSQL converts date string into long representation using local timezone,
         // we need to use local timezone.
-        java.util.Date parsedLocalTime = java.sql.Time.valueOf(timeStr);
+        final java.util.Date parsedLocalTime = java.sql.Time.valueOf(timeStr);
 
-        java.util.Date parsedLocalDate = java.sql.Date.valueOf(dateStr);
+        final java.util.Date parsedLocalDate = java.sql.Date.valueOf(dateStr);
 
         // test Long pattern without format attribute
         attributes = new HashMap<>();
@@ -692,7 +692,7 @@ public class TestPutSQL {
 
         final byte[] insertStatement = "INSERT INTO BITTESTS (ID, bt1) VALUES (?, ?)".getBytes();
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
         attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
@@ -806,7 +806,7 @@ public class TestPutSQL {
         final String art3TS = "12:03:04";
         final String timeFormatString = "HH:mm:ss";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormatString);
-        java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
+        final java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.TIME));
@@ -843,7 +843,7 @@ public class TestPutSQL {
 
         final String arg2TS = "2001-01-01";
         final String art3TS = "2002-02-02";
-        java.util.Date parsedDate = java.sql.Date.valueOf(arg2TS);
+        final java.util.Date parsedDate = java.sql.Date.valueOf(arg2TS);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.DATE));
@@ -1509,8 +1509,8 @@ public class TestPutSQL {
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", new HashMap<>());
             runner.run();
 
-            List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
-            List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+            final List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+            final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
             assertEquals(1, failureFlowFiles.size());
             assertEquals(0, successFlowFiles.size());
         } finally {
@@ -1524,13 +1524,13 @@ public class TestPutSQL {
 
         try {
             recreateTable("PERSONS", createPersons);
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put("database.name", "someDatabaseName");
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", attributes);
             runner.run();
 
-            List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
-            List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
+            final List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+            final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS);
             assertEquals(0, failureFlowFiles.size());
             assertEquals(1, successFlowFiles.size());
         } finally {
@@ -1600,7 +1600,7 @@ public class TestPutSQL {
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
     }
 
-    private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
+    private Map<String, String> createFragmentedTransactionAttributes(final String id, final int count, final int index) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("fragment.identifier", id);
         attributes.put("fragment.count", String.valueOf(count));
@@ -1620,12 +1620,12 @@ public class TestPutSQL {
             return flowFileFilter;
         }
 
-        void setFlowFileFilter(FlowFileFilter flowFileFilter) {
+        void setFlowFileFilter(final FlowFileFilter flowFileFilter) {
             this.flowFileFilter = flowFileFilter;
         }
     }
 
-    private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
+    private void recreateTable(final String tableName, final String createSQL) throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("drop table " + tableName);
@@ -1640,10 +1640,10 @@ public class TestPutSQL {
         return bytes;
     }
 
-    private String fixedSizeByteArrayAsASCIIString(int length) {
-        byte[] bBinary = randomBytes(length);
-        ByteBuffer bytes = ByteBuffer.wrap(bBinary);
-        StringBuilder sbBytes = new StringBuilder();
+    private String fixedSizeByteArrayAsASCIIString(final int length) {
+        final byte[] bBinary = randomBytes(length);
+        final ByteBuffer bytes = ByteBuffer.wrap(bBinary);
+        final StringBuilder sbBytes = new StringBuilder();
         for (int i = bytes.position(); i < bytes.limit(); i++) {
             sbBytes.append((char) bytes.get(i));
         }
@@ -1651,18 +1651,18 @@ public class TestPutSQL {
         return sbBytes.toString();
     }
 
-    private String fixedSizeByteArrayAsHexString(int length) {
-        byte[] bBinary = randomBytes(length);
+    private String fixedSizeByteArrayAsHexString(final int length) {
+        final byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printHexBinary(bBinary);
     }
 
-    private String fixedSizeByteArrayAsBase64String(int length) {
-        byte[] bBinary = randomBytes(length);
+    private String fixedSizeByteArrayAsBase64String(final int length) {
+        final byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
     }
 
-    private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+    private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, final Relationship relationship) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> {
             ff.assertAttributeExists("error.message");
             ff.assertAttributeExists("error.code");
@@ -1670,8 +1670,8 @@ public class TestPutSQL {
         });
     }
 
-    private static void assertNonSQLErrorRelatedAttributes(final TestRunner runner,  Relationship relationship) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+    private static void assertNonSQLErrorRelatedAttributes(final TestRunner runner,  final Relationship relationship) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> ff.assertAttributeExists("error.message"));
     }
 
@@ -1680,20 +1680,20 @@ public class TestPutSQL {
         runner.assertAllFlowFilesContainAttribute("sql.args.1.value");
     }
 
-    private static void assertErrorAttributesInTransaction(final TestRunner runner, Relationship relationship) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+    private static void assertErrorAttributesInTransaction(final TestRunner runner, final Relationship relationship) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         assertEquals(1, flowFiles.stream()
                 .filter(TestPutSQL::errorAttributesAreSet)
                 .count(),
                 "Only one FlowFile should have the error attributes when transaction is used.");
     }
 
-    private static void assertErrorAttributesNotSet(final TestRunner runner, Relationship relationship) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+    private static void assertErrorAttributesNotSet(final TestRunner runner, final Relationship relationship) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
         flowFiles.forEach(ff -> ff.assertAttributeNotExists("error.message"));
     }
 
-    private static boolean errorAttributesAreSet(MockFlowFile ff) {
+    private static boolean errorAttributesAreSet(final MockFlowFile ff) {
         return ff.getAttribute("error.message") != null
                 && ff.getAttribute("error.code") != null
                 && ff.getAttribute("error.sql.state") != null;

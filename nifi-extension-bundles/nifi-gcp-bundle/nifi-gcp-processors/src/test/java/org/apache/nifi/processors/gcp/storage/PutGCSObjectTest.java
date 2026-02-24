@@ -149,7 +149,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     }
 
     @Override
-    protected void addRequiredPropertiesToRunner(TestRunner runner) {
+    protected void addRequiredPropertiesToRunner(final TestRunner runner) {
         runner.setProperty(PutGCSObject.BUCKET, BUCKET);
     }
 
@@ -195,9 +195,9 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         final TestRunner runner = buildNewRunner(processor);
         addRequiredPropertiesToRunner(runner);
 
-        String serviceId = "fileresource";
-        FileResourceService service = mock(FileResourceService.class);
-        InputStream localFileInputStream = mock(InputStream.class);
+        final String serviceId = "fileresource";
+        final FileResourceService service = mock(FileResourceService.class);
+        final InputStream localFileInputStream = mock(InputStream.class);
         when(service.getIdentifier()).thenReturn(serviceId);
         when(service.getFileResource(anyMap())).thenReturn(new FileResource(localFileInputStream, 10));
 
@@ -503,7 +503,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(PutGCSObject.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(PutGCSObject.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("gcs-bucket", PutGCSObject.BUCKET.getName()),
                 Map.entry("gcs-key", PutGCSObject.KEY.getName()),

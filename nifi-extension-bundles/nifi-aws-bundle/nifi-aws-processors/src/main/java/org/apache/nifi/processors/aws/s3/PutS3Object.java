@@ -342,7 +342,7 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
 
         config.renameProperty("s3-object-tags-prefix", OBJECT_TAGS_PREFIX.getName());
@@ -366,7 +366,7 @@ public class PutS3Object extends AbstractS3Processor {
         );
     }
 
-    private void migrateServerSideEncryption(PropertyConfiguration config) {
+    private void migrateServerSideEncryption(final PropertyConfiguration config) {
         final String propertyName;
         if (config.hasProperty(OBSOLETE_SERVER_SIDE_ENCRYPTION_1)) {
             propertyName = OBSOLETE_SERVER_SIDE_ENCRYPTION_1;
@@ -398,9 +398,9 @@ public class PutS3Object extends AbstractS3Processor {
         final ListMultipartUploadsRequest listRequest = ListMultipartUploadsRequest.builder()
                 .bucket(bucket)
                 .build();
-        ListMultipartUploadsResponse listResponse = client.listMultipartUploads(listRequest);
+        final ListMultipartUploadsResponse listResponse = client.listMultipartUploads(listRequest);
 
-        for (MultipartUpload upload : listResponse.uploads()) {
+        for (final MultipartUpload upload : listResponse.uploads()) {
             if (upload.uploadId().equals(localState.getUploadId())) {
                 return true;
             }
@@ -410,7 +410,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     protected synchronized MultipartState getLocalStateIfInS3(final S3Client client, final String bucket,
             final String s3ObjectKey) throws IOException {
-        MultipartState currState = getLocalState(s3ObjectKey);
+        final MultipartState currState = getLocalState(s3ObjectKey);
         if (currState == null) {
             return null;
         }
@@ -432,7 +432,7 @@ public class PutS3Object extends AbstractS3Processor {
             final Properties props = new Properties();
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
                 props.load(fis);
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 getLogger().warn("Assuming no local state and restarting upload since failed to recover local state for {}", s3ObjectKey, ioe);
                 return null;
             }
@@ -475,14 +475,14 @@ public class PutS3Object extends AbstractS3Processor {
         if (!props.isEmpty()) {
             try (final FileOutputStream fos = new FileOutputStream(persistenceFile)) {
                 props.store(fos, null);
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 getLogger().error("Could not store state {}", persistenceFile.getAbsolutePath(), ioe);
             }
         } else {
             if (persistenceFile.exists()) {
                 try {
                     Files.delete(persistenceFile.toPath());
-                } catch (IOException ioe) {
+                } catch (final IOException ioe) {
                     getLogger().error("Could not remove state file {}", persistenceFile.getAbsolutePath(), ioe);
                 }
             }
@@ -493,18 +493,18 @@ public class PutS3Object extends AbstractS3Processor {
         persistLocalState(s3ObjectKey, null);
     }
 
-    private synchronized void ageoffLocalState(long ageCutoff) {
+    private synchronized void ageoffLocalState(final long ageCutoff) {
         // get local state if it exists
         final File persistenceFile = getPersistenceFile();
         if (persistenceFile.exists()) {
-            Properties props = new Properties();
+            final Properties props = new Properties();
             try (final FileInputStream fis = new FileInputStream(persistenceFile)) {
                 props.load(fis);
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to ageoff remove local state", ioe);
                 return;
             }
-            for (Entry<Object, Object> entry: props.entrySet()) {
+            for (final Entry<Object, Object> entry: props.entrySet()) {
                 final String key = (String) entry.getKey();
                 final String localSerialState = props.getProperty(key);
                 if (localSerialState != null) {
@@ -535,7 +535,7 @@ public class PutS3Object extends AbstractS3Processor {
 
         try {
             client  = getClient(context, flowFile.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -570,7 +570,7 @@ public class PutS3Object extends AbstractS3Processor {
          */
         try {
             final FlowFile flowFileCopy = flowFile;
-            Optional<FileResource> optFileResource = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
+            final Optional<FileResource> optFileResource = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
             try (InputStream in = optFileResource
                     .map(FileResource::getInputStream)
                     .orElseGet(() -> session.read(flowFileCopy))) {
@@ -666,7 +666,7 @@ public class PutS3Object extends AbstractS3Processor {
                         }
                         setEncryptionAttributes(attributes, response.serverSideEncryption(), response.sseCustomerAlgorithm(), encryptionService);
                         attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_PUTOBJECT);
-                    } catch (SdkException e) {
+                    } catch (final SdkException e) {
                         getLogger().info("Failure completing upload flowfile={} bucket={} key={} reason={}",
                                 ffFilename, bucket, key, e.getMessage());
                         throw (e);
@@ -712,7 +712,7 @@ public class PutS3Object extends AbstractS3Processor {
                             getLogger().info("Starting new upload for flowfile='{}' bucket='{}' key='{}'",
                                     ffFilename, bucket, key);
                         }
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         getLogger().error("IOException initiating cache state while processing flow files", e);
                         throw (e);
                     }
@@ -753,7 +753,7 @@ public class PutS3Object extends AbstractS3Processor {
                             currentState.getCompletedParts().clear();
                             try {
                                 persistLocalState(cacheKey, currentState);
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 getLogger().info("Exception saving cache state while processing flow file", e);
                                 throw (new ProcessException("Exception saving cache state", e));
                             }
@@ -763,7 +763,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     currentState.getUploadId());
                             attributes.put(S3_UPLOAD_ID_ATTR_KEY, createResponse.uploadId());
                             setEncryptionAttributes(attributes, createResponse.serverSideEncryption(), createResponse.sseCustomerAlgorithm(), encryptionService);
-                        } catch (SdkException e) {
+                        } catch (final SdkException e) {
                             getLogger().info("Failure initiating upload flowfile={} bucket={} key={}", ffFilename, bucket, key, e);
                             throw (e);
                         }
@@ -775,7 +775,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     getLogger().info("Failure skipping to resume upload flowfile={} bucket={} key={} position={} skipped={}",
                                             ffFilename, bucket, key, currentState.getFilePosition(), skipped);
                                 }
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 getLogger().info("Failure skipping to resume upload flowfile={} bucket={} key={} position={}", ffFilename, bucket, key, currentState.getFilePosition(), e);
                                 throw (new ProcessException(e));
                             }
@@ -815,18 +815,18 @@ public class PutS3Object extends AbstractS3Processor {
                             currentState.setFilePosition(currentState.getFilePosition() + thisPartSize);
                             try {
                                 persistLocalState(cacheKey, currentState);
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 getLogger().info("Exception saving cache state processing flow file", e);
                             }
                             int available = 0;
                             try {
                                 available = in.available();
-                            } catch (IOException ignored) {
+                            } catch (final IOException ignored) {
                                 // in case of the last part, the stream is already closed
                             }
                             getLogger().info("Success uploading part flowfile={} part={} available={} etag={} uploadId={}",
                                     ffFilename, part, available, uploadPartResponse.eTag(), currentState.getUploadId());
-                        } catch (SdkException e) {
+                        } catch (final SdkException e) {
                             getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={}", ffFilename, part, bucket, key, e);
                             throw (e);
                         }
@@ -860,13 +860,13 @@ public class PutS3Object extends AbstractS3Processor {
                             attributes.put(S3_EXPIRATION_TIME_RULE_ID_ATTR_KEY, expiration.expirationTimeRuleId());
                         }
                         attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_MULTIPARTUPLOAD);
-                    } catch (SdkException e) {
+                    } catch (final SdkException e) {
                         getLogger().info("Failure completing upload flowfile={} bucket={} key={}",
                                 ffFilename, bucket, key, e);
                         throw (e);
                     }
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Error during upload of flow files", e);
                 throw e;
             }
@@ -882,7 +882,7 @@ public class PutS3Object extends AbstractS3Processor {
             getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", flowFile, millis);
             try {
                 removeLocalState(cacheKey);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().info("Error trying to delete key {} from cache:", cacheKey, e);
             }
 
@@ -902,14 +902,14 @@ public class PutS3Object extends AbstractS3Processor {
     private final Lock s3BucketLock = new ReentrantLock();
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
 
-    protected void ageoffS3Uploads(final ProcessContext context, final S3Client client, final long now, String bucket) {
+    protected void ageoffS3Uploads(final ProcessContext context, final S3Client client, final long now, final String bucket) {
         final List<MultipartUpload> oldUploads = getS3AgeoffListAndAgeoffLocalState(context, client, now, bucket);
-        for (MultipartUpload upload : oldUploads) {
+        for (final MultipartUpload upload : oldUploads) {
             abortS3MultipartUpload(client, bucket, upload);
         }
     }
 
-    protected List<MultipartUpload> getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final S3Client client, final long now, String bucket) {
+    protected List<MultipartUpload> getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final S3Client client, final long now, final String bucket) {
         final long ageoffInterval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long ageCutoff = now - maxAge;
@@ -922,8 +922,8 @@ public class PutS3Object extends AbstractS3Processor {
                         .bucket(bucket)
                         .build();
                 final ListMultipartUploadsResponse listResponse = client.listMultipartUploads(listRequest);
-                for (MultipartUpload upload : listResponse.uploads()) {
-                    long uploadTime = upload.initiated().toEpochMilli();
+                for (final MultipartUpload upload : listResponse.uploads()) {
+                    final long uploadTime = upload.initiated().toEpochMilli();
                     if (uploadTime < ageCutoff) {
                         ageoffList.add(upload);
                     }
@@ -932,7 +932,7 @@ public class PutS3Object extends AbstractS3Processor {
                 // ageoff any local state
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
-            } catch (SdkException e) {
+            } catch (final SdkException e) {
                 if (e instanceof S3Exception s3e
                         && s3e.statusCode() == 403
                         && s3e.awsErrorDetails().errorCode().equals("AccessDenied")) {
@@ -965,13 +965,13 @@ public class PutS3Object extends AbstractS3Processor {
             client.abortMultipartUpload(abortRequest);
             getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",
                     bucket, key, uploadId, upload.initiated());
-        } catch (SdkException e) {
+        } catch (final SdkException e) {
             getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
                     bucket, key, uploadId, e.getMessage());
         }
     }
 
-    private List<Tag> getObjectTags(ProcessContext context, FlowFile flowFile) {
+    private List<Tag> getObjectTags(final ProcessContext context, final FlowFile flowFile) {
         final String prefix = context.getProperty(OBJECT_TAGS_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
         final List<Tag> objectTags = new ArrayList<>();
         final Map<String, String> attributesMap = flowFile.getAttributes();
@@ -980,7 +980,7 @@ public class PutS3Object extends AbstractS3Processor {
                 .filter(attribute -> attribute.getKey().startsWith(prefix))
                 .forEach(attribute -> {
                     String tagKey = attribute.getKey();
-                    String tagValue = attribute.getValue();
+                    final String tagValue = attribute.getValue();
 
                     if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
                         tagKey = tagKey.replace(prefix, "");
@@ -1020,13 +1020,13 @@ public class PutS3Object extends AbstractS3Processor {
 
         // create from a previous toString() result
         public MultipartState(final String buf) {
-            String[] fields = buf.split(SEPARATOR);
+            final String[] fields = buf.split(SEPARATOR);
             uploadId = fields[0];
             filePosition = Long.parseLong(fields[1]);
             completedParts = new ArrayList<>();
-            for (String part : fields[2].split(",")) {
+            for (final String part : fields[2].split(",")) {
                 if (part != null && !part.isEmpty()) {
-                    String[] partFields = part.split("/");
+                    final String[] partFields = part.split("/");
                     this.completedParts.add(CompletedPart.builder()
                             .partNumber(Integer.parseInt(partFields[0]))
                             .eTag(partFields[1])
@@ -1043,7 +1043,7 @@ public class PutS3Object extends AbstractS3Processor {
             return uploadId;
         }
 
-        public void setUploadId(String id) {
+        public void setUploadId(final String id) {
             uploadId = id;
         }
 
@@ -1051,7 +1051,7 @@ public class PutS3Object extends AbstractS3Processor {
             return filePosition;
         }
 
-        public void setFilePosition(Long pos) {
+        public void setFilePosition(final Long pos) {
             filePosition = pos;
         }
 
@@ -1059,7 +1059,7 @@ public class PutS3Object extends AbstractS3Processor {
             return completedParts;
         }
 
-        public void addCompletedPart(CompletedPart completedPart) {
+        public void addCompletedPart(final CompletedPart completedPart) {
             completedParts.add(completedPart);
         }
 
@@ -1067,7 +1067,7 @@ public class PutS3Object extends AbstractS3Processor {
             return partSize;
         }
 
-        public void setPartSize(Long size) {
+        public void setPartSize(final Long size) {
             partSize = size;
         }
 
@@ -1075,7 +1075,7 @@ public class PutS3Object extends AbstractS3Processor {
             return storageClass;
         }
 
-        public void setStorageClass(StorageClass aClass) {
+        public void setStorageClass(final StorageClass aClass) {
             storageClass = aClass;
         }
 
@@ -1083,7 +1083,7 @@ public class PutS3Object extends AbstractS3Processor {
             return contentLength;
         }
 
-        public void setContentLength(Long length) {
+        public void setContentLength(final Long length) {
             contentLength = length;
         }
 
@@ -1091,18 +1091,18 @@ public class PutS3Object extends AbstractS3Processor {
             return timestamp;
         }
 
-        public void setTimestamp(Long timestamp) {
+        public void setTimestamp(final Long timestamp) {
             this.timestamp = timestamp;
         }
 
         @Override
         public String toString() {
-            StringBuilder buf = new StringBuilder();
+            final StringBuilder buf = new StringBuilder();
             buf.append(uploadId).append(SEPARATOR)
                 .append(filePosition.toString()).append(SEPARATOR);
             if (!completedParts.isEmpty()) {
                 boolean first = true;
-                for (CompletedPart completedPart : completedParts) {
+                for (final CompletedPart completedPart : completedParts) {
                     if (!first) {
                         buf.append(",");
                     } else {

@@ -75,7 +75,7 @@ public class ParameterProviderParameterApplicationEntity extends Entity {
         return parameterGroupConfigurations;
     }
 
-    public void setParameterGroupConfigurations(Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations) {
+    public void setParameterGroupConfigurations(final Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations) {
         this.parameterGroupConfigurations = parameterGroupConfigurations;
     }
 }

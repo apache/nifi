@@ -834,11 +834,11 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response removeFlowAnalysisRule(
-            @Parameter(
+            final @Parameter(
                     description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) LongParameter version,
-            @Parameter(
+            final @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -846,7 +846,7 @@ public class ControllerResource extends ApplicationResource {
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @Parameter(
+            final @Parameter(
                     description = "The flow analysis rule id.",
                     required = true
             )
@@ -968,7 +968,7 @@ public class ControllerResource extends ApplicationResource {
      * @return dtos
      */
     private Set<FlowAnalysisRuleEntity> populateRemainingFlowAnalysisRuleEntitiesContent(final Set<FlowAnalysisRuleEntity> flowAnalysisRuleEntities) {
-        for (FlowAnalysisRuleEntity flowAnalysisRuleEntity : flowAnalysisRuleEntities) {
+        for (final FlowAnalysisRuleEntity flowAnalysisRuleEntity : flowAnalysisRuleEntities) {
             populateRemainingFlowAnalysisRuleEntityContent(flowAnalysisRuleEntity);
         }
         return flowAnalysisRuleEntities;
@@ -2565,7 +2565,7 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getNode(
-            @Parameter(
+            final @Parameter(
                     description = "The node id.",
                     required = true
             )
@@ -2619,12 +2619,12 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response updateNode(
-            @Parameter(
+            final @Parameter(
                     description = "The node id.",
                     required = true
             )
             @PathParam("id") String id,
-            @Parameter(
+            final @Parameter(
                     description = "The node configuration. The only configuration that will be honored at this endpoint is the status.",
                     required = true
             ) NodeEntity nodeEntity) {
@@ -2655,7 +2655,7 @@ public class ControllerResource extends ApplicationResource {
         final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
 
         // create the response entity
-        NodeEntity entity = new NodeEntity();
+        final NodeEntity entity = new NodeEntity();
         entity.setNode(node);
 
         // generate the response
@@ -2687,7 +2687,7 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response deleteNode(
-            @Parameter(
+            final @Parameter(
                     description = "The node id.",
                     required = true
             )
@@ -2772,7 +2772,7 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response deleteHistory(
-            @Parameter(
+            final @Parameter(
                     description = "Purge actions before this date/time.",
                     required = true
             )
@@ -2805,7 +2805,7 @@ public class ControllerResource extends ApplicationResource {
     private class EndDateEntity extends Entity {
         final Date endDate;
 
-        public EndDateEntity(Date endDate) {
+        public EndDateEntity(final Date endDate) {
             this.endDate = endDate;
         }
 
@@ -3082,7 +3082,7 @@ public class ControllerResource extends ApplicationResource {
                         final String requestId = requestEntity.getNarSummary().getIdentifier();
                         final NarSummaryEntity deletedNarSummary = serviceFacade.deleteNar(requestId);
                         return generateOkResponse(deletedNarSummary).build();
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         throw new RuntimeException(e.getMessage(), e);
                     }
                 });

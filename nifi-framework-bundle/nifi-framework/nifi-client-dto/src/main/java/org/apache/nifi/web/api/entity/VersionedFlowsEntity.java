@@ -32,7 +32,7 @@ public class VersionedFlowsEntity extends Entity {
         return versionedFlowsEntity;
     }
 
-    public void setVersionedFlows(Set<VersionedFlowEntity> versionedFlowsEntity) {
+    public void setVersionedFlows(final Set<VersionedFlowEntity> versionedFlowsEntity) {
         this.versionedFlowsEntity = versionedFlowsEntity;
     }
 

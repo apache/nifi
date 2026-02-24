@@ -57,10 +57,10 @@ public class TestCalculateRecordStats {
         runner.enableControllerService(recordParser);
         runner.assertValid();
 
-        List<RecordField> personFields = new ArrayList<>();
-        RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
-        RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
-        RecordField sportField = new RecordField("sport", RecordFieldType.STRING.getDataType());
+        final List<RecordField> personFields = new ArrayList<>();
+        final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
+        final RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
+        final RecordField sportField = new RecordField("sport", RecordFieldType.STRING.getDataType());
         personFields.add(nameField);
         personFields.add(ageField);
         personFields.add(sportField);
@@ -199,7 +199,7 @@ public class TestCalculateRecordStats {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void commonTest(Map<String, String> procProperties, List<String> sports, Map<String, String> expectedAttributes) {
+    private void commonTest(final Map<String, String> procProperties, final List<String> sports, final Map<String, String> expectedAttributes) {
         int index = 1;
         for (final String sport : sports) {
             final Map<String, Object> newRecord = new HashMap<>();

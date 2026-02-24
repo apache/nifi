@@ -26,7 +26,7 @@ public class JsonNodeStatusHistoryDumpFactory implements StatusHistoryDumpFactor
     private StatusHistoryRepository statusHistoryRepository;
 
     @Override
-    public StatusHistoryDump create(int days) {
+    public StatusHistoryDump create(final int days) {
         if (days <= 0) {
             throw new IllegalArgumentException(String.format("The number of days shall be greater than 0. The current value is %s.", days));
         }
@@ -40,7 +40,7 @@ public class JsonNodeStatusHistoryDumpFactory implements StatusHistoryDumpFactor
         return new JsonNodeStatusHistoryDump(nodeStatusHistory);
     }
 
-    public void setStatusHistoryRepository(StatusHistoryRepository statusHistoryRepository) {
+    public void setStatusHistoryRepository(final StatusHistoryRepository statusHistoryRepository) {
         this.statusHistoryRepository = statusHistoryRepository;
     }
 }

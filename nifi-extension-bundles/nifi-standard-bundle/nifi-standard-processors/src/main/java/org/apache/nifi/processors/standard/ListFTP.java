@@ -107,7 +107,7 @@ public class ListFTP extends ListFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
@@ -135,7 +135,7 @@ public class ListFTP extends ListFileTransfer {
     }
 
     @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         FTPTransfer.validateProxySpec(validationContext, results);
     }
 }

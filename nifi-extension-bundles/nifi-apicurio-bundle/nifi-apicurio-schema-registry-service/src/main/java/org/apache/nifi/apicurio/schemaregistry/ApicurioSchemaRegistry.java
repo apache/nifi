@@ -120,7 +120,7 @@ public class ApicurioSchemaRegistry extends AbstractControllerService implements
     }
 
     @Override
-    public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         final String schemaId = schemaIdentifier.getName().orElseThrow(
                 () -> new SchemaNotFoundException("Cannot retrieve schema because Schema Name is not present")
         );

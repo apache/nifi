@@ -409,12 +409,12 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         return tenants.get().getUsersById().get(identifier);
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         return tenants.get().getUser(identity);
     }
 
@@ -424,17 +424,17 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         return tenants.get().getGroupsById().get(identifier);
     }
 
     @Override
-    public Group getGroupByName(String name) throws AuthorizationAccessException {
+    public Group getGroupByName(final String name) throws AuthorizationAccessException {
         return tenants.get().getGroupsByName().get(name);
     }
 
     @Override
-    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
         final TenantHolder holder = tenants.get();
         return new UserAndGroups() {
             @Override
@@ -493,7 +493,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 do {
                     userList.addAll(ldapTemplate.search(userSearchBase, userFilter.encode(), userControls, new AbstractContextMapper<>() {
                         @Override
-                        protected User doMapFromContext(DirContextOperations ctx) {
+                        protected User doMapFromContext(final DirContextOperations ctx) {
                             // get the user
                             final User user = buildUser(ctx);
 
@@ -530,7 +530,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                             // be lowercased when adding to groupToUserIdentifierMappings
                                             groupToUserIdentifierMappings.computeIfAbsent(groupValueNormalized, g -> new HashSet<>()).add(user.getIdentifier());
                                         }
-                                    } catch (NamingException e) {
+                                    } catch (final NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving user group name attribute [" + userIdentityAttribute + "].");
                                     }
                                 }
@@ -555,7 +555,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 }
 
                 // looking for objects matching the group object class
-                AndFilter groupFilter = new AndFilter();
+                final AndFilter groupFilter = new AndFilter();
                 groupFilter.and(new EqualsFilter("objectClass", groupObjectClass));
 
                 // if a filter has been provided by the user, we add it to the filter
@@ -566,7 +566,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 do {
                     groupList.addAll(ldapTemplate.search(groupSearchBase, groupFilter.encode(), groupControls, new AbstractContextMapper<>() {
                         @Override
-                        protected Group doMapFromContext(DirContextOperations ctx) {
+                        protected Group doMapFromContext(final DirContextOperations ctx) {
                             // get the group identity
                             final String name = getGroupName(ctx);
 
@@ -574,7 +574,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                             final String referencedGroupValue = getReferencedGroupValue(ctx);
 
                             if (!StringUtils.isBlank(groupMemberAttribute)) {
-                                Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
+                                final Attribute attributeUsers = ctx.getAttributes().get(groupMemberAttribute);
                                 if (attributeUsers == null) {
                                     logger.debug("Group member attribute [{}] does not exist for [{}]. This may be due to "
                                             + "misconfiguration or the group may not have any members. Ignoring group membership.",
@@ -622,7 +622,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                                                 groupToUserIdentifierMappings.computeIfAbsent(referencedGroupValue, g -> new HashSet<>()).add(user.getIdentifier());
                                             }
                                         }
-                                    } catch (NamingException e) {
+                                    } catch (final NamingException e) {
                                         throw new AuthorizationAccessException("Error while retrieving group name attribute [" + groupNameAttribute + "].");
                                     }
                                 }
@@ -721,7 +721,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
             try {
                 identity = (String) attributeName.get();
-            } catch (NamingException e) {
+            } catch (final NamingException e) {
                 throw new AuthorizationAccessException("Error while retrieving user name attribute [" + userIdentityAttribute + "].");
             }
         }
@@ -742,7 +742,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
             try {
                 referencedUserValue = (String) attributeName.get();
-            } catch (NamingException e) {
+            } catch (final NamingException e) {
                 throw new AuthorizationAccessException("Error while retrieving reference user value attribute [" + groupMemberReferencedUserAttribute + "].");
             }
         }
@@ -763,7 +763,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
             try {
                 name = (String) attributeName.get();
-            } catch (NamingException e) {
+            } catch (final NamingException e) {
                 throw new AuthorizationAccessException("Error while retrieving group name attribute [" + groupNameAttribute + "].");
             }
         }
@@ -784,7 +784,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
 
             try {
                 referencedGroupValue = (String) attributeName.get();
-            } catch (NamingException e) {
+            } catch (final NamingException e) {
                 throw new AuthorizationAccessException("Error while retrieving referenced group value attribute [" + userGroupReferencedGroupAttribute + "].");
             }
         }
@@ -793,7 +793,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     }
 
     @AuthorizerContext
-    public void setNiFiProperties(NiFiProperties properties) {
+    public void setNiFiProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
@@ -805,7 +805,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
                 logger.info("Failed to stop ldap sync thread in 10 sec. Terminating");
                 ldapSync.shutdownNow();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }

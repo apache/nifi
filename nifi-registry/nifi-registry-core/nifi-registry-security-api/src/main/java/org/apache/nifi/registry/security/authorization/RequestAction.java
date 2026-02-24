@@ -28,7 +28,7 @@ public enum RequestAction {
 
     private String value;
 
-    RequestAction(String value) {
+    RequestAction(final String value) {
         this.value = value;
     }
 
@@ -45,11 +45,11 @@ public enum RequestAction {
         } else if (RequestAction.DELETE.toString().equalsIgnoreCase(action)) {
             return RequestAction.DELETE;
         } else {
-            StringJoiner stringJoiner = new StringJoiner(", ");
-            for (RequestAction ra : RequestAction.values()) {
+            final StringJoiner stringJoiner = new StringJoiner(", ");
+            for (final RequestAction ra : RequestAction.values()) {
                 stringJoiner.add(ra.toString());
             }
-            String allowableValues = stringJoiner.toString();
+            final String allowableValues = stringJoiner.toString();
             throw new IllegalArgumentException("Action '" + action + "' is invalid. Must be one of [" + allowableValues + "]");
         }
     }

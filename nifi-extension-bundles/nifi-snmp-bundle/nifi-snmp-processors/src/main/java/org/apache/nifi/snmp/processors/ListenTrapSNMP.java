@@ -158,7 +158,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     private volatile List<UsmUser> usmUsers;
 
     @Override
-    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         final String snmpVersion = context.getProperty(BasicProperties.SNMP_VERSION).getValue();
@@ -168,7 +168,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
 
             try {
                 getUsmReader(context, usmUserInputMethod).readUsm();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("USM User processing")
                         .outcome(ConfigVerificationResult.Outcome.FAILED)
@@ -181,7 +181,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     }
 
     @OnScheduled
-    public void initSnmpManager(ProcessContext context) {
+    public void initSnmpManager(final ProcessContext context) {
         final String snmpVersion = context.getProperty(BasicProperties.SNMP_VERSION).getValue();
         final String securityLevel = getSecurityLevel(context, snmpVersion);
 
@@ -248,7 +248,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("snmp-manager-port", SNMP_MANAGER_PORT.getName());
         config.renameProperty("snmp-usm-users-source", SNMP_USM_USER_INPUT_METHOD.getName());
         config.renameProperty("snmp-usm-users-file-path", SNMP_USM_USERS_JSON_FILE_PATH.getName());
@@ -265,7 +265,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         return PROPERTY_DESCRIPTORS;
     }
 
-    private UsmReader getUsmReader(ProcessContext context, UsmUserInputMethod usmUserInputMethod) {
+    private UsmReader getUsmReader(final ProcessContext context, final UsmUserInputMethod usmUserInputMethod) {
         return switch (usmUserInputMethod) {
             case USM_JSON_FILE_PATH -> new JsonFileUsmReader(context.getProperty(SNMP_USM_USERS_JSON_FILE_PATH).getValue());
             case USM_JSON_CONTENT -> new JsonUsmReader(context.getProperty(SNMP_USM_USERS_JSON).getValue());

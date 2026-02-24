@@ -29,7 +29,7 @@ public class JsonFileUsmReader implements UsmReader {
 
     private final String usmUsersFilePath;
 
-    public JsonFileUsmReader(String usmUsersFilePath) {
+    public JsonFileUsmReader(final String usmUsersFilePath) {
         this.usmUsersFilePath = usmUsersFilePath;
     }
 
@@ -39,9 +39,9 @@ public class JsonFileUsmReader implements UsmReader {
         try (Scanner scanner = new Scanner(new File(usmUsersFilePath))) {
             final String content = scanner.useDelimiter("\\Z").next();
             userDetails = UsmJsonParser.parse(content);
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             throw new ProcessException("USM user file not found, please check the file path and file permissions.", e);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new ProcessException("Could not parse USM user file, please check the processor details for examples.", e);
         }
         return userDetails;

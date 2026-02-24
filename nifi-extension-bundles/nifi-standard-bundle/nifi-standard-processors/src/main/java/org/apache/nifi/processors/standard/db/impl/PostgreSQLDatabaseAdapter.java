@@ -60,7 +60,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getUpsertStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
@@ -71,19 +71,19 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = String.join(", ", columnNames);
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedInsertValues = columnNames.stream()
+        final String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        String updateValues = columnNames.stream()
+        final String updateValues = columnNames.stream()
                 .map(columnName -> "EXCLUDED." + columnName)
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
+        final String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
 
-        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
+        final StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
@@ -99,7 +99,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getInsertIgnoreStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
@@ -110,15 +110,15 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = String.join(", ", columnNames);
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedInsertValues = columnNames.stream()
+        final String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
+        final String conflictClause = "(" + String.join(", ", uniqueKeyColumnNames) + ")";
 
-        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
+        final StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
@@ -136,17 +136,17 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
 
     @Override
     public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder("ADD COLUMN ")
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder("ADD COLUMN ")
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
         }
 
-        StringBuilder alterTableStatement = new StringBuilder();
+        final StringBuilder alterTableStatement = new StringBuilder();
         return alterTableStatement.append("ALTER TABLE ")
                 .append(tableName)
                 .append(" ")
@@ -164,7 +164,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
      *         Return true or false to indicate whether auto commit needs to be true or false for this database.
      */
     @Override
-    public Optional<Boolean> getAutoCommitForReads(Integer fetchSize) {
+    public Optional<Boolean> getAutoCommitForReads(final Integer fetchSize) {
         if (fetchSize != null && fetchSize != 0) {
             return Optional.of(Boolean.FALSE);
         }
@@ -172,7 +172,7 @@ public class PostgreSQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getSQLForDataType(int sqlType) {
+    public String getSQLForDataType(final int sqlType) {
         return switch (sqlType) {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML -> "TEXT";

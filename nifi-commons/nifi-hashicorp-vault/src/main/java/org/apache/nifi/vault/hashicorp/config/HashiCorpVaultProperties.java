@@ -122,7 +122,7 @@ public class HashiCorpVaultProperties {
          * @param uri Vault's URI
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setUri(String uri) {
+        public HashiCorpVaultPropertiesBuilder setUri(final String uri) {
             this.uri = uri;
             return this;
         }
@@ -132,7 +132,7 @@ public class HashiCorpVaultProperties {
          * @param kvVersion The Key/Value engine version
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setKvVersion(int kvVersion) {
+        public HashiCorpVaultPropertiesBuilder setKvVersion(final int kvVersion) {
             this.kvVersion = kvVersion;
             return this;
         }
@@ -142,7 +142,7 @@ public class HashiCorpVaultProperties {
          * @param keyStore Path to the keyStore
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setKeyStore(String keyStore) {
+        public HashiCorpVaultPropertiesBuilder setKeyStore(final String keyStore) {
             this.keyStore = keyStore;
             return this;
         }
@@ -152,7 +152,7 @@ public class HashiCorpVaultProperties {
          * @param keyStoreType KeyStore type
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setKeyStoreType(String keyStoreType) {
+        public HashiCorpVaultPropertiesBuilder setKeyStoreType(final String keyStoreType) {
             this.keyStoreType = keyStoreType;
             return this;
         }
@@ -162,7 +162,7 @@ public class HashiCorpVaultProperties {
          * @param keyStorePassword KeyStore password
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setKeyStorePassword(String keyStorePassword) {
+        public HashiCorpVaultPropertiesBuilder setKeyStorePassword(final String keyStorePassword) {
             this.keyStorePassword = keyStorePassword;
             return this;
         }
@@ -172,7 +172,7 @@ public class HashiCorpVaultProperties {
          * @param trustStore Path to the trustStore
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setTrustStore(String trustStore) {
+        public HashiCorpVaultPropertiesBuilder setTrustStore(final String trustStore) {
             this.trustStore = trustStore;
             return this;
         }
@@ -182,7 +182,7 @@ public class HashiCorpVaultProperties {
          * @param trustStoreType TrustStore type
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setTrustStoreType(String trustStoreType) {
+        public HashiCorpVaultPropertiesBuilder setTrustStoreType(final String trustStoreType) {
             this.trustStoreType = trustStoreType;
             return this;
         }
@@ -192,7 +192,7 @@ public class HashiCorpVaultProperties {
          * @param trustStorePassword TrustStore password
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setTrustStorePassword(String trustStorePassword) {
+        public HashiCorpVaultPropertiesBuilder setTrustStorePassword(final String trustStorePassword) {
             this.trustStorePassword = trustStorePassword;
             return this;
         }
@@ -207,7 +207,7 @@ public class HashiCorpVaultProperties {
          *                               properties
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setAuthPropertiesFilename(String authPropertiesFilename) {
+        public HashiCorpVaultPropertiesBuilder setAuthPropertiesFilename(final String authPropertiesFilename) {
             this.authPropertiesFilename = authPropertiesFilename;
             return this;
         }
@@ -217,7 +217,7 @@ public class HashiCorpVaultProperties {
          * @param enabledTlsCipherSuites Enabled TLS cipher suites (only these will be enabled)
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setEnabledTlsCipherSuites(String enabledTlsCipherSuites) {
+        public HashiCorpVaultPropertiesBuilder setEnabledTlsCipherSuites(final String enabledTlsCipherSuites) {
             this.enabledTlsCipherSuites = enabledTlsCipherSuites;
             return this;
         }
@@ -227,7 +227,7 @@ public class HashiCorpVaultProperties {
          * @param enabledTlsProtocols Enabled TLS protocols (only these will be enabled)
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setEnabledTlsProtocols(String enabledTlsProtocols) {
+        public HashiCorpVaultPropertiesBuilder setEnabledTlsProtocols(final String enabledTlsProtocols) {
             this.enabledTlsProtocols = enabledTlsProtocols;
             return this;
         }
@@ -237,7 +237,7 @@ public class HashiCorpVaultProperties {
          * @param connectionTimeout Connection timeout (default is 5 secs)
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setConnectionTimeout(String connectionTimeout) {
+        public HashiCorpVaultPropertiesBuilder setConnectionTimeout(final String connectionTimeout) {
             this.connectionTimeout = connectionTimeout;
             return this;
         }
@@ -247,7 +247,7 @@ public class HashiCorpVaultProperties {
          * @param readTimeout Read timeout (default is 15 secs)
          * @return Builder
          */
-        public HashiCorpVaultPropertiesBuilder setReadTimeout(String readTimeout) {
+        public HashiCorpVaultPropertiesBuilder setReadTimeout(final String readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }

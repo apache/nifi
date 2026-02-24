@@ -21,11 +21,11 @@ package org.apache.nifi.processors.hadoop.exception;
  */
 public class FailureException extends Exception {
 
-    public FailureException(String message) {
+    public FailureException(final String message) {
         super(message);
     }
 
-    public FailureException(String message, Throwable cause) {
+    public FailureException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

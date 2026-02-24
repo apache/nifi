@@ -181,7 +181,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        Map<String, String> attributeMap = convertMap(syslogEvent.getFieldMap());
+        final Map<String, String> attributeMap = convertMap(syslogEvent.getFieldMap());
         if (!includeBody) {
             attributeMap.remove(SyslogAttributes.SYSLOG_BODY.key());
         }
@@ -190,13 +190,13 @@ public class ParseSyslog5424 extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("nil_policy", NIL_POLICY.getName());
         config.renameProperty("include_policy", INCLUDE_BODY_IN_ATTRIBUTES.getName());
     }
 
-    private static Map<String, String> convertMap(Map<String, Object> map) {
-        Map<String, String> returnMap = new HashMap<>();
+    private static Map<String, String> convertMap(final Map<String, Object> map) {
+        final Map<String, String> returnMap = new HashMap<>();
         map.forEach((key, value) -> returnMap.put(key, (String) value));
         return returnMap;
     }

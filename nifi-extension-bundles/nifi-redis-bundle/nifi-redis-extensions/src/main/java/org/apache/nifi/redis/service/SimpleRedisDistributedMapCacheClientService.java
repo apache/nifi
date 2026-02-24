@@ -87,7 +87,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            boolean set = redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
+            final boolean set = redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
 
             if (ttl != -1L && set) {
                 redisConnection.keyCommands().expire(kv.getKey(), ttl);
@@ -156,10 +156,10 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     }
 
     @Override
-    public <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> void putAll(final Map<K, V> keysAndValues, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         withConnection(redisConnection -> {
-            Map<byte[], byte[]> values = new HashMap<>();
-            for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+            final Map<byte[], byte[]> values = new HashMap<>();
+            for (final Map.Entry<K, V> entry : keysAndValues.entrySet()) {
                 final Tuple<byte[], byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
                 values.put(kv.getKey(), kv.getValue());
             }
@@ -202,7 +202,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_REDIS_CONNECTION_POOL_PROPERTY_NAME, REDIS_CONNECTION_POOL.getName());
         config.renameProperty(OLD_TTL_PROPERTY_NAME, TTL.getName());
     }
@@ -248,7 +248,7 @@ public class SimpleRedisDistributedMapCacheClientService extends AbstractControl
             if (redisConnection != null) {
                 try {
                     redisConnection.close();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().warn("Error closing connection", e);
                 }
             }

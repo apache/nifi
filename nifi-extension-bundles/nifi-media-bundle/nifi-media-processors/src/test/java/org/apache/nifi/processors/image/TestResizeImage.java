@@ -127,13 +127,13 @@ public class TestResizeImage {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ResizeImage.REL_SUCCESS, 1);
-        MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
-        byte[] data = mff.toByteArray();
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ResizeImage.REL_SUCCESS).get(0);
+        final byte[] data = mff.toByteArray();
 
-        BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
+        final BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
         assertEquals(600, img.getWidth());
         assertEquals(600, img.getHeight());
-        File out = new File("target/enlarge.png");
+        final File out = new File("target/enlarge.png");
         ImageIO.write(img, "PNG", out);
     }
 

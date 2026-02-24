@@ -368,7 +368,7 @@ class TestListHDFS {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
-        Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
+        final Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
         assertEquals("2000", newState.get(LATEST_TIMESTAMP_KEY));
     }
 

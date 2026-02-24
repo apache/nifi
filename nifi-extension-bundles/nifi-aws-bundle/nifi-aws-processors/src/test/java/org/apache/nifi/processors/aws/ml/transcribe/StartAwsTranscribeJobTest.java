@@ -80,7 +80,7 @@ public class StartAwsTranscribeJobTest {
     public void setUp() throws InitializationException {
         processor = new StartAwsTranscribeJob() {
             @Override
-            public TranscribeClient getClient(ProcessContext context) {
+            public TranscribeClient getClient(final ProcessContext context) {
                 return mockTranscribeClient;
             }
         };

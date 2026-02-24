@@ -28,7 +28,7 @@ public class FlowEntityRowMapper implements RowMapper<FlowEntity> {
 
     @Nullable
     @Override
-    public FlowEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public FlowEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final FlowEntity flowEntity = new FlowEntity();
         flowEntity.setId(rs.getString("ID"));
         flowEntity.setName(rs.getString("NAME"));

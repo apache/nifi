@@ -102,18 +102,18 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
         FlowFile output = flowFile != null ? session.create(flowFile) : session.create();
         try (OutputStream os = session.write(output)) {
-            String query = getQuery(context, session, flowFile);
-            long startTimeMillis = System.currentTimeMillis();
+            final String query = getQuery(context, session, flowFile);
+            final long startTimeMillis = System.currentTimeMillis();
 
             os.write("[".getBytes());
-            Map<String, String> resultAttrs = clientService.executeQuery(query, getParameters(context, output), (record, hasMore) -> {
+            final Map<String, String> resultAttrs = clientService.executeQuery(query, getParameters(context, output), (record, hasMore) -> {
                 try {
-                    String obj = mapper.writeValueAsString(record);
+                    final String obj = mapper.writeValueAsString(record);
                     os.write(obj.getBytes());
                     if (hasMore) {
                         os.write(",".getBytes());
                     }
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     throw new ProcessException(ex);
                 }
             });
@@ -122,7 +122,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
 
             final long endTimeMillis = System.currentTimeMillis();
 
-            String executionTime = String.valueOf((endTimeMillis - startTimeMillis));
+            final String executionTime = String.valueOf((endTimeMillis - startTimeMillis));
             resultAttrs.put(EXECUTION_TIME, executionTime);
             resultAttrs.put(CoreAttributes.MIME_TYPE.key(), "application/json");
             output = session.putAllAttributes(output, resultAttrs);
@@ -134,7 +134,7 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
                 session.transfer(flowFile, REL_ORIGINAL);
             }
 
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             getLogger().error("Failed to execute graph statement due to {}", exception.getLocalizedMessage(), exception);
             session.remove(output);
             if (flowFile != null) {
@@ -146,12 +146,12 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("graph-client-service", CLIENT_SERVICE.getName());
         config.renameProperty("graph-query", QUERY.getName());
     }
 
-    protected String getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
+    protected String getQuery(final ProcessContext context, final ProcessSession session, final FlowFile input) {
         String query = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
         if (StringUtils.isEmpty(query) && input != null) {
             try {
@@ -166,12 +166,12 @@ public class ExecuteGraphQuery extends AbstractGraphExecutor {
                      */
                 }
 
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                final ByteArrayOutputStream out = new ByteArrayOutputStream();
                 session.exportTo(input, out);
                 out.close();
 
                 query = new String(out.toByteArray());
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 throw new ProcessException(ex);
             }
         }

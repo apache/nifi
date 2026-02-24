@@ -32,7 +32,7 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
     private final String identifier;
     private final Map<String, String> properties;
 
-    public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardAuthorizerConfigurationContext(final String identifier, final Map<String, String> properties) {
         this.identifier = identifier;
         this.properties = Collections.unmodifiableMap(new HashMap<>(properties));
     }
@@ -48,7 +48,7 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
     }
 
     @Override
-    public PropertyValue getProperty(String property) {
+    public PropertyValue getProperty(final String property) {
         return new StandardPropertyValue(properties.get(property), null, ParameterLookup.EMPTY);
     }
 

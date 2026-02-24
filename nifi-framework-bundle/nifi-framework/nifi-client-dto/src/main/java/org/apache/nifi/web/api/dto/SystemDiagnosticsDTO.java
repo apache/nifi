@@ -33,7 +33,7 @@ public class SystemDiagnosticsDTO {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(SystemDiagnosticsSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final SystemDiagnosticsSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -43,7 +43,7 @@ public class SystemDiagnosticsDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeSystemDiagnosticsSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeSystemDiagnosticsSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 }

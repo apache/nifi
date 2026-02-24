@@ -81,7 +81,7 @@ class SmbjClientServiceTest {
         assertThrows(SMBApiException.class, () -> underTest.listFiles("dir3").count());
     }
 
-    private void mockOpenDirectory(String directoryName, NtStatus responseStatus) {
+    private void mockOpenDirectory(final String directoryName, final NtStatus responseStatus) {
         when(share.openDirectory(eq(directoryName), any(), any(), any(), any(), any()))
                 .thenThrow(new SMBApiException(responseStatus.getValue(), null, null));
     }

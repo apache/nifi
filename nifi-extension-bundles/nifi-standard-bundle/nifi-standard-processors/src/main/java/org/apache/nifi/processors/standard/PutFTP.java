@@ -105,7 +105,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         FTPTransfer.migrateProxyProperties(config);
         config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
     }
@@ -170,7 +170,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         FTPTransfer.validateProxySpec(validationContext, results);
         return results;

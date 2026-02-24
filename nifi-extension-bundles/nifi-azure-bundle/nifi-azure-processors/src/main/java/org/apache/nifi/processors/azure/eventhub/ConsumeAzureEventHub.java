@@ -440,7 +440,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         final ControllerService recordReader = validationContext.getProperty(RECORD_READER).asControllerService();
         final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).asControllerService();
@@ -508,7 +508,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        StateManager stateManager = context.getStateManager();
+        final StateManager stateManager = context.getStateManager();
 
         String clientId = stateManager.getState(Scope.LOCAL).get(CLIENT_ID.key());
         if (clientId == null) {
@@ -610,7 +610,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
             checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
             legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         } else {
-            ComponentStateCheckpointStore componentStateCheckpointStore = new ComponentStateCheckpointStore(clientId, context.getStateManager());
+            final ComponentStateCheckpointStore componentStateCheckpointStore = new ComponentStateCheckpointStore(clientId, context.getStateManager());
             componentStateCheckpointStore.cleanUp(fullyQualifiedNamespace, eventHubName, consumerGroup);
             checkpointStore = componentStateCheckpointStore;
             legacyPartitionEventPosition = Collections.emptyMap();
@@ -838,7 +838,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
                     lastEventData = eventData;
 
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     // Write it to the parse failure relationship.
                     logger.error("Failed to parse message from Azure Event Hub using configured Record Reader and Writer", e);
                     FlowFile failed = session.create();

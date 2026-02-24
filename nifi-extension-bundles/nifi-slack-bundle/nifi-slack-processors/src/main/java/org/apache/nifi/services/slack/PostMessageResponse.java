@@ -29,7 +29,7 @@ public class PostMessageResponse {
         return ok;
     }
 
-    public void setOk(boolean ok) {
+    public void setOk(final boolean ok) {
         this.ok = ok;
     }
 
@@ -37,7 +37,7 @@ public class PostMessageResponse {
         return channel;
     }
 
-    public void setChannel(String channel) {
+    public void setChannel(final String channel) {
         this.channel = channel;
     }
 
@@ -45,7 +45,7 @@ public class PostMessageResponse {
         return ts;
     }
 
-    public void setTs(Instant ts) {
+    public void setTs(final Instant ts) {
         this.ts = ts;
     }
 
@@ -53,7 +53,7 @@ public class PostMessageResponse {
         return error;
     }
 
-    public void setError(String error) {
+    public void setError(final String error) {
         this.error = error;
     }
 
@@ -61,7 +61,7 @@ public class PostMessageResponse {
         return warning;
     }
 
-    public void setWarning(String warning) {
+    public void setWarning(final String warning) {
         this.warning = warning;
     }
 }

@@ -30,19 +30,20 @@ public class IncrementalTimers {
     private final String endTime;
     private final String exclusiveEndTime;
 
-    private IncrementalTimers(String startTime, String endTime, String exclusiveEndTime) {
+    private IncrementalTimers(final String startTime, final String endTime, final String exclusiveEndTime) {
         this.startTime = startTime;
         this.endTime = endTime;
         this.exclusiveEndTime = exclusiveEndTime;
     }
 
     public static IncrementalTimers ofState(final Map<String, String> stateMap, final String initialStartTime, final Long incrDelayMs,
-                                             Instant currentExecutionTime) {
+                                             final Instant currentExecutionTimeArg) {
         String startTime = stateMap.get(LAST_EXECUTION_TIME_KEY);
         if (startTime == null && initialStartTime != null) {
             startTime = initialStartTime;
         }
 
+        Instant currentExecutionTime = currentExecutionTimeArg;
         if (incrDelayMs != null) {
             currentExecutionTime = currentExecutionTime.minus(incrDelayMs, ChronoUnit.MILLIS);
         }

@@ -162,7 +162,7 @@ public class DriverUtils {
 
                 // Look for .class files (exclude inner classes)
                 if (entryName.endsWith(".class") && !entryName.contains("$")) {
-                    String className = entryName.substring(0, entryName.length() - 6).replace('/', '.');
+                    final String className = entryName.substring(0, entryName.length() - 6).replace('/', '.');
 
                     // First filter with heuristics to avoid loading every class
                     if (isPotentialDriverClass(className)) {

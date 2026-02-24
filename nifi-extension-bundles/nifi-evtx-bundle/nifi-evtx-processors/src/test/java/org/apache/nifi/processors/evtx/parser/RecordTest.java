@@ -41,9 +41,9 @@ public class RecordTest {
     private Record record;
     private int recordNum = 120;
 
-    public static void putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int recordNum, Date fileTime) {
+    public static void putNode(final TestBinaryReaderBuilder testBinaryReaderBuilder, final int recordNum, final Date fileTime) {
         testBinaryReaderBuilder.putDWord(10794);
-        int size = 20;
+        final int size = 20;
         testBinaryReaderBuilder.putDWord(size);
         testBinaryReaderBuilder.putQWord(recordNum);
         testBinaryReaderBuilder.putFileTime(new Date());
@@ -55,7 +55,7 @@ public class RecordTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
+        final TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         putNode(testBinaryReaderBuilder, recordNum, new Date());
 
         record = new Record(testBinaryReaderBuilder.build(), chunkHeader);
@@ -64,8 +64,8 @@ public class RecordTest {
     @Test
     public void testInit() {
         assertEquals(recordNum, record.getRecordNum().intValue());
-        RootNode rootNode = record.getRootNode();
-        List<BxmlNode> children = rootNode.getChildren();
+        final RootNode rootNode = record.getRootNode();
+        final List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(EndOfStreamNode.class, children.get(0));
         assertEquals(0, rootNode.getSubstitutions().size());

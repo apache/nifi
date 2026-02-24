@@ -30,7 +30,7 @@ class Bucket {
      */
     private Map<String, Flow> flows = new HashMap<>();
 
-    public Bucket(String bucketId) {
+    public Bucket(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -50,19 +50,19 @@ class Bucket {
      * Set the name of bucket directory.
      * @param bucketDirName The directory name must be sanitized, use {@link org.apache.nifi.registry.util.FileUtils#sanitizeFilename(String)} to do so.
      */
-    public void setBucketDirName(String bucketDirName) {
+    public void setBucketDirName(final String bucketDirName) {
         this.bucketDirName = bucketDirName;
     }
 
-    public Flow getFlowOrCreate(String flowId) {
+    public Flow getFlowOrCreate(final String flowId) {
         return this.flows.computeIfAbsent(flowId, k -> new Flow(flowId));
     }
 
-    public Optional<Flow> getFlow(String flowId) {
+    public Optional<Flow> getFlow(final String flowId) {
         return Optional.ofNullable(flows.get(flowId));
     }
 
-    public void removeFlow(String flowId) {
+    public void removeFlow(final String flowId) {
         flows.remove(flowId);
     }
 

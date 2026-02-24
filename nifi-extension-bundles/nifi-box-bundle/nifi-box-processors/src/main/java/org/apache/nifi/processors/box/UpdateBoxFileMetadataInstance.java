@@ -201,7 +201,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
                 getLogger().warn("Box file with ID {} was not found.", fileId);
                 session.transfer(flowFile, REL_FILE_NOT_FOUND);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error processing metadata update for Box file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);

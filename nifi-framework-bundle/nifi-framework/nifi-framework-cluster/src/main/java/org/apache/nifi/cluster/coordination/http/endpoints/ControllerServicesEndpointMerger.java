@@ -35,7 +35,7 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
     public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && (CONTROLLER_SERVICES_URI.equals(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches());
     }
 
@@ -54,7 +54,7 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
             final Set<ControllerServiceEntity> nodeControllerServiceEntities = nodeResponseEntity.getControllerServices();
 
             for (final ControllerServiceEntity nodeControllerServiceEntity : nodeControllerServiceEntities) {
-                Map<NodeIdentifier, ControllerServiceEntity> innerMap = entityMap.computeIfAbsent(nodeControllerServiceEntity.getId(), k -> new HashMap<>());
+                final Map<NodeIdentifier, ControllerServiceEntity> innerMap = entityMap.computeIfAbsent(nodeControllerServiceEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeControllerServiceEntity);
             }
         }

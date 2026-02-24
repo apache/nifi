@@ -34,7 +34,7 @@ public class CuratorACLProviderFactory {
 
     public static final String SASL_AUTH_SCHEME = "sasl";
 
-    public ACLProvider create(ZooKeeperClientConfig config) {
+    public ACLProvider create(final ZooKeeperClientConfig config) {
         return Strings.CI.equals(config.getAuthType(), SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
     }
 
@@ -42,7 +42,7 @@ public class CuratorACLProviderFactory {
 
         private final List<ACL> acls;
 
-        private SaslACLProvider(ZooKeeperClientConfig config) {
+        private SaslACLProvider(final ZooKeeperClientConfig config) {
 
             if (!StringUtils.isEmpty(config.getAuthPrincipal())) {
 
@@ -76,7 +76,7 @@ public class CuratorACLProviderFactory {
         }
 
         @Override
-        public List<ACL> getAclForPath(String s) {
+        public List<ACL> getAclForPath(final String s) {
             return acls;
         }
     }

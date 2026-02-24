@@ -40,7 +40,7 @@ public class StateEntryDTO {
         return key;
     }
 
-    public void setKey(String key) {
+    public void setKey(final String key) {
         this.key = key;
     }
 
@@ -53,7 +53,7 @@ public class StateEntryDTO {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
@@ -66,7 +66,7 @@ public class StateEntryDTO {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 
@@ -79,7 +79,7 @@ public class StateEntryDTO {
         return clusterNodeAddress;
     }
 
-    public void setClusterNodeAddress(String clusterNodeAddress) {
+    public void setClusterNodeAddress(final String clusterNodeAddress) {
         this.clusterNodeAddress = clusterNodeAddress;
     }
 }

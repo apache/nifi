@@ -48,22 +48,22 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public boolean hasLabel(String labelId) {
+    public boolean hasLabel(final String labelId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findLabel(labelId) != null;
     }
 
     @Override
-    public Label createLabel(String groupId, LabelDTO labelDTO) {
+    public Label createLabel(final String groupId, final LabelDTO labelDTO) {
         if (labelDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, labelDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Label is being added.");
         }
 
         // get the desired group
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // create the label
-        Label label = flowController.getFlowManager().createLabel(labelDTO.getId(), labelDTO.getLabel());
+        final Label label = flowController.getFlowManager().createLabel(labelDTO.getId(), labelDTO.getLabel());
         if (labelDTO.getPosition() != null) {
             label.setPosition(new Position(labelDTO.getPosition().getX(), labelDTO.getPosition().getY()));
         }
@@ -81,20 +81,20 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public Label getLabel(String labelId) {
+    public Label getLabel(final String labelId) {
         return locateLabel(labelId);
     }
 
     @Override
-    public Set<Label> getLabels(String groupId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Set<Label> getLabels(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getLabels();
     }
 
     @Override
-    public Label updateLabel(LabelDTO labelDTO) {
+    public Label updateLabel(final LabelDTO labelDTO) {
         // get the label being updated
-        Label label = locateLabel(labelDTO.getId());
+        final Label label = locateLabel(labelDTO.getId());
 
         // update the label state
         if (labelDTO.getPosition() != null) {
@@ -120,16 +120,16 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
     }
 
     @Override
-    public void deleteLabel(String labelId) {
+    public void deleteLabel(final String labelId) {
         // get the label
-        Label label = locateLabel(labelId);
+        final Label label = locateLabel(labelId);
 
         // remove the label
         label.getProcessGroup().removeLabel(label);
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 }

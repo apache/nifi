@@ -275,7 +275,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private volatile boolean resetState = false;
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         if (resetState) {
             clearState(context);
             resetState = false;
@@ -287,11 +287,11 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 TIME_FORMAT
         );
 
-        String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
-        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
-        OAuth2AccessTokenProvider accessTokenProvider = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+        final String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
+        final String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
+        final OAuth2AccessTokenProvider accessTokenProvider = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
-        SalesforceConfiguration salesforceConfiguration = SalesforceConfiguration.create(
+        final SalesforceConfiguration salesforceConfiguration = SalesforceConfiguration.create(
                 instanceUrl,
                 salesforceVersion,
                 () -> accessTokenProvider.getAccessDetails().getAccessToken(),
@@ -302,7 +302,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     // visible for testing
-    SalesforceRestClient getSalesforceRestClient(SalesforceConfiguration salesforceConfiguration) {
+    SalesforceRestClient getSalesforceRestClient(final SalesforceConfiguration salesforceConfiguration) {
         return new SalesforceRestClient(salesforceConfiguration);
     }
 
@@ -341,13 +341,13 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         return SalesforceAgeValidator.validate(validationContext, results);
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if ((oldValue != null && !oldValue.equals(newValue))
                 && (descriptor.equals(SALESFORCE_INSTANCE_URL)
                 || descriptor.equals(QUERY_TYPE)
@@ -364,7 +364,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("query-type", QUERY_TYPE.getName());
         config.renameProperty("custom-soql-query", CUSTOM_SOQL_QUERY.getName());
         config.renameProperty("sobject-name", SOBJECT_NAME.getName());
@@ -383,9 +383,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
+        final FlowFile flowFile = session.get();
         if (isCustomQuery) {
             processCustomQuery(context, session, flowFile);
         } else {
@@ -393,18 +393,18 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    private void processQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
-        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-        String sObject = context.getProperty(SOBJECT_NAME).evaluateAttributeExpressions().getValue();
+    private void processQuery(final ProcessContext context, final ProcessSession session, final FlowFile originalFlowFile) {
+        final AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
+        final String sObject = context.getProperty(SOBJECT_NAME).evaluateAttributeExpressions().getValue();
         String fields = context.getProperty(FIELD_NAMES).evaluateAttributeExpressions().getValue();
-        String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
-        RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-        boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
-        boolean includeDeletedRecords = context.getProperty(INCLUDE_DELETED_RECORDS).asBoolean();
+        final String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
+        final boolean includeDeletedRecords = context.getProperty(INCLUDE_DELETED_RECORDS).asBoolean();
 
-        StateMap state = getState(session);
-        IncrementalContext incrementalContext = new IncrementalContext(context, state);
-        SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields, includeDeletedRecords);
+        final StateMap state = getState(session);
+        final IncrementalContext incrementalContext = new IncrementalContext(context, state);
+        final SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields, includeDeletedRecords);
 
         if (StringUtils.isBlank(fields)) {
             fields = salesForceSchemaHolder.getSalesforceObject().getFields()
@@ -415,33 +415,33 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
         // Add IsDeleted to fields if Include Deleted Records is true
         if (includeDeletedRecords) {
-            List<String> fieldList = Arrays.stream(fields.split("\\s*,\\s*")).collect(Collectors.toList());
+            final List<String> fieldList = Arrays.stream(fields.split("\\s*,\\s*")).collect(Collectors.toList());
             if (fieldList.stream().noneMatch(f -> f.equalsIgnoreCase("IsDeleted"))) {
                 fields = fields + ", IsDeleted";
             }
         }
 
-        String querySObject = new SalesforceQueryBuilder(incrementalContext)
+        final String querySObject = new SalesforceQueryBuilder(incrementalContext)
                 .buildQuery(sObject, fields, customWhereClause);
 
-        AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
-        List<FlowFile> outgoingFlowFiles = new ArrayList<>();
-        Map<String, String> originalAttributes = Optional.ofNullable(originalFlowFile)
+        final AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
+        final List<FlowFile> outgoingFlowFiles = new ArrayList<>();
+        final Map<String, String> originalAttributes = Optional.ofNullable(originalFlowFile)
                 .map(FlowFile::getAttributes)
                 .orElseGet(HashMap::new);
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
 
         do {
             FlowFile outgoingFlowFile = createOutgoingFlowFile(session, originalFlowFile);
             outgoingFlowFiles.add(outgoingFlowFile);
-            Map<String, String> attributes = new HashMap<>(originalAttributes);
+            final Map<String, String> attributes = new HashMap<>(originalAttributes);
 
-            AtomicInteger recordCountHolder = new AtomicInteger();
+            final AtomicInteger recordCountHolder = new AtomicInteger();
             try {
                 outgoingFlowFile = session.write(outgoingFlowFile, processRecordsCallback(session, nextRecordsUrl, writerFactory, state, incrementalContext,
                         salesForceSchemaHolder, querySObject, originalAttributes, attributes, recordCountHolder, includeDeletedRecords));
-                int recordCount = recordCountHolder.get();
+                final int recordCount = recordCountHolder.get();
 
                 if (createZeroRecordFlowFiles || recordCount != 0) {
                     outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
@@ -452,7 +452,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     outgoingFlowFiles.remove(outgoingFlowFile);
                     session.remove(outgoingFlowFile);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 if (e.getCause() instanceof IOException) {
                     throw new ProcessException("Couldn't get Salesforce records", e);
                 } else if (e.getCause() instanceof SchemaNotFoundException) {
@@ -469,28 +469,28 @@ public class QuerySalesforceObject extends AbstractProcessor {
         transferFlowFiles(session, outgoingFlowFiles, originalFlowFile, isOriginalTransferred, startNanos, sObject);
     }
 
-    private OutputStreamCallback processRecordsCallback(ProcessSession session, AtomicReference<String> nextRecordsUrl, RecordSetWriterFactory writerFactory,
-                                                        StateMap state, IncrementalContext incrementalContext, SalesforceSchemaHolder salesForceSchemaHolder,
-                                                        String querySObject, Map<String, String> originalAttributes, Map<String, String> attributes,
-                                                        AtomicInteger recordCountHolder, boolean includeDeletedRecords) {
+    private OutputStreamCallback processRecordsCallback(final ProcessSession session, final AtomicReference<String> nextRecordsUrl, final RecordSetWriterFactory writerFactory,
+                                                        final StateMap state, final IncrementalContext incrementalContext, final SalesforceSchemaHolder salesForceSchemaHolder,
+                                                        final String querySObject, final Map<String, String> originalAttributes, final Map<String, String> attributes,
+                                                        final AtomicInteger recordCountHolder, final boolean includeDeletedRecords) {
         return out -> {
             try {
                 handleRecordSet(out, nextRecordsUrl, querySObject, writerFactory, salesForceSchemaHolder, originalAttributes, attributes, recordCountHolder, includeDeletedRecords);
 
                 if (incrementalContext.getAgeFilterUpper() != null) {
-                    Map<String, String> newState = new HashMap<>(state.toMap());
+                    final Map<String, String> newState = new HashMap<>(state.toMap());
                     newState.put(LAST_AGE_FILTER, incrementalContext.getAgeFilterUpper());
                     updateState(session, newState);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException(e);
             }
         };
     }
 
-    private void handleRecordSet(OutputStream out, AtomicReference<String> nextRecordsUrl, String querySObject, RecordSetWriterFactory writerFactory,
-                                 SalesforceSchemaHolder salesForceSchemaHolder, Map<String, String> originalAttributes, Map<String, String> attributes,
-                                 AtomicInteger recordCountHolder, boolean includeDeletedRecords) throws Exception {
+    private void handleRecordSet(final OutputStream out, final AtomicReference<String> nextRecordsUrl, final String querySObject, final RecordSetWriterFactory writerFactory,
+                                 final SalesforceSchemaHolder salesForceSchemaHolder, final Map<String, String> originalAttributes, final Map<String, String> attributes,
+                                 final AtomicInteger recordCountHolder, final boolean includeDeletedRecords) throws Exception {
         try (
                 InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl.get(), querySObject, includeDeletedRecords);
                 JsonTreeRowRecordReader jsonReader = createJsonReader(querySObjectResultInputStream, salesForceSchemaHolder.getRecordSchema());
@@ -503,9 +503,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 writer.write(querySObjectRecord);
             }
 
-            WriteResult writeResult = writer.finishRecordSet();
+            final WriteResult writeResult = writer.finishRecordSet();
 
-            Map<String, String> capturedFields = jsonReader.getCapturedFields();
+            final Map<String, String> capturedFields = jsonReader.getCapturedFields();
             nextRecordsUrl.set(capturedFields.getOrDefault(NEXT_RECORDS_URL, null));
 
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
@@ -515,7 +515,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    private JsonTreeRowRecordReader createJsonReader(InputStream querySObjectResultInputStream, RecordSchema recordSchema) throws IOException, MalformedRecordException {
+    private JsonTreeRowRecordReader createJsonReader(final InputStream querySObjectResultInputStream, final RecordSchema recordSchema) throws IOException, MalformedRecordException {
         return new JsonTreeRowRecordReader(
                 querySObjectResultInputStream,
                 getLogger(),
@@ -531,8 +531,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
         );
     }
 
-    private RecordSetWriter createRecordSetWriter(RecordSetWriterFactory writerFactory, Map<String, String> originalAttributes, OutputStream out,
-                                                  RecordSchema recordSchema) throws IOException, SchemaNotFoundException {
+    private RecordSetWriter createRecordSetWriter(final RecordSetWriterFactory writerFactory, final Map<String, String> originalAttributes, final OutputStream out,
+                                                  final RecordSchema recordSchema) throws IOException, SchemaNotFoundException {
         return writerFactory.createWriter(
                 getLogger(),
                 writerFactory.getSchema(
@@ -544,28 +544,28 @@ public class QuerySalesforceObject extends AbstractProcessor {
         );
     }
 
-    private void processCustomQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
-        String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(originalFlowFile).getValue();
-        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-        AtomicReference<String> totalSize = new AtomicReference<>();
-        AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
-        List<FlowFile> outgoingFlowFiles = new ArrayList<>();
-        long startNanos = System.nanoTime();
-        boolean includeDeletedRecords = context.getProperty(INCLUDE_DELETED_RECORDS).asBoolean();
+    private void processCustomQuery(final ProcessContext context, final ProcessSession session, final FlowFile originalFlowFile) {
+        final String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(originalFlowFile).getValue();
+        final AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
+        final AtomicReference<String> totalSize = new AtomicReference<>();
+        final AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
+        final List<FlowFile> outgoingFlowFiles = new ArrayList<>();
+        final long startNanos = System.nanoTime();
+        final boolean includeDeletedRecords = context.getProperty(INCLUDE_DELETED_RECORDS).asBoolean();
         do {
             try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery, includeDeletedRecords)) {
                 FlowFile outgoingFlowFile = createOutgoingFlowFile(session, originalFlowFile);
                 outgoingFlowFiles.add(outgoingFlowFile);
                 outgoingFlowFile = session.write(outgoingFlowFile, parseCustomQueryResponse(response, nextRecordsUrl, totalSize));
-                int recordCount = nextRecordsUrl.get() != null ? MAX_RECORD_COUNT : Integer.parseInt(totalSize.get()) % MAX_RECORD_COUNT;
-                Map<String, String> attributes = new HashMap<>();
+                final int recordCount = nextRecordsUrl.get() != null ? MAX_RECORD_COUNT : Integer.parseInt(totalSize.get()) % MAX_RECORD_COUNT;
+                final Map<String, String> attributes = new HashMap<>();
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 attributes.put(TOTAL_RECORD_COUNT_ATTRIBUTE, String.valueOf(recordCount));
                 session.adjustCounter("Salesforce records processed", recordCount, false);
                 outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Couldn't get Salesforce records", e);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 handleError(session, originalFlowFile, isOriginalTransferred, outgoingFlowFiles, e, "Couldn't get Salesforce records");
                 break;
             }
@@ -574,11 +574,11 @@ public class QuerySalesforceObject extends AbstractProcessor {
         transferFlowFiles(session, outgoingFlowFiles, originalFlowFile, isOriginalTransferred, startNanos, "custom");
     }
 
-    private void transferFlowFiles(ProcessSession session, List<FlowFile> outgoingFlowFiles, FlowFile originalFlowFile, AtomicBoolean isOriginalTransferred,
-                                   long startNanos, String urlDetail) {
+    private void transferFlowFiles(final ProcessSession session, final List<FlowFile> outgoingFlowFiles, final FlowFile originalFlowFile, final AtomicBoolean isOriginalTransferred,
+                                   final long startNanos, final String urlDetail) {
         if (!outgoingFlowFiles.isEmpty()) {
             session.transfer(outgoingFlowFiles, REL_SUCCESS);
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
             outgoingFlowFiles.forEach(ff ->
                     session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + "/" + urlDetail, transferMillis)
@@ -589,7 +589,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    private FlowFile createOutgoingFlowFile(ProcessSession session, FlowFile originalFlowFile) {
+    private FlowFile createOutgoingFlowFile(final ProcessSession session, final FlowFile originalFlowFile) {
         if (originalFlowFile != null) {
             return session.create(originalFlowFile);
         } else {
@@ -597,7 +597,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    private OutputStreamCallback parseCustomQueryResponse(InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
+    private OutputStreamCallback parseCustomQueryResponse(final InputStream in, final AtomicReference<String> nextRecordsUrl, final AtomicReference<String> totalSize) {
         nextRecordsUrl.set(null);
         return out -> {
             try (JsonParser jsonParser = JSON_FACTORY.createParser(in);
@@ -615,12 +615,12 @@ public class QuerySalesforceObject extends AbstractProcessor {
         };
     }
 
-    private boolean nextTokenIs(JsonParser jsonParser, String value) throws IOException {
+    private boolean nextTokenIs(final JsonParser jsonParser, final String value) throws IOException {
         return jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.currentName()
                 .equals(value) && jsonParser.nextToken() != null;
     }
 
-    private InputStream getResultInputStream(String nextRecordsUrl, String querySObject, boolean includeDeletedRecords) {
+    private InputStream getResultInputStream(final String nextRecordsUrl, final String querySObject, final boolean includeDeletedRecords) {
         if (nextRecordsUrl == null) {
             if (includeDeletedRecords) {
                 return salesforceRestService.queryAll(querySObject);
@@ -631,16 +631,16 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return salesforceRestService.getNextRecords(nextRecordsUrl);
     }
 
-    private SalesforceSchemaHolder getConvertedSalesforceSchema(String sObject, String fields, boolean includeDeletedRecords) {
+    private SalesforceSchemaHolder getConvertedSalesforceSchema(final String sObject, final String fields, final boolean includeDeletedRecords) {
         try (InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject)) {
             return convertSchema(describeSObjectResult, fields);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Salesforce input stream close failed", e);
         }
     }
 
-    private void handleError(ProcessSession session, FlowFile originalFlowFile, AtomicBoolean isOriginalTransferred, List<FlowFile> outgoingFlowFiles,
-                             Exception e, String errorMessage) {
+    private void handleError(final ProcessSession session, final FlowFile originalFlowFile, final AtomicBoolean isOriginalTransferred, final List<FlowFile> outgoingFlowFiles,
+                             final Exception e, final String errorMessage) {
         if (originalFlowFile != null) {
             session.transfer(originalFlowFile, REL_FAILURE);
             isOriginalTransferred.set(true);
@@ -650,25 +650,25 @@ public class QuerySalesforceObject extends AbstractProcessor {
         outgoingFlowFiles.clear();
     }
 
-    private StateMap getState(ProcessSession session) {
-        StateMap state;
+    private StateMap getState(final ProcessSession session) {
+        final StateMap state;
         try {
             state = session.getState(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("State retrieval failed", e);
         }
         return state;
     }
 
-    private void updateState(ProcessSession session, Map<String, String> newState) {
+    private void updateState(final ProcessSession session, final Map<String, String> newState) {
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Last Age Filter state update failed", e);
         }
     }
 
-    private void clearState(ProcessContext context) {
+    private void clearState(final ProcessContext context) {
         try {
             getLogger().debug("Clearing state based on property modifications");
             context.getStateManager().clear(Scope.CLUSTER);
@@ -677,19 +677,19 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    protected SalesforceSchemaHolder convertSchema(InputStream describeSObjectResult, String fieldsOfInterest) {
+    protected SalesforceSchemaHolder convertSchema(final InputStream describeSObjectResult, final String fieldsOfInterest) {
         try {
-            SObjectDescription salesforceObject = salesForceToRecordSchemaConverter.getSalesforceObject(describeSObjectResult);
-            RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(salesforceObject, fieldsOfInterest);
+            final SObjectDescription salesforceObject = salesForceToRecordSchemaConverter.getSalesforceObject(describeSObjectResult);
+            final RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(salesforceObject, fieldsOfInterest);
 
-            RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
+            final RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
                     new RecordField(STARTING_FIELD_NAME, RecordFieldType.ARRAY.getArrayDataType(
                             RecordFieldType.RECORD.getRecordDataType(recordSchema)
                     ))
             ));
 
             return new SalesforceSchemaHolder(querySObjectResultSchema, recordSchema, salesforceObject);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("SObject to Record schema conversion failed", e);
         }
     }

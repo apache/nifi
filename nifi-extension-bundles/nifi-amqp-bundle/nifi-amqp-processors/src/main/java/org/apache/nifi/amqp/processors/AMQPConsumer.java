@@ -43,7 +43,7 @@ final class AMQPConsumer extends AMQPWorker {
     private final Consumer consumer;
 
     AMQPConsumer(final Connection connection, final String queueName, final boolean autoAcknowledge, final int prefetchCount,
-            ComponentLog processorLog) throws IOException {
+            final ComponentLog processorLog) throws IOException {
         super(connection, processorLog);
         this.validateStringProperty("queueName", queueName);
         this.queueName = queueName;
@@ -64,17 +64,17 @@ final class AMQPConsumer extends AMQPWorker {
 
                 try {
                     responseQueue.put(new GetResponse(envelope, properties, body, Integer.MAX_VALUE));
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
             }
 
             @Override
-            public void handleCancel(String consumerTag) throws IOException {
+            public void handleCancel(final String consumerTag) throws IOException {
                 processorLog.error("Consumer has been cancelled by the broker, eg. due to deleted queue.");
                 try {
                     close();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     processorLog.error("Failed to close consumer.", e);
                 }
             }
@@ -110,7 +110,7 @@ final class AMQPConsumer extends AMQPWorker {
 
         try {
             getChannel().basicAck(response.getEnvelope().getDeliveryTag(), true);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new AMQPException("Failed to acknowledge message", e);
         }
     }
@@ -126,7 +126,7 @@ final class AMQPConsumer extends AMQPWorker {
                     // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
                     processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", response.getEnvelope().getDeliveryTag());
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 processorLog.error("Failed to drain response queue.");
             }
         }

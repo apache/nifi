@@ -50,8 +50,8 @@ class GracefulShutdownParameterProviderTest {
     @ParameterizedTest(name = "{index} => shutdownPropertyValue={0}")
     @NullSource
     @ValueSource(strings = {"notAnInteger", "-1"})
-    void testGetBootstrapPropertiesShouldReturnDefaultShutdownPropertyValue(String shutdownProperty) throws IOException {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+    void testGetBootstrapPropertiesShouldReturnDefaultShutdownPropertyValue(final String shutdownProperty) throws IOException {
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
 
         when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any()))
             .thenReturn(Optional.ofNullable(shutdownProperty).orElse(DEFAULT_GRACEFUL_SHUTDOWN_VALUE));
@@ -63,7 +63,7 @@ class GracefulShutdownParameterProviderTest {
 
     @Test
     void testGetBootstrapPropertiesShouldReturnShutdownPropertyValue() throws IOException {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         when(properties.getProperty(eq(GRACEFUL_SHUTDOWN_PROP), any())).thenReturn("1000");
         when(bootstrapFileProvider.getBootstrapProperties()).thenReturn(properties);
 

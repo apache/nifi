@@ -87,7 +87,7 @@ abstract class AbstractDemarcator implements Closeable {
      * and max buffer size. Each demarcated token must fit within max buffer
      * size, otherwise the exception will be raised.
      */
-    AbstractDemarcator(InputStream is, int maxDataSize) {
+    AbstractDemarcator(final InputStream is, final int maxDataSize) {
         this(is, maxDataSize, INIT_BUFFER_SIZE);
     }
 
@@ -96,7 +96,7 @@ abstract class AbstractDemarcator implements Closeable {
      * and max buffer size and initial buffer size. Each demarcated token must
      * fit within max buffer size, otherwise the exception will be raised.
      */
-    AbstractDemarcator(InputStream is, int maxDataSize, int initialBufferSize) {
+    AbstractDemarcator(final InputStream is, final int maxDataSize, final int initialBufferSize) {
         this.validate(is, maxDataSize, initialBufferSize);
         this.is = is;
         this.initialBufferSize = initialBufferSize;
@@ -120,15 +120,15 @@ abstract class AbstractDemarcator implements Closeable {
     void fill() throws IOException {
         if (this.index >= this.buffer.length) {
             if (this.mark == 0) { // expand
-                long expandedSize = this.buffer.length + this.initialBufferSize;
+                final long expandedSize = this.buffer.length + this.initialBufferSize;
                 if (expandedSize > Integer.MAX_VALUE) {
                     throw new BufferOverflowException(); // will probably OOM before this will ever happen, but just in case.
                 }
-                byte[] newBuff = new byte[(int) expandedSize];
+                final byte[] newBuff = new byte[(int) expandedSize];
                 System.arraycopy(this.buffer, 0, newBuff, 0, this.buffer.length);
                 this.buffer = newBuff;
             } else { // shuffle
-                int length = this.index - this.mark;
+                final int length = this.index - this.mark;
                 System.arraycopy(this.buffer, this.mark, this.buffer, 0, length);
                 this.index = length;
                 this.mark = 0;
@@ -152,7 +152,7 @@ abstract class AbstractDemarcator implements Closeable {
      * Will extract data token of the provided length from the current buffer
      * starting at the 'mark'.
      */
-    byte[] extractDataToken(int length) throws IOException {
+    byte[] extractDataToken(final int length) throws IOException {
         if (length > this.maxDataSize) {
             throw new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + this.maxDataSize + " bytes.");
         }
@@ -167,7 +167,7 @@ abstract class AbstractDemarcator implements Closeable {
     /**
      * Validates prerequisites for constructor arguments
      */
-    private void validate(InputStream is, int maxDataSize, int initialBufferSize) {
+    private void validate(final InputStream is, final int maxDataSize, final int initialBufferSize) {
         if (is == null) {
             throw new IllegalArgumentException("'is' must not be null");
         } else if (maxDataSize <= 0) {

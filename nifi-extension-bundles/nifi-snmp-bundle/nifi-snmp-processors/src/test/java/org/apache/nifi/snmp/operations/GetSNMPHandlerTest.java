@@ -92,7 +92,7 @@ class GetSNMPHandlerTest {
         final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(mockSnmpManager);
         getSNMPHandler.get(flowFileAttributes, mockTarget);
 
-        ArgumentCaptor<PDU> captor = ArgumentCaptor.forClass(PDU.class);
+        final ArgumentCaptor<PDU> captor = ArgumentCaptor.forClass(PDU.class);
         Mockito.verify(mockSnmpManager).get(captor.capture(), any(Target.class));
 
         final PDU pdu = captor.getValue();
@@ -137,7 +137,7 @@ class GetSNMPHandlerTest {
         getSNMPHandler.setTreeUtils(mockTreeUtils);
         getSNMPHandler.walk(flowFileAttributes, mockTarget);
 
-        ArgumentCaptor<OID[]> captor = ArgumentCaptor.forClass(OID[].class);
+        final ArgumentCaptor<OID[]> captor = ArgumentCaptor.forClass(OID[].class);
         Mockito.verify(mockTreeUtils).walk(any(Target.class), captor.capture());
 
         assertEquals(OID, captor.getValue()[0].toString());
@@ -174,7 +174,7 @@ class GetSNMPHandlerTest {
         getSNMPHandler.setTreeUtils(mockTreeUtils);
         getSNMPHandler.walk(flowFileAttributes, mockTarget);
 
-        ArgumentCaptor<OID[]> captor = ArgumentCaptor.forClass(OID[].class);
+        final ArgumentCaptor<OID[]> captor = ArgumentCaptor.forClass(OID[].class);
         Mockito.verify(mockTreeUtils).walk(any(Target.class), captor.capture());
 
         assertEquals(OID, captor.getValue()[0].toString());

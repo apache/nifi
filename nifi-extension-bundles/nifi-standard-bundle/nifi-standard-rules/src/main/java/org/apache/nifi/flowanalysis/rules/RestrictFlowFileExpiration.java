@@ -85,7 +85,7 @@ public class RestrictFlowFileExpiration extends AbstractFlowAnalysisRule {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
         final long minSize = validationContext.getProperty(MIN_FLOWFILE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -104,7 +104,7 @@ public class RestrictFlowFileExpiration extends AbstractFlowAnalysisRule {
     }
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup pg, FlowAnalysisRuleContext context) {
+    public Collection<GroupAnalysisResult> analyzeProcessGroup(final VersionedProcessGroup pg, final FlowAnalysisRuleContext context) {
         final Collection<ConnectionViolation> violations = new ArrayList<>();
 
         final boolean allowZero = context.getProperty(ALLOW_ZERO).asBoolean();
@@ -144,7 +144,7 @@ public class RestrictFlowFileExpiration extends AbstractFlowAnalysisRule {
         private final String configurationItem;
         private final String violationMessage;
 
-        ExpirationViolationType(String id, String configurationItem, String violationMessage) {
+        ExpirationViolationType(final String id, final String configurationItem, final String violationMessage) {
             this.id = id;
             this.configurationItem = configurationItem;
             this.violationMessage = violationMessage;

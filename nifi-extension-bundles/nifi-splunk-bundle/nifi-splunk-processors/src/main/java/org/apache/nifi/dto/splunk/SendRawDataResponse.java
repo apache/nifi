@@ -29,7 +29,7 @@ public class SendRawDataResponse {
         return text;
     }
 
-    public void setText(String text) {
+    public void setText(final String text) {
         this.text = text;
     }
 
@@ -37,7 +37,7 @@ public class SendRawDataResponse {
         return code;
     }
 
-    public void setCode(int code) {
+    public void setCode(final int code) {
         this.code = code;
     }
 

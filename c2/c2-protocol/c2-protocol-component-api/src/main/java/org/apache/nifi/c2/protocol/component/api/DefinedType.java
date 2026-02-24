@@ -39,7 +39,7 @@ public class DefinedType implements Serializable {
         return group;
     }
 
-    public void setGroup(String group) {
+    public void setGroup(final String group) {
         this.group = group;
     }
 
@@ -48,7 +48,7 @@ public class DefinedType implements Serializable {
         return artifact;
     }
 
-    public void setArtifact(String artifact) {
+    public void setArtifact(final String artifact) {
         this.artifact = artifact;
     }
 
@@ -57,7 +57,7 @@ public class DefinedType implements Serializable {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -66,7 +66,7 @@ public class DefinedType implements Serializable {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -75,12 +75,12 @@ public class DefinedType implements Serializable {
         return typeDescription;
     }
 
-    public void setTypeDescription(String typeDescription) {
+    public void setTypeDescription(final String typeDescription) {
         this.typeDescription = typeDescription;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

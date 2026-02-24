@@ -55,7 +55,7 @@ public interface EventIterator extends Closeable {
         };
     }
 
-    default EventIterator filter(Predicate<ProvenanceEventRecord> predicate) {
+    default EventIterator filter(final Predicate<ProvenanceEventRecord> predicate) {
         final EventIterator self = this;
 
         return new EventIterator() {
@@ -67,7 +67,7 @@ public interface EventIterator extends Closeable {
             @Override
             public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
                 while (true) {
-                    Optional<ProvenanceEventRecord> next = self.nextEvent();
+                    final Optional<ProvenanceEventRecord> next = self.nextEvent();
                     if (next.isEmpty()) {
                         return next;
                     }

@@ -93,19 +93,19 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("bq.dataset", DATASET.getName());
         config.renameProperty("bq.table.name", TABLE_NAME.getName());
     }
 
     @Override
-    protected GoogleCredentials getGoogleCredentials(ProcessContext context) {
+    protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
         return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_BIGQUERY_SCOPE);
     }
 
     @Override
-    protected BigQueryOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
+    protected BigQueryOptions getServiceOptions(final ProcessContext context, final GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
         final Integer retryCount = Integer.valueOf(context.getProperty(RETRY_COUNT).getValue());
 
@@ -156,7 +156,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     }
 
     @Override
-    protected final Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected final Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
 
@@ -177,7 +177,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
      * If subclasses needs to implement any custom validation, override this method then add
      * validation result to the results.
      */
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> results) {
     }
 
     protected TableId getTableId(final ProcessContext context, final Map<String, String> attributes) {

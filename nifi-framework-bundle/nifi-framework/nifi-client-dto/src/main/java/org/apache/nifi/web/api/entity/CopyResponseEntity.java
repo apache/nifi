@@ -66,7 +66,7 @@ public class CopyResponseEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -81,7 +81,7 @@ public class CopyResponseEntity extends Entity {
         return externalControllerServiceReferences;
     }
 
-    public void setExternalControllerServiceReferences(Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
+    public void setExternalControllerServiceReferences(final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences) {
         this.externalControllerServiceReferences = externalControllerServiceReferences;
     }
 
@@ -96,7 +96,7 @@ public class CopyResponseEntity extends Entity {
         return parameterContexts;
     }
 
-    public void setParameterContexts(Map<String, VersionedParameterContext> parameterContexts) {
+    public void setParameterContexts(final Map<String, VersionedParameterContext> parameterContexts) {
         this.parameterContexts = parameterContexts;
     }
 
@@ -111,7 +111,7 @@ public class CopyResponseEntity extends Entity {
         return parameterProviders;
     }
 
-    public void setParameterProviders(Map<String, ParameterProviderReference> parameterProviders) {
+    public void setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
         this.parameterProviders = parameterProviders;
     }
 
@@ -124,7 +124,7 @@ public class CopyResponseEntity extends Entity {
         return connections;
     }
 
-    public void setConnections(Set<VersionedConnection> connections) {
+    public void setConnections(final Set<VersionedConnection> connections) {
         this.connections = connections;
     }
 
@@ -137,7 +137,7 @@ public class CopyResponseEntity extends Entity {
         return funnels;
     }
 
-    public void setFunnels(Set<VersionedFunnel> funnels) {
+    public void setFunnels(final Set<VersionedFunnel> funnels) {
         this.funnels = funnels;
     }
 
@@ -150,7 +150,7 @@ public class CopyResponseEntity extends Entity {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<VersionedPort> inputPorts) {
+    public void setInputPorts(final Set<VersionedPort> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -163,7 +163,7 @@ public class CopyResponseEntity extends Entity {
         return labels;
     }
 
-    public void setLabels(Set<VersionedLabel> labels) {
+    public void setLabels(final Set<VersionedLabel> labels) {
         this.labels = labels;
     }
 
@@ -176,7 +176,7 @@ public class CopyResponseEntity extends Entity {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<VersionedPort> outputPorts) {
+    public void setOutputPorts(final Set<VersionedPort> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -189,7 +189,7 @@ public class CopyResponseEntity extends Entity {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<VersionedProcessGroup> processGroups) {
+    public void setProcessGroups(final Set<VersionedProcessGroup> processGroups) {
         this.processGroups = processGroups;
     }
 
@@ -202,7 +202,7 @@ public class CopyResponseEntity extends Entity {
         return processors;
     }
 
-    public void setProcessors(Set<VersionedProcessor> processors) {
+    public void setProcessors(final Set<VersionedProcessor> processors) {
         this.processors = processors;
     }
 
@@ -215,7 +215,7 @@ public class CopyResponseEntity extends Entity {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<VersionedRemoteProcessGroup> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Set<VersionedRemoteProcessGroup> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 }

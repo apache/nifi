@@ -44,7 +44,7 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
     private final ObjectMapper objectMapper = ObjectMapperProvider.getMapper();
 
     @Override
-    public void serialize(int dataModelVersion, T t, OutputStream out) throws SerializationException {
+    public void serialize(final int dataModelVersion, final T t, final OutputStream out) throws SerializationException {
         if (t == null) {
             throw new IllegalArgumentException("The object to serialize cannot be null");
         }
@@ -59,18 +59,18 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
 
         try {
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(out, container);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException("Unable to serialize object", e);
         }
     }
 
     @Override
-    public T deserialize(InputStream input) throws SerializationException {
+    public T deserialize(final InputStream input) throws SerializationException {
         final TypeReference<SerializationContainer<T>> typeRef = getDeserializeTypeRef();
         try {
             final SerializationContainer<T> container = objectMapper.readValue(input, typeRef);
             return container.getContent();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException("Unable to deserialize object", e);
         }
     }
@@ -78,12 +78,12 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
     abstract TypeReference<SerializationContainer<T>> getDeserializeTypeRef() throws SerializationException;
 
     @Override
-    public int readDataModelVersion(InputStream input) throws SerializationException {
+    public int readDataModelVersion(final InputStream input) throws SerializationException {
         final byte[] headerBytes = new byte[SerializationConstants.MAX_HEADER_BYTES];
         final int readHeaderBytes;
         try {
             readHeaderBytes = input.read(headerBytes);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException("Could not read additional bytes to parse as serialization version 2 or later. "
                     + e.getMessage(), e);
         }
@@ -118,9 +118,9 @@ public abstract class JacksonSerializer<T> implements VersionedSerializer<T> {
             }
 
             return Integer.parseInt(header.get(DATA_MODEL_VERSION));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException(String.format("Failed to parse header string '%s' due to %s", headerObjectStr, e), e);
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
             throw new SerializationException(String.format("Failed to parse version string due to %s", e.getMessage()), e);
         }
     }

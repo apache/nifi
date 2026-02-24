@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class FlowRegistryClientEntityMerger implements ComponentEntityMerger<FlowRegistryClientEntity> {
 
     @Override
-    public void mergeComponents(FlowRegistryClientEntity clientEntity, Map<NodeIdentifier, FlowRegistryClientEntity> entityMap) {
+    public void mergeComponents(final FlowRegistryClientEntity clientEntity, final Map<NodeIdentifier, FlowRegistryClientEntity> entityMap) {
         final FlowRegistryClientDTO clientDTO = clientEntity.getComponent();
         final Map<NodeIdentifier, FlowRegistryClientDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, FlowRegistryClientEntity> entry : entityMap.entrySet()) {
@@ -69,7 +69,7 @@ public class FlowRegistryClientEntityMerger implements ComponentEntityMerger<Flo
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client

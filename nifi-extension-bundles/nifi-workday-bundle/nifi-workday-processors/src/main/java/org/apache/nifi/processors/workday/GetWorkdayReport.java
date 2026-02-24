@@ -226,13 +226,13 @@ public class GetWorkdayReport extends AbstractProcessor {
 
     @OnScheduled
     public void setUpClient(final ProcessContext context)  {
-        String authType = context.getProperty(AUTH_TYPE).getValue();
-        OAuth2AccessTokenProvider tokenProvider = authType.equals(OAUTH_TYPE.getValue())
+        final String authType = context.getProperty(AUTH_TYPE).getValue();
+        final OAuth2AccessTokenProvider tokenProvider = authType.equals(OAUTH_TYPE.getValue())
                 ? context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class) : null;
-        WebClientServiceProvider standardWebClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class);
-        RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
-        RecordSetWriterFactory recordSetWriterFactory = recordReaderFactory == null ? null : context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-        WebClientService webClientService = standardWebClientServiceProvider.getWebClientService();
+        final WebClientServiceProvider standardWebClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class);
+        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory recordSetWriterFactory = recordReaderFactory == null ? null : context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+        final WebClientService webClientService = standardWebClientServiceProvider.getWebClientService();
         tokenProviderReference.set(tokenProvider);
         webClientReference.set(webClientService);
         recordReaderFactoryReference.set(recordReaderFactory);
@@ -240,7 +240,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
 
         if (skipExecution(context, flowFile)) {
@@ -250,18 +250,18 @@ public class GetWorkdayReport extends AbstractProcessor {
         FlowFile responseFlowFile = null;
 
         try {
-            WebClientService webClientService = webClientReference.get();
-            URI uri = new URI(context.getProperty(REPORT_URL).evaluateAttributeExpressions(flowFile).getValue().trim());
-            long startNanos = System.nanoTime();
-            String authorization = createAuthorizationHeader(context, flowFile);
+            final WebClientService webClientService = webClientReference.get();
+            final URI uri = new URI(context.getProperty(REPORT_URL).evaluateAttributeExpressions(flowFile).getValue().trim());
+            final long startNanos = System.nanoTime();
+            final String authorization = createAuthorizationHeader(context, flowFile);
 
             try (HttpResponseEntity httpResponseEntity = webClientService.get()
                 .uri(uri)
                 .header(HEADER_AUTHORIZATION, authorization)
                 .retrieve()) {
                 responseFlowFile = createResponseFlowFile(flowFile, session, httpResponseEntity);
-                long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                Map<String, String> commonAttributes = createCommonAttributes(uri, httpResponseEntity, elapsedTime);
+                final long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                final Map<String, String> commonAttributes = createCommonAttributes(uri, httpResponseEntity, elapsedTime);
 
                 if (flowFile != null) {
                     flowFile = session.putAllAttributes(flowFile, setMimeType(commonAttributes, httpResponseEntity));
@@ -277,7 +277,7 @@ public class GetWorkdayReport extends AbstractProcessor {
 
                 route(flowFile, responseFlowFile, session, context, httpResponseEntity.statusCode());
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (flowFile == null) {
                 getLogger().error("Request Processing failed", e);
                 context.yield();
@@ -296,7 +296,7 @@ public class GetWorkdayReport extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());
     }
@@ -306,27 +306,27 @@ public class GetWorkdayReport extends AbstractProcessor {
      *  However, if we have no FlowFile and we have connections coming from other Processors, then
      *  we know that we should run only if we have a FlowFile.
      */
-    private boolean skipExecution(ProcessContext context, FlowFile flowfile) {
+    private boolean skipExecution(final ProcessContext context, final FlowFile flowfile) {
         return context.hasIncomingConnection() && flowfile == null && context.hasNonLoopConnection();
     }
 
-    private FlowFile createResponseFlowFile(FlowFile flowfile, ProcessSession session, HttpResponseEntity httpResponseEntity)
+    private FlowFile createResponseFlowFile(final FlowFile flowfile, final ProcessSession session, final HttpResponseEntity httpResponseEntity)
         throws IOException, SchemaNotFoundException, MalformedRecordException {
         FlowFile responseFlowFile = null;
         try {
             final int statusCode = httpResponseEntity.statusCode();
             if (isSuccess(statusCode)) {
                 responseFlowFile = flowfile == null ? session.create() : session.create(flowfile);
-                InputStream responseBodyStream = httpResponseEntity.body();
+                final InputStream responseBodyStream = httpResponseEntity.body();
                 if (recordReaderFactoryReference.get() != null) {
-                    TransformResult transformResult = transformRecords(session, flowfile, responseFlowFile, responseBodyStream);
-                    Map<String, String> attributes = new HashMap<>();
+                    final TransformResult transformResult = transformRecords(session, flowfile, responseFlowFile, responseBodyStream);
+                    final Map<String, String> attributes = new HashMap<>();
                     attributes.put(RECORD_COUNT, String.valueOf(transformResult.getNumberOfRecords()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), transformResult.getMimeType());
                     responseFlowFile = session.putAllAttributes(responseFlowFile, attributes);
                 } else {
                     responseFlowFile = session.importFrom(responseBodyStream, responseFlowFile);
-                    Optional<String> mimeType = httpResponseEntity.headers().getFirstHeader(HEADER_CONTENT_TYPE);
+                    final Optional<String> mimeType = httpResponseEntity.headers().getFirstHeader(HEADER_CONTENT_TYPE);
                     if (mimeType.isPresent()) {
                         responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), mimeType.get());
                     }
@@ -334,32 +334,32 @@ public class GetWorkdayReport extends AbstractProcessor {
             } else {
                 getLogger().warn("Workday API request failed: HTTP {}", statusCode);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             session.remove(responseFlowFile);
             throw e;
         }
         return responseFlowFile;
     }
 
-    private String createAuthorizationHeader(ProcessContext context, FlowFile flowfile) {
+    private String createAuthorizationHeader(final ProcessContext context, final FlowFile flowfile) {
         final String authType = context.getProperty(AUTH_TYPE).getValue();
         if (BASIC_AUTH_TYPE.getValue().equals(authType)) {
-            String userName = context.getProperty(WORKDAY_USERNAME).evaluateAttributeExpressions(flowfile).getValue();
-            String password = context.getProperty(WORKDAY_PASSWORD).evaluateAttributeExpressions(flowfile).getValue();
-            String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.UTF_8));
+            final String userName = context.getProperty(WORKDAY_USERNAME).evaluateAttributeExpressions(flowfile).getValue();
+            final String password = context.getProperty(WORKDAY_PASSWORD).evaluateAttributeExpressions(flowfile).getValue();
+            final String base64Credential = Base64.getEncoder().encodeToString((userName + USERNAME_PASSWORD_SEPARATOR + password).getBytes(StandardCharsets.UTF_8));
             return BASIC_PREFIX + base64Credential;
         } else {
-            OAuth2AccessTokenProvider tokenProvider = tokenProviderReference.get();
+            final OAuth2AccessTokenProvider tokenProvider = tokenProviderReference.get();
             return BEARER_PREFIX + tokenProvider.getAccessDetails().getAccessToken();
         }
     }
 
-    private TransformResult transformRecords(ProcessSession session, FlowFile flowfile, FlowFile responseFlowFile, InputStream responseBodyStream)
+    private TransformResult transformRecords(final ProcessSession session, final FlowFile flowfile, final FlowFile responseFlowFile, final InputStream responseBodyStream)
         throws IOException, SchemaNotFoundException, MalformedRecordException {
         int numberOfRecords = 0;
-        String mimeType;
+        final String mimeType;
         try (RecordReader reader = recordReaderFactoryReference.get().createRecordReader(flowfile, new BufferedInputStream(responseBodyStream), getLogger())) {
-            RecordSchema schema = recordSetWriterFactoryReference.get().getSchema(flowfile == null ? Collections.emptyMap() : flowfile.getAttributes(), reader.getSchema());
+            final RecordSchema schema = recordSetWriterFactoryReference.get().getSchema(flowfile == null ? Collections.emptyMap() : flowfile.getAttributes(), reader.getSchema());
             try (OutputStream responseStream = session.write(responseFlowFile);
                 RecordSetWriter recordSetWriter = recordSetWriterFactoryReference.get().createWriter(getLogger(), schema, responseStream, responseFlowFile)) {
                 mimeType = recordSetWriter.getMimeType();
@@ -375,7 +375,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         return new TransformResult(numberOfRecords, mimeType);
     }
 
-    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode) {
+    private void route(final FlowFile request, final FlowFile response, final ProcessSession session, final ProcessContext context, final int statusCode) {
         if (!isSuccess(statusCode) && request == null) {
             context.yield();
         }
@@ -394,12 +394,12 @@ public class GetWorkdayReport extends AbstractProcessor {
         }
     }
 
-    private boolean isSuccess(int statusCode) {
+    private boolean isSuccess(final int statusCode) {
         return statusCode >= 200 && statusCode < 300;
     }
 
-    private Map<String, String> createCommonAttributes(URI uri, HttpResponseEntity httpResponseEntity, long elapsedTime) {
-        Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> createCommonAttributes(final URI uri, final HttpResponseEntity httpResponseEntity, final long elapsedTime) {
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(STATUS_CODE, String.valueOf(httpResponseEntity.statusCode()));
         attributes.put(REQUEST_URL, uri.toString());
         attributes.put(REQUEST_DURATION, Long.toString(elapsedTime));
@@ -407,9 +407,9 @@ public class GetWorkdayReport extends AbstractProcessor {
         return attributes;
     }
 
-    private Map<String, String> setMimeType(Map<String, String> commonAttributes, HttpResponseEntity httpResponseEntity) {
+    private Map<String, String> setMimeType(final Map<String, String> commonAttributes, final HttpResponseEntity httpResponseEntity) {
         Map<String, String> attributes = commonAttributes;
-        Optional<String> contentType = httpResponseEntity.headers().getFirstHeader(HEADER_CONTENT_TYPE);
+        final Optional<String> contentType = httpResponseEntity.headers().getFirstHeader(HEADER_CONTENT_TYPE);
         if (contentType.isPresent()) {
             attributes = new HashMap<>(commonAttributes);
             attributes.put(CoreAttributes.MIME_TYPE.key(), contentType.get());
@@ -421,7 +421,7 @@ public class GetWorkdayReport extends AbstractProcessor {
         private final int numberOfRecords;
         private final String mimeType;
 
-        private TransformResult(int numberOfRecords, String mimeType) {
+        private TransformResult(final int numberOfRecords, final String mimeType) {
             this.numberOfRecords = numberOfRecords;
             this.mimeType = mimeType;
         }

@@ -67,36 +67,36 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 
     private final ResourceRepository resourceRepository;
 
-    public DefaultSyncResourceStrategy(ResourceRepository resourceRepository) {
+    public DefaultSyncResourceStrategy(final ResourceRepository resourceRepository) {
         this.resourceRepository = resourceRepository;
     }
 
     @Override
-    public OperationState synchronizeResourceRepository(ResourcesGlobalHash c2GlobalHash, List<ResourceItem> c2ServerItems,
-                                                        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
-                                                        Function<String, String> urlEnrichFunction) {
-        Set<ResourceItem> c2Items = Set.copyOf(c2ServerItems);
-        Set<ResourceItem> agentItems = Set.copyOf(resourceRepository.findAllResourceItems());
+    public OperationState synchronizeResourceRepository(final ResourcesGlobalHash c2GlobalHash, final List<ResourceItem> c2ServerItems,
+                                                        final BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
+                                                        final Function<String, String> urlEnrichFunction) {
+        final Set<ResourceItem> c2Items = Set.copyOf(c2ServerItems);
+        final Set<ResourceItem> agentItems = Set.copyOf(resourceRepository.findAllResourceItems());
 
-        OperationState deleteResult = deleteItems(c2Items, agentItems);
-        OperationState saveResult = saveNewItems(c2Items, agentItems, resourceDownloadFunction, urlEnrichFunction);
+        final OperationState deleteResult = deleteItems(c2Items, agentItems);
+        final OperationState saveResult = saveNewItems(c2Items, agentItems, resourceDownloadFunction, urlEnrichFunction);
 
-        Entry<OperationState, OperationState> resultPair = entry(deleteResult, saveResult);
+        final Entry<OperationState, OperationState> resultPair = entry(deleteResult, saveResult);
 
         return SUCCESS_RESULT_PAIRS.contains(resultPair)
             ? saveGlobalHash(c2GlobalHash, deleteResult, saveResult)
             : FAILED_RESULT_PAIRS.contains(resultPair) ? NOT_APPLIED : PARTIALLY_APPLIED;
     }
 
-    private OperationState saveNewItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems,
-                                        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
-                                        Function<String, String> urlEnrichFunction) {
-        List<ResourceItem> newItems = c2Items.stream().filter(not(agentItems::contains)).toList();
+    private OperationState saveNewItems(final Set<ResourceItem> c2Items, final Set<ResourceItem> agentItems,
+                                        final BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction,
+                                        final Function<String, String> urlEnrichFunction) {
+        final List<ResourceItem> newItems = c2Items.stream().filter(not(agentItems::contains)).toList();
         if (newItems.isEmpty()) {
             return NO_OPERATION;
         }
 
-        List<ResourceItem> addedItems = newItems.stream()
+        final List<ResourceItem> addedItems = newItems.stream()
             .filter(this::validate)
             .map(downloadIfNotPresentAndAddToRepository(resourceDownloadFunction, urlEnrichFunction))
             .flatMap(Optional::stream)
@@ -108,7 +108,7 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
     }
 
     private Function<ResourceItem, Optional<ResourceItem>> downloadIfNotPresentAndAddToRepository(
-        BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction, Function<String, String> urlEnrichFunction) {
+        final BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> resourceDownloadFunction, final Function<String, String> urlEnrichFunction) {
         return resourceItem -> resourceRepository.resourceItemBinaryPresent(resourceItem)
             ? resourceRepository.addResourceItem(resourceItem)
             : Optional.ofNullable(urlEnrichFunction.apply(resourceItem.getUrl()))
@@ -116,7 +116,7 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
             .flatMap(tempResourcePath -> resourceRepository.addResourceItem(resourceItem, tempResourcePath));
     }
 
-    private boolean validate(ResourceItem resourceItem) {
+    private boolean validate(final ResourceItem resourceItem) {
         if (resourceItem.getResourcePath() != null && resourceItem.getResourceType() == ASSET) {
             if (!ALLOWED_RESOURCE_PATH_PATTERN.matcher(resourceItem.getResourcePath()).matches()) {
                 LOG.error("Invalid resource path {}", resourceItem.getResourcePath());
@@ -126,25 +126,25 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
         return true;
     }
 
-    private Optional<Path> persistToTemporaryLocation(InputStream inputStream) {
-        String tempResourceId = randomUUID().toString();
+    private Optional<Path> persistToTemporaryLocation(final InputStream inputStream) {
+        final String tempResourceId = randomUUID().toString();
         try {
-            Path tempFile = createTempFile(tempResourceId, null);
+            final Path tempFile = createTempFile(tempResourceId, null);
             copy(inputStream, tempFile, REPLACE_EXISTING);
             return Optional.of(tempFile);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Unable to download resource. Will retry in next heartbeat iteration", e);
             return empty();
         }
     }
 
-    private OperationState deleteItems(Set<ResourceItem> c2Items, Set<ResourceItem> agentItems) {
-        List<ResourceItem> toDeleteItems = agentItems.stream().filter(not(c2Items::contains)).toList();
+    private OperationState deleteItems(final Set<ResourceItem> c2Items, final Set<ResourceItem> agentItems) {
+        final List<ResourceItem> toDeleteItems = agentItems.stream().filter(not(c2Items::contains)).toList();
         if (toDeleteItems.isEmpty()) {
             return NO_OPERATION;
         }
 
-        List<ResourceItem> deletedItems = toDeleteItems.stream()
+        final List<ResourceItem> deletedItems = toDeleteItems.stream()
             .map(resourceRepository::deleteResourceItem)
             .flatMap(Optional::stream)
             .toList();
@@ -154,8 +154,8 @@ public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
             : deletedItems.size() == toDeleteItems.size() ? FULLY_APPLIED : PARTIALLY_APPLIED;
     }
 
-    private OperationState saveGlobalHash(ResourcesGlobalHash resourcesGlobalHash, OperationState deleteResult, OperationState saveResult) {
-        boolean isGlobalHashRefreshOnly = deleteResult == NO_OPERATION && saveResult == NO_OPERATION;
+    private OperationState saveGlobalHash(final ResourcesGlobalHash resourcesGlobalHash, final OperationState deleteResult, final OperationState saveResult) {
+        final boolean isGlobalHashRefreshOnly = deleteResult == NO_OPERATION && saveResult == NO_OPERATION;
         return resourceRepository.saveResourcesGlobalHash(resourcesGlobalHash)
             .map(unused -> FULLY_APPLIED)
             .orElse(isGlobalHashRefreshOnly ? NOT_APPLIED : PARTIALLY_APPLIED);

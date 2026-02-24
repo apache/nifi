@@ -75,7 +75,7 @@ public class ClusterUrlParser {
         return resolveBaseUrl(uri);
     }
 
-    private static void validateUriString(String s) {
+    private static void validateUriString(final String s) {
         // parse the uri
         final URI uri;
         try {
@@ -132,7 +132,7 @@ public class ClusterUrlParser {
         try {
             final URI uri = new URI(clusterUrl.getScheme(), null, clusterUrl.getHost(), clusterUrl.getPort(), uriPathBuilder.toString(), null, null);
             return uri.toString();
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
     }

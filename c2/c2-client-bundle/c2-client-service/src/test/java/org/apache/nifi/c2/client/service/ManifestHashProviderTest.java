@@ -34,30 +34,30 @@ class ManifestHashProviderTest {
 
     @Test
     void testManifestHashChangesWhenManifestBundleChanges() {
-        Bundle bundle1 = new Bundle("group1", "artifact1", "version1");
-        Bundle bundle2 = new Bundle("group2", "artifact2", "version2");
+        final Bundle bundle1 = new Bundle("group1", "artifact1", "version1");
+        final Bundle bundle2 = new Bundle("group2", "artifact2", "version2");
 
-        SupportedOperation supportedOperation1 = new SupportedOperation();
+        final SupportedOperation supportedOperation1 = new SupportedOperation();
         supportedOperation1.setType(OperationType.HEARTBEAT);
-        SupportedOperation supportedOperation2 = new SupportedOperation();
+        final SupportedOperation supportedOperation2 = new SupportedOperation();
         supportedOperation2.setType(OperationType.ACKNOWLEDGE);
 
-        String hash1 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle1), Collections.singleton(supportedOperation1));
+        final String hash1 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle1), Collections.singleton(supportedOperation1));
         assertNotNull(hash1);
 
         // same manifest should result in the same hash
         assertEquals(hash1, manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle1), Collections.singleton(supportedOperation1)));
 
         // different manifest should result in hash change if only bundle change
-        String hash2 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle2), Collections.singleton(supportedOperation1));
+        final String hash2 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle2), Collections.singleton(supportedOperation1));
         assertNotEquals(hash2, hash1);
 
         // different manifest should result in hash change if only supported operation change
-        String hash3 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle1), Collections.singleton(supportedOperation2));
+        final String hash3 = manifestHashProvider.calculateManifestHash(Collections.singletonList(bundle1), Collections.singleton(supportedOperation2));
         assertNotEquals(hash3, hash1);
 
         // different manifest with multiple bundles should result in hash change compared to all previous
-        String hash4 = manifestHashProvider.calculateManifestHash(Arrays.asList(bundle1, bundle2), Collections.singleton(supportedOperation1));
+        final String hash4 = manifestHashProvider.calculateManifestHash(Arrays.asList(bundle1, bundle2), Collections.singleton(supportedOperation1));
 
         assertNotEquals(hash4, hash1);
         assertNotEquals(hash4, hash2);

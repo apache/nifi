@@ -29,7 +29,7 @@ import java.util.List;
  * Close tag
  */
 public class CloseEmptyElementNode extends BxmlNodeWithToken {
-    public CloseEmptyElementNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public CloseEmptyElementNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
     }
@@ -40,7 +40,7 @@ public class CloseEmptyElementNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

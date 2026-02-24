@@ -27,7 +27,7 @@ import java.util.Set;
 public abstract class AbstractNodeStatusEndpoint<EntityType extends Entity, DtoType> extends AbstractSingleDTOEndpoint<EntityType, DtoType> {
 
     @Override
-    protected final void mergeResponses(DtoType clientDto, Map<NodeIdentifier, DtoType> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected final void mergeResponses(final DtoType clientDto, final Map<NodeIdentifier, DtoType> dtoMap, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         final NodeIdentifier selectedNodeId = dtoMap.entrySet().stream()
             .filter(e -> e.getValue() == clientDto)
             .map(e -> e.getKey())

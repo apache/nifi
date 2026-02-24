@@ -66,7 +66,7 @@ public class RegistryBranchesResult extends AbstractWritableResult<FlowRegistryB
                 .build();
 
         for (int i = 0; i < branchesDTO.size(); i++) {
-            FlowRegistryBranchDTO branch = branchesDTO.get(i);
+            final FlowRegistryBranchDTO branch = branchesDTO.get(i);
             table.addRow("" + (i + 1), branch.getName());
         }
 

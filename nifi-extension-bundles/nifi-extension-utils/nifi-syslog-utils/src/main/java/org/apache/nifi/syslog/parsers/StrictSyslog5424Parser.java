@@ -53,7 +53,7 @@ public class StrictSyslog5424Parser {
         try {
             parser.parseLine(line, builder::fieldMap);
             builder.valid(true);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // this is not a valid 5424 message
             builder.valid(false);
             builder.exception(e);

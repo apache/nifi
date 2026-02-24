@@ -50,16 +50,16 @@ public class ProxiedEntitiesUtilsTest {
     private static final String ANONYMOUS_USER = "";
     private static final String ANONYMOUS_PROXIED_ENTITY_CHAIN = "<>";
 
-    private static String sanitizeDn(String dn) {
+    private static String sanitizeDn(final String dn) {
         return dn.replaceAll(">", "\\\\>").replaceAll("<", "\\\\<");
     }
 
-    private static String base64Encode(String dn) {
+    private static String base64Encode(final String dn) {
         return Base64.getEncoder().encodeToString(dn.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testShouldBuildProxyChain(@Mock NiFiUser proxy1, @Mock NiFiUser john) {
+    public void testShouldBuildProxyChain(final @Mock NiFiUser proxy1, final @Mock NiFiUser john) {
         when(proxy1.getIdentity()).thenReturn(SAFE_USER_NAME_PROXY_1);
         when(proxy1.getChain()).thenReturn(null);
         when(proxy1.isAnonymous()).thenReturn(false);
@@ -76,7 +76,7 @@ public class ProxiedEntitiesUtilsTest {
     }
 
     @Test
-    public void testBuildProxyChainFromAnonymousUserShouldBeAnonymous(@Mock NiFiUser proxy1, @Mock NiFiUser anonymous) {
+    public void testBuildProxyChainFromAnonymousUserShouldBeAnonymous(final @Mock NiFiUser proxy1, final @Mock NiFiUser anonymous) {
         when(proxy1.getIdentity()).thenReturn(SAFE_USER_NAME_PROXY_1);
         when(proxy1.getChain()).thenReturn(null);
         when(proxy1.isAnonymous()).thenReturn(false);
@@ -87,7 +87,7 @@ public class ProxiedEntitiesUtilsTest {
     }
 
     @Test
-    public void testBuildProxyChainShouldHandleUnicode(@Mock NiFiUser proxy1, @Mock NiFiUser john) {
+    public void testBuildProxyChainShouldHandleUnicode(final @Mock NiFiUser proxy1, final @Mock NiFiUser john) {
         when(proxy1.getIdentity()).thenReturn(UNICODE_DN_1);
         when(proxy1.getChain()).thenReturn(null);
         when(proxy1.isAnonymous()).thenReturn(false);
@@ -99,7 +99,7 @@ public class ProxiedEntitiesUtilsTest {
     }
 
     @Test
-    public void testBuildProxyChainShouldHandleMaliciousUser(@Mock NiFiUser proxy1, @Mock NiFiUser john) {
+    public void testBuildProxyChainShouldHandleMaliciousUser(final @Mock NiFiUser proxy1, final @Mock NiFiUser john) {
         when(proxy1.getIdentity()).thenReturn(SAFE_USER_NAME_PROXY_1);
         when(proxy1.getChain()).thenReturn(null);
         when(proxy1.isAnonymous()).thenReturn(false);
@@ -158,7 +158,7 @@ public class ProxiedEntitiesUtilsTest {
         final String rawProxyChain = names.stream()
                 .map(this::formatSanitizedDn)
                 .collect(Collectors.joining());
-        List<String> tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(rawProxyChain);
+        final List<String> tokenizedNames = ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(rawProxyChain);
 
         assertEquals(names, tokenizedNames);
         assertFalse(tokenizedNames.contains(SAFE_USER_NAME_JOHN));
@@ -166,21 +166,21 @@ public class ProxiedEntitiesUtilsTest {
 
     @Test
     public void testTokenizeProxiedEntitiesChainShouldDecodeNonAsciiValues() {
-        List<String> tokenizedNames =
+        final List<String> tokenizedNames =
                 ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(formatDns(SAFE_USER_NAME_JOHN, UNICODE_DN_1_ENCODED, UNICODE_DN_2_ENCODED));
 
         assertEquals(Arrays.asList(SAFE_USER_NAME_JOHN, UNICODE_DN_1, UNICODE_DN_2), tokenizedNames);
     }
 
-    private String formatSanitizedDn(String dn) {
+    private String formatSanitizedDn(final String dn) {
         return formatDn((sanitizeDn(dn)));
     }
 
-    private String formatDn(String dn) {
+    private String formatDn(final String dn) {
         return formatDns(dn);
     }
 
-    private String formatDns(String... dns) {
+    private String formatDns(final String... dns) {
         return Arrays.stream(dns)
                 .collect(Collectors.joining("><", "<", ">"));
     }

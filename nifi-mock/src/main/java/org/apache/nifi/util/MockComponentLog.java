@@ -103,51 +103,49 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void warn(String msg, Object... os) {
+    public void warn(final String msg, final Object... os) {
         if (lastArgIsException(os)) {
-            os = addProcessorAndFormattedThrowable(os);
-            msg = "{} " + msg + ": {}";
-
-            logger.warn(msg, os);
+            final Object[] formattedOs = addProcessorAndFormattedThrowable(os);
+            final String formattedMsg = "{} " + msg + ": {}";
+            logger.warn(formattedMsg, formattedOs);
         } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.warn(msg, os);
+            final Object[] formattedOs = addProcessor(os);
+            final String formattedMsg = "{} " + msg;
+            logger.warn(formattedMsg, formattedOs);
         }
     }
 
     @Override
-    public void warn(String msg) {
-        msg = "{} " + msg;
-        logger.warn(msg, component);
+    public void warn(final String msg) {
+        final String formattedMsg = "{} " + msg;
+        logger.warn(formattedMsg, component);
     }
 
     @Override
-    public void trace(String msg, Throwable t) {
-        msg = "{} " + msg;
+    public void trace(final String msg, final Throwable t) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
-        logger.trace(msg, os, t);
+        logger.trace(formattedMsg, os, t);
     }
 
     @Override
-    public void trace(String msg, Object... os) {
+    public void trace(final String msg, final Object... os) {
         if (lastArgIsException(os)) {
-            os = addProcessorAndFormattedThrowable(os);
-            msg = "{} " + msg + ": {}";
-
-            logger.trace(msg, os);
+            final Object[] formattedOs = addProcessorAndFormattedThrowable(os);
+            final String formattedMsg = "{} " + msg + ": {}";
+            logger.trace(formattedMsg, formattedOs);
         } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.trace(msg, os);
+            final Object[] formattedOs = addProcessor(os);
+            final String formattedMsg = "{} " + msg;
+            logger.trace(formattedMsg, formattedOs);
         }
     }
 
     @Override
-    public void trace(String msg) {
-        msg = "{} " + msg;
+    public void trace(final String msg) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
-        logger.trace(msg, os);
+        logger.trace(formattedMsg, os);
     }
 
     @Override
@@ -176,36 +174,35 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Throwable t) {
-        msg = "{} " + msg;
+    public void info(final String msg, final Throwable t) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.info(msg, os);
+        logger.info(formattedMsg, os);
         if (logger.isDebugEnabled()) {
             logger.info("", t);
         }
     }
 
     @Override
-    public void info(String msg, Object... os) {
+    public void info(final String msg, final Object... os) {
         if (lastArgIsException(os)) {
-            os = addProcessorAndFormattedThrowable(os);
-            msg = "{} " + msg + ": {}";
-
-            logger.info(msg, os);
+            final Object[] formattedOs = addProcessorAndFormattedThrowable(os);
+            final String formattedMsg = "{} " + msg + ": {}";
+            logger.info(formattedMsg, formattedOs);
         } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.info(msg, os);
+            final Object[] formattedOs = addProcessor(os);
+            final String formattedMsg = "{} " + msg;
+            logger.info(formattedMsg, formattedOs);
         }
     }
 
     @Override
-    public void info(String msg) {
-        msg = "{} " + msg;
+    public void info(final String msg) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.info(msg, os);
+        logger.info(formattedMsg, os);
     }
 
     @Override
@@ -214,65 +211,63 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Throwable t) {
-        msg = "{} " + msg;
+    public void error(final String msg, final Throwable t) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.error(msg, os, t);
+        logger.error(formattedMsg, os, t);
         if (logger.isDebugEnabled()) {
             logger.error("", t);
         }
     }
 
     @Override
-    public void error(String msg, Object... os) {
+    public void error(final String msg, final Object... os) {
         if (lastArgIsException(os)) {
-            os = addProcessorAndFormattedThrowable(os);
-            msg = "{} " + msg + ": {}";
-
-            logger.error(msg, os);
+            final Object[] formattedOs = addProcessorAndFormattedThrowable(os);
+            final String formattedMsg = "{} " + msg + ": {}";
+            logger.error(formattedMsg, formattedOs);
         } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.error(msg, os);
+            final Object[] formattedOs = addProcessor(os);
+            final String formattedMsg = "{} " + msg;
+            logger.error(formattedMsg, formattedOs);
         }
     }
 
     @Override
-    public void error(String msg) {
-        msg = "{} " + msg;
+    public void error(final String msg) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.error(msg, os);
+        logger.error(formattedMsg, os);
     }
 
     @Override
-    public void debug(String msg, Throwable t) {
-        msg = "{} " + msg;
+    public void debug(final String msg, final Throwable t) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.debug(msg, os, t);
+        logger.debug(formattedMsg, os, t);
     }
 
     @Override
-    public void debug(String msg, Object... os) {
+    public void debug(final String msg, final Object... os) {
         if (lastArgIsException(os)) {
-            os = addProcessorAndFormattedThrowable(os);
-            msg = "{} " + msg + ": {}";
-
-            logger.debug(msg, os);
+            final Object[] formattedOs = addProcessorAndFormattedThrowable(os);
+            final String formattedMsg = "{} " + msg + ": {}";
+            logger.debug(formattedMsg, formattedOs);
         } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.debug(msg, os);
+            final Object[] formattedOs = addProcessor(os);
+            final String formattedMsg = "{} " + msg;
+            logger.debug(formattedMsg, formattedOs);
         }
     }
 
     @Override
-    public void debug(String msg) {
-        msg = "{} " + msg;
+    public void debug(final String msg) {
+        final String formattedMsg = "{} " + msg;
         final Object[] os = {component};
 
-        logger.debug(msg, os);
+        logger.debug(formattedMsg, os);
     }
 }

@@ -35,7 +35,7 @@ public class ComponentDifference {
         return valueA;
     }
 
-    public void setValueA(String valueA) {
+    public void setValueA(final String valueA) {
         this.valueA = valueA;
     }
 
@@ -44,7 +44,7 @@ public class ComponentDifference {
         return valueB;
     }
 
-    public void setValueB(String valueB) {
+    public void setValueB(final String valueB) {
         this.valueB = valueB;
     }
 
@@ -53,7 +53,7 @@ public class ComponentDifference {
         return changeDescription;
     }
 
-    public void setChangeDescription(String changeDescription) {
+    public void setChangeDescription(final String changeDescription) {
         this.changeDescription = changeDescription;
     }
 
@@ -62,7 +62,7 @@ public class ComponentDifference {
         return differenceType;
     }
 
-    public void setDifferenceType(String differenceType) {
+    public void setDifferenceType(final String differenceType) {
         this.differenceType = differenceType;
     }
 
@@ -71,7 +71,7 @@ public class ComponentDifference {
         return differenceTypeDescription;
     }
 
-    public void setDifferenceTypeDescription(String differenceTypeDescription) {
+    public void setDifferenceTypeDescription(final String differenceTypeDescription) {
         this.differenceTypeDescription = differenceTypeDescription;
     }
 }

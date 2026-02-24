@@ -161,9 +161,9 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     );
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        String url = validationContext.getProperty(CONNECTION_URL).evaluateAttributeExpressions().getValue();
-        List<ValidationResult> results = new ArrayList<>();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final String url = validationContext.getProperty(CONNECTION_URL).evaluateAttributeExpressions().getValue();
+        final List<ValidationResult> results = new ArrayList<>();
 
         if (!isEmpty(url) && (url.contains("+s://") || url.contains("+ssc://"))
             && validationContext.getProperty(SSL_TRUST_STORE_FILE).isSet()) {
@@ -183,7 +183,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("neo4j-connection-url", CONNECTION_URL.getName());
         config.renameProperty("neo4j-username", USERNAME.getName());
         config.renameProperty("neo4j-password", PASSWORD.getName());
@@ -194,12 +194,12 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         config.renameProperty("neo4j-max-connection-lifetime", MAX_CONNECTION_LIFETIME.getName());
     }
 
-    protected Driver getDriver(ConfigurationContext context) {
+    protected Driver getDriver(final ConfigurationContext context) {
         connectionUrl = context.getProperty(CONNECTION_URL).evaluateAttributeExpressions().getValue();
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         password = context.getProperty(PASSWORD).getValue();
 
-        Config.ConfigBuilder configBuilder = Config.builder();
+        final Config.ConfigBuilder configBuilder = Config.builder();
 
         configBuilder.withMaxConnectionPoolSize(context.getProperty(MAX_CONNECTION_POOL_SIZE).evaluateAttributeExpressions().asInteger());
 
@@ -212,7 +212,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         configBuilder.withConnectionLivenessCheckTimeout(context.getProperty(IDLE_TIME_BEFORE_CONNECTION_TEST).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS), TimeUnit.SECONDS);
 
         if (context.getProperty(SSL_TRUST_STORE_FILE).isSet()) {
-            String trustFile = context.getProperty(SSL_TRUST_STORE_FILE).evaluateAttributeExpressions().getValue();
+            final String trustFile = context.getProperty(SSL_TRUST_STORE_FILE).evaluateAttributeExpressions().getValue();
             configBuilder
                     .withEncryption()
                     .withTrustStrategy(trustCustomCertificateSignedBy(new File(trustFile)));
@@ -234,7 +234,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     public void onEnabled(final ConfigurationContext context) {
         try {
             neo4JDriver = getDriver(context);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error while getting connection", e);
             throw new ProcessException("Error while getting connection" + e.getLocalizedMessage(), e);
         }
@@ -250,10 +250,10 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
         }
     }
 
-    private Map<String, Object> handleInternalNode(Map<String, Object> recordMap) {
+    private Map<String, Object> handleInternalNode(final Map<String, Object> recordMap) {
         if (recordMap.size() == 1) {
-            String key = recordMap.keySet().iterator().next();
-            Object value = recordMap.get(key);
+            final String key = recordMap.keySet().iterator().next();
+            final Object value = recordMap.get(key);
             if (value instanceof InternalNode) {
                 return ((InternalNode) value).asMap();
             }
@@ -263,21 +263,21 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     }
 
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
         try (Session session = neo4JDriver.session()) {
-            Result result = session.run(query, parameters);
+            final Result result = session.run(query, parameters);
             long count = 0;
             while (result.hasNext()) {
-                Record record = result.next();
-                Map<String, Object> asMap = handleInternalNode(record.asMap());
+                final Record record = result.next();
+                final Map<String, Object> asMap = handleInternalNode(record.asMap());
                 handler.process(asMap, result.hasNext());
                 count++;
             }
 
-            ResultSummary summary = result.consume();
-            SummaryCounters counters = summary.counters();
+            final ResultSummary summary = result.consume();
+            final SummaryCounters counters = summary.counters();
 
-            Map<String, String> resultAttributes = new HashMap<>();
+            final Map<String, String> resultAttributes = new HashMap<>();
             resultAttributes.put(NODES_CREATED, String.valueOf(counters.nodesCreated()));
             resultAttributes.put(RELATIONS_CREATED, String.valueOf(counters.relationshipsCreated()));
             resultAttributes.put(LABELS_ADDED, String.valueOf(counters.labelsAdded()));
@@ -287,7 +287,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             resultAttributes.put(ROWS_RETURNED, String.valueOf(count));
 
             return resultAttributes;
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new ProcessException("Query execution failed", ex);
         }
     }

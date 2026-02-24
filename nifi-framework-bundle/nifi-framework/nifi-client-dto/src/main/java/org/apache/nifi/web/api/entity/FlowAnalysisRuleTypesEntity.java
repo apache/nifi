@@ -36,7 +36,7 @@ public class FlowAnalysisRuleTypesEntity extends Entity {
         return flowAnalysisRuleTypes;
     }
 
-    public void setFlowAnalysisRuleTypes(Set<DocumentedTypeDTO> enforcementPolicies) {
+    public void setFlowAnalysisRuleTypes(final Set<DocumentedTypeDTO> enforcementPolicies) {
         this.flowAnalysisRuleTypes = enforcementPolicies;
     }
 

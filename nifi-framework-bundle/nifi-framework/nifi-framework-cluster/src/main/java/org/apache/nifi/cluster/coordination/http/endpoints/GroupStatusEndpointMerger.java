@@ -35,7 +35,7 @@ public class GroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<Proc
     public static final Pattern GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && GROUP_STATUS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -45,8 +45,8 @@ public class GroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<Proc
     }
 
     @Override
-    protected void mergeResponses(ProcessGroupStatusEntity clientEntity, Map<NodeIdentifier, ProcessGroupStatusEntity> entityMap, Set<NodeResponse> successfulResponses,
-                                  Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ProcessGroupStatusEntity clientEntity, final Map<NodeIdentifier, ProcessGroupStatusEntity> entityMap, final Set<NodeResponse> successfulResponses,
+                                  final Set<NodeResponse> problematicResponses) {
         final ProcessGroupStatusDTO mergedProcessGroupStatus = clientEntity.getProcessGroupStatus();
         mergedProcessGroupStatus.setNodeSnapshots(new ArrayList<>());
 
@@ -77,8 +77,8 @@ public class GroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<Proc
     }
 
     @Override
-    public void mergeStatus(ProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessGroupStatusDTO status, boolean statusReadablePermission,
-                            NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final ProcessGroupStatusDTO clientStatus, final boolean clientStatusReadablePermission, final ProcessGroupStatusDTO status, final boolean statusReadablePermission,
+                            final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }

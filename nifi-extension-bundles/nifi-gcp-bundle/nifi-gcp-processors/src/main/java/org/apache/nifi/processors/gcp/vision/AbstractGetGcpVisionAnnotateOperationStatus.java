@@ -81,18 +81,18 @@ public abstract class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
         try {
-            String operationKey = context.getProperty(OPERATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
-            Operation operation = getVisionClient().getOperationsClient().getOperation(operationKey);
+            final String operationKey = context.getProperty(OPERATION_KEY).evaluateAttributeExpressions(flowFile).getValue();
+            final Operation operation = getVisionClient().getOperationsClient().getOperation(operationKey);
             getLogger().info("{}", operation);
             if (operation.getDone() && !operation.hasError()) {
-                Message response = deserializeResponse(operation.getResponse().getValue());
-                FlowFile childFlowFile = session.create(flowFile);
+                final Message response = deserializeResponse(operation.getResponse().getValue());
+                final FlowFile childFlowFile = session.create(flowFile);
                 session.write(childFlowFile, out -> out.write(JsonFormat.printer().print(response).getBytes(StandardCharsets.UTF_8)));
                 session.putAttribute(childFlowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                 session.transfer(flowFile, REL_ORIGINAL);
@@ -100,18 +100,18 @@ public abstract class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
             } else if (!operation.getDone()) {
                 session.transfer(flowFile, REL_RUNNING);
             } else {
-                Status error = operation.getError();
+                final Status error = operation.getError();
                 getLogger().error("Failed to execute vision operation. Error code: {}, Error message: {}", error.getCode(), error.getMessage());
                 session.transfer(flowFile, REL_FAILURE);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Fail to get GCP Vision operation's status", e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("operationKey", OPERATION_KEY.getName());
     }

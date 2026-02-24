@@ -192,7 +192,7 @@ public class DecryptContentPGP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("decryption-strategy", DECRYPTION_STRATEGY.getName());
         config.renameProperty("passphrase", PASSPHRASE.getName());
         config.renameProperty("private-key-service", PRIVATE_KEY_SERVICE.getName());
@@ -441,7 +441,7 @@ public class DecryptContentPGP extends AbstractProcessor {
         }
 
         private boolean isVerified(final PGPEncryptedData encryptedData) {
-            boolean verified;
+            final boolean verified;
 
             if (encryptedData.isIntegrityProtected()) {
                 try {

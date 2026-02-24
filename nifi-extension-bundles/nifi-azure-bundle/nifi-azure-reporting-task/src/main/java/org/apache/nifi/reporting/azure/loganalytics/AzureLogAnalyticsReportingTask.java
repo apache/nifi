@@ -89,21 +89,21 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
         try {
             final List<Metric> allMetrics;
             if (groupIds == null || groupIds.isEmpty()) {
-                ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
-                String processGroupName = status.getName();
+                final ProcessGroupStatus status = context.getEventAccess().getControllerStatus();
+                final String processGroupName = status.getName();
                 allMetrics = collectMetrics(instanceId, status, processGroupName, jvmMetricsCollected);
             } else {
                 allMetrics = new ArrayList<>();
-                for (String groupId : groupIds.split(",")) {
-                    groupId = groupId.trim();
-                    ProcessGroupStatus status = context.getEventAccess().getGroupStatus(groupId);
-                    String processGroupName = status.getName();
+                for (final String rawGroupId : groupIds.split(",")) {
+                    final String groupId = rawGroupId.trim();
+                    final ProcessGroupStatus status = context.getEventAccess().getGroupStatus(groupId);
+                    final String processGroupName = status.getName();
                     allMetrics.addAll(collectMetrics(instanceId, status, processGroupName, jvmMetricsCollected));
                 }
             }
-            HttpPost httpPost = getHttpPost(urlEndpointFormat, workspaceId, logName);
+            final HttpPost httpPost = getHttpPost(urlEndpointFormat, workspaceId, logName);
             sendMetrics(httpPost, workspaceId, linuxPrimaryKey, allMetrics);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to publish metrics to Azure Log Analytics", e);
         }
     }
@@ -124,10 +124,10 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
      */
     protected void sendMetrics(final HttpPost request, final String workspaceId, final String linuxPrimaryKey,
             final List<Metric> allMetrics) throws IOException, IllegalArgumentException, RuntimeException {
-        Gson gson = new GsonBuilder().create();
-        StringBuilder builder = new StringBuilder();
+        final Gson gson = new GsonBuilder().create();
+        final StringBuilder builder = new StringBuilder();
         builder.append('[');
-        for (Metric current : allMetrics) {
+        for (final Metric current : allMetrics) {
             builder.append(gson.toJson(current));
             builder.append(',');
         }
@@ -146,7 +146,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
      */
     protected List<Metric> collectMetrics(final String instanceId, final ProcessGroupStatus status,
             final String processGroupName, final boolean jvmMetricsCollected) {
-        List<Metric> allMetrics = new ArrayList<>();
+        final List<Metric> allMetrics = new ArrayList<>();
 
         // dataflow process group level metrics
         allMetrics.addAll(AzureLogAnalyticsMetricsFactory.getDataFlowMetrics(status, instanceId));
@@ -154,7 +154,7 @@ public class AzureLogAnalyticsReportingTask extends AbstractAzureLogAnalyticsRep
         // connections process group level metrics
         final List<ConnectionStatus> connectionStatuses = new ArrayList<>();
         populateConnectionStatuses(status, connectionStatuses);
-        for (ConnectionStatus connectionStatus : connectionStatuses) {
+        for (final ConnectionStatus connectionStatus : connectionStatuses) {
             allMetrics.addAll(AzureLogAnalyticsMetricsFactory.getConnectionStatusMetrics(connectionStatus, instanceId,
                     processGroupName));
         }

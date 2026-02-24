@@ -117,8 +117,8 @@ public class DeleteMongo extends AbstractMongoProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         final WriteConcern writeConcern = clientService.getWriteConcern();
         final String deleteMode = context.getProperty(DELETE_MODE).getValue();
         final String deleteAttr = flowFile.getAttribute("mongodb.delete.mode");
@@ -133,13 +133,13 @@ public class DeleteMongo extends AbstractMongoProcessor {
 
         try {
             final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
             session.exportTo(flowFile, bos);
             bos.close();
 
-            String json = new String(bos.toByteArray());
-            Document query = Document.parse(json);
-            DeleteResult result;
+            final String json = new String(bos.toByteArray());
+            final Document query = Document.parse(json);
+            final DeleteResult result;
 
             if (deleteMode.equals(DELETE_ONE.getValue())
                     || (deleteMode.equals(DELETE_ATTR.getValue()) && deleteAttr.toLowerCase().equals("one"))) {
@@ -154,14 +154,14 @@ public class DeleteMongo extends AbstractMongoProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
             }
 
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Could not send a delete to MongoDB, failing...", ex);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("delete-mongo-delete-mode", DELETE_MODE.getName());
         config.renameProperty("delete-mongo-fail-on-no-delete", FAIL_ON_NO_DELETE.getName());

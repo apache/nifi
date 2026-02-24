@@ -36,7 +36,7 @@ public class ExtensionDetailsDTO extends ComponentDetailsDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 }

@@ -244,8 +244,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // locate each war being deployed
         File webUiWar = null;
         File webApiWar = null;
-        Map<File, Bundle> otherWars = new HashMap<>();
-        for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
+        final Map<File, Bundle> otherWars = new HashMap<>();
+        for (final Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
             final File war = warBundleEntry.getKey();
             final Bundle warBundle = warBundleEntry.getValue();
 
@@ -425,7 +425,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // deploy the other wars
         if (!warToBundleLookup.isEmpty()) {
             // ui extension organized by component type
-            for (Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
+            for (final Map.Entry<File, Bundle> warBundleEntry : warToBundleLookup.entrySet()) {
                 final File war = warBundleEntry.getKey();
                 final Bundle warBundle = warBundleEntry.getValue();
 
@@ -436,14 +436,14 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 // only include wars that are for custom processor ui's
                 if (!uiExtensionInWar.isEmpty()) {
                     // get the context path
-                    String warName = StringUtils.substringBeforeLast(war.getName(), ".");
-                    String warContextPath = String.format("/%s", warName);
+                    final String warName = StringUtils.substringBeforeLast(war.getName(), ".");
+                    final String warContextPath = String.format("/%s", warName);
 
                     // get the classloader for this war
                     final ClassLoader narClassLoaderForWar = warBundle.getClassLoader();
 
                     // create the extension web app context
-                    WebAppContext extensionUiContext = loadWar(war, warContextPath, narClassLoaderForWar);
+                    final WebAppContext extensionUiContext = loadWar(war, warContextPath, narClassLoaderForWar);
 
                     // create the ui extensions
                     for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
@@ -588,7 +588,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             readUiExtensions(uiExtensions, UiExtensionType.ReportingTaskConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-reporting-task-configuration"));
             readUiExtensions(uiExtensions, UiExtensionType.ParameterProviderConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-parameter-provider-configuration"));
             readUiExtensions(uiExtensions, UiExtensionType.FlowRegistryClientConfiguration, jarFile, jarFile.getJarEntry("META-INF/nifi-flow-registry-client-configuration"));
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             logger.warn("Unable to inspect {} for a UI extensions.", warFile);
         }
     }
@@ -668,7 +668,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return tempDirectory;
     }
 
-    private void addDocsServlets(WebAppContext webAppContext) {
+    private void addDocsServlets(final WebAppContext webAppContext) {
         try {
             final File docsDir = getDocsDir();
 
@@ -685,7 +685,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             webAppContext.addServlet(restApi, "/rest-api/*");
 
             logger.info("Loading Docs [{}] Context Path [{}]", docsDir.getAbsolutePath(), webAppContext.getContextPath());
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             logger.error("Unhandled Exception in createDocsWebApp", ex);
             startUpFailure(ex);
         }
@@ -710,7 +710,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         File docsDir;
         try {
             docsDir = Paths.get(docsDirectory).toRealPath().toFile();
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             logger.info("Directory '{}' is missing. Some documentation will be unavailable.", docsDirectory);
             docsDir = new File(docsDirectory).getAbsoluteFile();
             final boolean made = docsDir.mkdirs();
@@ -746,7 +746,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
                     try {
                         return new URI(scheme, null, host, port, APPLICATION_PATH, null, null);
-                    } catch (URISyntaxException e) {
+                    } catch (final URISyntaxException e) {
                         throw new RuntimeException(e);
                     }
                 })
@@ -834,13 +834,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
                 FlowService flowService = null;
                 try {
-                    ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(webApiContext.getServletContext());
+                    final ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(webApiContext.getServletContext());
                     flowService = Objects.requireNonNull(ctx).getBean("flowService", FlowService.class);
 
                     // start and load the flow
                     flowService.start();
                     flowService.load(null);
-                } catch (BeansException | LifeCycleStartException | IOException | FlowSerializationException | FlowSynchronizationException | UninheritableFlowException e) {
+                } catch (final BeansException | LifeCycleStartException | IOException | FlowSerializationException | FlowSynchronizationException | UninheritableFlowException e) {
                     // ensure the flow service is terminated
                     if (flowService != null && flowService.isRunning()) {
                         flowService.stop(false);
@@ -858,7 +858,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     logger.info("Started Server on {}", applicationUrl);
                 }
             }
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             startUpFailure(t);
         }
     }
@@ -895,7 +895,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                                                             final ExternalResourceProviderInitializationContext context)
         throws InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException {
 
-        ExternalResourceProvider provider;
+        final ExternalResourceProvider provider;
         try {
             provider = NarThreadContextClassLoader.createInstance(extensionManager, providerClass, ExternalResourceProvider.class, props, providerId);
         } catch (final ClassCastException e) {
@@ -992,7 +992,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             if (narAutoLoader != null) {
                 narAutoLoader.stop();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
 
@@ -1000,7 +1000,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             if (narProviderService != null) {
                 narProviderService.stop();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.warn("Failed to stop NAR provider", e);
         }
 

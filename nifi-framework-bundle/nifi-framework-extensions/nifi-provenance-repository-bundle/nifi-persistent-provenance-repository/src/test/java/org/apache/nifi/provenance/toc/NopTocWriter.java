@@ -28,7 +28,7 @@ public class NopTocWriter implements TocWriter {
     }
 
     @Override
-    public void addBlockOffset(long offset, long firstEventId) throws IOException {
+    public void addBlockOffset(final long offset, final long firstEventId) throws IOException {
         blockIndex++;
     }
 

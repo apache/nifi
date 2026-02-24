@@ -35,7 +35,7 @@ public class SearchResultsEntity {
         return searchResultsDTO;
     }
 
-    public void setSearchResultsDTO(SearchResultsDTO searchResultsDTO) {
+    public void setSearchResultsDTO(final SearchResultsDTO searchResultsDTO) {
         this.searchResultsDTO = searchResultsDTO;
     }
 

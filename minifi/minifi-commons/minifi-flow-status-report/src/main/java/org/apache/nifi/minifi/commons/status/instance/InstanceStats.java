@@ -31,7 +31,7 @@ public class InstanceStats implements java.io.Serializable {
         return bytesRead;
     }
 
-    public void setBytesRead(long bytesRead) {
+    public void setBytesRead(final long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -39,7 +39,7 @@ public class InstanceStats implements java.io.Serializable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(long bytesWritten) {
+    public void setBytesWritten(final long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -47,7 +47,7 @@ public class InstanceStats implements java.io.Serializable {
         return bytesSent;
     }
 
-    public void setBytesSent(long bytesSent) {
+    public void setBytesSent(final long bytesSent) {
         this.bytesSent = bytesSent;
     }
 
@@ -55,7 +55,7 @@ public class InstanceStats implements java.io.Serializable {
         return flowfilesSent;
     }
 
-    public void setFlowfilesSent(int flowfilesSent) {
+    public void setFlowfilesSent(final int flowfilesSent) {
         this.flowfilesSent = flowfilesSent;
     }
 
@@ -63,7 +63,7 @@ public class InstanceStats implements java.io.Serializable {
         return bytesTransferred;
     }
 
-    public void setBytesTransferred(long bytesTransferred) {
+    public void setBytesTransferred(final long bytesTransferred) {
         this.bytesTransferred = bytesTransferred;
     }
 
@@ -71,7 +71,7 @@ public class InstanceStats implements java.io.Serializable {
         return flowfilesTransferred;
     }
 
-    public void setFlowfilesTransferred(int flowfilesTransferred) {
+    public void setFlowfilesTransferred(final int flowfilesTransferred) {
         this.flowfilesTransferred = flowfilesTransferred;
     }
 
@@ -79,7 +79,7 @@ public class InstanceStats implements java.io.Serializable {
         return bytesReceived;
     }
 
-    public void setBytesReceived(long bytesReceived) {
+    public void setBytesReceived(final long bytesReceived) {
         this.bytesReceived = bytesReceived;
     }
 
@@ -87,12 +87,12 @@ public class InstanceStats implements java.io.Serializable {
         return flowfilesReceived;
     }
 
-    public void setFlowfilesReceived(int flowfilesReceived) {
+    public void setFlowfilesReceived(final int flowfilesReceived) {
         this.flowfilesReceived = flowfilesReceived;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -100,7 +100,7 @@ public class InstanceStats implements java.io.Serializable {
             return false;
         }
 
-        InstanceStats that = (InstanceStats) o;
+        final InstanceStats that = (InstanceStats) o;
 
         if (getBytesRead() != that.getBytesRead()) {
             return false;

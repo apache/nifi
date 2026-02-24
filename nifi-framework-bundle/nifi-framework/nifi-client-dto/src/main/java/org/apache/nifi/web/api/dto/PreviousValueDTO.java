@@ -42,7 +42,7 @@ public class PreviousValueDTO {
         return previousValue;
     }
 
-    public void setPreviousValue(String previousValue) {
+    public void setPreviousValue(final String previousValue) {
         this.previousValue = previousValue;
     }
 
@@ -57,7 +57,7 @@ public class PreviousValueDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -70,7 +70,7 @@ public class PreviousValueDTO {
         return userIdentity;
     }
 
-    public void setUserIdentity(String userIdentity) {
+    public void setUserIdentity(final String userIdentity) {
         this.userIdentity = userIdentity;
     }
 }

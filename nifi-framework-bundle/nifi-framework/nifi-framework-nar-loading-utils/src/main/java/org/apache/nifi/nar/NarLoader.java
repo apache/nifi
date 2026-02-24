@@ -56,7 +56,7 @@ public interface NarLoader {
      *
      * @param bundle the NAR to unload
      */
-    default void unload(Bundle bundle) {
+    default void unload(final Bundle bundle) {
         unload(Set.of(bundle));
     }
 }

@@ -82,7 +82,7 @@ public class UploadNar extends AbstractNiFiCommand<NarUploadResult> {
                     println("Waiting for NAR install to complete, current state is: " + progressDto.getState());
                 }
                 Thread.sleep(POLL_INTERVAL_MILLIS);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
         }

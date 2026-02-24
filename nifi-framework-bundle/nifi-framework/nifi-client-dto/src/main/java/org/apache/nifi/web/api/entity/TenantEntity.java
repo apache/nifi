@@ -36,7 +36,7 @@ public class TenantEntity extends ComponentEntity {
         return component;
     }
 
-    public void setComponent(TenantDTO component) {
+    public void setComponent(final TenantDTO component) {
         this.component = component;
     }
 }

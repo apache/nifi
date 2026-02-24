@@ -49,12 +49,12 @@ public class StandardLogRepository implements LogRepository {
     private volatile ComponentLog componentLogger;
 
     @Override
-    public void addLogMessage(LogMessage logMessage) {
-        LogLevel logLevel = logMessage.getLogLevel();
+    public void addLogMessage(final LogMessage logMessage) {
+        final LogLevel logLevel = logMessage.getLogLevel();
 
         final Collection<LogObserver> logObservers = observersPerLogLevel.get(logLevel);
         if (logObservers != null) {
-            for (LogObserver observer : logObservers) {
+            for (final LogObserver observer : logObservers) {
                 try {
                     observer.onLogMessage(logMessage);
                 } catch (final Exception observerThrowable) {
@@ -90,7 +90,7 @@ public class StandardLogRepository implements LogRepository {
         addLogMessage(logMessage);
     }
 
-    private Optional<String> getFirstFlowFileUuidFromObjects(Object[] params) {
+    private Optional<String> getFirstFlowFileUuidFromObjects(final Object[] params) {
         int flowFileCount = 0;
         FlowFile flowFileFound = null;
         for (final Object param : params) {
@@ -122,7 +122,7 @@ public class StandardLogRepository implements LogRepository {
     }
 
     @Override
-    public void setObservationLevel(LogLevel level) {
+    public void setObservationLevel(final LogLevel level) {
         lock.lock();
         try {
             final Set<LogObserver> observersCopy = new HashSet<>(observers);
@@ -145,7 +145,7 @@ public class StandardLogRepository implements LogRepository {
             for (int i = minimumLevel.ordinal(); i < allLevels.length; i++) {
                 // no need to register an observer for NONE since that level will never be logged to by a component
                 if (i != LogLevel.NONE.ordinal()) {
-                    Collection<LogObserver> collection = observersPerLogLevel.computeIfAbsent(allLevels[i], k -> new ArrayList<>());
+                    final Collection<LogObserver> collection = observersPerLogLevel.computeIfAbsent(allLevels[i], k -> new ArrayList<>());
                     collection.add(observer);
                 }
             }

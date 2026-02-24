@@ -56,16 +56,16 @@ public class TestLogMessage {
 
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
-        Map<String, String> flowAttributes = new HashMap<>();
+        final Map<String, String> flowAttributes = new HashMap<>();
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);
         runner.run();
 
-        List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size());
 
-        MockComponentLog mockComponentLog = runner.getLogger();
+        final MockComponentLog mockComponentLog = runner.getLogger();
 
         assertFalse(mockComponentLog.getInfoMessages().isEmpty());
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
@@ -81,16 +81,16 @@ public class TestLogMessage {
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
 
-        Map<String, String> flowAttributes = new HashMap<>();
+        final Map<String, String> flowAttributes = new HashMap<>();
         flowAttributes.put("foobar", "baz");
 
         runner.enqueue("This is a message!", flowAttributes);
         runner.run();
 
-        List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size());
 
-        MockComponentLog mockComponentLog = runner.getLogger();
+        final MockComponentLog mockComponentLog = runner.getLogger();
 
         assertFalse(mockComponentLog.getInfoMessages().isEmpty());
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
@@ -107,7 +107,7 @@ public class TestLogMessage {
 
     @ParameterizedTest
     @EnumSource(LogMessage.MessageLogLevel.class)
-    void testLogLevelCaseInsensitivity(LogMessage.MessageLogLevel logLevel) {
+    void testLogLevelCaseInsensitivity(final LogMessage.MessageLogLevel logLevel) {
         runner.setProperty(LogMessage.LOG_LEVEL, logLevel.name().toUpperCase());
         runner.assertValid();
     }

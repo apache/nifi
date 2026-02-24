@@ -58,8 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXMLRecordSetWriter {
 
-    private TestRunner setup(XMLRecordSetWriter writer) throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(TestXMLRecordSetWriterProcessor.class);
+    private TestRunner setup(final XMLRecordSetWriter writer) throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestXMLRecordSetWriterProcessor.class);
 
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));
 
@@ -77,8 +77,8 @@ public class TestXMLRecordSetWriter {
 
     @Test
     public void testDefault() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
 
@@ -88,18 +88,18 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<root><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+        final String expected = "<root><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record>" +
                 "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record></root>";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testDefaultSingleRecord() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(TestXMLRecordSetWriterProcessor.MULTIPLE_RECORDS, "false");
 
@@ -109,17 +109,17 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+        final String expected = "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record>";
 
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testRootAndRecordNaming() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "ROOT_NODE");
         runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "RECORD_NODE");
@@ -130,24 +130,24 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<ROOT_NODE><RECORD_NODE><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+        final String expected = "<ROOT_NODE><RECORD_NODE><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></RECORD_NODE>" +
                 "<RECORD_NODE><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></RECORD_NODE></ROOT_NODE>";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testSchemaRootRecordNaming() throws IOException, InitializationException {
-        String avroSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));
-        Schema avroSchema = new Schema.Parser().parse(avroSchemaText);
+        final String avroSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/xml/testschema3")));
+        final Schema avroSchema = new Schema.Parser().parse(avroSchemaText);
 
-        SchemaIdentifier schemaId = SchemaIdentifier.builder().name("schemaName").build();
-        RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, avroSchemaText, schemaId);
+        final SchemaIdentifier schemaId = SchemaIdentifier.builder().name("schemaName").build();
+        final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, avroSchemaText, schemaId);
 
-        XMLRecordSetWriter writer = new _XMLRecordSetWriter(recordSchema);
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new _XMLRecordSetWriter(recordSchema);
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "ROOT_NODE");
 
@@ -157,18 +157,18 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<ROOT_NODE><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
+        final String expected = "<ROOT_NODE><array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record>" +
                 "<array_record><array_field>1</array_field><array_field></array_field><array_field>3</array_field>" +
                 "<name1>val1</name1><name2></name2></array_record></ROOT_NODE>";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testNullSuppression() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
         runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
@@ -181,18 +181,18 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<root><record><array_field>1</array_field><array_field>3</array_field>" +
+        final String expected = "<root><record><array_field>1</array_field><array_field>3</array_field>" +
                 "<name1>val1</name1></record>" +
                 "<record><array_field>1</array_field><array_field>3</array_field>" +
                 "<name1>val1</name1></record></root>";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testArrayWrapping() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
         runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
@@ -206,18 +206,18 @@ public class TestXMLRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestXMLRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "<root><record><wrap><array_field>1</array_field><array_field></array_field><array_field>3</array_field></wrap>" +
+        final String expected = "<root><record><wrap><array_field>1</array_field><array_field></array_field><array_field>3</array_field></wrap>" +
                 "<name1>val1</name1><name2></name2></record>" +
                 "<record><wrap><array_field>1</array_field><array_field></array_field><array_field>3</array_field></wrap>" +
                 "<name1>val1</name1><name2></name2></record></root>";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).getFirst()));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
     }
 
     @Test
     public void testValidation() throws IOException, InitializationException {
-        XMLRecordSetWriter writer = new XMLRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final XMLRecordSetWriter writer = new XMLRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "root");
         runner.setProperty(writer, XMLRecordSetWriter.RECORD_TAG_NAME, "record");
@@ -234,7 +234,7 @@ public class TestXMLRecordSetWriter {
         // +
         runner.disableControllerService(writer);
         runner.removeProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME);
-        IllegalStateException e = assertThrows(IllegalStateException.class, () -> runner.enableControllerService(writer));
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> runner.enableControllerService(writer));
         assertTrue(e.getMessage().contains(XMLRecordSetWriter.ARRAY_TAG_NAME.getName())
             && e.getMessage().contains(XMLRecordSetWriter.ARRAY_WRAPPING.getName())
             && e.getMessage().endsWith("has to be set."));
@@ -278,12 +278,12 @@ public class TestXMLRecordSetWriter {
 
         RecordSchema recordSchema;
 
-        _XMLRecordSetWriter(RecordSchema recordSchema) {
+        _XMLRecordSetWriter(final RecordSchema recordSchema) {
             this.recordSchema = recordSchema;
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> attributes)
+        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> attributes)
                 throws SchemaNotFoundException, IOException {
             return super.createWriter(logger, this.recordSchema, out, attributes);
         }

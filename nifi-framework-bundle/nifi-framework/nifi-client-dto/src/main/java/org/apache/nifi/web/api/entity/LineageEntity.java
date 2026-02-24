@@ -36,7 +36,7 @@ public class LineageEntity extends Entity {
         return lineage;
     }
 
-    public void setLineage(LineageDTO lineage) {
+    public void setLineage(final LineageDTO lineage) {
         this.lineage = lineage;
     }
 

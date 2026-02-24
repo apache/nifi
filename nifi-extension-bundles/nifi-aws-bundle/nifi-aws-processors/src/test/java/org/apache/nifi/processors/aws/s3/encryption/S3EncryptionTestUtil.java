@@ -30,39 +30,39 @@ final class S3EncryptionTestUtil {
     private S3EncryptionTestUtil() {
     }
 
-    static String createCustomerKey(int keySize) {
+    static String createCustomerKey(final int keySize) {
         return base64Encode(createRawKey(keySize));
     }
 
-    static S3EncryptionKeySpec createCustomerKeySpec(int keySize) {
+    static S3EncryptionKeySpec createCustomerKeySpec(final int keySize) {
         return createCustomerKeySpec(keySize, null);
     }
 
-    static S3EncryptionKeySpec createCustomerKeySpec(int keySize, CommitmentPolicy commitmentPolicy) {
-        byte[] keyMaterial = createRawKey(keySize);
-        byte[] keyMaterialMd5 = md5(keyMaterial);
+    static S3EncryptionKeySpec createCustomerKeySpec(final int keySize, final CommitmentPolicy commitmentPolicy) {
+        final byte[] keyMaterial = createRawKey(keySize);
+        final byte[] keyMaterialMd5 = md5(keyMaterial);
 
         return new S3EncryptionKeySpec(null, base64Encode(keyMaterial), base64Encode(keyMaterialMd5), commitmentPolicy);
     }
 
-    private static byte[] createRawKey(int keySize) {
+    private static byte[] createRawKey(final int keySize) {
         if (keySize % 8 != 0) {
             throw new IllegalArgumentException("Invalid test data");
         }
 
-        byte[] keyMaterial = new byte[keySize / 8];
+        final byte[] keyMaterial = new byte[keySize / 8];
         RANDOM.nextBytes(keyMaterial);
         return keyMaterial;
     }
 
-    private static String base64Encode(byte[] payload) {
+    private static String base64Encode(final byte[] payload) {
         return Base64.encodeBase64String(payload);
     }
 
-    private static byte[] md5(byte[] payload) {
+    private static byte[] md5(final byte[] payload) {
         try {
             return MessageDigest.getInstance("MD5").digest(payload);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new IllegalArgumentException(e);
         }
     }

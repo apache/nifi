@@ -33,7 +33,7 @@ public class PropertyDependency implements Serializable {
         return propertyName;
     }
 
-    public void setPropertyName(String propertyName) {
+    public void setPropertyName(final String propertyName) {
         this.propertyName = propertyName;
     }
 
@@ -42,7 +42,7 @@ public class PropertyDependency implements Serializable {
         return propertyDisplayName;
     }
 
-    public void setPropertyDisplayName(String propertyDisplayName) {
+    public void setPropertyDisplayName(final String propertyDisplayName) {
         this.propertyDisplayName = propertyDisplayName;
     }
 
@@ -51,7 +51,7 @@ public class PropertyDependency implements Serializable {
         return dependentValues;
     }
 
-    public void setDependentValues(List<String> dependentValues) {
+    public void setDependentValues(final List<String> dependentValues) {
         this.dependentValues = dependentValues;
     }
 

@@ -32,36 +32,36 @@ class EventIteratorTest {
 
     @Test
     void testCanCreateAndRetrieveUsingOfFactory() throws IOException {
-        ProvenanceEventRecord event = TestUtil.createEvent();
-        EventIterator eventIterator = EventIterator.of(event);
-        Optional<ProvenanceEventRecord> foundEvent = eventIterator.nextEvent();
+        final ProvenanceEventRecord event = TestUtil.createEvent();
+        final EventIterator eventIterator = EventIterator.of(event);
+        final Optional<ProvenanceEventRecord> foundEvent = eventIterator.nextEvent();
         assertTrue(foundEvent.isPresent());
         assertEquals(foundEvent.get().getAttribute("uuid"), event.getAttribute("uuid"));
     }
 
     @Test
     void testEmptyReturnedWhenExhausted() throws IOException {
-        EventIterator eventIterator = EventIterator.of(TestUtil.createEvent());
+        final EventIterator eventIterator = EventIterator.of(TestUtil.createEvent());
         assertTrue(eventIterator.nextEvent().isPresent());
         assertTrue(eventIterator.nextEvent().isEmpty());
     }
 
     @Test
     void testCanFilterEvents() throws IOException {
-        ProvenanceEventRecord eventOne = TestUtil.createEvent();
-        ProvenanceEventRecord eventTwo = TestUtil.createEvent();
+        final ProvenanceEventRecord eventOne = TestUtil.createEvent();
+        final ProvenanceEventRecord eventTwo = TestUtil.createEvent();
 
-        EventIterator eventIterator = EventIterator.of(eventOne, eventTwo);
+        final EventIterator eventIterator = EventIterator.of(eventOne, eventTwo);
         // Filter out the first event
-        EventIterator filteredIterator  = eventIterator.filter((e) -> !Objects.equals(e.getAttribute("uuid"), eventOne.getAttribute("uuid")));
+        final EventIterator filteredIterator  = eventIterator.filter((e) -> !Objects.equals(e.getAttribute("uuid"), eventOne.getAttribute("uuid")));
 
-        ProvenanceEventRecord foundEvent = filteredIterator.nextEvent().orElseThrow();
+        final ProvenanceEventRecord foundEvent = filteredIterator.nextEvent().orElseThrow();
         assertEquals(foundEvent.getAttribute("uuid"), eventTwo.getAttribute("uuid"));
     }
 
     @Test
     void testEmptyFactoryIsEmpty() throws IOException {
-        EventIterator eventIterator = EventIterator.EMPTY;
+        final EventIterator eventIterator = EventIterator.EMPTY;
         assertTrue(eventIterator.nextEvent().isEmpty());
     }
 }

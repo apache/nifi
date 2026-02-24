@@ -84,18 +84,18 @@ public interface C2OperationHandler {
      * @param details        additional status info to detail the state
      * @return the created state
      */
-    default C2OperationState operationState(C2OperationState.OperationState operationState, String details, Exception e) {
-        C2OperationState state = new C2OperationState();
+    default C2OperationState operationState(final C2OperationState.OperationState operationState, final String details, final Exception e) {
+        final C2OperationState state = new C2OperationState();
         state.setState(operationState);
         state.setDetails(details);
         ofNullable(e).map(this::toFailureCause).ifPresent(state::setFailureCause);
         return state;
     }
 
-    private FailureCause toFailureCause(Exception exception) {
-        FailureCause failureCause = new FailureCause();
+    private FailureCause toFailureCause(final Exception exception) {
+        final FailureCause failureCause = new FailureCause();
         failureCause.setExceptionMessage(exception.getMessage());
-        List<String> causeList = new LinkedList<>();
+        final List<String> causeList = new LinkedList<>();
         populateCausedChain(ofNullable(exception.getCause()), causeList);
         failureCause.setCausedByMessages(causeList);
         if (exception instanceof ValidationException validationException) {
@@ -104,7 +104,7 @@ public interface C2OperationHandler {
         return failureCause;
     }
 
-    private List<String> populateCausedChain(Optional<Throwable> cause, List<String> causeList) {
+    private List<String> populateCausedChain(final Optional<Throwable> cause, final List<String> causeList) {
         cause.ifPresent(c -> {
             causeList.add(c.getMessage());
             populateCausedChain(cause.map(Throwable::getCause), causeList);
@@ -112,7 +112,7 @@ public interface C2OperationHandler {
         return causeList;
     }
 
-    default C2OperationState operationState(C2OperationState.OperationState operationState, String details) {
+    default C2OperationState operationState(final C2OperationState.OperationState operationState, final String details) {
         return operationState(operationState, details, null);
     }
 
@@ -123,8 +123,8 @@ public interface C2OperationHandler {
      * @param operationState the state of the operation
      * @return the created operation ack object
      */
-    default C2OperationAck operationAck(String operationId, C2OperationState operationState) {
-        C2OperationAck operationAck = new C2OperationAck();
+    default C2OperationAck operationAck(final String operationId, final C2OperationState operationState) {
+        final C2OperationAck operationAck = new C2OperationAck();
         operationAck.setOperationState(operationState);
         operationAck.setOperationId(operationId);
         return operationAck;
@@ -137,7 +137,7 @@ public interface C2OperationHandler {
      * @param argument  the name of the argument to retrieve
      * @return the optional retrieved argument value
      */
-    default Optional<String> getOperationArg(C2Operation operation, String argument) {
+    default Optional<String> getOperationArg(final C2Operation operation, final String argument) {
         return ofNullable(operation.getArgs())
             .map(args -> args.get(argument))
             .map(arg -> arg instanceof String s ? s : null);
@@ -152,7 +152,7 @@ public interface C2OperationHandler {
      * @param serializer the serializer used to converting to the target class
      * @return the optional retrieved and converted argument value
      */
-    default <T> T getOperationArg(C2Operation operation, String argument, TypeReference<T> type, C2Serializer serializer) {
+    default <T> T getOperationArg(final C2Operation operation, final String argument, final TypeReference<T> type, final C2Serializer serializer) {
         return ofNullable(operation.getArgs())
             .map(args -> args.get(argument))
             .flatMap(arg -> serializer.convert(arg, type))

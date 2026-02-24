@@ -117,19 +117,19 @@ public class FetchBoxFile extends AbstractBoxProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
         boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
         try {
             final long startNanos = System.nanoTime();
             flowFile = fetchFile(fileId, session, flowFile);
@@ -137,44 +137,44 @@ public class FetchBoxFile extends AbstractBoxProcessor {
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, boxUrlOfFile, transferMillis);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (BoxAPIResponseException e) {
+        } catch (final BoxAPIResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             handleUnexpectedError(session, flowFile, fileId, e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("box-file-id", FILE_ID.getName());
     }
 
-    BoxFile getBoxFile(String fileId) {
+    BoxFile getBoxFile(final String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
     }
 
-    private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
+    private FlowFile fetchFile(final String fileId, final ProcessSession session, final FlowFile flowFileArg) {
         final BoxFile boxFile = getBoxFile(fileId);
-        flowFile = session.write(flowFile, outputStream -> boxFile.download(outputStream));
+        FlowFile flowFile = session.write(flowFileArg, outputStream -> boxFile.download(outputStream));
         flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(boxFile.getInfo()));
         return flowFile;
     }
 
-    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, BoxAPIResponseException e) {
+    private void handleErrorResponse(final ProcessSession session, final String fileId, final FlowFile flowFile, final BoxAPIResponseException e) {
         getLogger().error("Couldn't fetch file with id [{}]", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        updatedFlowFile = session.putAttribute(updatedFlowFile, ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 
-    private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
+    private void handleUnexpectedError(final ProcessSession session, final FlowFile flowFile, final String fileId, final Exception e) {
         getLogger().error("Failed fetching and processing file with id [{}]", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 }

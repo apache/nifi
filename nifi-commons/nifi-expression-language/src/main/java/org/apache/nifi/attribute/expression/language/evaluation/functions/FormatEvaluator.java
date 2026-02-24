@@ -47,8 +47,8 @@ public class FormatEvaluator extends StringEvaluator {
         // if the search string is a literal, we don't need to prepare formatter each time; we can just
         // prepare it once. Otherwise, it must be prepared for each time.
         if (format instanceof StringLiteralEvaluator) {
-            String formatPattern = format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue();
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(formatPattern, Locale.US);
+            final String formatPattern = format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue();
+            final DateTimeFormatter dtf = DateTimeFormatter.ofPattern(formatPattern, Locale.US);
             if (timeZone == null) {
                 preparedFormatter = dtf;
                 preparedFormatterHasRequestedTimeZone = true;
@@ -93,7 +93,7 @@ public class FormatEvaluator extends StringEvaluator {
             }
         }
 
-        ZonedDateTime subjectDateTime = subjectValue.toInstant().atZone(ZoneId.systemDefault());
+        final ZonedDateTime subjectDateTime = subjectValue.toInstant().atZone(ZoneId.systemDefault());
         return new StringQueryResult(dtf.format(subjectDateTime));
     }
 

@@ -46,8 +46,8 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
     private final OperandPropertiesProvider operandPropertiesProvider;
     private static final Logger LOGGER = LoggerFactory.getLogger(DescribeManifestOperationHandler.class);
 
-    public DescribeManifestOperationHandler(C2HeartbeatFactory heartbeatFactory, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
-                                            OperandPropertiesProvider operandPropertiesProvider) {
+    public DescribeManifestOperationHandler(final C2HeartbeatFactory heartbeatFactory, final Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
+                                            final OperandPropertiesProvider operandPropertiesProvider) {
         this.heartbeatFactory = heartbeatFactory;
         this.runtimeInfoSupplier = runtimeInfoSupplier;
         this.operandPropertiesProvider = operandPropertiesProvider;
@@ -64,19 +64,19 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
         C2OperationAck c2OperationAck;
         try {
-            RuntimeInfoWrapper runtimeInfoWrapper = runtimeInfoSupplier.get();
-            C2Heartbeat heartbeat = heartbeatFactory.create(runtimeInfoWrapper);
+            final RuntimeInfoWrapper runtimeInfoWrapper = runtimeInfoSupplier.get();
+            final C2Heartbeat heartbeat = heartbeatFactory.create(runtimeInfoWrapper);
 
             c2OperationAck = operationAck(operationId, operationState(FULLY_APPLIED, EMPTY));
             c2OperationAck.setAgentInfo(agentInfo(heartbeat, runtimeInfoWrapper));
             c2OperationAck.setDeviceInfo(heartbeat.getDeviceInfo());
             c2OperationAck.setFlowInfo(heartbeat.getFlowInfo());
             c2OperationAck.setResourceInfo(heartbeat.getResourceInfo());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error(ERROR_MESSAGE, e);
             c2OperationAck = operationAck(operationId, operationState(NOT_APPLIED, ERROR_MESSAGE, e));
         }
@@ -84,8 +84,8 @@ public class DescribeManifestOperationHandler implements C2OperationHandler {
         return c2OperationAck;
     }
 
-    private AgentInfo agentInfo(C2Heartbeat heartbeat, RuntimeInfoWrapper runtimeInfoWrapper) {
-        AgentInfo agentInfo = heartbeat.getAgentInfo();
+    private AgentInfo agentInfo(final C2Heartbeat heartbeat, final RuntimeInfoWrapper runtimeInfoWrapper) {
+        final AgentInfo agentInfo = heartbeat.getAgentInfo();
         agentInfo.setAgentManifest(runtimeInfoWrapper.getManifest());
         return agentInfo;
     }

@@ -31,7 +31,7 @@ public class DynamicProperty {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -40,7 +40,7 @@ public class DynamicProperty {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
@@ -49,7 +49,7 @@ public class DynamicProperty {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -58,7 +58,7 @@ public class DynamicProperty {
         return expressionLanguageScope;
     }
 
-    public void setExpressionLanguageScope(ExpressionLanguageScope expressionLanguageScope) {
+    public void setExpressionLanguageScope(final ExpressionLanguageScope expressionLanguageScope) {
         this.expressionLanguageScope = expressionLanguageScope;
     }
 

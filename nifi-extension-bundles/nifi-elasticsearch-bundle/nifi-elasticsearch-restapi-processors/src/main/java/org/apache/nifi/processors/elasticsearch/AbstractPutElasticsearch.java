@@ -141,7 +141,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ElasticsearchRestProcessor.super.migrateProperties(config);
         config.renameProperty("put-es-output-error-responses", OUTPUT_ERROR_RESPONSES.getName());
         config.renameProperty("put-es-record-batch-size", BATCH_SIZE.getName());
@@ -245,12 +245,12 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     void transferFlowFilesOnException(final Exception ex, final Relationship rel, final ProcessSession session,
                                       final boolean penalize, final FlowFile... flowFiles) {
-        for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, "elasticsearch.put.error", ex.getMessage() == null ? "null" : ex.getMessage());
+        for (final FlowFile flowFile : flowFiles) {
+            final FlowFile updatedFlowFile = session.putAttribute(flowFile, "elasticsearch.put.error", ex.getMessage() == null ? "null" : ex.getMessage());
             if (penalize) {
-                session.penalize(flowFile);
+                session.penalize(updatedFlowFile);
             }
-            session.transfer(flowFile, rel);
+            session.transfer(updatedFlowFile, rel);
         }
     }
 

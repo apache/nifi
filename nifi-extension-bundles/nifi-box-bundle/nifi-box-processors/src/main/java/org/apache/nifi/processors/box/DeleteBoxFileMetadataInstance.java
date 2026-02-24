@@ -169,7 +169,7 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
                 getLogger().error("Couldn't delete metadata for file with id [{}]", fileId, e);
                 session.transfer(flowFile, REL_FAILURE);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error processing metadata deletion for Box file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);

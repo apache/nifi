@@ -71,10 +71,10 @@ public class ParameterContextMerger {
                 continue;
             }
 
-            Set<ProcessGroupEntity> boundGroupEntities = contextDto.getBoundProcessGroups();
+            final Set<ProcessGroupEntity> boundGroupEntities = contextDto.getBoundProcessGroups();
             if (boundGroupEntities != null) {
                 for (final ProcessGroupEntity groupEntity : boundGroupEntities) {
-                    ProcessGroupEntity merged = mergedBoundGroups.get(groupEntity.getId());
+                    final ProcessGroupEntity merged = mergedBoundGroups.get(groupEntity.getId());
                     if (merged == null) {
                         mergedBoundGroups.put(groupEntity.getId(), groupEntity);
                         continue;
@@ -95,7 +95,7 @@ public class ParameterContextMerger {
                     final Map<String, AffectedComponentEntity> affectedComponentsById = affectedComponentsByParameterName.computeIfAbsent(parameterDto.getName(), key -> new HashMap<>());
 
                     for (final AffectedComponentEntity referencingComponent : parameterDto.getReferencingComponents()) {
-                        AffectedComponentEntity mergedAffectedComponent = affectedComponentsById.get(referencingComponent.getId());
+                        final AffectedComponentEntity mergedAffectedComponent = affectedComponentsById.get(referencingComponent.getId());
                         if (mergedAffectedComponent == null) {
                             affectedComponentsById.put(referencingComponent.getId(), referencingComponent);
                             continue;

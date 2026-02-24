@@ -46,7 +46,7 @@ public class ScheduleComponentsEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -60,7 +60,7 @@ public class ScheduleComponentsEntity extends Entity {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -73,7 +73,7 @@ public class ScheduleComponentsEntity extends Entity {
         return components;
     }
 
-    public void setComponents(Map<String, RevisionDTO> components) {
+    public void setComponents(final Map<String, RevisionDTO> components) {
         this.components = components;
     }
 
@@ -83,7 +83,7 @@ public class ScheduleComponentsEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

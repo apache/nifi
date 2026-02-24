@@ -40,13 +40,13 @@ public class PermissionsService {
     private AuthorizableLookup authorizableLookup;
 
     @Autowired
-    public PermissionsService(AuthorizationService authorizationService, AuthorizableLookup authorizableLookup) {
+    public PermissionsService(final AuthorizationService authorizationService, final AuthorizableLookup authorizableLookup) {
         this.authorizationService = authorizationService;
         this.authorizableLookup = authorizableLookup;
     }
 
     public void populateBucketPermissions(final Iterable<Bucket> buckets) {
-        Permissions topLevelBucketPermissions = authorizationService.getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
+        final Permissions topLevelBucketPermissions = authorizationService.getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
         buckets.forEach(b -> populateBucketPermissions(b, topLevelBucketPermissions));
     }
 
@@ -55,7 +55,7 @@ public class PermissionsService {
     }
 
     public void populateItemPermissions(final Iterable<? extends BucketItem> bucketItems) {
-        Permissions topLevelBucketPermissions = authorizationService.getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
+        final Permissions topLevelBucketPermissions = authorizationService.getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
         bucketItems.forEach(i -> populateItemPermissions(i, topLevelBucketPermissions));
     }
 
@@ -68,7 +68,7 @@ public class PermissionsService {
             return;
         }
 
-        Permissions bucketPermissions = createPermissionsForBucketId(bucket.getIdentifier(), knownPermissions);
+        final Permissions bucketPermissions = createPermissionsForBucketId(bucket.getIdentifier(), knownPermissions);
         bucket.setPermissions(bucketPermissions);
     }
 
@@ -77,14 +77,14 @@ public class PermissionsService {
             return;
         }
 
-        Permissions bucketItemPermissions = createPermissionsForBucketId(bucketItem.getBucketIdentifier(), knownPermissions);
+        final Permissions bucketItemPermissions = createPermissionsForBucketId(bucketItem.getBucketIdentifier(), knownPermissions);
         bucketItem.setPermissions(bucketItemPermissions);
     }
 
-    private Permissions createPermissionsForBucketId(String bucketId, final Permissions knownPermissions) {
-        Authorizable bucketResource = authorizableLookup.getBucketAuthorizable(bucketId);
+    private Permissions createPermissionsForBucketId(final String bucketId, final Permissions knownPermissions) {
+        final Authorizable bucketResource = authorizableLookup.getBucketAuthorizable(bucketId);
 
-        Permissions permissions = knownPermissions == null
+        final Permissions permissions = knownPermissions == null
                 ? authorizationService.getPermissionsForResource(bucketResource)
                 : authorizationService.getPermissionsForResource(bucketResource, knownPermissions);
 

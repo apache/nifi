@@ -192,10 +192,10 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         final String[] targetEventTypes = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE).evaluateAttributeExpressions().getValue(), ','));
         if (targetEventTypes != null) {
-            for (String type : targetEventTypes) {
+            for (final String type : targetEventTypes) {
                 try {
                     consumer.addTargetEventType(ProvenanceEventType.valueOf(type));
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().warn("{} is not a correct event type, removed from the filtering.", type);
                 }
             }
@@ -203,10 +203,10 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         final String[] targetEventTypesExclude = StringUtils.stripAll(StringUtils.split(context.getProperty(FILTER_EVENT_TYPE_EXCLUDE).evaluateAttributeExpressions().getValue(), ','));
         if (targetEventTypesExclude != null) {
-            for (String type : targetEventTypesExclude) {
+            for (final String type : targetEventTypesExclude) {
                 try {
                     consumer.addTargetEventTypeExclude(ProvenanceEventType.valueOf(type));
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().warn("{} is not a correct event type, removed from the exclude filtering.", type);
                 }
             }
@@ -262,10 +262,10 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
         final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
-        URL url;
+        final URL url;
         try {
             url = URI.create(nifiUrl).toURL();
-        } catch (IllegalArgumentException | MalformedURLException e) {
+        } catch (final IllegalArgumentException | MalformedURLException e) {
             // already validated
             throw new AssertionError();
         }
@@ -332,7 +332,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("s2s-prov-task-event-filter", FILTER_EVENT_TYPE.getName());
         config.renameProperty("s2s-prov-task-event-filter-exclude", FILTER_EVENT_TYPE_EXCLUDE.getName());
@@ -347,7 +347,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
     private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final ProvenanceEventRecord event,
                                  final String componentName, final String processGroupId, final String processGroupName, final String hostname, final URL nifiUrl, final String applicationName,
-                                 final String platform, final String nodeIdentifier, Boolean allowNullValues) {
+                                 final String platform, final String nodeIdentifier, final Boolean allowNullValues) {
         addField(builder, "eventId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "eventOrdinal", event.getEventId(), allowNullValues);
         addField(builder, "eventType", event.getEventType().name(), allowNullValues);
@@ -392,7 +392,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         return builder.build();
     }
 
-    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, String> values, Boolean allowNullValues) {
+    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, String> values, final Boolean allowNullValues) {
         if (values != null) {
 
             final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
@@ -416,7 +416,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         }
     }
 
-    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values, Boolean allowNullValues) {
+    private void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Collection<String> values, final Boolean allowNullValues) {
         if (values != null) {
             builder.add(key, createJsonArray(factory, values));
         } else if (allowNullValues) {
@@ -424,7 +424,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         }
     }
 
-    private static JsonArrayBuilder createJsonArray(JsonBuilderFactory factory, final Collection<String> values) {
+    private static JsonArrayBuilder createJsonArray(final JsonBuilderFactory factory, final Collection<String> values) {
         final JsonArrayBuilder builder = factory.createArrayBuilder();
         for (final String value : values) {
             if (value != null) {

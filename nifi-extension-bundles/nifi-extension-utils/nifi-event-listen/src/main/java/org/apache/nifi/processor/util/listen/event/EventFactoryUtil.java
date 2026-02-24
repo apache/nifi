@@ -25,7 +25,7 @@ import java.util.Map;
 public class EventFactoryUtil {
 
     public static Map<String, String> createMapWithSender(final String sender, final int port) {
-        Map<String, String> metadata = new HashMap<>();
+        final Map<String, String> metadata = new HashMap<>();
         metadata.put(EventFactory.SENDER_KEY, sender);
         metadata.put(EventFactory.SENDER_PORT_KEY, String.valueOf(port));
         return metadata;

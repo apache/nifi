@@ -40,7 +40,7 @@ public abstract class AbstractPullChangeIngestor implements Runnable, ChangeInge
     protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
 
     @Override
-    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(final BootstrapProperties properties, final ConfigurationFileHolder configurationFileHolder, final ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
         this.properties.set(properties);
     }

@@ -83,7 +83,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         try {
             tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
             moreRows = rs.next();
-        } catch (SQLException se) {
+        } catch (final SQLException se) {
             // Tried to create the schema with a ResultSet without calling next() first (probably for DB2), now try the other way around
             moreRows = rs.next();
             tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
@@ -105,7 +105,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         return moreRows;
     }
 
-    protected void setMoreRows(boolean moreRows) {
+    protected void setMoreRows(final boolean moreRows) {
         this.moreRows = moreRows;
     }
 
@@ -223,7 +223,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
 
                 if (readerSchema != null) {
-                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    final Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
                         return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
@@ -252,7 +252,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
 
                 if (readerSchema != null) {
-                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    final Optional<DataType> dataType = readerSchema.getDataType(columnName);
                     if (dataType.isPresent()) {
                         return determineDataTypeToReturn(dataType.get(), useLogicalTypes);
                     }
@@ -271,7 +271,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     }
 
     private DataType determineDataTypeToReturn(final DataType dataType, final boolean useLogicalTypes) {
-        RecordFieldType fieldType = dataType.getFieldType();
+        final RecordFieldType fieldType = dataType.getFieldType();
         if (!useLogicalTypes
                 && (fieldType == RecordFieldType.DECIMAL
                 || fieldType == RecordFieldType.DATE
@@ -311,9 +311,9 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
             final DataType baseType = getArrayBaseType(array, useLogicalTypes);
             return RecordFieldType.ARRAY.getArrayDataType(baseType);
-        } catch (SQLFeatureNotSupportedException sfnse) {
+        } catch (final SQLFeatureNotSupportedException sfnse) {
             return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
-        } catch (SQLException sqle) {
+        } catch (final SQLException sqle) {
             if (sqle.getCause() instanceof NoSuchElementException) {
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
             } else {
@@ -387,7 +387,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
 
             Object valueToLookAt = null;
-            for (Object value : values) {
+            for (final Object value : values) {
                 valueToLookAt = value;
                 if (valueToLookAt != null) {
                     break;

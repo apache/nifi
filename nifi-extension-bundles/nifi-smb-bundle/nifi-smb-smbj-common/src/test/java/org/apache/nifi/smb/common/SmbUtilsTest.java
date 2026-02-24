@@ -40,35 +40,35 @@ public class SmbUtilsTest {
 
     @Test
     public void testSmbConfigDefault() {
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
 
         properties.put(SmbProperties.SMB_DIALECT, null);
         properties.put(SmbProperties.USE_ENCRYPTION, null);
         properties.put(SmbProperties.TIMEOUT, null);
 
-        MockPropertyContext propertyContext = new MockPropertyContext(properties);
+        final MockPropertyContext propertyContext = new MockPropertyContext(properties);
 
-        SmbConfig config = SmbUtils.buildSmbConfig(propertyContext);
+        final SmbConfig config = SmbUtils.buildSmbConfig(propertyContext);
 
         assertSmbConfig(config, new HashSet<>(Arrays.asList(SMB_3_1_1, SMB_3_0_2, SMB_3_0, SMB_2_1, SMB_2_0_2)), false, 5_000);
     }
 
     @Test
     public void testSmbConfigNonDefault() {
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
 
         properties.put(SmbProperties.SMB_DIALECT, SmbDialect.SMB_3_1_1.getValue());
         properties.put(SmbProperties.USE_ENCRYPTION, "true");
         properties.put(SmbProperties.TIMEOUT, "30 s");
 
-        MockPropertyContext propertyContext = new MockPropertyContext(properties);
+        final MockPropertyContext propertyContext = new MockPropertyContext(properties);
 
-        SmbConfig config = SmbUtils.buildSmbConfig(propertyContext);
+        final SmbConfig config = SmbUtils.buildSmbConfig(propertyContext);
 
         assertSmbConfig(config, Collections.singleton(SMB_3_1_1), true, 30_000);
     }
 
-    private void assertSmbConfig(SmbConfig config, Set<SMB2Dialect> expectedDialects, boolean expectedEncryption, long expectedTimeout) {
+    private void assertSmbConfig(final SmbConfig config, final Set<SMB2Dialect> expectedDialects, final boolean expectedEncryption, final long expectedTimeout) {
         assertEquals(expectedDialects, config.getSupportedDialects());
 
         assertEquals(expectedEncryption, config.isEncryptData());

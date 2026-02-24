@@ -80,7 +80,7 @@ public interface IdentifierLookup {
         }
 
         @Override
-        public Map<String, Integer> invertList(List<String> values) {
+        public Map<String, Integer> invertList(final List<String> values) {
             return Collections.emptyMap();
         }
     };

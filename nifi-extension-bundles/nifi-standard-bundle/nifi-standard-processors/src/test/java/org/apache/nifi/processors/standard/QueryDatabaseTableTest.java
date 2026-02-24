@@ -582,7 +582,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.clearTransferState();
 
         // Run again with a cleaned state. Should get all rows split into batches
-        int ffCount = (int) Math.ceil(rowCount / 9D);
+        final int ffCount = (int) Math.ceil(rowCount / 9D);
         runner.getStateManager().clear(Scope.CLUSTER);
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, ffCount);
@@ -615,7 +615,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "9");
-        int maxFragments = 3;
+        final int maxFragments = 3;
         runner.setProperty(QueryDatabaseTable.MAX_FRAGMENTS, Integer.toString(maxFragments));
 
         runner.run();
@@ -636,7 +636,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
 
     @Test
     public void testInitialMaxValue() throws SQLException, IOException {
-        InputStream in;
+        final InputStream in;
 
         executeSql("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
@@ -728,7 +728,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
 
     @Test
     public void testInitialLoadStrategyStartAtBeginning() throws SQLException, IOException {
-        InputStream in;
+        final InputStream in;
 
         executeSql("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
@@ -1094,7 +1094,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private long getNumberOfRecordsFromStream(InputStream in) throws IOException {
+    private long getNumberOfRecordsFromStream(final InputStream in) throws IOException {
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
         try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
             GenericRecord record = null;

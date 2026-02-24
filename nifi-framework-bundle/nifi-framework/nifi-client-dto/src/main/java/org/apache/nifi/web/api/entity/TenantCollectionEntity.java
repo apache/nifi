@@ -37,7 +37,7 @@ public class TenantCollectionEntity extends ComponentEntity {
         return tenants;
     }
 
-    public void setTenants(Set<String> tenants) {
+    public void setTenants(final Set<String> tenants) {
         this.tenants = tenants;
     }
 

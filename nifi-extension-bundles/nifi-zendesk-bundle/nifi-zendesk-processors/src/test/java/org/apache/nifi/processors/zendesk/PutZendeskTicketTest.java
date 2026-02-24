@@ -84,7 +84,7 @@ public class PutZendeskTicketTest {
 
         testRunner = newTestRunner(new TestPutZendeskTicket());
 
-        WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
+        final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
         testRunner.addControllerService("web-client-service-provider", webClientServiceProvider);
         testRunner.enableControllerService(webClientServiceProvider);
 
@@ -102,7 +102,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithoutRecordReader() throws InterruptedException, IOException {
-        String flowFileContent =
+        final String flowFileContent =
                 "{\n" +
                 "  \"ticket\" : {\n" +
                 "    \"comment\" : {\n" +
@@ -114,7 +114,7 @@ public class PutZendeskTicketTest {
                 "  }\n" +
                 "}";
 
-        MockFlowFile flowFile = new MockFlowFile(1L);
+        final MockFlowFile flowFile = new MockFlowFile(1L);
         flowFile.setData(flowFileContent.getBytes());
 
         // given
@@ -128,7 +128,7 @@ public class PutZendeskTicketTest {
         testRunner.run();
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
         assertEquals(OBJECT_MAPPER.readTree(flowFileContent), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -136,7 +136,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithFixPropertiesAndSingleTicket() throws InterruptedException, InitializationException, IOException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("description", RecordFieldType.STRING);
         reader.addSchemaField("subject", RecordFieldType.STRING);
         reader.addSchemaField("priority", RecordFieldType.STRING);
@@ -162,10 +162,10 @@ public class PutZendeskTicketTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
-        String expectedBody =
+        final String expectedBody =
                 "{\n" +
                 "  \"ticket\" : {\n" +
                 "    \"comment\" : {\n" +
@@ -183,7 +183,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithFixPropertiesAndMultipleTickets() throws InterruptedException, InitializationException, IOException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("description", RecordFieldType.STRING);
         reader.addRecord("This is a test description1");
         reader.addRecord("This is a test description2");
@@ -204,10 +204,10 @@ public class PutZendeskTicketTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getTarget());
 
-        String expectedBody =
+        final String expectedBody =
                 "{\n" +
                 "  \"tickets\" : [ {\n" +
                 "    \"comment\" : {\n" +
@@ -226,7 +226,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithRecordPathDynamicProperties() throws InterruptedException, InitializationException, IOException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("description", RecordFieldType.STRING);
         reader.addSchemaField("dynamicPropertySource1", RecordFieldType.STRING);
         reader.addSchemaField("dynamicPropertySource2", RecordFieldType.STRING);
@@ -250,10 +250,10 @@ public class PutZendeskTicketTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
-        String expectedBody =
+        final String expectedBody =
                 "{\n" +
                 "  \"ticket\" : {\n" +
                 "    \"comment\" : {\n" +
@@ -276,7 +276,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithConstantDynamicProperties() throws InterruptedException, InitializationException, IOException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("description", RecordFieldType.STRING);
         reader.addSchemaField("dynamicPropertySource1", RecordFieldType.STRING);
         reader.addSchemaField("dynamicPropertySource2", RecordFieldType.STRING);
@@ -300,10 +300,10 @@ public class PutZendeskTicketTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
-        String expectedBody =
+        final String expectedBody =
                 "{\n" +
                 "  \"ticket\" : {\n" +
                 "    \"comment\" : {\n" +
@@ -326,7 +326,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithErrorResponse() throws InitializationException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("description", RecordFieldType.STRING);
         reader.addRecord("This is a test description");
 
@@ -351,7 +351,7 @@ public class PutZendeskTicketTest {
 
     @Test
     public void testOnTriggerWithZeroRecord() throws InitializationException {
-        MockRecordParser reader = new MockRecordParser();
+        final MockRecordParser reader = new MockRecordParser();
 
         testRunner.addControllerService("mock-reader-factory", reader);
         testRunner.enableControllerService(reader);
@@ -364,13 +364,13 @@ public class PutZendeskTicketTest {
 
         // then
         testRunner.assertTransferCount(REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertEquals("0", flowFile.getAttribute(RECORD_COUNT_ATTRIBUTE_NAME));
     }
 
     @Test
     public void testOnTriggerWithEmptyFlowFileWithoutRecordReader() {
-        MockFlowFile flowFile = new MockFlowFile(1L);
+        final MockFlowFile flowFile = new MockFlowFile(1L);
         flowFile.setData("".getBytes());
 
         // when
@@ -402,8 +402,8 @@ public class PutZendeskTicketTest {
 
     class TestPutZendeskTicket extends PutZendeskTicket {
         @Override
-        HttpUriBuilder uriBuilder(String resourcePath) {
-            HttpUrl url = server.url(resourcePath);
+        HttpUriBuilder uriBuilder(final String resourcePath) {
+            final HttpUrl url = server.url(resourcePath);
             return new StandardHttpUriBuilder()
                     .scheme(url.scheme())
                     .host(url.host())

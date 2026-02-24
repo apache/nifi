@@ -51,7 +51,7 @@ public class TestRouteText {
         Set<String> expectedRelationships = new HashSet<>(Arrays.asList("matched", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
-        for (Relationship relationship : relationshipSet) {
+        for (final Relationship relationship : relationshipSet) {
             assertTrue(expectedRelationships.contains(relationship.getName()));
         }
 
@@ -61,7 +61,7 @@ public class TestRouteText {
         expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
-        for (Relationship relationship : relationshipSet) {
+        for (final Relationship relationship : relationshipSet) {
             assertTrue(expectedRelationships.contains(relationship.getName()));
         }
 
@@ -82,11 +82,11 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.STARTS_WITH);
         runner.setProperty("simple", "start");
 
-        Set<Relationship> relationshipSet = runner.getProcessor().getRelationships();
-        Set<String> expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched", "original"));
+        final Set<Relationship> relationshipSet = runner.getProcessor().getRelationships();
+        final Set<String> expectedRelationships = new HashSet<>(Arrays.asList("simple", "unmatched", "original"));
 
         assertEquals(expectedRelationships.size(), relationshipSet.size());
-        for (Relationship relationship : relationshipSet) {
+        for (final Relationship relationship : relationshipSet) {
             assertTrue(expectedRelationships.contains(relationship.getName()));
         }
 
@@ -299,7 +299,7 @@ public class TestRouteText {
         runner.assertTransferCount("unmatched", 2);
         runner.assertTransferCount("original", 1);
 
-        List<MockFlowFile> lFlowFiles = runner.getFlowFilesForRelationship("l");
+        final List<MockFlowFile> lFlowFiles = runner.getFlowFilesForRelationship("l");
         boolean found1 = false;
         boolean found2 = false;
         for (final MockFlowFile mff : lFlowFiles) {
@@ -316,7 +316,7 @@ public class TestRouteText {
         assertTrue(found1);
         assertTrue(found2);
 
-        List<MockFlowFile> unmatchedFlowFiles = runner.getFlowFilesForRelationship("unmatched");
+        final List<MockFlowFile> unmatchedFlowFiles = runner.getFlowFilesForRelationship("unmatched");
         found1 = false;
         boolean found3 = false;
         for (final MockFlowFile mff : unmatchedFlowFiles) {
@@ -708,13 +708,13 @@ public class TestRouteText {
 
         // Verify text is trimmed
         final MockFlowFile outGreeting = runner.getFlowFilesForRelationship("greeting").get(0);
-        String outGreetingString = new String(runner.getContentAsByteArray(outGreeting));
+        final String outGreetingString = new String(runner.getContentAsByteArray(outGreeting));
         assertEquals(7, countLines(outGreetingString));
         final MockFlowFile outAddress = runner.getFlowFilesForRelationship("address").get(0);
-        String outAddressString = new String(runner.getContentAsByteArray(outAddress));
+        final String outAddressString = new String(runner.getContentAsByteArray(outAddress));
         assertEquals(7, countLines(outAddressString));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        String outUnmatchedString = new String(runner.getContentAsByteArray(outUnmatched));
+        final String outUnmatchedString = new String(runner.getContentAsByteArray(outUnmatched));
         assertEquals(400, countLines(outUnmatchedString));
 
         final MockFlowFile outOriginal = runner.getFlowFilesForRelationship("original").get(0);
@@ -742,16 +742,16 @@ public class TestRouteText {
 
         // Verify text is trimmed
         final MockFlowFile outNode = runner.getFlowFilesForRelationship("NodeType").get(0);
-        String outNodeString = new String(runner.getContentAsByteArray(outNode));
+        final String outNodeString = new String(runner.getContentAsByteArray(outNode));
         assertEquals(1, countLines(outNodeString));
         final MockFlowFile outElement = runner.getFlowFilesForRelationship("element").get(0);
-        String outElementString = new String(runner.getContentAsByteArray(outElement));
+        final String outElementString = new String(runner.getContentAsByteArray(outElement));
         assertEquals(4, countLines(outElementString));
         final MockFlowFile outName = runner.getFlowFilesForRelationship("name").get(0);
-        String outNameString = new String(runner.getContentAsByteArray(outName));
+        final String outNameString = new String(runner.getContentAsByteArray(outName));
         assertEquals(7, countLines(outNameString));
         final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship("unmatched").get(0);
-        String outUnmatchedString = new String(runner.getContentAsByteArray(outUnmatched));
+        final String outUnmatchedString = new String(runner.getContentAsByteArray(outUnmatched));
         assertEquals(26, countLines(outUnmatchedString));
 
         final MockFlowFile outOriginal = runner.getFlowFilesForRelationship("original").get(0);
@@ -775,7 +775,7 @@ public class TestRouteText {
         assertEquals(1, routeText.patternsCache.size());
 
         for (int i = 0; i < iterations; ++i) {
-            String iString = Long.toString(i);
+            final String iString = Long.toString(i);
             runner.enqueue("some text with " + iString + "in it",
                     Collections.singletonMap("someValue", iString));
             runner.run();
@@ -790,12 +790,12 @@ public class TestRouteText {
         assertEquals(0, routeText.patternsCache.size(), "Pattern cache is not cleared after changing IGNORE_CASE");
     }
 
-    public static int countLines(String str) {
+    public static int countLines(final String str) {
         if (str == null || str.isEmpty()) {
             return 0;
         }
 
-        String lineSeparator;
+        final String lineSeparator;
 
         if (str.contains("\r\n")) {
             lineSeparator = "\r\n";

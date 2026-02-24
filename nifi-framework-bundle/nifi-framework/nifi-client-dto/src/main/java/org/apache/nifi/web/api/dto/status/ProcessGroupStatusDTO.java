@@ -39,7 +39,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -48,7 +48,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -57,7 +57,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(ProcessGroupStatusSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final ProcessGroupStatusSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -67,7 +67,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 
@@ -84,7 +84,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 }

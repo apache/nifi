@@ -73,7 +73,7 @@ public abstract class AbstractUpdateParamContextCommand<R extends Result> extend
                         println("Waiting for update request to complete...");
                     }
                     Thread.sleep(POLL_INTERVAL_MILLIS);
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     println("Update request polling interrupted");
                 }
             }

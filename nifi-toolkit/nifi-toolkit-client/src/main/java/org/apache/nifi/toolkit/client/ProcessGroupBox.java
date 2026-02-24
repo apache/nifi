@@ -37,7 +37,7 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
 
     public static final ProcessGroupBox CANVAS_CENTER = new ProcessGroupBox(0, 0);
 
-    public ProcessGroupBox(int x, int y) {
+    public ProcessGroupBox(final int x, final int y) {
         this.x = x;
         this.y = y;
     }
@@ -58,7 +58,7 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
         return (int) Math.hypot(x, y);
     }
 
-    public boolean intersects(ProcessGroupBox other) {
+    public boolean intersects(final ProcessGroupBox other) {
         // this is completely left of other
         if (this.x + PG_SIZE_WIDTH < other.x) {
             return false;
@@ -82,12 +82,12 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
         return true;
     }
 
-    public ProcessGroupBox findFreeSpace(List<ProcessGroupBox> allCoords) {
+    public ProcessGroupBox findFreeSpace(final List<ProcessGroupBox> allCoords) {
         // sort by distance to (0.0)
-        List<ProcessGroupBox> byClosest = allCoords.stream().sorted().collect(Collectors.toList());
+        final List<ProcessGroupBox> byClosest = allCoords.stream().sorted().collect(Collectors.toList());
 
         // search to the right
-        List<ProcessGroupBox> freeSpots = byClosest.stream()
+        final List<ProcessGroupBox> freeSpots = byClosest.stream()
                 .filter(other -> byClosest.stream().noneMatch(other.right()::intersects))
                 .map(ProcessGroupBox::right)
                 .collect(Collectors.toList()); // save a 'transformed' spot 'to the right'
@@ -131,19 +131,19 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
     }
 
     @Override
-    public int compareTo(ProcessGroupBox other) {
+    public int compareTo(final ProcessGroupBox other) {
         return this.distance() - other.distance();
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ProcessGroupBox pgBox = (ProcessGroupBox) o;
+        final ProcessGroupBox pgBox = (ProcessGroupBox) o;
         return Double.compare(pgBox.x, x) == 0
                 && Double.compare(pgBox.y, y) == 0;
     }

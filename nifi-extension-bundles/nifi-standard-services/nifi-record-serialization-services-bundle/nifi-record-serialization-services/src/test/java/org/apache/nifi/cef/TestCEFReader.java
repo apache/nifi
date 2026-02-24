@@ -279,7 +279,7 @@ public class TestCEFReader {
         runner.setProperty(reader, CEFReader.INVALID_FIELD, "invalid");
     }
 
-    private void setSchema(List<RecordField> fields) throws InitializationException {
+    private void setSchema(final List<RecordField> fields) throws InitializationException {
         final MockSchemaRegistry registry = new MockSchemaRegistry();
         registry.addSchema("predefinedSchema", new SimpleRecordSchema(fields));
         runner.addControllerService("registry", registry);

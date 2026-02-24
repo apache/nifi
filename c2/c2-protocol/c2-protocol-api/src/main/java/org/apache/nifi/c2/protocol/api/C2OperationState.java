@@ -49,7 +49,7 @@ public class C2OperationState implements Serializable {
         return failureCause;
     }
 
-    public void setFailureCause(FailureCause failureCause) {
+    public void setFailureCause(final FailureCause failureCause) {
         this.failureCause = failureCause;
     }
 
@@ -74,19 +74,19 @@ public class C2OperationState implements Serializable {
      *
      * @param state ordinal value of this operation state.
      */
-    public void setStateFromOrdinal(int state) {
+    public void setStateFromOrdinal(final int state) {
         this.state = OperationState.fromOrdinal(state);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        C2OperationState that = (C2OperationState) o;
+        final C2OperationState that = (C2OperationState) o;
         return state == that.state && Objects.equals(details, that.details) && Objects.equals(failureCause, that.failureCause);
     }
 
@@ -119,7 +119,7 @@ public class C2OperationState implements Serializable {
          * @param state input ordinal
          * @return update state enumeration value.
          */
-        public static OperationState fromOrdinal(int state) {
+        public static OperationState fromOrdinal(final int state) {
             return switch (state) {
                 case 0 -> FULLY_APPLIED;
                 case 1 -> PARTIALLY_APPLIED;
@@ -137,7 +137,7 @@ public class C2OperationState implements Serializable {
          * @param state enumeration value
          * @return predefined ordinal
          */
-        public static int toOrdinal(OperationState state) {
+        public static int toOrdinal(final OperationState state) {
             return switch (state) {
                 case FULLY_APPLIED -> 0;
                 case PARTIALLY_APPLIED -> 1;

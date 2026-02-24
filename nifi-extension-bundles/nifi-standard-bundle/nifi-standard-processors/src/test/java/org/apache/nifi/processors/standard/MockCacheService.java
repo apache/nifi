@@ -41,12 +41,12 @@ final class MockCacheService extends AbstractControllerService implements Distri
      * @return true if the value was added to the cache, false if it already exists
      */
     @Override
-    public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
         return storage.putIfAbsent(key, value) == null;
     }
 
     @Override
-    public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) {
+    public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) {
         if (storage.containsKey(key)) {
             return (V) storage.get(key);
         } else {
@@ -56,17 +56,17 @@ final class MockCacheService extends AbstractControllerService implements Distri
     }
 
     @Override
-    public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+    public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
         return storage.containsKey(key);
     }
 
     @Override
-    public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         storage.put(key, value);
     }
 
     @Override
-    public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return (V) storage.get(key);
     }
 
@@ -76,7 +76,7 @@ final class MockCacheService extends AbstractControllerService implements Distri
     }
 
     @Override
-    public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+    public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
         if (storage.containsKey(key)) {
             storage.remove(key);
             return true;

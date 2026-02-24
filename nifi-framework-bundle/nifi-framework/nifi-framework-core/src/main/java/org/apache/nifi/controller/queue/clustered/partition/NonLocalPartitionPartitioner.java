@@ -31,8 +31,8 @@ public class NonLocalPartitionPartitioner implements FlowFilePartitioner {
         QueuePartition remotePartition = null;
         final long startIndex = counter.getAndIncrement();
         for (int i = 0, numPartitions = partitions.length; i < numPartitions && remotePartition == null; ++i) {
-            int index = (int) ((startIndex + i) % numPartitions);
-            QueuePartition partition = partitions[index];
+            final int index = (int) ((startIndex + i) % numPartitions);
+            final QueuePartition partition = partitions[index];
             if (!partition.equals(localPartition)) {
                 remotePartition = partition;
             }

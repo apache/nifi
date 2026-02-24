@@ -31,7 +31,7 @@ public class SchemaIdentifierMatcher implements ArgumentMatcher<SchemaIdentifier
     }
 
     @Override
-    public boolean matches(SchemaIdentifier argument) {
+    public boolean matches(final SchemaIdentifier argument) {
         if (argument == null) {
             return false;
         }

@@ -94,15 +94,15 @@ class SmbDfsIT {
     void testFetchSmb() throws Exception {
         writeFile("fetch_file", "fetch_content");
 
-        TestRunner testRunner = newTestRunner(FetchSmb.class);
+        final TestRunner testRunner = newTestRunner(FetchSmb.class);
         testRunner.setProperty(FetchSmb.REMOTE_FILE, "dfs-link/fetch_file");
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner);
 
         testRunner.enqueue("");
         testRunner.run();
 
         testRunner.assertTransferCount(FetchSmb.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchSmb.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchSmb.REL_SUCCESS).get(0);
         assertEquals("fetch_content", flowFile.getContent());
 
         testRunner.disableControllerService(smbjClientProviderService);
@@ -112,15 +112,15 @@ class SmbDfsIT {
     void testFetchFileFailsWhenDfsIsDisabled() throws Exception {
         writeFile("fetch_file", "fetch_content");
 
-        TestRunner testRunner = newTestRunner(FetchSmb.class);
+        final TestRunner testRunner = newTestRunner(FetchSmb.class);
         testRunner.setProperty(FetchSmb.REMOTE_FILE, "dfs-link/fetch_file");
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
 
         testRunner.enqueue("");
         testRunner.run();
 
         testRunner.assertTransferCount(FetchSmb.REL_FAILURE, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchSmb.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchSmb.REL_FAILURE).get(0);
         assertEquals(0, flowFile.getSize());
 
         testRunner.disableControllerService(smbjClientProviderService);
@@ -137,21 +137,21 @@ class SmbDfsIT {
         testListSmb(null);
     }
 
-    private void testListSmb(String directory) throws Exception {
+    private void testListSmb(final String directory) throws Exception {
         writeFile("list_file", "list_content");
 
-        TestRunner testRunner = newTestRunner(ListSmb.class);
+        final TestRunner testRunner = newTestRunner(ListSmb.class);
         if (directory != null) {
             testRunner.setProperty(ListSmb.DIRECTORY, directory);
         }
         testRunner.setProperty(ListSmb.LISTING_STRATEGY, NO_TRACKING);
         testRunner.setProperty(ListSmb.MINIMUM_AGE, "0 ms");
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner);
 
         testRunner.run();
 
         testRunner.assertTransferCount(ListSmb.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListSmb.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ListSmb.REL_SUCCESS).get(0);
         assertEquals(0, flowFile.getSize());
         assertEquals("dfs-link", flowFile.getAttribute(CoreAttributes.PATH.key()));
         assertEquals("list_file", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
@@ -161,7 +161,7 @@ class SmbDfsIT {
 
     @Test
     void testPutSmbFile() {
-        TestRunner testRunner = newTestRunner(PutSmbFile.class);
+        final TestRunner testRunner = newTestRunner(PutSmbFile.class);
         testRunner.setProperty(PutSmbFile.HOSTNAME, sambaContainer.getHost());
         testRunner.setProperty(PutSmbFile.SHARE, "dfs-share");
         testRunner.setProperty(PutSmbFile.DIRECTORY, "dfs-link");
@@ -174,7 +174,7 @@ class SmbDfsIT {
 
         testRunner.assertTransferCount(PutSmbFile.REL_SUCCESS, 1);
 
-        String fileContent = readFile("put_file");
+        final String fileContent = readFile("put_file");
         assertEquals("put_content", fileContent);
     }
 
@@ -182,7 +182,7 @@ class SmbDfsIT {
     void testGetSmbFile() {
         writeFile("get_file", "get_content");
 
-        TestRunner testRunner = newTestRunner(GetSmbFile.class);
+        final TestRunner testRunner = newTestRunner(GetSmbFile.class);
         testRunner.setProperty(GetSmbFile.HOSTNAME, sambaContainer.getHost());
         testRunner.setProperty(GetSmbFile.SHARE, "dfs-share");
         testRunner.setProperty(GetSmbFile.DIRECTORY, "dfs-link");
@@ -193,18 +193,18 @@ class SmbDfsIT {
         testRunner.run();
 
         testRunner.assertTransferCount(GetSmbFile.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetSmbFile.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetSmbFile.REL_SUCCESS).get(0);
         assertEquals("get_content", flowFile.getContent());
         assertEquals("dfs-link", flowFile.getAttribute(CoreAttributes.PATH.key()));
         assertEquals("get_file", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
     }
 
-    private SmbjClientProviderService configureSmbClient(TestRunner testRunner) throws InitializationException {
+    private SmbjClientProviderService configureSmbClient(final TestRunner testRunner) throws InitializationException {
         return configureSmbClient(testRunner, true);
     }
 
-    private SmbjClientProviderService configureSmbClient(TestRunner testRunner, boolean enableDfs) throws InitializationException {
-        SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
+    private SmbjClientProviderService configureSmbClient(final TestRunner testRunner, final boolean enableDfs) throws InitializationException {
+        final SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
 
         testRunner.addControllerService("client-provider", smbjClientProviderService);
 
@@ -222,13 +222,13 @@ class SmbDfsIT {
         return smbjClientProviderService;
     }
 
-    private void writeFile(String filename, String content) {
-        String containerPath = "/share-dir/" + filename;
+    private void writeFile(final String filename, final String content) {
+        final String containerPath = "/share-dir/" + filename;
         sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
     }
 
-    private String readFile(String filename) {
-        String containerPath = "/share-dir/" + filename;
+    private String readFile(final String filename) {
+        final String containerPath = "/share-dir/" + filename;
         return sambaContainer.copyFileFromContainer(containerPath, is -> IOUtils.toString(is, StandardCharsets.UTF_8));
     }
 

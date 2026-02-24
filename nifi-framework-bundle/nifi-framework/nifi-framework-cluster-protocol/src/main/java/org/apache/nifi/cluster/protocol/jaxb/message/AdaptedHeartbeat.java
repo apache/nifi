@@ -33,11 +33,11 @@ public class AdaptedHeartbeat {
         return nodeIdentifier;
     }
 
-    public void setNodeIdentifier(NodeIdentifier nodeIdentifier) {
+    public void setNodeIdentifier(final NodeIdentifier nodeIdentifier) {
         this.nodeIdentifier = nodeIdentifier;
     }
 
-    public void setConnectionStatus(NodeConnectionStatus connectionStatus) {
+    public void setConnectionStatus(final NodeConnectionStatus connectionStatus) {
         this.connectionStatus = connectionStatus;
     }
 
@@ -49,7 +49,7 @@ public class AdaptedHeartbeat {
         return payload;
     }
 
-    public void setPayload(byte[] payload) {
+    public void setPayload(final byte[] payload) {
         this.payload = payload;
     }
 }

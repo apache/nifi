@@ -32,13 +32,13 @@ public class GetUriEvaluator extends StringEvaluator {
 
     private final List<Evaluator<String>> uriArgs;
 
-    public GetUriEvaluator(List<Evaluator<String>> uriArgs) {
+    public GetUriEvaluator(final List<Evaluator<String>> uriArgs) {
         this.uriArgs = uriArgs;
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
-        List<String> args = uriArgs.stream()
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final List<String> args = uriArgs.stream()
                 .map(uriArg -> uriArg.evaluate(evaluationContext).getValue())
                 .collect(Collectors.toList());
 
@@ -55,15 +55,15 @@ public class GetUriEvaluator extends StringEvaluator {
                 return new StringQueryResult(uri.toString());
             }
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with " + args.size() + " argument(s)");
-        } catch (URISyntaxException use) {
+        } catch (final URISyntaxException use) {
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument(s) " + args, use);
         }
     }
 
-    private int getPort(String portArg) {
+    private int getPort(final String portArg) {
         try {
             return Integer.parseInt(portArg);
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument '"
                     + portArg + "' which is not a number", nfe);
         }

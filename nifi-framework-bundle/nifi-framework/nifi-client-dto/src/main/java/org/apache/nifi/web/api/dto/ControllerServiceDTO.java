@@ -69,7 +69,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -82,7 +82,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -97,7 +97,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -112,7 +112,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return controllerServiceApis;
     }
 
-    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+    public void setControllerServiceApis(final List<ControllerServiceApiDTO> controllerServiceApis) {
         this.controllerServiceApis = controllerServiceApis;
     }
 
@@ -125,7 +125,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -138,7 +138,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return bulletinLevel;
     }
 
-    public void setBulletinLevel(String bulletinLevel) {
+    public void setBulletinLevel(final String bulletinLevel) {
         this.bulletinLevel = bulletinLevel;
     }
 
@@ -151,7 +151,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return persistsState;
     }
 
-    public void setPersistsState(Boolean persistsState) {
+    public void setPersistsState(final Boolean persistsState) {
         this.persistsState = persistsState;
     }
 
@@ -164,7 +164,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -177,7 +177,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -190,7 +190,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return isExtensionMissing;
     }
 
-    public void setExtensionMissing(Boolean extensionMissing) {
+    public void setExtensionMissing(final Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
     }
 
@@ -203,7 +203,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return multipleVersionsAvailable;
     }
 
-    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+    public void setMultipleVersionsAvailable(final Boolean multipleVersionsAvailable) {
         this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
@@ -230,7 +230,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -243,7 +243,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -256,7 +256,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -282,7 +282,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return customUiUrl;
     }
 
-    public void setCustomUiUrl(String customUiUrl) {
+    public void setCustomUiUrl(final String customUiUrl) {
         this.customUiUrl = customUiUrl;
     }
 
@@ -295,7 +295,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return annotationData;
     }
 
-    public void setAnnotationData(String annotationData) {
+    public void setAnnotationData(final String annotationData) {
         this.annotationData = annotationData;
     }
 
@@ -308,7 +308,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return referencingComponents;
     }
 
-    public void setReferencingComponents(Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
+    public void setReferencingComponents(final Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
         this.referencingComponents = referencingComponents;
     }
 
@@ -326,7 +326,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -337,7 +337,7 @@ public class ControllerServiceDTO extends ComponentDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 

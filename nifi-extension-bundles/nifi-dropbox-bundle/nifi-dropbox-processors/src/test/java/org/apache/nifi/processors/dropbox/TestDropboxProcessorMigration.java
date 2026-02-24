@@ -34,7 +34,7 @@ public class TestDropboxProcessorMigration {
 
     @Test
     void testFetchDropboxMigration() {
-        TestRunner runner = TestRunners.newTestRunner(FetchDropbox.class);
+        final TestRunner runner = TestRunners.newTestRunner(FetchDropbox.class);
         final Map<String, String> expected = Map.ofEntries(
                 Map.entry(DropboxTrait.OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, DropboxTrait.CREDENTIAL_SERVICE.getName()),
                 Map.entry("file", FetchDropbox.FILE.getName()),
@@ -47,7 +47,7 @@ public class TestDropboxProcessorMigration {
 
     @Test
     void testPutDropboxMigration() {
-        TestRunner runner = TestRunners.newTestRunner(PutDropbox.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutDropbox.class);
         final Map<String, String> expected = Map.ofEntries(
                 Map.entry(DropboxTrait.OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, DropboxTrait.CREDENTIAL_SERVICE.getName()),
                 Map.entry("folder", PutDropbox.FOLDER.getName()),
@@ -64,7 +64,7 @@ public class TestDropboxProcessorMigration {
 
     @Test
     void testListDropboxMigration() {
-        TestRunner runner = TestRunners.newTestRunner(ListDropbox.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListDropbox.class);
         final Map<String, String> expected = Map.ofEntries(
                 Map.entry("target-system-timestamp-precision", AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION.getName()),
                 Map.entry("listing-strategy", AbstractListProcessor.LISTING_STRATEGY.getName()),

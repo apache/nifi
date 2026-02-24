@@ -36,7 +36,7 @@ public class ConnectionStatusSnapshotEntity extends Entity implements ReadablePe
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ public class ConnectionStatusSnapshotEntity extends Entity implements ReadablePe
         return connectionStatusSnapshot;
     }
 
-    public void setConnectionStatusSnapshot(ConnectionStatusSnapshotDTO connectionStatusSnapshot) {
+    public void setConnectionStatusSnapshot(final ConnectionStatusSnapshotDTO connectionStatusSnapshot) {
         this.connectionStatusSnapshot = connectionStatusSnapshot;
     }
 
@@ -59,7 +59,7 @@ public class ConnectionStatusSnapshotEntity extends Entity implements ReadablePe
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

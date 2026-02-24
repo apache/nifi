@@ -77,7 +77,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -86,7 +86,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return bundleId;
     }
 
-    public void setBundleId(String bundleId) {
+    public void setBundleId(final String bundleId) {
         this.bundleId = bundleId;
     }
 
@@ -95,7 +95,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -103,7 +103,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -111,7 +111,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -120,7 +120,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -129,7 +129,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(final long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -138,7 +138,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return author;
     }
 
-    public void setAuthor(String author) {
+    public void setAuthor(final String author) {
         this.author = author;
     }
 
@@ -147,7 +147,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -156,7 +156,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return sha256;
     }
 
-    public void setSha256(String sha256) {
+    public void setSha256(final String sha256) {
         this.sha256 = sha256;
     }
 
@@ -165,7 +165,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return sha256Supplied;
     }
 
-    public void setSha256Supplied(Boolean sha256Supplied) {
+    public void setSha256Supplied(final Boolean sha256Supplied) {
         this.sha256Supplied = sha256Supplied;
     }
 
@@ -174,7 +174,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return contentSize;
     }
 
-    public void setContentSize(long contentSize) {
+    public void setContentSize(final long contentSize) {
         this.contentSize = contentSize;
     }
 
@@ -183,7 +183,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return systemApiVersion;
     }
 
-    public void setSystemApiVersion(String systemApiVersion) {
+    public void setSystemApiVersion(final String systemApiVersion) {
         this.systemApiVersion = systemApiVersion;
     }
 
@@ -192,7 +192,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
         return buildInfo;
     }
 
-    public void setBuildInfo(BuildInfo buildInfo) {
+    public void setBuildInfo(final BuildInfo buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -207,7 +207,7 @@ public class BundleVersionMetadata extends LinkableEntity implements Comparable<
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

@@ -42,7 +42,7 @@ public class VerifyBuildLocaleTest {
                 "user.language",
                 "user.country",
         };
-        for (String key : systemPropertyKeys) {
+        for (final String key : systemPropertyKeys) {
             assertTrue(ciLocale.contains(key));
             final String value = System.getProperty(key);
             final String message = String.format(

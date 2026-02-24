@@ -51,7 +51,7 @@ public class KerberosSpnegoFactory {
 
         if (kerberosServiceAuthenticationProvider == null && properties.isKerberosSpnegoSupportEnabled()) {
 
-            KerberosServiceAuthenticationProvider ksap = new KerberosServiceAuthenticationProvider();
+            final KerberosServiceAuthenticationProvider ksap = new KerberosServiceAuthenticationProvider();
             ksap.setTicketValidator(kerberosTicketValidator);
             ksap.setUserDetailsService(new KerberosUserDetailsService());
             ksap.afterPropertiesSet();

@@ -27,7 +27,7 @@ public enum EncodingType implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    EncodingType(String value, String displayName, String description) {
+    EncodingType(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;

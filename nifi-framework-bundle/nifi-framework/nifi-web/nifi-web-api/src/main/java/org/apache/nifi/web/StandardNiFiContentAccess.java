@@ -66,7 +66,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
         // if clustered, send request to cluster manager
         if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
             // get the URI
-            URI dataUri;
+            final URI dataUri;
             try {
                 dataUri = new URI(request.getDataUri());
             } catch (final URISyntaxException use) {
@@ -89,7 +89,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final NodeIdentifier nodeId = clusterCoordinator.getNodeIdentifier(request.getClusterNodeId());
 
             // replicate the request to the cluster coordinator, indicating the target node
-            NodeResponse nodeResponse;
+            final NodeResponse nodeResponse;
             try {
                 headers.put(RequestReplicationHeader.REPLICATION_TARGET_ID.getHeader(), nodeId.getId());
                 final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
@@ -98,7 +98,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
                 }
                 final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
                 nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false, true).awaitMergedResponse();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new IllegalClusterStateException("Interrupted while waiting for a response from node");
             }
 
@@ -204,19 +204,19 @@ public class StandardNiFiContentAccess implements ContentAccess {
         return serviceFacade.getContent(eventId, dataUri, direction);
     }
 
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setRequestReplicator(RequestReplicator requestReplicator) {
+    public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
 
-    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
 }

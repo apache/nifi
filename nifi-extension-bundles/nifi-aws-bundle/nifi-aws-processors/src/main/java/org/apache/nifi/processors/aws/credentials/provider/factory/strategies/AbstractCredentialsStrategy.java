@@ -34,7 +34,7 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
     private final String name;
     private final PropertyDescriptor[] requiredProperties;
 
-    public AbstractCredentialsStrategy(final String name, PropertyDescriptor[] requiredProperties) {
+    public AbstractCredentialsStrategy(final String name, final PropertyDescriptor[] requiredProperties) {
         this.name = name;
         this.requiredProperties = requiredProperties;
     }
@@ -62,7 +62,7 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         for (final PropertyDescriptor requiredProperty : requiredProperties) {
             final boolean requiredPropertyIsSet = validationContext.getProperty(requiredProperty).isSet();
             if (requiredPropertyIsSet != thisIsSelectedStrategy) {
-                String message = String.format(failureFormat, requiredProperty.getDisplayName(),
+                final String message = String.format(failureFormat, requiredProperty.getDisplayName(),
                         primaryStrategy.getName());
                 if (validationFailureResults == null) {
                     validationFailureResults = new ArrayList<>();

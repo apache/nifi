@@ -174,7 +174,7 @@ public class TestStandardParameterContext {
         assertEquals("abc", abcParam.getDescriptor().getDescription());
         assertEquals("123", abcParam.getValue());
 
-        ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").sensitive(true).build();
+        final ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").sensitive(true).build();
         final Parameter unprovidedParam = createParameter(updatedDescriptor, "321", false);
         assertThrows(IllegalStateException.class, () -> context.setParameters(Collections.singletonMap("abc", unprovidedParam)));
 
@@ -373,7 +373,7 @@ public class TestStandardParameterContext {
         assertThrows(IllegalStateException.class, () -> removeParameter(c, inheritedParamName));
     }
 
-    private static ProcessorNode getProcessorNode(String parameterName, HashMapParameterReferenceManager referenceManager) {
+    private static ProcessorNode getProcessorNode(final String parameterName, final HashMapParameterReferenceManager referenceManager) {
         final ProcessorNode procNode = mock(ProcessorNode.class);
         when(procNode.isRunning()).thenReturn(false);
         referenceManager.addProcessorReference(parameterName, procNode);
@@ -806,7 +806,7 @@ public class TestStandardParameterContext {
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
             fail("Should get a failure for sensitivity mismatch in overriding");
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             assertTrue(e.getMessage().contains("foo"));
         }
         assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
@@ -821,7 +821,7 @@ public class TestStandardParameterContext {
         try {
             a.setInheritedParameterContexts(Arrays.asList(b));
             fail("Should get a failure for sensitivity mismatch in overriding");
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             assertTrue(e.getMessage().contains("foo"));
         }
         assertEquals(Collections.emptyList(), a.getInheritedParameterContexts());
@@ -885,7 +885,7 @@ public class TestStandardParameterContext {
         }
 
         @Override
-        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(ParameterContext parameterContext, String parameterName) {
+        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(final ParameterContext parameterContext, final String parameterName) {
             return Collections.emptyList();
         }
 

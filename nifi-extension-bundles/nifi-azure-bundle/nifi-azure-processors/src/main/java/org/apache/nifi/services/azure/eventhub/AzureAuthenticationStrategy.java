@@ -27,7 +27,7 @@ public enum AzureAuthenticationStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    AzureAuthenticationStrategy(String displayName, String description) {
+    AzureAuthenticationStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

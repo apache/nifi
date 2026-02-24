@@ -24,11 +24,11 @@ import org.springframework.security.core.AuthenticationException;
  */
 public class InvalidAuthenticationException extends AuthenticationException {
 
-    public InvalidAuthenticationException(String msg) {
+    public InvalidAuthenticationException(final String msg) {
         super(msg);
     }
 
-    public InvalidAuthenticationException(String msg, Throwable t) {
+    public InvalidAuthenticationException(final String msg, final Throwable t) {
         super(msg, t);
     }
 

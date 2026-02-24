@@ -31,7 +31,7 @@ public class Stateful {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -40,7 +40,7 @@ public class Stateful {
         return scopes;
     }
 
-    public void setScopes(Set<Scope> scopes) {
+    public void setScopes(final Set<Scope> scopes) {
         this.scopes = scopes;
     }
 

@@ -97,12 +97,12 @@ public class ResourceResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

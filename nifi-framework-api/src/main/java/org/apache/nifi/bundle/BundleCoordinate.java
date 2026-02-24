@@ -43,7 +43,7 @@ public class BundleCoordinate {
         this.coordinate = this.group + ":" + this.id + ":" + this.version;
     }
 
-    private boolean isBlank(String str) {
+    private boolean isBlank(final String str) {
         return str == null || str.isBlank();
     }
 
@@ -69,7 +69,7 @@ public class BundleCoordinate {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

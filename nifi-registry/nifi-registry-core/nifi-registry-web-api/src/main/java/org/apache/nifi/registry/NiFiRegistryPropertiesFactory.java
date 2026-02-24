@@ -35,7 +35,7 @@ public class NiFiRegistryPropertiesFactory implements ServletContextAware {
     private NiFiRegistryProperties properties;
 
     @Override
-    public void setServletContext(ServletContext servletContext) {
+    public void setServletContext(final ServletContext servletContext) {
         properties = (NiFiRegistryProperties) servletContext.getAttribute(
                 NiFiRegistryApiApplication.NIFI_REGISTRY_PROPERTIES_ATTRIBUTE);
     }

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UnsignedByteTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testUnsignedByteTypeNode() throws IOException {
-        byte value = -5;
+        final byte value = -5;
         assertEquals(Integer.toString(Byte.toUnsignedInt(value)),
                 new UnsignedByteTypeNode(testBinaryReaderBuilder.put(value).build(), chunkHeader, parent, -1).getValue());
     }

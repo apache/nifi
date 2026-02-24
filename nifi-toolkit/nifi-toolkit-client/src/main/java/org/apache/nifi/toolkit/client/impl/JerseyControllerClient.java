@@ -193,7 +193,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public NodeEntity getNode(String nodeId) throws NiFiClientException, IOException {
+    public NodeEntity getNode(final String nodeId) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(nodeId)) {
             throw new IllegalArgumentException("Node ID cannot be null or empty");
         }
@@ -230,7 +230,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
+    public ReportingTaskEntity createReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
         if (reportingTask == null) {
             throw new IllegalArgumentException("Reporting task entity cannot be null");
         }
@@ -245,7 +245,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public VersionedReportingTaskImportResponseEntity importReportingTasks(VersionedReportingTaskImportRequestEntity importRequestEntity)
+    public VersionedReportingTaskImportResponseEntity importReportingTasks(final VersionedReportingTaskImportRequestEntity importRequestEntity)
             throws NiFiClientException, IOException {
         if (importRequestEntity == null) {
             throw new IllegalArgumentException("Import request entity cannot be null");
@@ -297,7 +297,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public FlowAnalysisRuleEntity createFlowAnalysisRule(FlowAnalysisRuleEntity flowAnalysisRule) throws NiFiClientException, IOException {
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(final FlowAnalysisRuleEntity flowAnalysisRule) throws NiFiClientException, IOException {
         if (flowAnalysisRule == null) {
             throw new IllegalArgumentException("Flow analysis rule entity cannot be null");
         }
@@ -460,7 +460,7 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
     }
 
     @Override
-    public ControllerConfigurationEntity updateControllerConfiguration(ControllerConfigurationEntity controllerConfiguration) throws NiFiClientException, IOException {
+    public ControllerConfigurationEntity updateControllerConfiguration(final ControllerConfigurationEntity controllerConfiguration) throws NiFiClientException, IOException {
         if (controllerConfiguration == null || controllerConfiguration.getComponent() == null) {
             throw new IllegalArgumentException("Controller configuration must be specified");
         }

@@ -29,7 +29,7 @@ public class FlowConfigurationEndpointMerger extends AbstractNodeStatusEndpoint<
     public static final Pattern FLOW_CONFIGURATION_URI_PATTERN = Pattern.compile("/nifi-api/flow/config");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && FLOW_CONFIGURATION_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -39,12 +39,12 @@ public class FlowConfigurationEndpointMerger extends AbstractNodeStatusEndpoint<
     }
 
     @Override
-    protected FlowConfigurationDTO getDto(FlowConfigurationEntity entity) {
+    protected FlowConfigurationDTO getDto(final FlowConfigurationEntity entity) {
         return entity.getFlowConfiguration();
     }
 
     @Override
-    protected void mergeResponses(FlowConfigurationDTO clientDto, Map<NodeIdentifier, FlowConfigurationDTO> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final FlowConfigurationDTO clientDto, final Map<NodeIdentifier, FlowConfigurationDTO> dtoMap, final NodeIdentifier selectedNodeId) {
 
         for (final Map.Entry<NodeIdentifier, FlowConfigurationDTO> entry : dtoMap.entrySet()) {
             final FlowConfigurationDTO toMerge = entry.getValue();

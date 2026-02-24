@@ -68,7 +68,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         getClientUtil().startProcessor(generateFlowFile);
         getClientUtil().startProcessor(count);
 
-        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        final ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
         searchValueDto.setInverse(false);
 
@@ -77,7 +77,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // Wait for there to be at least 1 event.
         waitForEventCountAtLeast(searchTerms, 1);
 
-        ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
+        final ProvenanceEntity provenanceEntity = getClientUtil().queryProvenance(searchTerms, null, null);
 
         final List<ProvenanceEventDTO> events = provenanceEntity.getProvenance().getResults().getProvenanceEvents();
         assertEquals(1, events.size());
@@ -102,7 +102,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
 
         getClientUtil().startProcessor(generateFlowFile);
 
-        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        final ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
         searchValueDto.setInverse(false);
 
@@ -118,7 +118,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // depending on when the query is executed.
         getClientUtil().startProcessor(terminate);
 
-        ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
+        final ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
         terminateSearchValueDto.setValue(terminate.getId());
         terminateSearchValueDto.setInverse(false);
 
@@ -151,7 +151,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
 
         getClientUtil().startProcessor(generateFlowFile);
 
-        ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
+        final ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
         searchValueDto.setInverse(false);
 
@@ -167,7 +167,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // depending on when the query is executed.
         getClientUtil().startProcessor(terminate);
 
-        ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
+        final ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
         terminateSearchValueDto.setValue(terminate.getId());
         terminateSearchValueDto.setInverse(false);
 
@@ -217,7 +217,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
     }
 
     private int getEventCount(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms) throws NiFiClientException, IOException {
-        ProvenanceEntity provEntity = getClientUtil().queryProvenance(searchTerms, null, null);
+        final ProvenanceEntity provEntity = getClientUtil().queryProvenance(searchTerms, null, null);
         return provEntity.getProvenance().getResults().getProvenanceEvents().size();
     }
 }

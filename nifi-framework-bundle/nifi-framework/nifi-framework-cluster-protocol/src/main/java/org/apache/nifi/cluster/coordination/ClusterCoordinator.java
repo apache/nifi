@@ -305,7 +305,7 @@ public interface ClusterCoordinator {
     /**
      * Validates that the heartbeat is valid and if not takes appropriate action to rectify
      */
-    default void validateHeartbeat(NodeHeartbeat nodeHeartbeat) {
+    default void validateHeartbeat(final NodeHeartbeat nodeHeartbeat) {
     }
 
 }

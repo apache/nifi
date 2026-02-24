@@ -75,7 +75,7 @@ public class TestVersionedFlowsResult {
 
         final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
-        String expected = """
+        final String expected = """
 
                 #   Name     Id                                     Description     \s
                 -   ------   ------------------------------------   --------------  \s

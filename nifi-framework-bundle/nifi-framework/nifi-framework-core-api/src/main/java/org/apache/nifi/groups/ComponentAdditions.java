@@ -99,47 +99,47 @@ public class ComponentAdditions {
         private Set<Funnel> funnels = new HashSet<>();
         private Set<ControllerServiceNode> controllerServices = new HashSet<>();
 
-        public Builder addProcessGroup(ProcessGroup processGroup) {
+        public Builder addProcessGroup(final ProcessGroup processGroup) {
             this.processGroups.add(processGroup);
             return this;
         }
 
-        public Builder addRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup) {
+        public Builder addRemoteProcessGroup(final RemoteProcessGroup remoteProcessGroup) {
             this.remoteProcessGroups.add(remoteProcessGroup);
             return this;
         }
 
-        public Builder addProcessor(ProcessorNode processor) {
+        public Builder addProcessor(final ProcessorNode processor) {
             this.processors.add(processor);
             return this;
         }
 
-        public Builder addInputPort(Port inputPort) {
+        public Builder addInputPort(final Port inputPort) {
             this.inputPorts.add(inputPort);
             return this;
         }
 
-        public Builder addOutputPort(Port outputPort) {
+        public Builder addOutputPort(final Port outputPort) {
             this.outputPorts.add(outputPort);
             return this;
         }
 
-        public Builder addConnection(Connection connection) {
+        public Builder addConnection(final Connection connection) {
             this.connections.add(connection);
             return this;
         }
 
-        public Builder addLabel(Label label) {
+        public Builder addLabel(final Label label) {
             this.labels.add(label);
             return this;
         }
 
-        public Builder addFunnel(Funnel funnel) {
+        public Builder addFunnel(final Funnel funnel) {
             this.funnels.add(funnel);
             return this;
         }
 
-        public Builder addControllerService(ControllerServiceNode controllerService) {
+        public Builder addControllerService(final ControllerServiceNode controllerService) {
             this.controllerServices.add(controllerService);
             return this;
         }

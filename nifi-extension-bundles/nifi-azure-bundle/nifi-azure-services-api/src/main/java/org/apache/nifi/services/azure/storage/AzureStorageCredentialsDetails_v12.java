@@ -41,9 +41,10 @@ public class AzureStorageCredentialsDetails_v12 {
     private final ProxyOptions proxyOptions;
 
     private AzureStorageCredentialsDetails_v12(
-            String accountName, String endpointSuffix, AzureStorageCredentialsType credentialsType, String accountKey, String sasToken, String managedIdentityClientId,
-            String servicePrincipalTenantId, String servicePrincipalClientId, String servicePrincipalClientSecret, AccessToken accessToken,
-            AzureIdentityFederationTokenProvider identityTokenProvider, ProxyOptions proxyOptions) {
+            final String accountName, final String endpointSuffix, final AzureStorageCredentialsType credentialsType,
+            final String accountKey, final String sasToken, final String managedIdentityClientId,
+            final String servicePrincipalTenantId, final String servicePrincipalClientId, final String servicePrincipalClientSecret, final AccessToken accessToken,
+            final AzureIdentityFederationTokenProvider identityTokenProvider, final ProxyOptions proxyOptions) {
         this.accountName = accountName;
         this.endpointSuffix = endpointSuffix;
         this.credentialsType = credentialsType;
@@ -107,7 +108,7 @@ public class AzureStorageCredentialsDetails_v12 {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -116,7 +117,7 @@ public class AzureStorageCredentialsDetails_v12 {
             return false;
         }
 
-        AzureStorageCredentialsDetails_v12 that = (AzureStorageCredentialsDetails_v12) o;
+        final AzureStorageCredentialsDetails_v12 that = (AzureStorageCredentialsDetails_v12) o;
         return credentialsType == that.credentialsType
                 && Objects.equals(accountName, that.accountName)
                 && Objects.equals(endpointSuffix, that.endpointSuffix)
@@ -150,53 +151,53 @@ public class AzureStorageCredentialsDetails_v12 {
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithAccountKey(
-            String accountName,
-            String endpointSuffix,
-            String accountKey) {
+            final String accountName,
+            final String endpointSuffix,
+            final String accountKey) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCOUNT_KEY,
                 accountKey, null, null, null, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithSasToken(
-            String accountName,
-            String endpointSuffix,
-            String sasToken) {
+            final String accountName,
+            final String endpointSuffix,
+            final String sasToken) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SAS_TOKEN,
                 null, sasToken, null, null, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithManagedIdentity(
-            String accountName,
-            String endpointSuffix,
-            String managedIdentityClientId,
-            ProxyOptions proxyOptions) {
+            final String accountName,
+            final String endpointSuffix,
+            final String managedIdentityClientId,
+            final ProxyOptions proxyOptions) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.MANAGED_IDENTITY,
                 null, null, managedIdentityClientId, null, null, null, null, null, proxyOptions);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithServicePrincipal(
-            String accountName,
-            String endpointSuffix,
-            String servicePrincipalTenantId,
-            String servicePrincipalClientId,
-            String servicePrincipalClientSecret,
-            ProxyOptions proxyOptions) {
+            final String accountName,
+            final String endpointSuffix,
+            final String servicePrincipalTenantId,
+            final String servicePrincipalClientId,
+            final String servicePrincipalClientSecret,
+            final ProxyOptions proxyOptions) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SERVICE_PRINCIPAL,
                 null, null, null, servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, null, null, proxyOptions);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithAccessToken(
-            String accountName,
-            String endpointSuffix,
-            AccessToken accessToken) {
+            final String accountName,
+            final String endpointSuffix,
+            final AccessToken accessToken) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN,
                 null, null, null, null, null, null, accessToken, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithIdentityTokenProvider(
-            String accountName,
-            String endpointSuffix,
-            AzureIdentityFederationTokenProvider identityTokenProvider) {
+            final String accountName,
+            final String endpointSuffix,
+            final AzureIdentityFederationTokenProvider identityTokenProvider) {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.IDENTITY_FEDERATION, null, null, null,
                 null, null, null, null, identityTokenProvider, null);
     }

@@ -39,7 +39,7 @@ public class ComponentHistoryDTO {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -52,7 +52,7 @@ public class ComponentHistoryDTO {
         return propertyHistory;
     }
 
-    public void setPropertyHistory(Map<String, PropertyHistoryDTO> propertyHistory) {
+    public void setPropertyHistory(final Map<String, PropertyHistoryDTO> propertyHistory) {
         this.propertyHistory = propertyHistory;
     }
 }

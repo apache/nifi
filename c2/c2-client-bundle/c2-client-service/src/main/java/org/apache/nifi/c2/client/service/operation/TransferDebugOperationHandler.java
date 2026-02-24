@@ -78,16 +78,16 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
     private final List<Path> bundleFilePaths;
     private final Predicate<String> contentFilter;
 
-    private TransferDebugOperationHandler(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                          List<Path> bundleFilePaths, Predicate<String> contentFilter) {
+    private TransferDebugOperationHandler(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                          final List<Path> bundleFilePaths, final Predicate<String> contentFilter) {
         this.c2Client = c2Client;
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.bundleFilePaths = bundleFilePaths;
         this.contentFilter = contentFilter;
     }
 
-    public static TransferDebugOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                                       List<Path> bundleFilePaths, Predicate<String> contentFilter) {
+    public static TransferDebugOperationHandler create(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                                       final List<Path> bundleFilePaths, final Predicate<String> contentFilter) {
         requires(c2Client != null, "C2Client should not be null");
         requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
         requires(bundleFilePaths != null && !bundleFilePaths.isEmpty(), "BundleFilePaths should not be not null or empty");
@@ -111,13 +111,13 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        String callbackUrl;
+        final String callbackUrl;
         try {
             callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, TARGET_ARG).orElse(EMPTY), getOperationArg(operation, RELATIVE_TARGET_ARG).orElse(EMPTY));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND, e));
         }
@@ -131,7 +131,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
                     .map(errorMessage -> operationState(NOT_APPLIED, errorMessage))
                     .orElseGet(() -> operationState(FULLY_APPLIED, SUCCESSFUL_UPLOAD)))
                 .orElseGet(() -> operationState(NOT_APPLIED, UNABLE_TO_CREATE_BUNDLE));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Unexpected error happened", e);
             operationState = operationState(NOT_APPLIED, UNABLE_TO_CREATE_BUNDLE);
         } finally {
@@ -142,13 +142,13 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         return operationAck(operationId, operationState);
     }
 
-    private List<Path> prepareFiles(String operationId, List<Path> bundleFilePaths) throws IOException {
-        List<Path> preparedFiles = new ArrayList<>();
-        for (Path bundleFile : bundleFilePaths) {
-            Path tempDirectory = createTempDirectory(operationId);
-            String fileName = bundleFile.getFileName().toString();
+    private List<Path> prepareFiles(final String operationId, final List<Path> bundleFilePaths) throws IOException {
+        final List<Path> preparedFiles = new ArrayList<>();
+        for (final Path bundleFile : bundleFilePaths) {
+            final Path tempDirectory = createTempDirectory(operationId);
+            final String fileName = bundleFile.getFileName().toString();
 
-            Path preparedFile = GzipUtils.isCompressedFileName(fileName)
+            final Path preparedFile = GzipUtils.isCompressedFileName(fileName)
                 ? handleGzipFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), GzipUtils.getUncompressedFileName(fileName)))
                 : handleUncompressedFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), fileName));
             preparedFiles.add(preparedFile);
@@ -156,41 +156,41 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         return preparedFiles;
     }
 
-    private Path handleGzipFile(Path sourceFile, Path targetFile) throws IOException {
+    private Path handleGzipFile(final Path sourceFile, final Path targetFile) throws IOException {
         try (GZIPInputStream gzipInputStream = new GZIPInputStream(new FileInputStream(sourceFile.toFile()));
              FileOutputStream fileOutputStream = new FileOutputStream(targetFile.toFile())) {
             // no content filter is applied here as flow.json.gz has encoded properties
             gzipInputStream.transferTo(fileOutputStream);
             return targetFile;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Error during filtering gzip file content: {}", sourceFile.toAbsolutePath(), e);
             throw e;
         }
     }
 
-    private Path handleUncompressedFile(Path sourceFile, Path targetFile) throws IOException {
+    private Path handleUncompressedFile(final Path sourceFile, final Path targetFile) throws IOException {
         try (Stream<String> fileStream = lines(sourceFile, Charset.defaultCharset())) {
             Files.write(targetFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
             return targetFile;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Error during filtering uncompressed file content: {}", sourceFile.toAbsolutePath(), e);
             throw e;
         }
     }
 
-    private Optional<byte[]> createDebugBundle(List<Path> filePaths) {
-        ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+    private Optional<byte[]> createDebugBundle(final List<Path> filePaths) {
+        final ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
         try (GzipCompressorOutputStream gzipCompressorOutputStream = new GzipCompressorOutputStream(byteOutputStream);
              TarArchiveOutputStream tarOutputStream = new TarArchiveOutputStream(gzipCompressorOutputStream)) {
-            for (Path filePath : filePaths) {
+            for (final Path filePath : filePaths) {
                 tarOutputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
-                TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(filePath.toFile(), filePath.getFileName().toString());
+                final TarArchiveEntry tarArchiveEntry = new TarArchiveEntry(filePath.toFile(), filePath.getFileName().toString());
                 tarOutputStream.putArchiveEntry(tarArchiveEntry);
                 copy(filePath, tarOutputStream);
                 tarOutputStream.closeArchiveEntry();
             }
             tarOutputStream.finish();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Error during create compressed bundle", e);
             return empty();
         } finally {
@@ -199,14 +199,14 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         return Optional.of(byteOutputStream).map(ByteArrayOutputStream::toByteArray);
     }
 
-    private void cleanup(List<Path> paths) {
+    private void cleanup(final List<Path> paths) {
         paths.stream()
             .findFirst()
             .map(Path::getParent)
             .ifPresent(basePath -> {
                 try (Stream<Path> walk = walk(basePath)) {
                     walk.map(Path::toFile).forEach(File::delete);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     LOG.warn("Unable to clean up temporary directory {}", basePath, e);
                 }
             });

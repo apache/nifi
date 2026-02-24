@@ -77,7 +77,7 @@ public class GetAwsTranscribeJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        GetAwsTranscribeJobStatus processor = new GetAwsTranscribeJobStatus() {
+        final GetAwsTranscribeJobStatus processor = new GetAwsTranscribeJobStatus() {
             @Override
             public TranscribeClient getClient(final ProcessContext context) {
                 return mockTranscribeClient;

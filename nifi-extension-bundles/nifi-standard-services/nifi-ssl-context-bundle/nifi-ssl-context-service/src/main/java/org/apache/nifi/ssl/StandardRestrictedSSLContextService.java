@@ -79,7 +79,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("SSL Protocol", RESTRICTED_SSL_ALGORITHM.getName());
     }

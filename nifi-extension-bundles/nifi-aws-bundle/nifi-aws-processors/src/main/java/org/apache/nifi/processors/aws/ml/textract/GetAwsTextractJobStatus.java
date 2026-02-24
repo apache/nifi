@@ -120,7 +120,7 @@ public class GetAwsTextractJobStatus extends AbstractAwsMachineLearningJobStatus
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("textract-type", TEXTRACT_TYPE.getName());
     }

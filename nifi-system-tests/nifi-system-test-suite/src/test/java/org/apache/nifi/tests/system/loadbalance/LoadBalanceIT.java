@@ -288,7 +288,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
             final String loadBalanceStatus = connectionEntity.getComponent().getLoadBalanceStatus();
             logger.trace("LoadBalanceStatus = [{}]", loadBalanceStatus);
             return ConnectionDTO.LOAD_BALANCE_INACTIVE.equals(loadBalanceStatus);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
             return false;
         }

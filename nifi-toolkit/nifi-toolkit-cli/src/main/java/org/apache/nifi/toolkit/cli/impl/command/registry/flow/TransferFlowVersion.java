@@ -89,7 +89,7 @@ public class TransferFlowVersion extends AbstractNiFiRegistryCommand<StringResul
         final VersionedFlow destFlow;
         try {
             destFlow = client.getFlowClient().get(destFlowId);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NiFiRegistryException("Error retrieving destination flow : " + e.getMessage(), e);
         }
 

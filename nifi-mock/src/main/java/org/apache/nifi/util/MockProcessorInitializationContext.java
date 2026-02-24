@@ -42,7 +42,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
         this(processor, context, logger, null);
     }
 
-    public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context, final MockComponentLog logger, KerberosContext kerberosContext) {
+    public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context, final MockComponentLog logger, final KerberosContext kerberosContext) {
         processorId = UUID.randomUUID().toString();
         this.logger = logger == null ? new MockComponentLog(processorId, processor) : logger;
         this.context = context;

@@ -45,7 +45,7 @@ public interface RecordReaderFactory extends ControllerService {
      *
      * @return Created RecordReader instance
      */
-    default RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    default RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         return createRecordReader(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes(), in, flowFile == null ? -1 : flowFile.getSize(), logger);
     }
 

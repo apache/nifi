@@ -62,8 +62,8 @@ public class StartGcpVisionAnnotateFilesOperationTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
-        StartGcpVisionAnnotateFilesOperation processor = new StartGcpVisionAnnotateFilesOperation() {
+        final GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
+        final StartGcpVisionAnnotateFilesOperation processor = new StartGcpVisionAnnotateFilesOperation() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
                 return mockVisionClient;
@@ -80,7 +80,7 @@ public class StartGcpVisionAnnotateFilesOperationTest {
     @Test
     public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenReturn(operationFuture);
-        String operationName = "operationName";
+        final String operationName = "operationName";
         when(operationFuture.getName()).thenReturn(operationName);
         runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();

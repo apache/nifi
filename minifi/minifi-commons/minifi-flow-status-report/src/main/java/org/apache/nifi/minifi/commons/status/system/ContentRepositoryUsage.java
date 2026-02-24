@@ -29,7 +29,7 @@ public class ContentRepositoryUsage implements java.io.Serializable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -37,7 +37,7 @@ public class ContentRepositoryUsage implements java.io.Serializable {
         return freeSpace;
     }
 
-    public void setFreeSpace(long freeSpace) {
+    public void setFreeSpace(final long freeSpace) {
         this.freeSpace = freeSpace;
     }
 
@@ -45,7 +45,7 @@ public class ContentRepositoryUsage implements java.io.Serializable {
         return totalSpace;
     }
 
-    public void setTotalSpace(long totalSpace) {
+    public void setTotalSpace(final long totalSpace) {
         this.totalSpace = totalSpace;
     }
 
@@ -53,7 +53,7 @@ public class ContentRepositoryUsage implements java.io.Serializable {
         return usedSpace;
     }
 
-    public void setUsedSpace(long usedSpace) {
+    public void setUsedSpace(final long usedSpace) {
         this.usedSpace = usedSpace;
     }
 
@@ -61,12 +61,12 @@ public class ContentRepositoryUsage implements java.io.Serializable {
         return diskUtilization;
     }
 
-    public void setDiskUtilization(int diskUtilization) {
+    public void setDiskUtilization(final int diskUtilization) {
         this.diskUtilization = diskUtilization;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -74,7 +74,7 @@ public class ContentRepositoryUsage implements java.io.Serializable {
             return false;
         }
 
-        ContentRepositoryUsage that = (ContentRepositoryUsage) o;
+        final ContentRepositoryUsage that = (ContentRepositoryUsage) o;
 
         if (getFreeSpace() != that.getFreeSpace()) {
             return false;

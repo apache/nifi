@@ -60,16 +60,16 @@ public class FakerUtils {
     public static AllowableValue[] createFakerPropertyList() {
         final List<EnFile> fakerFiles = EnFile.getFiles().toList();
         final Map<String, Class<?>> possibleFakerTypeMap = new HashMap<>(fakerFiles.size());
-        for (EnFile fakerFile : fakerFiles) {
-            String className = normalizeClassName(fakerFile.getFile().substring(0, fakerFile.getFile().indexOf('.')));
+        for (final EnFile fakerFile : fakerFiles) {
+            final String className = normalizeClassName(fakerFile.getFile().substring(0, fakerFile.getFile().indexOf('.')));
             try {
                 // The providers are in different sub-packages, try them all until one succeeds
                 Class<?> fakerTypeClass = null;
-                for (String subPackage : PROVIDER_PACKAGES) {
+                for (final String subPackage : PROVIDER_PACKAGES) {
                     try {
                         fakerTypeClass = Class.forName(PACKAGE_PREFIX + '.' + subPackage + "." + className);
                         break;
-                    } catch (ClassNotFoundException ignored) {
+                    } catch (final ClassNotFoundException ignored) {
                         // Ignore, check the other subpackages
                     }
                 }
@@ -77,29 +77,29 @@ public class FakerUtils {
                 if (fakerTypeClass != null) {
                     possibleFakerTypeMap.put(className, fakerTypeClass);
                 }
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 // Ignore, these are the ones we want to filter out
             }
         }
 
         // Filter on no-arg methods that return a String, these should be the methods the user can use to generate data
-        Faker faker = new Faker();
-        List<AllowableValue> supportedDataTypes = new ArrayList<>();
-        for (Map.Entry<String, Class<?>> entry : possibleFakerTypeMap.entrySet()) {
-            List<Method> fakerMethods = Arrays.stream(entry.getValue().getDeclaredMethods()).filter((method) ->
+        final Faker faker = new Faker();
+        final List<AllowableValue> supportedDataTypes = new ArrayList<>();
+        for (final Map.Entry<String, Class<?>> entry : possibleFakerTypeMap.entrySet()) {
+            final List<Method> fakerMethods = Arrays.stream(entry.getValue().getDeclaredMethods()).filter((method) ->
                             Modifier.isPublic(method.getModifiers())
                                     && method.getParameterCount() == 0
                                     && method.getReturnType() == String.class)
                     .toList();
             try {
                 final Object methodObject = faker.getClass().getMethod(normalizeMethodName(entry.getKey())).invoke(faker);
-                for (Method method : fakerMethods) {
+                for (final Method method : fakerMethods) {
                     final String allowableValueName = normalizeClassName(entry.getKey()) + "." + method.getName();
                     final String allowableValueDisplayName = normalizeDisplayName(entry.getKey()) + " - " + normalizeDisplayName(method.getName());
                     datatypeFunctionMap.put(allowableValueName, new FakerMethodHolder(allowableValueName, methodObject, method));
                     supportedDataTypes.add(new AllowableValue(allowableValueName, allowableValueDisplayName, allowableValueDisplayName));
                 }
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 // Ignore, this should indicate a Faker method that we're not interested in
             }
         }
@@ -116,7 +116,7 @@ public class FakerUtils {
         return supportedDataTypes.toArray(new AllowableValue[]{});
     }
 
-    public static Object getFakeData(String type, Faker faker) {
+    public static Object getFakeData(final String type, final Faker faker) {
 
         // Handle Number method not discovered by programmatically getting methods from the Faker objects
         if (FT_NUMBER.getValue().equals(type)) {
@@ -146,7 +146,7 @@ public class FakerUtils {
         try {
             final FakerMethodHolder fakerMethodHolder = datatypeFunctionMap.get(type);
             return fakerMethodHolder.getMethod().invoke(fakerMethodHolder.getMethodObject());
-        } catch (InvocationTargetException | IllegalAccessException e) {
+        } catch (final InvocationTargetException | IllegalAccessException e) {
             throw new ProcessException(type + " is not a valid value", e);
         }
     }
@@ -174,8 +174,8 @@ public class FakerUtils {
     }
 
     // This method identifies "segments" by splitting the given name on underscores, then capitalizes each segment and removes the underscores. Ex: 'game_of_thrones' = 'GameOfThrones'
-    private static String normalizeClassName(String name) {
-        String[] segments = name.split("_");
+    private static String normalizeClassName(final String name) {
+        final String[] segments = name.split("_");
 
         return Arrays.stream(segments)
                 .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
@@ -183,14 +183,14 @@ public class FakerUtils {
     }
 
     // This method lowercases the first letter of the given name in order to match the name to a Faker method
-    private static String normalizeMethodName(String name) {
+    private static String normalizeMethodName(final String name) {
         return name.substring(0, 1).toLowerCase() + name.substring(1);
     }
 
     // This method splits the given name on uppercase letters, ensures the first letter is capitalized, then joins the segments using a space. Ex. 'gameOfThrones' = 'Game Of Thrones'
-    private static String normalizeDisplayName(String name) {
+    private static String normalizeDisplayName(final String name) {
         // Split when the next letter is uppercase
-        String[] upperCaseSegments = name.split("(?=\\p{Upper})");
+        final String[] upperCaseSegments = name.split("(?=\\p{Upper})");
 
         return Arrays.stream(upperCaseSegments).map(
                         upperCaseSegment -> upperCaseSegment.substring(0, 1).toUpperCase() + upperCaseSegment.substring(1))

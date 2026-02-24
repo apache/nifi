@@ -109,13 +109,13 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
     private volatile RecordSetWriterFactory writerFactory;
 
     @OnScheduled
-    public void onEnabled(ProcessContext context) {
+    public void onEnabled(final ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
         writerFactory = context.getProperty(WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = null;
 
         if (context.hasIncomingConnection()) {
@@ -130,7 +130,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(input).getValue();
         final Document query = getQuery(context, session, input);
 
-        MongoCollection mongoCollection = clientService.getDatabase(database).getCollection(collection);
+        final MongoCollection mongoCollection = clientService.getDatabase(database).getCollection(collection);
 
         FindIterable<Document> find = mongoCollection.find(query);
         if (context.getProperty(SORT).isSet()) {
@@ -143,24 +143,24 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
             find = find.limit(context.getProperty(LIMIT).evaluateAttributeExpressions(input).asInteger());
         }
 
-        MongoCursor<Document> cursor = find.iterator();
+        final MongoCursor<Document> cursor = find.iterator();
 
         FlowFile output = input != null ? session.create(input) : session.create();
         final FlowFile inputPtr = input;
         try {
             final Map<String, String> attributes = getAttributes(context, input, query, mongoCollection);
             try (OutputStream out = session.write(output)) {
-                Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : Map.of("schema.name", schemaName);
-                RecordSchema schema = writerFactory.getSchema(attrs, null);
-                RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attrs);
+                final Map<String, String> attrs = inputPtr != null ? inputPtr.getAttributes() : Map.of("schema.name", schemaName);
+                final RecordSchema schema = writerFactory.getSchema(attrs, null);
+                final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, attrs);
                 long count = 0L;
                 writer.beginRecordSet();
                 while (cursor.hasNext()) {
-                    Document next = cursor.next();
+                    final Document next = cursor.next();
                     if (next.get("_id") instanceof ObjectId) {
                         next.put("_id", next.get("_id").toString());
                     }
-                    Record record = new MapRecord(schema, next);
+                    final Record record = new MapRecord(schema, next);
                     writer.write(record);
                     count++;
                 }
@@ -168,7 +168,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
                 writer.close();
                 out.close();
                 attributes.put("record.count", String.valueOf(count));
-            } catch (SchemaNotFoundException e) {
+            } catch (final SchemaNotFoundException e) {
                 throw new RuntimeException(e);
             }
 
@@ -179,7 +179,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Error writing record set from Mongo query.", ex);
             session.remove(output);
             if (input != null) {
@@ -189,7 +189,7 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("get-mongo-record-writer-factory", WRITER_FACTORY.getName());
         config.renameProperty("mongodb-schema-name", SCHEMA_NAME.getName());

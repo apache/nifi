@@ -25,15 +25,15 @@ public class OffloadedNodeMutableRequestException extends MutableRequestExceptio
     public OffloadedNodeMutableRequestException() {
     }
 
-    public OffloadedNodeMutableRequestException(String msg) {
+    public OffloadedNodeMutableRequestException(final String msg) {
         super(msg);
     }
 
-    public OffloadedNodeMutableRequestException(Throwable cause) {
+    public OffloadedNodeMutableRequestException(final Throwable cause) {
         super(cause);
     }
 
-    public OffloadedNodeMutableRequestException(String msg, Throwable cause) {
+    public OffloadedNodeMutableRequestException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

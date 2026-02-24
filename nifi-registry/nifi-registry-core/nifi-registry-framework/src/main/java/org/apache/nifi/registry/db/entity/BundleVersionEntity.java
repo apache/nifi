@@ -68,7 +68,7 @@ public class BundleVersionEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -76,7 +76,7 @@ public class BundleVersionEntity {
         return bundleId;
     }
 
-    public void setBundleId(String bundleId) {
+    public void setBundleId(final String bundleId) {
         this.bundleId = bundleId;
     }
 
@@ -84,7 +84,7 @@ public class BundleVersionEntity {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -92,7 +92,7 @@ public class BundleVersionEntity {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -100,7 +100,7 @@ public class BundleVersionEntity {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -108,7 +108,7 @@ public class BundleVersionEntity {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -116,7 +116,7 @@ public class BundleVersionEntity {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public void setCreated(final Date created) {
         this.created = created;
     }
 
@@ -124,7 +124,7 @@ public class BundleVersionEntity {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(final String createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -132,7 +132,7 @@ public class BundleVersionEntity {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -140,7 +140,7 @@ public class BundleVersionEntity {
         return sha256Hex;
     }
 
-    public void setSha256Hex(String sha256Hex) {
+    public void setSha256Hex(final String sha256Hex) {
         this.sha256Hex = sha256Hex;
     }
 
@@ -148,7 +148,7 @@ public class BundleVersionEntity {
         return sha256Supplied;
     }
 
-    public void setSha256Supplied(boolean sha256Supplied) {
+    public void setSha256Supplied(final boolean sha256Supplied) {
         this.sha256Supplied = sha256Supplied;
     }
 
@@ -156,7 +156,7 @@ public class BundleVersionEntity {
         return contentSize;
     }
 
-    public void setContentSize(long contentSize) {
+    public void setContentSize(final long contentSize) {
         this.contentSize = contentSize;
     }
 
@@ -164,7 +164,7 @@ public class BundleVersionEntity {
         return systemApiVersion;
     }
 
-    public void setSystemApiVersion(String systemApiVersion) {
+    public void setSystemApiVersion(final String systemApiVersion) {
         this.systemApiVersion = systemApiVersion;
     }
 
@@ -172,7 +172,7 @@ public class BundleVersionEntity {
         return buildTool;
     }
 
-    public void setBuildTool(String buildTool) {
+    public void setBuildTool(final String buildTool) {
         this.buildTool = buildTool;
     }
 
@@ -180,7 +180,7 @@ public class BundleVersionEntity {
         return buildFlags;
     }
 
-    public void setBuildFlags(String buildFlags) {
+    public void setBuildFlags(final String buildFlags) {
         this.buildFlags = buildFlags;
     }
 
@@ -188,7 +188,7 @@ public class BundleVersionEntity {
         return buildBranch;
     }
 
-    public void setBuildBranch(String buildBranch) {
+    public void setBuildBranch(final String buildBranch) {
         this.buildBranch = buildBranch;
     }
 
@@ -196,7 +196,7 @@ public class BundleVersionEntity {
         return buildTag;
     }
 
-    public void setBuildTag(String buildTag) {
+    public void setBuildTag(final String buildTag) {
         this.buildTag = buildTag;
     }
 
@@ -204,7 +204,7 @@ public class BundleVersionEntity {
         return buildRevision;
     }
 
-    public void setBuildRevision(String buildRevision) {
+    public void setBuildRevision(final String buildRevision) {
         this.buildRevision = buildRevision;
     }
 
@@ -212,7 +212,7 @@ public class BundleVersionEntity {
         return built;
     }
 
-    public void setBuilt(Date built) {
+    public void setBuilt(final Date built) {
         this.built = built;
     }
 
@@ -220,7 +220,7 @@ public class BundleVersionEntity {
         return builtBy;
     }
 
-    public void setBuiltBy(String builtBy) {
+    public void setBuiltBy(final String builtBy) {
         this.builtBy = builtBy;
     }
 

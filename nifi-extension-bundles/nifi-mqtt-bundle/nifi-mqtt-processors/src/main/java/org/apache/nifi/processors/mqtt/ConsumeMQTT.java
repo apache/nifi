@@ -239,18 +239,18 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     );
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         // resize the receive buffer, but preserve data
         if (descriptor == PROP_MAX_QUEUE_SIZE) {
             // it's a mandatory integer, never null
-            int newSize = Integer.parseInt(newValue);
+            final int newSize = Integer.parseInt(newValue);
             if (mqttQueue != null) {
-                int msgPending = mqttQueue.size();
+                final int msgPending = mqttQueue.size();
                 if (msgPending > newSize) {
                     logger.warn("New receive buffer size ({}) is smaller than the number of messages pending ({}), ignoring resize request. Processor will be invalid.", newSize, msgPending);
                     return;
                 }
-                BlockingQueue<ReceivedMqttMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
+                final BlockingQueue<ReceivedMqttMessage> newBuffer = new LinkedBlockingQueue<>(newSize);
                 mqttQueue.drainTo(newBuffer);
                 mqttQueue = newBuffer;
             }
@@ -259,13 +259,13 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     }
 
     @Override
-    public Collection<ValidationResult> customValidate(ValidationContext context) {
+    public Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = super.customValidate(context);
-        int newSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger();
+        final int newSize = context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger();
         if (mqttQueue == null) {
             mqttQueue = new LinkedBlockingQueue<>(context.getProperty(PROP_MAX_QUEUE_SIZE).asInteger());
         }
-        int msgPending = mqttQueue.size();
+        final int msgPending = mqttQueue.size();
         if (msgPending > newSize) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
@@ -377,27 +377,27 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Quality of Service(QoS)", PROP_QOS.getName());
         config.renameProperty("add-attributes-as-fields", ADD_ATTRIBUTES_AS_FIELDS.getName());
     }
 
-    private void initializeClient(ProcessContext context) {
+    private void initializeClient(final ProcessContext context) {
         // NOTE: This method is called when isConnected returns false which can happen when the client is null, or when it is
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             mqttClient = createMqttClient();
             mqttClient.connect();
             mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             mqttClient = null; // prevent stucked processor when subscribe fails
             context.yield();
         }
     }
 
-    private void transferQueue(ProcessSession session) {
+    private void transferQueue(final ProcessSession session) {
         while (!mqttQueue.isEmpty()) {
             final ReceivedMqttMessage mqttMessage = mqttQueue.peek();
 
@@ -444,7 +444,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
     }
 
-    private FlowFile createFlowFileAndPopulateAttributes(ProcessSession session, ReceivedMqttMessage mqttMessage) {
+    private FlowFile createFlowFileAndPopulateAttributes(final ProcessSession session, final ReceivedMqttMessage mqttMessage) {
         FlowFile messageFlowfile = session.create();
 
         final Map<String, String> attrs = new HashMap<>();
@@ -563,7 +563,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
                         logger.error("Failed to write message, sending to the parse failure relationship", e);
                         transferFailure(session, mqttMessage);
                     }
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Failed to write message, sending to the parse failure relationship", e);
                     transferFailure(session, mqttMessage);
                 }
@@ -582,10 +582,10 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
 
             // we try to add the messages back into the internal queue
             int numberOfMessages = 0;
-            for (ReceivedMqttMessage done : doneList) {
+            for (final ReceivedMqttMessage done : doneList) {
                 try {
                     mqttQueue.offer(done, 1, TimeUnit.SECONDS);
-                } catch (InterruptedException ex) {
+                } catch (final InterruptedException ex) {
                     numberOfMessages++;
                     if (getLogger().isDebugEnabled()) {
                         logger.debug("Could not add message back into the internal queue, this could lead to data loss", ex);
@@ -637,17 +637,17 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         }
     }
 
-    private String getTransitUri(String... appends) {
+    private String getTransitUri(final String... appends) {
         final StringBuilder stringBuilder = new StringBuilder(clientProperties.getProvenanceFormattedBrokerUris()).append("/");
-        for (String append : appends) {
+        for (final String append : appends) {
             stringBuilder.append(append);
         }
         return stringBuilder.toString();
     }
 
-    private void handleReceivedMessage(ReceivedMqttMessage message) {
+    private void handleReceivedMessage(final ReceivedMqttMessage message) {
         if (logger.isDebugEnabled()) {
-            byte[] payload = message.getPayload();
+            final byte[] payload = message.getPayload();
             final String text = new String(payload, StandardCharsets.UTF_8);
             if (StringUtils.isAsciiPrintable(text)) {
                 logger.debug("Message arrived from topic {}. Payload: {}", message.getTopic(), text);
@@ -660,7 +660,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             if (!mqttQueue.offer(message, 1, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("The subscriber queue is full, cannot receive another message until the processor is scheduled to run.");
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new MqttException("Failed to process message arrived from topic " + message.getTopic());
         }
     }

@@ -57,7 +57,7 @@ public class BootstrapC2OperationRestartHandler implements C2OperationRestartHan
     private final BlockingQueue<OperationState> operationStateHolder;
     private final long bootstrapAcknowledgeTimeoutMs;
 
-    public BootstrapC2OperationRestartHandler(BootstrapCommunicator bootstrapCommunicator, long bootstrapAcknowledgeTimeoutMs) {
+    public BootstrapC2OperationRestartHandler(final BootstrapCommunicator bootstrapCommunicator, final long bootstrapAcknowledgeTimeoutMs) {
         this.bootstrapCommunicator = bootstrapCommunicator;
         this.operationStateHolder = new ArrayBlockingQueue<>(1);
         this.bootstrapAcknowledgeTimeoutMs = bootstrapAcknowledgeTimeoutMs;
@@ -65,8 +65,8 @@ public class BootstrapC2OperationRestartHandler implements C2OperationRestartHan
     }
 
     @Override
-    public Optional<OperationState> handleRestart(C2Operation c2Operation) {
-        CommandResult sendCommandResult = sendBootstrapCommand(c2Operation);
+    public Optional<OperationState> handleRestart(final C2Operation c2Operation) {
+        final CommandResult sendCommandResult = sendBootstrapCommand(c2Operation);
         if (sendCommandResult == SUCCESS) {
             LOGGER.debug("Bootstrap successfully received command. Waiting for response");
             return waitForResponse();
@@ -79,42 +79,42 @@ public class BootstrapC2OperationRestartHandler implements C2OperationRestartHan
     @Override
     public Optional<OperationState> waitForResponse() {
         try {
-            OperationState operationState = operationStateHolder.poll(bootstrapAcknowledgeTimeoutMs, MILLISECONDS);
+            final OperationState operationState = operationStateHolder.poll(bootstrapAcknowledgeTimeoutMs, MILLISECONDS);
             LOGGER.debug("Bootstrap returned response: {}", ofNullable(operationState).map(Objects::toString).orElse(TIMEOUT));
             return Optional.of(ofNullable(operationState).orElse(NOT_APPLIED));
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             LOGGER.debug("Bootstrap response waiting interrupted, possible due to Bootstrap is restarting MiNiFi process");
             return empty();
         }
     }
 
-    private CommandResult sendBootstrapCommand(C2Operation c2Operation) {
-        String command = createBootstrapCommand(c2Operation);
+    private CommandResult sendBootstrapCommand(final C2Operation c2Operation) {
+        final String command = createBootstrapCommand(c2Operation);
         try {
             return bootstrapCommunicator.sendCommand(command);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Failed to send operation to bootstrap", e);
             return FAILURE;
         }
     }
 
-    private String createBootstrapCommand(C2Operation c2Operation) {
+    private String createBootstrapCommand(final C2Operation c2Operation) {
         return ofNullable(c2Operation.getOperand())
             .map(operand -> c2Operation.getOperation().name() + "_" + operand.name())
             .orElse(c2Operation.getOperation().name());
     }
 
-    private void bootstrapCallback(String[] params, OutputStream outputStream) {
+    private void bootstrapCallback(final String[] params, final OutputStream outputStream) {
         LOGGER.info("Received acknowledge message from bootstrap process");
         if (params.length < 1) {
             LOGGER.error("Invalid arguments coming from bootstrap");
             return;
         }
-        MiNiFiCommandState miNiFiCommandState = MiNiFiCommandState.valueOf(params[0]);
-        OperationState operationState = OPERATION_STATE_MAP.get(miNiFiCommandState);
+        final MiNiFiCommandState miNiFiCommandState = MiNiFiCommandState.valueOf(params[0]);
+        final OperationState operationState = OPERATION_STATE_MAP.get(miNiFiCommandState);
         try {
             operationStateHolder.put(operationState);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             LOGGER.warn("Bootstrap hook thread was interrupted");
         }
     }

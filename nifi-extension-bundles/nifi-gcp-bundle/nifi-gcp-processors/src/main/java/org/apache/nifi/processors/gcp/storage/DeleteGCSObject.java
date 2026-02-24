@@ -91,7 +91,7 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -115,7 +115,7 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
         // Deletes a key on Google Cloud
         try {
             storage.delete(BlobId.of(bucket, key, generation));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error(e.getMessage(), e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -128,7 +128,7 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcs-bucket", BUCKET.getName());
         config.renameProperty("gcs-key", KEY.getName());

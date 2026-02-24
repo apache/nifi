@@ -47,7 +47,7 @@ public class CredentialsFactoryTest {
 
     @Test
     public void testCredentialPropertyDescriptorClassCannotBeInvoked() throws Exception {
-        Constructor constructor = CredentialPropertyDescriptors.class.getDeclaredConstructor();
+        final Constructor constructor = CredentialPropertyDescriptors.class.getDeclaredConstructor();
         assertTrue(Modifier.isPrivate(constructor.getModifiers()), "Constructor of CredentialPropertyDescriptors should be private");
         constructor.setAccessible(true);
         constructor.newInstance();
@@ -58,7 +58,7 @@ public class CredentialsFactoryTest {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.assertValid();
 
-        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
@@ -71,7 +71,7 @@ public class CredentialsFactoryTest {
         runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
         runner.assertValid();
 
-        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
@@ -101,7 +101,7 @@ public class CredentialsFactoryTest {
                 "src/test/resources/mock-gcp-service-account.json");
         runner.assertValid();
 
-        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
@@ -130,7 +130,7 @@ public class CredentialsFactoryTest {
                 jsonRead);
         runner.assertValid();
 
-        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
@@ -145,7 +145,7 @@ public class CredentialsFactoryTest {
         runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.COMPUTE_ENGINE.getValue());
         runner.assertValid();
 
-        Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsFactory factory = new CredentialsFactory();
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 

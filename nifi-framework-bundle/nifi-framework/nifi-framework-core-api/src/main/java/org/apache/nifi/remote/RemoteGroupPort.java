@@ -24,7 +24,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 
 public abstract class RemoteGroupPort extends AbstractPort implements Port, RemoteDestination {
 
-    public RemoteGroupPort(String id, String name, ConnectableType type, ProcessScheduler scheduler) {
+    public RemoteGroupPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler) {
         super(id, name, type, scheduler);
     }
 

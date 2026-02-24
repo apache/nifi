@@ -36,23 +36,23 @@ public class NarThreadContextClassLoaderTest {
 
     @Test
     public void validateWithPropertiesConstructor() throws Exception {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
-        Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
+        final Bundle systemBundle = SystemBundle.create(properties);
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
-        WithPropertiesConstructor withPropertiesConstructor = NarThreadContextClassLoader.createInstance(extensionManager, WithPropertiesConstructor.class.getName(),
+        final WithPropertiesConstructor withPropertiesConstructor = NarThreadContextClassLoader.createInstance(extensionManager, WithPropertiesConstructor.class.getName(),
                 WithPropertiesConstructor.class, properties);
         assertNotNull(withPropertiesConstructor.properties);
     }
 
     @Test
     public void validateWithPropertiesConstructorInstantiationFailure() {
-        Map<String, String> additionalProperties = new HashMap<>();
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put("fail", "true");
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", additionalProperties);
-        Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", additionalProperties);
+        final Bundle systemBundle = SystemBundle.create(properties);
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         assertThrows(IllegalStateException.class,
                 () -> NarThreadContextClassLoader.createInstance(extensionManager, WithPropertiesConstructor.class.getName(), WithPropertiesConstructor.class, properties));
@@ -60,9 +60,9 @@ public class NarThreadContextClassLoaderTest {
 
     @Test
     public void validateWithDefaultConstructor() throws Exception {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
-        Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties");
+        final Bundle systemBundle = SystemBundle.create(properties);
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         assertInstanceOf(WithDefaultConstructor.class, NarThreadContextClassLoader.createInstance(extensionManager, WithDefaultConstructor.class.getName(), WithDefaultConstructor.class, properties));
     }
@@ -70,7 +70,7 @@ public class NarThreadContextClassLoaderTest {
     public static class WithPropertiesConstructor extends AbstractProcessor {
         private final NiFiProperties properties;
 
-        public WithPropertiesConstructor(NiFiProperties properties) {
+        public WithPropertiesConstructor(final NiFiProperties properties) {
             if (properties.getProperty("fail") != null) {
                 throw new RuntimeException("Intentional failure");
             }
@@ -78,7 +78,7 @@ public class NarThreadContextClassLoaderTest {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         }
     }
@@ -86,7 +86,7 @@ public class NarThreadContextClassLoaderTest {
     public static class WithDefaultConstructor extends AbstractProcessor {
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         }
     }

@@ -149,7 +149,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ElasticsearchRestProcessor.super.migrateProperties(config);
         config.renameProperty("el-rest-split-up-hits", SEARCH_RESULTS_SPLIT.getName());
         config.renameProperty("el-rest-format-hits", SEARCH_RESULTS_FORMAT.getName());
@@ -215,7 +215,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                 context.yield();
                 return;
             }
-            List<FlowFile> hitsFlowFiles = new ArrayList<>();
+            final List<FlowFile> hitsFlowFiles = new ArrayList<>();
             final StopWatch stopWatch = new StopWatch(true);
             final SearchResponse response = doQuery(queryJsonParameters, hitsFlowFiles, session, context, input, stopWatch);
 
@@ -269,8 +269,8 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private FlowFile writeAggregationFlowFileContents(final String name, final Integer number, final String json,
                                                       final ProcessSession session, final FlowFile aggFlowFile,
                                                       final Map<String, String> attributes) {
-        FlowFile ff = session.write(aggFlowFile, out -> out.write(json.getBytes()));
-        Map<String, String> latestAttributes = new HashMap<>(attributes);
+        final FlowFile ff = session.write(aggFlowFile, out -> out.write(json.getBytes()));
+        final Map<String, String> latestAttributes = new HashMap<>(attributes);
         if (name != null) {
             latestAttributes.put("aggregation.name", name);
         }

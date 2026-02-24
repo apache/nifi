@@ -80,29 +80,29 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
     private final Path backupRawFlowConfigurationFile;
 
     public DefaultUpdateConfigurationStrategy(
-            FlowController flowController,
-            FlowService flowService,
-            FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver,
-            FlowEnrichService flowEnrichService,
-            FlowPropertyEncryptor flowPropertyEncryptor,
-            FlowSerDeService flowSerDeService,
-            String flowConfigurationFile) {
+            final FlowController flowController,
+            final FlowService flowService,
+            final FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver,
+            final FlowEnrichService flowEnrichService,
+            final FlowPropertyEncryptor flowPropertyEncryptor,
+            final FlowSerDeService flowSerDeService,
+            final String flowConfigurationFile) {
         this.flowController = flowController;
         this.flowService = flowService;
         this.flowPropertyAssetReferenceResolver = flowPropertyAssetReferenceResolver;
         this.flowEnrichService = flowEnrichService;
         this.flowPropertyEncryptor = flowPropertyEncryptor;
         this.flowSerDeService = flowSerDeService;
-        Path flowConfigurationFilePath = Path.of(flowConfigurationFile).toAbsolutePath();
+        final Path flowConfigurationFilePath = Path.of(flowConfigurationFile).toAbsolutePath();
         this.flowConfigurationFile = flowConfigurationFilePath;
         this.backupFlowConfigurationFile = Path.of(flowConfigurationFilePath + BACKUP_EXTENSION);
-        String flowConfigurationFileBaseName = FilenameUtils.getBaseName(flowConfigurationFilePath.toString());
+        final String flowConfigurationFileBaseName = FilenameUtils.getBaseName(flowConfigurationFilePath.toString());
         this.rawFlowConfigurationFile = flowConfigurationFilePath.getParent().resolve(flowConfigurationFileBaseName + RAW_EXTENSION);
         this.backupRawFlowConfigurationFile = flowConfigurationFilePath.getParent().resolve(flowConfigurationFileBaseName + BACKUP_EXTENSION + RAW_EXTENSION);
     }
 
     @Override
-    public void update(byte[] rawFlow) {
+    public void update(final byte[] rawFlow) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Attempting to update flow with content: \n{}", new String(rawFlow, UTF_8));
         }
@@ -112,13 +112,13 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
                 .stream()
                 .map(Connection::getIdentifier)
                 .collect(Collectors.toSet());
-            VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
+            final VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
 
             flowPropertyAssetReferenceResolver.resolveAssetReferenceProperties(dataFlow);
             flowPropertyEncryptor.encryptSensitiveProperties(dataFlow);
-            byte[] serializedPropertyEncryptedRawDataFlow = flowSerDeService.serialize(dataFlow);
+            final byte[] serializedPropertyEncryptedRawDataFlow = flowSerDeService.serialize(dataFlow);
             flowEnrichService.enrichFlow(dataFlow);
-            byte[] serializedEnrichedFlowCandidate = flowSerDeService.serialize(dataFlow);
+            final byte[] serializedEnrichedFlowCandidate = flowSerDeService.serialize(dataFlow);
 
             backup(flowConfigurationFile, backupFlowConfigurationFile);
             backup(rawFlowConfigurationFile, backupRawFlowConfigurationFile);
@@ -128,20 +128,20 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
 
             reloadFlow(findAllProposedConnectionIds(dataFlow.getRootGroup()));
 
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             LOGGER.error("Configuration update failed. Reverting and reloading previous flow", e);
             revert(backupFlowConfigurationFile, flowConfigurationFile);
             revert(backupRawFlowConfigurationFile, rawFlowConfigurationFile);
             try {
                 reloadFlow(originalConnectionIds);
-            } catch (ValidationException ex) {
+            } catch (final ValidationException ex) {
                 LOGGER.error("Unable to reload the reverted flow", ex);
                 throw ex;
-            } catch (Exception exception) {
+            } catch (final Exception exception) {
                 throw new RuntimeException(exception);
             }
             throw e;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Configuration update failed. Reverting to previous flow, no reload is necessary", e);
             revert(backupFlowConfigurationFile, flowConfigurationFile);
             revert(backupRawFlowConfigurationFile, rawFlowConfigurationFile);
@@ -152,14 +152,14 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         }
     }
 
-    private void reloadFlow(Set<String> proposedConnectionIds) throws IOException {
+    private void reloadFlow(final Set<String> proposedConnectionIds) throws IOException {
         LOGGER.info("Initiating flow reload");
         stopFlowGracefully(flowController.getFlowManager().getRootGroup(), proposedConnectionIds);
 
         flowService.load(null);
         flowController.onFlowInitialized(true);
 
-        List<ValidationResult> validationErrors = validate(flowController.getFlowManager());
+        final List<ValidationResult> validationErrors = validate(flowController.getFlowManager());
         if (!validationErrors.isEmpty()) {
             LOGGER.error("Validation errors found when reloading the flow: {}", validationErrors);
             throw new ValidationException("Unable to start flow due to validation errors", validationErrors);
@@ -169,9 +169,9 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         LOGGER.info("Flow has been reloaded successfully");
     }
 
-    private void stopFlowGracefully(ProcessGroup rootGroup, Set<String> proposedConnectionIds) {
+    private void stopFlowGracefully(final ProcessGroup rootGroup, final Set<String> proposedConnectionIds) {
         LOGGER.info("Stopping flow gracefully");
-        Optional<ProcessGroup> drainResult = stopSourceProcessorsAndWaitFlowToDrain(rootGroup);
+        final Optional<ProcessGroup> drainResult = stopSourceProcessorsAndWaitFlowToDrain(rootGroup);
 
         waitForStopOrLogTimeOut(rootGroup.stopProcessing());
         waitForStopOrLogTimeOut(rootGroup.stopComponents());
@@ -185,7 +185,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             () -> LOGGER.info("Flow has been stopped gracefully"));
     }
 
-    private Consumer<ProcessGroup> emptyQueuesForNonReferencedQueues(Set<String> proposedConnectionIds) {
+    private Consumer<ProcessGroup> emptyQueuesForNonReferencedQueues(final Set<String> proposedConnectionIds) {
         return rootProcessGroup -> {
             LOGGER.warn("Flow did not stop within graceful period. Force stopping flow and emptying non referenced queues");
             findAllExistingConnections(rootProcessGroup).stream()
@@ -195,30 +195,30 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
         };
     }
 
-    private Optional<ProcessGroup> stopSourceProcessorsAndWaitFlowToDrain(ProcessGroup rootGroup) {
+    private Optional<ProcessGroup> stopSourceProcessorsAndWaitFlowToDrain(final ProcessGroup rootGroup) {
         rootGroup.getProcessors().stream().filter(this::isSourceNode).forEach(rootGroup::stopProcessor);
         return retry(() -> rootGroup, not(ProcessGroup::isDataQueued), FLOW_DRAIN_MAX_RETRIES, FLOW_DRAIN_RETRY_PAUSE_DURATION_MS);
     }
 
-    private boolean isSourceNode(ProcessorNode processorNode) {
-        boolean hasNoIncomingConnection = !processorNode.hasIncomingConnection();
+    private boolean isSourceNode(final ProcessorNode processorNode) {
+        final boolean hasNoIncomingConnection = !processorNode.hasIncomingConnection();
 
-        boolean allIncomingConnectionsAreLoopConnections = processorNode.getIncomingConnections()
+        final boolean allIncomingConnectionsAreLoopConnections = processorNode.getIncomingConnections()
             .stream()
             .allMatch(connection -> connection.getSource().equals(processorNode));
 
         return hasNoIncomingConnection || allIncomingConnectionsAreLoopConnections;
     }
 
-    private void waitForStopOrLogTimeOut(Future<?> future) {
+    private void waitForStopOrLogTimeOut(final Future<?> future) {
         try {
             future.get(10000, TimeUnit.MICROSECONDS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Unable to stop component within defined interval", e);
         }
     }
 
-    private Set<String> findAllProposedConnectionIds(VersionedProcessGroup versionedProcessGroup) {
+    private Set<String> findAllProposedConnectionIds(final VersionedProcessGroup versionedProcessGroup) {
         return versionedProcessGroup == null
             ? emptySet()
             : Stream.concat(
@@ -227,7 +227,7 @@ public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationSt
             ).collect(Collectors.toSet());
     }
 
-    private Set<Connection> findAllExistingConnections(ProcessGroup processGroup) {
+    private Set<Connection> findAllExistingConnections(final ProcessGroup processGroup) {
         return processGroup == null
             ? emptySet()
             : Stream.concat(

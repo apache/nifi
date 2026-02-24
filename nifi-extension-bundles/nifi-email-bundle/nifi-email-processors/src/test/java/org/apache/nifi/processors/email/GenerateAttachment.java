@@ -29,7 +29,7 @@ public class GenerateAttachment {
 
     private static final String BOUNDARY = "5A7C0449-336B-4F73-81EF-F176E4DF44B2";
 
-    public GenerateAttachment(String from, String to, String subject, String message, String hostName) {
+    public GenerateAttachment(final String from, final String to, final String subject, final String message, final String hostName) {
         this.from = from;
         this.to = to;
         this.subject = subject;
@@ -66,7 +66,7 @@ public class GenerateAttachment {
         return builder.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    public byte[] withAttachments(int amount) {
+    public byte[] withAttachments(final int amount) {
         final StringBuilder builder = new StringBuilder();
 
         builder.append("MIME-Version: 1.0");

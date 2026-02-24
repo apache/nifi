@@ -162,7 +162,7 @@ class RestSchemaRegistryClientTest {
         enqueueNotFoundResponse();
         enqueueNotFoundResponse();
 
-        RecordSchema schema = client.getSchema(SCHEMA_ID);
+        final RecordSchema schema = client.getSchema(SCHEMA_ID);
 
         assertNotNull(schema);
         assertFalse(schema.getIdentifier().getName().isPresent());
@@ -196,7 +196,7 @@ class RestSchemaRegistryClientTest {
         enqueueSubjectsResponse(List.of(SUBJECT_NAME));
         enqueueCompleteSchemaResponse(SUBJECT_NAME, SCHEMA_ID, SCHEMA_VERSION, AVRO_SCHEMA_TEXT);
 
-        RecordSchema schema = client.getSchema(SCHEMA_ID);
+        final RecordSchema schema = client.getSchema(SCHEMA_ID);
 
         assertNotNull(schema);
         assertEquals(SUBJECT_NAME, schema.getIdentifier().getName().get());
@@ -227,7 +227,7 @@ class RestSchemaRegistryClientTest {
         enqueueNotFoundResponse();
         enqueueVersionsResponse(SUBJECT_NAME, SCHEMA_VERSION);
 
-        RecordSchema schema = client.getSchema(SCHEMA_ID);
+        final RecordSchema schema = client.getSchema(SCHEMA_ID);
 
         assertNotNull(schema);
         assertEquals(SUBJECT_NAME, schema.getIdentifier().getName().get());
@@ -260,7 +260,7 @@ class RestSchemaRegistryClientTest {
         enqueueCompleteSchemaResponse(SUBJECT_NAME, SCHEMA_ID, SCHEMA_VERSION, AVRO_SCHEMA_TEXT);
         enqueueNotFoundResponse();
 
-        RecordSchema schema = client.getSchema(SCHEMA_ID);
+        final RecordSchema schema = client.getSchema(SCHEMA_ID);
 
         assertNotNull(schema);
         assertEquals(SUBJECT_NAME, schema.getIdentifier().getName().get());
@@ -340,13 +340,13 @@ class RestSchemaRegistryClientTest {
          *
          * Expected result: SchemaDefinition returned with main schema and all referenced schemas resolved
          */
-        SchemaReference reference = new SchemaReference(REFERENCED_SCHEMA_NAME, REFERENCED_SUBJECT_NAME, REFERENCED_SCHEMA_VERSION);
+        final SchemaReference reference = new SchemaReference(REFERENCED_SCHEMA_NAME, REFERENCED_SUBJECT_NAME, REFERENCED_SCHEMA_VERSION);
         enqueueSchemaByIdResponseWithReferences(PROTOBUF_SCHEMA_TEXT, List.of(reference));
         enqueueSchemaBySubjectVersionResponse(REFERENCED_SCHEMA_ID, REFERENCED_SUBJECT_NAME, PROTOBUF_REFERENCED_SCHEMA_TEXT, REFERENCED_SCHEMA_VERSION);
 
-        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
 
-        SchemaDefinition schemaDefinition = client.getSchemaDefinition(schemaIdentifier);
+        final SchemaDefinition schemaDefinition = client.getSchemaDefinition(schemaIdentifier);
 
         assertNotNull(schemaDefinition);
 
@@ -362,7 +362,7 @@ class RestSchemaRegistryClientTest {
         final Map<String, SchemaDefinition> references = schemaDefinition.getReferences();
         assertNotNull(references);
         assertEquals(1, references.size());
-        SchemaDefinition referencedSchema = references.get(REFERENCED_SCHEMA_NAME);
+        final SchemaDefinition referencedSchema = references.get(REFERENCED_SCHEMA_NAME);
         assertNotNull(referencedSchema);
         final SchemaIdentifier referencedId = referencedSchema.getIdentifier();
         assertEquals(REFERENCED_SUBJECT_NAME, referencedId.getName().get());
@@ -383,7 +383,7 @@ class RestSchemaRegistryClientTest {
          */
         enqueueNotFoundResponse();
 
-        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
 
         assertThrows(SchemaNotFoundException.class, () -> client.getSchemaDefinition(schemaIdentifier));
 
@@ -399,59 +399,59 @@ class RestSchemaRegistryClientTest {
          * Expected result: SchemaNotFoundException thrown immediately
          */
         enqueueServerErrorResponse("Internal Server Error");
-        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().schemaVersionId((long) SCHEMA_ID).build();
 
         assertThrows(SchemaNotFoundException.class, () -> client.getSchemaDefinition(schemaIdentifier));
 
         verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID);
     }
 
-    private void enqueueSchemaByIdResponse(String schemaText) throws JsonProcessingException {
-        Map<String, String> response = Map.of("schema", schemaText);
-        String jsonResponse = objectMapper.writeValueAsString(response);
+    private void enqueueSchemaByIdResponse(final String schemaText) throws JsonProcessingException {
+        final Map<String, String> response = Map.of("schema", schemaText);
+        final String jsonResponse = objectMapper.writeValueAsString(response);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
 
-    private void enqueueSchemaByIdResponseWithReferences(String schemaText, List<SchemaReference> references) throws JsonProcessingException {
-        SchemaResponse response = new SchemaResponse(schemaText, PROTOBUF, references);
-        String jsonResponse = objectMapper.writeValueAsString(response);
+    private void enqueueSchemaByIdResponseWithReferences(final String schemaText, final List<SchemaReference> references) throws JsonProcessingException {
+        final SchemaResponse response = new SchemaResponse(schemaText, PROTOBUF, references);
+        final String jsonResponse = objectMapper.writeValueAsString(response);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
 
-    private void enqueueSchemaBySubjectVersionResponse(int schemaId, String subject, String schemaText, int version) throws JsonProcessingException {
-        CompleteSchemaResponse completeResponse = new CompleteSchemaResponse(subject, version, schemaId, schemaText, PROTOBUF, List.of());
+    private void enqueueSchemaBySubjectVersionResponse(final int schemaId, final String subject, final String schemaText, final int version) throws JsonProcessingException {
+        final CompleteSchemaResponse completeResponse = new CompleteSchemaResponse(subject, version, schemaId, schemaText, PROTOBUF, List.of());
 
-        String jsonResponse = objectMapper.writeValueAsString(completeResponse);
-
-        mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
-    }
-
-    private void enqueueCompleteSchemaResponse(String subjectName, int schemaId, int schemaVersion, String schemaText) throws JsonProcessingException {
-        CompleteSchemaResponse response = new CompleteSchemaResponse(subjectName, schemaVersion, schemaId, schemaText, "AVRO", List.of());
-        String jsonResponse = objectMapper.writeValueAsString(response);
+        final String jsonResponse = objectMapper.writeValueAsString(completeResponse);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
 
-    private void enqueueSubjectsResponse(List<String> subjects) throws JsonProcessingException {
-        String jsonResponse = objectMapper.writeValueAsString(subjects);
+    private void enqueueCompleteSchemaResponse(final String subjectName, final int schemaId, final int schemaVersion, final String schemaText) throws JsonProcessingException {
+        final CompleteSchemaResponse response = new CompleteSchemaResponse(subjectName, schemaVersion, schemaId, schemaText, "AVRO", List.of());
+        final String jsonResponse = objectMapper.writeValueAsString(response);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
 
-    private void enqueueVersionsResponse(String subjectName, int schemaVersion) throws JsonProcessingException {
+    private void enqueueSubjectsResponse(final List<String> subjects) throws JsonProcessingException {
+        final String jsonResponse = objectMapper.writeValueAsString(subjects);
+
+        mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
+    }
+
+    private void enqueueVersionsResponse(final String subjectName, final int schemaVersion) throws JsonProcessingException {
         record VersionInfo(String subject, int version) { }
-        VersionInfo versionInfo = new VersionInfo(subjectName, schemaVersion);
-        List<VersionInfo> response = List.of(versionInfo);
-        String jsonResponse = objectMapper.writeValueAsString(response);
+        final VersionInfo versionInfo = new VersionInfo(subjectName, schemaVersion);
+        final List<VersionInfo> response = List.of(versionInfo);
+        final String jsonResponse = objectMapper.writeValueAsString(response);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
 
-    private void enqueueAllSubjectsResponse(List<String> subjects) throws JsonProcessingException {
-        String jsonResponse = objectMapper.writeValueAsString(subjects);
+    private void enqueueAllSubjectsResponse(final List<String> subjects) throws JsonProcessingException {
+        final String jsonResponse = objectMapper.writeValueAsString(subjects);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
     }
@@ -460,12 +460,12 @@ class RestSchemaRegistryClientTest {
         mockWebServer.enqueue(new MockResponse.Builder().code(404).build());
     }
 
-    private void enqueueServerErrorResponse(String errorMessage) {
+    private void enqueueServerErrorResponse(final String errorMessage) {
         mockWebServer.enqueue(new MockResponse.Builder().code(500).body(errorMessage).build());
     }
 
-    private RecordedRequest verifyRequest(String method, String expectedPath) throws InterruptedException {
-        RecordedRequest request = mockWebServer.takeRequest();
+    private RecordedRequest verifyRequest(final String method, final String expectedPath) throws InterruptedException {
+        final RecordedRequest request = mockWebServer.takeRequest();
         assertEquals(method, request.getMethod());
         assertEquals(expectedPath, request.getTarget());
         return request;

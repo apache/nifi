@@ -57,7 +57,7 @@ public class MqttClientProperties {
         return brokerUriHolder.getProvenanceFormattedUris();
     }
 
-    public void setBrokerUris(List<URI> brokerUris) {
+    public void setBrokerUris(final List<URI> brokerUris) {
         this.brokerUriHolder = new BrokerUriHolder(brokerUris);
     }
 
@@ -65,7 +65,7 @@ public class MqttClientProperties {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -73,7 +73,7 @@ public class MqttClientProperties {
         return mqttVersion;
     }
 
-    public void setMqttVersion(MqttVersion mqttVersion) {
+    public void setMqttVersion(final MqttVersion mqttVersion) {
         this.mqttVersion = mqttVersion;
     }
 
@@ -81,7 +81,7 @@ public class MqttClientProperties {
         return keepAliveInterval;
     }
 
-    public void setKeepAliveInterval(int keepAliveInterval) {
+    public void setKeepAliveInterval(final int keepAliveInterval) {
         this.keepAliveInterval = keepAliveInterval;
     }
 
@@ -89,7 +89,7 @@ public class MqttClientProperties {
         return connectionTimeout;
     }
 
-    public void setConnectionTimeout(int connectionTimeout) {
+    public void setConnectionTimeout(final int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
     }
 
@@ -97,7 +97,7 @@ public class MqttClientProperties {
         return cleanSession;
     }
 
-    public void setCleanSession(boolean cleanSession) {
+    public void setCleanSession(final boolean cleanSession) {
         this.cleanSession = cleanSession;
     }
 
@@ -105,7 +105,7 @@ public class MqttClientProperties {
         return sessionExpiryInterval;
     }
 
-    public void setSessionExpiryInterval(Long sessionExpiryInterval) {
+    public void setSessionExpiryInterval(final Long sessionExpiryInterval) {
         this.sessionExpiryInterval = sessionExpiryInterval;
     }
 
@@ -113,7 +113,7 @@ public class MqttClientProperties {
         return tlsConfiguration;
     }
 
-    public void setTlsConfiguration(TlsConfiguration tlsConfiguration) {
+    public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {
         this.tlsConfiguration = tlsConfiguration;
     }
 
@@ -121,7 +121,7 @@ public class MqttClientProperties {
         return lastWillTopic;
     }
 
-    public void setLastWillTopic(String lastWillTopic) {
+    public void setLastWillTopic(final String lastWillTopic) {
         this.lastWillTopic = lastWillTopic;
     }
 
@@ -129,7 +129,7 @@ public class MqttClientProperties {
         return lastWillMessage;
     }
 
-    public void setLastWillMessage(String lastWillMessage) {
+    public void setLastWillMessage(final String lastWillMessage) {
         this.lastWillMessage = lastWillMessage;
     }
 
@@ -137,7 +137,7 @@ public class MqttClientProperties {
         return lastWillRetain;
     }
 
-    public void setLastWillRetain(Boolean lastWillRetain) {
+    public void setLastWillRetain(final Boolean lastWillRetain) {
         this.lastWillRetain = lastWillRetain;
     }
 
@@ -145,7 +145,7 @@ public class MqttClientProperties {
         return lastWillQos;
     }
 
-    public void setLastWillQos(Integer lastWillQos) {
+    public void setLastWillQos(final Integer lastWillQos) {
         this.lastWillQos = lastWillQos;
     }
 
@@ -153,7 +153,7 @@ public class MqttClientProperties {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(final String username) {
         this.username = username;
     }
 
@@ -161,7 +161,7 @@ public class MqttClientProperties {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
@@ -171,7 +171,7 @@ public class MqttClientProperties {
         private final String rawBrokerUris;
         private final String provenanceFormattedUris;
 
-        public BrokerUriHolder(List<URI> brokerUris) {
+        public BrokerUriHolder(final List<URI> brokerUris) {
             this.brokerUris = brokerUris;
 
             rawBrokerUris = createRawUris(brokerUris);
@@ -190,11 +190,11 @@ public class MqttClientProperties {
             return provenanceFormattedUris;
         }
 
-        private String createRawUris(List<URI> brokerUris) {
+        private String createRawUris(final List<URI> brokerUris) {
             return brokerUris.stream().map(URI::toString).collect(Collectors.joining(","));
         }
 
-        private String createProvenanceFormattedUris(List<URI> brokerUris) {
+        private String createProvenanceFormattedUris(final List<URI> brokerUris) {
             final String base = createRawUris(brokerUris);
 
             if (brokerUris.size() > 1) {

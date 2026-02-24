@@ -141,7 +141,7 @@ public enum EventType {
 
     private List<EventFieldName> fieldNames;
 
-    EventType(EventFieldName... fieldNames) {
+    EventType(final EventFieldName... fieldNames) {
         this.fieldNames = Collections.unmodifiableList(Arrays.asList(fieldNames));
     }
 

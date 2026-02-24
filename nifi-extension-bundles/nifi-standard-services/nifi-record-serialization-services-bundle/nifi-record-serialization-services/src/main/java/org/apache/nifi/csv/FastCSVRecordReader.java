@@ -72,7 +72,7 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
         this.trimDoubleQuote = trimDoubleQuote;
         this.csvFormat = csvFormat;
 
-        CsvReader.CsvReaderBuilder builder = CsvReader.builder()
+        final CsvReader.CsvReaderBuilder builder = CsvReader.builder()
                 .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter())
                 .commentStrategy(CommentStrategy.SKIP)
@@ -141,7 +141,7 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
             }
 
             return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MalformedRecordException("Error while getting next record", e);
         }
     }
@@ -162,7 +162,7 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
         }
 
         // read header row
-        CsvRecord headerRecord = csvRecordIterator.next();
+        final CsvRecord headerRecord = csvRecordIterator.next();
         headerMap = new HashMap<>();
         for (int i = 0; i < headerRecord.getFieldCount(); i++) {
             String rawValue = headerRecord.getField(i);
@@ -175,14 +175,14 @@ public class FastCSVRecordReader extends AbstractCSVRecordReader {
             headerMap.put(rawValue, i);
         }
 
-        SortedMap<Integer, String> sortedMap = new TreeMap<>();
-        for (Map.Entry<String, Integer> entry : headerMap.entrySet()) {
+        final SortedMap<Integer, String> sortedMap = new TreeMap<>();
+        for (final Map.Entry<String, Integer> entry : headerMap.entrySet()) {
             sortedMap.put(entry.getValue(), entry.getKey());
         }
 
-        List<RecordField> fields = new ArrayList<>();
-        for (String rawFieldName : new ArrayList<>(sortedMap.values())) {
-            Optional<RecordField> optField = getSchema().getField(rawFieldName);
+        final List<RecordField> fields = new ArrayList<>();
+        for (final String rawFieldName : new ArrayList<>(sortedMap.values())) {
+            final Optional<RecordField> optField = getSchema().getField(rawFieldName);
             fields.add(optField.orElseGet(() -> new RecordField(rawFieldName, RecordFieldType.STRING.getDataType())));
         }
 

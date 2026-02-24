@@ -131,7 +131,7 @@ class TestDeleteFile {
         runner.assertPenalizeCount(1);
     }
 
-    private MockFlowFile enqueue(String directoryPath, String filename) {
+    private MockFlowFile enqueue(final String directoryPath, final String filename) {
         final Map<String, String> attributes = Map.of(
                 CoreAttributes.ABSOLUTE_PATH.key(), directoryPath,
                 CoreAttributes.FILENAME.key(), filename
@@ -140,11 +140,11 @@ class TestDeleteFile {
         return runner.enqueue("data", attributes);
     }
 
-    private static void assertNotExists(Path filePath) {
+    private static void assertNotExists(final Path filePath) {
         assertTrue(Files.notExists(filePath), () -> "File " + filePath + "still exists");
     }
 
-    private static void assertExists(Path filePath) {
+    private static void assertExists(final Path filePath) {
         assertTrue(Files.exists(filePath), () -> "File " + filePath + "does not exist");
     }
 }

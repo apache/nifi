@@ -87,7 +87,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
             // other exception - always error out
-            PrintWriter out = response.getWriter();
+            final PrintWriter out = response.getWriter();
             out.println("Failed to authenticate request. Please contact the system administrator.");
             return;
         }
@@ -112,7 +112,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      * @param response Servlet response to the client containing the successful authentication details.
      * @param authResult The Authentication 'token'/object created by one of the various NiFiAuthenticationFilter subclasses.
      */
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
+    protected void successfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final Authentication authResult) {
         log.debug("Authentication Success [{}] {} {} {}", authResult, request.getRemoteAddr(), request.getMethod(), request.getRequestURL());
 
         SecurityContextHolder.getContext().setAuthentication(authResult);
@@ -127,7 +127,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      * @param response Servlet response to the client containing the unsuccessful authentication attempt details.
      * @param ae The related exception thrown and explanation for the unsuccessful authentication attempt.
      */
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
+    protected void unsuccessfulAuthentication(final HttpServletRequest request, final HttpServletResponse response, final AuthenticationException ae) throws IOException {
         // populate the response
         ProxiedEntitiesUtils.unsuccessfulAuthentication(request, response, ae);
 
@@ -135,7 +135,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         response.setContentType("text/plain");
 
         // write the response message
-        PrintWriter out = response.getWriter();
+        final PrintWriter out = response.getWriter();
 
         // use the type of authentication exception to determine the response code
         if (ae instanceof InvalidAuthenticationException) {
@@ -161,7 +161,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         log.debug("Authentication Failed", ae);
     }
 
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+    public void setAuthenticationManager(final AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
     }
 
@@ -169,7 +169,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         this.authenticationDetailsSource = authenticationDetailsSource;
     }
 
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 

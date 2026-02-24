@@ -60,7 +60,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
     }
 
     @Override
-    public void migrate(Flyway flyway) {
+    public void migrate(final Flyway flyway) {
         final boolean newDatabase = isNewDatabase(flyway.getConfiguration().getDataSource());
         if (newDatabase) {
             LOGGER.info("First time initializing database...");
@@ -107,7 +107,7 @@ public class CustomFlywayMigrationStrategy implements FlywayMigrationStrategy {
              final ResultSet rsUpper = connection.getMetaData().getTables(null, null, "BUCKET", null);
              final ResultSet rsLower = connection.getMetaData().getTables(null, null, "bucket", null)) {
             return !rsUpper.next() && !rsLower.next();
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }

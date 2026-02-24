@@ -313,7 +313,7 @@ public class PublishSlack extends AbstractProcessor {
             return;
         }
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -365,7 +365,7 @@ public class PublishSlack extends AbstractProcessor {
         }
     }
 
-    private void publishContentAsMessage(FlowFile flowFile, final String channelId, final ProcessContext context, final ProcessSession session) {
+    private void publishContentAsMessage(final FlowFile flowFile, final String channelId, final ProcessContext context, final ProcessSession session) {
         // Slack limits the message size to 100,000 characters. We don't have a way to know based on the size of the FlowFile how many characters it will contain,
         // but we can be rather certain that if the size exceeds 500,000 bytes, it will also exceed 100,000 characters. As a result, we pre-emptively route to
         // 'too large' in order to avoid buffering the contents into memory.
@@ -397,7 +397,7 @@ public class PublishSlack extends AbstractProcessor {
         publishAsMessage(flowFile, channelId, messageText, context, session);
     }
 
-    private void publishAsMessage(FlowFile flowFile, final String channelId, final String messageText, final ProcessContext context, final ProcessSession session) {
+    private void publishAsMessage(final FlowFile flowFile, final String channelId, final String messageText, final ProcessContext context, final ProcessSession session) {
         final String threadTs = context.getProperty(THREAD_TS).evaluateAttributeExpressions(flowFile).getValue();
 
         final ChatPostMessageRequest request = ChatPostMessageRequest.builder()
@@ -427,12 +427,12 @@ public class PublishSlack extends AbstractProcessor {
         final String ts = postMessageResponse.getTs();
         final Map<String, String> attributes = Map.of("slack.ts", ts,
             "slack.channel.id", channelId);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/chat.postMessage");
-        session.transfer(flowFile, REL_SUCCESS);
+        final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+        session.getProvenanceReporter().send(updatedFlowFile, "https://slack.com/api/chat.postMessage");
+        session.transfer(updatedFlowFile, REL_SUCCESS);
     }
 
-    private void publishAsFile(FlowFile flowFile, final String channelId, final ProcessContext context, final ProcessSession session) {
+    private void publishAsFile(final FlowFile flowFile, final String channelId, final ProcessContext context, final ProcessSession session) {
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final long maxSize = context.getProperty(MAX_FILE_SIZE).asDataSize(DataUnit.B).longValue();
         if (flowFile.getSize() > maxSize) {
@@ -493,9 +493,9 @@ public class PublishSlack extends AbstractProcessor {
         if (ts != null) {
             attributes.put("slack.ts", ts);
         }
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        session.getProvenanceReporter().send(flowFile, "https://slack.com/api/files.upload");
-        session.transfer(flowFile, REL_SUCCESS);
+        final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+        session.getProvenanceReporter().send(updatedFlowFile, "https://slack.com/api/files.upload");
+        session.transfer(updatedFlowFile, REL_SUCCESS);
     }
 
     private Relationship handleClientException(final String channel, final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final Exception cause) {

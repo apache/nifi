@@ -36,7 +36,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
+    public void setNodeId(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -45,7 +45,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(final String address) {
         this.address = address;
     }
 
@@ -54,7 +54,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         return apiPort;
     }
 
-    public void setApiPort(Integer apiPort) {
+    public void setApiPort(final Integer apiPort) {
         this.apiPort = apiPort;
     }
 
@@ -63,7 +63,7 @@ public class NodeProcessorStatusSnapshotDTO implements Cloneable {
         return statusSnapshot;
     }
 
-    public void setStatusSnapshot(ProcessorStatusSnapshotDTO processorStatusSnapshot) {
+    public void setStatusSnapshot(final ProcessorStatusSnapshotDTO processorStatusSnapshot) {
         this.statusSnapshot = processorStatusSnapshot;
     }
 

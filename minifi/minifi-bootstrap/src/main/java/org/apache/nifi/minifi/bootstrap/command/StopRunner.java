@@ -45,8 +45,8 @@ public class StopRunner implements CommandRunner {
     private final GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
     private final ProcessUtils processUtils;
 
-    public StopRunner(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters, MiNiFiCommandSender miNiFiCommandSender,
-                      CurrentPortProvider currentPortProvider, GracefulShutdownParameterProvider gracefulShutdownParameterProvider, ProcessUtils processUtils) {
+    public StopRunner(final BootstrapFileProvider bootstrapFileProvider, final MiNiFiParameters miNiFiParameters, final MiNiFiCommandSender miNiFiCommandSender,
+                      final CurrentPortProvider currentPortProvider, final GracefulShutdownParameterProvider gracefulShutdownParameterProvider, final ProcessUtils processUtils) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiCommandSender = miNiFiCommandSender;
@@ -62,17 +62,17 @@ public class StopRunner implements CommandRunner {
      * @return status code
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         try {
             return stop();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             DEFAULT_LOGGER.error("Exception happened during stopping MiNiFi", e);
             return ERROR.getStatusCode();
         }
     }
 
     private int stop() throws IOException {
-        Integer currentPort = currentPortProvider.getCurrentPort();
+        final Integer currentPort = currentPortProvider.getCurrentPort();
         if (currentPort == null) {
             CMD_LOGGER.error("Apache MiNiFi is not currently running");
             return MINIFI_NOT_RUNNING.getStatusCode();
@@ -80,22 +80,22 @@ public class StopRunner implements CommandRunner {
 
         int status = OK.getStatusCode();
         // indicate that a stop command is in progress
-        File lockFile = bootstrapFileProvider.getLockFile();
+        final File lockFile = bootstrapFileProvider.getLockFile();
         if (!lockFile.exists()) {
             lockFile.createNewFile();
         }
 
-        long minifiPid = miNiFiParameters.getMinifiPid();
+        final long minifiPid = miNiFiParameters.getMinifiPid();
 
         try {
-            Optional<String> commandResponse = miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, currentPort);
+            final Optional<String> commandResponse = miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, currentPort);
             if (commandResponse.filter(SHUTDOWN_CMD::equals).isPresent()) {
                 gracefulShutDownMiNiFiProcess(minifiPid);
             } else {
                 CMD_LOGGER.error("When sending SHUTDOWN command to MiNiFi, got unexpected response {}", commandResponse.orElse(null));
                 status = ERROR.getStatusCode();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             CMD_LOGGER.warn("An error has occurred while stopping MiNiFi. Force killing process with pid={}", minifiPid, e);
             killProcessTree(minifiPid);
         } finally {
@@ -107,10 +107,10 @@ public class StopRunner implements CommandRunner {
         return status;
     }
 
-    private void gracefulShutDownMiNiFiProcess(long minifiPid) throws IOException {
+    private void gracefulShutDownMiNiFiProcess(final long minifiPid) throws IOException {
         CMD_LOGGER.info("Apache MiNiFi has accepted the Shutdown Command and is shutting down now");
-        File statusFile = bootstrapFileProvider.getStatusFile();
-        File pidFile = bootstrapFileProvider.getPidFile();
+        final File statusFile = bootstrapFileProvider.getStatusFile();
+        final File pidFile = bootstrapFileProvider.getPidFile();
 
         if (minifiPid != UNINITIALIZED) {
             processUtils.shutdownProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds. Killing process.",
@@ -128,7 +128,7 @@ public class StopRunner implements CommandRunner {
         }
     }
 
-    private void killProcessTree(long minifiPid) throws IOException {
+    private void killProcessTree(final long minifiPid) throws IOException {
         if (minifiPid == UNINITIALIZED) {
             DEFAULT_LOGGER.error("No PID found for the MiNiFi process, so unable to kill process; The process should be killed manually.");
         } else {

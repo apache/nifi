@@ -145,7 +145,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -171,7 +171,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             final DataLakeDirectoryClient sourceDirectoryClient = sourceFileSystemClient.getDirectoryClient(sourceDirectory);
             final DataLakeFileSystemClient destinationFileSystemClient = storageClient.getFileSystemClient(destinationFileSystem);
             final DataLakeDirectoryClient destinationDirectoryClient = destinationFileSystemClient.getDirectoryClient(destinationDirectory);
-            DataLakeFileClient sourceFileClient = sourceDirectoryClient.getFileClient(fileName);
+            final DataLakeFileClient sourceFileClient = sourceDirectoryClient.getFileClient(fileName);
             final DataLakeRequestConditions sourceConditions = new DataLakeRequestConditions();
             final DataLakeRequestConditions destinationConditions = new DataLakeRequestConditions();
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
@@ -206,10 +206,10 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().send(flowFile, sourceFileClient.getFileUrl(), transferMillis);
-            } catch (DataLakeStorageException dlsException) {
+            } catch (final DataLakeStorageException dlsException) {
                 if (dlsException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
                     session.transfer(flowFile, REL_SUCCESS);
-                    String warningMessage = String.format("File with the same name already exists. " +
+                    final String warningMessage = String.format("File with the same name already exists. " +
                             "Remote file not modified. " +
                             "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
                     getLogger().warn(warningMessage, flowFile);
@@ -217,7 +217,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                     throw dlsException;
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to move file on Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -225,7 +225,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DESTINATION_DIRECTORY.getName());
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, DESTINATION_FILESYSTEM.getName());

@@ -32,23 +32,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class BinaryTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testLength() throws IOException {
-        String val = "Test String";
-        BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(val.length()).putString(val).build();
+        final String val = "Test String";
+        final BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(val.length()).putString(val).build();
         assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue());
     }
 
     @Test
     public void testInvalidStringLength() throws IOException {
-        String val = "Test String";
-        BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 1)).putString(val).build();
+        final String val = "Test String";
+        final BinaryReader binaryReader = testBinaryReaderBuilder.putDWord(UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 1)).putString(val).build();
         assertThrows(IOException.class,
                 () -> assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, -1).getValue()));
     }
 
     @Test
     public void testNoLength() throws IOException {
-        String val = "Test String";
-        BinaryReader binaryReader = testBinaryReaderBuilder.putString(val).build();
+        final String val = "Test String";
+        final BinaryReader binaryReader = testBinaryReaderBuilder.putString(val).build();
         assertEquals(Base64.getEncoder().encodeToString(val.getBytes(StandardCharsets.US_ASCII)), new BinaryTypeNode(binaryReader, chunkHeader, parent, val.length()).getValue());
     }
 }

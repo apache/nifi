@@ -28,7 +28,7 @@ public class SimpleUserGroupProvider implements UserGroupProvider {
     private final Set<User> users;
     private final Set<Group> groups;
 
-    public SimpleUserGroupProvider(Set<User> users, Set<Group> groups) {
+    public SimpleUserGroupProvider(final Set<User> users, final Set<Group> groups) {
         this.users = users;
         this.groups = groups;
     }
@@ -39,12 +39,12 @@ public class SimpleUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         return users.stream().filter(user -> user.getIdentifier().equals(identifier)).findFirst().orElse(null);
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         return users.stream().filter(user -> user.getIdentity().equals(identity)).findFirst().orElse(null);
     }
 
@@ -54,17 +54,17 @@ public class SimpleUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         return groups.stream().filter(groups -> groups.getIdentifier().equals(identifier)).findFirst().orElse(null);
     }
 
     @Override
-    public Group getGroupByName(String name) throws AuthorizationAccessException {
+    public Group getGroupByName(final String name) throws AuthorizationAccessException {
         return groups.stream().filter(groups -> groups.getName().equals(name)).findFirst().orElse(null);
     }
 
     @Override
-    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
         final User user = users.stream().filter(u -> u.getIdentity().equals(identity)).findFirst().orElse(null);
         return new UserAndGroups() {
             @Override
@@ -84,11 +84,11 @@ public class SimpleUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
     }
 
     @Override

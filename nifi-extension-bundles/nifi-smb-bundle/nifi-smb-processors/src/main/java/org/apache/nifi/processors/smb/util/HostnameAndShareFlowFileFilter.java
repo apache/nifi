@@ -32,13 +32,13 @@ public class HostnameAndShareFlowFileFilter implements FlowFileFilter {
     private HostSharePair selectedHostSharePair;
     private int count = 0;
 
-    public HostnameAndShareFlowFileFilter(ProcessContext context, int batchSize) {
+    public HostnameAndShareFlowFileFilter(final ProcessContext context, final int batchSize) {
         this.context = context;
         this.batchSize = batchSize;
     }
 
     @Override
-    public FlowFileFilterResult filter(FlowFile flowFile) {
+    public FlowFileFilterResult filter(final FlowFile flowFile) {
         final HostSharePair hostSharePair = getFlowFileHostSharePair(flowFile);
 
         if (selectedHostSharePair == null) {

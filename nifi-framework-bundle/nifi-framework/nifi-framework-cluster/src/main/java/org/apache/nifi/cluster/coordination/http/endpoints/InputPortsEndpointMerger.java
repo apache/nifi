@@ -53,7 +53,7 @@ public class InputPortsEndpointMerger implements EndpointResponseMerger {
             final Set<PortEntity> nodePortEntities = nodeResponseEntity.getInputPorts();
 
             for (final PortEntity nodePortEntity : nodePortEntities) {
-                Map<NodeIdentifier, PortEntity> innerMap = entityMap.computeIfAbsent(nodePortEntity.getId(), k -> new HashMap<>());
+                final Map<NodeIdentifier, PortEntity> innerMap = entityMap.computeIfAbsent(nodePortEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodePortEntity);
             }
         }

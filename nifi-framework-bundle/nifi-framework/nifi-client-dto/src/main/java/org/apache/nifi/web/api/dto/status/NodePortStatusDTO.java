@@ -38,7 +38,7 @@ public class NodePortStatusDTO {
         return node;
     }
 
-    public void setNode(NodeDTO node) {
+    public void setNode(final NodeDTO node) {
         this.node = node;
     }
 
@@ -51,7 +51,7 @@ public class NodePortStatusDTO {
         return portStatus;
     }
 
-    public void setPortStatus(PortStatusDTO portStatus) {
+    public void setPortStatus(final PortStatusDTO portStatus) {
         this.portStatus = portStatus;
     }
 

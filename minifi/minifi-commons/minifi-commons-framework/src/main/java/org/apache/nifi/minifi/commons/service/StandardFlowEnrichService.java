@@ -93,12 +93,12 @@ public class StandardFlowEnrichService implements FlowEnrichService {
 
     private final ReadableProperties minifiProperties;
 
-    public StandardFlowEnrichService(ReadableProperties minifiProperties) {
+    public StandardFlowEnrichService(final ReadableProperties minifiProperties) {
         this.minifiProperties = minifiProperties;
     }
 
     @Override
-    public void enrichFlow(VersionedDataflow versionedDataflow) {
+    public void enrichFlow(final VersionedDataflow versionedDataflow) {
         versionedDataflow.setReportingTasks(ofNullable(versionedDataflow.getReportingTasks()).orElseGet(ArrayList::new));
         versionedDataflow.setRegistries(ofNullable(versionedDataflow.getRegistries()).orElseGet(ArrayList::new));
         versionedDataflow.setControllerServices(ofNullable(versionedDataflow.getControllerServices()).orElseGet(ArrayList::new));
@@ -113,11 +113,11 @@ public class StandardFlowEnrichService implements FlowEnrichService {
                 .collect(toList())
         );
 
-        Optional<Integer> maxConcurrentThreads = ofNullable(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS.getKey()))
+        final Optional<Integer> maxConcurrentThreads = ofNullable(minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS.getKey()))
             .map(Integer::parseInt);
         maxConcurrentThreads.ifPresent(versionedDataflow::setMaxTimerDrivenThreadCount);
 
-        VersionedProcessGroup rootGroup = versionedDataflow.getRootGroup();
+        final VersionedProcessGroup rootGroup = versionedDataflow.getRootGroup();
         if (isBlank(rootGroup.getIdentifier())) {
             rootGroup.setIdentifier(randomUUID().toString());
         }
@@ -127,7 +127,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
 
         enableControllerServices(rootGroup);
 
-        Optional<VersionedControllerService> parentSslControllerService = createParentSslControllerService();
+        final Optional<VersionedControllerService> parentSslControllerService = createParentSslControllerService();
         parentSslControllerService.ifPresent(versionedDataflow.getRootGroup().getControllerServices()::add);
 
         parentSslControllerService
@@ -145,13 +145,13 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         if (IS_LEGACY_COMPONENT.test(rootGroup)) {
             LOG.info("Legacy flow detected. Initializing missing but mandatory properties on components");
             initializeComponentsMissingProperties(rootGroup);
-            Map<String, String> idToInstanceIdMap = createIdToInstanceIdMap(rootGroup);
+            final Map<String, String> idToInstanceIdMap = createIdToInstanceIdMap(rootGroup);
             setConnectableComponentsInstanceId(rootGroup, idToInstanceIdMap);
         }
     }
 
-    private void createDefaultParameterContext(VersionedDataflow versionedDataflow) {
-        VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+    private void createDefaultParameterContext(final VersionedDataflow versionedDataflow) {
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setIdentifier(DEFAULT_PARAMETER_CONTEXT);
         versionedParameterContext.setInstanceIdentifier(DEFAULT_PARAMETER_CONTEXT);
         versionedParameterContext.setName(DEFAULT_PARAMETER_CONTEXT);
@@ -162,14 +162,14 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .ifPresentOrElse(
                 versionedParameterContexts -> versionedParameterContexts.add(versionedParameterContext),
                 () -> {
-                    List<VersionedParameterContext> parameterContexts = new ArrayList<>();
+                    final List<VersionedParameterContext> parameterContexts = new ArrayList<>();
                     parameterContexts.add(versionedParameterContext);
                     versionedDataflow.setParameterContexts(parameterContexts);
                 }
             );
     }
 
-    private void enableControllerServices(VersionedProcessGroup processGroup) {
+    private void enableControllerServices(final VersionedProcessGroup processGroup) {
         ofNullable(processGroup.getControllerServices()).orElseGet(Set::of)
             .forEach(controllerService -> controllerService.setScheduledState(ENABLED));
         ofNullable(processGroup.getProcessGroups()).orElseGet(Set::of)
@@ -183,7 +183,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         }
 
         LOG.debug("Parent SSL is enabled, creating parent SSL Controller Service");
-        VersionedControllerService sslControllerService = new VersionedControllerService();
+        final VersionedControllerService sslControllerService = new VersionedControllerService();
         sslControllerService.setIdentifier(PARENT_SSL_CONTEXT_SERVICE_ID);
         sslControllerService.setInstanceIdentifier(PARENT_SSL_CONTEXT_SERVICE_ID);
         sslControllerService.setName(PARENT_SSL_CONTEXT_SERVICE_NAME);
@@ -225,16 +225,16 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         );
     }
 
-    private ControllerServiceAPI controllerServiceAPI(String type, Bundle bundle) {
-        ControllerServiceAPI controllerServiceAPI = new ControllerServiceAPI();
+    private ControllerServiceAPI controllerServiceAPI(final String type, final Bundle bundle) {
+        final ControllerServiceAPI controllerServiceAPI = new ControllerServiceAPI();
         controllerServiceAPI.setType(type);
         controllerServiceAPI.setBundle(bundle);
         return controllerServiceAPI;
     }
 
-    private void overrideComponentsSslControllerService(VersionedProcessGroup processGroup, String commonSslControllerServiceInstanceId) {
+    private void overrideComponentsSslControllerService(final VersionedProcessGroup processGroup, final String commonSslControllerServiceInstanceId) {
         LOG.debug("Use parent SSL is enabled, overriding processors' and controller services' SSL Controller service property to {}", commonSslControllerServiceInstanceId);
-        Consumer<VersionedConfigurableExtension> updateControllerServicesId =
+        final Consumer<VersionedConfigurableExtension> updateControllerServicesId =
             extension -> replaceProperty(extension, DEFAULT_SSL_CONTEXT_SERVICE_NAME, commonSslControllerServiceInstanceId);
         processGroup.getProcessors()
             .forEach(updateControllerServicesId);
@@ -246,8 +246,8 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .forEach(childProcessGroup -> overrideComponentsSslControllerService(childProcessGroup, commonSslControllerServiceInstanceId));
     }
 
-    private void deleteUnusedSslControllerServices(VersionedProcessGroup processGroup) {
-        Set<VersionedControllerService> controllerServicesWithoutUnusedSslContextServices = processGroup.getControllerServices()
+    private void deleteUnusedSslControllerServices(final VersionedProcessGroup processGroup) {
+        final Set<VersionedControllerService> controllerServicesWithoutUnusedSslContextServices = processGroup.getControllerServices()
             .stream()
             .filter(controllerService -> !controllerService.getControllerServiceApis().stream().map(ControllerServiceAPI::getType).anyMatch(SSL_CONTEXT_SERVICE_API::equals)
                 || controllerService.getInstanceIdentifier().equals(PARENT_SSL_CONTEXT_SERVICE_ID))
@@ -256,19 +256,19 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         processGroup.getProcessGroups().forEach(this::deleteUnusedSslControllerServices);
     }
 
-    private void replaceProperty(VersionedConfigurableExtension extension, String key, String newValue) {
-        String oldValue = extension.getProperties().get(key);
+    private void replaceProperty(final VersionedConfigurableExtension extension, final String key, final String newValue) {
+        final String oldValue = extension.getProperties().get(key);
         extension.getProperties().replace(key, oldValue, newValue);
     }
 
-    private Optional<VersionedReportingTask> createProvenanceReportingTask(Optional<VersionedControllerService> commonSslControllerService) {
+    private Optional<VersionedReportingTask> createProvenanceReportingTask(final Optional<VersionedControllerService> commonSslControllerService) {
         if (!provenanceReportingEnabled()) {
             LOG.debug("Provenance reporting task is disabled, skip creating provenance reporting task");
             return empty();
         }
         LOG.debug("Provenance reporting task is enabled, creating provenance reporting task");
 
-        VersionedReportingTask reportingTask = new VersionedReportingTask();
+        final VersionedReportingTask reportingTask = new VersionedReportingTask();
         reportingTask.setIdentifier(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID);
         reportingTask.setInstanceIdentifier(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_ID);
         reportingTask.setName(SITE_TO_SITE_PROVENANCE_REPORTING_TASK_NAME);
@@ -290,15 +290,15 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .allMatch(StringUtils::isNotBlank);
     }
 
-    private Bundle createBundle(String artifact) {
-        Bundle bundle = new Bundle();
+    private Bundle createBundle(final String artifact) {
+        final Bundle bundle = new Bundle();
         bundle.setGroup(NIFI_BUNDLE_GROUP);
         bundle.setArtifact(artifact);
         bundle.setVersion(EMPTY);
         return bundle;
     }
 
-    private Map<String, String> provenanceReportingTaskProperties(String sslControllerServiceIdentifier) {
+    private Map<String, String> provenanceReportingTaskProperties(final String sslControllerServiceIdentifier) {
         return List.of(
                 entry("Input Port Name", minifiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_PROVENANCE_REPORTING_INPUT_PORT_NAME.getKey())),
                 entry("s2s-transport-protocol", PROVENANCE_REPORTING_TASK_PROTOCOL),
@@ -316,7 +316,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .collect(toMap(Entry::getKey, Entry::getValue));
     }
 
-    private void initializeComponentsMissingProperties(VersionedProcessGroup versionedProcessGroup) {
+    private void initializeComponentsMissingProperties(final VersionedProcessGroup versionedProcessGroup) {
         versionedProcessGroup.setInstanceIdentifier(randomUUID().toString());
 
         Stream.of(
@@ -354,8 +354,8 @@ public class StandardFlowEnrichService implements FlowEnrichService {
         versionedProcessGroup.getProcessGroups().forEach(this::initializeComponentsMissingProperties);
     }
 
-    private Map<String, String> createIdToInstanceIdMap(VersionedProcessGroup versionedProcessGroup) {
-        Map<String, String> thisProcessGroupIdToInstanceIdMaps = Stream.of(
+    private Map<String, String> createIdToInstanceIdMap(final VersionedProcessGroup versionedProcessGroup) {
+        final Map<String, String> thisProcessGroupIdToInstanceIdMaps = Stream.of(
                 ofNullable(versionedProcessGroup.getProcessors()).orElse(Set.of()),
                 ofNullable(versionedProcessGroup.getInputPorts()).orElse(Set.of()),
                 ofNullable(versionedProcessGroup.getOutputPorts()).orElse(Set.of()),
@@ -374,7 +374,7 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .flatMap(Set::stream)
             .collect(toMap(VersionedComponent::getIdentifier, VersionedComponent::getInstanceIdentifier));
 
-        Stream<Map<String, String>> childProcessGroupsIdToInstanceIdMaps = ofNullable(versionedProcessGroup.getProcessGroups()).orElse(Set.of())
+        final Stream<Map<String, String>> childProcessGroupsIdToInstanceIdMaps = ofNullable(versionedProcessGroup.getProcessGroups()).orElse(Set.of())
             .stream()
             .map(this::createIdToInstanceIdMap);
 
@@ -386,12 +386,12 @@ public class StandardFlowEnrichService implements FlowEnrichService {
             .collect(toMap(Entry::getKey, Entry::getValue));
     }
 
-    private void setConnectableComponentsInstanceId(VersionedProcessGroup versionedProcessGroup, Map<String, String> idToInstanceIdMap) {
+    private void setConnectableComponentsInstanceId(final VersionedProcessGroup versionedProcessGroup, final Map<String, String> idToInstanceIdMap) {
         ofNullable(versionedProcessGroup.getConnections()).orElse(Set.of())
             .forEach(connection -> {
-                ConnectableComponent source = connection.getSource();
+                final ConnectableComponent source = connection.getSource();
                 source.setInstanceIdentifier(idToInstanceIdMap.get(source.getId()));
-                ConnectableComponent destination = connection.getDestination();
+                final ConnectableComponent destination = connection.getDestination();
                 destination.setInstanceIdentifier(idToInstanceIdMap.get(destination.getId()));
             });
         ofNullable(versionedProcessGroup.getProcessGroups()).orElse(Set.of())

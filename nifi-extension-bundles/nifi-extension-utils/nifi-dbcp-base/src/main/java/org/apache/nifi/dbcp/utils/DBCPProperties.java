@@ -245,7 +245,7 @@ public final class DBCPProperties {
             .required(false)
             .build();
 
-    public static Long extractMillisWithInfinite(PropertyValue prop) {
+    public static Long extractMillisWithInfinite(final PropertyValue prop) {
         return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
     }
 }

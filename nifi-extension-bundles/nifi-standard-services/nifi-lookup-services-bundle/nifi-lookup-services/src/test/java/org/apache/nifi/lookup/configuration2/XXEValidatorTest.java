@@ -43,12 +43,12 @@ public class XXEValidatorTest {
     @Test
     public void testXmlFileWithNoXXEIsValid() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = simpleXMLFile;
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = simpleXMLFile;
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertTrue(val.isValid());
@@ -57,12 +57,12 @@ public class XXEValidatorTest {
     @Test
     public void testXmlFileWithRemoteXXEIsNotValid() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = remoteXXEFile;
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = remoteXXEFile;
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertFalse(val.isValid());
@@ -72,12 +72,12 @@ public class XXEValidatorTest {
     @Test
     public void testXmlFileWithLocalXXEIsNotValid() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = localXXEFile;
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = localXXEFile;
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertFalse(val.isValid());
@@ -87,12 +87,12 @@ public class XXEValidatorTest {
     @Test
     public void testXmlFileWithMultilineXXEIsInvalid() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = multilineXXEFile;
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = multilineXXEFile;
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertFalse(val.isValid());
@@ -102,12 +102,12 @@ public class XXEValidatorTest {
     @Test
     public void testXmlFileWithXXEAndWhitespaceIsInvalid() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = whitespaceXXEFile;
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = whitespaceXXEFile;
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertFalse(val.isValid());
@@ -117,12 +117,12 @@ public class XXEValidatorTest {
     @Test
     public void testMissingXmlFile() {
         // Arrange
-        String parameterKey = configurationKey;
-        String parameterInput = "missing_file.xml";
-        XXEValidator a = new XXEValidator();
+        final String parameterKey = configurationKey;
+        final String parameterInput = "missing_file.xml";
+        final XXEValidator a = new XXEValidator();
 
         // Act
-        ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
+        final ValidationResult val = a.validate(parameterKey, parameterInput, validationContext);
 
         //Assert
         assertFalse(val.isValid());

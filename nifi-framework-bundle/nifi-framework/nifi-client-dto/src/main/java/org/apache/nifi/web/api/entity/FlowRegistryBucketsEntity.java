@@ -35,7 +35,7 @@ public class FlowRegistryBucketsEntity extends Entity {
         return buckets;
     }
 
-    public void setBuckets(Set<FlowRegistryBucketEntity> buckets) {
+    public void setBuckets(final Set<FlowRegistryBucketEntity> buckets) {
         this.buckets = buckets;
     }
 

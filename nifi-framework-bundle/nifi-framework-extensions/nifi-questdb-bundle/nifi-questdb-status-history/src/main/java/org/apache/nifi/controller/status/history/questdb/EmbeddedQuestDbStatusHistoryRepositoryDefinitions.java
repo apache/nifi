@@ -338,7 +338,7 @@ final class EmbeddedQuestDbStatusHistoryRepositoryDefinitions {
         return new NodeStatusResultProcessor(NODE_STATUS_METRICS, statusMetricsByTime);
     }
 
-    private static <T> RequestMapping<StandardStatusSnapshot> getSnapshotRequestMapping(Class<T> type, Collection<MetricDescriptor<T>> descriptorSource) {
+    private static <T> RequestMapping<StandardStatusSnapshot> getSnapshotRequestMapping(final Class<T> type, final Collection<MetricDescriptor<T>> descriptorSource) {
         final RequestMappingBuilder<StandardStatusSnapshot> requestMappingBuilder = RequestMappingBuilder
                 .of(() -> new StandardStatusSnapshot(new HashSet<>(descriptorSource)))
                 .addLongField((snapshot, field) -> snapshot.setTimestamp(new Date(TimeUnit.MICROSECONDS.toMillis(field))))

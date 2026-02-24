@@ -66,7 +66,7 @@ public abstract class AbstractNiFiActivateCommand<C extends ComponentEntity, S e
                     println(getDispName(activated) + " has been " + state.toLowerCase());
                     println();
                 }
-            } catch (NiFiClientException e) {
+            } catch (final NiFiClientException e) {
                 exceptions.add(e);
 
                 if (shouldPrint(properties)) {

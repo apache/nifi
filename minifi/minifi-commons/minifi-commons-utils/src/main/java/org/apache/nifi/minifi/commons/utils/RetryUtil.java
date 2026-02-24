@@ -27,10 +27,10 @@ public final class RetryUtil {
         throw new UnsupportedOperationException();
     }
 
-    public static  <T> Optional<T> retry(Supplier<T> input, Predicate<T> predicate, int maxRetries, int pauseDurationMillis) {
+    public static  <T> Optional<T> retry(final Supplier<T> input, final Predicate<T> predicate, final int maxRetries, final int pauseDurationMillis) {
         int retries = 0;
         while (true) {
-            T t = input.get();
+            final T t = input.get();
             if (predicate.test(t)) {
                 return Optional.empty();
             }
@@ -40,7 +40,7 @@ public final class RetryUtil {
             retries++;
             try {
                 Thread.sleep(pauseDurationMillis);
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
         }
     }

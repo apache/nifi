@@ -61,7 +61,7 @@ public class NarAutoUnloadServiceTest {
 
     @ParameterizedTest
     @MethodSource("notSupportedFileNames")
-    public void testNotSupportedFileDoesNotTriggerUnload(String fileName) {
+    public void testNotSupportedFileDoesNotTriggerUnload(final String fileName) {
 
         victim.unloadNarFile(fileName);
 
@@ -70,9 +70,9 @@ public class NarAutoUnloadServiceTest {
 
     @Test
     public void testUnload() {
-        Bundle bundle = mock(Bundle.class);
-        BundleDetails bundleDetails = mock(BundleDetails.class);
-        File workingDirectory = new File(extensionWorkDirectory, SUPPORTED_FILENAME + UNPACKED_POSTFIX);
+        final Bundle bundle = mock(Bundle.class);
+        final BundleDetails bundleDetails = mock(BundleDetails.class);
+        final File workingDirectory = new File(extensionWorkDirectory, SUPPORTED_FILENAME + UNPACKED_POSTFIX);
 
         when(extensionManager.getAllBundles()).thenReturn(Set.of(bundle));
         when(bundle.getBundleDetails()).thenReturn(bundleDetails);

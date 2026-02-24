@@ -70,7 +70,7 @@ public class TestEventFactory {
         versionedFlow.setModifiedTimestamp(System.currentTimeMillis());
         versionedFlow.setRevision(revisionInfo);
 
-        VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
+        final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setAuthor("user1");
         metadata.setComments("This is flow 1");
         metadata.setVersion(1);
@@ -125,7 +125,7 @@ public class TestEventFactory {
 
     @Test
     public void testBucketCreatedEventWithNulls() {
-        Bucket bucket = new Bucket();
+        final Bucket bucket = new Bucket();
         bucket.setName("test-bucket");
         bucket.setIdentifier(UUID.randomUUID().toString());
         final Event event = EventFactory.bucketCreated(bucket);
@@ -141,7 +141,7 @@ public class TestEventFactory {
 
     @Test
     public void testFlowCreatedEventWithNulls() {
-        VersionedFlow versionedFlow = new VersionedFlow();
+        final VersionedFlow versionedFlow = new VersionedFlow();
         versionedFlow.setIdentifier(UUID.randomUUID().toString());
         versionedFlow.setBucketIdentifier(UUID.randomUUID().toString());
         versionedFlow.setBucketIdentifier(UUID.randomUUID().toString());
@@ -159,8 +159,8 @@ public class TestEventFactory {
 
     @Test
     public void testFlowMetaDataCreatedEventWithNulls() {
-        VersionedFlowSnapshot flowSnapshot = new VersionedFlowSnapshot();
-        VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
+        final VersionedFlowSnapshot flowSnapshot = new VersionedFlowSnapshot();
+        final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
         snapshotMetadata.setComments("");
         snapshotMetadata.setFlowIdentifier(UUID.randomUUID().toString());
         snapshotMetadata.setVersion(0);

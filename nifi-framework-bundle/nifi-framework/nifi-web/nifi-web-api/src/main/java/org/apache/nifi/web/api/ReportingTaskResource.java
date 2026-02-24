@@ -116,7 +116,7 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return dtos
      */
     public Set<ReportingTaskEntity> populateRemainingReportingTaskEntitiesContent(final Set<ReportingTaskEntity> reportingTaskEntities) {
-        for (ReportingTaskEntity reportingTaskEntity : reportingTaskEntities) {
+        for (final ReportingTaskEntity reportingTaskEntity : reportingTaskEntities) {
             populateRemainingReportingTaskEntityContent(reportingTaskEntity);
         }
         return reportingTaskEntities;
@@ -587,11 +587,11 @@ public class ReportingTaskResource extends ApplicationResource {
             }
     )
     public Response removeReportingTask(
-            @Parameter(
+            final @Parameter(
                     description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) LongParameter version,
-            @Parameter(
+            final @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -599,7 +599,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @Parameter(
+            final @Parameter(
                     description = "The reporting task id.",
                     required = true
             )
@@ -1001,12 +1001,12 @@ public class ReportingTaskResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

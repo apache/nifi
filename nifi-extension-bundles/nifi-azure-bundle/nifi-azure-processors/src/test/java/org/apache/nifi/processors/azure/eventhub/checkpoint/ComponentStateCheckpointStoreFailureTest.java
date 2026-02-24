@@ -89,7 +89,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testClaimOwnership_ReplaceState_IOException() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
@@ -116,7 +116,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testUpdateCheckpoint_ReplaceState_IOException() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
@@ -143,7 +143,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testCleanUp_ReplaceState_IOException() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenThrow(IOException.class);
 
@@ -158,7 +158,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testClaimOwnership_ReplaceState_ConcurrentStateModificationException_Success() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false, false, true);
 
@@ -174,7 +174,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testClaimOwnership_ReplaceState_ConcurrentStateModificationException_Failure() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
 
@@ -190,7 +190,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testUpdateCheckpoint_ReplaceState_ConcurrentStateModificationException_Success() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false, false, true);
 
@@ -206,7 +206,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testUpdateCheckpoint_ReplaceState_ConcurrentStateModificationException_Failure() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
 
@@ -222,7 +222,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testCleanUp_ReplaceState_ConcurrentStateModificationException_Success() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false, false, true);
 
@@ -238,7 +238,7 @@ class ComponentStateCheckpointStoreFailureTest extends AbstractComponentStateChe
 
     @Test
     void testCleanUp_ReplaceState_ConcurrentStateModificationException_Failure() throws IOException {
-        StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
+        final StateMap state = new MockStateMap(new HashMap<>(initMap(partitionOwnership1)), 1);
         when(stateManager.getState(Scope.CLUSTER)).thenReturn(state);
         when(stateManager.replace(eq(state), anyMap(), eq(Scope.CLUSTER))).thenReturn(false);
 

@@ -102,7 +102,7 @@ public class TestPutUDP {
     @Test
     public void testSendLargeFileInvalid() throws Exception {
         configureProperties();
-        String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
+        final String[] testData = createContent(INVALID_LARGE_FILE_SIZE);
         sendMessages(testData);
         checkRelationships(0, testData.length);
         checkNoDataReceived();
@@ -140,7 +140,7 @@ public class TestPutUDP {
     }
 
     private void sendMessages(final String[] testData) {
-        for (String item : testData) {
+        for (final String item : testData) {
             runner.enqueue(item.getBytes());
             runner.run();
         }
@@ -158,8 +158,8 @@ public class TestPutUDP {
 
     private void assertMessagesReceived(final String[] sentMessages) throws Exception {
         // check each sent FlowFile was successfully sent and received.
-        for (String item : sentMessages) {
-            ByteArrayMessage packet = messages.take();
+        for (final String item : sentMessages) {
+            final ByteArrayMessage packet = messages.take();
             assertNotNull(packet);
             assertArrayEquals(item.getBytes(), packet.getMessage());
         }
@@ -183,7 +183,7 @@ public class TestPutUDP {
         messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         final InetAddress listenAddress = InetAddress.getByName(UDP_SERVER_ADDRESS);
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
                 runner.getLogger(), listenAddress, port, TransportProtocol.UDP, delimiter, frameSize, messages);
         serverFactory.setSocketReceiveBuffer(MAX_FRAME_LENGTH);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());

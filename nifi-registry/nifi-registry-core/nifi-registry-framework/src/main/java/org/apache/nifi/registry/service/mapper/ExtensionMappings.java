@@ -174,7 +174,7 @@ public class ExtensionMappings {
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             extensionSerializer.serialize(extension, out);
             extensionContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException("Unable to serialize extension", e);
         }
 
@@ -225,7 +225,7 @@ public class ExtensionMappings {
         final byte[] content = entity.getContent().getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream input = new ByteArrayInputStream(content)) {
             return extensionSerializer.deserialize(input);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SerializationException("Unable to deserialize extension", e);
         }
     }

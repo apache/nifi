@@ -34,27 +34,27 @@ public class TestNotificationEventPathFilter {
 
     @Test
     public void acceptPathShouldProperlyIgnorePathsWhereTheLastComponentStartsWithADot() throws Exception {
-        PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
+        final PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
         assertFalse(filter.accept(new Path("/.some_hidden_file")));
         assertFalse(filter.accept(new Path("/some/long/path/.some_hidden_file/")));
     }
 
     @Test
     public void acceptPathShouldProperlyAcceptPathsWhereTheNonLastComponentStartsWithADot() throws Exception {
-        PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
+        final PathFilter filter = new NotificationEventPathFilter(Pattern.compile(".*"), true);
         assertTrue(filter.accept(new Path("/some/long/path/.some_hidden_file/should/work")));
         assertTrue(filter.accept(new Path("/.some_hidden_file/should/still/accept")));
     }
 
     @Test
     public void acceptPathShouldProperlyMatchAllSubdirectoriesThatMatchWatchDirectoryAndFileFilter() throws Exception {
-        PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), true);
+        final PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), true);
         assertTrue(filter.accept(new Path("/root/sometest.txt")));
     }
 
     @Test
     public void acceptPathShouldProperlyMatchWhenWatchDirectoryMatchesPath() throws Exception {
-        PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), false);
+        final PathFilter filter = new NotificationEventPathFilter(Pattern.compile("/root(/.*)?"), false);
         assertTrue(filter.accept(new Path("/root")));
     }
 }

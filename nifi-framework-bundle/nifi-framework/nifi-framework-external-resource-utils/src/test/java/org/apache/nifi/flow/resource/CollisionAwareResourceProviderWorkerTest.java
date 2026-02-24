@@ -224,7 +224,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         setActions();
     }
 
-    private void setActions(Action... actions) {
+    private void setActions(final Action... actions) {
         this.actions = new Actions(actions);
     }
 
@@ -232,7 +232,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         Mockito.when(conflictResolutionStrategy.shouldBeFetched(Mockito.any(File.class), Mockito.any(ExternalResourceDescriptor.class))).thenReturn(shouldBeFetched);
     }
 
-    private void ensureTargetDirectoryExists(boolean accessible) throws IOException {
+    private void ensureTargetDirectoryExists(final boolean accessible) throws IOException {
         FileUtils.ensureDirectoryExistAndCanReadAndWrite(TARGET_DIRECTORY);
 
         if (!accessible) {
@@ -240,7 +240,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         }
     }
 
-    private ExternalResourceDescriptor getAvailableResource(String resourceName) {
+    private ExternalResourceDescriptor getAvailableResource(final String resourceName) {
         final ExternalResourceDescriptor resource = new ImmutableExternalResourceDescriptor(resourceName, System.currentTimeMillis());
         return resource;
     }
@@ -337,7 +337,7 @@ public class CollisionAwareResourceProviderWorkerTest {
         Assertions.assertEquals(resources.length, TARGET_DIRECTORY.list().length);
 
         for (final ExternalResourceDescriptor resource : resources) {
-            File acquiredResource = new File(TARGET_DIRECTORY_PATH, resource.getLocation());
+            final File acquiredResource = new File(TARGET_DIRECTORY_PATH, resource.getLocation());
             Assertions.assertTrue(acquiredResource.exists());
             assertFileContains(acquiredResource, content);
         }
@@ -349,7 +349,7 @@ public class CollisionAwareResourceProviderWorkerTest {
 
     private void assertTargetFolderContains(final String content, final String fileName) throws IOException {
         Assertions.assertEquals(1, TARGET_DIRECTORY.list().length);
-        File acquiredResource = new File(TARGET_DIRECTORY_PATH, fileName);
+        final File acquiredResource = new File(TARGET_DIRECTORY_PATH, fileName);
         Assertions.assertTrue(acquiredResource.exists());
         assertFileContains(acquiredResource, content);
     }
@@ -397,7 +397,7 @@ public class CollisionAwareResourceProviderWorkerTest {
             this.fetchSuccessSequence = Collections.singletonList(true);
         }
 
-        private TestExternalResourceProvider(final List<ExternalResourceDescriptor> resources, final CountDownLatch countDownLatch, List<Boolean> fetchSuccessSequence) {
+        private TestExternalResourceProvider(final List<ExternalResourceDescriptor> resources, final CountDownLatch countDownLatch, final List<Boolean> fetchSuccessSequence) {
             this.countDownLatch = Optional.of(countDownLatch);
             this.resources = resources;
             this.fetchSuccessSequence = fetchSuccessSequence;

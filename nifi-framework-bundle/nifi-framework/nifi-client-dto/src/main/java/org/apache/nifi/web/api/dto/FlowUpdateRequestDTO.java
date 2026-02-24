@@ -38,7 +38,7 @@ public abstract class FlowUpdateRequestDTO {
         return processGroupId;
     }
 
-    public void setProcessGroupId(String processGroupId) {
+    public void setProcessGroupId(final String processGroupId) {
         this.processGroupId = processGroupId;
     }
 
@@ -47,7 +47,7 @@ public abstract class FlowUpdateRequestDTO {
         return requestId;
     }
 
-    public void setRequestId(String requestId) {
+    public void setRequestId(final String requestId) {
         this.requestId = requestId;
     }
 
@@ -56,7 +56,7 @@ public abstract class FlowUpdateRequestDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -66,7 +66,7 @@ public abstract class FlowUpdateRequestDTO {
         return lastUpdated;
     }
 
-    public void setLastUpdated(Date lastUpdated) {
+    public void setLastUpdated(final Date lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
 
@@ -75,7 +75,7 @@ public abstract class FlowUpdateRequestDTO {
         return complete;
     }
 
-    public void setComplete(boolean complete) {
+    public void setComplete(final boolean complete) {
         this.complete = complete;
     }
 
@@ -84,7 +84,7 @@ public abstract class FlowUpdateRequestDTO {
         return failureReason;
     }
 
-    public void setFailureReason(String reason) {
+    public void setFailureReason(final String reason) {
         this.failureReason = reason;
     }
 
@@ -93,7 +93,7 @@ public abstract class FlowUpdateRequestDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -102,7 +102,7 @@ public abstract class FlowUpdateRequestDTO {
         return percentCompleted;
     }
 
-    public void setPercentCompleted(int percentCompleted) {
+    public void setPercentCompleted(final int percentCompleted) {
         this.percentCompleted = percentCompleted;
     }
 }

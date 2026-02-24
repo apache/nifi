@@ -49,14 +49,14 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
     private String yieldPeriod = DEFAULT_YIELD_PERIOD;
     private String transportProtocol = DEFAULT_TRANSPORT_PROTOCOL;
 
-    public RemoteProcessGroupSchemaV2(Map map) {
+    public RemoteProcessGroupSchemaV2(final Map map) {
         idAndName = new BaseSchemaWithIdAndName(map, "RemoteProcessGroup(id: {id}, name: {name})");
 
-        String wrapperName = idAndName.getWrapperName();
+        final String wrapperName = idAndName.getWrapperName();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
         inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         if (inputPorts != null) {
-            for (RemotePortSchema remoteInputPortSchema: inputPorts) {
+            for (final RemotePortSchema remoteInputPortSchema: inputPorts) {
                 addIssuesIfNotNull(remoteInputPortSchema);
             }
         }
@@ -73,7 +73,7 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
 
     @Override
     public RemoteProcessGroupSchema convert() {
-        Map<String, Object> result = idAndName.toMap();
+        final Map<String, Object> result = idAndName.toMap();
         result.put(URL_KEY, url);
         result.put(COMMENT_KEY, comment);
         result.put(TIMEOUT_KEY, timeout);
@@ -85,7 +85,7 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
 
     @Override
     public List<String> getValidationIssues() {
-        List<String> validationIssues = new ArrayList<>(idAndName.getValidationIssues());
+        final List<String> validationIssues = new ArrayList<>(idAndName.getValidationIssues());
         validationIssues.addAll(super.getValidationIssues());
         return validationIssues;
     }

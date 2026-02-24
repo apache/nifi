@@ -36,9 +36,9 @@ public class FlowAnalysisRuleInitializer implements ConfigurableComponentInitial
     }
 
     @Override
-    public void initialize(ConfigurableComponent component) throws InitializationException {
-        FlowAnalysisRule flowAnalysisRule = (FlowAnalysisRule) component;
-        FlowAnalysisRuleInitializationContext context = new MockFlowAnalysisRuleInitializationContext();
+    public void initialize(final ConfigurableComponent component) throws InitializationException {
+        final FlowAnalysisRule flowAnalysisRule = (FlowAnalysisRule) component;
+        final FlowAnalysisRuleInitializationContext context = new MockFlowAnalysisRuleInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             flowAnalysisRule.initialize(context);
         }

@@ -43,7 +43,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return nodeId;
     }
 
-    public void setNodeId(NodeIdentifier nodeId) {
+    public void setNodeId(final NodeIdentifier nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -51,7 +51,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return dataFlow;
     }
 
-    public void setDataFlow(StandardDataFlow dataFlow) {
+    public void setDataFlow(final StandardDataFlow dataFlow) {
         this.dataFlow = dataFlow;
     }
 
@@ -59,7 +59,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return primary;
     }
 
-    public void setPrimary(boolean primary) {
+    public void setPrimary(final boolean primary) {
         this.primary = primary;
     }
 
@@ -76,7 +76,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return instanceId;
     }
 
-    public void setNodeConnectionStatuses(List<NodeConnectionStatus> statuses) {
+    public void setNodeConnectionStatuses(final List<NodeConnectionStatus> statuses) {
         this.nodeStatuses = statuses;
     }
 
@@ -88,7 +88,7 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return componentRevisions;
     }
 
-    public void setComponentRevisions(ComponentRevisionSnapshot componentRevisions) {
+    public void setComponentRevisions(final ComponentRevisionSnapshot componentRevisions) {
         this.componentRevisions = componentRevisions;
     }
 }

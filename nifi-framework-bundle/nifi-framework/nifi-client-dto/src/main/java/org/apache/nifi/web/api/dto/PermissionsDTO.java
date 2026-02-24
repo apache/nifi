@@ -40,7 +40,7 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 
@@ -56,7 +56,7 @@ public class PermissionsDTO implements ReadablePermission, WritablePermission {
     }
 
     @Override
-    public void setCanWrite(Boolean canWrite) {
+    public void setCanWrite(final Boolean canWrite) {
         this.canWrite = canWrite;
     }
 }

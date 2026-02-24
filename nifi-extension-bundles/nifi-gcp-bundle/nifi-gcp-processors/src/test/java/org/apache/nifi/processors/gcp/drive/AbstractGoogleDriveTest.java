@@ -59,7 +59,7 @@ public class AbstractGoogleDriveTest {
 
     @BeforeEach
     protected void setUp() throws Exception {
-        String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
+        final String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
 
         final GCPCredentialsControllerService gcpCredentialsControllerService = mock(GCPCredentialsControllerService.class, Mockito.RETURNS_DEEP_STUBS);
         when(gcpCredentialsControllerService.getIdentifier()).thenReturn(gcpCredentialsControllerServiceId);
@@ -69,7 +69,7 @@ public class AbstractGoogleDriveTest {
         testRunner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, gcpCredentialsControllerServiceId);
     }
 
-    protected void assertFlowFileAttributes(Relationship relationship) {
+    protected void assertFlowFileAttributes(final Relationship relationship) {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(relationship).get(0);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
@@ -81,9 +81,9 @@ public class AbstractGoogleDriveTest {
         flowFile.assertAttributeEquals(GoogleDriveAttributes.MIME_TYPE, TEXT_TYPE);
     }
 
-    protected void assertProvenanceEvent(ProvenanceEventType eventType) {
-        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
-        Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
+    protected void assertProvenanceEvent(final ProvenanceEventType eventType) {
+        final Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
+        final Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);

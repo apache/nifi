@@ -134,7 +134,7 @@ public class NodeConnectionStatus {
      *
      * @param minimumValue the minimum value that the ID Generator should be set to
      */
-    static void updateIdGenerator(long minimumValue) {
+    static void updateIdGenerator(final long minimumValue) {
         idGenerator.updateAndGet(curValue -> Math.max(minimumValue, curValue));
     }
 
@@ -148,7 +148,7 @@ public class NodeConnectionStatus {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -161,7 +161,7 @@ public class NodeConnectionStatus {
             return false;
         }
 
-        NodeConnectionStatus other = (NodeConnectionStatus) obj;
+        final NodeConnectionStatus other = (NodeConnectionStatus) obj;
         return Objects.deepEquals(getNodeIdentifier(), other.getNodeIdentifier())
             && Objects.deepEquals(getState(), other.getState());
     }

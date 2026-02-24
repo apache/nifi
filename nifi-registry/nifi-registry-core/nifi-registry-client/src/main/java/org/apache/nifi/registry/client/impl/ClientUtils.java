@@ -39,7 +39,7 @@ public class ClientUtils {
         try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
             Files.copy(responseInputStream, bundleFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return bundleFile;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException("Unable to write bundle content due to: " + e.getMessage(), e);
         }
     }

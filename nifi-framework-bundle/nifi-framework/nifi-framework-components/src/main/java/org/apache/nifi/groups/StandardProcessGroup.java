@@ -1279,7 +1279,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     LogRepositoryFactory.removeRepository(processor.getIdentifier());
                     extensionManager.removeInstanceClassLoader(id);
-                } catch (Throwable ignored) {
+                } catch (final Throwable ignored) {
                 }
             }
             writeLock.unlock();
@@ -1543,26 +1543,26 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor) {
+    public DropFlowFileStatus dropAllFlowFiles(final String requestIdentifier, final String requestor) {
         return handleDropAllFlowFiles(requestIdentifier, queue -> queue.dropFlowFiles(requestIdentifier, requestor));
     }
 
     @Override
-    public DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier) {
+    public DropFlowFileStatus getDropAllFlowFilesStatus(final String requestIdentifier) {
         return handleDropAllFlowFiles(requestIdentifier, queue -> queue.getDropFlowFileStatus(requestIdentifier));
     }
 
     @Override
-    public DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier) {
+    public DropFlowFileStatus cancelDropAllFlowFiles(final String requestIdentifier) {
         return handleDropAllFlowFiles(requestIdentifier, queue -> queue.cancelDropFlowFileRequest(requestIdentifier));
     }
 
-    private DropFlowFileStatus handleDropAllFlowFiles(String dropRequestId, Function<FlowFileQueue, DropFlowFileStatus> function) {
-        DropFlowFileStatus resultDropFlowFileStatus;
+    private DropFlowFileStatus handleDropAllFlowFiles(final String dropRequestId, final Function<FlowFileQueue, DropFlowFileStatus> function) {
+        final DropFlowFileStatus resultDropFlowFileStatus;
 
-        List<Connection> connections = findAllConnections(this);
+        final List<Connection> connections = findAllConnections(this);
 
-        DropFlowFileRequest aggregateDropFlowFileStatus = new DropFlowFileRequest(dropRequestId);
+        final DropFlowFileRequest aggregateDropFlowFileStatus = new DropFlowFileRequest(dropRequestId);
 
         if (connections.isEmpty()) {
             aggregateDropFlowFileStatus.setState(DropFlowFileState.COMPLETE);
@@ -1573,7 +1573,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         aggregateDropFlowFileStatus.setState(null);
 
-        AtomicBoolean processedAtLeastOne = new AtomicBoolean(false);
+        final AtomicBoolean processedAtLeastOne = new AtomicBoolean(false);
 
         connections.stream()
             .map(Connection::getFlowFileQueue)
@@ -1592,11 +1592,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         return resultDropFlowFileStatus;
     }
 
-    private void aggregate(DropFlowFileRequest aggregateDropFlowFileStatus, DropFlowFileStatus additionalDropFlowFileStatus) {
-        QueueSize aggregateOriginalSize = aggregate(aggregateDropFlowFileStatus.getOriginalSize(), additionalDropFlowFileStatus.getOriginalSize());
-        QueueSize aggregateDroppedSize = aggregate(aggregateDropFlowFileStatus.getDroppedSize(), additionalDropFlowFileStatus.getDroppedSize());
-        QueueSize aggregateCurrentSize = aggregate(aggregateDropFlowFileStatus.getCurrentSize(), additionalDropFlowFileStatus.getCurrentSize());
-        DropFlowFileState aggregateState = aggregate(aggregateDropFlowFileStatus.getState(), additionalDropFlowFileStatus.getState());
+    private void aggregate(final DropFlowFileRequest aggregateDropFlowFileStatus, final DropFlowFileStatus additionalDropFlowFileStatus) {
+        final QueueSize aggregateOriginalSize = aggregate(aggregateDropFlowFileStatus.getOriginalSize(), additionalDropFlowFileStatus.getOriginalSize());
+        final QueueSize aggregateDroppedSize = aggregate(aggregateDropFlowFileStatus.getDroppedSize(), additionalDropFlowFileStatus.getDroppedSize());
+        final QueueSize aggregateCurrentSize = aggregate(aggregateDropFlowFileStatus.getCurrentSize(), additionalDropFlowFileStatus.getCurrentSize());
+        final DropFlowFileState aggregateState = aggregate(aggregateDropFlowFileStatus.getState(), additionalDropFlowFileStatus.getState());
 
         aggregateDropFlowFileStatus.setOriginalSize(aggregateOriginalSize);
         aggregateDropFlowFileStatus.setDroppedSize(aggregateDroppedSize);
@@ -1604,24 +1604,24 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setState(aggregateState);
     }
 
-    private QueueSize aggregate(QueueSize size1, QueueSize size2) {
-        int objectsNr = Optional.ofNullable(size1)
+    private QueueSize aggregate(final QueueSize size1, final QueueSize size2) {
+        final int objectsNr = Optional.ofNullable(size1)
             .map(size -> size.getObjectCount() + size2.getObjectCount())
             .orElse(size2.getObjectCount());
 
-        long sizeByte = Optional.ofNullable(size1)
+        final long sizeByte = Optional.ofNullable(size1)
             .map(size -> size.getByteCount() + size2.getByteCount())
             .orElse(size2.getByteCount());
 
-        QueueSize aggregateSize = new QueueSize(objectsNr, sizeByte);
+        final QueueSize aggregateSize = new QueueSize(objectsNr, sizeByte);
 
         return aggregateSize;
     }
 
-    private DropFlowFileState aggregate(DropFlowFileState state1, DropFlowFileState state2) {
+    private DropFlowFileState aggregate(final DropFlowFileState state1, final DropFlowFileState state2) {
         DropFlowFileState aggregateState = DropFlowFileState.DROPPING_FLOWFILES;
 
-        for (DropFlowFileState aggregateDropFlowFileStatePrecedence : AGGREGATE_DROP_FLOW_FILE_STATE_PRECEDENCES) {
+        for (final DropFlowFileState aggregateDropFlowFileStatePrecedence : AGGREGATE_DROP_FLOW_FILE_STATE_PRECEDENCES) {
             if (state1 == aggregateDropFlowFileStatePrecedence || state2 == aggregateDropFlowFileStatePrecedence) {
                 aggregateState = aggregateDropFlowFileStatePrecedence;
                 break;
@@ -1740,7 +1740,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
+    public Future<Void> runProcessorOnce(final ProcessorNode processor, final Callable<Future<Void>> stopCallback) {
         readLock.lock();
         try {
             if (getProcessor(processor.getIdentifier()) == null) {
@@ -2186,13 +2186,13 @@ public final class StandardProcessGroup implements ProcessGroup {
         return null;
     }
 
-    private boolean isOwner(ProcessGroup owner) {
+    private boolean isOwner(final ProcessGroup ownerArg) {
+        ProcessGroup owner = ownerArg;
         while (owner != this && owner != null) {
             owner = owner.getParent();
         }
 
         return owner == this;
-
     }
 
     @Override
@@ -2497,7 +2497,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         return findAllControllerServices(this);
     }
 
-    private Set<ControllerServiceNode> findAllControllerServices(ProcessGroup start) {
+    private Set<ControllerServiceNode> findAllControllerServices(final ProcessGroup start) {
         final Set<ControllerServiceNode> services = start.getControllerServices(false);
         for (final ProcessGroup group : start.getProcessGroups()) {
             services.addAll(findAllControllerServices(group));
@@ -2641,7 +2641,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (removed) {
                 try {
                     extensionManager.removeInstanceClassLoader(service.getIdentifier());
-                } catch (Throwable ignored) {
+                } catch (final Throwable ignored) {
                 }
             }
             writeLock.unlock();
@@ -2847,7 +2847,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public Set<Positionable> findAllPositionables() {
         final Set<Positionable> positionables = new HashSet<>();
         positionables.addAll(findAllConnectables(this, true));
-        List<ProcessGroup> allProcessGroups = findAllProcessGroups();
+        final List<ProcessGroup> allProcessGroups = findAllProcessGroups();
         positionables.addAll(allProcessGroups);
         positionables.addAll(findAllRemoteProcessGroups());
         positionables.addAll(findAllLabels());
@@ -3006,7 +3006,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanStop(Connectable connectable) {
+    public void verifyCanStop(final Connectable connectable) {
         final ScheduledState state = connectable.getScheduledState();
         if (state == ScheduledState.DISABLED) {
             throw new IllegalStateException("Cannot stop component with id " + connectable + " because it is currently disabled.");
@@ -3914,7 +3914,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public Set<String> getAncestorServiceIds() {
         final Set<String> ancestorServiceIds;
-        ProcessGroup parentGroup = getParent();
+        final ProcessGroup parentGroup = getParent();
 
         if (parentGroup == null) {
             ancestorServiceIds = Collections.emptySet();
@@ -3932,15 +3932,15 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private String generateUuid(final String propposedId, final String destinationGroupId, final String seed) {
-        long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
+        final long msb = UUID.nameUUIDFromBytes((propposedId + destinationGroupId).getBytes(StandardCharsets.UTF_8)).getMostSignificantBits();
 
-        UUID uuid;
+        final UUID uuid;
         if (StringUtils.isBlank(seed)) {
-            long lsb = randomGenerator.nextLong();
+            final long lsb = randomGenerator.nextLong();
             // since msb is extracted from type-one UUID, the type-one semantics will be preserved
             uuid = new UUID(msb, lsb);
         } else {
-            UUID seedId = UUID.nameUUIDFromBytes((propposedId + destinationGroupId + seed).getBytes(StandardCharsets.UTF_8));
+            final UUID seedId = UUID.nameUUIDFromBytes((propposedId + destinationGroupId + seed).getBytes(StandardCharsets.UTF_8));
             uuid = new UUID(msb, seedId.getLeastSignificantBits());
         }
         LOG.debug("Generating UUID {} from currentId={}, seed={}", uuid, propposedId, seed);
@@ -4281,8 +4281,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             this.defaultFlowFileExpiration.set(DEFAULT_FLOWFILE_EXPIRATION);
         } else {
             // Validate entry: must include time unit label
-            Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-            String caseAdjustedExpiration = defaultFlowFileExpiration.toLowerCase();
+            final Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
+            final String caseAdjustedExpiration = defaultFlowFileExpiration.toLowerCase();
             if (pattern.matcher(caseAdjustedExpiration).matches()) {
                 this.defaultFlowFileExpiration.set(caseAdjustedExpiration);
             } else {

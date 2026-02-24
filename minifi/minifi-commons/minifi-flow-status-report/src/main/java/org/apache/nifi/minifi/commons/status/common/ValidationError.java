@@ -26,7 +26,7 @@ public class ValidationError implements java.io.Serializable {
         return subject;
     }
 
-    public void setSubject(String subject) {
+    public void setSubject(final String subject) {
         this.subject = subject;
     }
 
@@ -34,7 +34,7 @@ public class ValidationError implements java.io.Serializable {
         return input;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
@@ -42,12 +42,12 @@ public class ValidationError implements java.io.Serializable {
         return reason;
     }
 
-    public void setReason(String reason) {
+    public void setReason(final String reason) {
         this.reason = reason;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -55,7 +55,7 @@ public class ValidationError implements java.io.Serializable {
             return false;
         }
 
-        ValidationError that = (ValidationError) o;
+        final ValidationError that = (ValidationError) o;
 
         if (getSubject() != null ? !getSubject().equals(that.getSubject()) : that.getSubject() != null) {
             return false;

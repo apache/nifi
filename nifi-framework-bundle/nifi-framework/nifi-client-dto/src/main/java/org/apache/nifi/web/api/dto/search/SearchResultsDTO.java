@@ -50,7 +50,7 @@ public class SearchResultsDTO {
         return processorResults;
     }
 
-    public void setProcessorResults(List<ComponentSearchResultDTO> processorResults) {
+    public void setProcessorResults(final List<ComponentSearchResultDTO> processorResults) {
         this.processorResults = processorResults;
     }
 
@@ -63,7 +63,7 @@ public class SearchResultsDTO {
         return connectionResults;
     }
 
-    public void setConnectionResults(List<ComponentSearchResultDTO> connectionResults) {
+    public void setConnectionResults(final List<ComponentSearchResultDTO> connectionResults) {
         this.connectionResults = connectionResults;
     }
 
@@ -76,7 +76,7 @@ public class SearchResultsDTO {
         return processGroupResults;
     }
 
-    public void setProcessGroupResults(List<ComponentSearchResultDTO> processGroupResults) {
+    public void setProcessGroupResults(final List<ComponentSearchResultDTO> processGroupResults) {
         this.processGroupResults = processGroupResults;
     }
 
@@ -98,11 +98,11 @@ public class SearchResultsDTO {
         return outputPortResults;
     }
 
-    public void setInputPortResults(List<ComponentSearchResultDTO> inputPortResults) {
+    public void setInputPortResults(final List<ComponentSearchResultDTO> inputPortResults) {
         this.inputPortResults = inputPortResults;
     }
 
-    public void setOutputPortResults(List<ComponentSearchResultDTO> outputPortResults) {
+    public void setOutputPortResults(final List<ComponentSearchResultDTO> outputPortResults) {
         this.outputPortResults = outputPortResults;
     }
 
@@ -115,7 +115,7 @@ public class SearchResultsDTO {
         return remoteProcessGroupResults;
     }
 
-    public void setRemoteProcessGroupResults(List<ComponentSearchResultDTO> remoteProcessGroupResults) {
+    public void setRemoteProcessGroupResults(final List<ComponentSearchResultDTO> remoteProcessGroupResults) {
         this.remoteProcessGroupResults = remoteProcessGroupResults;
     }
 
@@ -128,7 +128,7 @@ public class SearchResultsDTO {
         return funnelResults;
     }
 
-    public void setFunnelResults(List<ComponentSearchResultDTO> funnelResults) {
+    public void setFunnelResults(final List<ComponentSearchResultDTO> funnelResults) {
         this.funnelResults = funnelResults;
     }
 
@@ -141,7 +141,7 @@ public class SearchResultsDTO {
         return labelResults;
     }
 
-    public void setLabelResults(List<ComponentSearchResultDTO> labelResults) {
+    public void setLabelResults(final List<ComponentSearchResultDTO> labelResults) {
         this.labelResults = labelResults;
     }
 
@@ -154,7 +154,7 @@ public class SearchResultsDTO {
         return controllerServiceNodeResults;
     }
 
-    public void setControllerServiceNodeResults(List<ComponentSearchResultDTO> controllerServiceNodeResults) {
+    public void setControllerServiceNodeResults(final List<ComponentSearchResultDTO> controllerServiceNodeResults) {
         this.controllerServiceNodeResults = controllerServiceNodeResults;
     }
 
@@ -167,7 +167,7 @@ public class SearchResultsDTO {
         return parameterProviderNodeResults;
     }
 
-    public void setParameterProviderNodeResults(List<ComponentSearchResultDTO> parameterProviderNodeResults) {
+    public void setParameterProviderNodeResults(final List<ComponentSearchResultDTO> parameterProviderNodeResults) {
         this.parameterProviderNodeResults = parameterProviderNodeResults;
     }
 
@@ -180,7 +180,7 @@ public class SearchResultsDTO {
         return parameterContextResults;
     }
 
-    public void setParameterContextResults(List<ComponentSearchResultDTO> parameterContextResults) {
+    public void setParameterContextResults(final List<ComponentSearchResultDTO> parameterContextResults) {
         this.parameterContextResults = parameterContextResults;
     }
 
@@ -193,7 +193,7 @@ public class SearchResultsDTO {
         return parameterResults;
     }
 
-    public void setParameterResults(List<ComponentSearchResultDTO> parameterResults) {
+    public void setParameterResults(final List<ComponentSearchResultDTO> parameterResults) {
         this.parameterResults = parameterResults;
     }
 }

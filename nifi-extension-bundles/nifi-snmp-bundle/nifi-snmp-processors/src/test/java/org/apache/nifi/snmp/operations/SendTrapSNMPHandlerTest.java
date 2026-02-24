@@ -57,9 +57,9 @@ class SendTrapSNMPHandlerTest {
         mockComponentLog = new MockComponentLog("id", new Object());
         mockV1TrapConfiguration = mock(V1TrapConfiguration.class);
         mockV2TrapConfiguration = mock(V2TrapConfiguration.class);
-        V1TrapPDUFactory mockV1TrapPDUFactory = mock(V1TrapPDUFactory.class);
+        final V1TrapPDUFactory mockV1TrapPDUFactory = mock(V1TrapPDUFactory.class);
         when(mockV1TrapPDUFactory.get(mockV1TrapConfiguration)).thenReturn(mockPdu);
-        V2TrapPDUFactory mockV2TrapPDUFactory = mock(V2TrapPDUFactory.class);
+        final V2TrapPDUFactory mockV2TrapPDUFactory = mock(V2TrapPDUFactory.class);
         when(mockV2TrapPDUFactory.get(mockV2TrapConfiguration)).thenReturn(mockPdu);
 
         when(mockSnmpManager.send(mockPdu, mockTarget)).thenReturn(mockResponseEvent);

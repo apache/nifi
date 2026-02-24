@@ -28,7 +28,7 @@ import java.io.IOException;
 public abstract class BxmlNodeWithToken extends BxmlNode {
     private final int token;
 
-    public BxmlNodeWithToken(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public BxmlNodeWithToken(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         token = binaryReader.read();
     }

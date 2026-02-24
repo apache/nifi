@@ -159,25 +159,25 @@ public class MiNiFiPropertiesGenerator {
 
     public static final String FILE_EXTENSION_DELIMITER = ".";
 
-    public void generateMinifiProperties(String configDirectory, BootstrapProperties bootstrapProperties) throws ConfigurationChangeException {
-        String minifiPropertiesFileName = Path.of(getMiNiFiPropertiesPath(bootstrapProperties, new File(configDirectory))).getFileName().toString();
-        Path minifiPropertiesFile = Path.of(configDirectory, minifiPropertiesFileName);
+    public void generateMinifiProperties(final String configDirectory, final BootstrapProperties bootstrapProperties) throws ConfigurationChangeException {
+        final String minifiPropertiesFileName = Path.of(getMiNiFiPropertiesPath(bootstrapProperties, new File(configDirectory))).getFileName().toString();
+        final Path minifiPropertiesFile = Path.of(configDirectory, minifiPropertiesFileName);
 
-        Map<String, String> existingSensitivePropertiesConfiguration = extractSensitivePropertiesConfiguration(minifiPropertiesFile);
-        OrderedProperties minifiProperties = prepareMinifiProperties(bootstrapProperties, existingSensitivePropertiesConfiguration);
+        final Map<String, String> existingSensitivePropertiesConfiguration = extractSensitivePropertiesConfiguration(minifiPropertiesFile);
+        final OrderedProperties minifiProperties = prepareMinifiProperties(bootstrapProperties, existingSensitivePropertiesConfiguration);
 
         persistMinifiProperties(minifiPropertiesFile, minifiProperties);
     }
 
-    private Map<String, String> extractSensitivePropertiesConfiguration(Path minifiPropertiesFile) throws ConfigurationChangeException {
+    private Map<String, String> extractSensitivePropertiesConfiguration(final Path minifiPropertiesFile) throws ConfigurationChangeException {
         if (!Files.exists(minifiPropertiesFile)) {
             return Map.of();
         }
 
-        Properties minifiProperties = new Properties();
+        final Properties minifiProperties = new Properties();
         try (InputStream inputStream = Files.newInputStream(minifiPropertiesFile)) {
             minifiProperties.load(inputStream);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigurationChangeException("Unable to load MiNiFi properties from " + minifiPropertiesFile, e);
         }
 
@@ -187,8 +187,8 @@ public class MiNiFiPropertiesGenerator {
         );
     }
 
-    private OrderedProperties prepareMinifiProperties(BootstrapProperties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
-        OrderedProperties minifiProperties = new OrderedProperties();
+    private OrderedProperties prepareMinifiProperties(final BootstrapProperties bootstrapProperties, final Map<String, String> existingSensitivePropertiesConfiguration) {
+        final OrderedProperties minifiProperties = new OrderedProperties();
 
         NIFI_PROPERTIES_WITH_DEFAULT_VALUES_AND_COMMENTS
             .forEach(triple -> minifiProperties.setProperty(triple.getLeft(), triple.getMiddle(), triple.getRight()));
@@ -211,7 +211,7 @@ public class MiNiFiPropertiesGenerator {
         return minifiProperties;
     }
 
-    private List<Pair<String, String>> getNonBlankPropertiesWithPredicate(BootstrapProperties bootstrapProperties, Predicate<String> predicate) {
+    private List<Pair<String, String>> getNonBlankPropertiesWithPredicate(final BootstrapProperties bootstrapProperties, final Predicate<String> predicate) {
         return ofNullable(bootstrapProperties)
             .map(BootstrapProperties::getPropertyKeys)
             .orElseGet(Set::of)
@@ -223,7 +223,7 @@ public class MiNiFiPropertiesGenerator {
             .toList();
     }
 
-    private List<Pair<String, String>> getSensitiveProperties(BootstrapProperties bootstrapProperties, Map<String, String> existingSensitivePropertiesConfiguration) {
+    private List<Pair<String, String>> getSensitiveProperties(final BootstrapProperties bootstrapProperties, final Map<String, String> existingSensitivePropertiesConfiguration) {
         return existingSensitivePropertiesConfiguration.isEmpty()
             ? List.of(
                 Pair.of(NiFiProperties.SENSITIVE_PROPS_KEY,
@@ -241,8 +241,8 @@ public class MiNiFiPropertiesGenerator {
     }
 
     private String generateSensitivePropertiesKey() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
         secureRandom.nextBytes(sensitivePropertiesKeyBinary);
         return KEY_ENCODER.encodeToString(sensitivePropertiesKeyBinary);
     }
@@ -260,12 +260,12 @@ public class MiNiFiPropertiesGenerator {
         );
     }
 
-    private void persistMinifiProperties(Path minifiPropertiesFile, OrderedProperties minifiProperties) throws ConfigurationChangeException {
+    private void persistMinifiProperties(final Path minifiPropertiesFile, final OrderedProperties minifiProperties) throws ConfigurationChangeException {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              FileOutputStream fileOutputStream = new FileOutputStream(minifiPropertiesFile.toString())) {
             minifiProperties.store(byteArrayOutputStream, PROPERTIES_FILE_APACHE_2_0_LICENSE);
             byteArrayOutputStream.writeTo(fileOutputStream);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ConfigurationChangeException("Failed to write MiNiFi properties to " + minifiPropertiesFile, e);
         }
     }

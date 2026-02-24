@@ -90,7 +90,7 @@ public class StartAwsTextractJobStatusTest {
     public void setUp() throws InitializationException {
         processor = new StartAwsTextractJob() {
             @Override
-            public TextractClient getClient(ProcessContext context) {
+            public TextractClient getClient(final ProcessContext context) {
                 return mockTextractClient;
             }
         };

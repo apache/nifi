@@ -77,7 +77,7 @@ public class SyncFlowVersions extends AbstractNiFiRegistryCommand<StringResult> 
         final VersionedFlow srcFlow;
         try {
             srcFlow = srcClient.getFlowClient().get(srcFlowId);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NiFiRegistryException("Error retrieving source flow : " + e.getMessage(), e);
         }
 
@@ -86,7 +86,7 @@ public class SyncFlowVersions extends AbstractNiFiRegistryCommand<StringResult> 
         final VersionedFlow destFlow;
         try {
             destFlow = client.getFlowClient().get(destFlowId);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NiFiRegistryException("Error retrieving destination flow : " + e.getMessage(), e);
         }
 

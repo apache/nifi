@@ -33,7 +33,7 @@ public class BundleVersionDependencyEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -41,7 +41,7 @@ public class BundleVersionDependencyEntity {
         return extensionBundleVersionId;
     }
 
-    public void setExtensionBundleVersionId(String extensionBundleVersionId) {
+    public void setExtensionBundleVersionId(final String extensionBundleVersionId) {
         this.extensionBundleVersionId = extensionBundleVersionId;
     }
 
@@ -49,7 +49,7 @@ public class BundleVersionDependencyEntity {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -57,7 +57,7 @@ public class BundleVersionDependencyEntity {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -65,7 +65,7 @@ public class BundleVersionDependencyEntity {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 

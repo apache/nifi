@@ -41,7 +41,7 @@ final class SessionInvocationHandler implements InvocationHandler {
     private final AtomicInteger openedProducers = new AtomicInteger();
     private final Session session;
 
-    public SessionInvocationHandler(Session session) {
+    public SessionInvocationHandler(final Session session) {
         this.session = Objects.requireNonNull(session);
     }
 
@@ -50,18 +50,18 @@ final class SessionInvocationHandler implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         final Object o = session.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(session, args);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Method {} called on {}", method.getName(), session);
         }
         if (method.getName().equals("createProducer")) {
-            MessageProducer messageProducer = (MessageProducer) o;
+            final MessageProducer messageProducer = (MessageProducer) o;
             LOGGER.info("Created a Message Producer {} using session {}", messageProducer, session);
             openedProducers.incrementAndGet();
-            MessageProducerInvocationHandler mp = new MessageProducerInvocationHandler(messageProducer);
+            final MessageProducerInvocationHandler mp = new MessageProducerInvocationHandler(messageProducer);
             handlers.add(mp);
-            MessageProducer messageProducerProxy = (MessageProducer) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {MessageProducer.class}, mp);
+            final MessageProducer messageProducerProxy = (MessageProducer) Proxy.newProxyInstance(o.getClass().getClassLoader(), new Class[] {MessageProducer.class}, mp);
             return messageProducerProxy;
         }
         if ("close".equals(method.getName())) {
@@ -73,8 +73,8 @@ final class SessionInvocationHandler implements InvocationHandler {
 
     public boolean isClosed() {
         boolean closed = closeCalled.get() >= 1;
-        for (MessageProducerInvocationHandler handler : handlers) {
-            boolean handlerClosed = handler.isClosed();
+        for (final MessageProducerInvocationHandler handler : handlers) {
+            final boolean handlerClosed = handler.isClosed();
             closed = closed && handlerClosed;
             if (!handlerClosed) {
                 LOGGER.warn("MessageProducer is not closed {}", handler.getMessageProducer());

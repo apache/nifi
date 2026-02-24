@@ -101,7 +101,7 @@ public class TestDistributedMapServerAndClient {
     public void testNonPersistentMapServerAndClient() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        MapCacheClientService client = new MapCacheClientService();
+        final MapCacheClientService client = new MapCacheClientService();
         try {
             runner.addControllerService("client", client);
             runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");
@@ -150,12 +150,12 @@ public class TestDistributedMapServerAndClient {
     public void testOptimisticLock() throws Exception {
         runner.enableControllerService(server);
 
-        MapCacheClientService client1 = new MapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client1, "client1");
+        final MapCacheClientService client1 = new MapCacheClientService();
+        final MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client1, "client1");
         client1.initialize(clientInitContext1);
 
-        MapCacheClientService client2 = new MapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
+        final MapCacheClientService client2 = new MapCacheClientService();
+        final MockControllerServiceInitializationContext clientInitContext2 = new MockControllerServiceInitializationContext(client2, "client2");
         client2.initialize(clientInitContext2);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
@@ -163,9 +163,9 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(MapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(MapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
+        final MockConfigurationContext clientContext1 = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client1.onEnabled(clientContext1);
-        MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup(), null);
+        final MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties, clientInitContext2.getControllerServiceLookup(), null);
         client2.onEnabled(clientContext2);
 
         try {
@@ -182,7 +182,7 @@ public class TestDistributedMapServerAndClient {
             client1.put(key, "valueC1-0", stringSerializer, stringSerializer);
 
             // Client 1 and 2 fetch the key
-            AtomicCacheEntry<String, String, Long> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
+            final AtomicCacheEntry<String, String, Long> c1 = client1.fetch(key, stringSerializer, stringDeserializer);
             AtomicCacheEntry<String, String, Long> c2 = client2.fetch(key, stringSerializer, stringDeserializer);
             assertEquals(Long.valueOf(0), c1.getRevision().orElse(0L));
             assertEquals("valueC1-0", c1.getValue());
@@ -191,7 +191,7 @@ public class TestDistributedMapServerAndClient {
 
             // Client 1 replace
             c1.setValue("valueC1-1");
-            boolean c1Result = client1.replace(c1, stringSerializer, stringSerializer);
+            final boolean c1Result = client1.replace(c1, stringSerializer, stringSerializer);
             assertTrue(c1Result, "C1 should be able to replace the key");
             // Client 2 replace with the old revision
             c2.setValue("valueC2-1");
@@ -223,7 +223,8 @@ public class TestDistributedMapServerAndClient {
         // Create a server that only supports protocol version 1.
         server = new MapCacheServer() {
             @Override
-            protected CacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
+            protected CacheServer createMapCacheServer(final int port, final int maxSize, final SSLContext sslContext,
+                    final EvictionPolicy evictionPolicy, final File persistenceDir, final int maxReadSize) throws IOException {
                 return new StandardMapCacheServer(getLogger(), getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize) {
                     @Override
                     protected StandardVersionNegotiator createVersionNegotiator() {
@@ -236,8 +237,8 @@ public class TestDistributedMapServerAndClient {
         runner.setProperty(server, MapCacheServer.PORT, "0");
         runner.enableControllerService(server);
 
-        MapCacheClientService client = new MapCacheClientService();
-        MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client, "client");
+        final MapCacheClientService client = new MapCacheClientService();
+        final MockControllerServiceInitializationContext clientInitContext1 = new MockControllerServiceInitializationContext(client, "client");
         client.initialize(clientInitContext1);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
@@ -245,7 +246,7 @@ public class TestDistributedMapServerAndClient {
         clientProperties.put(MapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(MapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
 
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup(), null);
         client.onEnabled(clientContext);
 
         try {
@@ -262,7 +263,7 @@ public class TestDistributedMapServerAndClient {
 
             assertThrows(UnsupportedOperationException.class, () -> client.fetch(key, stringSerializer, stringDeserializer));
 
-            AtomicCacheEntry<String, String, Long> entry = new AtomicCacheEntry<>(key, "value2", 0L);
+            final AtomicCacheEntry<String, String, Long> entry = new AtomicCacheEntry<>(key, "value2", 0L);
             assertThrows(UnsupportedOperationException.class, () -> client.replace(entry, stringSerializer, stringSerializer));
 
             assertThrows(UnsupportedOperationException.class, () -> client.keySet(stringDeserializer));
@@ -300,7 +301,7 @@ public class TestDistributedMapServerAndClient {
         final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
 
-        MapCacheClientService client = new MapCacheClientService();
+        final MapCacheClientService client = new MapCacheClientService();
 
         runner.addControllerService("client", client);
         runner.setProperty(client, MapCacheClientService.HOSTNAME, "localhost");

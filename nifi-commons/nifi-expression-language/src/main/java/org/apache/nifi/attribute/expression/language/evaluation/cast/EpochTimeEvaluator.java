@@ -38,7 +38,7 @@ public class EpochTimeEvaluator extends NumberEvaluator {
     }
 
     @Override
-    public QueryResult<Number> evaluate(EvaluationContext evaluationContext) {
+    public QueryResult<Number> evaluate(final EvaluationContext evaluationContext) {
         final QueryResult<?> result = subjectEvaluator.evaluate(evaluationContext);
         if (result.getValue() == null) {
             return new NumberQueryResult(null);
@@ -46,7 +46,7 @@ public class EpochTimeEvaluator extends NumberEvaluator {
 
         if (result.getResultType() == AttributeExpression.ResultType.INSTANT) {
             final Instant instant = ((InstantQueryResult) result).getValue();
-            long time = chronoUnit.between(Instant.EPOCH, instant);
+            final long time = chronoUnit.between(Instant.EPOCH, instant);
             return new NumberQueryResult(time);
         }
         return new NumberQueryResult(null);

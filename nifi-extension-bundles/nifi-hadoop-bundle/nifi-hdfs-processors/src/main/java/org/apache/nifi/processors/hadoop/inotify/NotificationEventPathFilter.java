@@ -25,13 +25,13 @@ class NotificationEventPathFilter implements PathFilter {
     private final Pattern watchDirectory;
     private final boolean toIgnoreHiddenFiles;
 
-    NotificationEventPathFilter(Pattern watchDirectory, boolean toIgnoreHiddenFiles) {
+    NotificationEventPathFilter(final Pattern watchDirectory, final boolean toIgnoreHiddenFiles) {
         this.watchDirectory = watchDirectory;
         this.toIgnoreHiddenFiles = toIgnoreHiddenFiles;
     }
 
     @Override
-    public boolean accept(Path path) {
+    public boolean accept(final Path path) {
         return !(path == null || (toIgnoreHiddenFiles && path.getName().startsWith(".")))
                 && watchDirectory.matcher(path.toString()).matches();
     }

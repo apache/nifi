@@ -149,7 +149,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
@@ -218,7 +218,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
         final Set<String> allowedStatuses = parseFilter(statusFilter);
 
         final Map<String, List<String>> attributeValues = new HashMap<>();
-        int count = processCollaborations(collaborations, allowedRoles, allowedStatuses, attributeValues);
+        final int count = processCollaborations(collaborations, allowedRoles, allowedStatuses, attributeValues);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ID, fileId);

@@ -36,17 +36,17 @@ public abstract class AbstractPeerPersistence implements PeerPersistence {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     protected PeerStatusCache restorePeerStatuses(final BufferedReader reader,
-                                     long cachedTimestamp) throws IOException {
+                                     final long cachedTimestamp) throws IOException {
         final SiteToSiteTransportProtocol transportProtocol;
         try {
             transportProtocol = SiteToSiteTransportProtocol.valueOf(reader.readLine());
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             logger.info("Discard stored peer statuses in {} because transport protocol is not stored",
                 this.getClass().getSimpleName());
             return null;
         }
 
-        String line = reader.readLine();
+        final String line = reader.readLine();
         if (line == null || !line.startsWith(REMOTE_INSTANCE_URIS_PREFIX)) {
             logger.info("Discard stored peer statuses in {} because remote instance URIs are not stored",
                     this.getClass().getSimpleName());

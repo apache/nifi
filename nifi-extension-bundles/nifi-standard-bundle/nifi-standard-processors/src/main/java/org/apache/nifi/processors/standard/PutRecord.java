@@ -121,15 +121,15 @@ public class PutRecord extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
         final StopWatch stopWatch = new StopWatch(true);
 
-        RecordSet recordSet;
+        final RecordSet recordSet;
         try (final InputStream in = session.read(flowFile)) {
 
             final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER)
@@ -150,18 +150,18 @@ public class PutRecord extends AbstractProcessor {
                 session.getProvenanceReporter().send(flowFile, recordSinkURL, transmissionMillis);
             }
 
-        } catch (RetryableIOException rioe) {
+        } catch (final RetryableIOException rioe) {
             getLogger().warn("Error during transmission of records due to {}, routing to retry", rioe.getMessage(), rioe);
             session.transfer(flowFile, REL_RETRY);
             return;
-        } catch (SchemaNotFoundException snfe) {
+        } catch (final SchemaNotFoundException snfe) {
             throw new ProcessException("Error determining schema of flowfile records: " + snfe.getMessage(), snfe);
-        } catch (MalformedRecordException e) {
+        } catch (final MalformedRecordException e) {
             getLogger().error("Error reading records from {} due to {}, routing to failure", flowFile, e.getMessage(), e);
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             // The cause might be a MalformedRecordException (RecordReader wraps it in an IOException), send to failure in that case
             if (ioe.getCause() instanceof MalformedRecordException) {
                 getLogger().error("Error reading records from {} due to {}, routing to failure", flowFile, ioe.getMessage(), ioe);
@@ -170,7 +170,7 @@ public class PutRecord extends AbstractProcessor {
                 return;
             }
             throw new ProcessException("Error reading from flowfile input stream: " + ioe.getMessage(), ioe);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error during transmission of records due to {}, routing to failure", e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -179,7 +179,7 @@ public class PutRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("put-record-reader", RECORD_READER.getName());
         config.renameProperty("put-record-sink", RECORD_SINK.getName());
         config.renameProperty("put-record-include-zero-record-results", INCLUDE_ZERO_RECORD_RESULTS.getName());

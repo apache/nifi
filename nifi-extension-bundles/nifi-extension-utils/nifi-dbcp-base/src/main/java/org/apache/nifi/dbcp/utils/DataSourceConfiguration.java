@@ -122,47 +122,47 @@ public class DataSourceConfiguration {
             this.password = password;
         }
 
-        public Builder maxWaitMillis(long maxWaitMillis) {
+        public Builder maxWaitMillis(final long maxWaitMillis) {
             this.maxWaitMillis = maxWaitMillis;
             return this;
         }
 
-        public Builder maxTotal(int maxTotal) {
+        public Builder maxTotal(final int maxTotal) {
             this.maxTotal = maxTotal;
             return this;
         }
 
-        public Builder minIdle(int minIdle) {
+        public Builder minIdle(final int minIdle) {
             this.minIdle = minIdle;
             return this;
         }
 
-        public Builder maxIdle(int maxIdle) {
+        public Builder maxIdle(final int maxIdle) {
             this.maxIdle = maxIdle;
             return this;
         }
 
-        public Builder maxConnLifetimeMillis(long maxConnLifetimeMillis) {
+        public Builder maxConnLifetimeMillis(final long maxConnLifetimeMillis) {
             this.maxConnLifetimeMillis = maxConnLifetimeMillis;
             return this;
         }
 
-        public Builder timeBetweenEvictionRunsMillis(long timeBetweenEvictionRunsMillis) {
+        public Builder timeBetweenEvictionRunsMillis(final long timeBetweenEvictionRunsMillis) {
             this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
             return this;
         }
 
-        public Builder minEvictableIdleTimeMillis(long minEvictableIdleTimeMillis) {
+        public Builder minEvictableIdleTimeMillis(final long minEvictableIdleTimeMillis) {
             this.minEvictableIdleTimeMillis = minEvictableIdleTimeMillis;
             return this;
         }
 
-        public Builder softMinEvictableIdleTimeMillis(long softMinEvictableIdleTimeMillis) {
+        public Builder softMinEvictableIdleTimeMillis(final long softMinEvictableIdleTimeMillis) {
             this.softMinEvictableIdleTimeMillis = softMinEvictableIdleTimeMillis;
             return this;
         }
 
-        public Builder validationQuery(String validationQuery) {
+        public Builder validationQuery(final String validationQuery) {
             this.validationQuery = validationQuery;
             return this;
         }

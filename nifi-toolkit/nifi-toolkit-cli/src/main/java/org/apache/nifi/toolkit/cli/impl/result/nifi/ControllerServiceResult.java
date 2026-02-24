@@ -30,7 +30,7 @@ public class ControllerServiceResult extends AbstractWritableResult<ControllerSe
 
     private final ControllerServiceEntity controllerServiceEntity;
 
-    public ControllerServiceResult(ResultType resultType, ControllerServiceEntity controllerServiceEntity) {
+    public ControllerServiceResult(final ResultType resultType, final ControllerServiceEntity controllerServiceEntity) {
         super(resultType);
         this.controllerServiceEntity = Objects.requireNonNull(controllerServiceEntity);
     }
@@ -41,7 +41,7 @@ public class ControllerServiceResult extends AbstractWritableResult<ControllerSe
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         final ControllerServiceDTO controllerServiceDTO = controllerServiceEntity.getComponent();
 
         final BundleDTO bundle = controllerServiceDTO.getBundle();

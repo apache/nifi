@@ -83,7 +83,7 @@ public class TestResponseUtils {
             }
 
             @Override
-            public boolean isOlderThan(long time, TimeUnit timeUnit) {
+            public boolean isOlderThan(final long time, final TimeUnit timeUnit) {
                 return true;
             }
 
@@ -98,12 +98,12 @@ public class TestResponseUtils {
             }
 
             @Override
-            public NodeResponse awaitMergedResponse(long timeout, TimeUnit timeUnit) throws InterruptedException {
+            public NodeResponse awaitMergedResponse(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
                 return null;
             }
 
             @Override
-            public NodeResponse getNodeResponse(NodeIdentifier nodeId) {
+            public NodeResponse getNodeResponse(final NodeIdentifier nodeId) {
                 return responses.get(nodeId);
             }
 

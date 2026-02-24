@@ -261,7 +261,7 @@ public class TestStandardProcessScheduler {
 
         rootGroup.addProcessor(procNode);
 
-        Map<String, String> procProps = new HashMap<>();
+        final Map<String, String> procProps = new HashMap<>();
         procProps.put(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
         procNode.setProperties(procProps);
 

@@ -70,7 +70,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Populates the uri for the specified provenance.
      */
-    private ProvenanceDTO populateRemainingProvenanceContent(ProvenanceDTO provenance) {
+    private ProvenanceDTO populateRemainingProvenanceContent(final ProvenanceDTO provenance) {
         provenance.setUri(generateResourceUri("provenance", provenance.getId()));
         return provenance;
     }
@@ -78,7 +78,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Populates the uri for the specified lineage.
      */
-    private LineageDTO populateRemainingLineageContent(LineageDTO lineage, String clusterNodeId) {
+    private LineageDTO populateRemainingLineageContent(final LineageDTO lineage, final String clusterNodeId) {
         lineage.setUri(generateResourceUri("provenance", "lineage", lineage.getId()));
 
         // set the cluster node id
@@ -142,7 +142,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Creates provenance using the specified query criteria.
      *
-     * @param requestProvenanceEntity A provenanceEntity
+     * @param requestProvenanceEntityArg A provenanceEntity
      * @return A provenanceEntity
      */
     @POST
@@ -169,12 +169,10 @@ public class ProvenanceResource extends ApplicationResource {
     )
     public Response submitProvenanceRequest(
             @Parameter(description = "The provenance query details.", required = true)
-            ProvenanceEntity requestProvenanceEntity) {
+            final ProvenanceEntity requestProvenanceEntityArg) {
 
         // check the request
-        if (requestProvenanceEntity == null) {
-            requestProvenanceEntity = new ProvenanceEntity();
-        }
+        final ProvenanceEntity requestProvenanceEntity = requestProvenanceEntityArg != null ? requestProvenanceEntityArg : new ProvenanceEntity();
 
         // get the provenance
         final ProvenanceDTO requestProvenanceDto;
@@ -590,12 +588,12 @@ public class ProvenanceResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

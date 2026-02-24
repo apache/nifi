@@ -172,7 +172,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("encryption-strategy", ENCRYPTION_STRATEGY.getName());
 
         migrateEncryptionValue(config);
@@ -181,7 +181,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
         config.removeProperty(OBSOLETE_KMS_REGION_2);
     }
 
-    private void migrateEncryptionValue(PropertyConfiguration config) {
+    private void migrateEncryptionValue(final PropertyConfiguration config) {
         final String propertyName;
         if (config.hasProperty(OBSOLETE_ENCRYPTION_VALUE_1)) {
             propertyName = OBSOLETE_ENCRYPTION_VALUE_1;
@@ -206,22 +206,22 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     @Override
-    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder) {
+    public void configurePutObjectRequest(final PutObjectRequest.Builder requestBuilder) {
         encryptionStrategy.configurePutObjectRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder) {
+    public void configureCreateMultipartUploadRequest(final CreateMultipartUploadRequest.Builder requestBuilder) {
         encryptionStrategy.configureCreateMultipartUploadRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder) {
+    public void configureGetObjectRequest(final GetObjectRequest.Builder requestBuilder) {
         encryptionStrategy.configureGetObjectRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder) {
+    public void configureUploadPartRequest(final UploadPartRequest.Builder requestBuilder) {
         encryptionStrategy.configureUploadPartRequest(requestBuilder, keySpec);
     }
 
@@ -281,7 +281,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
                             Base64.getDecoder().decode(keyMaterial)
                     )
             );
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new ProcessException("Failed to calculate MD5 hash for Key Material", e);
         }
     }

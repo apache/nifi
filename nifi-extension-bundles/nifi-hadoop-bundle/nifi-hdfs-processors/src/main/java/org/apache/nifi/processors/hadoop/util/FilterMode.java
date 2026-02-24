@@ -74,7 +74,7 @@ public enum FilterMode implements DescribedValue {
         return description;
     }
 
-    public static FilterMode forName(String filterMode) {
+    public static FilterMode forName(final String filterMode) {
         return Stream.of(values())
                 .filter(fm -> fm.getValue().equalsIgnoreCase(filterMode))
                 .findFirst()

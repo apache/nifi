@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UnsignedQWordTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testUnsignedQWordTypeNode() throws IOException {
-        long value = -5;
+        final long value = -5;
         assertEquals(UnsignedLong.fromLongBits(value).toString(),
                 new UnsignedQWordTypeNode(testBinaryReaderBuilder.putQWord(value).build(), chunkHeader, parent, -1).getValue());
     }

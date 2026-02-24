@@ -22,11 +22,11 @@ package org.apache.nifi.web;
 @SuppressWarnings("serial")
 public class NiFiCoreException extends RuntimeException {
 
-    public NiFiCoreException(String message) {
+    public NiFiCoreException(final String message) {
         super(message);
     }
 
-    public NiFiCoreException(String message, Throwable cause) {
+    public NiFiCoreException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

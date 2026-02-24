@@ -53,7 +53,7 @@ class BoxMetadataJsonArrayWriterTest {
 
     @Test
     void writeSingleMetadata() throws IOException {
-        Map<String, Object> metadata = new HashMap<>();
+        final Map<String, Object> metadata = new HashMap<>();
         metadata.put("$id", "test-metadata-id-1");
         metadata.put("$type", "test-metadata-type");
         metadata.put("$scope", "enterprise");
@@ -65,10 +65,10 @@ class BoxMetadataJsonArrayWriterTest {
         writer.write(metadata);
         writer.close();
 
-        JsonArray resultArray = actualJson().asArray();
+        final JsonArray resultArray = actualJson().asArray();
         assertEquals(1, resultArray.size());
 
-        JsonObject resultObject = resultArray.get(0).asObject();
+        final JsonObject resultObject = resultArray.get(0).asObject();
         assertEquals("test-metadata-id-1", resultObject.get("$id").asString());
         assertEquals("test-metadata-type", resultObject.get("$type").asString());
         assertEquals("enterprise", resultObject.get("$scope").asString());
@@ -80,7 +80,7 @@ class BoxMetadataJsonArrayWriterTest {
 
     @Test
     void writeMultipleMetadata() throws IOException {
-        Map<String, Object> metadata1 = new HashMap<>();
+        final Map<String, Object> metadata1 = new HashMap<>();
         metadata1.put("$id", "test-metadata-id-1");
         metadata1.put("$type", "test-type-1");
         metadata1.put("$scope", "enterprise");
@@ -89,7 +89,7 @@ class BoxMetadataJsonArrayWriterTest {
         metadata1.put("field1", "value1");
         metadata1.put("field2", "value2");
 
-        Map<String, Object> metadata2 = new HashMap<>();
+        final Map<String, Object> metadata2 = new HashMap<>();
         metadata2.put("$id", "test-metadata-id-2");
         metadata2.put("$type", "test-type-2");
         metadata2.put("$scope", "global");
@@ -102,13 +102,13 @@ class BoxMetadataJsonArrayWriterTest {
         writer.write(metadata2);
         writer.close();
 
-        JsonArray resultArray = actualJson().asArray();
+        final JsonArray resultArray = actualJson().asArray();
         assertEquals(2, resultArray.size());
 
-        Set<String> foundIds = new HashSet<>();
-        for (JsonValue value : resultArray) {
-            JsonObject obj = value.asObject();
-            String id = obj.get("$id").asString();
+        final Set<String> foundIds = new HashSet<>();
+        for (final JsonValue value : resultArray) {
+            final JsonObject obj = value.asObject();
+            final String id = obj.get("$id").asString();
             foundIds.add(id);
             if (id.equals("test-metadata-id-1")) {
                 assertEquals("test-type-1", obj.get("$type").asString());

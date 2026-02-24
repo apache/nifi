@@ -271,8 +271,8 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         deleteRunner.run(1);
 
         deleteRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = deleteRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertEquals("runtimeException", flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE));
         }
     }

@@ -147,7 +147,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         if (this.queuedIngestClient != null) {
             try {
                 this.queuedIngestClient.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Closing Azure Data Explorer Queued Ingest Client failed", e);
             } finally {
                 this.queuedIngestClient = null;
@@ -156,7 +156,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         if (this.managedStreamingIngestClient != null) {
             try {
                 this.managedStreamingIngestClient.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Closing Azure Data Explorer Managed Streaming Ingest Client failed", e);
             } finally {
                 this.managedStreamingIngestClient = null;
@@ -178,7 +178,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                                                                final String appKey,
                                                                final String appTenant,
                                                                final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
-        ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
+        final ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
         return IngestClientFactory.createClient(ingestConnectionStringBuilder);
     }
 
@@ -187,8 +187,8 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                                                                             final String appKey,
                                                                             final String appTenant,
                                                                             final KustoAuthenticationStrategy kustoAuthStrategy) throws URISyntaxException {
-        ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
-        ConnectionStringBuilder streamingConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
+        final ConnectionStringBuilder ingestConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
+        final ConnectionStringBuilder streamingConnectionStringBuilder = createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy);
         return IngestClientFactory.createManagedStreamingIngestClient(ingestConnectionStringBuilder, streamingConnectionStringBuilder);
     }
 
@@ -196,10 +196,10 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     public KustoIngestionResult ingestData(final KustoIngestionRequest kustoIngestionRequest) {
         final StreamSourceInfo info = new StreamSourceInfo(kustoIngestionRequest.getInputStream());
 
-        IngestionProperties ingestionProperties = new IngestionProperties(kustoIngestionRequest.getDatabaseName(),
+        final IngestionProperties ingestionProperties = new IngestionProperties(kustoIngestionRequest.getDatabaseName(),
                 kustoIngestionRequest.getTableName());
 
-        IngestionMapping.IngestionMappingKind ingestionMappingKind = setDataFormatAndMapping(kustoIngestionRequest.getDataFormat(), ingestionProperties);
+        final IngestionMapping.IngestionMappingKind ingestionMappingKind = setDataFormatAndMapping(kustoIngestionRequest.getDataFormat(), ingestionProperties);
         if (StringUtils.isNotEmpty(kustoIngestionRequest.getMappingName()) && ingestionMappingKind != null) {
             ingestionProperties.setIngestionMapping(kustoIngestionRequest.getMappingName(), ingestionMappingKind);
         }
@@ -217,21 +217,22 @@ public class StandardKustoIngestService extends AbstractControllerService implem
                 ingestionResult = queuedIngestClient.ingestFromStream(info, ingestionProperties);
             }
             if (kustoIngestionRequest.pollOnIngestionStatus()) {
-                long timeoutMillis = kustoIngestionRequest.getIngestionStatusPollingTimeout().toMillis();
-                long ingestionStatusPollingInterval = kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis();
+                final long timeoutMillis = kustoIngestionRequest.getIngestionStatusPollingTimeout().toMillis();
+                final long ingestionStatusPollingInterval = kustoIngestionRequest.getIngestionStatusPollingInterval().toMillis();
                 return pollOnIngestionStatus(ingestionResult, timeoutMillis, ingestionStatusPollingInterval);
             } else {
                 return KustoIngestionResult.SUCCEEDED;
             }
-        } catch (IngestionClientException | IngestionServiceException | URISyntaxException e) {
+        } catch (final IngestionClientException | IngestionServiceException | URISyntaxException e) {
             throw new ProcessException("Azure Data Explorer Ingest failed", e);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt(); //Restore interrupted status
             throw new ProcessException("Azure Data Explorer Ingest interrupted", e);
         }
     }
 
-    private KustoIngestionResult pollOnIngestionStatus(IngestionResult ingestionResult, long timeoutMillis, long ingestionStatusPollingInterval) throws URISyntaxException, InterruptedException {
+    private KustoIngestionResult pollOnIngestionStatus(final IngestionResult ingestionResult, final long timeoutMillis,
+            final long ingestionStatusPollingInterval) throws URISyntaxException, InterruptedException {
         List<IngestionStatus> statuses = initializeKustoIngestionStatusAsPending();
         final long startTime = System.currentTimeMillis();
         // Calculate the end time based on the timeout duration
@@ -273,7 +274,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
     }
 
     protected List<IngestionStatus> initializeKustoIngestionStatusAsPending() {
-        IngestionStatus ingestionStatus = new IngestionStatus();
+        final IngestionStatus ingestionStatus = new IngestionStatus();
         ingestionStatus.status = OperationStatus.Pending;
         return Collections.singletonList(ingestionStatus);
     }
@@ -313,7 +314,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         KustoIngestQueryResponse kustoIngestQueryResponse;
         try {
             // Requires a change in the new SDK version. This will fail with executeQuery v7.0.0 and up of the SDK
-            boolean isMgmtCommand = query != null && query.startsWith(".");
+            final boolean isMgmtCommand = query != null && query.startsWith(".");
             final KustoOperationResult kustoOperationResult = isMgmtCommand ? this.executionClient.executeMgmt(databaseName, query) : this.executionClient.executeQuery(databaseName, query);
             final KustoResultSetTable kustoResultSetTable = kustoOperationResult.getPrimaryResults();
 
@@ -324,8 +325,8 @@ public class StandardKustoIngestService extends AbstractControllerService implem
             while (kustoResultSetTable.hasNext()) {
                 kustoResultSetTable.next();
                 final List<String> rowData = new ArrayList<>();
-                for (KustoResultColumn columnName : kustoResultSetTable.getColumns()) {
-                    String data = kustoResultSetTable.getString(columnName.getOrdinal());
+                for (final KustoResultColumn columnName : kustoResultSetTable.getColumns()) {
+                    final String data = kustoResultSetTable.getString(columnName.getOrdinal());
                     rowData.add(data);
                 }
                 response.put(rowCount++, rowData);
@@ -338,7 +339,7 @@ public class StandardKustoIngestService extends AbstractControllerService implem
         return kustoIngestQueryResponse;
     }
 
-    private IngestionMapping.IngestionMappingKind setDataFormatAndMapping(String dataFormat, IngestionProperties ingestionProperties) {
+    private IngestionMapping.IngestionMappingKind setDataFormatAndMapping(final String dataFormat, final IngestionProperties ingestionProperties) {
         final IngestionProperties.DataFormat dataFormatFound = getDataFormat(dataFormat);
         return switch (dataFormatFound) {
             case AVRO -> {

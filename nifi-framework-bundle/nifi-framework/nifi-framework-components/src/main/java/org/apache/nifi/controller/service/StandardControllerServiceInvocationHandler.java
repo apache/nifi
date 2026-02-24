@@ -81,7 +81,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         final String methodName = method.getName();
         if ("initialize".equals(methodName) || "onPropertyModified".equals(methodName)) {
             // We can blindly throw UnsupportedOperationException because these methods will only ever be invoked by the framework directly
@@ -100,7 +100,7 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         final ClassLoader callerClassLoader = Thread.currentThread().getContextClassLoader();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, originalService.getClass(), originalService.getIdentifier())) {
             // If any objects are proxied, unwrap them so that we provide the unproxied object to the Controller Service.
-            ClassLoader serviceClassLoader = Thread.currentThread().getContextClassLoader();
+            final ClassLoader serviceClassLoader = Thread.currentThread().getContextClassLoader();
 
             return invoke(originalService, method, args, serviceClassLoader, callerClassLoader);
         } catch (final InvocationTargetException e) {
@@ -243,7 +243,8 @@ public class StandardControllerServiceInvocationHandler implements ControllerSer
         }
     }
 
-    private Object invoke(Object bareObject, Method method, Object[] args, ClassLoader bareObjectClassLoader, ClassLoader callerClassLoader) throws IllegalAccessException, InvocationTargetException {
+    private Object invoke(final Object bareObject, final Method method, final Object[] args, final ClassLoader bareObjectClassLoader,
+            final ClassLoader callerClassLoader) throws IllegalAccessException, InvocationTargetException {
         // If any objects are proxied, unwrap them so that we provide the unproxied object to the Controller Service.
         final Object[] unwrappedArgs = unwrapProxies(args, bareObjectClassLoader, method);
 

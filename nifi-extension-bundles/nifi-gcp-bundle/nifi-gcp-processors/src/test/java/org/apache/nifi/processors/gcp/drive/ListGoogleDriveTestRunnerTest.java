@@ -104,21 +104,21 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
         testSubject = new ListGoogleDrive() {
             @Override
-            protected List<GoogleDriveFileInfo> performListing(ProcessContext context, Long minTimestamp, ListingMode ignoredListingMode) throws IOException {
+            protected List<GoogleDriveFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode ignoredListingMode) throws IOException {
                 return super.performListing(context, minTimestamp, ListingMode.EXECUTION);
             }
 
             @Override
-            public Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
+            public Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
                 return mockDriverService;
             }
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
 
-        String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
+        final String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
 
-        GCPCredentialsControllerService gcpCredentialsControllerService = mock(GCPCredentialsControllerService.class, RETURNS_DEEP_STUBS);
+        final GCPCredentialsControllerService gcpCredentialsControllerService = mock(GCPCredentialsControllerService.class, RETURNS_DEEP_STUBS);
         when(gcpCredentialsControllerService.getIdentifier()).thenReturn(gcpCredentialsControllerServiceId);
 
         testRunner.addControllerService(gcpCredentialsControllerServiceId, gcpCredentialsControllerService);
@@ -130,48 +130,48 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
     @Test
     void testOutputAsAttributesWhereTimestampIsCreatedTime() throws Exception {
-        String id = "id_1";
-        String filename = "file_name_1";
-        Long size = 125L;
-        Long createdTime = 123456L;
-        Long modifiedTime = null;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final Long size = 125L;
+        final Long createdTime = 123456L;
+        final Long modifiedTime = null;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, createdTime);
     }
 
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime() throws Exception {
-        String id = "id_1";
-        String filename = "file_name_1";
-        Long size = 125L;
-        Long createdTime = 123456L;
-        Long modifiedTime = 123456L + 1L;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final Long size = 125L;
+        final Long createdTime = 123456L;
+        final Long modifiedTime = 123456L + 1L;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, modifiedTime);
     }
 
     @Test
     void testOutputAsAttributesWhereSizeIsNotAvailable() throws Exception {
-        String id = "id_1";
-        String filename = "file_name_1";
-        Long size = null;
-        Long createdTime = 123456L;
-        Long modifiedTime = 123456L + 1L;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final Long size = null;
+        final Long createdTime = 123456L;
+        final Long modifiedTime = 123456L + 1L;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, modifiedTime);
     }
@@ -184,38 +184,38 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                 .execute()
         ).thenThrow(new HttpResponseException.Builder(404, "Not Found", new HttpHeaders()).build());
 
-        String id = "id_1";
-        String filename = "file_name_1";
-        Long size = null;
-        Long createdTime = 123456L;
-        Long modifiedTime = 123456L + 1L;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final Long size = null;
+        final Long createdTime = 123456L;
+        final Long modifiedTime = 123456L + 1L;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, modifiedTime, folderId, folderName, driveId, null);
     }
 
     @Test
     void testOutputAsContent() throws Exception {
-        String id = "id_1";
-        String filename = "file_name_1";
-        Long size = 125L;
-        Long createdTime = 123456L;
-        Long modifiedTime = 123456L + 1L;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final Long size = 125L;
+        final Long createdTime = 123456L;
+        final Long modifiedTime = 123456L + 1L;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         addJsonRecordWriterFactory();
 
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink);
 
-        List<String> expectedContents = singletonList(
+        final List<String> expectedContents = singletonList(
                 "[" +
                         "{" +
                         "\"drive.id\":\"" + id + "\"," +
@@ -245,14 +245,14 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     }
 
     private void addJsonRecordWriterFactory() throws InitializationException {
-        RecordSetWriterFactory recordSetWriter = new JsonRecordSetWriter();
+        final RecordSetWriterFactory recordSetWriter = new JsonRecordSetWriter();
         testRunner.addControllerService("record_writer", recordSetWriter);
         testRunner.enableControllerService(recordSetWriter);
         testRunner.setProperty(ListGoogleDrive.RECORD_WRITER, "record_writer");
     }
 
-    private void mockFetchedGoogleDriveFileList(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType,
-                                                String owner, String lastModifyingUser, String webViewLink, String webContentLink) throws IOException {
+    private void mockFetchedGoogleDriveFileList(final String id, final String filename, final Long size, final Long createdTime, final Long modifiedTime, final String mimeType,
+                                                final String owner, final String lastModifyingUser, final String webViewLink, final String webContentLink) throws IOException {
         when(mockDriverService.files()
                 .list()
                 .setSupportsAllDrives(true)
@@ -278,21 +278,21 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         ));
     }
 
-    private void testOutputAsAttributes(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType,
-                                        String owner, String lastModifyingUser, String webViewLink, String webContentLink,
-                                        Long expectedTimestamp) throws IOException {
+    private void testOutputAsAttributes(final String id, final String filename, final Long size, final Long createdTime, final Long modifiedTime, final String mimeType,
+                                        final String owner, final String lastModifyingUser, final String webViewLink, final String webContentLink,
+                                        final Long expectedTimestamp) throws IOException {
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink, expectedTimestamp,
                 folderId, folderName, driveId, driveName);
     }
 
-    private void testOutputAsAttributes(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType,
-                                        String owner, String lastModifyingUser, String webViewLink, String webContentLink,
-                                        Long expectedTimestamp, String folderId, String folderName, String driveId, String driveName) throws IOException {
+    private void testOutputAsAttributes(final String id, final String filename, final Long size, final Long createdTime, final Long modifiedTime, final String mimeType,
+                                        final String owner, final String lastModifyingUser, final String webViewLink, final String webContentLink,
+                                        final Long expectedTimestamp, final String folderId, final String folderName, final String driveId, final String driveName) throws IOException {
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType, owner, lastModifyingUser, webViewLink, webContentLink);
 
-        Map<String, String> inputFlowFileAttributes = new HashMap<>() {
+        final Map<String, String> inputFlowFileAttributes = new HashMap<>() {
             @Override
-            public String put(String key, String value) {
+            public String put(final String key, final String value) {
                 if (value == null) {
                     // skip null values as a FlowFile attribute is not added in that case
                     return null;
@@ -319,7 +319,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         inputFlowFileAttributes.put(GoogleDriveAttributes.LISTED_FOLDER_NAME, folderName);
         inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_ID, driveId);
         inputFlowFileAttributes.put(GoogleDriveAttributes.SHARED_DRIVE_NAME, driveName);
-        Set<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
+        final Set<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
         testRunner.run();
 
@@ -327,18 +327,18 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     }
 
     private File createFile(
-            String id,
-            String name,
-            Long size,
-            DateTime createdTime,
-            DateTime modifiedTime,
-            String mimeType,
-            String owner,
-            String lastModifyingUser,
-            String webViewLink,
-            String webContentLink
+            final String id,
+            final String name,
+            final Long size,
+            final DateTime createdTime,
+            final DateTime modifiedTime,
+            final String mimeType,
+            final String owner,
+            final String lastModifyingUser,
+            final String webViewLink,
+            final String webContentLink
     ) {
-        File file = new File();
+        final File file = new File();
 
         file
                 .setId(id)

@@ -59,7 +59,7 @@ public final class SocketUtils {
             /* This would ideally be refactored to a shared create method but Socket and ServerSocket
              * do not share a common interface; Socket is effectively "client socket" in this context
              */
-            Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
+            final Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
             // Set Preferred TLS Protocol Versions
             sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
@@ -187,7 +187,7 @@ public final class SocketUtils {
      * @param e the exception to evaluate
      * @return true if the direct or indirect cause of this exception was TLS-related
      */
-    public static boolean isTlsError(Throwable e) {
+    public static boolean isTlsError(final Throwable e) {
         if (e == null) {
             return false;
         } else {

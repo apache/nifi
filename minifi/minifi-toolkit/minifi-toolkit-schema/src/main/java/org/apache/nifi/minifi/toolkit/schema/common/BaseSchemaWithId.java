@@ -29,16 +29,16 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
     private final String wrapperName;
     private String id;
 
-    public BaseSchemaWithId(Map map, String wrapperName) {
+    public BaseSchemaWithId(final Map map, final String wrapperName) {
         id = getId(map, wrapperName);
         this.wrapperName = wrapperName;
     }
 
-    protected String getId(Map map, String wrapperName) {
+    protected String getId(final Map map, final String wrapperName) {
         return getOptionalKeyAsType(map, ID_KEY, String.class, wrapperName, "");
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -52,14 +52,14 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> map = mapSupplier.get();
+        final Map<String, Object> map = mapSupplier.get();
         map.put(ID_KEY, id);
         return map;
     }
 
     @Override
     public List<String> getValidationIssues() {
-        List<String> validationIssues = super.getValidationIssues();
+        final List<String> validationIssues = super.getValidationIssues();
         if (StringUtil.isNullOrEmpty(id)) {
             validationIssues.add(getIssueText(ID_KEY, getWrapperName(), IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
         } else if (!isValidId(id)) {
@@ -68,11 +68,11 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
         return validationIssues;
     }
 
-    protected boolean isValidId(String value) {
+    protected boolean isValidId(final String value) {
         try {
             UUID.fromString(value);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }

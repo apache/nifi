@@ -31,7 +31,7 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
     }
 
     @Override
-    public boolean mkdir(VirtualPath newFile) {
+    public boolean mkdir(final VirtualPath newFile) {
         lock.writeLock().lock();
         try {
             if (existingPaths.contains(newFile)) {
@@ -50,7 +50,7 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
     }
 
     @Override
-    public boolean exists(VirtualPath virtualFile) {
+    public boolean exists(final VirtualPath virtualFile) {
         lock.readLock().lock();
         try {
             return existingPaths.contains(virtualFile);
@@ -60,7 +60,7 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
     }
 
     @Override
-    public boolean delete(VirtualPath virtualFile) {
+    public boolean delete(final VirtualPath virtualFile) {
         if (virtualFile.equals(ROOT)) { // Root cannot be deleted
             return false;
         }
@@ -78,11 +78,11 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
         }
     }
 
-    private boolean hasSubDirectories(VirtualPath directory) {
+    private boolean hasSubDirectories(final VirtualPath directory) {
         return existingPaths.stream().anyMatch(e -> isChildOf(directory, e));
     }
 
-    private boolean isChildOf(VirtualPath parent, VirtualPath childCandidate) {
+    private boolean isChildOf(final VirtualPath parent, final VirtualPath childCandidate) {
         if (childCandidate.equals(ROOT)) {
             return false;
         }
@@ -90,8 +90,8 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
     }
 
     @Override
-    public List<VirtualPath> listChildren(VirtualPath parent) {
-        List<VirtualPath> children;
+    public List<VirtualPath> listChildren(final VirtualPath parent) {
+        final List<VirtualPath> children;
 
         lock.readLock().lock();
         try {
@@ -100,7 +100,7 @@ public class DefaultVirtualFileSystem implements VirtualFileSystem {
                         .filter(existingPath -> (!existingPath.equals(ROOT) && (existingPath.getNameCount() == 1)))
                         .collect(Collectors.toList());
             } else {
-                int parentNameCount = parent.getNameCount();
+                final int parentNameCount = parent.getNameCount();
                 children = existingPaths.stream()
                         .filter(existingPath -> (((existingPath.getParent() != null) && existingPath.getParent().equals(parent))
                                 && (existingPath.getNameCount() == (parentNameCount + 1))))

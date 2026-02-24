@@ -76,7 +76,7 @@ public class FtpCommandHELP extends AbstractCommand {
     private static final int MAX_NUMBER_OF_COMMANDS_IN_A_ROW = 5;
     private final Set<String> availableCommands = new TreeSet<>();
 
-    public void addCommand(String command) {
+    public void addCommand(final String command) {
         if (!command.startsWith("SITE_")) { // Parameterized commands of SITE will not appear in the general help.
             availableCommands.add(command);
         }
@@ -95,16 +95,16 @@ public class FtpCommandHELP extends AbstractCommand {
         }
     }
 
-    private void sendDefaultHelpMessage(FtpIoSession session) {
+    private void sendDefaultHelpMessage(final FtpIoSession session) {
         sendCustomHelpMessage(session, getDefaultHelpMessage());
     }
 
     private String getDefaultHelpMessage() {
-        StringBuilder helpMessage = new StringBuilder("The following commands are supported.\n");
+        final StringBuilder helpMessage = new StringBuilder("The following commands are supported.\n");
         int currentNumberOfCommandsInARow = 0;
-        Iterator<String> iterator = availableCommands.iterator();
+        final Iterator<String> iterator = availableCommands.iterator();
         while (iterator.hasNext()) {
-            String command = iterator.next();
+            final String command = iterator.next();
             if (currentNumberOfCommandsInARow == MAX_NUMBER_OF_COMMANDS_IN_A_ROW) {
                 helpMessage.append("\n");
                 currentNumberOfCommandsInARow = 0;
@@ -120,13 +120,13 @@ public class FtpCommandHELP extends AbstractCommand {
         return helpMessage.toString();
     }
 
-    private void sendCustomHelpMessage(FtpIoSession session, String message) {
+    private void sendCustomHelpMessage(final FtpIoSession session, final String message) {
         session.write(new DefaultFtpReply(FtpReply.REPLY_214_HELP_MESSAGE, message));
     }
 
-    private void handleRequestWithArgument(FtpIoSession session, FtpRequest request) {
+    private void handleRequestWithArgument(final FtpIoSession session, final FtpRequest request) {
         // Send command-specific help if available
-        String ftpCommand = request.getArgument().toUpperCase();
+        final String ftpCommand = request.getArgument().toUpperCase();
         String commandSpecificHelp = null;
 
         if (availableCommands.contains(ftpCommand)) {

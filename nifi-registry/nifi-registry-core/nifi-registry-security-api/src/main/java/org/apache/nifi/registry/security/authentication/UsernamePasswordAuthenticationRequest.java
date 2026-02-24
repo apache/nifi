@@ -18,7 +18,7 @@ package org.apache.nifi.registry.security.authentication;
 
 public class UsernamePasswordAuthenticationRequest extends AuthenticationRequest {
 
-    public UsernamePasswordAuthenticationRequest(String username, String password) {
+    public UsernamePasswordAuthenticationRequest(final String username, final String password) {
         super(username, password, null);
     }
 

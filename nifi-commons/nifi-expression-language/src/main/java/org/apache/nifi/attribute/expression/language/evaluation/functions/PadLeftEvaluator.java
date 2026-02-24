@@ -21,16 +21,16 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 
 public class PadLeftEvaluator extends PaddingEvaluator {
 
-    public PadLeftEvaluator(Evaluator<String> subject, Evaluator<Long> desiredLength, Evaluator<String> pad) {
+    public PadLeftEvaluator(final Evaluator<String> subject, final Evaluator<Long> desiredLength, final Evaluator<String> pad) {
         super(subject, desiredLength, pad);
     }
 
-    public PadLeftEvaluator(Evaluator<String> subject, Evaluator<Long> desiredLength) {
+    public PadLeftEvaluator(final Evaluator<String> subject, final Evaluator<Long> desiredLength) {
         super(subject, desiredLength, null);
     }
 
     @Override
-    protected String doPad(String subjectValue, int desiredLengthValue, String padValue) {
+    protected String doPad(final String subjectValue, final int desiredLengthValue, final String padValue) {
         return StringUtils.leftPad(subjectValue, desiredLengthValue, padValue);
     }
 }

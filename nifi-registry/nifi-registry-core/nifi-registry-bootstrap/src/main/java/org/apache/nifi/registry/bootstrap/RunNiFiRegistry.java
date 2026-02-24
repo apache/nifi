@@ -147,17 +147,20 @@ public class RunNiFiRegistry {
         return Arrays.copyOfRange(orig, 1, orig.length);
     }
 
-    public static void main(String[] args) throws IOException {
-        if (args.length < 1 || args.length > 3) {
+    public static void main(final String[] argsArg) throws IOException {
+        if (argsArg.length < 1 || argsArg.length > 3) {
             printUsage();
             return;
         }
 
+        final String[] args;
         File dumpFile = null;
         boolean verbose = false;
-        if (args[0].equals("-verbose")) {
+        if (argsArg[0].equals("-verbose")) {
             verbose = true;
-            args = shift(args);
+            args = shift(argsArg);
+        } else {
+            args = argsArg;
         }
 
         final String cmd = args[0];
@@ -236,12 +239,12 @@ public class RunNiFiRegistry {
         return configFile;
     }
 
-    protected File getBootstrapFile(final Logger logger, String directory, String defaultDirectory, String fileName) throws IOException {
+    protected File getBootstrapFile(final Logger logger, final String directory, final String defaultDirectory, final String fileName) throws IOException {
 
         final File confDir = bootstrapConfigFile.getParentFile();
         final File nifiHome = confDir.getParentFile();
 
-        String confFileDir = System.getProperty(directory);
+        final String confFileDir = System.getProperty(directory);
 
         final File fileDir;
 
@@ -549,10 +552,10 @@ public class RunNiFiRegistry {
             final Method getSystemPropertiesMethod = virtualMachine.getClass().getMethod("getSystemProperties");
 
             final Properties sysProps = (Properties) getSystemPropertiesMethod.invoke(virtualMachine);
-            for (Entry<Object, Object> syspropEntry : sysProps.entrySet()) {
+            for (final Entry<Object, Object> syspropEntry : sysProps.entrySet()) {
                 logger.info("{} = {}", syspropEntry.getKey(), syspropEntry.getValue());
             }
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw new RuntimeException(t);
         } finally {
             try {
@@ -671,7 +674,7 @@ public class RunNiFiRegistry {
                         bootstrapProperties.load(fis);
                     }
 
-                    String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+                    final String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
                     int gracefulShutdownSeconds;
                     try {
                         gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
@@ -826,11 +829,11 @@ public class RunNiFiRegistry {
         final String nifiRegistryDocsDir = replaceNull(props.get("docs.dir"), DEFAULT_DOCS_DIR).trim();
 
         final String libFilename = replaceNull(props.get("lib.dir"), "./lib").trim();
-        File libDir = getFile(libFilename, workingDir);
-        File libSharedDir = getFile(libFilename + "/shared", workingDir);
+        final File libDir = getFile(libFilename, workingDir);
+        final File libSharedDir = getFile(libFilename + "/shared", workingDir);
 
         final String confFilename = replaceNull(props.get("conf.dir"), "./conf").trim();
-        File confDir = getFile(confFilename, workingDir);
+        final File confDir = getFile(confFilename, workingDir);
 
         String nifiRegistryPropsFilename = props.get("props.file");
         if (nifiRegistryPropsFilename == null) {
@@ -894,10 +897,10 @@ public class RunNiFiRegistry {
             javaCmd = DEFAULT_JAVA_CMD;
         }
         if (javaCmd.equals(DEFAULT_JAVA_CMD)) {
-            String javaHome = System.getenv("JAVA_HOME");
+            final String javaHome = System.getenv("JAVA_HOME");
             if (javaHome != null) {
-                String fileExtension = isWindows() ? ".exe" : "";
-                File javaFile = new File(javaHome + File.separatorChar + "bin"
+                final String fileExtension = isWindows() ? ".exe" : "";
+                final File javaFile = new File(javaHome + File.separatorChar + "bin"
                         + File.separatorChar + "java" + fileExtension);
                 if (javaFile.exists() && javaFile.canExecute()) {
                     javaCmd = javaFile.getAbsolutePath();
@@ -1045,7 +1048,7 @@ public class RunNiFiRegistry {
                 while ((line = reader.readLine()) != null) {
                     stdOutLogger.info(line);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 defaultLogger.error("Failed to read from NiFi Registry's Standard Out stream", e);
             }
         });
@@ -1058,7 +1061,7 @@ public class RunNiFiRegistry {
                 while ((line = reader.readLine()) != null) {
                     stdErrLogger.error(line);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 defaultLogger.error("Failed to read from NiFi Registry's Standard Error stream", e);
             }
         });

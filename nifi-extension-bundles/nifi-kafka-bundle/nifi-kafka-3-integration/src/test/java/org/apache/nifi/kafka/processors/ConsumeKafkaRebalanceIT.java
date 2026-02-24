@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Timeout;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -97,7 +96,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int consumer1Count = 0;
             int maxAttempts = 20;
             while (consumer1Count < totalMessages / 2 && maxAttempts-- > 0) {
-                for (ByteRecord record : service1.poll(Duration.ofSeconds(2))) {
+                for (final ByteRecord record : service1.poll(Duration.ofSeconds(2))) {
                     final String messageId = record.getTopic() + "-" + record.getPartition() + "-" + record.getOffset();
                     if (!consumedMessages.add(messageId)) {
                         duplicateCount.incrementAndGet();
@@ -121,7 +120,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int emptyPolls = 0;
             while (emptyPolls < 5 && consumedMessages.size() < totalMessages) {
                 boolean hasRecords = false;
-                for (ByteRecord record : service2.poll(Duration.ofSeconds(2))) {
+                for (final ByteRecord record : service2.poll(Duration.ofSeconds(2))) {
                     hasRecords = true;
                     final String messageId = record.getTopic() + "-" + record.getPartition() + "-" + record.getOffset();
                     if (!consumedMessages.add(messageId)) {
@@ -173,9 +172,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int polledCount = 0;
             int maxAttempts = 20;
             while (polledCount < 15 && maxAttempts-- > 0) {
-                final Iterator<ByteRecord> iterator = service.poll(Duration.ofSeconds(2)).iterator();
-                while (iterator.hasNext()) {
-                    iterator.next();
+                for (final ByteRecord ignored : service.poll(Duration.ofSeconds(2))) {
                     polledCount++;
                 }
             }
@@ -199,7 +196,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
 
             final Map<TopicPartition, OffsetAndMetadata> committedOffsets = verifyConsumer.committed(partitions);
 
-            long totalCommitted = committedOffsets.values().stream()
+            final long totalCommitted = committedOffsets.values().stream()
                     .filter(o -> o != null)
                     .mapToLong(OffsetAndMetadata::offset)
                     .sum();
@@ -242,9 +239,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             // Poll and iterate through records - this tracks offsets internally
             int maxAttempts = 20;
             while (recordsPolledByFirstConsumer < totalMessages && maxAttempts-- > 0) {
-                final Iterator<ByteRecord> iterator = service1.poll(Duration.ofSeconds(2)).iterator();
-                while (iterator.hasNext()) {
-                    iterator.next();
+                for (final ByteRecord ignored : service1.poll(Duration.ofSeconds(2))) {
                     recordsPolledByFirstConsumer++;
                 }
             }
@@ -273,9 +268,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             int emptyPolls = 0;
             while (emptyPolls < 5) {
                 boolean hasRecords = false;
-                final Iterator<ByteRecord> iterator = service2.poll(Duration.ofSeconds(2)).iterator();
-                while (iterator.hasNext()) {
-                    iterator.next();
+                for (final ByteRecord ignored : service2.poll(Duration.ofSeconds(2))) {
                     hasRecords = true;
                     recordsPolledBySecondConsumer++;
                 }
@@ -342,7 +335,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
                 if (description != null && description.partitions().size() == expectedPartitions) {
                     return;
                 }
-            } catch (ExecutionException ignored) {
+            } catch (final ExecutionException ignored) {
                 // Topic not ready yet, continue polling
             }
             Thread.sleep(100);

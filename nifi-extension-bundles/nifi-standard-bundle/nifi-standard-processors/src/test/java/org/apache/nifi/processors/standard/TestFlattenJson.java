@@ -516,11 +516,11 @@ public class TestFlattenJson {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private Object baseTest(TestRunner testRunner, String json, int keyCount) throws JsonProcessingException {
+    private Object baseTest(final TestRunner testRunner, final String json, final int keyCount) throws JsonProcessingException {
         return baseTest(testRunner, json, Collections.emptyMap(), keyCount);
     }
 
-    private Object baseTest(TestRunner testRunner, String json, Map<String, String> attrs, int keyCount) throws JsonProcessingException {
+    private Object baseTest(final TestRunner testRunner, final String json, final Map<String, String> attrs, final int keyCount) throws JsonProcessingException {
         testRunner.enqueue(json, attrs);
         testRunner.run(1, true);
         testRunner.assertTransferCount(FlattenJson.REL_FAILURE, 0);

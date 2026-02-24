@@ -42,7 +42,7 @@ public class LineageResultsDTO {
         return errors;
     }
 
-    public void setErrors(Set<String> errors) {
+    public void setErrors(final Set<String> errors) {
         this.errors = errors;
     }
 
@@ -55,7 +55,7 @@ public class LineageResultsDTO {
         return nodes;
     }
 
-    public void setNodes(List<ProvenanceNodeDTO> nodes) {
+    public void setNodes(final List<ProvenanceNodeDTO> nodes) {
         this.nodes = nodes;
     }
 
@@ -68,7 +68,7 @@ public class LineageResultsDTO {
         return links;
     }
 
-    public void setLinks(List<ProvenanceLinkDTO> links) {
+    public void setLinks(final List<ProvenanceLinkDTO> links) {
         this.links = links;
     }
 

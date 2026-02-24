@@ -24,12 +24,12 @@ public class TestCustomJoltTransform implements SpecDriven, Transform {
 
     private final Transform customTransform;
 
-    public TestCustomJoltTransform(Object specJson) {
+    public TestCustomJoltTransform(final Object specJson) {
         this.customTransform = Chainr.fromSpec(specJson);
     }
 
     @Override
-    public Object transform(Object objectToTransform) {
+    public Object transform(final Object objectToTransform) {
         return customTransform.transform(objectToTransform);
     }
 }

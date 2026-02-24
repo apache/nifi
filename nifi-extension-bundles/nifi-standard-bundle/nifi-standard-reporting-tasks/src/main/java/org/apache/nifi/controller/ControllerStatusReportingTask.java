@@ -150,7 +150,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("reporting-granularity", REPORTING_GRANULARITY.getName());
     }
 

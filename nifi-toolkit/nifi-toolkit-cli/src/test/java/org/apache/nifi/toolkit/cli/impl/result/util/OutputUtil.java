@@ -20,7 +20,7 @@ public class OutputUtil {
     private OutputUtil() {
     }
 
-    public static String getExpectedContent(String string) {
+    public static String getExpectedContent(final String string) {
         String expectedContent = string;
 
         if (isWindows()) {

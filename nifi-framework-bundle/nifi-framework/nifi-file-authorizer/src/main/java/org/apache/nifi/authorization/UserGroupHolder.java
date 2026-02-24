@@ -84,8 +84,8 @@ public class UserGroupHolder {
      * @return the Map from user identifier to User
      */
     private Map<String, User> createUserByIdMap(final Set<User> users) {
-        Map<String, User> usersMap = new HashMap<>();
-        for (User user : users) {
+        final Map<String, User> usersMap = new HashMap<>();
+        for (final User user : users) {
             usersMap.put(user.getIdentifier(), user);
         }
         return usersMap;
@@ -98,8 +98,8 @@ public class UserGroupHolder {
      * @return the Map from user identity to User
      */
     private Map<String, User> createUserByIdentityMap(final Set<User> users) {
-        Map<String, User> usersMap = new HashMap<>();
-        for (User user : users) {
+        final Map<String, User> usersMap = new HashMap<>();
+        for (final User user : users) {
             usersMap.put(user.getIdentity(), user);
         }
         return usersMap;
@@ -112,8 +112,8 @@ public class UserGroupHolder {
      * @return the Map from group identifier to Group
      */
     private Map<String, Group> createGroupByIdMap(final Set<Group> groups) {
-        Map<String, Group> groupsMap = new HashMap<>();
-        for (Group group : groups) {
+        final Map<String, Group> groupsMap = new HashMap<>();
+        for (final Group group : groups) {
             groupsMap.put(group.getIdentifier(), group);
         }
         return groupsMap;
@@ -126,8 +126,8 @@ public class UserGroupHolder {
      * @return the Map from name to Group
      */
     private Map<String, Group> createGroupByNameMap(final Set<Group> groups) {
-        Map<String, Group> groupsMap = new HashMap<>();
-        for (Group group : groups) {
+        final Map<String, Group> groupsMap = new HashMap<>();
+        for (final Group group : groups) {
             groupsMap.put(group.getName(), group);
         }
         return groupsMap;
@@ -141,12 +141,12 @@ public class UserGroupHolder {
      * @return a Map from User identity to the set of Groups for that identity
      */
     private Map<String, Set<Group>> createGroupsByUserIdentityMap(final Set<Group> groups, final Set<User> users) {
-        Map<String, Set<Group>> groupsByUserIdentity = new HashMap<>();
+        final Map<String, Set<Group>> groupsByUserIdentity = new HashMap<>();
 
-        for (User user : users) {
-            Set<Group> userGroups = new HashSet<>();
-            for (Group group : groups) {
-                for (String groupUser : group.getUsers()) {
+        for (final User user : users) {
+            final Set<Group> userGroups = new HashSet<>();
+            for (final Group group : groups) {
+                for (final String groupUser : group.getUsers()) {
                     if (groupUser.equals(user.getIdentifier())) {
                         userGroups.add(group);
                     }
@@ -187,14 +187,14 @@ public class UserGroupHolder {
         return groupsByName;
     }
 
-    public User getUser(String identity) {
+    public User getUser(final String identity) {
         if (identity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }
         return usersByIdentity.get(identity);
     }
 
-    public Set<Group> getGroups(String userIdentity) {
+    public Set<Group> getGroups(final String userIdentity) {
         if (userIdentity == null) {
             throw new IllegalArgumentException("User Identity cannot be null");
         }

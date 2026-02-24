@@ -32,7 +32,7 @@ public class DefaultSettings {
         return yieldDuration;
     }
 
-    public void setYieldDuration(String yieldDuration) {
+    public void setYieldDuration(final String yieldDuration) {
         this.yieldDuration = yieldDuration;
     }
 
@@ -41,7 +41,7 @@ public class DefaultSettings {
         return penaltyDuration;
     }
 
-    public void setPenaltyDuration(String penaltyDuration) {
+    public void setPenaltyDuration(final String penaltyDuration) {
         this.penaltyDuration = penaltyDuration;
     }
 
@@ -50,7 +50,7 @@ public class DefaultSettings {
         return bulletinLevel;
     }
 
-    public void setBulletinLevel(String bulletinLevel) {
+    public void setBulletinLevel(final String bulletinLevel) {
         this.bulletinLevel = bulletinLevel;
     }
 

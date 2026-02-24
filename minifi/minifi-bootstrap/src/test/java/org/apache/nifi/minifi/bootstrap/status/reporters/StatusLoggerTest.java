@@ -71,7 +71,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testFailedInitDueToFatalLogLevel() {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey())).willReturn("1");
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey())).willReturn(LogLevel.FATAL.name());
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey())).willReturn(MOCK_QUERY);
@@ -81,7 +81,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testFailedInitDueToNoPeriod() {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey())).willReturn(LogLevel.INFO.name());
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey())).willReturn(MOCK_QUERY);
 
@@ -90,7 +90,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testFailedInitDueToNoQuery() {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey())).willReturn(LogLevel.INFO.name());
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey())).willReturn(MOCK_QUERY);
 
@@ -144,9 +144,9 @@ public class StatusLoggerTest {
 
     @Test
     public void testTraceException() throws IOException {
-        BootstrapProperties properties = getProperties(LogLevel.TRACE);
+        final BootstrapProperties properties = getProperties(LogLevel.TRACE);
 
-        IOException ioException = new IOException("This is an expected test exception");
+        final IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(properties, queryableStatusAggregator);
@@ -158,7 +158,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testDebugException() throws IOException {
-        IOException ioException = new IOException("This is an expected test exception");
+        final IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
@@ -170,7 +170,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testInfoException() throws IOException {
-        IOException ioException = new IOException("This is an expected test exception");
+        final IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
@@ -182,7 +182,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testWarnException() throws IOException {
-        IOException ioException = new IOException("This is an expected test exception");
+        final IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
@@ -194,7 +194,7 @@ public class StatusLoggerTest {
 
     @Test
     public void testErrorException() throws IOException {
-        IOException ioException = new IOException("This is an expected test exception");
+        final IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
@@ -204,8 +204,8 @@ public class StatusLoggerTest {
         verify(logger, Mockito.atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
-    private static BootstrapProperties getProperties(LogLevel logLevel) {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+    private static BootstrapProperties getProperties(final LogLevel logLevel) {
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey())).willReturn("1");
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey())).willReturn(logLevel.name());
         given(properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey())).willReturn(MOCK_QUERY);
@@ -214,12 +214,12 @@ public class StatusLoggerTest {
 
     private static class RunOnceScheduledExecutorService extends ScheduledThreadPoolExecutor {
 
-        public RunOnceScheduledExecutorService(int corePoolSize) {
+        public RunOnceScheduledExecutorService(final int corePoolSize) {
             super(corePoolSize);
         }
 
         @Override
-        public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+        public ScheduledFuture<?> scheduleAtFixedRate(final Runnable command, final long initialDelay, final long period, final TimeUnit unit) {
             command.run();
             return null;
         }

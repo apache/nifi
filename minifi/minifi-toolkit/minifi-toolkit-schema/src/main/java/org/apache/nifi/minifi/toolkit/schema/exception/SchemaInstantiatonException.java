@@ -20,11 +20,11 @@
 package org.apache.nifi.minifi.toolkit.schema.exception;
 
 public class SchemaInstantiatonException extends RuntimeException {
-    public SchemaInstantiatonException(String message) {
+    public SchemaInstantiatonException(final String message) {
         super(message);
     }
 
-    public SchemaInstantiatonException(String message, Throwable cause) {
+    public SchemaInstantiatonException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

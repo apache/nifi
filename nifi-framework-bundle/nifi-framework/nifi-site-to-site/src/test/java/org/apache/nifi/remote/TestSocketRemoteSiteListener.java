@@ -44,7 +44,7 @@ public class TestSocketRemoteSiteListener {
 
     @Test
     public void testRequestPeerList() throws Exception {
-        Method method = SocketRemoteSiteListener.class.getDeclaredMethod("handleRequest",
+        final Method method = SocketRemoteSiteListener.class.getDeclaredMethod("handleRequest",
                 ServerProtocol.class, Peer.class, RequestType.class);
         method.setAccessible(true);
 

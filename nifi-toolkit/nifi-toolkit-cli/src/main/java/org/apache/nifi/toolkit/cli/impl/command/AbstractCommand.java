@@ -123,7 +123,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
     }
 
     @Override
-    public void printUsage(String errorMessage) {
+    public void printUsage(final String errorMessage) {
         output.println();
 
         if (errorMessage != null) {
@@ -150,7 +150,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
             printWriter.println();
             printWriter.flush();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Unable to print command usage for " + getName(), e);
         }
     }
@@ -198,7 +198,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
         try {
             return Integer.valueOf(argValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MissingOptionException("Version must be numeric: " + argValue);
         }
     }
@@ -211,7 +211,7 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
 
         try {
             return Integer.valueOf(argValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MissingOptionException("Version must be numeric: " + argValue);
         }
     }
@@ -234,14 +234,14 @@ public abstract class AbstractCommand<R extends Result> implements Command<R> {
         }
     }
 
-    protected String getInputSourceContent(String inputFile) throws IOException {
+    protected String getInputSourceContent(final String inputFile) throws IOException {
         String contents;
         try {
             // try a public resource URL
             contents = IOUtils.toString(URI.create(inputFile).toURL(), StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException | MalformedURLException e) {
+        } catch (final IllegalArgumentException | MalformedURLException e) {
             // assume a local file then
-            URI uri = Paths.get(inputFile).toAbsolutePath().toUri();
+            final URI uri = Paths.get(inputFile).toAbsolutePath().toUri();
             contents = IOUtils.toString(uri, StandardCharsets.UTF_8);
         }
         return contents;

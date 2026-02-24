@@ -163,7 +163,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
             try {
                 this.container = null;
                 this.cosmosClient.close();
-            } catch (CosmosException e) {
+            } catch (final CosmosException e) {
                 logger.error("Error closing Cosmos DB client due to {}", e.getMessage(), e);
             } finally {
                 this.cosmosClient = null;
@@ -172,7 +172,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureCosmosDBUtils.OLD_URI_DESCRIPTOR_NAME, AzureCosmosDBUtils.URI.getName());
         config.renameProperty(AzureCosmosDBUtils.OLD_DB_ACCESS_KEY_DESCRIPTOR_NAME, AzureCosmosDBUtils.DB_ACCESS_KEY.getName());
         config.renameProperty(AzureCosmosDBUtils.OLD_CONSISTENCY_DESCRIPTOR_NAME, AzureCosmosDBUtils.CONSISTENCY.getName());
@@ -207,15 +207,15 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> validationResults = new ArrayList<>();
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> validationResults = new ArrayList<>();
 
-        boolean connectionServiceIsSet = context.getProperty(CONNECTION_SERVICE).isSet();
-        boolean uriIsSet = context.getProperty(AzureCosmosDBUtils.URI).isSet();
-        boolean accessKeyIsSet = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).isSet();
-        boolean databaseIsSet = context.getProperty(DATABASE_NAME).isSet();
-        boolean collectionIsSet = context.getProperty(CONTAINER_ID).isSet();
-        boolean partitionIsSet = context.getProperty(PARTITION_KEY).isSet();
+        final boolean connectionServiceIsSet = context.getProperty(CONNECTION_SERVICE).isSet();
+        final boolean uriIsSet = context.getProperty(AzureCosmosDBUtils.URI).isSet();
+        final boolean accessKeyIsSet = context.getProperty(AzureCosmosDBUtils.DB_ACCESS_KEY).isSet();
+        final boolean databaseIsSet = context.getProperty(DATABASE_NAME).isSet();
+        final boolean collectionIsSet = context.getProperty(CONTAINER_ID).isSet();
+        final boolean partitionIsSet = context.getProperty(PARTITION_KEY).isSet();
 
         if (connectionServiceIsSet && (uriIsSet || accessKeyIsSet)) {
             // If connection Service is set, None of the Processor variables URI and accessKey
@@ -255,7 +255,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         return cosmosClient;
     }
 
-    protected void setCosmosClient(CosmosClient cosmosClient) {
+    protected void setCosmosClient(final CosmosClient cosmosClient) {
         this.cosmosClient = cosmosClient;
     }
 
@@ -263,7 +263,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         return container;
     }
 
-    protected void setContainer(CosmosContainer container) {
+    protected void setContainer(final CosmosContainer container) {
         this.container = container;
     }
 
@@ -271,7 +271,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         return connectionService;
     }
 
-    protected void setConnectionService(AzureCosmosDBConnectionService connectionService) {
+    protected void setConnectionService(final AzureCosmosDBConnectionService connectionService) {
         this.connectionService = connectionService;
     }
 }

@@ -142,7 +142,7 @@ public class SplitPCAP extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
 
-        FlowFile originalFlowFile = session.get();
+        final FlowFile originalFlowFile = session.get();
         if (originalFlowFile == null) {
             return;
         }
@@ -151,7 +151,7 @@ public class SplitPCAP extends AbstractProcessor {
 
         try {
             session.read(originalFlowFile, callback);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             getLogger().error("Failed to split {}", originalFlowFile, e);
             session.remove(callback.getSplitFiles());
             session.putAttribute(originalFlowFile, ERROR_REASON_LABEL, e.getMessage());
@@ -170,7 +170,7 @@ public class SplitPCAP extends AbstractProcessor {
         attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
 
         IntStream.range(0, splitFiles.size()).forEach(index -> {
-            FlowFile split = splitFiles.get(index);
+            final FlowFile split = splitFiles.get(index);
             attributes.put(CoreAttributes.FILENAME.key(), "%s-%d.pcap".formatted(originalFileNameWithoutExtension, index));
             attributes.put(FRAGMENT_INDEX, Integer.toString(index));
             session.transfer(session.putAllAttributes(split, attributes), REL_SPLIT);
@@ -188,7 +188,7 @@ public class SplitPCAP extends AbstractProcessor {
             return splitFiles;
         }
 
-        public PCAPStreamSplitterCallback(ProcessSession session, FlowFile flowFile, int pcapMaxSize) {
+        public PCAPStreamSplitterCallback(final ProcessSession session, final FlowFile flowFile, final int pcapMaxSize) {
             this.session = session;
             this.originalFlowFile = flowFile;
             this.pcapMaxSize = pcapMaxSize;
@@ -235,12 +235,12 @@ public class SplitPCAP extends AbstractProcessor {
 
             while (bufferedStream.available() > 0) {
 
-                Packet currentPacket = getNextPacket(bufferedStream, templatePcap, totalPackets);
+                final Packet currentPacket = getNextPacket(bufferedStream, templatePcap, totalPackets);
 
                 if (currentPcapTotalLength + currentPacket.totalLength() > this.pcapMaxSize) {
 
                     templatePcap.getPackets().addAll(loadedPackets);
-                    FlowFile newFlowFile = session.create(originalFlowFile);
+                    final FlowFile newFlowFile = session.create(originalFlowFile);
                     try (final OutputStream out = session.write(newFlowFile)) {
                         out.write(templatePcap.toByteArray());
                         this.splitFiles.add(newFlowFile);
@@ -259,7 +259,7 @@ public class SplitPCAP extends AbstractProcessor {
             // If there are any packets left over, create a new flowfile.
             if (!loadedPackets.isEmpty()) {
                 templatePcap.getPackets().addAll(loadedPackets);
-                FlowFile newFlowFile = session.create(originalFlowFile);
+                final FlowFile newFlowFile = session.create(originalFlowFile);
                 try (final OutputStream out = session.write(newFlowFile)) {
                     out.write(templatePcap.toByteArray());
                     this.splitFiles.add(newFlowFile);

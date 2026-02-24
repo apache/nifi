@@ -33,7 +33,7 @@ public class NodeDisconnectionExceptionMapper implements ExceptionMapper<NodeDis
     private static final Logger logger = LoggerFactory.getLogger(NodeDisconnectionExceptionMapper.class);
 
     @Override
-    public Response toResponse(NodeDisconnectionException exception) {
+    public Response toResponse(final NodeDisconnectionException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

@@ -43,7 +43,7 @@ public class GetControllerServices extends AbstractNiFiCommand<ControllerService
     }
 
     @Override
-    public ControllerServicesResult doExecute(NiFiClient client, Properties properties)
+    public ControllerServicesResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final FlowClient flowClient = client.getFlowClient();
         final ControllerServicesEntity servicesEntity = flowClient.getControllerServices();

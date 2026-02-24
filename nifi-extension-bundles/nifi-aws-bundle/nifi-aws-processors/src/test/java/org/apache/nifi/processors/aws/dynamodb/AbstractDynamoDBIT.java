@@ -102,7 +102,7 @@ public class AbstractDynamoDBIT {
     }
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
-        TestRunner runner = TestRunners.newTestRunner(processorClass);
+        final TestRunner runner = TestRunners.newTestRunner(processorClass);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
         runner.setProperty(RegionUtil.REGION, localstack.getRegion());
@@ -110,7 +110,7 @@ public class AbstractDynamoDBIT {
         return runner;
     }
 
-    protected BatchGetItemResponse getBatchGetItems(int count, String table, boolean includeSortKey) {
+    protected BatchGetItemResponse getBatchGetItems(final int count, final String table, final boolean includeSortKey) {
         final Map<String, KeysAndAttributes> requestItems = new HashMap<>();
         final Collection<Map<String, AttributeValue>> keys = new ArrayList<>();
         for (int i = 0; i < count; i++) {

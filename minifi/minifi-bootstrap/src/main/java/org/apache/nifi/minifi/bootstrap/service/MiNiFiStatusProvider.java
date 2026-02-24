@@ -26,12 +26,12 @@ public class MiNiFiStatusProvider {
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final ProcessUtils processUtils;
 
-    public MiNiFiStatusProvider(MiNiFiCommandSender miNiFiCommandSender, ProcessUtils processUtils) {
+    public MiNiFiStatusProvider(final MiNiFiCommandSender miNiFiCommandSender, final ProcessUtils processUtils) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.processUtils = processUtils;
     }
 
-    public MiNiFiStatus getStatus(int port, long pid) {
+    public MiNiFiStatus getStatus(final int port, final long pid) {
         if (port == UNINITIALIZED && pid == UNINITIALIZED) {
             return new MiNiFiStatus();
         }

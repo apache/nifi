@@ -44,8 +44,8 @@ public class BXmlTypeNodeTest extends BxmlNodeTestBase {
 
     @Test
     public void testInit() {
-        RootNode rootNode = bXmlTypeNode.getRootNode();
-        List<BxmlNode> children = rootNode.getChildren();
+        final RootNode rootNode = bXmlTypeNode.getRootNode();
+        final List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(EndOfStreamNode.class, children.get(0));
         assertEquals(0, rootNode.getSubstitutions().size());

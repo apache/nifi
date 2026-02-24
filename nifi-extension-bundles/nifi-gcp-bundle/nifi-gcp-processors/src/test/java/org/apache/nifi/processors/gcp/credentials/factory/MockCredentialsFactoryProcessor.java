@@ -47,16 +47,16 @@ public class MockCredentialsFactoryProcessor extends AbstractGCPProcessor {
     }
 
     @Override
-    protected ServiceOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
-        ServiceOptions mockOptions = mock(ServiceOptions.class);
-        Service mockService = mock(Service.class);
+    protected ServiceOptions getServiceOptions(final ProcessContext context, final GoogleCredentials credentials) {
+        final ServiceOptions mockOptions = mock(ServiceOptions.class);
+        final Service mockService = mock(Service.class);
         when(mockOptions.getService()).thenReturn(mockService);
 
         return mockOptions;
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
     }
 }

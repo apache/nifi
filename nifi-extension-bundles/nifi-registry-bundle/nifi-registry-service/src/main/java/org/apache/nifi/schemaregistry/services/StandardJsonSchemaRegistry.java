@@ -96,7 +96,7 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Set<ValidationResult> results = new HashSet<>();
 
         final boolean noSchemasConfigured = validationContext.getProperties().keySet().stream()
@@ -113,13 +113,13 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
             validationContext.getProperties().entrySet().stream()
                     .filter(entry -> entry.getKey().isDynamic() && !jsonSchemas.containsKey(entry.getKey().getName()))
                     .forEach(entry -> {
-                        String subject = entry.getKey().getName();
-                        String input = entry.getValue();
+                        final String subject = entry.getKey().getName();
+                        final String input = entry.getValue();
                         if (isNotBlank(input)) {
                             try {
                                 final SchemaRegistry schemaRegistry = schemaRegistries.get(schemaVersion);
                                 schemaRegistry.getSchema(SchemaLocation.DOCUMENT, input, InputFormat.JSON);
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 results.add(new ValidationResult.Builder()
                                         .input(input)
                                         .subject(subject)
@@ -136,7 +136,7 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
 
     @Override
     public JsonSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
-        JsonSchema jsonSchema = jsonSchemas.get(schemaName);
+        final JsonSchema jsonSchema = jsonSchemas.get(schemaName);
         if (jsonSchema == null) {
             throw new SchemaNotFoundException("Unable to find schema with name '" + schemaName + "'");
         }

@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class SupportedOperationsProvider {
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> operationHandlers;
 
-    public SupportedOperationsProvider(Map<OperationType, Map<OperandType, C2OperationHandler>> handlers) {
+    public SupportedOperationsProvider(final Map<OperationType, Map<OperandType, C2OperationHandler>> handlers) {
         operationHandlers = handlers;
     }
 
@@ -43,11 +43,11 @@ public class SupportedOperationsProvider {
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private SupportedOperation getSupportedOperation(OperationType operationType, Map<OperandType, C2OperationHandler> operands) {
-        SupportedOperation supportedOperation = new SupportedOperation();
+    private SupportedOperation getSupportedOperation(final OperationType operationType, final Map<OperandType, C2OperationHandler> operands) {
+        final SupportedOperation supportedOperation = new SupportedOperation();
         supportedOperation.setType(operationType);
 
-        Map<OperandType, Map<String, Object>> properties = operands.entrySet()
+        final Map<OperandType, Map<String, Object>> properties = operands.entrySet()
             .stream()
             .sorted(Map.Entry.comparingByKey())
             .map(Entry::getValue)

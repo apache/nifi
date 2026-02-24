@@ -195,7 +195,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Amazon Lambda Qualifier (version)", AWS_LAMBDA_FUNCTION_QUALIFIER.getName());
     }
@@ -207,7 +207,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
      * @param exception exception thrown during invocation
      * @return FlowFile the updated flow file
      */
-    private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile,
+    private FlowFile populateExceptionAttributes(final ProcessSession session, final FlowFile flowFile,
             final AwsServiceException exception) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.awsErrorDetails().errorMessage());
@@ -217,8 +217,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
         if (exception.getCause() != null) {
             attributes.put(AWS_LAMBDA_EXCEPTION_CAUSE, exception.getCause().getMessage());
         }
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        return flowFile;
+        return session.putAllAttributes(flowFile, attributes);
     }
 
     @Override

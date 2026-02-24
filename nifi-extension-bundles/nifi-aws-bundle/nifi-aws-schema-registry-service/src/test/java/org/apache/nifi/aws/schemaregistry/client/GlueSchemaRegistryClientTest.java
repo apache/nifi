@@ -69,7 +69,7 @@ class GlueSchemaRegistryClientTest {
 
     @Test
     void getSchemaWithNameAndVersionInvokesClientAndReturnsRecordSchema() throws IOException, SchemaNotFoundException {
-        int version = 1;
+        final int version = 1;
 
         final GetSchemaVersionResponse mockResponse = GetSchemaVersionResponse.builder()
                 .dataFormat(DataFormat.AVRO)
@@ -91,8 +91,8 @@ class GlueSchemaRegistryClientTest {
 
     @Test
     void getSchemaWithNameVersionIdInvokesClientAndReturnsRecordSchema() throws SchemaNotFoundException {
-        UUID schemaVersionId = UUID.randomUUID();
-        String schemaArn = "arn:aws:glue:us-east-1:123456789012:schema/registry/name";
+        final UUID schemaVersionId = UUID.randomUUID();
+        final String schemaArn = "arn:aws:glue:us-east-1:123456789012:schema/registry/name";
 
         final GetSchemaVersionResponse mockResponse = GetSchemaVersionResponse.builder()
                 .dataFormat(DataFormat.AVRO)

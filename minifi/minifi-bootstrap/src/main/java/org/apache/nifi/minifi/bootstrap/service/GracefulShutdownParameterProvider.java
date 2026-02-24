@@ -32,19 +32,19 @@ public class GracefulShutdownParameterProvider {
 
     private final BootstrapFileProvider bootstrapFileProvider;
 
-    public GracefulShutdownParameterProvider(BootstrapFileProvider bootstrapFileProvider) {
+    public GracefulShutdownParameterProvider(final BootstrapFileProvider bootstrapFileProvider) {
         this.bootstrapFileProvider = bootstrapFileProvider;
     }
 
     public int getGracefulShutdownSeconds() throws IOException {
-        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        final BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
-        String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+        final String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
 
         int gracefulShutdownSeconds;
         try {
             gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
             LOGGER.warn(INVALID_GRACEFUL_SHUTDOWN_SECONDS_MESSAGE, GRACEFUL_SHUTDOWN_PROP, gracefulShutdownSeconds);
         }

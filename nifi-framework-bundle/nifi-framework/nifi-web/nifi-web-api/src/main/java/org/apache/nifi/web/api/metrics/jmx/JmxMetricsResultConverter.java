@@ -50,16 +50,16 @@ public class JmxMetricsResultConverter {
         }
     }
 
-    private void convertCompositeData(CompositeData attributeValue, Map<String, Object> values) {
-        for (String key : attributeValue.getCompositeType().keySet()) {
+    private void convertCompositeData(final CompositeData attributeValue, final Map<String, Object> values) {
+        for (final String key : attributeValue.getCompositeType().keySet()) {
             values.put(key, convert(attributeValue.get(key)));
         }
     }
 
-    private void convertTabularData(TabularData attributeValue, Map<String, Object> values) {
+    private void convertTabularData(final TabularData attributeValue, final Map<String, Object> values) {
         final Set<List<?>> keys = (Set<List<?>>) attributeValue.keySet();
-        for (List<?> key : keys) {
-            Object value = convert(attributeValue.get(key.toArray()));
+        for (final List<?> key : keys) {
+            final Object value = convert(attributeValue.get(key.toArray()));
             values.put(key.toString(), value);
         }
     }

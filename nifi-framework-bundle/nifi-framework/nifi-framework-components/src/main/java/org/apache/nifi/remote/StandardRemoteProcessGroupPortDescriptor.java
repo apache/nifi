@@ -41,7 +41,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -50,7 +50,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return concurrentlySchedulableTaskCount;
     }
 
-    public void setConcurrentlySchedulableTaskCount(Integer concurrentlySchedulableTaskCount) {
+    public void setConcurrentlySchedulableTaskCount(final Integer concurrentlySchedulableTaskCount) {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
@@ -59,7 +59,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -68,7 +68,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return targetId;
     }
 
-    public void setTargetId(String targetId) {
+    public void setTargetId(final String targetId) {
         this.targetId = targetId;
     }
 
@@ -77,7 +77,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -86,7 +86,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -95,7 +95,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -104,7 +104,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return useCompression;
     }
 
-    public void setUseCompression(Boolean useCompression) {
+    public void setUseCompression(final Boolean useCompression) {
         this.useCompression = useCompression;
     }
 
@@ -113,7 +113,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return batchCount;
     }
 
-    public void setBatchCount(Integer batchCount) {
+    public void setBatchCount(final Integer batchCount) {
         this.batchCount = batchCount;
     }
 
@@ -122,7 +122,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return batchSize;
     }
 
-    public void setBatchSize(String batchSize) {
+    public void setBatchSize(final String batchSize) {
         this.batchSize = batchSize;
     }
 
@@ -131,7 +131,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return batchDuration;
     }
 
-    public void setBatchDuration(String batchDuration) {
+    public void setBatchDuration(final String batchDuration) {
         this.batchDuration = batchDuration;
     }
 
@@ -140,7 +140,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return exists;
     }
 
-    public void setExists(Boolean exists) {
+    public void setExists(final Boolean exists) {
         this.exists = exists;
     }
 
@@ -149,7 +149,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return targetRunning;
     }
 
-    public void setTargetRunning(Boolean targetRunning) {
+    public void setTargetRunning(final Boolean targetRunning) {
         this.targetRunning = targetRunning;
     }
 
@@ -158,7 +158,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return connected;
     }
 
-    public void setConnected(Boolean connected) {
+    public void setConnected(final Boolean connected) {
         this.connected = connected;
     }
 
@@ -192,7 +192,7 @@ public class StandardRemoteProcessGroupPortDescriptor implements RemoteProcessGr
         return versionedComponentId;
     }
 
-    public void setVersionedComponentId(String versionedId) {
+    public void setVersionedComponentId(final String versionedId) {
         this.versionedComponentId = versionedId;
     }
 }

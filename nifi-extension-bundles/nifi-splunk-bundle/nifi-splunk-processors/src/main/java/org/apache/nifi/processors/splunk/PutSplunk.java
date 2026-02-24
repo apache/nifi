@@ -101,7 +101,7 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         // first complete any batches from previous executions
         FlowFileMessageBatch batch;
         while ((batch = completeBatches.poll()) != null) {
@@ -128,7 +128,7 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
             } else {
                 processDelimitedMessages(context, session, flowFile, delimiter);
             }
-        } catch (EventException e) {
+        } catch (final EventException e) {
             session.transfer(flowFile, REL_FAILURE);
             session.commitAsync();
             context.yield();
@@ -258,7 +258,7 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
 
         // if TCP and we don't already end with a new line then add one
         if (protocol.equals(TCP_VALUE.getValue()) && buf[length - 1] != NEW_LINE_CHAR) {
-            byte[] message = new byte[length + 1];
+            final byte[] message = new byte[length + 1];
 
             for (int i = 0; i < length; i++) {
                 message[i] = buf[i];

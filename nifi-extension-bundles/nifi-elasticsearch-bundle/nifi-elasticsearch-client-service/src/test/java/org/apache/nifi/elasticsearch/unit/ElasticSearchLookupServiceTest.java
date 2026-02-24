@@ -46,7 +46,7 @@ class ElasticSearchLookupServiceTest {
     void setup() throws Exception {
         mockClientService = new TestElasticSearchClientService();
         lookupService = new ElasticSearchLookupService();
-        TestSchemaRegistry registry = new TestSchemaRegistry();
+        final TestSchemaRegistry registry = new TestSchemaRegistry();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", mockClientService);
         runner.addControllerService("lookupService", lookupService);
@@ -62,14 +62,14 @@ class ElasticSearchLookupServiceTest {
 
     @Test
     void simpleLookupTest() throws Exception {
-        Map<String, Object> coordinates = new HashMap<>();
+        final Map<String, Object> coordinates = new HashMap<>();
         coordinates.put("_id", "12345");
 
-        Optional<Record> result = lookupService.lookup(coordinates);
+        final Optional<Record> result = lookupService.lookup(coordinates);
 
         assertNotNull(result);
         assertTrue(result.isPresent());
-        Record record = result.get();
+        final Record record = result.get();
         assertEquals("john.smith", record.getAsString("username"));
         assertEquals("testing1234", record.getAsString("password"));
         assertEquals("john.smith@test.com", record.getAsString("email"));

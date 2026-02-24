@@ -73,8 +73,8 @@ public class TestWriteXMLResult {
 
     @Test
     public void testRecordNameIsNullSchemaIdentifierMissing() {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithoutIdentifierInSchema();
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithoutIdentifierInSchema();
 
         final String expectedMessage = "The property 'Name of Record Tag' has not been set and the writer does not find a record name in the schema.";
         final StringBuilder actualMessage = new StringBuilder();
@@ -83,7 +83,7 @@ public class TestWriteXMLResult {
             new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                     out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "root", null, "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             actualMessage.append(e.getMessage());
         }
         assertEquals(expectedMessage, actualMessage.toString());
@@ -92,15 +92,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testRecordNameIsNullSchemaIdentifierExists() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", null, "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
@@ -109,9 +109,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testRootNameIsNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         final String expectedMessage = "The writer attempts to write multiple record although property 'Name of Root Tag' " +
@@ -121,7 +121,7 @@ public class TestWriteXMLResult {
         try {
             writer.write(recordSet);
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             actualMessage.append(e.getMessage());
         }
         assertEquals(expectedMessage, actualMessage.toString());
@@ -129,22 +129,22 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSingleRecord() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSingleRecord();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSingleRecord();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>";
+        final String xmlResult = "<PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
     }
 
     @Test
     public void testDataTypes() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
         final List<RecordField> fields = new ArrayList<>();
 
@@ -195,13 +195,13 @@ public class TestWriteXMLResult {
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
 
-        WriteXMLResult writer = new WriteXMLResult(rs.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(rs.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "RECORD", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(rs);
         writer.flush();
 
-        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><uuid>8bb20bf2-ec41-4b94-80a4-922f4dba009c</uuid><char>c</char><enum /><short>8</short>" +
+        final String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><uuid>8bb20bf2-ec41-4b94-80a4-922f4dba009c</uuid><char>c</char><enum /><short>8</short>" +
                 "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><decimal>8.1</decimal>" +
                 "<date>2017-01-01</date><time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
                 "<map><height>48</height><width>96</width></map></RECORD></ROOT>";
@@ -211,15 +211,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecord() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
@@ -227,15 +227,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
@@ -243,15 +243,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecordWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME></NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
@@ -259,15 +259,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecordWithNullValuesSuppressMissings() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
@@ -275,15 +275,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecordWithXMLDeclaration() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, false, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<?xml version=\"1.0\" ?><ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<?xml version=\"1.0\" ?><ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertEquals(xmlResult, out.toString().trim());
@@ -291,15 +291,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleRecordWithOutXMLDeclaration() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, false, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertEquals(xmlResult, out.toString().trim());
@@ -307,30 +307,30 @@ public class TestWriteXMLResult {
 
     @Test
     public void testEmptyRecordWithEmptySchema() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getEmptyRecordsWithEmptySchema();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getEmptyRecordsWithEmptySchema();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT></ROOT>";
+        final String xmlResult = "<ROOT></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isIdenticalTo(out.toString()).ignoreWhitespace());
     }
 
     @Test
     public void testNestedRecord() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><STREET>292 West Street</STREET><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<STREET>123 6th St.</STREET><CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -340,15 +340,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ADDRESS><CITY>Jersey City</CITY></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><ADDRESS><CITY>Jersey City</CITY></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ADDRESS><CITY>Seattle</CITY></ADDRESS><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -356,15 +356,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedRecordWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><STREET></STREET><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<STREET></STREET><CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -374,15 +374,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedRecordWithNullValuesSuppressMissings() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><STREET></STREET><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -392,17 +392,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedRecordWithOnlyNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
+        final RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -410,17 +410,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedRecordWithOnlyNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
+        final RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ADDRESS><STREET></STREET><CITY></CITY></ADDRESS>" +
+        final String xmlResult = "<ROOT><PERSON><ADDRESS><STREET></STREET><CITY></CITY></ADDRESS>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ADDRESS><STREET></STREET><CITY></CITY></ADDRESS>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -430,17 +430,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testEmptyNestedRecordEmptySchemaNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
+        final RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ADDRESS></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><ADDRESS></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ADDRESS></ADDRESS><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -448,17 +448,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testEmptyNestedRecordEmptySchemaAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
+        final RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -466,17 +466,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testNestedEmptyRecordDefinedSchemaSuppressMissing() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getEmptyNestedRecordDefinedSchema();
+        final RecordSet recordSet = getEmptyNestedRecordDefinedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ADDRESS></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><ADDRESS></ADDRESS><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ADDRESS></ADDRESS><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -484,17 +484,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArray() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -504,17 +504,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -524,17 +524,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -544,17 +544,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayWithOnlyNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -562,17 +562,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayWithOnlyNullValuesAlwaysSuppressWrapping() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -580,17 +580,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testEmptyArray() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -598,17 +598,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testEmptyArrayNeverSupressPropAsWrapper() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ARRAY></ARRAY><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><ARRAY></ARRAY><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ARRAY></ARRAY><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -616,17 +616,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayPropAsWrapper() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
+        final String xmlResult = "<ROOT><PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -636,17 +636,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleArrayPropForElem() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -656,17 +656,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapAlwaysSuppressWithoutNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -676,17 +676,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapAlwaysSuppressHasNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -696,17 +696,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapAlwaysSuppressOnlyNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -714,17 +714,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapAlwaysSuppressEmpty() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -732,17 +732,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapNeverSuppressHasNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -752,17 +752,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testSimpleMapNeverSuppressEmpty() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN></CHILDREN><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN></CHILDREN><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN></CHILDREN><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -770,15 +770,15 @@ public class TestWriteXMLResult {
 
     @Test
     public void testChoice() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithChoice();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithChoice();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -794,9 +794,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleRecord() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -810,7 +810,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -818,9 +818,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -834,7 +834,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -842,9 +842,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -858,7 +858,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -866,9 +866,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesSuppressMissings() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getSimpleRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -882,7 +882,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME></NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -890,9 +890,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaNestedRecord() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecords();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -906,7 +906,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><STREET>292 West Street</STREET><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<STREET>123 6th St.</STREET><CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -916,9 +916,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -932,7 +932,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -942,9 +942,9 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaNestedRecordWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
-        RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final OutputStream out = new ByteArrayOutputStream();
+        final RecordSet recordSet = getNestedRecordsWithNullValues();
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -958,7 +958,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY>" +
                 "<ADDRESS><STREET></STREET><CITY>Jersey City</CITY></ADDRESS></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY><ADDRESS>" +
                 "<CITY>Seattle</CITY></ADDRESS></PERSON></ROOT>";
@@ -968,11 +968,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaNestedRecordWithOnlyNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
+        final RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -986,7 +986,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -994,11 +994,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaNestedRecordWithOnlyNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
+        final RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1012,7 +1012,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><ADDRESS><STREET></STREET><CITY></CITY></ADDRESS>" +
+        final String xmlResult = "<ROOT><PERSON><ADDRESS><STREET></STREET><CITY></CITY></ADDRESS>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ADDRESS></ADDRESS>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1022,11 +1022,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArray() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1040,7 +1040,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1050,11 +1050,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayWithNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1068,7 +1068,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1078,11 +1078,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayWithNullValuesNeverSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1096,7 +1096,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN>Tom</CHILDREN><CHILDREN></CHILDREN><CHILDREN>Ben</CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1106,11 +1106,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayWithOnlyNullValuesAlwaysSuppress() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1124,7 +1124,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1132,11 +1132,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayWithOnlyNullValuesAlwaysSuppressWrapping() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1150,7 +1150,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1158,11 +1158,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaEmptyArray() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1176,7 +1176,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1184,11 +1184,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaEmptyArrayNeverSupressPropAsWrapper() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1202,7 +1202,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><ARRAY></ARRAY><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><ARRAY></ARRAY><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ARRAY></ARRAY><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1210,11 +1210,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayPropAsWrapper() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1228,7 +1228,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
+        final String xmlResult = "<ROOT><PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><ARRAY><CHILDREN>Tom</CHILDREN><CHILDREN>Anna</CHILDREN><CHILDREN>Ben</CHILDREN></ARRAY>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1238,11 +1238,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleArrayPropForElem() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1256,7 +1256,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><ELEM>Tom</ELEM><ELEM>Anna</ELEM><ELEM>Ben</ELEM></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1266,11 +1266,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapAlwaysSuppressWithoutNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1284,7 +1284,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2>Anna</CHILD2></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1294,17 +1294,17 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapAlwaysSuppressHasNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
         writer.flush();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1314,11 +1314,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapAlwaysSuppressOnlyNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1332,7 +1332,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1340,11 +1340,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapAlwaysSuppressEmpty() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1358,7 +1358,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
@@ -1366,11 +1366,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapNeverSuppressHasNull() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1384,7 +1384,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
                 "<NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN><CHILD1>Tom</CHILD1><CHILD3>Ben</CHILD3><CHILD2></CHILD2></CHILDREN>" +
                 "<NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
@@ -1394,11 +1394,11 @@ public class TestWriteXMLResult {
 
     @Test
     public void testWriteWithoutSchemaSimpleMapNeverSuppressEmpty() throws IOException {
-        OutputStream out = new ByteArrayOutputStream();
+        final OutputStream out = new ByteArrayOutputStream();
 
-        RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
+        final RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
+        final WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1412,7 +1412,7 @@ public class TestWriteXMLResult {
         writer.flush();
         writer.close();
 
-        String xmlResult = "<ROOT><PERSON><CHILDREN></CHILDREN><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
+        final String xmlResult = "<ROOT><PERSON><CHILDREN></CHILDREN><NAME>Cleve Butler</NAME><AGE>42</AGE><COUNTRY>USA</COUNTRY></PERSON>" +
                 "<PERSON><CHILDREN></CHILDREN><NAME>Ainslie Fletcher</NAME><AGE>33</AGE><COUNTRY>UK</COUNTRY></PERSON></ROOT>";
 
         assertThat(xmlResult, CompareMatcher.isSimilarTo(out.toString()).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));

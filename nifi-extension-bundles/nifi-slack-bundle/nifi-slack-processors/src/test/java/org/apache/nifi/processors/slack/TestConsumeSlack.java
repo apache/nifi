@@ -583,8 +583,8 @@ public class TestConsumeSlack {
         }
 
         @Override
-        public String fetchChannelName(String channelId) {
-            Map<String, String> invertedMap = fetchChannelIds().entrySet().stream()
+        public String fetchChannelName(final String channelId) {
+            final Map<String, String> invertedMap = fetchChannelIds().entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
             return invertedMap.get(channelId);
         }

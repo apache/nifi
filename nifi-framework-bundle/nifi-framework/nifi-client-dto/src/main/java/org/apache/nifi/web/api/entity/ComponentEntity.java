@@ -48,7 +48,7 @@ public class ComponentEntity extends Entity {
         return revision;
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
 
@@ -78,7 +78,7 @@ public class ComponentEntity extends Entity {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -93,7 +93,7 @@ public class ComponentEntity extends Entity {
         return position;
     }
 
-    public void setPosition(PositionDTO position) {
+    public void setPosition(final PositionDTO position) {
         this.position = position;
     }
 
@@ -108,7 +108,7 @@ public class ComponentEntity extends Entity {
         return permissions;
     }
 
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -123,7 +123,7 @@ public class ComponentEntity extends Entity {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinEntity> bulletins) {
+    public void setBulletins(final List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 
@@ -133,7 +133,7 @@ public class ComponentEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
@@ -143,7 +143,7 @@ public class ComponentEntity extends Entity {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

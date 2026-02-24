@@ -19,7 +19,7 @@ package org.apache.nifi.processors.azure.storage.utils;
 import org.apache.nifi.flowfile.FlowFile;
 
 public record FlowFileResultCarrier<T>(FlowFile flowFile, T result, Throwable exception) {
-    public FlowFileResultCarrier(FlowFile flowFile, T result) {
+    public FlowFileResultCarrier(final FlowFile flowFile, final T result) {
         this(flowFile, result, null);
     }
 }

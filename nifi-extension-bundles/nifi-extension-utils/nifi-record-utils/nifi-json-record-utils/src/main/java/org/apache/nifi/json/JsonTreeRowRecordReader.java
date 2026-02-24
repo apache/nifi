@@ -83,7 +83,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             if (optionalRecordField.isPresent()) {
                 return getChildSchemaFromField(optionalRecordField.get());
             } else {
-                for (RecordField field : currentSchema.getFields()) {
+                for (final RecordField field : currentSchema.getFields()) {
                     if (field.getDataType() instanceof ArrayDataType || field.getDataType() instanceof RecordDataType) {
                         schemas.add(getChildSchemaFromField(field));
                     }
@@ -157,7 +157,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
                 final String fieldName = recordField.getFieldName();
 
-                Object value;
+                final Object value;
                 if (coerceTypes) {
                     final DataType desiredType = recordField.getDataType();
                     final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
@@ -247,20 +247,20 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             }
             case RECORD: {
                 if (fieldNode.isObject()) {
-                    RecordSchema childSchema;
-                    if (desiredType instanceof RecordDataType) {
-                        childSchema = ((RecordDataType) desiredType).getChildSchema();
-                    } else {
+                    if (!(desiredType instanceof RecordDataType)) {
                         return null;
                     }
 
-                    if (childSchema == null) {
+                    final RecordSchema desiredSchema = ((RecordDataType) desiredType).getChildSchema();
+                    final RecordSchema childSchema;
+                    if (desiredSchema != null) {
+                        childSchema = desiredSchema;
+                    } else {
                         final List<RecordField> fields = new ArrayList<>();
                         final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                         while (fieldNameItr.hasNext()) {
                             fields.add(new RecordField(fieldNameItr.next(), RecordFieldType.STRING.getDataType()));
                         }
-
                         childSchema = new SimpleRecordSchema(fields);
                     }
 

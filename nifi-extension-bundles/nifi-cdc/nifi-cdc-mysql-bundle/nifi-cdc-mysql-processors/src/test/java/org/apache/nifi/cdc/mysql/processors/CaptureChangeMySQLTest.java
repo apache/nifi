@@ -127,7 +127,7 @@ public class CaptureChangeMySQLTest {
     private MockBinlogClient client;
 
     @BeforeEach
-    public void setUp(@Mock Connection connection) {
+    public void setUp(final @Mock Connection connection) {
         processor = new MockCaptureChangeMySQL(connection);
         testRunner = TestRunners.newTestRunner(processor);
         client = new MockBinlogClient(LOCAL_HOST, DEFAULT_PORT, ROOT_USER, PASSWORD);
@@ -148,11 +148,11 @@ public class CaptureChangeMySQLTest {
     }
 
     @Test
-    public void testSslModeRequiredSslContextServiceConfigured(@Mock SSLContextService sslContextService) throws InitializationException {
+    public void testSslModeRequiredSslContextServiceConfigured(final @Mock SSLContextService sslContextService) throws InitializationException {
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
         testRunner.setProperty(CaptureChangeMySQL.SSL_MODE, SSLMode.REQUIRED.toString());
 
-        String identifier = SSLContextService.class.getName();
+        final String identifier = SSLContextService.class.getName();
         when(sslContextService.getIdentifier()).thenReturn(identifier);
         testRunner.addControllerService(identifier, sslContextService);
         testRunner.enableControllerService(sslContextService);
@@ -162,13 +162,13 @@ public class CaptureChangeMySQLTest {
     }
 
     @Test
-    public void testSslModeRequiredSslContextServiceConnected(@Mock SSLContextService sslContextService) throws NoSuchAlgorithmException, InitializationException {
+    public void testSslModeRequiredSslContextServiceConnected(final @Mock SSLContextService sslContextService) throws NoSuchAlgorithmException, InitializationException {
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, LOCAL_HOST_DEFAULT_PORT);
-        SSLMode sslMode = SSLMode.REQUIRED;
+        final SSLMode sslMode = SSLMode.REQUIRED;
         testRunner.setProperty(CaptureChangeMySQL.SSL_MODE, sslMode.toString());
 
-        SSLContext sslContext = SSLContext.getDefault();
-        String identifier = SSLContextService.class.getName();
+        final SSLContext sslContext = SSLContext.getDefault();
+        final String identifier = SSLContextService.class.getName();
         when(sslContextService.getIdentifier()).thenReturn(identifier);
         doReturn(sslContext).when(sslContextService).createContext();
 
@@ -180,7 +180,7 @@ public class CaptureChangeMySQLTest {
         testRunner.run();
 
         assertEquals(sslMode, client.getSSLMode(), "SSL Mode not matched");
-        SSLSocketFactory sslSocketFactory = client.getSslSocketFactory();
+        final SSLSocketFactory sslSocketFactory = client.getSslSocketFactory();
         assertNotNull(sslSocketFactory, "Binary Log SSLSocketFactory not found");
         assertEquals(BinaryLogSSLSocketFactory.class, sslSocketFactory.getClass(), "Binary Log SSLSocketFactory class not matched");
     }
@@ -226,12 +226,12 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // COMMIT
@@ -240,7 +240,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         assertEquals(2, resultFiles.size());
     }
 
@@ -258,22 +258,22 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 6L);
-        TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, COLUMN_TYPES);
+        final TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, COLUMN_TYPES);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
-        BitSet cols = new BitSet();
+        final BitSet cols = new BitSet();
         cols.set(1);
-        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
+        final WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
                 Collections.singletonList(new Serializable[]{2, SMITH}));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
@@ -283,11 +283,11 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         assertEquals(1, resultFiles.size());
         assertEquals(TEN, resultFiles.getFirst().getAttribute(EventWriter.SEQUENCE_ID_KEY));
         // Verify the contents of the event includes the database and table name even though the cache is not configured
-        Map<String, Object> json = MAPPER.readValue(resultFiles.getFirst().getContent(), Map.class);
+        final Map<String, Object> json = MAPPER.readValue(resultFiles.getFirst().getContent(), Map.class);
         assertEquals(MY_DB, json.get(DATABASE_KEY));
         assertEquals(MY_TABLE, json.get("table_name"));
     }
@@ -306,12 +306,12 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // COMMIT
@@ -320,7 +320,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         IntStream.range(0, resultFiles.size()).forEach(index -> assertEquals(index + 1L,
                 Long.valueOf(resultFiles.get(index).getAttribute(EventWriter.SEQUENCE_ID_KEY))));
     }
@@ -338,12 +338,12 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // COMMIT
@@ -352,7 +352,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
 
         IntStream.range(0, resultFiles.size()).forEach(index -> assertEquals(index + 10L,
                 Long.valueOf(resultFiles.get(index).getAttribute(EventWriter.SEQUENCE_ID_KEY))));
@@ -369,7 +369,7 @@ public class CaptureChangeMySQLTest {
         testRunner.run(1, false, true);
 
         // COMMIT
-        EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 12L);
+        final EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 12L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
 
         // This should not throw an exception, rather warn that a COMMIT event was sent out-of-sync
@@ -409,7 +409,7 @@ public class CaptureChangeMySQLTest {
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
         BitSet cols = new BitSet();
         cols.set(1);
-        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
+        final WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
                 Arrays.asList(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES}, new Serializable[]{10, CRUZ}));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
@@ -426,13 +426,13 @@ public class CaptureChangeMySQLTest {
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.UPDATE_ROWS, 20L);
-        BitSet colsBefore = new BitSet();
+        final BitSet colsBefore = new BitSet();
         colsBefore.set(0);
         colsBefore.set(1);
-        BitSet colsAfter = new BitSet();
+        final BitSet colsAfter = new BitSet();
         colsAfter.set(1);
-        Map<Serializable[], Serializable[]> updateMap = Collections.singletonMap(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES});
-        UpdateRowsEventData updateRowsEventData = EventUtils.buildUpdateRowsEventData(1L, colsBefore, colsAfter,
+        final Map<Serializable[], Serializable[]> updateMap = Collections.singletonMap(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES});
+        final UpdateRowsEventData updateRowsEventData = EventUtils.buildUpdateRowsEventData(1L, colsBefore, colsAfter,
                 new ArrayList<>(updateMap.entrySet()));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, updateRowsEventData));
 
@@ -461,7 +461,7 @@ public class CaptureChangeMySQLTest {
         cols = new BitSet();
         cols.set(0);
         cols.set(1);
-        DeleteRowsEventData deleteRowsEventData = EventUtils.buildDeleteRowsEventData(1L, cols,
+        final DeleteRowsEventData deleteRowsEventData = EventUtils.buildDeleteRowsEventData(1L, cols,
                 Arrays.asList(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES}));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, deleteRowsEventData));
 
@@ -470,8 +470,8 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
-        List<String> expectedEventTypes = new ArrayList<>();
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<String> expectedEventTypes = new ArrayList<>();
         expectedEventTypes.add(BEGIN_SQL_KEYWORD_LOWERCASE);
         expectedEventTypes.addAll(Collections.nCopies(3, INSERT_SQL_KEYWORD_LOWERCASE));
         expectedEventTypes.addAll(Arrays.asList(COMMIT_SQL_KEYWORD_LOWERCASE, BEGIN_SQL_KEYWORD_LOWERCASE, "update", COMMIT_SQL_KEYWORD_LOWERCASE, BEGIN_SQL_KEYWORD_LOWERCASE, "ddl"));
@@ -479,7 +479,7 @@ public class CaptureChangeMySQLTest {
         expectedEventTypes.add(COMMIT_SQL_KEYWORD_LOWERCASE);
 
         IntStream.range(0, resultFiles.size()).forEach(index -> {
-            MockFlowFile resultFile = resultFiles.get(index);
+            final MockFlowFile resultFile = resultFiles.get(index);
             assertEquals(EventWriter.APPLICATION_JSON, resultFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
             assertEquals(index, Long.valueOf(resultFile.getAttribute(EventWriter.SEQUENCE_ID_KEY)));
             assertEquals(index < 8 ? INIT_BIN_LOG_FILENAME : SUBSEQUENT_BIN_LOG_FILENAME, resultFile.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY));
@@ -487,11 +487,11 @@ public class CaptureChangeMySQLTest {
             assertEquals(expectedEventTypes.get(index), resultFile.getAttribute(EventWriter.CDC_EVENT_TYPE_ATTRIBUTE));
             // Check that DDL didn't change
             if (Objects.equals(resultFile.getAttribute(BinlogEventInfo.BINLOG_POSITION_KEY), "32")) {
-                String expectedQuery = "ALTER TABLE myTable add column col1 int";
+                final String expectedQuery = "ALTER TABLE myTable add column col1 int";
                 try {
-                    Map<String, Object> result = MAPPER.readValue(testRunner.getContentAsByteArray(resultFile), Map.class);
+                    final Map<String, Object> result = MAPPER.readValue(testRunner.getContentAsByteArray(resultFile), Map.class);
                     assertEquals(expectedQuery, result.get("query"));
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -519,7 +519,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE scenario
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // INSERT scenario
@@ -528,13 +528,13 @@ public class CaptureChangeMySQLTest {
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 6L);
-        TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, COLUMN_TYPES);
+        final TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, MY_TABLE, COLUMN_TYPES);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
-        BitSet cols = new BitSet();
+        final BitSet cols = new BitSet();
         cols.set(1);
-        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
+        final WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
                 (Arrays.asList(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES}, new Serializable[]{10, CRUZ})));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
@@ -548,15 +548,15 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // No DDL events expected
-        List<String> expectedEventTypes = new ArrayList<>();
+        final List<String> expectedEventTypes = new ArrayList<>();
         expectedEventTypes.add(BEGIN_SQL_KEYWORD_LOWERCASE);
         expectedEventTypes.addAll(Collections.nCopies(3, INSERT_SQL_KEYWORD_LOWERCASE));
         expectedEventTypes.add(COMMIT_SQL_KEYWORD_LOWERCASE);
 
         IntStream.range(0, resultFiles.size()).forEach(index -> {
-            MockFlowFile resultFile = resultFiles.get(index);
+            final MockFlowFile resultFile = resultFiles.get(index);
             assertEquals(index, Long.valueOf(resultFile.getAttribute(EventWriter.SEQUENCE_ID_KEY)));
             assertEquals(EventWriter.APPLICATION_JSON, resultFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
             assertEquals((index < 8) ? INIT_BIN_LOG_FILENAME : SUBSEQUENT_BIN_LOG_FILENAME, resultFile.getAttribute(BinlogEventInfo.BINLOG_FILENAME_KEY));
@@ -579,18 +579,18 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE scenario
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // INSERT scenario
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
-        BitSet cols = new BitSet();
+        final BitSet cols = new BitSet();
         cols.set(1);
-        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
+        final WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols,
                 Arrays.asList(new Serializable[]{2, SMITH}, new Serializable[]{3, JONES}, new Serializable[]{10, CRUZ}));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
@@ -616,7 +616,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
@@ -680,7 +680,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // BEGIN + WRITE + COMMIT from table matching, BEGIN + COMMIT for database matching
         assertEquals(5, resultFiles.size());
     }
@@ -702,7 +702,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
@@ -765,7 +765,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // Five events total, 2 max per flow file, so 3 flow files
         assertEquals(3, resultFiles.size());
 
@@ -803,7 +803,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
@@ -866,7 +866,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // Five events total, 3 max per flow file, so 2 flow files
         assertEquals(2, resultFiles.size());
         List<Map<String, Object>> json = MAPPER.readValue(resultFiles.getFirst().toByteArray(), List.class);
@@ -899,7 +899,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
@@ -919,7 +919,7 @@ public class CaptureChangeMySQLTest {
         // Test database filter
         ////////////////////////
 
-        String database = "NotMyDB";
+        final String database = "NotMyDB";
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
         queryEventData = EventUtils.buildQueryEventData(database, BEGIN_SQL_KEYWORD_UPPERCASE);
@@ -935,13 +935,13 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // First BEGIN + DDL + COMMIT only
         assertEquals(3, resultFiles.size());
 
         // Check that the database name is set on the objects
-        for (MockFlowFile flowFile : resultFiles) {
-            Map<String, Object> json = MAPPER.readValue(flowFile.toByteArray(), Map.class);
+        for (final MockFlowFile flowFile : resultFiles) {
+            final Map<String, Object> json = MAPPER.readValue(flowFile.toByteArray(), Map.class);
             assertEquals(MY_DB, json.get(DATABASE_KEY));
         }
     }
@@ -959,17 +959,17 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // TABLE MAP
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.TABLE_MAP, 6L);
-        TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, USERS_TABLE, COLUMN_TYPES);
+        final TableMapEventData tableMapEventData = EventUtils.buildTableMapEventData(1L, MY_DB, USERS_TABLE, COLUMN_TYPES);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, tableMapEventData));
 
         // Run and Stop the processor
@@ -983,9 +983,9 @@ public class CaptureChangeMySQLTest {
 
         // This WRITE ROWS should be skipped
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.EXT_WRITE_ROWS, 8L);
-        BitSet cols = new BitSet();
+        final BitSet cols = new BitSet();
         cols.set(1);
-        WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols, Collections.singletonList(new Serializable[]{2, SMITH}));
+        final WriteRowsEventData writeRowsEventData = EventUtils.buildWriteRowsEventData(1L, cols, Collections.singletonList(new Serializable[]{2, SMITH}));
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, writeRowsEventData));
 
         // COMMIT
@@ -1033,7 +1033,7 @@ public class CaptureChangeMySQLTest {
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 6L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         testRunner.run(1, false, false);
@@ -1146,12 +1146,12 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // DROP TABLE
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, "DROP TABLE myTable");
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, "DROP TABLE myTable");
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         testRunner.run(1, false, false);
@@ -1170,7 +1170,7 @@ public class CaptureChangeMySQLTest {
 
         // ROTATE
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.ROTATE, 2L);
-        RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
+        final RotateEventData rotateEventData = EventUtils.buildRotateEventData(INIT_BIN_LOG_FILENAME, 4L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, rotateEventData));
 
         // BEGIN
@@ -1189,7 +1189,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         assertEquals(1, resultFiles.size());
     }
 
@@ -1204,7 +1204,7 @@ public class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.INIT_SEQUENCE_ID, TEN);
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, Boolean.FALSE.toString());
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, Boolean.TRUE.toString());
-        Map<String, String> state = new HashMap<>();
+        final Map<String, String> state = new HashMap<>();
         state.put(BinlogEventInfo.BINLOG_GTIDSET_KEY, EventUtils.buildGtid(GTID_SOURCE_ID, TWO));
         state.put(EventWriter.SEQUENCE_ID_KEY, ONE);
         testRunner.getStateManager().setState(state, Scope.CLUSTER);
@@ -1213,12 +1213,12 @@ public class CaptureChangeMySQLTest {
 
         // GTID
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.GTID, 2L);
-        GtidEventData gtidEventData = EventUtils.buildGtidEventData(GTID_SOURCE_ID, THREE);
+        final GtidEventData gtidEventData = EventUtils.buildGtidEventData(GTID_SOURCE_ID, THREE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, gtidEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // COMMIT
@@ -1227,7 +1227,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
 
         assertEquals(2, resultFiles.size());
         assertEquals(EventUtils.buildGtid(GTID_SOURCE_ID, "2-3"),
@@ -1250,12 +1250,12 @@ public class CaptureChangeMySQLTest {
 
         // GTID
         EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.GTID, 2L);
-        GtidEventData gtidEventData = EventUtils.buildGtidEventData(GTID_SOURCE_ID, THREE);
+        final GtidEventData gtidEventData = EventUtils.buildGtidEventData(GTID_SOURCE_ID, THREE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, gtidEventData));
 
         // BEGIN
         eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.QUERY, 4L);
-        QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
+        final QueryEventData queryEventData = EventUtils.buildQueryEventData(MY_DB, BEGIN_SQL_KEYWORD_UPPERCASE);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4, queryEventData));
 
         // COMMIT
@@ -1264,7 +1264,7 @@ public class CaptureChangeMySQLTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
+        final List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
 
         assertEquals(2, resultFiles.size());
         assertEquals(EventUtils.buildGtid(GTID_SOURCE_ID, "1-1", "3-3"),
@@ -1282,7 +1282,7 @@ public class CaptureChangeMySQLTest {
         testRunner.run(1, false, true);
 
         // COMMIT
-        EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 12L);
+        final EventHeaderV4 eventHeaderV4 = EventUtils.buildEventHeaderV4(EventType.XID, 12L);
         client.sendEvent(EventUtils.buildEvent(eventHeaderV4));
 
         // when we ge a xid event without having got a 'begin' event , don't throw an exception, just warn the user
@@ -1336,26 +1336,26 @@ public class CaptureChangeMySQLTest {
     class MockCaptureChangeMySQL extends CaptureChangeMySQL {
         private final Connection mockConnection;
 
-        public MockCaptureChangeMySQL(Connection mockConnection) {
+        public MockCaptureChangeMySQL(final Connection mockConnection) {
             this.mockConnection = mockConnection;
         }
 
         Map<TableInfoCacheKey, TableInfo> cache = new HashMap<>();
 
         @Override
-        protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
+        protected BinaryLogClient createBinlogClient(final String hostname, final int port, final String username, final String password) {
             return client;
         }
 
         @Override
-        protected TableInfo loadTableInfo(TableInfoCacheKey key) {
-            TableInfo tableInfo = cache.computeIfAbsent(key, k -> new TableInfo(k.getDatabaseName(), k.getTableName(), k.getTableId(),
+        protected TableInfo loadTableInfo(final TableInfoCacheKey key) {
+            final TableInfo tableInfo = cache.computeIfAbsent(key, k -> new TableInfo(k.getDatabaseName(), k.getTableName(), k.getTableId(),
                     Collections.singletonList(new ColumnDefinition((byte) -4, "string1"))));
             return tableInfo;
         }
 
         @Override
-        protected void registerDriver(String locationString, String drvName) {
+        protected void registerDriver(final String locationString, final String drvName) {
         }
 
         @Override

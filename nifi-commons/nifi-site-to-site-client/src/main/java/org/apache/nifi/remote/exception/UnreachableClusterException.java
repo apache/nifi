@@ -27,7 +27,7 @@ public class UnreachableClusterException extends ProtocolException {
         super(message);
     }
 
-    public UnreachableClusterException(String message, Throwable cause) {
+    public UnreachableClusterException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

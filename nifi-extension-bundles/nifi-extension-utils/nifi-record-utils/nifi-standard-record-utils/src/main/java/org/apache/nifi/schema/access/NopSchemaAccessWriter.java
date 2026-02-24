@@ -29,16 +29,16 @@ import java.util.Set;
 public class NopSchemaAccessWriter implements SchemaAccessWriter {
 
     @Override
-    public void writeHeader(RecordSchema schema, OutputStream out) throws IOException {
+    public void writeHeader(final RecordSchema schema, final OutputStream out) throws IOException {
     }
 
     @Override
-    public Map<String, String> getAttributes(RecordSchema schema) {
+    public Map<String, String> getAttributes(final RecordSchema schema) {
         return Collections.emptyMap();
     }
 
     @Override
-    public void validateSchema(RecordSchema schema) throws SchemaNotFoundException {
+    public void validateSchema(final RecordSchema schema) throws SchemaNotFoundException {
     }
 
     @Override

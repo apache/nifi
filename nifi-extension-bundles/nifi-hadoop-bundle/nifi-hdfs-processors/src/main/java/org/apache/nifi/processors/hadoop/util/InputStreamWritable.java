@@ -38,13 +38,13 @@ public class InputStreamWritable implements Writable {
     }
 
     @Override
-    public void write(DataOutput output) throws IOException {
+    public void write(final DataOutput output) throws IOException {
         int numRead;
         int totalRead = 0;
         final byte[] buffer = new byte[8192];
         output.writeInt(size);
 
-        int tempSize = size == -1 ? Integer.MAX_VALUE : size;
+        final int tempSize = size == -1 ? Integer.MAX_VALUE : size;
         int toRead = Math.min(tempSize, 8192);
         while (totalRead < tempSize && (numRead = inStream.read(buffer, 0, toRead)) != -1) {
             output.write(buffer, 0, numRead);
@@ -54,7 +54,7 @@ public class InputStreamWritable implements Writable {
     }
 
     @Override
-    public void readFields(DataInput di) throws IOException {
+    public void readFields(final DataInput di) throws IOException {
         throw new UnsupportedOperationException("InputStreamWritable does not implement #readFields");
     }
 }

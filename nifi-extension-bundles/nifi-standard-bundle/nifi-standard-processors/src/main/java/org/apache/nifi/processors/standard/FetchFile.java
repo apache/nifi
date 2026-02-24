@@ -250,7 +250,7 @@ public class FetchFile extends AbstractProcessor {
         final File file = new File(filename);
 
         // Verify that file system is reachable and file exists
-        Path filePath = file.toPath();
+        final Path filePath = file.toPath();
         if (!Files.exists(filePath) && !Files.notExists(filePath)) { // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
             getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure",
                     file, flowFile);
@@ -291,7 +291,7 @@ public class FetchFile extends AbstractProcessor {
                 if (!targetDir.exists()) {
                     try {
                         Files.createDirectories(targetDir.toPath());
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
                                         + "but that directory does not exist and could not be created due to: {}",
                                 file, flowFile, targetDir, e.getMessage(), e);
@@ -337,7 +337,7 @@ public class FetchFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Log level when file not found", FILE_NOT_FOUND_LOG_LEVEL.getName());
         config.renameProperty("Log level when permission denied", PERM_DENIED_LOG_LEVEL.getName());
     }

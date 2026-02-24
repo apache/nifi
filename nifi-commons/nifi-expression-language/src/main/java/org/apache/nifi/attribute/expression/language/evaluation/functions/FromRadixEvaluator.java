@@ -44,7 +44,7 @@ public class FromRadixEvaluator extends WholeNumberEvaluator {
             return new WholeNumberQueryResult(null);
         }
 
-        long longValue = Long.parseLong(result, radix.intValue());
+        final long longValue = Long.parseLong(result, radix.intValue());
 
         return new WholeNumberQueryResult(longValue);
     }

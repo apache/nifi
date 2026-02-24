@@ -37,7 +37,7 @@ public class PutMongoTest {
      */
     @Test
     public void testQueryKeyValidation() {
-        TestRunner runner = TestRunners.newTestRunner(PutMongo.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutMongo.class);
         runner.setProperty(PutMongo.DATABASE_NAME, "demo");
         runner.setProperty(PutMongo.COLLECTION_NAME, "messages");
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_INSERT);

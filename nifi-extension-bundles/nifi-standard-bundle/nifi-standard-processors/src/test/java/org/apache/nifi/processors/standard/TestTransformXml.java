@@ -93,7 +93,7 @@ public class TestTransformXml {
         attributes.put("uuid_0", "uuid_0");
         attributes.put("uuid_1", "uuid_1");
 
-        StringBuilder builder = new StringBuilder();
+        final StringBuilder builder = new StringBuilder();
         builder.append("<data>\n");
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -104,7 +104,7 @@ public class TestTransformXml {
                 builder.append(line).append("\n");
             }
             builder.append("</data>");
-            String data = builder.toString();
+            final String data = builder.toString();
             runner.enqueue(data.getBytes(), attributes);
             runner.run();
 
@@ -301,9 +301,9 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
-        MockComponentLog logger = runner.getLogger();
+        final MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        String firstMessage = logger.getErrorMessages().getFirst().getMsg();
+        final String firstMessage = logger.getErrorMessages().getFirst().getMsg();
         assertTrue(firstMessage.contains("xsl:template"));
     }
 
@@ -316,9 +316,9 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
-        MockComponentLog logger = runner.getLogger();
+        final MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        String firstMessage = logger.getErrorMessages().getFirst().getMsg();
+        final String firstMessage = logger.getErrorMessages().getFirst().getMsg();
         assertTrue(firstMessage.contains("xsl:message"));
     }
 
@@ -335,7 +335,7 @@ public class TestTransformXml {
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/employee.html")));
 
         transformed.assertContentEquals(expectedContent);
-        MockComponentLog logger = runner.getLogger();
+        final MockComponentLog logger = runner.getLogger();
         assertTrue(logger.getErrorMessages().isEmpty());
         assertTrue(logger.getWarnMessages().isEmpty());
     }

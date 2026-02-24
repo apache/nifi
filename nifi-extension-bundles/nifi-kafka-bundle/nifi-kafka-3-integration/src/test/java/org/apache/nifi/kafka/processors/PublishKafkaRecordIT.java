@@ -80,7 +80,7 @@ public class PublishKafkaRecordIT extends AbstractPublishKafkaIT {
             consumer.subscribe(Collections.singletonList(getClass().getName()));
             final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
             assertEquals(TEST_RECORD_COUNT, records.count());
-            for (ConsumerRecord<String, String> record : records) {
+            for (final ConsumerRecord<String, String> record : records) {
                 assertEquals(KEY_ATTRIBUTE_VALUE, record.key());
                 assertNotNull(objectMapper.readTree(record.value()));
                 final List<Header> headers = Arrays.asList(record.headers().toArray());

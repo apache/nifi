@@ -169,7 +169,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerDescription);
             if (connectionQueue == null) {
                 connectionQueue = new LinkedBlockingQueue<>();
-                BlockingQueue<EndpointConnection> existing = connectionQueueMap.putIfAbsent(peerDescription, connectionQueue);
+                final BlockingQueue<EndpointConnection> existing = connectionQueueMap.putIfAbsent(peerDescription, connectionQueue);
                 if (existing != null) {
                     connectionQueue = existing;
                 }
@@ -343,7 +343,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
                 logger.debug("{} Transmission Disabled by User", this);
-            } catch (IOException ignored) {
+            } catch (final IOException ignored) {
             }
         }
 
@@ -353,7 +353,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             } catch (final TransmissionDisabledException e) {
                 // User disabled transmission.... do nothing.
                 logger.debug("{} Transmission Disabled by User", this);
-            } catch (IOException ignored) {
+            } catch (final IOException ignored) {
             }
         }
     }

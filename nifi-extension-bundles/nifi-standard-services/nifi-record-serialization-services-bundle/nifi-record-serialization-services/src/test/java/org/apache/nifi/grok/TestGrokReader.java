@@ -78,13 +78,13 @@ public class TestGrokReader {
 
     @Test
     void testComplexGrokExpression() throws Exception {
-        String input = "1021-09-09 09:03:06 127.0.0.1 nifi[1000]: LogMessage" + System.lineSeparator()
+        final String input = "1021-09-09 09:03:06 127.0.0.1 nifi[1000]: LogMessage" + System.lineSeparator()
             + "October 19 19:13:16 127.0.0.1 nifi[1000]: LogMessage2" + System.lineSeparator();
 
-        String grokPatternFile = "src/test/resources/grok/grok_patterns.txt";
-        String grokExpression = "%{LINE}";
+        final String grokPatternFile = "src/test/resources/grok/grok_patterns.txt";
+        final String grokExpression = "%{LINE}";
 
-        SimpleRecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
             new RecordField(TIMESTAMP_FIELD, RecordFieldType.STRING.getDataType()),
             new RecordField(FACILITY_FIELD, RecordFieldType.STRING.getDataType()),
             new RecordField("priority", RecordFieldType.STRING.getDataType()),

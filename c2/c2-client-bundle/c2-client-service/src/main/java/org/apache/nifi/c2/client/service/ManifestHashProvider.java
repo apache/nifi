@@ -45,19 +45,19 @@ public class ManifestHashProvider {
     private int currentHashCode;
     private String currentManifestHash;
 
-    public String calculateManifestHash(List<Bundle> loadedBundles, Set<SupportedOperation> supportedOperations) {
-        String bundleString = loadedBundles.stream()
+    public String calculateManifestHash(final List<Bundle> loadedBundles, final Set<SupportedOperation> supportedOperations) {
+        final String bundleString = loadedBundles.stream()
                 .map(this::getComponentCoordinates)
                 .flatMap(Collection::stream)
                 .sorted()
                 .collect(Collectors.joining(","));
-        int hashCode = Objects.hash(bundleString, supportedOperations);
+        final int hashCode = Objects.hash(bundleString, supportedOperations);
         if (hashCode != currentHashCode
                 || !(Objects.equals(bundleString, currentBundles) && Objects.equals(supportedOperations, currentSupportedOperations))) {
-            byte[] bytes;
+            final byte[] bytes;
             try {
                 bytes = MessageDigest.getInstance("SHA-512").digest(getBytes(supportedOperations, bundleString));
-            } catch (NoSuchAlgorithmException e) {
+            } catch (final NoSuchAlgorithmException e) {
                 throw new RuntimeException("Unable to set up manifest hash calculation due to not having support for the chosen digest algorithm", e);
             }
             currentHashCode = hashCode;
@@ -68,30 +68,30 @@ public class ManifestHashProvider {
         return currentManifestHash;
     }
 
-    private byte[] getBytes(Set<SupportedOperation> supportedOperations, String bundleString) {
+    private byte[] getBytes(final Set<SupportedOperation> supportedOperations, final String bundleString) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
             oos.write(bundleString.getBytes(StandardCharsets.UTF_8));
             oos.writeObject(supportedOperations);
             oos.flush();
             return bos.toByteArray();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Failed to transform supportedOperations and bundles to byte array", e);
         }
     }
 
-    private String bytesToHex(byte[] in) {
+    private String bytesToHex(final byte[] in) {
         final StringBuilder builder = new StringBuilder();
-        for (byte b : in) {
+        for (final byte b : in) {
             builder.append(String.format("%02x", b));
         }
         return builder.toString();
     }
 
-    private List<String> getComponentCoordinates(Bundle bundle) {
-        ComponentManifest componentManifest = bundle.getComponentManifest();
+    private List<String> getComponentCoordinates(final Bundle bundle) {
+        final ComponentManifest componentManifest = bundle.getComponentManifest();
 
-        List<String> coordinates = componentManifest == null
+        final List<String> coordinates = componentManifest == null
                 ? emptyList()
                 : Stream.of(componentManifest.getProcessors(),
                         componentManifest.getApis(),

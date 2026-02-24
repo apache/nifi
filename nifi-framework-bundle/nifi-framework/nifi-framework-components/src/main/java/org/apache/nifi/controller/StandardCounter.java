@@ -81,7 +81,7 @@ public class StandardCounter implements Counter {
         }
 
         @Override
-        public void adjust(long delta) {
+        public void adjust(final long delta) {
             throw new UnsupportedOperationException("Cannot modify value of UnmodifiableCounter");
         }
 

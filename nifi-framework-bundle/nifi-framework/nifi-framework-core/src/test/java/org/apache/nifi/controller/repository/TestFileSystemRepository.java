@@ -333,7 +333,7 @@ public class TestFileSystemRepository {
         repository.shutdown();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalNifiPropertiesFile.toString());
 
-        Path bogus = rootFile.resolve("bogus");
+        final Path bogus = rootFile.resolve("bogus");
         try {
             Files.createDirectories(bogus);
             bogus.toFile().setReadable(false);
@@ -646,7 +646,7 @@ public class TestFileSystemRepository {
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
 
-        Path archivePath = FileSystemRepository.getArchivePath(path);
+        final Path archivePath = FileSystemRepository.getArchivePath(path);
 
         Files.createDirectories(archivePath.getParent());
         final byte[] data = "The quick brown fox jumps over the lazy dog".getBytes();
@@ -669,7 +669,7 @@ public class TestFileSystemRepository {
         final Path path = getPath(claim);
         Files.deleteIfExists(path);
 
-        Path archivePath = FileSystemRepository.getArchivePath(path);
+        final Path archivePath = FileSystemRepository.getArchivePath(path);
         Files.deleteIfExists(archivePath);
 
         assertThrows(ContentNotFoundException.class, () -> repository.read(claim).close());
@@ -723,7 +723,7 @@ public class TestFileSystemRepository {
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) {
+                protected boolean archive(final Path curPath) {
                     archivedPaths.add(curPath);
                     return true;
                 }
@@ -744,7 +744,7 @@ public class TestFileSystemRepository {
 
             assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
 
-            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            final int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
             assertEquals(0, claimantCount);
             assertTrue(archivedPaths.isEmpty());
 
@@ -774,7 +774,7 @@ public class TestFileSystemRepository {
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) {
+                protected boolean archive(final Path curPath) {
                     if (getOpenStreamCount() > 0) {
                         archivedPathsWithOpenStream.add(curPath);
                     }
@@ -791,7 +791,7 @@ public class TestFileSystemRepository {
 
             assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
 
-            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            final int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
             assertEquals(0, claimantCount);
             assertTrue(archivedPathsWithOpenStream.isEmpty());
 
@@ -799,7 +799,7 @@ public class TestFileSystemRepository {
             out.close();
             repository.decrementClaimantCount(claim);
 
-            ContentClaim claim2 = repository.create(false);
+            final ContentClaim claim2 = repository.create(false);
             assertEquals(claim.getResourceClaim(), claim2.getResourceClaim());
             out = repository.write(claim2);
 
@@ -852,7 +852,7 @@ public class TestFileSystemRepository {
 
             repository = new FileSystemRepository(nifiProperties) {
                 @Override
-                protected boolean archive(Path curPath) {
+                protected boolean archive(final Path curPath) {
                     if (getOpenStreamCount() > 0) {
                         archivedPathsWithOpenStream.add(curPath);
                     }
@@ -870,7 +870,7 @@ public class TestFileSystemRepository {
 
             assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
 
-            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            final int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
             assertEquals(0, claimantCount);
             assertTrue(archivedPathsWithOpenStream.isEmpty());
 

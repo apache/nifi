@@ -22,7 +22,7 @@ public enum InputFileType implements DescribedValue {
     XLS("XLS 1997-2007 file format"),
     XLSX("XLSX 2007-present OOXML file format");
 
-    InputFileType(String description) {
+    InputFileType(final String description) {
         this.description = description;
     }
 

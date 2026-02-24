@@ -70,7 +70,7 @@ public class TestIPLookupService {
         testSubject = new IPLookupService() {
             @NotNull
             @Override
-            DatabaseReader createDatabaseReader(File dbFile) {
+            DatabaseReader createDatabaseReader(final File dbFile) {
                 return mockDatabaseReader;
             }
         };

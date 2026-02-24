@@ -237,7 +237,7 @@ public class PutParquetTest {
     public void testCreateDirectoryIOExceptionShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
-            protected void createDirectory(FileSystem fileSystem, Path directory, String remoteOwner, String remoteGroup)
+            protected void createDirectory(final FileSystem fileSystem, final Path directory, final String remoteOwner, final String remoteGroup)
                     throws IOException {
                 throw new IOException("IOException creating directory");
             }
@@ -259,7 +259,7 @@ public class PutParquetTest {
     public void testCreateDirectoryFailureExceptionShouldRouteToFailure() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
-            protected void createDirectory(FileSystem fileSystem, Path directory, String remoteOwner, String remoteGroup)
+            protected void createDirectory(final FileSystem fileSystem, final Path directory, final String remoteOwner, final String remoteGroup)
                     throws FailureException {
                 throw new FailureException("FailureException creating directory");
             }
@@ -380,7 +380,7 @@ public class PutParquetTest {
     public void testIOExceptionCreatingWriterShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
-            public HDFSRecordWriter createHDFSRecordWriter(ProcessContext context, FlowFile flowFile, Configuration conf, Path path, RecordSchema schema)
+            public HDFSRecordWriter createHDFSRecordWriter(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path, final RecordSchema schema)
                     throws IOException {
                 throw new IOException("IOException");
             }
@@ -430,7 +430,7 @@ public class PutParquetTest {
     public void testIOExceptionRenamingShouldRouteToRetry() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
-            protected void rename(FileSystem fileSystem, Path srcFile, Path destFile)
+            protected void rename(final FileSystem fileSystem, final Path srcFile, final Path destFile)
                     throws IOException {
                 throw new IOException("IOException renaming");
             }
@@ -456,7 +456,7 @@ public class PutParquetTest {
     public void testFailureExceptionRenamingShouldRouteToFailure() throws InitializationException {
         final PutParquet proc = new PutParquet() {
             @Override
-            protected void rename(FileSystem fileSystem, Path srcFile, Path destFile)
+            protected void rename(final FileSystem fileSystem, final Path srcFile, final Path destFile)
                     throws FailureException {
                 throw new FailureException("FailureException renaming");
             }

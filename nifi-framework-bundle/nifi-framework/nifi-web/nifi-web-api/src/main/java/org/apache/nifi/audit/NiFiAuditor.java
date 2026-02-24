@@ -59,7 +59,7 @@ public abstract class NiFiAuditor {
      * @param action action
      * @param logger logger
      */
-    protected void saveAction(Action action, Logger logger) {
+    protected void saveAction(final Action action, final Logger logger) {
         final Collection<Action> actions = new ArrayList<>();
         actions.add(action);
         saveActions(actions, logger);
@@ -71,12 +71,12 @@ public abstract class NiFiAuditor {
      * @param actions actions
      * @param logger logger
      */
-    protected void saveActions(Collection<Action> actions, Logger logger) {
+    protected void saveActions(final Collection<Action> actions, final Logger logger) {
         // always save the actions regardless of cluster or stand-alone
         // all nodes in a cluster will have their own local copy without batching
         try {
             auditService.addActions(actions);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             logger.warn("Unable to record actions: ", t);
             if (logger.isDebugEnabled()) {
                 logger.warn(StringUtils.EMPTY, t);
@@ -84,10 +84,10 @@ public abstract class NiFiAuditor {
         }
     }
 
-    protected void deletePreviousValues(String propertyName, String componentId, Logger logger) {
+    protected void deletePreviousValues(final String propertyName, final String componentId, final Logger logger) {
         try {
             auditService.deletePreviousValues(propertyName, componentId);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             logger.warn("Unable to delete property history", t);
             if (logger.isDebugEnabled()) {
                 logger.warn(StringUtils.EMPTY, t);
@@ -95,12 +95,12 @@ public abstract class NiFiAuditor {
         }
     }
 
-    protected MoveDetails createMoveDetails(String previousGroupId, String newGroupId, Logger logger) {
+    protected MoveDetails createMoveDetails(final String previousGroupId, final String newGroupId, final Logger logger) {
         FlowChangeMoveDetails moveDetails = null;
 
         // get the groups in question
-        ProcessGroup previousGroup = processGroupDAO.getProcessGroup(previousGroupId);
-        ProcessGroup newGroup = processGroupDAO.getProcessGroup(newGroupId);
+        final ProcessGroup previousGroup = processGroupDAO.getProcessGroup(previousGroupId);
+        final ProcessGroup newGroup = processGroupDAO.getProcessGroup(newGroupId);
 
         // ensure the groups were found
         if (previousGroup != null && newGroup != null) {
@@ -176,12 +176,12 @@ public abstract class NiFiAuditor {
     }
 
     @Autowired
-    public void setAuditService(AuditService auditService) {
+    public void setAuditService(final AuditService auditService) {
         this.auditService = auditService;
     }
 
     @Autowired
-    public void setProcessGroupDAO(ProcessGroupDAO processGroupDAO) {
+    public void setProcessGroupDAO(final ProcessGroupDAO processGroupDAO) {
         this.processGroupDAO = processGroupDAO;
     }
 

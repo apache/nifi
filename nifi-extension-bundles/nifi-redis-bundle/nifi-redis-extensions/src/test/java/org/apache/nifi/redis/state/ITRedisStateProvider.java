@@ -82,7 +82,7 @@ public class ITRedisStateProvider {
         if (provider != null) {
             try {
                 provider.clear(componentId);
-            } catch (IOException ignored) {
+            } catch (final IOException ignored) {
             }
             provider.disable();
             provider.shutdown();
@@ -213,7 +213,7 @@ public class ITRedisStateProvider {
         final String key = "testReplaceWithNonExistingValue";
         final String value = "value";
         final StateProvider provider = getProvider();
-        StateMap stateMap = provider.getState(componentId);
+        final StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
 
         final Map<String, String> newValue = new HashMap<>();
@@ -222,7 +222,7 @@ public class ITRedisStateProvider {
         final boolean replaced = provider.replace(stateMap, newValue, componentId);
         assertTrue(replaced);
 
-        StateMap map = provider.getState(componentId);
+        final StateMap map = provider.getState(componentId);
         assertEquals(value, map.get(key));
         assertTrue(map.getStateVersion().isPresent());
     }
@@ -237,7 +237,7 @@ public class ITRedisStateProvider {
             }
 
             @Override
-            public String get(String key) {
+            public String get(final String key) {
                 return null;
             }
 
@@ -381,10 +381,10 @@ public class ITRedisStateProvider {
                 throw new IllegalStateException(String.format("Failed to flush Redis container: %s%s",
                         execResult.getStdout(), execResult.getStderr()));
             }
-        } catch (InterruptedException interruptedException) {
+        } catch (final InterruptedException interruptedException) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while flushing Redis container", interruptedException);
-        } catch (IOException ioException) {
+        } catch (final IOException ioException) {
             throw new IllegalStateException("Failed to flush Redis container", ioException);
         }
     }

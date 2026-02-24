@@ -32,7 +32,7 @@ public class TagCountResult extends AbstractWritableResult<List<TagCount>> {
 
     private final List<TagCount> tagCounts;
 
-    public TagCountResult(ResultType resultType, final List<TagCount> tagCounts) {
+    public TagCountResult(final ResultType resultType, final List<TagCount> tagCounts) {
         super(resultType);
         this.tagCounts = Objects.requireNonNull(tagCounts);
     }

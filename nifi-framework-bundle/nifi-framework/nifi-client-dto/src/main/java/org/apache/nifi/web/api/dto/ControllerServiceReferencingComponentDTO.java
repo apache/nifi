@@ -57,7 +57,7 @@ public class ControllerServiceReferencingComponentDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -70,7 +70,7 @@ public class ControllerServiceReferencingComponentDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -83,7 +83,7 @@ public class ControllerServiceReferencingComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -96,7 +96,7 @@ public class ControllerServiceReferencingComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -110,7 +110,7 @@ public class ControllerServiceReferencingComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -124,7 +124,7 @@ public class ControllerServiceReferencingComponentDTO {
         return referenceType;
     }
 
-    public void setReferenceType(String referenceType) {
+    public void setReferenceType(final String referenceType) {
         this.referenceType = referenceType;
     }
 
@@ -137,7 +137,7 @@ public class ControllerServiceReferencingComponentDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -150,7 +150,7 @@ public class ControllerServiceReferencingComponentDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -163,7 +163,7 @@ public class ControllerServiceReferencingComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -176,7 +176,7 @@ public class ControllerServiceReferencingComponentDTO {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -189,7 +189,7 @@ public class ControllerServiceReferencingComponentDTO {
         return referencingComponents;
     }
 
-    public void setReferencingComponents(Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
+    public void setReferencingComponents(final Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
         this.referencingComponents = referencingComponents;
     }
 
@@ -202,7 +202,7 @@ public class ControllerServiceReferencingComponentDTO {
         return referenceCycle;
     }
 
-    public void setReferenceCycle(Boolean referenceCycle) {
+    public void setReferenceCycle(final Boolean referenceCycle) {
         this.referenceCycle = referenceCycle;
     }
 

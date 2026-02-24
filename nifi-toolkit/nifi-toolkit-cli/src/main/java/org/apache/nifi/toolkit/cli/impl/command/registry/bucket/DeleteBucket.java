@@ -46,7 +46,7 @@ public class DeleteBucket extends AbstractNiFiRegistryCommand<OkResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.BUCKET_ID.createOption());
         addOption(CommandOption.FORCE.createOption());
     }

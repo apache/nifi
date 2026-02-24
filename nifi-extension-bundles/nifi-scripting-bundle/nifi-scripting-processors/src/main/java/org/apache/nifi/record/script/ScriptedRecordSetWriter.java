@@ -91,7 +91,7 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
                     } else {
                         throw new ScriptException("No ScriptedRecordSetWriter was defined by the script.");
                     }
-                } catch (ScriptException se) {
+                } catch (final ScriptException se) {
                     throw new ProcessException("Error executing onEnabled(context) method", se);
                 }
             }
@@ -101,11 +101,11 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     }
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
         if (recordFactory.get() != null) {
             try {
                 return recordFactory.get().createWriter(logger, schema, out, variables);
-            } catch (UndeclaredThrowableException ute) {
+            } catch (final UndeclaredThrowableException ute) {
                 throw new IOException(ute.getCause());
             }
         }
@@ -136,7 +136,7 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
                 throw new ProcessException("No script runner available!");
             }
             // get the engine and ensure its invocable
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
@@ -198,7 +198,7 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         final RecordSetWriterFactory writerFactory = recordFactory.get();
         if (writerFactory == null) {
             return null;
@@ -206,7 +206,7 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
 
         try {
             return writerFactory.getSchema(variables, readSchema);
-        } catch (UndeclaredThrowableException ute) {
+        } catch (final UndeclaredThrowableException ute) {
             throw new IOException(ute.getCause());
         }
     }

@@ -21,7 +21,7 @@ package org.apache.nifi.authorization.exception;
  */
 public class UninheritableAuthorizationsException extends RuntimeException {
 
-    public UninheritableAuthorizationsException(String message) {
+    public UninheritableAuthorizationsException(final String message) {
         super(message);
     }
 

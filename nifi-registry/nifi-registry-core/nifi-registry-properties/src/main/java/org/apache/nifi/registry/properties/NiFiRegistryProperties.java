@@ -192,7 +192,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public boolean getNeedClientAuth() {
         boolean needClientAuth = true;
-        String rawNeedClientAuth = getProperty(SECURITY_NEED_CLIENT_AUTH);
+        final String rawNeedClientAuth = getProperty(SECURITY_NEED_CLIENT_AUTH);
         if ("false".equalsIgnoreCase(rawNeedClientAuth)) {
             needClientAuth = false;
         }
@@ -347,7 +347,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     // Helper functions for common ways of interpreting property values
 
-    private String getPropertyAsTrimmedString(String key) {
+    private String getPropertyAsTrimmedString(final String key) {
         final String value = getProperty(key);
         if (!StringUtils.isBlank(value)) {
             return value.trim();
@@ -356,7 +356,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         }
     }
 
-    private Integer getPropertyAsInteger(String key) {
+    private Integer getPropertyAsInteger(final String key) {
         final String value = getProperty(key);
         if (StringUtils.isBlank(value)) {
             return null;
@@ -368,7 +368,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         }
     }
 
-    private File getPropertyAsFile(String key) {
+    private File getPropertyAsFile(final String key) {
         final String filePath = getProperty(key);
         if (filePath != null && !filePath.isBlank()) {
             return new File(filePath.trim());
@@ -377,7 +377,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         }
     }
 
-    private File getPropertyAsFile(String propertyKey, String defaultFileLocation) {
+    private File getPropertyAsFile(final String propertyKey, final String defaultFileLocation) {
         final String value = getProperty(propertyKey);
         if (StringUtils.isBlank(value)) {
             return new File(defaultFileLocation);
@@ -464,11 +464,11 @@ public class NiFiRegistryProperties extends ApplicationProperties {
      * @return List of additional scopes to be sent
      */
     public List<String> getOidcAdditionalScopes() {
-        String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
+        final String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
         if (rawProperty.isEmpty()) {
             return new ArrayList<>();
         }
-        List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
+        final List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
         return additionalScopes.stream().map(String::trim).collect(Collectors.toList());
     }
 
@@ -502,7 +502,7 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         final Set<String> networkInterfaceNames = new HashSet<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a network interface name
             if (Strings.CS.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
                 // get the network interface property value

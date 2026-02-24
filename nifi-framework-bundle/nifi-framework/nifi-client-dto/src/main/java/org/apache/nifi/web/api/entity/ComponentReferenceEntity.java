@@ -39,7 +39,7 @@ public class ComponentReferenceEntity extends ComponentEntity {
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -52,7 +52,7 @@ public class ComponentReferenceEntity extends ComponentEntity {
         return component;
     }
 
-    public void setComponent(ComponentReferenceDTO component) {
+    public void setComponent(final ComponentReferenceDTO component) {
         this.component = component;
     }
 

@@ -30,11 +30,11 @@ import java.util.Map;
 public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGroupEntity>, ComponentEntityStatusMerger<ProcessGroupStatusDTO> {
 
     @Override
-    public void merge(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap) {
+    public void merge(final ProcessGroupEntity clientEntity, final Map<NodeIdentifier, ProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
 
         final Map<NodeIdentifier, ProcessGroupDTO> dtoMap = new HashMap<>();
-        for (Map.Entry<NodeIdentifier, ProcessGroupEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ProcessGroupEntity> entry : entityMap.entrySet()) {
             final ProcessGroupEntity entity = entry.getValue();
             if (entity != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -58,7 +58,7 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
 
         // if this process group is bound to a parameter context, merge the permissions from the other nodes
         if (clientParameterContextEntity != null) {
-            for (Map.Entry<NodeIdentifier, ProcessGroupDTO> entry : dtoMap.entrySet()) {
+            for (final Map.Entry<NodeIdentifier, ProcessGroupDTO> entry : dtoMap.entrySet()) {
                 final ProcessGroupDTO dto = entry.getValue();
                 final ParameterContextReferenceEntity parameterContextReferenceEntity = dto.getParameterContext();
 
@@ -102,13 +102,13 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
     }
 
     @Override
-    public void mergeStatus(ProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessGroupStatusDTO status, boolean statusReadablePermission,
-                            NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final ProcessGroupStatusDTO clientStatus, final boolean clientStatusReadablePermission, final ProcessGroupStatusDTO status, final boolean statusReadablePermission,
+                            final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }
 
-    private void mergeVersionControlInformation(ProcessGroupEntity targetGroup, ProcessGroupEntity toMerge) {
+    private void mergeVersionControlInformation(final ProcessGroupEntity targetGroup, final ProcessGroupEntity toMerge) {
         final ProcessGroupDTO targetGroupDto = targetGroup.getComponent();
         final ProcessGroupDTO toMergeGroupDto = toMerge.getComponent();
         if (targetGroupDto == null || toMergeGroupDto == null) {

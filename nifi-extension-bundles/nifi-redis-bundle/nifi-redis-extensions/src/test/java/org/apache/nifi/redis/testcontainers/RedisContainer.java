@@ -34,11 +34,11 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
 
     public static final int REDIS_PORT = 6379;
 
-    public RedisContainer(@NonNull DockerImageName dockerImageName) {
+    public RedisContainer(final @NonNull DockerImageName dockerImageName) {
         super(dockerImageName);
     }
 
-    public RedisContainer(@NonNull String fullImageName) {
+    public RedisContainer(final @NonNull String fullImageName) {
         this(DockerImageName.parse(fullImageName));
     }
 
@@ -53,7 +53,7 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
 
     protected final List<String> configurationOptions = new ArrayList<>();
 
-    public void setUsername(@Nullable String username) {
+    public void setUsername(final @Nullable String username) {
         this.username = username;
     }
 
@@ -90,7 +90,7 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
      * Sets up a static binding between a port on the host and one in the container.
      * In order for auto-discovery mechanisms of Redis to work, 1-to-1 mapped ports are useful.
      */
-    public void addPortBinding(int hostPort, int containerPort) {
+    public void addPortBinding(final int hostPort, final int containerPort) {
         addFixedExposedPort(hostPort, containerPort);
     }
 
@@ -98,8 +98,8 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
     protected void configure() {
         adjustConfiguration();
 
-        Path configurationFilePath = writeConfigurationFile().toAbsolutePath();
-        String containerPath = "/usr/local/etc/redis/redis.conf";
+        final Path configurationFilePath = writeConfigurationFile().toAbsolutePath();
+        final String containerPath = "/usr/local/etc/redis/redis.conf";
         withCopyToContainer(MountableFile.forHostPath(configurationFilePath), containerPath);
 
         setCommand(containerPath);
@@ -112,11 +112,11 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
                 mountDirectory = Files.createTempDirectory("redis-container-configuration");
             }
 
-            Path configFile = mountDirectory.resolve("redis-" + UUID.randomUUID() + ".conf");
+            final Path configFile = mountDirectory.resolve("redis-" + UUID.randomUUID() + ".conf");
             Files.write(configFile, configurationOptions, StandardCharsets.UTF_8);
 
             return configFile;
-        } catch (IOException ioException) {
+        } catch (final IOException ioException) {
             throw new IllegalStateException("Cannot start container because configuration could not be written", ioException);
         }
     }

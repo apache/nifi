@@ -71,7 +71,7 @@ public class TestGenerateRecord {
     public void testGenerateNoNullableFields() throws Exception {
 
         // Set all Faker properties
-        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
+        for (final Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -87,9 +87,9 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
-        for (String line : output.split(System.lineSeparator())) {
+        for (final String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
             if (line.endsWith(",")) {
                 fail(line + "should not end with a value");
@@ -100,7 +100,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNullableFieldsZeroNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
+        for (final Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -116,9 +116,9 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
-        for (String line : output.split(System.lineSeparator())) {
+        for (final String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
             if (line.endsWith(",")) {
                 fail(line + "should not end with a value");
@@ -129,7 +129,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNullableFieldsOneHundredNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
+        for (final Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -145,7 +145,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         // null values should cause all fields to be empty in the output
         // create a string of commas whose number equals the number of fields in the datatypeFunctionMap (size - 1 copies)
         flowFile.assertContentEquals(String.join("", Collections.nCopies(FakerUtils.getDatatypeFunctionMap().size() - 1, ",")) + "\n");
@@ -155,8 +155,8 @@ public class TestGenerateRecord {
     @Test
     public void testFieldsReturnValue() throws Exception {
 
-        List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).toList();
-        for (Field field : fieldTypeFields) {
+        final List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).toList();
+        for (final Field field : fieldTypeFields) {
             testRunner.setProperty(field.getName().toLowerCase(Locale.ROOT), ((AllowableValue) field.get(processor)).getValue());
         }
 
@@ -180,7 +180,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNoNullableFieldsSchemaText() throws Exception {
 
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_no_nullable.avsc")));
+        final String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_no_nullable.avsc")));
         final Schema avroSchema = new Schema.Parser().parse(schemaText);
         final RecordSchema outputSchema = AvroTypeUtil.createSchema(avroSchema);
 
@@ -195,9 +195,9 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
-        for (String line : output.split(System.lineSeparator())) {
+        for (final String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
             if (line.contains(",,")) {
                 fail(line + "should not contain null values");
@@ -207,7 +207,7 @@ public class TestGenerateRecord {
 
     @Test
     public void testGenerateNullableFieldsZeroNullPercentageSchemaText() throws Exception {
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
+        final String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
         final AvroRecordSetWriter recordWriter = new AvroRecordSetWriter();
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
@@ -235,14 +235,14 @@ public class TestGenerateRecord {
             final Optional<RecordField> systemField = resultSchema.getField("System");
             assertTrue(systemField.isPresent());
             assertEquals(RecordFieldType.RECORD, systemField.get().getDataType().getFieldType());
-            RecordDataType systemRecordType = (RecordDataType) systemField.get().getDataType();
-            RecordSchema systemSchema = systemRecordType.getChildSchema();
+            final RecordDataType systemRecordType = (RecordDataType) systemField.get().getDataType();
+            final RecordSchema systemSchema = systemRecordType.getChildSchema();
 
             final Optional<RecordField> providerField = systemSchema.getField("Provider");
             assertTrue(providerField.isPresent());
             assertEquals(RecordFieldType.RECORD, providerField.get().getDataType().getFieldType());
-            RecordDataType providerRecordType = (RecordDataType) providerField.get().getDataType();
-            RecordSchema providerSchema = providerRecordType.getChildSchema();
+            final RecordDataType providerRecordType = (RecordDataType) providerField.get().getDataType();
+            final RecordSchema providerSchema = providerRecordType.getChildSchema();
 
             final Optional<RecordField> guidField = providerSchema.getField("Guid");
             assertTrue(guidField.isPresent());
@@ -263,7 +263,7 @@ public class TestGenerateRecord {
             assertNotNull(guidObject);
             assertInstanceOf(Object[].class, guidObject);
             // Check for array of Byte objects if not empty
-            Object[] guidArray = (Object[]) guidObject;
+            final Object[] guidArray = (Object[]) guidObject;
             if (guidArray.length > 0) {
                 assertInstanceOf(Byte.class, guidArray[0]);
             }
@@ -273,7 +273,7 @@ public class TestGenerateRecord {
 
     @Test
     public void testGenerateNullableFieldsOneHundredNullPercentageSchemaText() throws Exception {
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
+        final String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
         final Schema avroSchema = new Schema.Parser().parse(schemaText);
         final RecordSchema outputSchema = AvroTypeUtil.createSchema(avroSchema);
 
@@ -288,7 +288,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         // null values should cause all fields to be empty in the output (2 top-level record fields in this case
         flowFile.assertContentEquals(",\n");
     }
@@ -320,7 +320,7 @@ public class TestGenerateRecord {
 
     @Test
     public void testValidationFailsWithMultipleSchemaConfigurations() throws Exception {
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
+        final String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
 
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true);
         testRunner.addControllerService("record-writer", recordWriter);
@@ -385,7 +385,7 @@ public class TestGenerateRecord {
         testPredefinedSchema(PredefinedRecordSchema.COMPLETE_EXAMPLE, 3);
     }
 
-    private void testPredefinedSchema(PredefinedRecordSchema predefinedSchema, int numRecords) throws Exception {
+    private void testPredefinedSchema(final PredefinedRecordSchema predefinedSchema, final int numRecords) throws Exception {
         final RecordSchema schema = predefinedSchema.getSchema(true);
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, schema);
         testRunner.addControllerService("record-writer", recordWriter);
@@ -401,7 +401,7 @@ public class TestGenerateRecord {
         testRunner.run();
 
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
 
         // Verify record count attribute
         flowFile.assertAttributeEquals("record.count", String.valueOf(numRecords));
@@ -424,7 +424,7 @@ public class TestGenerateRecord {
         testRunner.run();
 
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
 
         // Verify record count attribute
         flowFile.assertAttributeEquals("record.count", "1");

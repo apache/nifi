@@ -38,9 +38,9 @@ public class ReloadService {
     private final RunMiNiFi runMiNiFi;
     private final ProcessUtils processUtils;
 
-    public ReloadService(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters,
-        MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider,
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, RunMiNiFi runMiNiFi, ProcessUtils processUtils) {
+    public ReloadService(final BootstrapFileProvider bootstrapFileProvider, final MiNiFiParameters miNiFiParameters,
+        final MiNiFiCommandSender miNiFiCommandSender, final CurrentPortProvider currentPortProvider,
+        final GracefulShutdownParameterProvider gracefulShutdownParameterProvider, final RunMiNiFi runMiNiFi, final ProcessUtils processUtils) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiCommandSender = miNiFiCommandSender;
@@ -52,14 +52,14 @@ public class ReloadService {
 
     public void reload() throws IOException {
         // indicate that a reload command is in progress
-        File reloadLockFile = bootstrapFileProvider.getReloadLockFile();
+        final File reloadLockFile = bootstrapFileProvider.getReloadLockFile();
         if (!reloadLockFile.exists()) {
             reloadLockFile.createNewFile();
         }
 
-        long minifiPid = miNiFiParameters.getMinifiPid();
+        final long minifiPid = miNiFiParameters.getMinifiPid();
         try {
-            Optional<String> commandResponse = miNiFiCommandSender.sendCommand(RELOAD_CMD, currentPortProvider.getCurrentPort());
+            final Optional<String> commandResponse = miNiFiCommandSender.sendCommand(RELOAD_CMD, currentPortProvider.getCurrentPort());
             if (commandResponse.filter(RELOAD_CMD::equals).isPresent()) {
                 DEFAULT_LOGGER.info("Apache MiNiFi has accepted the Reload Command and is reloading");
                 if (minifiPid != UNINITIALIZED) {
@@ -71,7 +71,7 @@ public class ReloadService {
             } else {
                 DEFAULT_LOGGER.error("When sending RELOAD command to MiNiFi, got unexpected response {}.", commandResponse.orElse(null));
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             if (minifiPid == UNINITIALIZED) {
                 DEFAULT_LOGGER.error("No PID found for the MiNiFi process, so unable to kill process; The process should be killed manually.");
             } else {

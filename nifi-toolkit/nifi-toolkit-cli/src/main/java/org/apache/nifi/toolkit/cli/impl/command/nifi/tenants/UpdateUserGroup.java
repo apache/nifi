@@ -71,7 +71,7 @@ public class UpdateUserGroup extends AbstractNiFiCommand<VoidResult> {
                     + "\" or \"" + CommandOption.UG_ID.getLongName() + "\" (not both)");
         }
 
-        UserGroupEntity existingGroup;
+        final UserGroupEntity existingGroup;
 
         if (StringUtils.isNotBlank(group)) {
             final Optional<UserGroupEntity> existingGroupEntity = tenantsClient.getUserGroups()

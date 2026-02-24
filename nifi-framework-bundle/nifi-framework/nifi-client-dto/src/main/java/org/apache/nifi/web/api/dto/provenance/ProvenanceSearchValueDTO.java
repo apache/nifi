@@ -37,7 +37,7 @@ public class ProvenanceSearchValueDTO {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
@@ -50,7 +50,7 @@ public class ProvenanceSearchValueDTO {
         return inverse;
     }
 
-    public void setInverse(Boolean inverse) {
+    public void setInverse(final Boolean inverse) {
         this.inverse = inverse;
     }
 }

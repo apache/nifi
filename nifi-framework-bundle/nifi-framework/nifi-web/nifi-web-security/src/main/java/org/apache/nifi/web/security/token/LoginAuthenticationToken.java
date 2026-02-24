@@ -39,7 +39,7 @@ public class LoginAuthenticationToken extends AbstractAuthenticationToken {
      * @param expiration  Instant at which the authenticated token is no longer valid
      * @param authorities The authorities that have been granted this token.
      */
-    public LoginAuthenticationToken(final String identity, final Instant expiration, Collection<? extends GrantedAuthority> authorities) {
+    public LoginAuthenticationToken(final String identity, final Instant expiration, final Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         setAuthenticated(true);
         this.identity = identity;

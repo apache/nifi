@@ -30,7 +30,7 @@ public class AdaptedNodeInformation {
         return hostname;
     }
 
-    public void setHostname(String hostname) {
+    public void setHostname(final String hostname) {
         this.hostname = hostname;
     }
 
@@ -38,7 +38,7 @@ public class AdaptedNodeInformation {
         return siteToSitePort;
     }
 
-    public void setSiteToSitePort(Integer siteToSitePort) {
+    public void setSiteToSitePort(final Integer siteToSitePort) {
         this.siteToSitePort = siteToSitePort;
     }
 
@@ -46,7 +46,7 @@ public class AdaptedNodeInformation {
         return apiPort;
     }
 
-    public void setApiPort(int apiPort) {
+    public void setApiPort(final int apiPort) {
         this.apiPort = apiPort;
     }
 
@@ -54,7 +54,7 @@ public class AdaptedNodeInformation {
         return isSiteToSiteSecure;
     }
 
-    public void setSiteToSiteSecure(boolean isSiteToSiteSecure) {
+    public void setSiteToSiteSecure(final boolean isSiteToSiteSecure) {
         this.isSiteToSiteSecure = isSiteToSiteSecure;
     }
 
@@ -62,7 +62,7 @@ public class AdaptedNodeInformation {
         return totalFlowFiles;
     }
 
-    public void setTotalFlowFiles(int totalFlowFiles) {
+    public void setTotalFlowFiles(final int totalFlowFiles) {
         this.totalFlowFiles = totalFlowFiles;
     }
 
@@ -70,7 +70,7 @@ public class AdaptedNodeInformation {
         return siteToSiteHttpApiPort;
     }
 
-    public void setSiteToSiteHttpApiPort(Integer siteToSiteHttpApiPort) {
+    public void setSiteToSiteHttpApiPort(final Integer siteToSiteHttpApiPort) {
         this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
     }
 

@@ -38,115 +38,115 @@ public class NiFiServiceFacadeLock {
     /* delegate methods through the wrapped view model */
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* create*(..))")
-    public Object createLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object createLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* clear*(..))")
-    public Object clearLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object clearLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* delete*(..))")
-    public Object deleteLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object deleteLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* remove*(..))")
-    public Object removeLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object removeLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* update*(..))")
-    public Object updateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object updateLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* set*(..))")
-    public Object setLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object setLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* copy*(..))")
-    public Object copyLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object copyLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* import*(..))")
-    public Object importLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object importLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* export*(..))")
-    public Object exportLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object exportLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* submit*(..))")
-    public Object submitLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object submitLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* schedule*(..))")
-    public Object scheduleLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object scheduleLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* activate*(..))")
-    public Object activateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object activateLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* populate*(..))")
-    public Object populateLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object populateLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithWriteLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* get*(..))")
-    public Object getLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object getLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* is*(..))")
-    public Object isLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object isLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* search*(..))")
-    public Object searchLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object searchLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* verify*(..))")
-    public Object verifyLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object verifyLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* register*(..))")
-    public Object registerLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object registerLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
         + "execution(* resolve*(..))")
-    public Object resolveLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object resolveLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 

@@ -107,7 +107,7 @@ public class ITPutSNS {
     }
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
-        TestRunner runner = TestRunners.newTestRunner(processorClass);
+        final TestRunner runner = TestRunners.newTestRunner(processorClass);
         runner.setProperty(RegionUtil.REGION, localstack.getRegion());
         runner.setProperty(AbstractAwsProcessor.ENDPOINT_OVERRIDE, localstack.getEndpoint().toString());
         runner.setProperty(PutSNS.ARN, topicARN);

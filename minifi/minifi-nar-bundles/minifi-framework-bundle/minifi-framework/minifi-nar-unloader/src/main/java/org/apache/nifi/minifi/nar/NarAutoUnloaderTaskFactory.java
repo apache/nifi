@@ -37,19 +37,19 @@ public class NarAutoUnloaderTaskFactory {
     private final ExtensionManager extensionManager;
     private final NarLoader narLoader;
 
-    public NarAutoUnloaderTaskFactory(NiFiProperties properties, ExtensionManager extensionManager, NarLoader narLoader) {
+    public NarAutoUnloaderTaskFactory(final NiFiProperties properties, final ExtensionManager extensionManager, final NarLoader narLoader) {
         this.properties = requireNonNull(properties);
         this.extensionManager = requireNonNull(extensionManager);
         this.narLoader = requireNonNull(narLoader);
     }
 
     public NarAutoUnloaderTask createNarAutoUnloaderTask() throws IOException {
-        File autoLoadDir = properties.getNarAutoLoadDirectory();
+        final File autoLoadDir = properties.getNarAutoLoadDirectory();
         FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
-        WatchService watcher = FileSystems.getDefault().newWatchService();
-        Path autoLoadPath = autoLoadDir.toPath();
+        final WatchService watcher = FileSystems.getDefault().newWatchService();
+        final Path autoLoadPath = autoLoadDir.toPath();
         autoLoadPath.register(watcher, StandardWatchEventKinds.ENTRY_DELETE);
-        NarAutoUnloadService narAutoUnloadService = new NarAutoUnloadService(extensionManager, properties.getExtensionsWorkingDirectory(), narLoader);
+        final NarAutoUnloadService narAutoUnloadService = new NarAutoUnloadService(extensionManager, properties.getExtensionsWorkingDirectory(), narLoader);
 
         return new NarAutoUnloaderTask(autoLoadPath, watcher, narAutoUnloadService);
     }

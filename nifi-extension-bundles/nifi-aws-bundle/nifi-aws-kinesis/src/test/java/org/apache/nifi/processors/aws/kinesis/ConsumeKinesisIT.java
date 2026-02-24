@@ -630,7 +630,7 @@ class ConsumeKinesisIT {
         private final KinesisClient kinesisClient;
         private final String streamName;
 
-        TestKinesisStreamClient(KinesisClient kinesisClient, String streamName) {
+        TestKinesisStreamClient(final KinesisClient kinesisClient, final String streamName) {
             this.kinesisClient = kinesisClient;
             this.streamName = streamName;
         }

@@ -67,7 +67,7 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
     }
 
     @Override
-    protected void initChannel(Channel channel) {
+    protected void initChannel(final Channel channel) {
         final ChannelPipeline pipeline = channel.pipeline();
         pipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
 

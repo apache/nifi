@@ -50,8 +50,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testApproveBasedOnUser() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
+        final AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -86,8 +86,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testApprovedBasedOnGroup() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
+        final AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -131,8 +131,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testDeny() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
+        final AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
@@ -167,8 +167,8 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testResourceNotFound() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
-        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
+        final AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final UsersAndAccessPolicies usersAndAccessPolicies = Mockito.spy(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(null);
@@ -188,13 +188,13 @@ public class TestAbstractPolicyBasedAuthorizer {
     public void testGetFingerprint() {
         // create the users, groups, and policies
 
-        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
-        User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
+        final User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        final User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
 
-        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
-        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").addUser(user2.getIdentifier()).build();
+        final Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
+        final Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").addUser(user2.getIdentifier()).build();
 
-        AccessPolicy policy1 = new AccessPolicy.Builder()
+        final AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
                 .resource("resource1")
                 .action(RequestAction.READ)
@@ -202,7 +202,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addUser(user2.getIdentifier())
                 .build();
 
-        AccessPolicy policy2 = new AccessPolicy.Builder()
+        final AccessPolicy policy2 = new AccessPolicy.Builder()
                 .identifier("policy-id-2")
                 .resource("resource2")
                 .action(RequestAction.READ)
@@ -214,38 +214,38 @@ public class TestAbstractPolicyBasedAuthorizer {
 
         // create the first Authorizer
 
-        Set<Group> groups1 = new LinkedHashSet<>();
+        final Set<Group> groups1 = new LinkedHashSet<>();
         groups1.add(group1);
         groups1.add(group2);
 
-        Set<User> users1 = new LinkedHashSet<>();
+        final Set<User> users1 = new LinkedHashSet<>();
         users1.add(user1);
         users1.add(user2);
 
-        Set<AccessPolicy> policies1 = new LinkedHashSet<>();
+        final Set<AccessPolicy> policies1 = new LinkedHashSet<>();
         policies1.add(policy1);
         policies1.add(policy2);
 
-        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer1.getGroups()).thenReturn(groups1);
         when(authorizer1.getUsers()).thenReturn(users1);
         when(authorizer1.getAccessPolicies()).thenReturn(policies1);
 
         // create the second Authorizer
 
-        Set<Group> groups2 = new LinkedHashSet<>();
+        final Set<Group> groups2 = new LinkedHashSet<>();
         groups2.add(group2);
         groups2.add(group1);
 
-        Set<User> users2 = new LinkedHashSet<>();
+        final Set<User> users2 = new LinkedHashSet<>();
         users2.add(user2);
         users2.add(user1);
 
-        Set<AccessPolicy> policies2 = new LinkedHashSet<>();
+        final Set<AccessPolicy> policies2 = new LinkedHashSet<>();
         policies2.add(policy2);
         policies2.add(policy1);
 
-        AbstractPolicyBasedAuthorizer authorizer2 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final AbstractPolicyBasedAuthorizer authorizer2 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer2.getGroups()).thenReturn(groups2);
         when(authorizer2.getUsers()).thenReturn(users2);
         when(authorizer2.getAccessPolicies()).thenReturn(policies2);
@@ -257,13 +257,13 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testInheritFingerprint() {
 
-        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
-        User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
+        final User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        final User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
 
-        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
-        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
+        final Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
+        final Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
 
-        AccessPolicy policy1 = new AccessPolicy.Builder()
+        final AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
                 .resource("resource1")
                 .action(RequestAction.READ)
@@ -271,7 +271,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addUser(user2.getIdentifier())
                 .build();
 
-        AccessPolicy policy2 = new AccessPolicy.Builder()
+        final AccessPolicy policy2 = new AccessPolicy.Builder()
                 .identifier("policy-id-2")
                 .resource("resource2")
                 .action(RequestAction.READ)
@@ -283,19 +283,19 @@ public class TestAbstractPolicyBasedAuthorizer {
 
         // create the first Authorizer
 
-        Set<Group> groups1 = new LinkedHashSet<>();
+        final Set<Group> groups1 = new LinkedHashSet<>();
         groups1.add(group1);
         groups1.add(group2);
 
-        Set<User> users1 = new LinkedHashSet<>();
+        final Set<User> users1 = new LinkedHashSet<>();
         users1.add(user1);
         users1.add(user2);
 
-        Set<AccessPolicy> policies1 = new LinkedHashSet<>();
+        final Set<AccessPolicy> policies1 = new LinkedHashSet<>();
         policies1.add(policy1);
         policies1.add(policy2);
 
-        AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final AbstractPolicyBasedAuthorizer authorizer1 = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer1.getGroups()).thenReturn(groups1);
         when(authorizer1.getUsers()).thenReturn(users1);
         when(authorizer1.getAccessPolicies()).thenReturn(policies1);
@@ -304,7 +304,7 @@ public class TestAbstractPolicyBasedAuthorizer {
 
         // make a second authorizer using the memory-backed implementation so we can inherit the fingerprint
         // and then compute a new fingerprint to compare them
-        AbstractPolicyBasedAuthorizer authorizer2 = new MockPolicyBasedAuthorizer();
+        final AbstractPolicyBasedAuthorizer authorizer2 = new MockPolicyBasedAuthorizer();
         authorizer2.inheritFingerprint(fingerprint1);
 
         // computer the fingerprint of the second authorizer and it should be the same as the first
@@ -319,7 +319,7 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testEmptyAuthorizer() {
-        AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
+        final AbstractPolicyBasedAuthorizer authorizer = Mockito.spy(AbstractPolicyBasedAuthorizer.class);
         when(authorizer.getGroups()).thenReturn(new HashSet<>());
         when(authorizer.getUsers()).thenReturn(new HashSet<>());
         when(authorizer.getAccessPolicies()).thenReturn(new HashSet<>());

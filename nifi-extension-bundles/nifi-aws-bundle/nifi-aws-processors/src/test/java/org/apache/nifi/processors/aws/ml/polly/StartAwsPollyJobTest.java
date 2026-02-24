@@ -81,7 +81,7 @@ public class StartAwsPollyJobTest {
     public void setUp() throws InitializationException {
         processor = new StartAwsPollyJob() {
             @Override
-            public PollyClient getClient(ProcessContext context) {
+            public PollyClient getClient(final ProcessContext context) {
                 return mockPollyClient;
             }
         };

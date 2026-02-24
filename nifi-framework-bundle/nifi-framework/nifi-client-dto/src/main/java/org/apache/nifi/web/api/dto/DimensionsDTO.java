@@ -39,7 +39,7 @@ public class DimensionsDTO {
         return height;
     }
 
-    public void setHeight(Double height) {
+    public void setHeight(final Double height) {
         this.height = height;
     }
 
@@ -52,7 +52,7 @@ public class DimensionsDTO {
         return width;
     }
 
-    public void setWidth(Double width) {
+    public void setWidth(final Double width) {
         this.width = width;
     }
 }

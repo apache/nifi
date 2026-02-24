@@ -41,7 +41,7 @@ public class LegacyC2UrlProviderTest {
 
     @Test
     public void testProviderIsCreatedAndReturnsProperHeartbeatAndAcknowledgeUrls() {
-        LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
+        final LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
 
         assertEquals(C2_HEARTBEAT_URL, testProvider.getHeartbeatUrl());
         assertEquals(C2_ACKNOWLEDGE_URL, testProvider.getAcknowledgeUrl());
@@ -49,14 +49,14 @@ public class LegacyC2UrlProviderTest {
 
     @MethodSource("testCallbackUrlProvidedArguments")
     @ParameterizedTest(name = "{index} => absoluteUrl={0}, relativeUrl={1}, expectedCallbackUrl={2}")
-    public void testCallbackUrlProvidedForInvalidInputs(String absoluteUrl, String relativeUrl) {
-        LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
+    public void testCallbackUrlProvidedForInvalidInputs(final String absoluteUrl, final String relativeUrl) {
+        final LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
         assertThrows(IllegalArgumentException.class, () -> testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
     }
 
     @Test
     public void testCallbackUrlProvidedFor() {
-        LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
+        final LegacyC2UrlProvider testProvider = new LegacyC2UrlProvider(C2_HEARTBEAT_URL, C2_ACKNOWLEDGE_URL);
         assertEquals(EXPECTED_URL, testProvider.getCallbackUrl(ABSOLUTE_URL, RELATIVE_URL));
     }
 

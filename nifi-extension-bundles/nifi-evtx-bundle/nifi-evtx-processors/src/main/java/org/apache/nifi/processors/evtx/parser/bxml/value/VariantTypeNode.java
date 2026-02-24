@@ -33,7 +33,7 @@ public abstract class VariantTypeNode extends BxmlNode {
     @SuppressWarnings("PMD.UnusedPrivateField")
     private final int length;
 
-    public VariantTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public VariantTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent);
         this.length = length;
         init();
@@ -47,7 +47,7 @@ public abstract class VariantTypeNode extends BxmlNode {
     public abstract String getValue();
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

@@ -58,7 +58,7 @@ public class ProxyConfiguration {
      * @param _specs original specs
      * @return sorted unique specs
      */
-    private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec... _specs) {
+    private static Set<ProxySpec> getUniqueProxySpecs(final ProxySpec... _specs) {
         final Set<ProxySpec> specs = Arrays.stream(_specs).collect(Collectors.toSet());
         if (specs.contains(HTTP_AUTH)) {
             specs.remove(HTTP);
@@ -76,7 +76,7 @@ public class ProxyConfiguration {
      * @param results if validation fails, an invalid validation result will be added to this collection
      * @param _specs specify supported proxy specs
      */
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results, final ProxySpec... _specs) {
+    public static void validateProxySpec(final ValidationContext context, final Collection<ValidationResult> results, final ProxySpec... _specs) {
 
         final Set<ProxySpec> specs = getUniqueProxySpecs(_specs);
         final Set<Proxy.Type> supportedProxyTypes = specs.stream().map(ProxySpec::getProxyType).collect(Collectors.toSet());
@@ -123,7 +123,7 @@ public class ProxyConfiguration {
      * @param context the property context
      * @return The proxy configurations at Controller Service if set, or configuration for direct proxy (no proxy).
      */
-    public static ProxyConfiguration getConfiguration(PropertyContext context) {
+    public static ProxyConfiguration getConfiguration(final PropertyContext context) {
         if (context.getProperty(PROXY_CONFIGURATION_SERVICE).isSet()) {
             final ProxyConfigurationService proxyService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
             return proxyService.getConfiguration();
@@ -143,7 +143,7 @@ public class ProxyConfiguration {
         return proxyType;
     }
 
-    public void setProxyType(Proxy.Type proxyType) {
+    public void setProxyType(final Proxy.Type proxyType) {
         this.proxyType = proxyType;
     }
 
@@ -151,7 +151,7 @@ public class ProxyConfiguration {
         return socksVersion;
     }
 
-    public void setSocksVersion(SocksVersion socksVersion) {
+    public void setSocksVersion(final SocksVersion socksVersion) {
         this.socksVersion = socksVersion;
     }
 
@@ -159,7 +159,7 @@ public class ProxyConfiguration {
         return proxyServerHost;
     }
 
-    public void setProxyServerHost(String proxyServerHost) {
+    public void setProxyServerHost(final String proxyServerHost) {
         this.proxyServerHost = proxyServerHost;
     }
 
@@ -167,7 +167,7 @@ public class ProxyConfiguration {
         return proxyServerPort;
     }
 
-    public void setProxyServerPort(Integer proxyServerPort) {
+    public void setProxyServerPort(final Integer proxyServerPort) {
         this.proxyServerPort = proxyServerPort;
     }
 
@@ -179,7 +179,7 @@ public class ProxyConfiguration {
         return proxyUserName;
     }
 
-    public void setProxyUserName(String proxyUserName) {
+    public void setProxyUserName(final String proxyUserName) {
         this.proxyUserName = proxyUserName;
     }
 
@@ -187,7 +187,7 @@ public class ProxyConfiguration {
         return proxyUserPassword;
     }
 
-    public void setProxyUserPassword(String proxyUserPassword) {
+    public void setProxyUserPassword(final String proxyUserPassword) {
         this.proxyUserPassword = proxyUserPassword;
     }
 

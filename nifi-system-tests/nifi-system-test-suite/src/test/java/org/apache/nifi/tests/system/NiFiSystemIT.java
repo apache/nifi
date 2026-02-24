@@ -349,7 +349,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected int getClientApiPort() {
-        NiFiInstance nifiInstance = nifiRef.get();
+        final NiFiInstance nifiInstance = nifiRef.get();
         if (nifiInstance.getNumberOfNodes() > 1) {
             return CLUSTERED_CLIENT_API_BASE_PORT;
         }
@@ -622,7 +622,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         return false;
     }
 
-    protected boolean allNodesConnected(int expectedNodeCount) throws NiFiClientException, IOException {
+    protected boolean allNodesConnected(final int expectedNodeCount) throws NiFiClientException, IOException {
         final ClusterSummaryEntity clusterSummary = getNifiClient().getFlowClient().getClusterSummary();
         return expectedNodeCount == clusterSummary.getClusterSummary().getConnectedNodeCount();
     }

@@ -64,18 +64,18 @@ public class StartFlowOperationHandlerTest {
 
     @ParameterizedTest(name = "operationId={0} ackOperationId={1} ackState={2} ackDetails={3}")
     @MethodSource("testHandleArguments")
-    public void testHandle(String operationId, String ackOperationId, OperationState ackState, String ackDetails) {
+    public void testHandle(final String operationId, final String ackOperationId, final OperationState ackState, final String ackDetails) {
         when(flowStateStrategy.start()).thenReturn(ackState);
 
-        C2OperationAck result = victim.handle(anOperation(operationId));
+        final C2OperationAck result = victim.handle(anOperation(operationId));
 
         assertEquals(ackOperationId, result.getOperationId());
         assertEquals(ackState, result.getOperationState().getState());
         assertEquals(ackDetails, result.getOperationState().getDetails());
     }
 
-    private C2Operation anOperation(String identifier) {
-        C2Operation operation = new C2Operation();
+    private C2Operation anOperation(final String identifier) {
+        final C2Operation operation = new C2Operation();
         operation.setIdentifier(identifier);
 
         return operation;

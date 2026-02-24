@@ -53,7 +53,7 @@ public class RecordPathFunctions {
         private static final RecordSchema ROOT_RECORD_SCHEMA = new SimpleRecordSchema(List.of(ROOT_RECORD_FIELD));
         private static final RecordField PARENT_RECORD_FIELD = new RecordField("root", RecordFieldType.RECORD.getRecordDataType(ROOT_RECORD_SCHEMA));
 
-        public Object eval(Object record, String recordPath) {
+        public Object eval(final Object record, final String recordPath) {
             if (record == null) {
                 return null;
             }
@@ -134,13 +134,13 @@ public class RecordPathFunctions {
     }
 
     public static class StringRecordPath extends RecordPathFunction {
-        public String eval(Object record, String recordPath) {
+        public String eval(final Object record, final String recordPath) {
             return eval(record, recordPath, Object::toString);
         }
     }
 
     public static class IntegerRecordPath extends RecordPathFunction {
-        public Integer eval(Object record, String recordPath) {
+        public Integer eval(final Object record, final String recordPath) {
             return eval(record, recordPath, val -> {
                 if (val instanceof Number) {
                     return ((Number) val).intValue();
@@ -159,7 +159,7 @@ public class RecordPathFunctions {
     }
 
     public static class LongRecordPath extends RecordPathFunction {
-        public Long eval(Object record, String recordPath) {
+        public Long eval(final Object record, final String recordPath) {
             return eval(record, recordPath, val -> {
                 if (val instanceof Number) {
                     return ((Number) val).longValue();
@@ -178,7 +178,7 @@ public class RecordPathFunctions {
     }
 
     public static class FloatRecordPath extends RecordPathFunction {
-        public Float eval(Object record, String recordPath) {
+        public Float eval(final Object record, final String recordPath) {
             return eval(record, recordPath, val -> {
                 if (val instanceof Number) {
                     return ((Number) val).floatValue();
@@ -194,7 +194,7 @@ public class RecordPathFunctions {
     }
 
     public static class DoubleRecordPath extends RecordPathFunction {
-        public Double eval(Object record, String recordPath) {
+        public Double eval(final Object record, final String recordPath) {
             return eval(record, recordPath, val -> {
                 if (val instanceof Number) {
                     return ((Number) val).doubleValue();
@@ -211,7 +211,7 @@ public class RecordPathFunctions {
 
     public static class DateRecordPath extends RecordPathFunction {
         // Interestingly, Calcite throws an Exception if the schema indicates a DATE type and we return a java.util.Date. Calcite requires that a Long be returned instead.
-        public Long eval(Object record, String recordPath) {
+        public Long eval(final Object record, final String recordPath) {
             return eval(record, recordPath, val -> {
                 if (val instanceof Number) {
                     return ((Number) val).longValue();

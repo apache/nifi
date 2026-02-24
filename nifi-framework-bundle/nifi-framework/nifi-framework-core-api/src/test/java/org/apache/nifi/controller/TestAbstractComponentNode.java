@@ -95,12 +95,12 @@ public class TestAbstractComponentNode {
         final AtomicLong validationCount = new AtomicLong(0L);
         final ValidationTrigger validationTrigger = new ValidationTrigger() {
             @Override
-            public void triggerAsync(ComponentNode component) {
+            public void triggerAsync(final ComponentNode component) {
                 validationCount.incrementAndGet();
             }
 
             @Override
-            public void trigger(ComponentNode component) {
+            public void trigger(final ComponentNode component) {
                 validationCount.incrementAndGet();
             }
         };
@@ -195,12 +195,12 @@ public class TestAbstractComponentNode {
 
         final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(0, new ValidationTrigger() {
             @Override
-            public void triggerAsync(ComponentNode component) {
+            public void triggerAsync(final ComponentNode component) {
                 validationCount.incrementAndGet();
             }
 
             @Override
-            public void trigger(ComponentNode component) {
+            public void trigger(final ComponentNode component) {
                 validationCount.incrementAndGet();
             }
         });
@@ -462,7 +462,7 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        public void reload(Set<URL> additionalUrls) throws Exception {
+        public void reload(final Set<URL> additionalUrls) throws Exception {
         }
 
         @Override
@@ -567,7 +567,7 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
+        protected Collection<ValidationResult> computeValidationErrors(final ValidationContext context) {
             try {
                 Thread.sleep(pauseMillis);
             } catch (final InterruptedException ignored) {

@@ -30,7 +30,7 @@ public class VersionControlInformationEntity extends ProcessGroupDescriptorEntit
         return versionControlInformation;
     }
 
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlDto) {
         this.versionControlInformation = versionControlDto;
     }
 }

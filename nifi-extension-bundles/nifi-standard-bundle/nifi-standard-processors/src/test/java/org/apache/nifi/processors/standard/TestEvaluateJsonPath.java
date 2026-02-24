@@ -54,8 +54,8 @@ class TestEvaluateJsonPath {
     @Test
     void testUpgradeToJsonPath24() throws Exception {
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
-        List<String> badInputs = Arrays.asList("LoremIpsum []", "LoremIpsum[]", "$..", "$.xyz.");
-        for (String bad : badInputs) {
+        final List<String> badInputs = Arrays.asList("LoremIpsum []", "LoremIpsum[]", "$..", "$.xyz.");
+        for (final String bad : badInputs) {
             runner.setProperty("DefinitelyNotJsonPath", bad);
 
             runner.enqueue(JSON_SNIPPET);
@@ -65,8 +65,8 @@ class TestEvaluateJsonPath {
         /*
          * Not sure why these passed with v2, but they do. These are weird strings that oddly worked before.
          */
-        List<String> testWhatUsedToPass = Arrays.asList("LoremIpsum@$Q#$^Q$%Q#", "TestTest['sdfadsf']#$%#$^#$^.xyz");
-        for (String old : testWhatUsedToPass) {
+        final List<String> testWhatUsedToPass = Arrays.asList("LoremIpsum@$Q#$^Q$%Q#", "TestTest['sdfadsf']#$%#$^#$^.xyz");
+        for (final String old : testWhatUsedToPass) {
             runner.setProperty("DefinitelyNotJsonPath", old);
 
             runner.enqueue(JSON_SNIPPET);
@@ -76,8 +76,8 @@ class TestEvaluateJsonPath {
         /*
          * Test some obviously good JsonPath strings
          */
-        List<String> goodStrings = Arrays.asList("$", "$.xyz", "$['xyz']", "$.*['xyz']");
-        for (String good : goodStrings) {
+        final List<String> goodStrings = Arrays.asList("$", "$.xyz", "$['xyz']", "$.*['xyz']");
+        for (final String good : goodStrings) {
             runner.setProperty("DefinitelyNotJsonPath", good);
 
             runner.enqueue(JSON_SNIPPET);
@@ -123,14 +123,14 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
+        final Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
     }
 
     @Test
     void testExtractPath_destinationAttribute() throws Exception {
-        String jsonPathAttrKey = "JsonPath";
+        final String jsonPathAttrKey = "JsonPath";
 
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         runner.setProperty(jsonPathAttrKey, "$[0]._id");
@@ -138,7 +138,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
@@ -150,8 +150,8 @@ class TestEvaluateJsonPath {
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
 
-        String jsonPathIdAttrKey = "evaluatejson.id";
-        String jsonPathNameAttrKey = "evaluatejson.name";
+        final String jsonPathIdAttrKey = "evaluatejson.id";
+        final String jsonPathNameAttrKey = "evaluatejson.name";
 
         runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
         runner.setProperty(jsonPathNameAttrKey, "$[0].name");
@@ -159,7 +159,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
@@ -172,8 +172,8 @@ class TestEvaluateJsonPath {
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_WARN);
 
-        String jsonPathIdAttrKey = "evaluatejson.id";
-        String jsonPathNameAttrKey = "evaluatejson.name";
+        final String jsonPathIdAttrKey = "evaluatejson.id";
+        final String jsonPathNameAttrKey = "evaluatejson.name";
 
         runner.setProperty(jsonPathIdAttrKey, "$[0]._id.nonexistent");
         runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
@@ -181,7 +181,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
@@ -194,8 +194,8 @@ class TestEvaluateJsonPath {
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_IGNORE);
 
-        String jsonPathIdAttrKey = "evaluatejson.id";
-        String jsonPathNameAttrKey = "evaluatejson.name";
+        final String jsonPathIdAttrKey = "evaluatejson.id";
+        final String jsonPathNameAttrKey = "evaluatejson.name";
 
         runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
         runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
@@ -203,7 +203,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
@@ -216,8 +216,8 @@ class TestEvaluateJsonPath {
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
         runner.setProperty(EvaluateJsonPath.PATH_NOT_FOUND, EvaluateJsonPath.PATH_NOT_FOUND_SKIP);
 
-        String jsonPathIdAttrKey = "evaluatejson.id";
-        String jsonPathNameAttrKey = "evaluatejson.name";
+        final String jsonPathIdAttrKey = "evaluatejson.id";
+        final String jsonPathNameAttrKey = "evaluatejson.name";
 
         runner.setProperty(jsonPathIdAttrKey, "$[0]._id");
         runner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
@@ -225,7 +225,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(expectedRel).get(0);
@@ -235,7 +235,7 @@ class TestEvaluateJsonPath {
 
     @Test
     void testExtractPath_destinationContent() throws Exception {
-        String jsonPathAttrKey = "JsonPath";
+        final String jsonPathAttrKey = "JsonPath";
 
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
         runner.setProperty(jsonPathAttrKey, "$[0]._id");
@@ -243,7 +243,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
@@ -251,7 +251,7 @@ class TestEvaluateJsonPath {
 
     @Test
     void testExtractPath_destinationContent_indefiniteResult() throws Exception {
-        String jsonPathAttrKey = "friends.indefinite.id.list";
+        final String jsonPathAttrKey = "friends.indefinite.id.list";
 
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
         runner.setProperty(jsonPathAttrKey, "$[0].friends.[*].id");
@@ -259,7 +259,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
@@ -267,7 +267,7 @@ class TestEvaluateJsonPath {
 
     @Test
     void testExtractPath_destinationContent_indefiniteResult_operators() throws Exception {
-        String jsonPathAttrKey = "friends.indefinite.id.list";
+        final String jsonPathAttrKey = "friends.indefinite.id.list";
 
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
         runner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
@@ -275,7 +275,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
@@ -289,7 +289,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_NO_MATCH;
+        final Relationship expectedRel = EvaluateJsonPath.REL_NO_MATCH;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
@@ -297,7 +297,7 @@ class TestEvaluateJsonPath {
 
     @Test
     void testRouteFailure_returnTypeScalar_resultArray() throws Exception {
-        String jsonPathAttrKey = "friends.indefinite.id.list";
+        final String jsonPathAttrKey = "friends.indefinite.id.list";
 
         runner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_SCALAR);
         runner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
@@ -306,7 +306,7 @@ class TestEvaluateJsonPath {
         runner.enqueue(JSON_SNIPPET);
         runner.run();
 
-        Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
+        final Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
 
         runner.assertAllFlowFilesTransferred(expectedRel, 1);
         runner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
@@ -320,7 +320,7 @@ class TestEvaluateJsonPath {
         runner.setProperty("missingField", "$.missingField");
         runner.setProperty("nullField", "$.nullField");
 
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        final ProcessSession session = runner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -334,15 +334,15 @@ class TestEvaluateJsonPath {
 
         runner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
 
-        FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+        final FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
 
-        String validFieldValue = output.getAttribute("stringField");
+        final String validFieldValue = output.getAttribute("stringField");
         assertEquals("String Value", validFieldValue);
 
-        String missingValue = output.getAttribute("missingField");
+        final String missingValue = output.getAttribute("missingField");
         assertEquals("", missingValue, "Missing Value");
 
-        String nullValue = output.getAttribute("nullField");
+        final String nullValue = output.getAttribute("nullField");
         assertEquals("", nullValue, "Null Value");
     }
 
@@ -355,7 +355,7 @@ class TestEvaluateJsonPath {
         runner.setProperty("missingField", "$.missingField");
         runner.setProperty("nullField", "$.nullField");
 
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        final ProcessSession session = runner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -369,15 +369,15 @@ class TestEvaluateJsonPath {
 
         runner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
 
-        FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+        final FlowFile output = runner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
 
-        String validFieldValue = output.getAttribute("stringField");
+        final String validFieldValue = output.getAttribute("stringField");
         assertEquals("String Value", validFieldValue);
 
-        String missingValue = output.getAttribute("missingField");
+        final String missingValue = output.getAttribute("missingField");
         assertEquals("", missingValue, "Missing Value");
 
-        String nullValue = output.getAttribute("nullField");
+        final String nullValue = output.getAttribute("nullField");
         assertEquals("null", nullValue, "Null Value");
     }
 

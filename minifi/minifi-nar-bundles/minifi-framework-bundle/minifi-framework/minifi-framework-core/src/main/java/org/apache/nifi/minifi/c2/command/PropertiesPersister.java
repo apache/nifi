@@ -57,27 +57,27 @@ public class PropertiesPersister {
     private final File bootstrapFile;
     private final File bootstrapNewFile;
 
-    public PropertiesPersister(UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider, String bootstrapConfigFileLocation) {
+    public PropertiesPersister(final UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider, final String bootstrapConfigFileLocation) {
         this.updatePropertiesPropertyProvider = updatePropertiesPropertyProvider;
         this.validationContext = new AgentPropertyValidationContext();
         this.bootstrapFile = new File(bootstrapConfigFileLocation);
         this.bootstrapNewFile = new File(bootstrapFile.getParentFile() + "/" + BOOTSTRAP_UPDATED_FILE_NAME);
     }
 
-    public Boolean persistProperties(Map<String, Object> propertiesToUpdate) {
-        int propertyCountToUpdate = validateProperties(propertiesToUpdate);
+    public Boolean persistProperties(final Map<String, Object> propertiesToUpdate) {
+        final int propertyCountToUpdate = validateProperties(propertiesToUpdate);
         if (propertyCountToUpdate == 0) {
             return false;
         }
-        Set<String> propertiesToUpdateKeys = new HashSet<>(propertiesToUpdate.keySet());
+        final Set<String> propertiesToUpdateKeys = new HashSet<>(propertiesToUpdate.keySet());
 
-        Set<String> updatedProperties = new HashSet<>();
+        final Set<String> updatedProperties = new HashSet<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(bootstrapFile));
             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(bootstrapNewFile, false))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                for (String key : propertiesToUpdateKeys) {
-                    String prefix = key + EQUALS_SIGN;
+                for (final String key : propertiesToUpdateKeys) {
+                    final String prefix = key + EQUALS_SIGN;
                     if (line.startsWith(prefix) || line.startsWith(HASHMARK_SIGN + prefix)) {
                         line = prefix + propertiesToUpdate.get(key);
                         updatedProperties.add(key);
@@ -88,25 +88,25 @@ public class PropertiesPersister {
 
             // add new properties which has no values before
             propertiesToUpdateKeys.removeAll(updatedProperties);
-            for (String key : propertiesToUpdateKeys) {
+            for (final String key : propertiesToUpdateKeys) {
                 bufferedWriter.write(key + EQUALS_SIGN + propertiesToUpdate.get(key) + System.lineSeparator());
             }
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             throw new RuntimeException(e);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
 
         return true;
     }
 
-    private int validateProperties(Map<String, Object> propertiesToUpdate) {
-        Set<UpdatableProperty> updatableProperties = (Set<UpdatableProperty>) updatePropertiesPropertyProvider.getProperties().get(AVAILABLE_PROPERTIES);
-        Map<String, UpdatableProperty> updatablePropertyMap = updatableProperties.stream().collect(Collectors.toMap(UpdatableProperty::getPropertyName, Function.identity()));
+    private int validateProperties(final Map<String, Object> propertiesToUpdate) {
+        final Set<UpdatableProperty> updatableProperties = (Set<UpdatableProperty>) updatePropertiesPropertyProvider.getProperties().get(AVAILABLE_PROPERTIES);
+        final Map<String, UpdatableProperty> updatablePropertyMap = updatableProperties.stream().collect(Collectors.toMap(UpdatableProperty::getPropertyName, Function.identity()));
         int propertyCountToUpdate = 0;
-        List<String> validationErrors = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : propertiesToUpdate.entrySet()) {
-            UpdatableProperty updatableProperty = updatablePropertyMap.get(entry.getKey());
+        final List<String> validationErrors = new ArrayList<>();
+        for (final Map.Entry<String, Object> entry : propertiesToUpdate.entrySet()) {
+            final UpdatableProperty updatableProperty = updatablePropertyMap.get(entry.getKey());
             if (updatableProperty == null) {
                 validationErrors.add(String.format("You can not update the {} property through C2 protocol", entry.getKey()));
                 continue;
@@ -128,21 +128,21 @@ public class PropertiesPersister {
         return propertyCountToUpdate;
     }
 
-    private Optional<Validator> getValidator(String validatorName) {
+    private Optional<Validator> getValidator(final String validatorName) {
         try {
-            Field validatorField = StandardValidators.class.getField(validatorName);
+            final Field validatorField = StandardValidators.class.getField(validatorName);
             return Optional.of((Validator) validatorField.get(null));
-        } catch (NoSuchFieldException e) {
+        } catch (final NoSuchFieldException e) {
             if (!VALID.equals(validatorName)) {
                 LOGGER.warn("No validator present: {}", validatorName);
             }
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             LOGGER.error("Illegal access of {}", validatorName);
         }
         return Optional.empty();
     }
 
-    private String argToString(Object argument) {
+    private String argToString(final Object argument) {
         return argument instanceof String arg ? arg : null;
     }
 }

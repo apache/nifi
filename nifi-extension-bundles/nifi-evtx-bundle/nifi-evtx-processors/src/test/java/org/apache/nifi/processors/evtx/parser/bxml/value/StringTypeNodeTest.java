@@ -28,14 +28,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class StringTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testStringLengthArg() throws IOException {
-        String value = "string test";
+        final String value = "string test";
         assertEquals(value, new StringTypeNode(testBinaryReaderBuilder.putString(value).build(), chunkHeader, parent, value.length() + 1).getValue());
     }
 
     @Test
     public void testStringNoLengthArg() throws IOException {
-        String value = "string test";
-        BinaryReader binaryReader = testBinaryReaderBuilder.putWord(value.length() + 1).putString(value).build();
+        final String value = "string test";
+        final BinaryReader binaryReader = testBinaryReaderBuilder.putWord(value.length() + 1).putString(value).build();
         assertEquals(value, new StringTypeNode(binaryReader, chunkHeader, parent, -1).getValue());
     }
 }

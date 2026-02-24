@@ -192,7 +192,7 @@ public class SNMPConfiguration {
             return this;
         }
 
-        public Builder setCommunityString(String communityString) {
+        public Builder setCommunityString(final String communityString) {
             this.communityString = communityString;
             return this;
         }

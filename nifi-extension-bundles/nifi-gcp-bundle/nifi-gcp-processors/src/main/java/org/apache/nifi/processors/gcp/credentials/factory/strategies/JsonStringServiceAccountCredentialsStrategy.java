@@ -36,8 +36,8 @@ public class JsonStringServiceAccountCredentialsStrategy extends AbstractService
     }
 
     @Override
-    protected InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) {
-        String serviceAccountJson = properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON);
+    protected InputStream getServiceAccountJson(final Map<PropertyDescriptor, String> properties) {
+        final String serviceAccountJson = properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON);
         return new ByteArrayInputStream(serviceAccountJson.getBytes());
     }
 }

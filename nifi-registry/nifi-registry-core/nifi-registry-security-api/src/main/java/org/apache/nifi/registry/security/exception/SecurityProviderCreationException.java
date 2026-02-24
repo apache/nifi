@@ -24,15 +24,15 @@ public class SecurityProviderCreationException extends RuntimeException {
     public SecurityProviderCreationException() {
     }
 
-    public SecurityProviderCreationException(String msg) {
+    public SecurityProviderCreationException(final String msg) {
         super(msg);
     }
 
-    public SecurityProviderCreationException(Throwable cause) {
+    public SecurityProviderCreationException(final Throwable cause) {
         super(cause);
     }
 
-    public SecurityProviderCreationException(String msg, Throwable cause) {
+    public SecurityProviderCreationException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

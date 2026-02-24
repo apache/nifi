@@ -28,7 +28,7 @@ public class ComponentRevision {
         return version;
     }
 
-    public void setVersion(Long version) {
+    public void setVersion(final Long version) {
         this.version = version;
     }
 
@@ -36,7 +36,7 @@ public class ComponentRevision {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -44,7 +44,7 @@ public class ComponentRevision {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -73,7 +73,7 @@ public class ComponentRevision {
             return false;
         }
 
-        ComponentRevision thatRevision = (ComponentRevision) obj;
+        final ComponentRevision thatRevision = (ComponentRevision) obj;
         // ensure that component ID's are the same (including null)
         if (thatRevision.getComponentId() == null && getComponentId() != null) {
             return false;

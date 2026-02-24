@@ -49,7 +49,7 @@ public abstract class AbstractWritableResult<T> implements WritableResult<T> {
     protected abstract void writeSimpleResult(PrintStream output)
             throws IOException;
 
-    protected void writeJsonResult(PrintStream output) throws IOException {
+    protected void writeJsonResult(final PrintStream output) throws IOException {
         JacksonUtils.write(getResult(), output);
     }
 

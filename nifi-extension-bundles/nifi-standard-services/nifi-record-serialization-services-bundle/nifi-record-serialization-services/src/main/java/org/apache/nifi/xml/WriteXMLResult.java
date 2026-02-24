@@ -93,7 +93,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         if (recordTagName != null) {
             this.recordTagName = recordTagName;
         } else {
-            Optional<String> recordTagNameOptional = recordSchema.getSchemaName().isPresent() ? recordSchema.getSchemaName() : recordSchema.getIdentifier().getName();
+            final Optional<String> recordTagNameOptional = recordSchema.getSchemaName().isPresent() ? recordSchema.getSchemaName() : recordSchema.getIdentifier().getName();
             if (recordTagNameOptional.isPresent()) {
                 this.recordTagName = recordTagNameOptional.get();
             } else {
@@ -111,7 +111,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.timestampFormat = timestampFormat;
 
         try {
-            XMLOutputFactory factory = XMLOutputFactory.newInstance();
+            final XMLOutputFactory factory = XMLOutputFactory.newInstance();
 
             if (prettyPrint) {
                 writer = new IndentingXMLStreamWriter(factory.createXMLStreamWriter(out, charSet));
@@ -119,7 +119,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 writer = factory.createXMLStreamWriter(out, charSet);
             }
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
     }
@@ -139,7 +139,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 writer.writeStartElement(rootTagName);
             }
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
     }
@@ -153,7 +153,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             }
 
             writer.writeEndDocument();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
         return schemaAccess.getAttributes(recordSchema);
@@ -165,7 +165,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         try {
             writer.close();
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
 
@@ -178,7 +178,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         try {
             writer.flush();
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
     }
@@ -192,7 +192,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     }
 
     @Override
-    protected Map<String, String> writeRecord(Record record) throws IOException {
+    protected Map<String, String> writeRecord(final Record record) throws IOException {
 
         if (!isActiveRecordSet()) {
             schemaAccess.writeHeader(recordSchema, getOutputStream());
@@ -200,31 +200,31 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
         checkWritingMultipleRecords();
 
-        Deque<String> tagsToOpen = new ArrayDeque<>();
+        final Deque<String> tagsToOpen = new ArrayDeque<>();
 
         try {
             tagsToOpen.addLast(recordTagName);
 
-            boolean closingTagRequired = iterateThroughRecordUsingSchema(tagsToOpen, record, recordSchema);
+            final boolean closingTagRequired = iterateThroughRecordUsingSchema(tagsToOpen, record, recordSchema);
             if (closingTagRequired) {
                 writer.writeEndElement();
                 hasWrittenRecord = true;
             }
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
         return schemaAccess.getAttributes(recordSchema);
     }
 
-    private boolean iterateThroughRecordUsingSchema(Deque<String> tagsToOpen, Record record, RecordSchema schema) throws XMLStreamException {
+    private boolean iterateThroughRecordUsingSchema(final Deque<String> tagsToOpen, final Record record, final RecordSchema schema) throws XMLStreamException {
 
         boolean loopHasWritten = false;
-        for (RecordField field : schema.getFields()) {
+        for (final RecordField field : schema.getFields()) {
 
-            String fieldName = field.getFieldName();
-            DataType dataType = field.getDataType();
-            Object value = record.getValue(field);
+            final String fieldName = field.getFieldName();
+            final DataType dataType = field.getDataType();
+            final Object value = record.getValue(field);
 
             final DataType chosenDataType = dataType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(value, (ChoiceDataType) dataType) : dataType;
             final Object coercedValue = DataTypeUtils.convertType(
@@ -232,7 +232,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             );
 
             if (coercedValue != null) {
-                boolean hasWritten = writeFieldForType(tagsToOpen, coercedValue, chosenDataType, fieldName);
+                final boolean hasWritten = writeFieldForType(tagsToOpen, coercedValue, chosenDataType, fieldName);
                 if (hasWritten) {
                     loopHasWritten = true;
                 }
@@ -249,7 +249,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return loopHasWritten;
     }
 
-    private boolean writeFieldForType(Deque<String> tagsToOpen, Object coercedValue, DataType dataType, String fieldName) throws XMLStreamException {
+    private boolean writeFieldForType(final Deque<String> tagsToOpen, final Object coercedValue, final DataType dataType, final String fieldName) throws XMLStreamException {
         switch (dataType.getFieldType()) {
             case BOOLEAN:
             case BYTE:
@@ -294,7 +294,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 final RecordSchema childSchema = recordDataType.getChildSchema();
                 tagsToOpen.addLast(fieldName);
 
-                boolean hasWritten = iterateThroughRecordUsingSchema(tagsToOpen, record, childSchema);
+                final boolean hasWritten = iterateThroughRecordUsingSchema(tagsToOpen, record, childSchema);
 
                 if (hasWritten) {
                     writer.writeEndElement();
@@ -340,7 +340,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 }
 
                 boolean loopHasWritten = false;
-                for (Object element : arrayValues) {
+                for (final Object element : arrayValues) {
 
                     final DataType chosenDataType = elementType.getFieldType() == RecordFieldType.CHOICE ? DataTypeUtils.chooseDataType(element, (ChoiceDataType) elementType) : elementType;
                     final Object coercedElement = DataTypeUtils.convertType(
@@ -348,7 +348,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     );
 
                     if (coercedElement != null) {
-                        boolean hasWritten = writeFieldForType(tagsToOpen, coercedElement, elementType, elementName);
+                        final boolean hasWritten = writeFieldForType(tagsToOpen, coercedElement, elementType, elementName);
 
                         if (hasWritten) {
                             loopHasWritten = true;
@@ -389,7 +389,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                 tagsToOpen.addLast(fieldName);
                 boolean loopHasWritten = false;
 
-                for (Map.Entry<String, ?> entry : map.entrySet()) {
+                for (final Map.Entry<String, ?> entry : map.entrySet()) {
 
                     final String key = entry.getKey();
 
@@ -400,7 +400,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
                     );
 
                     if (coercedElement != null) {
-                        boolean hasWritten = writeFieldForType(tagsToOpen, entry.getValue(), valueDataType, key);
+                        final boolean hasWritten = writeFieldForType(tagsToOpen, entry.getValue(), valueDataType, key);
 
                         if (hasWritten) {
                             loopHasWritten = true;
@@ -435,7 +435,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         }
     }
 
-    private void writeAllTags(Deque<String> tagsToOpen, String fieldName) throws XMLStreamException {
+    private void writeAllTags(final Deque<String> tagsToOpen, final String fieldName) throws XMLStreamException {
         tagsToOpen.addLast(fieldName);
         writeAllTags(tagsToOpen);
     }
@@ -444,15 +444,15 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return TAG_NAME_CHARS_TO_STRIP.matcher(tagName).replaceAll("");
     }
 
-    private void writeAllTags(Deque<String> tagsToOpen) throws XMLStreamException {
-        for (String tagName : tagsToOpen) {
+    private void writeAllTags(final Deque<String> tagsToOpen) throws XMLStreamException {
+        for (final String tagName : tagsToOpen) {
             writer.writeStartElement(escapeTagName(tagName));
         }
         tagsToOpen.clear();
     }
 
     @Override
-    public WriteResult writeRawRecord(Record record) throws IOException {
+    public WriteResult writeRawRecord(final Record record) throws IOException {
 
         if (!isActiveRecordSet()) {
             schemaAccess.writeHeader(recordSchema, getOutputStream());
@@ -460,18 +460,18 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
         checkWritingMultipleRecords();
 
-        Deque<String> tagsToOpen = new ArrayDeque<>();
+        final Deque<String> tagsToOpen = new ArrayDeque<>();
 
         try {
             tagsToOpen.addLast(recordTagName);
 
-            boolean closingTagRequired = iterateThroughRecordWithoutSchema(tagsToOpen, record);
+            final boolean closingTagRequired = iterateThroughRecordWithoutSchema(tagsToOpen, record);
             if (closingTagRequired) {
                 writer.writeEndElement();
                 hasWrittenRecord = true;
             }
 
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e.getMessage());
         }
 
@@ -479,15 +479,15 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return WriteResult.of(incrementRecordCount(), attributes);
     }
 
-    private boolean iterateThroughRecordWithoutSchema(Deque<String> tagsToOpen, Record record) throws XMLStreamException {
+    private boolean iterateThroughRecordWithoutSchema(final Deque<String> tagsToOpen, final Record record) throws XMLStreamException {
 
         boolean loopHasWritten = false;
 
-        for (String fieldName : record.getRawFieldNames()) {
-            Object value = record.getValue(fieldName);
+        for (final String fieldName : record.getRawFieldNames()) {
+            final Object value = record.getValue(fieldName);
 
             if (value != null) {
-                boolean hasWritten = writeUnknownField(tagsToOpen, value, fieldName);
+                final boolean hasWritten = writeUnknownField(tagsToOpen, value, fieldName);
 
                 if (hasWritten) {
                     loopHasWritten = true;
@@ -504,13 +504,13 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return loopHasWritten;
     }
 
-    private boolean writeUnknownField(Deque<String> tagsToOpen, Object value, String fieldName) throws XMLStreamException {
+    private boolean writeUnknownField(final Deque<String> tagsToOpen, final Object value, final String fieldName) throws XMLStreamException {
 
         if (value instanceof Record) {
-            Record valueAsRecord = (Record) value;
+            final Record valueAsRecord = (Record) value;
             tagsToOpen.addLast(fieldName);
 
-            boolean hasWritten = iterateThroughRecordWithoutSchema(tagsToOpen, valueAsRecord);
+            final boolean hasWritten = iterateThroughRecordWithoutSchema(tagsToOpen, valueAsRecord);
 
             if (hasWritten) {
                 writer.writeEndElement();
@@ -528,7 +528,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         }
 
         if (value instanceof Object[]) {
-            Object[] valueAsArray = (Object[]) value;
+            final Object[] valueAsArray = (Object[]) value;
 
             final String elementName;
             final String wrapperName;
@@ -549,9 +549,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
             boolean loopHasWritten = false;
 
-            for (Object element : valueAsArray) {
+            for (final Object element : valueAsArray) {
                 if (element != null) {
-                    boolean hasWritten = writeUnknownField(tagsToOpen, element, elementName);
+                    final boolean hasWritten = writeUnknownField(tagsToOpen, element, elementName);
 
                     if (hasWritten) {
                         loopHasWritten = true;
@@ -586,18 +586,18 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         }
 
         if (value instanceof Map) {
-            Map<String, ?> valueAsMap = (Map<String, ?>) value;
+            final Map<String, ?> valueAsMap = (Map<String, ?>) value;
 
             tagsToOpen.addLast(fieldName);
             boolean loopHasWritten = false;
 
-            for (Map.Entry<String, ?> entry : valueAsMap.entrySet()) {
+            for (final Map.Entry<String, ?> entry : valueAsMap.entrySet()) {
 
                 final String key = entry.getKey();
                 final Object entryValue = entry.getValue();
 
                 if (entryValue != null) {
-                    boolean hasWritten = writeUnknownField(tagsToOpen, entry.getValue(), key);
+                    final boolean hasWritten = writeUnknownField(tagsToOpen, entry.getValue(), key);
 
                     if (hasWritten) {
                         loopHasWritten = true;
@@ -638,13 +638,13 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         return "application/xml";
     }
 
-    private boolean recordHasField(RecordField field, Record record) {
-        Set<String> recordFieldNames = record.getRawFieldNames();
+    private boolean recordHasField(final RecordField field, final Record record) {
+        final Set<String> recordFieldNames = record.getRawFieldNames();
         if (recordFieldNames.contains(field.getFieldName())) {
             return true;
         }
 
-        for (String alias : field.getAliases()) {
+        for (final String alias : field.getAliases()) {
             if (recordFieldNames.contains(alias)) {
                 return true;
             }

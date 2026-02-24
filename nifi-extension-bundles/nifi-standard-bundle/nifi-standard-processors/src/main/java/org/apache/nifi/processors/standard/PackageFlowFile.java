@@ -177,7 +177,7 @@ public class PackageFlowFile extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFileFilter filter = FlowFileFilters.newSizeBasedFilter(
                 context.getProperty(BATCH_CONTENT_SIZE).asDataSize(DataUnit.B),
                 DataUnit.B,
@@ -213,7 +213,7 @@ public class PackageFlowFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("max-batch-size", BATCH_SIZE.getName());
     }
 }

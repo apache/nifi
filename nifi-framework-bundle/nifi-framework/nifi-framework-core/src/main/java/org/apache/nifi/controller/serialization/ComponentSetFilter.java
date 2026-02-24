@@ -62,7 +62,7 @@ public interface ComponentSetFilter {
             }
 
             @Override
-            public boolean testFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+            public boolean testFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule) {
                 return !original.testFlowAnalysisRule(flowAnalysisRule);
             }
 

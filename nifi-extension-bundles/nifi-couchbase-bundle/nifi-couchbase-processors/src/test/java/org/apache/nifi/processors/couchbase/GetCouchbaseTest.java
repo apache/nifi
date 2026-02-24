@@ -177,7 +177,7 @@ public class GetCouchbaseTest {
         runner.setProperty(COLLECTION_NAME, "${collection.attribute}");
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("bucket.attribute", testBucket);
         attributes.put("scope.attribute", testScope);
         attributes.put("collection.attribute", testCollection);

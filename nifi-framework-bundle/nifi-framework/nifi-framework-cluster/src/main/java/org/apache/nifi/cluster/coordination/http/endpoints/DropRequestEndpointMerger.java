@@ -34,7 +34,7 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
     public static final Pattern DROP_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/drop-requests/[a-f0-9\\-]{36}");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && DROP_REQUEST_URI.matcher(uri.getPath()).matches()) {
             return true;
         } else if (("POST".equalsIgnoreCase(method) && DROP_REQUESTS_URI.matcher(uri.getPath()).matches())) {
@@ -50,12 +50,13 @@ public class DropRequestEndpointMerger extends AbstractSingleDTOEndpoint<DropReq
     }
 
     @Override
-    protected DropRequestDTO getDto(DropRequestEntity entity) {
+    protected DropRequestDTO getDto(final DropRequestEntity entity) {
         return entity.getDropRequest();
     }
 
     @Override
-    protected void mergeResponses(DropRequestDTO clientDto, Map<NodeIdentifier, DropRequestDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final DropRequestDTO clientDto, final Map<NodeIdentifier, DropRequestDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         boolean nodeWaiting = false;
         int originalCount = 0;
         long originalSize = 0;

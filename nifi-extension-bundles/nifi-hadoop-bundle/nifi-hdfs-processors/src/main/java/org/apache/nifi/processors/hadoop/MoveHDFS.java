@@ -224,7 +224,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws Exception {
+    public void onScheduled(final ProcessContext context) throws Exception {
         super.abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
@@ -240,7 +240,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
 
         if (flowFile == null && context.hasIncomingConnection()) {
@@ -252,14 +252,14 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         final FileSystem hdfs = getFileSystem();
         final String filenameValue = context.getProperty(INPUT_DIRECTORY_OR_FILE).evaluateAttributeExpressions(flowFile).getValue();
 
-        Path inputPath;
+        final Path inputPath;
         try {
             inputPath = getNormalizedPath(context, INPUT_DIRECTORY_OR_FILE, flowFile);
             final boolean directoryExists = getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
             if (!directoryExists) {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                 return;
             }
@@ -270,11 +270,11 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        List<Path> files = new ArrayList<>();
+        final List<Path> files = new ArrayList<>();
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
-            Set<Path> listedFiles = performListing(context, inputPath);
+            final Set<Path> listedFiles = performListing(context, inputPath);
             stopWatch.stop();
             final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
@@ -283,7 +283,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                 int newItems = 0;
                 queueLock.lock();
                 try {
-                    for (Path file : listedFiles) {
+                    for (final Path file : listedFiles) {
                         if (!filePathQueue.contains(file) && !processing.contains(file)) {
                             if (!filePathQueue.offer(file)) {
                                 break;
@@ -291,7 +291,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                             newItems++;
                         }
                     }
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().warn("Could not add to processing queue due to {}", e.getMessage(), e);
                 } finally {
                     queueLock.unlock();
@@ -305,11 +305,11 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                             millis, listedFiles.size(), newItems);
                 }
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             context.yield();
             getLogger().warn("Error while retrieving list of files", e);
             return;
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             context.yield();
             getLogger().warn("Interrupted while retrieving files", e);
@@ -333,7 +333,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         try {
             processBatchOfFiles(files, context, session, flowFile);
             session.remove(flowFile);
-        } catch (UncheckedIOException e) {
+        } catch (final UncheckedIOException e) {
             handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
         }
 
@@ -346,7 +346,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     }
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context,
-                                       final ProcessSession session, FlowFile parentFlowFile) {
+                                       final ProcessSession session, final FlowFile parentFlowFile) {
         Objects.requireNonNull(parentFlowFile, "No parent flowfile for this batch was provided");
 
         // process the batch of files
@@ -403,7 +403,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         if (!hdfs.getFileStatus(outputDirPath).isDirectory()) {
                             throw new IOException(outputDirPath + " already exists and is not a directory");
                         }
-                    } catch (FileNotFoundException fe) {
+                    } catch (final FileNotFoundException fe) {
                         if (!hdfs.mkdirs(outputDirPath)) {
                             throw new IOException(outputDirPath + " could not be created");
                         }
@@ -456,7 +456,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    protected Set<Path> performListing(final ProcessContext context, Path path) throws IOException, InterruptedException {
+    protected Set<Path> performListing(final ProcessContext context, final Path path) throws IOException, InterruptedException {
         Set<Path> listing = null;
 
         if (listingLock.tryLock()) {
@@ -475,23 +475,21 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name) {
         try {
             // Change owner and group of file if configured to do so
-            String owner = context.getProperty(REMOTE_OWNER).getValue();
-            String group = context.getProperty(REMOTE_GROUP).getValue();
+            final String owner = context.getProperty(REMOTE_OWNER).getValue();
+            final String group = context.getProperty(REMOTE_GROUP).getValue();
             if (owner != null || group != null) {
                 hdfs.setOwner(name, owner, group);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Could not change owner or group of {} on HDFS due to {}", name, e.getMessage(), e);
         }
     }
 
-    protected Set<Path> selectFiles(final FileSystem hdfs, final Path inputPath, Set<Path> filesVisited)
+    protected Set<Path> selectFiles(final FileSystem hdfs, final Path inputPath, final Set<Path> filesVisited)
             throws IOException, InterruptedException {
-        if (null == filesVisited) {
-            filesVisited = new HashSet<>();
-        }
+        final Set<Path> visited = filesVisited != null ? filesVisited : new HashSet<>();
 
-        UserGroupInformation ugi = getUserGroupInformation();
+        final UserGroupInformation ugi = getUserGroupInformation();
 
         final boolean directoryExists = ugi.doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
         if (!directoryExists) {
@@ -500,14 +498,14 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
         final Set<Path> files = new HashSet<>();
 
-        FileStatus inputStatus = ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(inputPath));
+        final FileStatus inputStatus = ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(inputPath));
 
         if (inputStatus.isDirectory()) {
-            FileStatus[] fileStatuses = ugi.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(inputPath));
+            final FileStatus[] fileStatuses = ugi.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(inputPath));
             for (final FileStatus file : fileStatuses) {
                 final Path canonicalFile = file.getPath();
 
-                if (!filesVisited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)
+                if (!visited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)
                     continue;
                 }
 
@@ -554,7 +552,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     return false;
                 }
                 final String pathToCompare;
-                String relativePath = getPathDifference(dir, path);
+                final String relativePath = getPathDifference(dir, path);
                 if (relativePath.length() == 0) {
                     pathToCompare = path.getName();
                 } else {

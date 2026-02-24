@@ -27,7 +27,7 @@ public class ShutdownHook extends Thread {
     private final RunMiNiFi runner;
     private final MiNiFiStdLogHandler miNiFiStdLogHandler;
 
-    public ShutdownHook(RunMiNiFi runner, MiNiFiStdLogHandler miNiFiStdLogHandler) {
+    public ShutdownHook(final RunMiNiFi runner, final MiNiFiStdLogHandler miNiFiStdLogHandler) {
         this.runner = runner;
         this.miNiFiStdLogHandler = miNiFiStdLogHandler;
     }

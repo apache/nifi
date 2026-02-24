@@ -45,63 +45,63 @@ public class S3ClientBuilderWrapper implements AwsClientBuilder<S3ClientBuilderW
 
     private final S3BaseClientBuilder<? extends S3BaseClientBuilder<?, ?>, ? extends S3Client> builder;
 
-    S3ClientBuilderWrapper(S3ClientBuilder s3ClientBuilder) {
+    S3ClientBuilderWrapper(final S3ClientBuilder s3ClientBuilder) {
         this.builder = s3ClientBuilder;
     }
 
-    S3ClientBuilderWrapper(S3EncryptionClient.Builder s3EncryptionClientBuilder) {
+    S3ClientBuilderWrapper(final S3EncryptionClient.Builder s3EncryptionClientBuilder) {
         this.builder = s3EncryptionClientBuilder;
     }
 
-    S3ClientBuilderWrapper serviceConfiguration(S3Configuration serviceConfiguration) {
+    S3ClientBuilderWrapper serviceConfiguration(final S3Configuration serviceConfiguration) {
         builder.serviceConfiguration(serviceConfiguration);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper credentialsProvider(AwsCredentialsProvider credentialsProvider) {
+    public S3ClientBuilderWrapper credentialsProvider(final AwsCredentialsProvider credentialsProvider) {
         builder.credentialsProvider(credentialsProvider);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper credentialsProvider(IdentityProvider<? extends AwsCredentialsIdentity> credentialsProvider) {
+    public S3ClientBuilderWrapper credentialsProvider(final IdentityProvider<? extends AwsCredentialsIdentity> credentialsProvider) {
         builder.credentialsProvider(credentialsProvider);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper region(Region region) {
+    public S3ClientBuilderWrapper region(final Region region) {
         builder.region(region);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper defaultsMode(DefaultsMode defaultsMode) {
+    public S3ClientBuilderWrapper defaultsMode(final DefaultsMode defaultsMode) {
         builder.defaultsMode(defaultsMode);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper dualstackEnabled(Boolean dualstackEndpointEnabled) {
+    public S3ClientBuilderWrapper dualstackEnabled(final Boolean dualstackEndpointEnabled) {
         builder.dualstackEnabled(dualstackEndpointEnabled);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper fipsEnabled(Boolean fipsEndpointEnabled) {
+    public S3ClientBuilderWrapper fipsEnabled(final Boolean fipsEndpointEnabled) {
         builder.fipsEnabled(fipsEndpointEnabled);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper overrideConfiguration(ClientOverrideConfiguration overrideConfiguration) {
+    public S3ClientBuilderWrapper overrideConfiguration(final ClientOverrideConfiguration overrideConfiguration) {
         builder.overrideConfiguration(overrideConfiguration);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper overrideConfiguration(Consumer<ClientOverrideConfiguration.Builder> overrideConfiguration) {
+    public S3ClientBuilderWrapper overrideConfiguration(final Consumer<ClientOverrideConfiguration.Builder> overrideConfiguration) {
         builder.overrideConfiguration(overrideConfiguration);
         return this;
     }
@@ -112,13 +112,13 @@ public class S3ClientBuilderWrapper implements AwsClientBuilder<S3ClientBuilderW
     }
 
     @Override
-    public S3ClientBuilderWrapper endpointOverride(URI endpointOverride) {
+    public S3ClientBuilderWrapper endpointOverride(final URI endpointOverride) {
         builder.endpointOverride(endpointOverride);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper putAuthScheme(AuthScheme<?> authScheme) {
+    public S3ClientBuilderWrapper putAuthScheme(final AuthScheme<?> authScheme) {
         builder.putAuthScheme(authScheme);
         return this;
     }
@@ -129,19 +129,19 @@ public class S3ClientBuilderWrapper implements AwsClientBuilder<S3ClientBuilderW
     }
 
     @Override
-    public S3ClientBuilderWrapper addPlugin(SdkPlugin plugin) {
+    public S3ClientBuilderWrapper addPlugin(final SdkPlugin plugin) {
         builder.addPlugin(plugin);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper httpClient(SdkHttpClient httpClient) {
+    public S3ClientBuilderWrapper httpClient(final SdkHttpClient httpClient) {
         ((SdkSyncClientBuilder<?, ?>) builder).httpClient(httpClient);
         return this;
     }
 
     @Override
-    public S3ClientBuilderWrapper httpClientBuilder(SdkHttpClient.Builder httpClientBuilder) {
+    public S3ClientBuilderWrapper httpClientBuilder(final SdkHttpClient.Builder httpClientBuilder) {
         ((SdkSyncClientBuilder<?, ?>) builder).httpClientBuilder(httpClientBuilder);
         return this;
     }

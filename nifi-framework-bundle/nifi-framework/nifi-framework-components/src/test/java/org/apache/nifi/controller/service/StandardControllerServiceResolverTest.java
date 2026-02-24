@@ -70,8 +70,8 @@ public class StandardControllerServiceResolverTest {
 
     @BeforeEach
     public void setup() {
-        Authorizer authorizer = mock(Authorizer.class);
-        FlowManager flowManager = mock(FlowManager.class);
+        final Authorizer authorizer = mock(Authorizer.class);
+        final FlowManager flowManager = mock(FlowManager.class);
         flowMapper = mock(NiFiRegistryFlowMapper.class);
         controllerServiceProvider = mock(ControllerServiceProvider.class);
         controllerServiceApiLookup = mock(ControllerServiceApiLookup.class);

@@ -64,9 +64,9 @@ public class SecureKerberosIT extends IntegrationTestBase {
     public static class MockKerberosTicketValidator implements KerberosTicketValidator {
 
         @Override
-        public KerberosTicketValidation validateTicket(byte[] token) throws BadCredentialsException {
+        public KerberosTicketValidation validateTicket(final byte[] token) throws BadCredentialsException {
 
-            boolean validTicket;
+            final boolean validTicket;
             validTicket = Arrays.equals(validKerberosTicket.getBytes(StandardCharsets.UTF_8), token);
 
             if (!validTicket) {
@@ -98,7 +98,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
     @BeforeEach
     public void generateAuthToken() {
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        final String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
         final String token = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -114,12 +114,12 @@ public class SecureKerberosIT extends IntegrationTestBase {
         // for nifiadmin by the @Before method
 
         // Given: the client and server have been configured correctly for Kerberos SPNEGO authentication
-        String expectedJwtPayloadJson = "{" +
+        final String expectedJwtPayloadJson = "{" +
                 "\"sub\":\"kerberosUser@LOCALHOST\"," +
                 "\"preferred_username\":\"kerberosUser@LOCALHOST\"," +
                 "\"iss\":\"KerberosSpnegoIdentityProvider\"" +
                 "}";
-        String expectedAccessStatusJson = "{" +
+        final String expectedAccessStatusJson = "{" +
                 "\"identity\":\"kerberosUser@LOCALHOST\"," +
                 "\"anonymous\":false}";
 
@@ -136,7 +136,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
 
         // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
-        String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        final String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
         final Response tokenResponse2 = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -147,7 +147,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         assertEquals(401, tokenResponse2.getStatus());
 
         // When: the /access/token/kerberos endpoint is accessed with a valid ticket
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        final String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
         final Response tokenResponse3 = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
@@ -156,11 +156,11 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
         // Then: the server returns 200 OK with a JWT in the body
         assertEquals(201, tokenResponse3.getStatus());
-        String token = tokenResponse3.readEntity(String.class);
+        final String token = tokenResponse3.readEntity(String.class);
         assertTrue(StringUtils.isNotEmpty(token));
-        String[] jwtParts = token.split("\\.");
+        final String[] jwtParts = token.split("\\.");
         assertEquals(3, jwtParts.length);
-        String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), StandardCharsets.UTF_8);
+        final String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), StandardCharsets.UTF_8);
         JSONAssert.assertEquals(expectedJwtPayloadJson, jwtPayload, false);
 
         // When: the token is returned in the Authorization header
@@ -172,7 +172,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
         // Then: the server acknowledges the client has access
         assertEquals(200, accessResponse.getStatus());
-        String accessStatus = accessResponse.readEntity(String.class);
+        final String accessStatus = accessResponse.readEntity(String.class);
         JSONAssert.assertEquals(expectedAccessStatusJson, accessStatus, false);
 
     }
@@ -181,7 +181,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
     public void testGetCurrentUser() throws Exception {
 
         // Given: the client is connected to an unsecured NiFi Registry
-        String expectedJson = "{" +
+        final String expectedJson = "{" +
                 "\"identity\":\"kerberosUser@LOCALHOST\"," +
                 "\"anonymous\":false," +
                 "\"resourcePermissions\":{" +
@@ -201,7 +201,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
         // Then: the server returns a 200 OK with the expected current user
         assertEquals(200, response.getStatus());
-        String actualJson = response.readEntity(String.class);
+        final String actualJson = response.readEntity(String.class);
         JSONAssert.assertEquals(expectedJson, actualJson, false);
 
     }

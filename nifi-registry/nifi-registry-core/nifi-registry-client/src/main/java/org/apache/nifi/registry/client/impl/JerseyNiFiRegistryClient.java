@@ -132,7 +132,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public BucketClient getBucketClient(RequestConfig requestConfig) {
+    public BucketClient getBucketClient(final RequestConfig requestConfig) {
         return new JerseyBucketClient(baseTarget, requestConfig);
     }
 
@@ -142,7 +142,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public FlowClient getFlowClient(RequestConfig requestConfig) {
+    public FlowClient getFlowClient(final RequestConfig requestConfig) {
         return new JerseyFlowClient(baseTarget, requestConfig);
     }
 
@@ -152,7 +152,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public FlowSnapshotClient getFlowSnapshotClient(RequestConfig requestConfig) {
+    public FlowSnapshotClient getFlowSnapshotClient(final RequestConfig requestConfig) {
         return new JerseyFlowSnapshotClient(baseTarget, requestConfig);
     }
 
@@ -162,7 +162,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public ItemsClient getItemsClient(RequestConfig requestConfig) {
+    public ItemsClient getItemsClient(final RequestConfig requestConfig) {
         return new JerseyItemsClient(baseTarget, requestConfig);
     }
 
@@ -172,7 +172,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public UserClient getUserClient(RequestConfig requestConfig) {
+    public UserClient getUserClient(final RequestConfig requestConfig) {
         return new JerseyUserClient(baseTarget, requestConfig);
     }
 
@@ -182,7 +182,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public BundleClient getBundleClient(RequestConfig requestConfig) {
+    public BundleClient getBundleClient(final RequestConfig requestConfig) {
         return new JerseyBundleClient(baseTarget, requestConfig);
     }
 
@@ -192,7 +192,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public BundleVersionClient getBundleVersionClient(RequestConfig requestConfig) {
+    public BundleVersionClient getBundleVersionClient(final RequestConfig requestConfig) {
         return new JerseyBundleVersionClient(baseTarget, requestConfig);
     }
 
@@ -202,7 +202,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public ExtensionRepoClient getExtensionRepoClient(RequestConfig requestConfig) {
+    public ExtensionRepoClient getExtensionRepoClient(final RequestConfig requestConfig) {
         return new JerseyExtensionRepoClient(baseTarget, requestConfig);
     }
 
@@ -212,7 +212,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public ExtensionClient getExtensionClient(RequestConfig requestConfig) {
+    public ExtensionClient getExtensionClient(final RequestConfig requestConfig) {
         return new JerseyExtensionClient(baseTarget, requestConfig);
     }
 
@@ -222,7 +222,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public TenantsClient getTenantsClient(RequestConfig requestConfig) {
+    public TenantsClient getTenantsClient(final RequestConfig requestConfig) {
         return new JerseyTenantsClient(baseTarget, requestConfig);
     }
 
@@ -232,7 +232,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
+    public PoliciesClient getPoliciesClient(final RequestConfig requestConfig) {
         return new JerseyPoliciesClient(baseTarget, requestConfig);
     }
 
@@ -246,7 +246,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
         if (this.client != null) {
             try {
                 this.client.close();
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
 
             }
         }
@@ -278,15 +278,15 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     private static JacksonJaxbJsonProvider jacksonJaxbJsonProvider() {
-        JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
+        final JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
-        ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
         mapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory()));
         // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        SimpleModule module = new SimpleModule();
+        final SimpleModule module = new SimpleModule();
         module.addDeserializer(BucketItem[].class, new BucketItemDeserializer());
         mapper.registerModule(module);
 

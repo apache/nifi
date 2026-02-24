@@ -72,7 +72,7 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
     }
 
     @Override
-    public VersionedFlowSnapshotsResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException, CommandException {
+    public VersionedFlowSnapshotsResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException, CommandException {
         final String outputDirectory = getRequiredArg(properties, CommandOption.OUTPUT_DIR);
         final boolean isInteractive = getContext().isInteractive();
 
@@ -173,7 +173,7 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
         public VersionedFlowSnapshot next() {
             try {
                 return setNextElement();
-            } catch (ParseException | IOException | NiFiRegistryException e) {
+            } catch (final ParseException | IOException | NiFiRegistryException e) {
                 throw new RuntimeException(e);
             }
         }

@@ -32,7 +32,7 @@ public class S3UtilTest {
 
     @Test
     void testNullIfBlankWithNotBlank() {
-        String value = "value";
+        final String value = "value";
         assertEquals(value, S3Util.nullIfBlank(value));
     }
 
@@ -63,25 +63,25 @@ public class S3UtilTest {
 
     @Test
     void testGetResourceURL() {
-        String bucket = "myBucket";
-        String key = "myKey";
-        Region region = Region.US_WEST_2;
-        S3Client s3Client = S3Client.builder().region(region).build();
-        String url = String.format("https://s3.%s.amazonaws.com/%s/%s", region.id(), bucket, key);
+        final String bucket = "myBucket";
+        final String key = "myKey";
+        final Region region = Region.US_WEST_2;
+        final S3Client s3Client = S3Client.builder().region(region).build();
+        final String url = String.format("https://s3.%s.amazonaws.com/%s/%s", region.id(), bucket, key);
 
         assertEquals(url, S3Util.getResourceUrl(s3Client, bucket, key));
     }
 
     @Test
     void testSanitizeETagWithQuotes() {
-        String eTag = "ETAG";
-        String eTagWithQuotes = String.format("\"%s\"", eTag);
+        final String eTag = "ETAG";
+        final String eTagWithQuotes = String.format("\"%s\"", eTag);
         assertEquals(eTag, S3Util.sanitizeETag(eTagWithQuotes));
     }
 
     @Test
     void testSanitizeETagWithoutQuotes() {
-        String eTag = "ETAG";
+        final String eTag = "ETAG";
         assertEquals(eTag, S3Util.sanitizeETag(eTag));
     }
 
@@ -92,11 +92,11 @@ public class S3UtilTest {
 
     @Test
     void testParseExpirationHeaderWithValidHeader() {
-        ZonedDateTime expiryDate = ZonedDateTime.of(2025, 10, 22, 20, 00, 0, 0, ZoneId.of("UTC"));
-        String ruleId = "myRuleId";
-        String header = String.format("expiry-date=\"%s\", rule-id=\"%s\"", expiryDate.format(DateTimeFormatter.RFC_1123_DATE_TIME), ruleId);
+        final ZonedDateTime expiryDate = ZonedDateTime.of(2025, 10, 22, 20, 00, 0, 0, ZoneId.of("UTC"));
+        final String ruleId = "myRuleId";
+        final String header = String.format("expiry-date=\"%s\", rule-id=\"%s\"", expiryDate.format(DateTimeFormatter.RFC_1123_DATE_TIME), ruleId);
 
-        Expiration expiration = S3Util.parseExpirationHeader(header);
+        final Expiration expiration = S3Util.parseExpirationHeader(header);
 
         assertEquals(expiryDate.toInstant(), expiration.expirationTime());
         assertEquals(ruleId, expiration.expirationTimeRuleId());
@@ -104,7 +104,7 @@ public class S3UtilTest {
 
     @Test
     void testParseExpirationHeaderWithInvalidHeader() {
-        String header = "no-store, no-cache, must-revalidate";
+        final String header = "no-store, no-cache, must-revalidate";
         assertNull(S3Util.parseExpirationHeader(header));
     }
 

@@ -46,7 +46,7 @@ public class HeartbeatPayload {
     static {
         try {
             JAXB_CONTEXT = JAXBContext.newInstance(HeartbeatPayload.class);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.");
         }
     }

@@ -38,12 +38,13 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause, final Long limit, final Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause,
+            final String orderByClause, final Long limit, final Long offset, final String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
@@ -105,17 +106,17 @@ public class MSSQLDatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder("ADD ")
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder("ADD ")
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
         }
 
-        StringBuilder alterTableStatement = new StringBuilder();
+        final StringBuilder alterTableStatement = new StringBuilder();
         return alterTableStatement.append("ALTER TABLE ")
                 .append(tableName)
                 .append(" ")

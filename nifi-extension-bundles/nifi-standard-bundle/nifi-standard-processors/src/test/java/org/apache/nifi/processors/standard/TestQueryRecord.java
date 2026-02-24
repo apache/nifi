@@ -88,7 +88,7 @@ public class TestQueryRecord {
     private static final long INSTANT_EPOCH_MILLIS = INSTANT.toEpochMilli();
 
     public TestRunner getRunner() {
-        TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
 
         /*
          * we have to disable validation of expression language because the scope of the evaluation
@@ -108,7 +108,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -171,7 +171,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -213,7 +213,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -252,7 +252,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -294,7 +294,7 @@ public class TestQueryRecord {
         recordReader.addRecord(record2);
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -335,7 +335,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -381,7 +381,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -427,7 +427,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -469,7 +469,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(sample.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -518,7 +518,7 @@ public class TestQueryRecord {
         // This allows us to use an equals operator to ensure that we do get back the same values,
         // whereas the unit test above tests <> and that may result in 'false confidence' if the software
         // were to provide the wrong values but values that were not equal.
-        Record[] addresses = (Record[]) record.getValue("addresses");
+        final Record[] addresses = (Record[]) record.getValue("addresses");
         for (final Record address : addresses) {
             address.setValue("state", "NY");
         }
@@ -528,7 +528,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -678,7 +678,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -716,7 +716,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -754,7 +754,7 @@ public class TestQueryRecord {
 
         final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.addControllerService("writer", writer);
@@ -872,7 +872,7 @@ public class TestQueryRecord {
      *
      * @return the Record
      */
-    private Record createTaggedRecord(String id, String... tags) {
+    private Record createTaggedRecord(final String id, final String... tags) {
         final List<RecordField> recordSchemaFields = new ArrayList<>();
         recordSchemaFields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         recordSchemaFields.add(new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
@@ -975,7 +975,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1001,7 +1001,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1036,7 +1036,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1069,7 +1069,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1095,9 +1095,9 @@ public class TestQueryRecord {
 
     @Test
     public void testNoRecordsInput() throws InitializationException {
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
 
-        CSVReader csvReader = new CSVReader();
+        final CSVReader csvReader = new CSVReader();
         runner.addControllerService("csv-reader", csvReader);
         runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
 
@@ -1136,7 +1136,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"NAME\",\"POINTS\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1167,7 +1167,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.enforceReadStreamsClosed(false);
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
@@ -1200,7 +1200,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter("\"name\",\"points\"");
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1231,7 +1231,7 @@ public class TestQueryRecord {
 
         final MockRecordWriter writer = new MockRecordWriter(null, false);
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1273,7 +1273,7 @@ public class TestQueryRecord {
         colNames.add("FAV_GREETING");
         final ResultSetValidatingRecordWriter writer = new ResultSetValidatingRecordWriter(colNames);
 
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
         runner.addControllerService("writer", writer);
@@ -1293,7 +1293,7 @@ public class TestQueryRecord {
 
     @Test
     public void testReturnsNoResultWithArrayColumn() throws InitializationException {
-        TestRunner runner = getRunner();
+        final TestRunner runner = getRunner();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
@@ -1421,7 +1421,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
+        public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) {
             final List<RecordField> recordFields = columnNames.stream()
                     .map(name -> new RecordField(name, RecordFieldType.STRING.getDataType()))
                     .collect(Collectors.toList());
@@ -1463,7 +1463,7 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public WriteResult write(Record record) {
+                public WriteResult write(final Record record) {
                     return null;
                 }
 

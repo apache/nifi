@@ -28,7 +28,7 @@ public class KeyEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -36,7 +36,7 @@ public class KeyEntity {
         return tenantIdentity;
     }
 
-    public void setTenantIdentity(String tenantIdentity) {
+    public void setTenantIdentity(final String tenantIdentity) {
         this.tenantIdentity = tenantIdentity;
     }
 
@@ -44,7 +44,7 @@ public class KeyEntity {
         return keyValue;
     }
 
-    public void setKeyValue(String keyValue) {
+    public void setKeyValue(final String keyValue) {
         this.keyValue = keyValue;
     }
 

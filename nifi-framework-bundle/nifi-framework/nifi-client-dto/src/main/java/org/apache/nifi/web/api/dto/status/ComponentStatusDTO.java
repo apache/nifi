@@ -48,7 +48,7 @@ public class ComponentStatusDTO {
         return runStatus;
     }
 
-    public void setRunStatus(String runStatus) {
+    public void setRunStatus(final String runStatus) {
         this.runStatus = runStatus;
     }
 
@@ -60,7 +60,7 @@ public class ComponentStatusDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 
@@ -73,7 +73,7 @@ public class ComponentStatusDTO {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 

@@ -50,7 +50,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(int flowFilesIn) {
+    public void setFlowFilesIn(final int flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -59,7 +59,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(int flowFilesOut) {
+    public void setFlowFilesOut(final int flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -68,7 +68,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return contentSizeIn;
     }
 
-    public void setContentSizeIn(long contentSizeIn) {
+    public void setContentSizeIn(final long contentSizeIn) {
         this.contentSizeIn = contentSizeIn;
     }
 
@@ -77,7 +77,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return contentSizeOut;
     }
 
-    public void setContentSizeOut(long contentSizeOut) {
+    public void setContentSizeOut(final long contentSizeOut) {
         this.contentSizeOut = contentSizeOut;
     }
 
@@ -104,7 +104,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return bytesRead;
     }
 
-    public void setBytesRead(long bytesRead) {
+    public void setBytesRead(final long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -113,7 +113,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(long bytesWritten) {
+    public void setBytesWritten(final long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -185,7 +185,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return flowFilesReceived;
     }
 
-    public void setFlowFilesReceived(int flowFilesReceived) {
+    public void setFlowFilesReceived(final int flowFilesReceived) {
         this.flowFilesReceived = flowFilesReceived;
     }
 
@@ -194,7 +194,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return bytesReceived;
     }
 
-    public void setBytesReceived(long bytesReceived) {
+    public void setBytesReceived(final long bytesReceived) {
         this.bytesReceived = bytesReceived;
     }
 
@@ -203,7 +203,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return flowFilesSent;
     }
 
-    public void setFlowFilesSent(int flowFilesSent) {
+    public void setFlowFilesSent(final int flowFilesSent) {
         this.flowFilesSent = flowFilesSent;
     }
 
@@ -212,7 +212,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return bytesSent;
     }
 
-    public void setBytesSent(long bytesSent) {
+    public void setBytesSent(final long bytesSent) {
         this.bytesSent = bytesSent;
     }
 
@@ -222,7 +222,7 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return flowFileCount == 0 ? 0L : aggregateLineageMillis / flowFileCount;
     }
 
-    public void setAggregateLineageMillis(long lineageMilliseconds) {
+    public void setAggregateLineageMillis(final long lineageMilliseconds) {
         this.aggregateLineageMillis = lineageMilliseconds;
     }
 

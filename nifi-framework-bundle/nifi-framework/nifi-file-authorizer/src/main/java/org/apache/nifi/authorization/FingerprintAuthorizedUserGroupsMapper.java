@@ -125,7 +125,7 @@ class FingerprintAuthorizedUserGroupsMapper implements AuthorizedUserGroupsMappe
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException ignored) {
+                } catch (final XMLStreamException ignored) {
 
                 }
             }

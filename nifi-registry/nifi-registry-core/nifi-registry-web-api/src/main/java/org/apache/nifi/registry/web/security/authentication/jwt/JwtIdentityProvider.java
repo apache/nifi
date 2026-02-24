@@ -51,12 +51,12 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
     private final JwtService jwtService;
 
     @Autowired
-    public JwtIdentityProvider(JwtService jwtService, NiFiRegistryProperties nifiProperties, Authorizer authorizer) {
+    public JwtIdentityProvider(final JwtService jwtService, final NiFiRegistryProperties nifiProperties, final Authorizer authorizer) {
         this.jwtService = jwtService;
     }
 
     @Override
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
+    public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
 
         if (authenticationRequest == null) {
             logger.info("Cannot authenticate null authenticationRequest, returning null.");
@@ -70,20 +70,20 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
         }
 
         try {
-            String jwtAuthToken = credentials.toString();
+            final String jwtAuthToken = credentials.toString();
             final Jws<Claims> jws = jwtService.parseAndValidateToken(jwtAuthToken);
 
             final String jwtPrincipal = jwtService.getUserIdentityFromToken(jws);
             final Set<String> groups = jwtService.getUserGroupsFromToken(jws);
 
             return new AuthenticationResponse(jwtPrincipal, jwtPrincipal, expiration, issuer, groups);
-        } catch (JwtException e) {
+        } catch (final JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);
         }
     }
 
     @Override
-    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException { }
+    public void onConfigured(final IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException { }
 
     @Override
     public void preDestruction() throws SecurityProviderDestructionException { }

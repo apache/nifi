@@ -100,56 +100,56 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     private final CurrentPortProvider currentPortProvider;
     private final ObjectMapper objectMapper;
 
-    public RunMiNiFi(File bootstrapConfigFile) throws IOException {
+    public RunMiNiFi(final File bootstrapConfigFile) throws IOException {
         bootstrapFileProvider = new BootstrapFileProvider(bootstrapConfigFile);
         objectMapper = getObjectMapper();
-        Properties properties = bootstrapFileProvider.getStatusProperties();
-        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        final Properties properties = bootstrapFileProvider.getStatusProperties();
+        final BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
         miNiFiParameters = new MiNiFiParameters(
             Optional.ofNullable(properties.getProperty(STATUS_FILE_PORT_KEY)).map(Integer::parseInt).orElse(UNINITIALIZED),
             Optional.ofNullable(properties.getProperty(STATUS_FILE_PID_KEY)).map(Integer::parseInt).orElse(UNINITIALIZED),
             properties.getProperty(STATUS_FILE_SECRET_KEY)
         );
-        ProcessUtils processUtils = new UnixProcessUtils(Integer.parseInt(
+        final ProcessUtils processUtils = new UnixProcessUtils(Integer.parseInt(
             bootstrapProperties.getProperty(PROCESS_KILL_SUCCESS_CHECK_RETRIES_KEY, PROCESS_KILL_SUCCESS_CHECK_RETRIES_DEFAULT)));
 
         miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters, objectMapper);
-        MiNiFiStatusProvider miNiFiStatusProvider = new MiNiFiStatusProvider(miNiFiCommandSender, processUtils);
+        final MiNiFiStatusProvider miNiFiStatusProvider = new MiNiFiStatusProvider(miNiFiCommandSender, processUtils);
         periodicStatusReporterManager =
             new PeriodicStatusReporterManager(bootstrapProperties, miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
-        MiNiFiConfigurationChangeListener configurationChangeListener = new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider,
+        final MiNiFiConfigurationChangeListener configurationChangeListener = new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider,
             new StandardFlowEnrichService(bootstrapProperties), StandardFlowSerDeService.defaultInstance());
         configurationChangeCoordinator = new ConfigurationChangeCoordinator(bootstrapFileProvider, this, singleton(configurationChangeListener));
 
         currentPortProvider = new CurrentPortProvider(miNiFiCommandSender, miNiFiParameters, processUtils);
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider = new GracefulShutdownParameterProvider(bootstrapFileProvider);
+        final GracefulShutdownParameterProvider gracefulShutdownParameterProvider = new GracefulShutdownParameterProvider(bootstrapFileProvider);
         reloadService = new ReloadService(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, this, processUtils);
         commandRunnerFactory = new CommandRunnerFactory(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager,
             bootstrapFileProvider, new MiNiFiStdLogHandler(), bootstrapConfigFile, this, gracefulShutdownParameterProvider,
             new MiNiFiExecCommandProvider(bootstrapFileProvider), processUtils, configurationChangeListener);
     }
 
-    public int run(BootstrapCommand command, String... args) {
+    public int run(final BootstrapCommand command, final String... args) {
         return commandRunnerFactory.getRunner(command).runCommand(args);
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         if (args.length < 1 || args.length > 3) {
             printUsage();
             return;
         }
 
-        Optional<BootstrapCommand> cmd = BootstrapCommand.fromString(args[0]);
+        final Optional<BootstrapCommand> cmd = BootstrapCommand.fromString(args[0]);
         if (!cmd.isPresent()) {
             printUsage();
             return;
         }
 
         try {
-            RunMiNiFi runMiNiFi = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
+            final RunMiNiFi runMiNiFi = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
             System.exit(runMiNiFi.run(cmd.get(), args));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             CMD_LOGGER.error("Exception happened during the bootstrap run, check logs for details");
             DEFAULT_LOGGER.error("", e);
             System.exit(1);
@@ -173,7 +173,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         System.out.println();
     }
 
-    public void setMiNiFiParameters(int port, String secretKey) throws IOException {
+    public void setMiNiFiParameters(final int port, final String secretKey) throws IOException {
         if (Optional.ofNullable(secretKey).filter(key -> key.equals(miNiFiParameters.getSecretKey())).isPresent() && miNiFiParameters.getMiNiFiPort() == port) {
             DEFAULT_LOGGER.debug("secretKey and port match with the known one, nothing to update");
             return;
@@ -182,18 +182,18 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         miNiFiParameters.setMiNiFiPort(port);
         miNiFiParameters.setSecretKey(secretKey);
 
-        Properties minifiProps = new Properties();
-        long minifiPid = miNiFiParameters.getMinifiPid();
+        final Properties minifiProps = new Properties();
+        final long minifiPid = miNiFiParameters.getMinifiPid();
         if (minifiPid != UNINITIALIZED) {
             minifiProps.setProperty(STATUS_FILE_PID_KEY, String.valueOf(minifiPid));
         }
         minifiProps.setProperty(STATUS_FILE_PORT_KEY, String.valueOf(port));
         minifiProps.setProperty(STATUS_FILE_SECRET_KEY, secretKey);
 
-        File statusFile = bootstrapFileProvider.getStatusFile();
+        final File statusFile = bootstrapFileProvider.getStatusFile();
         try {
             bootstrapFileProvider.saveStatusProperties(minifiProps);
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             DEFAULT_LOGGER.warn("Apache MiNiFi has started but failed to persist MiNiFi Port information to {}", statusFile.getAbsolutePath(), ioe);
         }
 
@@ -204,7 +204,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         reloadService.reload();
     }
 
-    public void setNiFiStarted(boolean nifiStarted) {
+    public void setNiFiStarted(final boolean nifiStarted) {
         startedLock.lock();
         try {
             this.nifiStarted = nifiStarted;
@@ -226,14 +226,14 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         configurationChangeCoordinator.close();
     }
 
-    public void sendAcknowledgeToMiNiFi(MiNiFiCommandState commandState) {
+    public void sendAcknowledgeToMiNiFi(final MiNiFiCommandState commandState) {
         try {
             if (commandInProgress.getAndSet(false)) {
-                Integer currentPort = currentPortProvider.getCurrentPort();
+                final Integer currentPort = currentPortProvider.getCurrentPort();
                 CMD_LOGGER.info("Sending acknowledge with state {} to MiNiFi on port {}", commandState, currentPort);
                 miNiFiCommandSender.sendCommand(ACKNOWLEDGE_OPERATION, currentPort, commandState.name());
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             CMD_LOGGER.error("Failed to send Acknowledge to MiNiFi", e);
         }
     }
@@ -246,7 +246,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         return configurationChangeCoordinator;
     }
 
-    void setAutoRestartNiFi(boolean restart) {
+    void setAutoRestartNiFi(final boolean restart) {
         this.autoRestartNiFi = restart;
     }
 
@@ -258,7 +258,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         return reloading.get();
     }
 
-    public void setReloading(boolean val) {
+    public void setReloading(final boolean val) {
         reloading.set(val);
     }
 
@@ -268,13 +268,13 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     }
 
     private ObjectMapper getObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
+        final ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         return objectMapper;
     }
 
-    public void setCommandInProgress(boolean value) {
+    public void setCommandInProgress(final boolean value) {
         commandInProgress.set(value);
     }
 }

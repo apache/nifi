@@ -89,7 +89,7 @@ public class NiFiRegistryExternalResourceProvider implements ExternalResourcePro
 
         try {
             return extensionRegistry.getExtensionBundleContent(null, bundleMetadata);
-        } catch (ExtensionRegistryException e) {
+        } catch (final ExtensionRegistryException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
     }

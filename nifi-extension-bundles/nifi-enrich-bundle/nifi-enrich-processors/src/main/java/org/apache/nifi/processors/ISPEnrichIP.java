@@ -91,7 +91,7 @@ public class ISPEnrichIP extends AbstractEnrichIP {
         try {
             response = dbReader.isp(inetAddress);
             stopWatch.stop();
-        } catch (GeoIp2Exception | IOException ex) {
+        } catch (final GeoIp2Exception | IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
             // Most name or IP resolutions failure should have been triggered in the try loop above but
             // environmental conditions may trigger errors during the second resolution as well.

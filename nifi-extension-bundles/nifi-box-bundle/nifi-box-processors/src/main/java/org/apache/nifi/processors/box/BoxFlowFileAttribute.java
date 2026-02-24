@@ -30,7 +30,7 @@ public enum BoxFlowFileAttribute {
     private final String name;
     private final Function<BoxFileInfo, String> fromFileInfo;
 
-    BoxFlowFileAttribute(String attributeName, Function<BoxFileInfo, String> fromFileInfo) {
+    BoxFlowFileAttribute(final String attributeName, final Function<BoxFileInfo, String> fromFileInfo) {
         this.name = attributeName;
         this.fromFileInfo = fromFileInfo;
     }
@@ -39,7 +39,7 @@ public enum BoxFlowFileAttribute {
         return name;
     }
 
-    public String getValue(BoxFileInfo fileInfo) {
+    public String getValue(final BoxFileInfo fileInfo) {
         return fromFileInfo.apply(fileInfo);
     }
 }

@@ -1142,7 +1142,7 @@ public class TestRegistryService {
 
         when(metadataService.getLatestSnapshot(existingFlow.getId())).thenReturn(existingSnapshot1);
 
-        VersionedFlowSnapshotMetadata latestMetadata = registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId());
+        final VersionedFlowSnapshotMetadata latestMetadata = registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId());
         assertNotNull(latestMetadata);
         assertEquals(1, latestMetadata.getVersion());
     }
@@ -1177,7 +1177,7 @@ public class TestRegistryService {
 
         when(metadataService.getLatestSnapshot(existingFlow.getId())).thenReturn(null);
 
-        ResourceNotFoundException e = assertThrows(ResourceNotFoundException.class, () -> registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId()));
+        final ResourceNotFoundException e = assertThrows(ResourceNotFoundException.class, () -> registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId()));
         assertEquals("The specified flow ID has no versions", e.getMessage());
 
     }
@@ -1354,7 +1354,7 @@ public class TestRegistryService {
                 "bucketIdentifier", "flowIdentifier", 1, 2);
 
         assertNotNull(diff);
-        Optional<ComponentDifferenceGroup> removedComponent = diff.getComponentDifferenceGroups().stream()
+        final Optional<ComponentDifferenceGroup> removedComponent = diff.getComponentDifferenceGroups().stream()
                 .filter(p -> p.getComponentId().equals("ID-pg1")).findFirst();
 
         assertTrue(removedComponent.isPresent());
@@ -1378,12 +1378,12 @@ public class TestRegistryService {
                 "bucketIdentifier", "flowIdentifier", 2, 1);
 
         assertNotNull(diff);
-        Optional<ComponentDifferenceGroup> nameChangedComponent = diff.getComponentDifferenceGroups().stream()
+        final Optional<ComponentDifferenceGroup> nameChangedComponent = diff.getComponentDifferenceGroups().stream()
                 .filter(p -> p.getComponentId().equals("ProcessorFirstV1")).findFirst();
 
         assertTrue(nameChangedComponent.isPresent());
 
-        ComponentDifference nameChangeDifference = nameChangedComponent.get().getDifferences().stream()
+        final ComponentDifference nameChangeDifference = nameChangedComponent.get().getDifferences().stream()
                 .filter(d -> d.getDifferenceType().equals("NAME_CHANGED")).findFirst().get();
 
         assertEquals("ProcessorFirstV1", nameChangeDifference.getValueA());
@@ -1391,21 +1391,21 @@ public class TestRegistryService {
     }
 
     private VersionedProcessGroup createVersionedProcessGroupA() {
-        VersionedProcessGroup root = new VersionedProcessGroup();
+        final VersionedProcessGroup root = new VersionedProcessGroup();
         root.setProcessGroups(new HashSet<>(Arrays.asList(createProcessGroup("ID-pg1"), createProcessGroup("ID-pg2"))));
         // Add processors
         root.setProcessors(new HashSet<>(Arrays.asList(createVersionedProcessor("ProcessorFirstV1"), createVersionedProcessor("ProcessorSecondV1"))));
         return root;
     }
 
-    private VersionedProcessGroup createProcessGroup(String identifier) {
-        VersionedProcessGroup processGroup = new VersionedProcessGroup();
+    private VersionedProcessGroup createProcessGroup(final String identifier) {
+        final VersionedProcessGroup processGroup = new VersionedProcessGroup();
         processGroup.setIdentifier(identifier);
         return processGroup;
     }
 
     private VersionedProcessGroup createVersionedProcessGroupB() {
-        VersionedProcessGroup updated = createVersionedProcessGroupA();
+        final VersionedProcessGroup updated = createVersionedProcessGroupA();
         // remove a process group
         updated.getProcessGroups().removeIf(pg -> pg.getIdentifier().equals("ID-pg1"));
         // change the name of a processor
@@ -1414,8 +1414,8 @@ public class TestRegistryService {
         return updated;
     }
 
-    private VersionedProcessor createVersionedProcessor(String name) {
-        VersionedProcessor processor = new VersionedProcessor();
+    private VersionedProcessor createVersionedProcessor(final String name) {
+        final VersionedProcessor processor = new VersionedProcessor();
         processor.setName(name);
         processor.setIdentifier(name);
         processor.setProperties(new HashMap<>());
@@ -1425,14 +1425,14 @@ public class TestRegistryService {
 
     private Answer<BucketEntity> createBucketAnswer() {
         return (InvocationOnMock invocation) -> {
-            BucketEntity bucketEntity = (BucketEntity) invocation.getArguments()[0];
+            final BucketEntity bucketEntity = (BucketEntity) invocation.getArguments()[0];
             return bucketEntity;
         };
     }
 
     private Answer<BucketEntity> updateBucketAnswer() {
         return (InvocationOnMock invocation) -> {
-            BucketEntity bucketEntity = (BucketEntity) invocation.getArguments()[0];
+            final BucketEntity bucketEntity = (BucketEntity) invocation.getArguments()[0];
             return bucketEntity;
         };
     }

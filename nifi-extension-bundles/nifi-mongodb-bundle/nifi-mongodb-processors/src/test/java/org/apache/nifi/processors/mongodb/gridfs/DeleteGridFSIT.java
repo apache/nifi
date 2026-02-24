@@ -77,29 +77,29 @@ public class DeleteGridFSIT extends GridFSITTestBase {
 
     @Test
     public void testQueryAttribute() {
-        String attrName = "gridfs.query.used";
-        String fileName = setupTestFile();
+        final String attrName = "gridfs.query.used";
+        final String fileName = setupTestFile();
         runner.setProperty(DeleteGridFS.QUERY_ATTRIBUTE, attrName);
         testDeleteByProperty(DeleteGridFS.FILE_NAME, String.format("${%s}", CoreAttributes.FILENAME.key()), fileName);
         testForQueryAttribute(fileName, attrName);
     }
 
-    private void testForQueryAttribute(String mustContain, String attrName) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteGridFS.REL_SUCCESS);
-        String attribute = flowFiles.get(0).getAttribute(attrName);
+    private void testForQueryAttribute(final String mustContain, final String attrName) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DeleteGridFS.REL_SUCCESS);
+        final String attribute = flowFiles.get(0).getAttribute(attrName);
         assertTrue(attribute.contains(mustContain));
     }
 
     private String setupTestFile() {
-        String fileName = "simple-delete-test.txt";
-        ObjectId id = writeTestFile(fileName, "Hello, world!", BUCKET, new HashMap<>());
+        final String fileName = "simple-delete-test.txt";
+        final ObjectId id = writeTestFile(fileName, "Hello, world!", BUCKET, new HashMap<>());
         assertNotNull(id);
 
         return fileName;
     }
 
-    private void testDeleteByProperty(PropertyDescriptor descriptor, String value, String fileName) {
-        Map<String, String> attrs = new HashMap<>();
+    private void testDeleteByProperty(final PropertyDescriptor descriptor, final String value, final String fileName) {
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
         runner.setProperty(descriptor, value);
         runner.assertValid();

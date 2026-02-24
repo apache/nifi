@@ -39,7 +39,7 @@ public class ParameterProviderEntity extends ComponentEntity implements Permissi
     }
 
     @Override
-    public void setComponent(ParameterProviderDTO component) {
+    public void setComponent(final ParameterProviderDTO component) {
         this.component = component;
     }
 
@@ -54,7 +54,7 @@ public class ParameterProviderEntity extends ComponentEntity implements Permissi
     }
 
     @Override
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 }

@@ -152,7 +152,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
     );
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         results.addAll(validateClientSideEncryptionProperties(validationContext));
         return results;
@@ -164,22 +164,22 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
 
-        String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
-        Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
+        final String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
         try {
-            BlobServiceClient storageClient = getStorageClient(context, flowFile);
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobServiceClient storageClient = getStorageClient(context, flowFile);
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             final BlobClient blobClient;
             if (isClientSideEncryptionEnabled(context)) {
                 blobClient = getEncryptedBlobClient(context, containerClient, blobName);
@@ -189,15 +189,15 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
 
             flowFile = session.write(flowFile, os -> blobClient.downloadStreamWithResponse(os, new BlobRange(rangeStart, rangeLength), null, null, false, null, null));
 
-            Map<String, String> attributes = createBlobAttributesMap(blobClient);
+            final Map<String, String> attributes = createBlobAttributesMap(blobClient);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, REL_SUCCESS);
 
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().fetch(flowFile, transitUri, transferMillis);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failure to fetch Azure blob {}", blobName, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -205,7 +205,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());

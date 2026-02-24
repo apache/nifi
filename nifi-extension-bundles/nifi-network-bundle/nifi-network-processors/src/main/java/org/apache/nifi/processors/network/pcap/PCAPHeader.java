@@ -26,7 +26,7 @@ public class PCAPHeader {
     private final long snaplen;
     private final long network;
 
-    public PCAPHeader(ByteBufferReader io) {
+    public PCAPHeader(final ByteBufferReader io) {
         this.magicNumber = io.readBytes(4);
         this.versionMajor = io.readU2();
         this.versionMinor = io.readU2();

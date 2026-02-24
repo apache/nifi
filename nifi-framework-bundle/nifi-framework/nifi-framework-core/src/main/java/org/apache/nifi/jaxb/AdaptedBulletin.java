@@ -42,7 +42,7 @@ public class AdaptedBulletin {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(final String category) {
         this.category = category;
     }
 
@@ -50,7 +50,7 @@ public class AdaptedBulletin {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -58,7 +58,7 @@ public class AdaptedBulletin {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
+    public void setGroupName(final String groupName) {
         this.groupName = groupName;
     }
 
@@ -66,7 +66,7 @@ public class AdaptedBulletin {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(final long id) {
         this.id = id;
     }
 
@@ -74,7 +74,7 @@ public class AdaptedBulletin {
         return level;
     }
 
-    public void setLevel(String level) {
+    public void setLevel(final String level) {
         this.level = level;
     }
 
@@ -82,7 +82,7 @@ public class AdaptedBulletin {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
@@ -90,7 +90,7 @@ public class AdaptedBulletin {
         return stackTrace;
     }
 
-    public void setStackTrace(String stackTrace) {
+    public void setStackTrace(final String stackTrace) {
         this.stackTrace = stackTrace;
     }
 
@@ -98,7 +98,7 @@ public class AdaptedBulletin {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -106,7 +106,7 @@ public class AdaptedBulletin {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -114,7 +114,7 @@ public class AdaptedBulletin {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -122,7 +122,7 @@ public class AdaptedBulletin {
         return sourceType;
     }
 
-    public void setSourceType(ComponentType sourceType) {
+    public void setSourceType(final ComponentType sourceType) {
         this.sourceType = sourceType;
     }
 }

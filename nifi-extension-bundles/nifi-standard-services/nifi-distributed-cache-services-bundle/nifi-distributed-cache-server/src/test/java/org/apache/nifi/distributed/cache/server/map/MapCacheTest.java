@@ -120,11 +120,11 @@ public class MapCacheTest {
     public void testKeySet() throws IOException {
         final String[] keys = {"keySet1", "keySet2", "keySet3"};
         final String value = "valueKeySet";
-        for (String key : keys) {
+        for (final String key : keys) {
             client.put(key, value, serializer, serializer);
         }
         final Set<String> keySet = client.keySet(deserializer);
-        for (String key : keys) {
+        for (final String key : keys) {
             assertTrue(keySet.contains(key));
             assertTrue(client.remove(key, serializer));
         }

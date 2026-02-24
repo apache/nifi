@@ -39,7 +39,7 @@ public class ParameterProviderReferencingComponentEntity extends ComponentEntity
         return component;
     }
 
-    public void setComponent(ParameterProviderReferencingComponentDTO component) {
+    public void setComponent(final ParameterProviderReferencingComponentDTO component) {
         this.component = component;
     }
 
@@ -54,7 +54,7 @@ public class ParameterProviderReferencingComponentEntity extends ComponentEntity
     }
 
     @Override
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 }

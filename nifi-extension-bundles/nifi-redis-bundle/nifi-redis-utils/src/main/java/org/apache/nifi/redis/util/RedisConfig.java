@@ -67,7 +67,7 @@ public class RedisConfig {
         return sentinelMaster;
     }
 
-    public void setSentinelMaster(String sentinelMaster) {
+    public void setSentinelMaster(final String sentinelMaster) {
         this.sentinelMaster = sentinelMaster;
     }
 
@@ -75,7 +75,7 @@ public class RedisConfig {
         return sentinelUsername;
     }
 
-    public void setSentinelUsername(String sentinelUsername) {
+    public void setSentinelUsername(final String sentinelUsername) {
         this.sentinelUsername = sentinelUsername;
     }
 
@@ -83,7 +83,7 @@ public class RedisConfig {
         return sentinelPassword;
     }
 
-    public void setSentinelPassword(String sentinelPassword) {
+    public void setSentinelPassword(final String sentinelPassword) {
         this.sentinelPassword = sentinelPassword;
     }
 
@@ -91,7 +91,7 @@ public class RedisConfig {
         return dbIndex;
     }
 
-    public void setDbIndex(int dbIndex) {
+    public void setDbIndex(final int dbIndex) {
         this.dbIndex = dbIndex;
     }
 
@@ -99,7 +99,7 @@ public class RedisConfig {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(final String username) {
         this.username = username;
     }
 
@@ -107,7 +107,7 @@ public class RedisConfig {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
@@ -115,7 +115,7 @@ public class RedisConfig {
         return timeout;
     }
 
-    public void setTimeout(int timeout) {
+    public void setTimeout(final int timeout) {
         this.timeout = timeout;
     }
 
@@ -123,7 +123,7 @@ public class RedisConfig {
         return clusterMaxRedirects;
     }
 
-    public void setClusterMaxRedirects(int clusterMaxRedirects) {
+    public void setClusterMaxRedirects(final int clusterMaxRedirects) {
         this.clusterMaxRedirects = clusterMaxRedirects;
     }
 
@@ -131,7 +131,7 @@ public class RedisConfig {
         return poolMaxTotal;
     }
 
-    public void setPoolMaxTotal(int poolMaxTotal) {
+    public void setPoolMaxTotal(final int poolMaxTotal) {
         this.poolMaxTotal = poolMaxTotal;
     }
 
@@ -139,7 +139,7 @@ public class RedisConfig {
         return poolMaxIdle;
     }
 
-    public void setPoolMaxIdle(int poolMaxIdle) {
+    public void setPoolMaxIdle(final int poolMaxIdle) {
         this.poolMaxIdle = poolMaxIdle;
     }
 
@@ -147,7 +147,7 @@ public class RedisConfig {
         return poolMinIdle;
     }
 
-    public void setPoolMinIdle(int poolMinIdle) {
+    public void setPoolMinIdle(final int poolMinIdle) {
         this.poolMinIdle = poolMinIdle;
     }
 
@@ -155,7 +155,7 @@ public class RedisConfig {
         return blockWhenExhausted;
     }
 
-    public void setBlockWhenExhausted(boolean blockWhenExhausted) {
+    public void setBlockWhenExhausted(final boolean blockWhenExhausted) {
         this.blockWhenExhausted = blockWhenExhausted;
     }
 
@@ -163,7 +163,7 @@ public class RedisConfig {
         return maxWaitTime;
     }
 
-    public void setMaxWaitTime(Duration maxWaitTime) {
+    public void setMaxWaitTime(final Duration maxWaitTime) {
         this.maxWaitTime = maxWaitTime;
     }
 
@@ -171,7 +171,7 @@ public class RedisConfig {
         return minEvictableIdleDuration;
     }
 
-    public void setMinEvictableIdleDuration(Duration minEvictableIdleDuration) {
+    public void setMinEvictableIdleDuration(final Duration minEvictableIdleDuration) {
         this.minEvictableIdleDuration = minEvictableIdleDuration;
     }
 
@@ -179,7 +179,7 @@ public class RedisConfig {
         return timeBetweenEvictionRuns;
     }
 
-    public void setTimeBetweenEvictionRuns(Duration timeBetweenEvictionRuns) {
+    public void setTimeBetweenEvictionRuns(final Duration timeBetweenEvictionRuns) {
         this.timeBetweenEvictionRuns = timeBetweenEvictionRuns;
     }
 
@@ -187,7 +187,7 @@ public class RedisConfig {
         return numTestsPerEvictionRun;
     }
 
-    public void setNumTestsPerEvictionRun(int numTestsPerEvictionRun) {
+    public void setNumTestsPerEvictionRun(final int numTestsPerEvictionRun) {
         this.numTestsPerEvictionRun = numTestsPerEvictionRun;
     }
 
@@ -195,7 +195,7 @@ public class RedisConfig {
         return testOnCreate;
     }
 
-    public void setTestOnCreate(boolean testOnCreate) {
+    public void setTestOnCreate(final boolean testOnCreate) {
         this.testOnCreate = testOnCreate;
     }
 
@@ -203,7 +203,7 @@ public class RedisConfig {
         return testOnBorrow;
     }
 
-    public void setTestOnBorrow(boolean testOnBorrow) {
+    public void setTestOnBorrow(final boolean testOnBorrow) {
         this.testOnBorrow = testOnBorrow;
     }
 
@@ -211,7 +211,7 @@ public class RedisConfig {
         return testOnReturn;
     }
 
-    public void setTestOnReturn(boolean testOnReturn) {
+    public void setTestOnReturn(final boolean testOnReturn) {
         this.testOnReturn = testOnReturn;
     }
 
@@ -219,7 +219,7 @@ public class RedisConfig {
         return testWhenIdle;
     }
 
-    public void setTestWhenIdle(boolean testWhenIdle) {
+    public void setTestWhenIdle(final boolean testWhenIdle) {
         this.testWhenIdle = testWhenIdle;
     }
 }

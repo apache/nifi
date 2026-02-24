@@ -40,23 +40,23 @@ public class UnixProcessUtils implements ProcessUtils {
 
     private final int processKillCheckRetries;
 
-    public UnixProcessUtils(int processKillCheckRetries) {
+    public UnixProcessUtils(final int processKillCheckRetries) {
         this.processKillCheckRetries = processKillCheckRetries;
     }
 
     @Override
-    public boolean isProcessRunning(Long pid) {
+    public boolean isProcessRunning(final Long pid) {
         if (pid == null) {
             LOGGER.error("Unable to get process status due to missing process id");
             return false;
         }
         try {
             // We use the "ps" command to check if the process is still running.
-            ProcessBuilder builder = new ProcessBuilder();
-            String pidString = String.valueOf(pid);
+            final ProcessBuilder builder = new ProcessBuilder();
+            final String pidString = String.valueOf(pid);
 
             builder.command("ps", "-p", pidString);
-            Process proc = builder.start();
+            final Process proc = builder.start();
 
             // Look for the pid in the output of the 'ps' command.
             boolean running = false;
@@ -76,25 +76,25 @@ public class UnixProcessUtils implements ProcessUtils {
             LOGGER.debug("Process with PID {} is {}running", pid, running ? "" : "not ");
 
             return running;
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             LOGGER.error("Failed to determine if Process {} is running; assuming that it is not", pid);
             return false;
         }
     }
 
     @Override
-    public void shutdownProcess(Long pid, String s, int gracefulShutdownSeconds) {
-        long startWait = System.nanoTime();
+    public void shutdownProcess(final Long pid, final String s, final int gracefulShutdownSeconds) {
+        final long startWait = System.nanoTime();
         while (isProcessRunning(pid)) {
             LOGGER.info("Waiting for Apache MiNiFi to finish shutting down...");
-            long waitNanos = System.nanoTime() - startWait;
-            long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
+            final long waitNanos = System.nanoTime() - startWait;
+            final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
             if (waitSeconds >= gracefulShutdownSeconds || gracefulShutdownSeconds == 0) {
                 if (isProcessRunning(pid)) {
                     LOGGER.warn(s, gracefulShutdownSeconds);
                     try {
                         killProcessTree(pid);
-                    } catch (IOException ioe) {
+                    } catch (final IOException ioe) {
                         LOGGER.error("Failed to kill Process with PID {}", pid);
                     }
                 }
@@ -102,7 +102,7 @@ public class UnixProcessUtils implements ProcessUtils {
             } else {
                 try {
                     Thread.sleep(2000L);
-                } catch (InterruptedException ie) {
+                } catch (final InterruptedException ie) {
                     DEFAULT_LOGGER.warn("Thread interrupted while shutting down MiNiFi");
                 }
             }
@@ -110,13 +110,13 @@ public class UnixProcessUtils implements ProcessUtils {
     }
 
     @Override
-    public void killProcessTree(Long pid) throws IOException {
+    public void killProcessTree(final Long pid) throws IOException {
         LOGGER.debug("Killing Process Tree for PID {}", pid);
 
-        List<Long> children = getChildProcesses(pid);
+        final List<Long> children = getChildProcesses(pid);
         LOGGER.debug("Children of PID {}: {}", pid, children);
 
-        for (Long childPid : children) {
+        for (final Long childPid : children) {
             killProcessTree(childPid);
         }
 
@@ -131,24 +131,24 @@ public class UnixProcessUtils implements ProcessUtils {
             retries--;
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 DEFAULT_LOGGER.warn("Thread interrupted while waiting for killing process with pid={}", pid);
             }
         }
     }
 
-    private List<Long> getChildProcesses(Long ppid) throws IOException {
-        Process proc = Runtime.getRuntime().exec(new String[] {"ps", "-o", "pid", "--no-headers", "--ppid", String.valueOf(ppid)});
-        List<Long> childPids = new ArrayList<>();
+    private List<Long> getChildProcesses(final Long ppid) throws IOException {
+        final Process proc = Runtime.getRuntime().exec(new String[] {"ps", "-o", "pid", "--no-headers", "--ppid", String.valueOf(ppid)});
+        final List<Long> childPids = new ArrayList<>();
         try (InputStream in = proc.getInputStream();
              BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 
             String line;
             while ((line = reader.readLine()) != null) {
                 try {
-                    Long childPid = Long.valueOf(line.trim());
+                    final Long childPid = Long.valueOf(line.trim());
                     childPids.add(childPid);
-                } catch (NumberFormatException e) {
+                } catch (final NumberFormatException e) {
                     LOGGER.trace("Failed to parse PID", e);
                 }
             }

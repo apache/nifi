@@ -129,7 +129,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
     public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
         runner.setIncomingConnection(true);
         runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT * FROM persons");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -141,7 +141,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
     @Test
     public void testIncomingConnectionWithNoFlowFileAndNoQuery() throws InitializationException {
         runner.setIncomingConnection(true);
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -190,7 +190,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
             executeSql("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
         }
 
-        MockRecordWriter recordWriter = MockCsvRecordWriter.builder()
+        final MockRecordWriter recordWriter = MockCsvRecordWriter.builder()
                 .withHeader("foo|bar|baz")
                 .quoteValues(false)
                 .withSeparator(attr -> attr.getOrDefault("csv.separator", ","))
@@ -206,7 +206,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         out.assertContentEquals("""
                 foo|bar|baz
                 0|1|1
@@ -219,7 +219,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
         insertRecords();
 
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -234,14 +234,14 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
@@ -253,12 +253,12 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
         insertRecords();
 
-        Map<String, String> attrMap = new HashMap<>();
-        String testAttrName = "attr1";
-        String testAttrValue = "value1";
+        final Map<String, String> attrMap = new HashMap<>();
+        final String testAttrName = "attr1";
+        final String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);
 
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -266,21 +266,21 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(ExecuteSQLRecord.OUTPUT_BATCH_SIZE, "1");
-        MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
+        final MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, FRAGMENT_SIZE);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQLRecord.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
@@ -300,12 +300,12 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         // Insert invalid numeric value
         executeSql("insert into TEST_NULL_INT (id, val1) VALUES (100, 'abc')");
 
-        Map<String, String> attrMap = new HashMap<>();
-        String testAttrName = "attr1";
-        String testAttrValue = "value1";
+        final Map<String, String> attrMap = new HashMap<>();
+        final String testAttrName = "attr1";
+        final String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);
 
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -328,7 +328,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
         runner.setProperty(AbstractExecuteSQL.OUTPUT_BATCH_SIZE, "0");
         runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -340,7 +340,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesContainAttribute(AbstractExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
         runner.assertAllFlowFilesContainAttribute(AbstractExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeEquals("record.count", "5");
@@ -348,7 +348,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(AbstractExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals("record.count", "5");
@@ -363,7 +363,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
 
         runner.setIncomingConnection(false);
         runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -379,7 +379,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -387,7 +387,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "0");
         firstFlowFile.assertContentEquals("");
     }
@@ -398,7 +398,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "drop table TEST_NULL_INT");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -406,7 +406,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "0");
         firstFlowFile.assertContentEquals("");
     }
@@ -418,7 +418,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setIncomingConnection(false);
         // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
         runner.setProperty(AbstractExecuteSQL.SQL_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -442,7 +442,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "1");
         runner.setProperty(AbstractExecuteSQL.OUTPUT_BATCH_SIZE, "1");
 
-        FailAfterNRecordSetWriterFactory recordWriter = new FailAfterNRecordSetWriterFactory(2);
+        final FailAfterNRecordSetWriterFactory recordWriter = new FailAfterNRecordSetWriterFactory(2);
         runner.addControllerService("fail-writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "fail-writer");
         runner.enableControllerService(recordWriter);
@@ -453,7 +453,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.assertTransferCount(AbstractExecuteSQL.REL_SUCCESS, 2);
         runner.assertTransferCount(AbstractExecuteSQL.REL_FAILURE, 1);
 
-        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
+        final MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
         final String errorMessage = failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE);
         assertTrue(errorMessage.endsWith("Simulated failure after 2 successful writes"), () -> "Unexpected error message: " + errorMessage);
         failedFlowFile.assertAttributeEquals("retain.attr", "retain-value");
@@ -474,7 +474,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}
 
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -511,14 +511,14 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testWithSqlExceptionErrorProcessingResultSet() throws Exception {
-        DBCPService dbcp = mock(DBCPService.class);
-        Connection conn = mock(Connection.class);
+        final DBCPService dbcp = mock(DBCPService.class);
+        final Connection conn = mock(Connection.class);
         when(dbcp.getConnection(any(Map.class))).thenReturn(conn);
         when(dbcp.getIdentifier()).thenReturn("mockdbcp");
-        PreparedStatement statement = mock(PreparedStatement.class);
+        final PreparedStatement statement = mock(PreparedStatement.class);
         when(conn.prepareStatement(anyString())).thenReturn(statement);
         when(statement.execute()).thenReturn(true);
-        ResultSet rs = mock(ResultSet.class);
+        final ResultSet rs = mock(ResultSet.class);
         when(statement.getResultSet()).thenReturn(rs);
         // Throw an exception the first time you access the ResultSet, this is after the flow file to hold the results has been created.
         when(rs.getMetaData()).thenThrow(new SQLException("test execute statement failed"));
@@ -527,7 +527,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.enableControllerService(dbcp);
         runner.setProperty(AbstractExecuteSQL.DBCP_SERVICE, "mockdbcp");
 
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -540,7 +540,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.assertTransferCount(AbstractExecuteSQL.REL_SUCCESS, 0);
 
         // Assert exception message has been put to flow file attribute
-        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
+        final MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
@@ -552,7 +552,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -560,7 +560,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "1");
     }
 
@@ -573,7 +573,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.setProperty(ExecuteSQLRecord.SQL_POST_QUERY, "VALUES (2)");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -581,7 +581,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULT_ROW_COUNT, "1");
     }
 
@@ -593,7 +593,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQLRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -612,7 +612,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(ExecuteSQLRecord.SQL_QUERY, "select * from TEST_NULL_INT");
         // Simulate failure by not provide parameter
         runner.setProperty(ExecuteSQLRecord.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
         runner.enableControllerService(recordWriter);
@@ -620,7 +620,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_FAILURE, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_FAILURE).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQLRecord.REL_FAILURE).getFirst();
         firstFlowFile.assertContentEquals("test");
     }
 

@@ -55,7 +55,7 @@ class EnvRunnerTest {
     void testRunCommandShouldReturnNotRunningStatusCodeIfPortReturnsNull() {
         when(currentPortProvider.getCurrentPort()).thenReturn(null);
 
-        int statusCode = envRunner.runCommand(new String[]{});
+        final int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider);
@@ -67,7 +67,7 @@ class EnvRunnerTest {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(ENV_CMD, MINIFI_PORT)).thenThrow(new IOException());
 
-        int statusCode = envRunner.runCommand(new String[]{});
+        final int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
@@ -78,7 +78,7 @@ class EnvRunnerTest {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(ENV_CMD, MINIFI_PORT)).thenReturn(Optional.of(ENV_DATA));
 
-        int statusCode = envRunner.runCommand(new String[]{});
+        final int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(OK.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);

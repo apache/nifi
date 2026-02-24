@@ -348,7 +348,7 @@ public class RouteOnAttribute extends AbstractProcessor {
             // now transfer any clones generated
             for (final Map.Entry<Relationship, FlowFile> entry : transferMap.entrySet()) {
                 logger.info("Cloned {} into {} and routing clone to relationship {}", flowFile, entry.getValue(), entry.getKey());
-                FlowFile updatedFlowFile = session.putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.getKey().getName());
+                final FlowFile updatedFlowFile = session.putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.getKey().getName());
                 session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());
             }

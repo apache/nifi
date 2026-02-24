@@ -102,7 +102,7 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final GetBoxFileCollaborators testSubject = new GetBoxFileCollaborators() {
             @Override
-            protected BoxFile getBoxFile(String fileId) {
+            protected BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };
@@ -373,7 +373,7 @@ public class GetBoxFileCollaboratorsTest extends AbstractBoxFileTest {
                 TEST_USER_ID_3, TEST_USER_EMAIL_3
         );
 
-        Map<String, String> groupEmails = Map.of(
+        final Map<String, String> groupEmails = Map.of(
                 TEST_GROUP_ID_1, TEST_GROUP_EMAIL_1,
                 TEST_GROUP_ID_2, TEST_GROUP_EMAIL_2
         );

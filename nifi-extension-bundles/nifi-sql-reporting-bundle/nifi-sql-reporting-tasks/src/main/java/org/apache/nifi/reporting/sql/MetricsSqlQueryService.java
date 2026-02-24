@@ -59,7 +59,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
             .removalListener(this::onCacheEviction)
             .build();
 
-    public MetricsSqlQueryService(ComponentLog logger, final int defaultPrecision, final int defaultScale) {
+    public MetricsSqlQueryService(final ComponentLog logger, final int defaultPrecision, final int defaultScale) {
         this.defaultPrecision = defaultPrecision;
         this.defaultScale = defaultScale;
         this.logger = logger;
@@ -74,7 +74,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         final Supplier<CachedStatement> statementBuilder = () -> {
             try {
                 return buildCachedStatement(sql, context);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new PreparedStatementException(e);
             }
         };
@@ -90,7 +90,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
                 if (statementQueue == null || !statementQueue.offer(cachedStatement)) {
                     try {
                         cachedStatement.getConnection().close();
-                    } catch (SQLException e) {
+                    } catch (final SQLException e) {
                         throw new IOException("Failed to close statement", e);
                     }
                 }
@@ -110,7 +110,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
     }
 
     @Override
-    public ResultSetRecordSet getResultSetRecordSet(QueryResult queryResult) throws Exception {
+    public ResultSetRecordSet getResultSetRecordSet(final QueryResult queryResult) throws Exception {
 
         final ResultSet rs = queryResult.getResultSet();
         ResultSetRecordSet recordSet = null;
@@ -126,7 +126,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         return recordSet;
     }
 
-    private synchronized CachedStatement getStatement(final String sql, final Supplier<CachedStatement> statementBuilder, Cache<String, BlockingQueue<CachedStatement>> statementQueues) {
+    private synchronized CachedStatement getStatement(final String sql, final Supplier<CachedStatement> statementBuilder, final Cache<String, BlockingQueue<CachedStatement>> statementQueues) {
         final BlockingQueue<CachedStatement> statementQueue = statementQueues.get(sql, key -> new LinkedBlockingQueue<>());
 
         if (statementQueue != null) {

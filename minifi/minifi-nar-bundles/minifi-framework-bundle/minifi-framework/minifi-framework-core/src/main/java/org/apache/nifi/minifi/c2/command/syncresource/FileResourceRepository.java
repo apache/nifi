@@ -71,7 +71,7 @@ public class FileResourceRepository implements ResourceRepository {
 
     private ResourceRepositoryDescriptor resourceRepositoryDescriptor;
 
-    public FileResourceRepository(Path assetRepositoryDirectory, Path extensionDirectory, Path configDirectory, C2Serializer c2Serializer) {
+    public FileResourceRepository(final Path assetRepositoryDirectory, final Path extensionDirectory, final Path configDirectory, final C2Serializer c2Serializer) {
         this.resourceRepositoryFile = configDirectory.resolve(RESOURCE_REPOSITORY_FILE_NAME);
         this.c2Serializer = c2Serializer;
         this.assetRepositoryDirectory = assetRepositoryDirectory;
@@ -85,12 +85,12 @@ public class FileResourceRepository implements ResourceRepository {
     }
 
     @Override
-    public synchronized Optional<ResourcesGlobalHash> saveResourcesGlobalHash(ResourcesGlobalHash resourcesGlobalHash) {
-        ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourcesGlobalHash, resourceRepositoryDescriptor.resourceItems());
+    public synchronized Optional<ResourcesGlobalHash> saveResourcesGlobalHash(final ResourcesGlobalHash resourcesGlobalHash) {
+        final ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourcesGlobalHash, resourceRepositoryDescriptor.resourceItems());
         try {
             persist(newRepositoryDescriptor);
             return Optional.of(resourcesGlobalHash);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Unable to save global resource hash data", e);
             return empty();
         }
@@ -102,39 +102,39 @@ public class FileResourceRepository implements ResourceRepository {
     }
 
     @Override
-    public synchronized boolean resourceItemBinaryPresent(ResourceItem resourceItem) {
-        Path path = resourcePath(resourceItem);
+    public synchronized boolean resourceItemBinaryPresent(final ResourceItem resourceItem) {
+        final Path path = resourcePath(resourceItem);
         return exists(path) && calculateDigest(path, resourceItem.getHashType()).equals(resourceItem.getDigest());
     }
 
     @Override
-    public synchronized Optional<ResourceItem> addResourceItem(ResourceItem resourceItem) {
+    public synchronized Optional<ResourceItem> addResourceItem(final ResourceItem resourceItem) {
         try {
-            List<ResourceItem> newItems = new ArrayList<>(resourceRepositoryDescriptor.resourceItems());
+            final List<ResourceItem> newItems = new ArrayList<>(resourceRepositoryDescriptor.resourceItems());
             newItems.add(resourceItem);
-            ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourceRepositoryDescriptor.resourcesGlobalHash(), newItems);
+            final ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourceRepositoryDescriptor.resourcesGlobalHash(), newItems);
             persist(newRepositoryDescriptor);
             return Optional.of(resourceItem);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Unable to persist repository metadata", e);
             return empty();
         }
     }
 
     @Override
-    public synchronized Optional<ResourceItem> addResourceItem(ResourceItem resourceItem, Path source) {
-        Path resourcePath = resourcePath(resourceItem);
+    public synchronized Optional<ResourceItem> addResourceItem(final ResourceItem resourceItem, final Path source) {
+        final Path resourcePath = resourcePath(resourceItem);
         try {
             createParentDirectories(resourcePath);
             copy(source, resourcePath, REPLACE_EXISTING, COPY_ATTRIBUTES);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Unable to move resource to final location. Syncing this asset will be retried in next heartbeat iteration", e);
             return empty();
         } finally {
             deleteSilently(source, "Unable to clear temporary file");
         }
 
-        Optional<ResourceItem> addedItem = addResourceItem(resourceItem);
+        final Optional<ResourceItem> addedItem = addResourceItem(resourceItem);
         if (addedItem.isEmpty()) {
             deleteSilently(resourcePath, "Unable to cleanup resource file");
         }
@@ -142,28 +142,28 @@ public class FileResourceRepository implements ResourceRepository {
     }
 
     @Override
-    public synchronized Optional<ResourceItem> deleteResourceItem(ResourceItem resourceItem) {
-        List<ResourceItem> truncatedItems = resourceRepositoryDescriptor.resourceItems()
+    public synchronized Optional<ResourceItem> deleteResourceItem(final ResourceItem resourceItem) {
+        final List<ResourceItem> truncatedItems = resourceRepositoryDescriptor.resourceItems()
             .stream()
             .filter(syncAssetItem -> !syncAssetItem.getResourceId().equals(resourceItem.getResourceId()))
             .collect(toList());
 
-        ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourceRepositoryDescriptor.resourcesGlobalHash(), truncatedItems);
+        final ResourceRepositoryDescriptor newRepositoryDescriptor = new ResourceRepositoryDescriptor(resourceRepositoryDescriptor.resourcesGlobalHash(), truncatedItems);
         try {
             persist(newRepositoryDescriptor);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Unable to persist repository metadata", e);
             return empty();
         }
 
-        Path resourcePath = resourcePath(resourceItem);
+        final Path resourcePath = resourcePath(resourceItem);
         deleteSilently(resourcePath, "Unable to delete resource file");
 
         return Optional.of(resourceItem);
     }
 
     @Override
-    public Optional<Path> getAbsolutePath(String resourceId) {
+    public Optional<Path> getAbsolutePath(final String resourceId) {
         return resourceRepositoryDescriptor.resourceItems.stream()
                 .filter(resourceItem -> resourceItem.getResourceId().equals(resourceId))
                 .map(this::resourcePath)
@@ -181,25 +181,25 @@ public class FileResourceRepository implements ResourceRepository {
             } else {
                 load();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Unable to initialize resource repository", e);
         }
     }
 
-    private void persist(ResourceRepositoryDescriptor descriptor) throws IOException {
-        String serializedDescriptor =
+    private void persist(final ResourceRepositoryDescriptor descriptor) throws IOException {
+        final String serializedDescriptor =
             c2Serializer.serialize(descriptor).orElseThrow(() -> new IllegalStateException("Unable to serialize repository descriptor object"));
         writeString(resourceRepositoryFile, serializedDescriptor, CREATE, TRUNCATE_EXISTING, WRITE, SYNC);
         resourceRepositoryDescriptor = descriptor;
     }
 
     private void load() throws IOException {
-        String rawResourceRepository = readString(resourceRepositoryFile);
+        final String rawResourceRepository = readString(resourceRepositoryFile);
         resourceRepositoryDescriptor = c2Serializer.deserialize(rawResourceRepository, ResourceRepositoryDescriptor.class)
             .orElseThrow(() -> new IllegalStateException("Unable to deserialize repository descriptor object"));
     }
 
-    private Path resourcePath(ResourceItem resourceItem) {
+    private Path resourcePath(final ResourceItem resourceItem) {
         return switch (resourceItem.getResourceType()) {
             case ASSET -> ofNullable(resourceItem.getResourcePath())
                 .filter(not(String::isBlank))
@@ -210,15 +210,15 @@ public class FileResourceRepository implements ResourceRepository {
         };
     }
 
-    private void deleteSilently(Path path, String errorMessage) {
+    private void deleteSilently(final Path path, final String errorMessage) {
         try {
             deleteIfExists(path);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error(errorMessage, e);
         }
     }
 
-    private String calculateDigest(Path path, String digestAlgorithm) {
+    private String calculateDigest(final Path path, final String digestAlgorithm) {
         try (InputStream inputStream = newInputStream(path)) {
             return switch (digestAlgorithm) {
                 case MD5 -> md5Hex(inputStream);
@@ -227,7 +227,7 @@ public class FileResourceRepository implements ResourceRepository {
                 case SHA_512 -> sha512Hex(inputStream);
                 default -> throw new Exception("Unsupported digest algorithm: " + digestAlgorithm);
             };
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException("Unable to calculate digest for resource", e);
         }
     }

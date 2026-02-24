@@ -28,7 +28,7 @@ import java.util.Set;
 
 public class AccessPolicyEntityMerger implements ComponentEntityMerger<AccessPolicyEntity> {
     @Override
-    public void merge(AccessPolicyEntity clientEntity, Map<NodeIdentifier, AccessPolicyEntity> entityMap) {
+    public void merge(final AccessPolicyEntity clientEntity, final Map<NodeIdentifier, AccessPolicyEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
     }
 

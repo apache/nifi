@@ -38,36 +38,36 @@ abstract class AbstractSchedulingAgent implements SchedulingAgent {
 
     protected final FlowEngine flowEngine;
 
-    protected AbstractSchedulingAgent(FlowEngine flowEngine) {
+    protected AbstractSchedulingAgent(final FlowEngine flowEngine) {
         this.flowEngine = flowEngine;
     }
 
     @Override
-    public void schedule(Connectable connectable, LifecycleState scheduleState) {
+    public void schedule(final Connectable connectable, final LifecycleState scheduleState) {
         scheduleState.setScheduled(true);
         this.doSchedule(connectable, scheduleState);
     }
 
     @Override
-    public void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+    public void scheduleOnce(final Connectable connectable, final LifecycleState scheduleState, final Callable<Future<Void>> stopCallback) {
         scheduleState.setScheduled(true);
         this.doScheduleOnce(connectable, scheduleState, stopCallback);
     }
 
     @Override
-    public void unschedule(Connectable connectable, LifecycleState lifeycleState) {
+    public void unschedule(final Connectable connectable, final LifecycleState lifeycleState) {
         lifeycleState.setScheduled(false);
         this.doUnschedule(connectable, lifeycleState);
     }
 
     @Override
-    public void schedule(ReportingTaskNode taskNode, LifecycleState lifecycleState) {
+    public void schedule(final ReportingTaskNode taskNode, final LifecycleState lifecycleState) {
         lifecycleState.setScheduled(true);
         this.doSchedule(taskNode, lifecycleState);
     }
 
     @Override
-    public void unschedule(ReportingTaskNode taskNode, LifecycleState lifecycleState) {
+    public void unschedule(final ReportingTaskNode taskNode, final LifecycleState lifecycleState) {
         lifecycleState.setScheduled(false);
         this.doUnschedule(taskNode, lifecycleState);
     }

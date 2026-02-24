@@ -34,7 +34,7 @@ public class ValidationExceptionMapper implements ExceptionMapper<ValidationExce
     private static final Logger logger = LoggerFactory.getLogger(ValidationExceptionMapper.class);
 
     @Override
-    public Response toResponse(ValidationException exception) {
+    public Response toResponse(final ValidationException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.BAD_REQUEST);
 

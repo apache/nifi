@@ -111,7 +111,7 @@ class TestDeleteSFTP {
 
     @Test
     void sendsFlowFileToFailureWhenDeletingAFileAndTargetIsADirectory() throws IOException {
-        Path fileToDelete = Files.createDirectories(sshServerRootPath.resolve("a/directory"));
+        final Path fileToDelete = Files.createDirectories(sshServerRootPath.resolve("a/directory"));
         enqueue(fileToDelete);
         assertExists(fileToDelete);
 
@@ -186,19 +186,19 @@ class TestDeleteSFTP {
         runner.assertQueueEmpty();
     }
 
-    private Path createFile(String directoryPath, String filename) throws IOException {
-        Path directory = Files.createDirectories(sshServerRootPath.resolve(directoryPath));
+    private Path createFile(final String directoryPath, final String filename) throws IOException {
+        final Path directory = Files.createDirectories(sshServerRootPath.resolve(directoryPath));
 
         return Files.writeString(directory.resolve(filename), "some text");
     }
 
-    private MockFlowFile enqueue(Path path) {
+    private MockFlowFile enqueue(final Path path) {
         final Path relativePath = sshServerRootPath.relativize(path);
 
         return enqueue("/%s".formatted(relativePath.getParent()), relativePath.getFileName().toString());
     }
 
-    private MockFlowFile enqueue(String directoryPath, String filename) {
+    private MockFlowFile enqueue(final String directoryPath, final String filename) {
         final Map<String, String> attributes = Map.of(
                 CoreAttributes.PATH.key(), directoryPath,
                 CoreAttributes.FILENAME.key(), filename
@@ -207,11 +207,11 @@ class TestDeleteSFTP {
         return runner.enqueue("data", attributes);
     }
 
-    private static void assertNotExists(Path filePath) {
+    private static void assertNotExists(final Path filePath) {
         assertTrue(Files.notExists(filePath), () -> "File %s still exists".formatted(filePath));
     }
 
-    private static void assertExists(Path filePath) {
+    private static void assertExists(final Path filePath) {
         assertTrue(Files.exists(filePath), () -> "File %s does not exist".formatted(filePath));
     }
 }

@@ -49,7 +49,7 @@ public class PropertyDescriptor implements Serializable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -58,7 +58,7 @@ public class PropertyDescriptor implements Serializable {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -67,7 +67,7 @@ public class PropertyDescriptor implements Serializable {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -76,7 +76,7 @@ public class PropertyDescriptor implements Serializable {
         return (allowableValues != null ? Collections.unmodifiableList(allowableValues) : null);
     }
 
-    public void setAllowableValues(List<PropertyAllowableValue> allowableValues) {
+    public void setAllowableValues(final List<PropertyAllowableValue> allowableValues) {
         this.allowableValues = allowableValues;
     }
 
@@ -85,7 +85,7 @@ public class PropertyDescriptor implements Serializable {
         return defaultValue;
     }
 
-    public void setDefaultValue(String defaultValue) {
+    public void setDefaultValue(final String defaultValue) {
         this.defaultValue = defaultValue;
     }
 
@@ -94,7 +94,7 @@ public class PropertyDescriptor implements Serializable {
         return required;
     }
 
-    public void setRequired(boolean required) {
+    public void setRequired(final boolean required) {
         this.required = required;
     }
 
@@ -103,7 +103,7 @@ public class PropertyDescriptor implements Serializable {
         return sensitive;
     }
 
-    public void setSensitive(boolean sensitive) {
+    public void setSensitive(final boolean sensitive) {
         this.sensitive = sensitive;
     }
 
@@ -112,7 +112,7 @@ public class PropertyDescriptor implements Serializable {
         return expressionLanguageScope;
     }
 
-    public void setExpressionLanguageScope(ExpressionLanguageScope expressionLanguageScope) {
+    public void setExpressionLanguageScope(final ExpressionLanguageScope expressionLanguageScope) {
         this.expressionLanguageScope = expressionLanguageScope;
         this.expressionLanguageScopeDescription = expressionLanguageScope == null ? null : expressionLanguageScope.getDescription();
     }
@@ -127,7 +127,7 @@ public class PropertyDescriptor implements Serializable {
         return typeProvidedByValue;
     }
 
-    public void setTypeProvidedByValue(DefinedType typeProvidedByValue) {
+    public void setTypeProvidedByValue(final DefinedType typeProvidedByValue) {
         this.typeProvidedByValue = typeProvidedByValue;
     }
 
@@ -136,7 +136,7 @@ public class PropertyDescriptor implements Serializable {
         return validRegex;
     }
 
-    public void setValidRegex(String validRegex) {
+    public void setValidRegex(final String validRegex) {
         this.validRegex = validRegex;
     }
 
@@ -154,7 +154,7 @@ public class PropertyDescriptor implements Serializable {
         return dynamic;
     }
 
-    public void setDynamic(boolean dynamic) {
+    public void setDynamic(final boolean dynamic) {
         this.dynamic = dynamic;
     }
 
@@ -163,7 +163,7 @@ public class PropertyDescriptor implements Serializable {
         return resourceDefinition;
     }
 
-    public void setResourceDefinition(PropertyResourceDefinition resourceDefinition) {
+    public void setResourceDefinition(final PropertyResourceDefinition resourceDefinition) {
         this.resourceDefinition = resourceDefinition;
     }
 
@@ -181,7 +181,7 @@ public class PropertyDescriptor implements Serializable {
         return dependencies;
     }
 
-    public void setDependencies(List<PropertyDependency> dependencies) {
+    public void setDependencies(final List<PropertyDependency> dependencies) {
         this.dependencies = dependencies;
     }
 }

@@ -169,7 +169,7 @@ public class SwappablePriorityQueue {
 
         final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
 
-        int originalSwapQueueCount = swapQueue.size();
+        final int originalSwapQueueCount = swapQueue.size();
         long originalSwapQueueBytes = 0L;
         for (final FlowFileRecord flowFile : swapQueue) {
             originalSwapQueueBytes += flowFile.getSize();
@@ -516,7 +516,7 @@ public class SwappablePriorityQueue {
     }
 
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
-        FlowFileRecord flowFile;
+        final FlowFileRecord flowFile;
 
         // First check if we have any records Pre-Fetched.
         writeLock.lock();
@@ -569,11 +569,11 @@ public class SwappablePriorityQueue {
         return flowFile;
     }
 
-    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis) {
         return poll(maxResults, expiredRecords, expirationMillis, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
-    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> records = new ArrayList<>(Math.min(1, maxResults));
 
         // First check if we have any records Pre-Fetched.
@@ -612,7 +612,7 @@ public class SwappablePriorityQueue {
             final List<FlowFileRecord> unselected = new ArrayList<>();
 
             while (true) {
-                FlowFileRecord flowFile = this.activeQueue.poll();
+                final FlowFileRecord flowFile = this.activeQueue.poll();
                 if (flowFile == null) {
                     break;
                 }
@@ -690,7 +690,7 @@ public class SwappablePriorityQueue {
         topPenaltyExpiration = top.getPenaltyExpirationMillis();
     }
 
-    private void doPoll(final List<FlowFileRecord> records, int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
+    private void doPoll(final List<FlowFileRecord> records, final int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         migrateSwapToActive();
 
         final long bytesDrained = drainQueue(activeQueue, records, maxResults, expiredRecords, expirationMillis, pollStrategy);
@@ -732,7 +732,7 @@ public class SwappablePriorityQueue {
     }
 
     private long drainQueue(final Queue<FlowFileRecord> sourceQueue, final List<FlowFileRecord> destination,
-                            int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis,
+                            final int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis,
                             final PollStrategy pollStrategy) {
         long drainedSize = 0L;
         FlowFileRecord pulled;
@@ -900,7 +900,7 @@ public class SwappablePriorityQueue {
         long totalSwappedQueueDate = 0L;
         Long minSwappedQueueDate = null;
         Long maxId = null;
-        List<ResourceClaim> resourceClaims = new ArrayList<>();
+        final List<ResourceClaim> resourceClaims = new ArrayList<>();
         final long startNanos = System.nanoTime();
         int failures = 0;
 
@@ -992,7 +992,7 @@ public class SwappablePriorityQueue {
             long min = getMinLastQueueDate(activeQueue, 0L);
             min = Long.min(min, getMinLastQueueDate(swapQueue, min));
 
-            for (Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
+            for (final Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
                 min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
             }
 
@@ -1002,30 +1002,30 @@ public class SwappablePriorityQueue {
         }
     }
 
-    private long getMinLastQueueDate(Iterable<FlowFileRecord> iterable, long defaultMin) {
+    private long getMinLastQueueDate(final Iterable<FlowFileRecord> iterable, final long defaultMin) {
         long min = 0;
 
-        for (FlowFileRecord flowFileRecord : iterable) {
+        for (final FlowFileRecord flowFileRecord : iterable) {
             min = min == 0 ? flowFileRecord.getLastQueueDate() : Long.min(flowFileRecord.getLastQueueDate(), min);
         }
 
         return min == 0 ? defaultMin : min;
     }
 
-    public long getTotalQueuedDuration(long fromTimestamp) {
+    public long getTotalQueuedDuration(final long fromTimestamp) {
         readLock.lock();
         try {
             long sum = 0L;
-            for (FlowFileRecord flowFileRecord : activeQueue) {
+            for (final FlowFileRecord flowFileRecord : activeQueue) {
                 sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
             }
 
-            for (FlowFileRecord flowFileRecord : swapQueue) {
+            for (final FlowFileRecord flowFileRecord : swapQueue) {
                 sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
             }
 
             long totalSwappedQueueDate = 0L;
-            for (Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
+            for (final Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
                 totalSwappedQueueDate += totalQueueDate;
             }
 

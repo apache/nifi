@@ -36,7 +36,7 @@ public interface SNMPTestRunnerFactory {
 
     TestRunner createSnmpListenTrapTestRunner(final int managerPort);
 
-    default MockFlowFile getFlowFile(String oid, String oidValue) {
+    default MockFlowFile getFlowFile(final String oid, final String oidValue) {
         final MockFlowFile flowFile = new MockFlowFile(1L);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(SNMP_PROP_PREFIX + oid, oidValue);

@@ -168,7 +168,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("snmp-oid", OID.getName());
         config.renameProperty("snmp-strategy", SNMP_STRATEGY.getName());
@@ -186,58 +186,60 @@ public class GetSNMP extends AbstractSNMPProcessor {
     }
 
     void performSnmpWalk(final ProcessContext context, final ProcessSession processSession, final String oid,
-                         final Target target, FlowFile flowFile, final boolean isNewFlowFileCreated) {
+                         final Target target, final FlowFile flowFile, final boolean isNewFlowFileCreated) {
 
+        FlowFile updatedFlowFile = flowFile;
         if (oid != null) {
-            String prefixedOid = SNMPUtils.SNMP_PROP_PREFIX + oid;
-            flowFile = processSession.putAttribute(flowFile, prefixedOid, "");
+            final String prefixedOid = SNMPUtils.SNMP_PROP_PREFIX + oid;
+            updatedFlowFile = processSession.putAttribute(updatedFlowFile, prefixedOid, "");
         }
 
         try {
-            final Optional<SNMPTreeResponse> optionalResponse = snmpHandler.walk(flowFile.getAttributes(), target);
+            final Optional<SNMPTreeResponse> optionalResponse = snmpHandler.walk(updatedFlowFile.getAttributes(), target);
             if (optionalResponse.isPresent()) {
                 final SNMPTreeResponse response = optionalResponse.get();
                 response.logErrors(getLogger());
-                flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
+                updatedFlowFile = processSession.putAllAttributes(updatedFlowFile, response.getAttributes());
                 if (isNewFlowFileCreated) {
-                    processSession.getProvenanceReporter().receive(flowFile, "/walk");
+                    processSession.getProvenanceReporter().receive(updatedFlowFile, "/walk");
                 } else {
-                    processSession.getProvenanceReporter().fetch(flowFile, "/walk");
+                    processSession.getProvenanceReporter().fetch(updatedFlowFile, "/walk");
                 }
-                processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
+                processSession.transfer(updatedFlowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
-                processSession.transfer(flowFile, REL_FAILURE);
+                processSession.transfer(updatedFlowFile, REL_FAILURE);
             }
-        } catch (SNMPWalkException e) {
+        } catch (final SNMPWalkException e) {
             getLogger().error(e.getMessage());
             context.yield();
         }
     }
 
     void performSnmpGet(final ProcessContext context, final ProcessSession processSession, final String oid,
-                        final Target target, FlowFile flowFile, final boolean isNewFlowFileCreated) {
+                        final Target target, final FlowFile flowFile, final boolean isNewFlowFileCreated) {
         final String textualOidKey = SNMPUtils.SNMP_PROP_PREFIX + "textualOid";
         final Map<String, String> textualOidMap = Collections.singletonMap(textualOidKey, context.getProperty(TEXTUAL_OID).getValue());
 
+        FlowFile updatedFlowFile = flowFile;
         if (oid != null) {
-            String prefixedOid = SNMPUtils.SNMP_PROP_PREFIX + oid;
-            flowFile = processSession.putAttribute(flowFile, prefixedOid, "");
+            final String prefixedOid = SNMPUtils.SNMP_PROP_PREFIX + oid;
+            updatedFlowFile = processSession.putAttribute(updatedFlowFile, prefixedOid, "");
         }
 
         try {
-            final Optional<SNMPSingleResponse> optionalResponse = snmpHandler.get(flowFile.getAttributes(), target);
+            final Optional<SNMPSingleResponse> optionalResponse = snmpHandler.get(updatedFlowFile.getAttributes(), target);
             if (optionalResponse.isPresent()) {
                 final SNMPSingleResponse response = optionalResponse.get();
-                flowFile = processSession.putAllAttributes(flowFile, textualOidMap);
-                handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get", isNewFlowFileCreated);
+                updatedFlowFile = processSession.putAllAttributes(updatedFlowFile, textualOidMap);
+                handleResponse(context, processSession, updatedFlowFile, response, REL_SUCCESS, REL_FAILURE, "/get", isNewFlowFileCreated);
             } else {
                 getLogger().warn("No SNMP specific attributes found in flowfile.");
-                processSession.transfer(flowFile, REL_FAILURE);
+                processSession.transfer(updatedFlowFile, REL_FAILURE);
                 context.yield();
             }
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
             context.yield();
         }

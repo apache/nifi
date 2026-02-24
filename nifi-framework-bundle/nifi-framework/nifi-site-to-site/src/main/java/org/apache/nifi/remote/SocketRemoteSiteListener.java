@@ -134,14 +134,14 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     LOG.error("Unable to open server socket", e);
                 }
 
-                for (Thread thread : threads) {
+                for (final Thread thread : threads) {
                     if (thread != null) {
                         thread.interrupt();
                     }
                 }
             }
 
-            private Thread createWorkerThread(Socket socket) {
+            private Thread createWorkerThread(final Socket socket) {
                 return new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -177,10 +177,10 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             }
                         } catch (final Exception e) {
                             // TODO: Add SocketProtocolListener#handleTlsError logic here
-                            String msg = String.format("RemoteSiteListener Unable to accept connection from %s due to %s", socket, e.getLocalizedMessage());
+                            final String msg = String.format("RemoteSiteListener Unable to accept connection from %s due to %s", socket, e.getLocalizedMessage());
                             // Suppress repeated TLS errors
                             if (isTlsError(e)) {
-                                boolean printedAsWarning = handleTlsError(msg);
+                                final boolean printedAsWarning = handleTlsError(msg);
 
                                 // TODO: Move into handleTlsError and refactor shared behavior
                                 // If the error was printed as a warning, reset the last seen timer
@@ -341,7 +341,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         return StandardPrincipalFormatter.getInstance().getSubject(peerCertificate);
     }
 
-    private boolean handleTlsError(String msg) {
+    private boolean handleTlsError(final String msg) {
         if (tlsErrorRecentlySeen()) {
             LOG.debug(msg);
             return false;
@@ -359,7 +359,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
      * @return true if the time since the last similar exception occurred is below the threshold
      */
     private boolean tlsErrorRecentlySeen() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
     }
 
@@ -375,7 +375,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         }
     }
 
-    private Socket acceptConnection(ServerSocket serverSocket) {
+    private Socket acceptConnection(final ServerSocket serverSocket) {
         LOG.trace("Accepting Connection...");
         Socket acceptedSocket = null;
         try {

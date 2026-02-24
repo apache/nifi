@@ -29,7 +29,7 @@ public class FlowContent {
         return flowSnapshot;
     }
 
-    public void setFlowSnapshot(VersionedFlowSnapshot flowSnapshot) {
+    public void setFlowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
         this.flowSnapshot = flowSnapshot;
     }
 }

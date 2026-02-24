@@ -364,7 +364,7 @@ public class FetchParquetTest {
     public void testIOExceptionCreatingReaderShouldRouteToRetry() throws InitializationException, IOException {
         final FetchParquet proc = new FetchParquet() {
             @Override
-            public HDFSRecordReader createHDFSRecordReader(ProcessContext context, FlowFile flowFile, Configuration conf, Path path)
+            public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path)
                     throws IOException {
                 throw new IOException("IOException");
             }
@@ -392,7 +392,7 @@ public class FetchParquetTest {
     public void testIOExceptionWhileReadingShouldRouteToRetry() throws IOException, InitializationException {
         final FetchParquet proc = new FetchParquet() {
             @Override
-            public HDFSRecordReader createHDFSRecordReader(ProcessContext context, FlowFile flowFile, Configuration conf, Path path) {
+            public HDFSRecordReader createHDFSRecordReader(final ProcessContext context, final FlowFile flowFile, final Configuration conf, final Path path) {
                 return new HDFSRecordReader() {
                     @Override
                     public Record nextRecord() throws IOException {
@@ -530,7 +530,7 @@ public class FetchParquetTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    protected void verifyCSVRecords(String csvContent) {
+    protected void verifyCSVRecords(final String csvContent) {
         final String[] splits = csvContent.split("[\\n]");
         assertEquals(USERS, splits.length);
 

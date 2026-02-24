@@ -260,12 +260,12 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
-        String destination = validationContext.getProperty(DESTINATION).getValue();
-        String grouping = validationContext.getProperty(GROUPING).getValue();
-        String batchSize = validationContext.getProperty(BATCH_SIZE).getValue();
+        final String destination = validationContext.getProperty(DESTINATION).getValue();
+        final String grouping = validationContext.getProperty(GROUPING).getValue();
+        final String batchSize = validationContext.getProperty(BATCH_SIZE).getValue();
 
         if (
                 (!DESTINATION_CONTENT.getValue().equals(destination) || !GROUP_NONE.getValue().equals(grouping))
@@ -302,13 +302,13 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             ff = session.create();
             scheduledFF = true;
         }
-        HDFSFileInfoRequest req = buildRequestDetails(context, ff);
+        final HDFSFileInfoRequest req = buildRequestDetails(context, ff);
 
         try {
             final FileSystem hdfs = getFileSystem();
-            UserGroupInformation ugi = getUserGroupInformation();
-            ExecutionContext executionContext = new ExecutionContext();
-            HDFSObjectInfoDetails res = walkHDFSTree(session, executionContext, ff, hdfs, ugi, req, null, false);
+            final UserGroupInformation ugi = getUserGroupInformation();
+            final ExecutionContext executionContext = new ExecutionContext();
+            final HDFSObjectInfoDetails res = walkHDFSTree(session, executionContext, ff, hdfs, ugi, req, null, false);
             executionContext.finish(session);
             if (res == null) {
                 ff = session.putAttribute(ff, "hdfs.status", "Path not found: " + req.fullPath);
@@ -336,7 +336,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gethdfsfileinfo-full-path", FULL_PATH.getName());
         config.renameProperty("gethdfsfileinfo-recurse-subdirs", RECURSE_SUBDIRS.getName());
@@ -353,20 +353,19 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     /*
      * Walks thru HDFS tree. This method will return null to the main if there is no provided path existing.
      */
-    protected HDFSObjectInfoDetails walkHDFSTree(final ProcessSession session, ExecutionContext executionContext,
-                                                 FlowFile origFF, final FileSystem hdfs, final UserGroupInformation ugi,
-                                                 final HDFSFileInfoRequest req, HDFSObjectInfoDetails parent, final boolean statsOnly
+    protected HDFSObjectInfoDetails walkHDFSTree(final ProcessSession session, final ExecutionContext executionContext,
+                                                 final FlowFile origFF, final FileSystem hdfs, final UserGroupInformation ugi,
+                                                 final HDFSFileInfoRequest req, final HDFSObjectInfoDetails parentArg, final boolean statsOnly
     ) throws Exception {
 
-        final HDFSObjectInfoDetails p = parent;
+        final HDFSObjectInfoDetails p = parentArg;
 
         if (!ugi.doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(p != null ? p.getPath() : new Path(req.getFullPath())))) {
             return null;
         }
 
-        if (parent == null) {
-            parent = new HDFSObjectInfoDetails(ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(new Path(req.getFullPath()))));
-        }
+        final HDFSObjectInfoDetails parent = parentArg != null ? parentArg
+                : new HDFSObjectInfoDetails(ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(new Path(req.getFullPath()))));
         if (parent.isFile() && p == null) {
             //single file path requested and found, lets send to output:
             processHDFSObject(session, executionContext, origFF, req, parent, true);
@@ -378,15 +377,15 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         FileStatus[] listFSt = null;
         try {
             listFSt = ugi.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             parent.error = "Couldn't list directory: " + e;
             processHDFSObject(session, executionContext, origFF, req, parent, p == null);
             return parent; //File not found exception, or access denied - don't interrupt, just don't list
         }
         if (listFSt != null) {
-            for (FileStatus f : listFSt) {
+            for (final FileStatus f : listFSt) {
                 HDFSObjectInfoDetails o = new HDFSObjectInfoDetails(f);
-                HDFSObjectInfoDetails vo = validateMatchingPatterns(o, req);
+                final HDFSObjectInfoDetails vo = validateMatchingPatterns(o, req);
                 if (o.isDirectory() && !o.isSymlink() && req.isRecursive()) {
                     o = walkHDFSTree(session, executionContext, origFF, hdfs, ugi, req, o, vo == null || statsOnly);
                     parent.countDirs += o.countDirs;
@@ -420,7 +419,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         return parent;
     }
 
-    protected HDFSObjectInfoDetails validateMatchingPatterns(final HDFSObjectInfoDetails o, HDFSFileInfoRequest req) {
+    protected HDFSObjectInfoDetails validateMatchingPatterns(final HDFSObjectInfoDetails o, final HDFSFileInfoRequest req) {
         if (o == null || o.getPath() == null) {
             return null;
         }
@@ -457,7 +456,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     protected void processHDFSObject(
             final ProcessSession session,
             final ExecutionContext executionContext,
-            FlowFile origFF,
+            final FlowFile origFF,
             final HDFSFileInfoRequest req,
             final HDFSObjectInfoDetails o,
             final boolean isRoot
@@ -528,7 +527,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         finishProcessing(req, executionContext, session);
     }
 
-    private FlowFile getReadyFlowFile(ExecutionContext executionContext, ProcessSession session, FlowFile origFF) {
+    private FlowFile getReadyFlowFile(final ExecutionContext executionContext, final ProcessSession session, final FlowFile origFF) {
         if (executionContext.flowfile == null) {
             executionContext.flowfile = session.create(origFF);
         }
@@ -536,7 +535,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         return executionContext.flowfile;
     }
 
-    private void finishProcessing(HDFSFileInfoRequest req, ExecutionContext executionContext, ProcessSession session) {
+    private void finishProcessing(final HDFSFileInfoRequest req, final ExecutionContext executionContext, final ProcessSession session) {
         executionContext.nrOfWaitingHDFSObjects++;
 
         if (req.grouping == NONE && req.isDestContent() && executionContext.nrOfWaitingHDFSObjects < req.getBatchSize()) {
@@ -547,19 +546,19 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         executionContext.reset();
     }
 
-    private FlowFile addAsContent(ExecutionContext executionContext, ProcessSession session, HDFSObjectInfoDetails o, FlowFile ff) {
-        if (executionContext.nrOfWaitingHDFSObjects > 0) {
-            ff = session.append(ff, (out) -> out.write(("\n").getBytes()));
-        }
+    private FlowFile addAsContent(final ExecutionContext executionContext, final ProcessSession session, final HDFSObjectInfoDetails o, final FlowFile ff) {
+        final FlowFile flowFileToAppend = executionContext.nrOfWaitingHDFSObjects > 0
+                ? session.append(ff, (out) -> out.write(("\n").getBytes()))
+                : ff;
 
-        return session.append(ff, (out) -> out.write((o.toJsonString()).getBytes()));
+        return session.append(flowFileToAppend, (out) -> out.write((o.toJsonString()).getBytes()));
     }
 
-    private FlowFile addAsAttributes(ProcessSession session, HDFSObjectInfoDetails o, FlowFile ff) {
+    private FlowFile addAsAttributes(final ProcessSession session, final HDFSObjectInfoDetails o, final FlowFile ff) {
         return session.putAllAttributes(ff, o.toAttributesMap());
     }
 
-    private FlowFile addFullTreeToAttribute(ProcessSession session, HDFSObjectInfoDetails o, FlowFile ff) {
+    private FlowFile addFullTreeToAttribute(final ProcessSession session, final HDFSObjectInfoDetails o, final FlowFile ff) {
         return session.putAttribute(ff, "hdfs.full.tree", o.toJsonString());
     }
 
@@ -569,7 +568,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     protected String getPerms(final FsPermission permission) {
 
         final StringBuilder sb = new StringBuilder();
-        for (FsAction action : new FsAction[]{permission.getUserAction(), permission.getGroupAction(), permission.getOtherAction()}) {
+        for (final FsAction action : new FsAction[]{permission.getUserAction(), permission.getGroupAction(), permission.getOtherAction()}) {
             if (action.implies(FsAction.READ)) {
                 sb.append("r");
             } else {
@@ -596,34 +595,29 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
      * Creates internal request object and initialize the fields that won't be changed every call (onTrigger).
      * Dynamic fields will be updated per each call separately.
      */
-    protected HDFSFileInfoRequest buildRequestDetails(ProcessContext context, FlowFile ff) {
-        HDFSFileInfoRequest req = new HDFSFileInfoRequest();
-        String fullPath = getNormalizedPath(context, FULL_PATH, ff).toString();
+    protected HDFSFileInfoRequest buildRequestDetails(final ProcessContext context, final FlowFile ff) {
+        final HDFSFileInfoRequest req = new HDFSFileInfoRequest();
+        final String fullPath = getNormalizedPath(context, FULL_PATH, ff).toString();
         req.setFullPath(fullPath);
         req.setRecursive(context.getProperty(RECURSE_SUBDIRS).asBoolean());
 
-        if (context.getProperty(DIR_FILTER).isSet()) {
-            final PropertyValue pv = context.getProperty(DIR_FILTER).evaluateAttributeExpressions(ff);
-            if (pv != null) {
-                final String v = pv.getValue();
-                req.setDirFilter(v == null ? null : Pattern.compile(v));
-            }
+        PropertyValue pv;
+        String v;
+
+        if (context.getProperty(DIR_FILTER).isSet() && (pv = context.getProperty(DIR_FILTER).evaluateAttributeExpressions(ff)) != null) {
+            v = pv.getValue();
+            req.setDirFilter(v == null ? null : Pattern.compile(v));
         }
 
-        if (context.getProperty(FILE_FILTER).isSet()) {
-            final PropertyValue pv = context.getProperty(FILE_FILTER).evaluateAttributeExpressions(ff);
-            if (pv != null) {
-                final String v = pv.getValue();
-                req.setFileFilter(v == null ? null : Pattern.compile(v));
-            }
+        if (context.getProperty(FILE_FILTER).isSet() && (pv = context.getProperty(FILE_FILTER).evaluateAttributeExpressions(ff)) != null) {
+            v = pv.getValue();
+            req.setFileFilter(v == null ? null : Pattern.compile(v));
         }
 
-        if (context.getProperty(FILE_EXCLUDE_FILTER).isSet()) {
-            final PropertyValue pv = context.getProperty(FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(ff);
-            if (pv != null) {
-                final String v = pv.getValue();
-                req.setFileExcludeFilter(v == null ? null : Pattern.compile(v));
-            }
+        if (context.getProperty(FILE_EXCLUDE_FILTER).isSet()
+                && (pv = context.getProperty(FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(ff)) != null) {
+            v = pv.getValue();
+            req.setFileExcludeFilter(v == null ? null : Pattern.compile(v));
         }
 
         req.setIgnoreDotFiles(context.getProperty(IGNORE_DOTTED_FILES).asBoolean());
@@ -632,9 +626,9 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         req.setGrouping(HDFSFileInfoRequest.Grouping.getEnum(context.getProperty(GROUPING).getValue()));
         req.setBatchSize(context.getProperty(BATCH_SIZE).asInteger() != null ? context.getProperty(BATCH_SIZE).asInteger() : 1);
 
-        final String destination = context.getProperty(DESTINATION).getValue();
+        v = context.getProperty(DESTINATION).getValue();
 
-        req.setDestContent(DESTINATION_CONTENT.getValue().equals(destination));
+        req.setDestContent(DESTINATION_CONTENT.getValue().equals(v));
 
         return req;
     }
@@ -648,7 +642,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             flowfile = null;
         }
 
-        void finish(ProcessSession session) {
+        void finish(final ProcessSession session) {
             if (flowfile != null) {
                 session.transfer(flowfile, REL_SUCCESS);
                 flowfile = null;
@@ -667,7 +661,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
             private final String val;
 
-            Grouping(String val) {
+            Grouping(final String val) {
                 this.val = val;
             }
 
@@ -676,8 +670,8 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
                 return this.val;
             }
 
-            public static Grouping getEnum(String value) {
-                for (Grouping v : values()) {
+            public static Grouping getEnum(final String value) {
+                for (final Grouping v : values()) {
                     if (v.val.equals(value)) {
                         return v;
                     }
@@ -701,7 +695,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return fullPath;
         }
 
-        void setFullPath(String fullPath) {
+        void setFullPath(final String fullPath) {
             this.fullPath = fullPath;
         }
 
@@ -709,7 +703,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return this.recursive;
         }
 
-        void setRecursive(boolean recursive) {
+        void setRecursive(final boolean recursive) {
             this.recursive = recursive;
         }
 
@@ -717,7 +711,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return this.dirFilter;
         }
 
-        void setDirFilter(Pattern dirFilter) {
+        void setDirFilter(final Pattern dirFilter) {
             this.dirFilter = dirFilter;
         }
 
@@ -725,7 +719,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return fileFilter;
         }
 
-        void setFileFilter(Pattern fileFilter) {
+        void setFileFilter(final Pattern fileFilter) {
             this.fileFilter = fileFilter;
         }
 
@@ -733,7 +727,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return fileExcludeFilter;
         }
 
-        void setFileExcludeFilter(Pattern fileExcludeFilter) {
+        void setFileExcludeFilter(final Pattern fileExcludeFilter) {
             this.fileExcludeFilter = fileExcludeFilter;
         }
 
@@ -741,7 +735,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return ignoreDotFiles;
         }
 
-        void setIgnoreDotFiles(boolean ignoreDotFiles) {
+        void setIgnoreDotFiles(final boolean ignoreDotFiles) {
             this.ignoreDotFiles = ignoreDotFiles;
         }
 
@@ -749,7 +743,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return this.ignoreDotDirs;
         }
 
-        void setIgnoreDotDirs(boolean ignoreDotDirs) {
+        void setIgnoreDotDirs(final boolean ignoreDotDirs) {
             this.ignoreDotDirs = ignoreDotDirs;
         }
 
@@ -757,7 +751,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return this.destContent;
         }
 
-        void setDestContent(boolean destContent) {
+        void setDestContent(final boolean destContent) {
             this.destContent = destContent;
         }
 
@@ -765,7 +759,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return grouping;
         }
 
-        void setGrouping(Grouping grouping) {
+        void setGrouping(final Grouping grouping) {
             this.grouping = grouping;
         }
 
@@ -773,7 +767,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return this.batchSize;
         }
 
-        void setBatchSize(int batchSize) {
+        void setBatchSize(final int batchSize) {
             this.batchSize = batchSize;
         }
     }
@@ -790,7 +784,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         private Collection<HDFSObjectInfoDetails> children = new LinkedList<>();
         private String error;
 
-        HDFSObjectInfoDetails(FileStatus fs) throws IOException {
+        HDFSObjectInfoDetails(final FileStatus fs) throws IOException {
             super(fs);
         }
 
@@ -798,7 +792,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return countFiles;
         }
 
-        public void setCountFiles(long countFiles) {
+        public void setCountFiles(final long countFiles) {
             this.countFiles = countFiles;
         }
 
@@ -806,7 +800,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return countDirs;
         }
 
-        public void setCountDirs(long countDirs) {
+        public void setCountDirs(final long countDirs) {
             this.countDirs = countDirs;
         }
 
@@ -814,7 +808,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return totalLen;
         }
 
-        public void setTotalLen(long totalLen) {
+        public void setTotalLen(final long totalLen) {
             this.totalLen = totalLen;
         }
 
@@ -826,26 +820,26 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return error;
         }
 
-        public void setError(String error) {
+        public void setError(final String error) {
             this.error = error;
         }
 
-        public void setChildren(Collection<HDFSObjectInfoDetails> children) {
+        public void setChildren(final Collection<HDFSObjectInfoDetails> children) {
             this.children = children;
         }
 
-        public void addChild(HDFSObjectInfoDetails child) {
+        public void addChild(final HDFSObjectInfoDetails child) {
             this.children.add(child);
         }
 
-        public void updateTotals(boolean deepUpdate) {
+        public void updateTotals(final boolean deepUpdate) {
             if (deepUpdate) {
                 this.countDirs = 1;
                 this.countFiles = 0;
                 this.totalLen = 0;
             }
 
-            for (HDFSObjectInfoDetails c : children) {
+            for (final HDFSObjectInfoDetails c : children) {
                 if (c.isSymlink()) {
                     continue; //do not count symlinks. they either will be counted under their actual directories, or won't be count if actual location is not under provided root for scan.
                 } else if (c.isDirectory()) {
@@ -867,7 +861,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
          * Since, by definition, FF will keep only attributes for parent/single object, we don't need to recurse the children
          */
         public Map<String, String> toAttributesMap() {
-            Map<String, String> map = new HashMap<>();
+            final Map<String, String> map = new HashMap<>();
 
             map.put("hdfs.objectName", this.getPath().getName());
             map.put("hdfs.path", Path.getPathWithoutSchemeAndAuthority(this.getPath().getParent()).toString());
@@ -894,11 +888,11 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
          * This object is pretty simple, with limited number of members of simple types.
          */
         public String toJsonString() {
-            StringBuilder sb = new StringBuilder();
+            final StringBuilder sb = new StringBuilder();
             return toJsonString(sb).toString();
         }
 
-        private StringBuilder toJsonString(StringBuilder sb) {
+        private StringBuilder toJsonString(final StringBuilder sb) {
             sb.append("{");
 
             appendProperty(sb, "objectName", this.getPath().getName()).append(",");
@@ -922,7 +916,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
 
             if (this.getChildren() != null && !this.getChildren().isEmpty()) {
                 sb.append(",\"content\":[");
-                for (HDFSObjectInfoDetails c : this.getChildren()) {
+                for (final HDFSObjectInfoDetails c : this.getChildren()) {
                     c.toJsonString(sb).append(",");
                 }
                 sb.deleteCharAt(sb.length() - 1).append("]");
@@ -931,7 +925,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             return sb;
         }
 
-        private StringBuilder appendProperty(StringBuilder sb, String name, String value) {
+        private StringBuilder appendProperty(final StringBuilder sb, final String name, final String value) {
             return sb.append("\"").append(name).append("\":\"").append(value == null ? "" : value).append("\"");
         }
     }

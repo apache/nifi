@@ -48,7 +48,7 @@ public class ProcessorDiagnosticsEndpointMerger implements EndpointResponseMerge
     }
 
     @Override
-    public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
+    public NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         final ProcessorDiagnosticsEntity clientEntity = clientResponse.getClientResponse().readEntity(ProcessorDiagnosticsEntity.class);
 
         // Unmarshall each response into an entity.

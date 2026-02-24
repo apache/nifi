@@ -34,13 +34,13 @@ import java.util.List;
 public class InputStreamMessageEncoder extends MessageToMessageEncoder<InputStream> {
 
     @Override
-    protected void encode(ChannelHandlerContext context, InputStream messageStream, List<Object> out) throws Exception {
-        ChunkedStream chunkedMessage = new ChunkedStream(messageStream);
+    protected void encode(final ChannelHandlerContext context, final InputStream messageStream, final List<Object> out) throws Exception {
+        final ChunkedStream chunkedMessage = new ChunkedStream(messageStream);
         out.add(chunkedMessage);
 
         // If the message being sent requires a delimiter added to the end of the message, provide a DelimitedInputStream
         if (messageStream instanceof DelimitedInputStream) {
-            DelimitedInputStream delimStream = (DelimitedInputStream) messageStream;
+            final DelimitedInputStream delimStream = (DelimitedInputStream) messageStream;
             out.add(Unpooled.wrappedBuffer(delimStream.getDelimiter()));
         }
     }

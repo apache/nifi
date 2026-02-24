@@ -52,18 +52,18 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
     }
 
     @Override
-    public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {
-        Collection<ComponentAnalysisResult> results = new HashSet<>();
+    public Collection<ComponentAnalysisResult> analyzeComponent(final VersionedComponent component, final FlowAnalysisRuleContext context) {
+        final Collection<ComponentAnalysisResult> results = new HashSet<>();
 
-        String componentType = context.getProperty(COMPONENT_TYPE).getValue();
+        final String componentType = context.getProperty(COMPONENT_TYPE).getValue();
 
         if (component instanceof VersionedExtensionComponent versionedExtensionComponent) {
 
-            String encounteredComponentType = versionedExtensionComponent.getType();
-            String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);
+            final String encounteredComponentType = versionedExtensionComponent.getType();
+            final String encounteredSimpleComponentType = encounteredComponentType.substring(encounteredComponentType.lastIndexOf(".") + 1);
 
             if (encounteredComponentType.equals(componentType) || encounteredSimpleComponentType.equals(componentType)) {
-                ComponentAnalysisResult result = new ComponentAnalysisResult(
+                final ComponentAnalysisResult result = new ComponentAnalysisResult(
                         "default",
                         "'" + componentType + "' is not allowed"
                 );

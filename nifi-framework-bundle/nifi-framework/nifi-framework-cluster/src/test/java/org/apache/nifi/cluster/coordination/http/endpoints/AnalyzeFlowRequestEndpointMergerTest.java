@@ -45,13 +45,13 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     @Test
     public void testAllRequestsWaiting() throws Exception {
         // GIVEN
-        AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
         dtoMap.put(mock(NodeIdentifier.class), createRequest(false, null, "WAITING"));
         dtoMap.put(mock(NodeIdentifier.class), createRequest(false, null, "WAITING"));
 
-        AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
 
         // WHEN
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
@@ -63,13 +63,13 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     @Test
     public void testClientRequestWaitingOthersComplete() throws Exception {
         // GIVEN
-        AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, null, "COMPLETE"));
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, null, "COMPLETE"));
 
-        AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
 
         // WHEN
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
@@ -81,13 +81,13 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     @Test
     public void testOneNonClientRequestCompleteOthersWaiting() throws Exception {
         // GIVEN
-        AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO clientDto = createRequest(false, null, "WAITING");
 
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
         dtoMap.put(mock(NodeIdentifier.class), createRequest(false, null, "WAITING"));
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, null, "COMPLETE"));
 
-        AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
+        final AnalyzeFlowRequestDTO expected = createRequest(false, null, "WAITING");
 
         // WHEN
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
@@ -99,13 +99,13 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     @Test
     public void testAllRequestsComplete() throws Exception {
         // GIVEN
-        AnalyzeFlowRequestDTO clientDto = createRequest(true, null, "COMPLETE");
+        final AnalyzeFlowRequestDTO clientDto = createRequest(true, null, "COMPLETE");
 
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, null, "COMPLETE"));
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, null, "COMPLETE"));
 
-        AnalyzeFlowRequestDTO expected = createRequest(true, null, "COMPLETE");
+        final AnalyzeFlowRequestDTO expected = createRequest(true, null, "COMPLETE");
 
         // WHEN
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
@@ -117,29 +117,29 @@ public class AnalyzeFlowRequestEndpointMergerTest {
     @Test
     public void testMergeFailures() throws Exception {
         // GIVEN
-        AnalyzeFlowRequestDTO clientDto = createRequest(true, "failure1", "FAILURE");
+        final AnalyzeFlowRequestDTO clientDto = createRequest(true, "failure1", "FAILURE");
 
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap = new HashMap<>();
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, "failure2", "FAILURE"));
         dtoMap.put(mock(NodeIdentifier.class), createRequest(true, "failure3", "FAILURE"));
 
-        Set<String> expectedFailures = new HashSet<>(Arrays.asList("failure1", "failure2", "failure3"));
+        final Set<String> expectedFailures = new HashSet<>(Arrays.asList("failure1", "failure2", "failure3"));
 
         // WHEN
         testSubject.mergeResponses(clientDto, dtoMap, null, null);
 
         // THEN
-        Set<String> actualFailures = new HashSet<>(Arrays.asList(clientDto.getFailureReason().split("\n")));
+        final Set<String> actualFailures = new HashSet<>(Arrays.asList(clientDto.getFailureReason().split("\n")));
 
         Assertions.assertEquals(expectedFailures, actualFailures);
     }
 
     private AnalyzeFlowRequestDTO createRequest(
-        Boolean complete,
-        String failureReason,
-        String state
+        final Boolean complete,
+        final String failureReason,
+        final String state
     ) {
-        AnalyzeFlowRequestDTO request = new AnalyzeFlowRequestDTO();
+        final AnalyzeFlowRequestDTO request = new AnalyzeFlowRequestDTO();
 
         request.setComplete(complete);
         request.setFailureReason(failureReason);
@@ -148,8 +148,8 @@ public class AnalyzeFlowRequestEndpointMergerTest {
         return request;
     }
 
-    private void assertEquals(AnalyzeFlowRequestDTO expected, AnalyzeFlowRequestDTO clientDto) {
-        List<Function<AnalyzeFlowRequestDTO, Object>> equalityCheckers = Arrays.asList(
+    private void assertEquals(final AnalyzeFlowRequestDTO expected, final AnalyzeFlowRequestDTO clientDto) {
+        final List<Function<AnalyzeFlowRequestDTO, Object>> equalityCheckers = Arrays.asList(
             AnalyzeFlowRequestDTO::isComplete,
             AnalyzeFlowRequestDTO::getFailureReason,
             AnalyzeFlowRequestDTO::getState

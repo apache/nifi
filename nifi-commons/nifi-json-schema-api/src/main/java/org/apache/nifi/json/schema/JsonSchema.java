@@ -22,7 +22,7 @@ public class JsonSchema {
     private final SchemaVersion schemaVersion;
     private final String schemaText;
 
-    public JsonSchema(SchemaVersion schemaVersion, String schemaText) {
+    public JsonSchema(final SchemaVersion schemaVersion, final String schemaText) {
         Objects.requireNonNull(schemaVersion, "Schema version cannot be null");
         Objects.requireNonNull(schemaText, "The text of the schema cannot be null");
         this.schemaVersion = schemaVersion;

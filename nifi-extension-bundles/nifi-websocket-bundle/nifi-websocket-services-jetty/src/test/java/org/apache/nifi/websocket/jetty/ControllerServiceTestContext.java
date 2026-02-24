@@ -40,7 +40,7 @@ public class ControllerServiceTestContext {
     private final ValidationContext validationContext = mock(ValidationContext.class);
     private MockControllerServiceInitializationContext initializationContext;
 
-    public ControllerServiceTestContext(ControllerService controllerService, String id) {
+    public ControllerServiceTestContext(final ControllerService controllerService, final String id) {
         initializationContext = new MockControllerServiceInitializationContext(controllerService, id);
         doAnswer(invocation -> configurationContext.getProperty(invocation.getArgument(0)))
                 .when(validationContext).getProperty(any(PropertyDescriptor.class));
@@ -63,11 +63,11 @@ public class ControllerServiceTestContext {
         return configurationContext;
     }
 
-    public MockPropertyValue setDefaultValue(PropertyDescriptor propertyDescriptor) {
+    public MockPropertyValue setDefaultValue(final PropertyDescriptor propertyDescriptor) {
         return setCustomValue(propertyDescriptor, propertyDescriptor.getDefaultValue());
     }
 
-    public MockPropertyValue setCustomValue(PropertyDescriptor propertyDescriptor, String value) {
+    public MockPropertyValue setCustomValue(final PropertyDescriptor propertyDescriptor, final String value) {
         final MockPropertyValue propertyValue = new MockPropertyValue(value, initializationContext, null);
         when(configurationContext.getProperty(eq(propertyDescriptor)))
                 .thenReturn(propertyValue);

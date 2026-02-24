@@ -187,9 +187,9 @@ class TestSimpleRecordSchema {
         assertThrows(StackOverflowError.class, () -> schema2.equals(schema1));
     }
 
-    private SimpleRecordSchema createSchemaWithTwoFields(String nameOfField1, String nameOfField2,
-                                                         DataType typeOfField1, DataType typeOfField2,
-                                                         String schemaName, String schemaNamespace) {
+    private SimpleRecordSchema createSchemaWithTwoFields(final String nameOfField1, final String nameOfField2,
+                                                         final DataType typeOfField1, final DataType typeOfField2,
+                                                         final String schemaName, final String schemaNamespace) {
         final SimpleRecordSchema schema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField(nameOfField1, typeOfField1));
@@ -200,8 +200,8 @@ class TestSimpleRecordSchema {
         return schema;
     }
 
-    private SimpleRecordSchema createRecursiveSchema(String nameOfSimpleField, String nameOfRecursiveField,
-                                                     String schemaName, String schemaNamespace) {
+    private SimpleRecordSchema createRecursiveSchema(final String nameOfSimpleField, final String nameOfRecursiveField,
+                                                     final String schemaName, final String schemaNamespace) {
         final SimpleRecordSchema schema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField(nameOfSimpleField, RecordFieldType.STRING.getDataType()));

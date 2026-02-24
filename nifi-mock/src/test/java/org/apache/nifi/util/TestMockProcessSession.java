@@ -66,7 +66,7 @@ public class TestMockProcessSession {
     class RegardingActiveReads {
         @Test
         void cannotTransferFlowFileThatIsReadActively() throws IOException {
-            MockFlowFile flowFile = session.createFlowFile("hello, world".getBytes());
+            final MockFlowFile flowFile = session.createFlowFile("hello, world".getBytes());
             readWithoutClosingInputStream(session, flowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -76,7 +76,7 @@ public class TestMockProcessSession {
 
         @Test
         void cannotRemoveFlowFileThatIsReadActively() throws IOException {
-            MockFlowFile flowFile = session.createFlowFile("hello, world".getBytes());
+            final MockFlowFile flowFile = session.createFlowFile("hello, world".getBytes());
             readWithoutClosingInputStream(session, flowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -86,10 +86,10 @@ public class TestMockProcessSession {
 
         @Test
         void cannotMergeWithFlowFileThatIsReadActively() throws IOException {
-            MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
+            final MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
             readWithoutClosingInputStream(session, offendingFlowFile);
-            MockFlowFile otherFlowFile = session.createFlowFile("Hola mundo".getBytes());
-            MockFlowFile destinationFlowFile = session.create();
+            final MockFlowFile otherFlowFile = session.createFlowFile("Hola mundo".getBytes());
+            final MockFlowFile destinationFlowFile = session.create();
 
             assertThrows(IllegalStateException.class, () -> {
                 session.merge(Set.of(offendingFlowFile, otherFlowFile), destinationFlowFile);
@@ -100,7 +100,7 @@ public class TestMockProcessSession {
         void cannotMigrateFlowFileThatIsReadActively() throws IOException {
             final MockProcessSession targetSession = createMockProcessSession();
 
-            MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
+            final MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
             readWithoutClosingInputStream(session, offendingFlowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -108,8 +108,8 @@ public class TestMockProcessSession {
             }, "Was able to merge FlowFile without closing InputStream");
         }
 
-        private static void readWithoutClosingInputStream(MockProcessSession session, MockFlowFile flowFile) throws IOException {
-            String expectedContent = flowFile.getContent();
+        private static void readWithoutClosingInputStream(final MockProcessSession session, final MockFlowFile flowFile) throws IOException {
+            final String expectedContent = flowFile.getContent();
 
             @SuppressWarnings("resource") final InputStream in = session.read(flowFile);
             final byte[] bytes = in.readAllBytes();
@@ -121,7 +121,7 @@ public class TestMockProcessSession {
     class RegardingActiveWrites {
         @Test
         void cannotTransferFlowFileThatIsWrittenActively() throws IOException {
-            MockFlowFile flowFile = session.create();
+            final MockFlowFile flowFile = session.create();
             writeWithoutClosingOutputStream(session, flowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -131,7 +131,7 @@ public class TestMockProcessSession {
 
         @Test
         void cannotRemoveFlowFileThatIsWrittenActively() throws IOException {
-            MockFlowFile flowFile = session.create();
+            final MockFlowFile flowFile = session.create();
             writeWithoutClosingOutputStream(session, flowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -141,10 +141,10 @@ public class TestMockProcessSession {
 
         @Test
         void cannotMergeWithFlowFileThatIsWrittenActively() throws IOException {
-            MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
+            final MockFlowFile offendingFlowFile = session.createFlowFile("hello, world".getBytes());
             writeWithoutClosingOutputStream(session, offendingFlowFile);
-            MockFlowFile otherFlowFile = session.createFlowFile("Hola mundo".getBytes());
-            MockFlowFile destinationFlowFile = session.create();
+            final MockFlowFile otherFlowFile = session.createFlowFile("Hola mundo".getBytes());
+            final MockFlowFile destinationFlowFile = session.create();
 
             assertThrows(IllegalStateException.class, () -> {
                 session.merge(Set.of(offendingFlowFile, otherFlowFile), destinationFlowFile);
@@ -155,7 +155,7 @@ public class TestMockProcessSession {
         void cannotMigrateFlowFileThatIsWrittenActively() throws IOException {
             final MockProcessSession targetSession = createMockProcessSession();
 
-            MockFlowFile offendingFlowFile = session.create();
+            final MockFlowFile offendingFlowFile = session.create();
             writeWithoutClosingOutputStream(session, offendingFlowFile);
 
             assertThrows(IllegalStateException.class, () -> {
@@ -163,7 +163,7 @@ public class TestMockProcessSession {
             }, "Was able to merge FlowFile without closing OutputStream");
         }
 
-        private static void writeWithoutClosingOutputStream(MockProcessSession session, MockFlowFile flowFile) throws IOException {
+        private static void writeWithoutClosingOutputStream(final MockProcessSession session, final MockFlowFile flowFile) throws IOException {
             @SuppressWarnings("resource") final OutputStream outputStream = session.write(flowFile);
             outputStream.write("some content".getBytes());
         }
@@ -181,7 +181,7 @@ public class TestMockProcessSession {
 
         @Test
         void cannotCommitWithUnaccountedClonedFlowFile() {
-            MockFlowFile flowFile = session.create();
+            final MockFlowFile flowFile = session.create();
             session.clone(flowFile); // unaccounted for
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
 
@@ -190,7 +190,7 @@ public class TestMockProcessSession {
 
         @Test
         void cannotCommitWithUnaccountedMigratedFlowFile() {
-            MockProcessSession targetSession = createMockProcessSession();
+            final MockProcessSession targetSession = createMockProcessSession();
             session.create();
             session.migrate(targetSession);
 
@@ -204,7 +204,7 @@ public class TestMockProcessSession {
 
         @Test
         void canTransferSingleFlowFileToKnownRelationship() {
-            MockFlowFile flowFile = session.create();
+            final MockFlowFile flowFile = session.create();
 
             assertDoesNotThrow(() -> session.transfer(flowFile, TestProcessor.REL_KNOWN));
 
@@ -214,7 +214,7 @@ public class TestMockProcessSession {
 
         @Test
         void canTransferMultipleFlowFilesToKnownRelationship() {
-            Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
+            final Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
 
             assertDoesNotThrow(() -> session.transfer(flowFiles, TestProcessor.REL_KNOWN));
 
@@ -225,7 +225,7 @@ public class TestMockProcessSession {
         @Test
         void canTransferSingleFlowFileToSelfRelationship() {
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
+            final MockFlowFile flowFile = session.get();
 
             assertDoesNotThrow(() -> session.transfer(flowFile));
 
@@ -239,7 +239,7 @@ public class TestMockProcessSession {
             enqueueFlowFile();
             enqueueFlowFile();
             enqueueFlowFile();
-            Collection<FlowFile> flowFiles = session.get(3);
+            final Collection<FlowFile> flowFiles = session.get(3);
 
             assertDoesNotThrow(() -> session.transfer(flowFiles));
 
@@ -250,8 +250,8 @@ public class TestMockProcessSession {
 
         @Test
         void cannotTransferToUnknownRelationship() {
-            MockFlowFile flowFile = session.create();
-            Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
+            final MockFlowFile flowFile = session.create();
+            final Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
             final Relationship unknownRelationship = new Relationship.Builder().name("unknown").build();
 
             assertThrows(IllegalArgumentException.class, () -> session.transfer(flowFile, unknownRelationship), "Was able to transfer to unknown relationship");
@@ -260,8 +260,8 @@ public class TestMockProcessSession {
 
         @Test
         void cannotTransferNewlyCreatedFlowFilesToSelfRelationship() {
-            MockFlowFile flowFile = session.create();
-            Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
+            final MockFlowFile flowFile = session.create();
+            final Collection<FlowFile> flowFiles = Set.of(session.create(), session.create(), session.create());
 
             assertThrows(IllegalArgumentException.class, () -> session.transfer(flowFile), "Was able to transfer newly created FlowFile to self relationship");
             assertThrows(IllegalArgumentException.class, () -> session.transfer(flowFiles), "Was able to transfer newly created FlowFiles to self relationship");
@@ -269,9 +269,9 @@ public class TestMockProcessSession {
 
         @Test
         void cannotTransferClonedFlowFilesToSelfRelationship() {
-            MockFlowFile flowFile = session.create();
-            MockFlowFile clonedFlowFile = session.clone(flowFile);
-            Collection<FlowFile> clonedFlowFiles = Set.of(session.clone(flowFile), session.clone(flowFile));
+            final MockFlowFile flowFile = session.create();
+            final MockFlowFile clonedFlowFile = session.clone(flowFile);
+            final Collection<FlowFile> clonedFlowFiles = Set.of(session.clone(flowFile), session.clone(flowFile));
 
             assertThrows(IllegalArgumentException.class, () -> session.transfer(clonedFlowFile), "Was able to transfer cloned FlowFile to self relationship");
             assertThrows(IllegalArgumentException.class, () -> session.transfer(clonedFlowFiles), "Was able to transfer cloned FlowFiles to self relationship");
@@ -341,7 +341,7 @@ public class TestMockProcessSession {
 
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
             session.commitAsync();
-            MockFlowFile resultFlowFile = getSingleFlowFileInRelationship();
+            final MockFlowFile resultFlowFile = getSingleFlowFileInRelationship();
             resultFlowFile.assertAttributeEquals("Hello", "world");
             resultFlowFile.assertAttributeEquals("Hola", "mundo");
         }
@@ -356,15 +356,15 @@ public class TestMockProcessSession {
 
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
             session.commitAsync();
-            MockFlowFile resultFlowFile = getSingleFlowFileInRelationship();
+            final MockFlowFile resultFlowFile = getSingleFlowFileInRelationship();
             resultFlowFile.assertAttributeEquals("Hello", "world");
             resultFlowFile.assertAttributeEquals("Hola", "mundo");
         }
 
         @Test
         void cannotModifyUUID() {
-            MockFlowFile flowFile = session.create();
-            String expectedUuid = flowFile.getAttribute(UUID_ATTRIBUTE_NAME);
+            final MockFlowFile flowFile = session.create();
+            final String expectedUuid = flowFile.getAttribute(UUID_ATTRIBUTE_NAME);
 
             assertThrows(AssertionError.class, () -> session.putAttribute(flowFile, UUID_ATTRIBUTE_NAME, "put single"));
             session.putAllAttributes(flowFile, Map.of(UUID_ATTRIBUTE_NAME, "put multiple", "foo", "bar"));
@@ -377,7 +377,7 @@ public class TestMockProcessSession {
         @Test
         void cannotRemoveUUID() {
             MockFlowFile flowFile = session.create();
-            String expectedUuid = flowFile.getAttribute(UUID_ATTRIBUTE_NAME);
+            final String expectedUuid = flowFile.getAttribute(UUID_ATTRIBUTE_NAME);
 
             flowFile = session.removeAttribute(flowFile, UUID_ATTRIBUTE_NAME);
             flowFile = session.removeAllAttributes(flowFile, Set.of(UUID_ATTRIBUTE_NAME));
@@ -395,7 +395,7 @@ public class TestMockProcessSession {
         @Test
         void flowFilesArePutBackToQueueOnRollback() {
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
+            final MockFlowFile flowFile = session.get();
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
 
             session.rollback();
@@ -407,7 +407,7 @@ public class TestMockProcessSession {
         @Test
         void attributeChangesAreResetOnRollback() {
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
+            final MockFlowFile flowFile = session.get();
             session.putAttribute(flowFile, "attribute", "changed");
 
             session.rollback();
@@ -415,15 +415,15 @@ public class TestMockProcessSession {
             assertObjectCountInQueue(session, 1);
             session.assertTransferCount(TestProcessor.REL_KNOWN, 0);
             assertObjectCountInQueue(session, 1);
-            MockFlowFile resultFlowFile = sharedState.getFlowFileQueue().poll();
+            final MockFlowFile resultFlowFile = sharedState.getFlowFileQueue().poll();
             resultFlowFile.assertAttributeNotExists("attribute");
         }
 
         @Test
         void contentChangesAreResetOnRollback() {
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
-            String expectedContent = flowFile.getContent();
+            final MockFlowFile flowFile = session.get();
+            final String expectedContent = flowFile.getContent();
             session.write(flowFile, (outputStream) -> outputStream.write("changed content".getBytes()));
 
             session.rollback();
@@ -431,7 +431,7 @@ public class TestMockProcessSession {
             assertObjectCountInQueue(session, 1);
             session.assertTransferCount(TestProcessor.REL_KNOWN, 0);
             assertObjectCountInQueue(session, 1);
-            MockFlowFile resultFlowFile = sharedState.getFlowFileQueue().poll();
+            final MockFlowFile resultFlowFile = sharedState.getFlowFileQueue().poll();
             resultFlowFile.assertContentEquals(expectedContent);
         }
 
@@ -450,7 +450,7 @@ public class TestMockProcessSession {
 
         @Test
         void newlyCreatedFlowFilesAreRemovedOnRollback() {
-            MockFlowFile flowFile = session.create();
+            final MockFlowFile flowFile = session.create();
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
 
             session.rollback();
@@ -462,8 +462,8 @@ public class TestMockProcessSession {
         @Test
         void clonedFlowFilesAreRemovedOnRollback() {
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
-            MockFlowFile clonedFlowFile = session.clone(flowFile);
+            final MockFlowFile flowFile = session.get();
+            final MockFlowFile clonedFlowFile = session.clone(flowFile);
             session.transfer(flowFile, TestProcessor.REL_KNOWN);
             session.transfer(clonedFlowFile, TestProcessor.REL_KNOWN);
 
@@ -477,7 +477,7 @@ public class TestMockProcessSession {
         void migrateFlowFileIsPutToQueueOfNewOwnerOnRollback() {
             final MockProcessSession targetSession = createMockProcessSession();
             enqueueFlowFile();
-            MockFlowFile flowFile = session.get();
+            final MockFlowFile flowFile = session.get();
             session.migrate(targetSession);
             targetSession.transfer(flowFile, TestProcessor.REL_KNOWN);
 
@@ -549,20 +549,20 @@ public class TestMockProcessSession {
 
         @Test
         void canGetLocalStateWhenDeclaredStateful() throws IOException {
-            Map<String, String> expectedState = Map.of("key", "value");
+            final Map<String, String> expectedState = Map.of("key", "value");
             stateManagerOfStatefulProcessor.setState(expectedState, Scope.LOCAL);
 
-            StateMap result = sessionOfStatefulProcessor.getState(Scope.LOCAL);
+            final StateMap result = sessionOfStatefulProcessor.getState(Scope.LOCAL);
 
             assertEquals(expectedState, result.toMap());
         }
 
         @Test
         void canGetClusterStateWhenDeclaredStateful() throws IOException {
-            Map<String, String> expectedState = Map.of("key", "value");
+            final Map<String, String> expectedState = Map.of("key", "value");
             stateManagerOfStatefulProcessor.setState(expectedState, Scope.CLUSTER);
 
-            StateMap result = sessionOfStatefulProcessor.getState(Scope.CLUSTER);
+            final StateMap result = sessionOfStatefulProcessor.getState(Scope.CLUSTER);
 
             assertEquals(expectedState, result.toMap());
         }
@@ -585,7 +585,7 @@ public class TestMockProcessSession {
 
         @Test
         void canSetLocalStateWhenDeclaredStateful() throws IOException {
-            Map<String, String> expectedState = Map.of("key", "value");
+            final Map<String, String> expectedState = Map.of("key", "value");
             sessionOfStatefulProcessor.setState(expectedState, Scope.LOCAL);
 
             sessionOfStatefulProcessor.commitAsync();
@@ -594,7 +594,7 @@ public class TestMockProcessSession {
 
         @Test
         void canSetClusterStateWhenDeclaredStateful() throws IOException {
-            Map<String, String> expectedState = Map.of("key", "value");
+            final Map<String, String> expectedState = Map.of("key", "value");
             sessionOfStatefulProcessor.setState(expectedState, Scope.CLUSTER);
 
             sessionOfStatefulProcessor.commitAsync();
@@ -606,27 +606,27 @@ public class TestMockProcessSession {
         return createMockProcessSession(new TestProcessor());
     }
 
-    private static MockProcessSession createMockProcessSession(Processor processor) {
+    private static MockProcessSession createMockProcessSession(final Processor processor) {
         final SharedSessionState sharedState = new SharedSessionState(processor, new AtomicLong(0L));
         return new MockProcessSession(sharedState, processor, new MockStateManager(processor));
     }
 
     private void enqueueFlowFile() {
-        MockFlowFile flowFile = new MockFlowFile(sharedState.nextFlowFileId());
+        final MockFlowFile flowFile = new MockFlowFile(sharedState.nextFlowFileId());
         flowFile.setData("test content".getBytes());
 
         sharedState.getFlowFileQueue().offer(flowFile);
     }
 
     private MockFlowFile getSingleFlowFileInRelationship() {
-        List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(TestProcessor.REL_KNOWN);
+        final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(TestProcessor.REL_KNOWN);
         assertEquals(1, flowFiles.size());
 
         return flowFiles.getFirst();
     }
 
-    private void assertObjectCountInQueue(MockProcessSession processSession, int expectedObjectCount) {
-        int actualObjectCount = processSession.getQueueSize().getObjectCount();
+    private void assertObjectCountInQueue(final MockProcessSession processSession, final int expectedObjectCount) {
+        final int actualObjectCount = processSession.getQueueSize().getObjectCount();
         assertEquals(expectedObjectCount, actualObjectCount, "Queue had " + actualObjectCount + " FlowFile(s) but expected " + expectedObjectCount);
     }
 

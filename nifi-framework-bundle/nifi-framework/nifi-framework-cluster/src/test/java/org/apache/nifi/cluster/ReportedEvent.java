@@ -25,7 +25,7 @@ public class ReportedEvent {
     private final Severity severity;
     private final String event;
 
-    public ReportedEvent(NodeIdentifier nodeId, Severity severity, String event) {
+    public ReportedEvent(final NodeIdentifier nodeId, final Severity severity, final String event) {
         this.nodeId = nodeId;
         this.severity = severity;
         this.event = event;

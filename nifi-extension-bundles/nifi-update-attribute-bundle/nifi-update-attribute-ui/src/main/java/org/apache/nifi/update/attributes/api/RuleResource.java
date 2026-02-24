@@ -676,8 +676,8 @@ public class RuleResource {
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(message).type("text/plain").build();
     }
 
-    private ResponseBuilder noCache(ResponseBuilder response) {
-        CacheControl cacheControl = new CacheControl();
+    private ResponseBuilder noCache(final ResponseBuilder response) {
+        final CacheControl cacheControl = new CacheControl();
         cacheControl.setPrivate(true);
         cacheControl.setNoCache(true);
         cacheControl.setNoStore(true);

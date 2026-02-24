@@ -24,7 +24,7 @@ public class BaseEventInfo implements EventInfo {
     private final String eventType;
     private final Long timestamp;
 
-    public BaseEventInfo(String eventType, Long timestamp) {
+    public BaseEventInfo(final String eventType, final Long timestamp) {
         this.eventType = eventType;
         this.timestamp = timestamp;
     }

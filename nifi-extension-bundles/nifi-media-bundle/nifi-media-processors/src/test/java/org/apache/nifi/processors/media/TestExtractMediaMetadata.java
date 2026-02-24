@@ -42,16 +42,16 @@ public class TestExtractMediaMetadata {
     @Test
     public void testProperties() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        ProcessContext context = runner.getProcessContext();
-        Map<PropertyDescriptor, String> propertyValues = context.getProperties();
+        final ProcessContext context = runner.getProcessContext();
+        final Map<PropertyDescriptor, String> propertyValues = context.getProperties();
         assertEquals(4, propertyValues.size());
     }
 
     @Test
     public void testRelationships() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        ProcessContext context = runner.getProcessContext();
-        Set<Relationship> relationships = context.getAvailableRelationships();
+        final ProcessContext context = runner.getProcessContext();
+        final Set<Relationship> relationships = context.getAvailableRelationships();
         assertEquals(2, relationships.size());
         assertTrue(relationships.contains(ExtractMediaMetadata.SUCCESS));
         assertTrue(relationships.contains(ExtractMediaMetadata.FAILURE));
@@ -73,7 +73,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "test1.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
@@ -134,7 +134,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
@@ -145,7 +145,7 @@ public class TestExtractMediaMetadata {
 
     @Test
     public void testBigTextFile() throws IOException {
-        File textFile = new File("target/test-classes/textFileBig.txt");
+        final File textFile = new File("target/test-classes/textFileBig.txt");
 
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
@@ -158,7 +158,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "textFileBig.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
@@ -181,7 +181,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
         flowFile0.assertAttributeNotExists("txt.Content-Encoding");
@@ -229,10 +229,10 @@ public class TestExtractMediaMetadata {
         runner.assertAllFlowFilesTransferred(ExtractMediaMetadata.SUCCESS, 1);
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
-        List<MockFlowFile> successFiles0 = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles0.get(0);
+        final List<MockFlowFile> successFiles0 = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
+        final MockFlowFile flowFile0 = successFiles0.get(0);
         int fileAttrCount0 = 0;
-        for (Map.Entry<String, String> attr : flowFile0.getAttributes().entrySet()) {
+        for (final Map.Entry<String, String> attr : flowFile0.getAttributes().entrySet()) {
             if (attr.getKey().startsWith("txt.")) {
                 fileAttrCount0++;
             }
@@ -250,10 +250,10 @@ public class TestExtractMediaMetadata {
         runner.assertAllFlowFilesTransferred(ExtractMediaMetadata.SUCCESS, 1);
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
-        List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile1 = successFiles.get(0);
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
+        final MockFlowFile flowFile1 = successFiles.get(0);
         int fileAttrCount1 = 0;
-        for (Map.Entry<String, String> attr : flowFile1.getAttributes().entrySet()) {
+        for (final Map.Entry<String, String> attr : flowFile1.getAttributes().entrySet()) {
             if (attr.getKey().startsWith("txt.")) {
                 fileAttrCount1++;
             }
@@ -274,7 +274,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "16color-10x10.bmp");
         flowFile0.assertAttributeExists("bmp.Content-Type");
@@ -298,7 +298,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "simple.jpg");
         flowFile0.assertAttributeExists("jpg.tiff:Model");
@@ -319,7 +319,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "testWAV.wav");
         flowFile0.assertAttributeExists("wav.Content-Type");
@@ -342,7 +342,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "testVORBIS.ogg");
         flowFile0.assertAttributeExists("ogg.Content-Type");
@@ -363,7 +363,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 1);
 
         final List<MockFlowFile> failureFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.FAILURE);
-        MockFlowFile flowFile0 = failureFiles.get(0);
+        final MockFlowFile flowFile0 = failureFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "testVORBIS-corrupt.ogg");
         flowFile0.assertAttributeNotExists("ogg.Content-Type");
@@ -384,7 +384,7 @@ public class TestExtractMediaMetadata {
         runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
 
         final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
+        final MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "testMP3id3v1.mp3");
         flowFile0.assertAttributeExists("mp3.Content-Type");

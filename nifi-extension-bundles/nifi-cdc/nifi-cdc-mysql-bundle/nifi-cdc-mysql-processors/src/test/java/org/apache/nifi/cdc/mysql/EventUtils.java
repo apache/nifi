@@ -36,16 +36,16 @@ import java.util.Map;
 
 public class EventUtils {
     private EventUtils() { }
-    public static Event buildEvent(EventHeader header) {
+    public static Event buildEvent(final EventHeader header) {
         return buildEvent(header, new EventData() { });
     }
 
-    public static Event buildEvent(EventHeader header, EventData data) {
+    public static Event buildEvent(final EventHeader header, final EventData data) {
         return new Event(header, data);
     }
 
-    public static EventHeaderV4 buildEventHeaderV4(EventType eventType, long nextPosition) {
-        EventHeaderV4 eventHeaderV4 = new EventHeaderV4();
+    public static EventHeaderV4 buildEventHeaderV4(final EventType eventType, final long nextPosition) {
+        final EventHeaderV4 eventHeaderV4 = new EventHeaderV4();
         eventHeaderV4.setTimestamp(System.currentTimeMillis());
         eventHeaderV4.setEventType(eventType);
         eventHeaderV4.setNextPosition(nextPosition);
@@ -53,25 +53,25 @@ public class EventUtils {
         return eventHeaderV4;
     }
 
-    public static RotateEventData buildRotateEventData(String binlogFilename, long binlogPosition) {
-        RotateEventData rotateEventData = new RotateEventData();
+    public static RotateEventData buildRotateEventData(final String binlogFilename, final long binlogPosition) {
+        final RotateEventData rotateEventData = new RotateEventData();
         rotateEventData.setBinlogFilename(binlogFilename);
         rotateEventData.setBinlogPosition(binlogPosition);
 
         return rotateEventData;
     }
 
-    public static QueryEventData buildQueryEventData(String database, String sql) {
-        QueryEventData queryEventData = new QueryEventData();
+    public static QueryEventData buildQueryEventData(final String database, final String sql) {
+        final QueryEventData queryEventData = new QueryEventData();
         queryEventData.setDatabase(database);
         queryEventData.setSql(sql);
 
         return queryEventData;
     }
 
-    public static TableMapEventData buildTableMapEventData(long tableId, String database,
-                                                           String table, byte[] columnTypes) {
-        TableMapEventData tableMapEventData = new TableMapEventData();
+    public static TableMapEventData buildTableMapEventData(final long tableId, final String database,
+                                                           final String table, final byte[] columnTypes) {
+        final TableMapEventData tableMapEventData = new TableMapEventData();
         tableMapEventData.setTableId(tableId);
         tableMapEventData.setDatabase(database);
         tableMapEventData.setTable(table);
@@ -80,8 +80,8 @@ public class EventUtils {
         return tableMapEventData;
     }
 
-    public static WriteRowsEventData buildWriteRowsEventData(long tableId, BitSet includedColumns, List<Serializable[]> rows) {
-        WriteRowsEventData writeRowsEventData = new WriteRowsEventData();
+    public static WriteRowsEventData buildWriteRowsEventData(final long tableId, final BitSet includedColumns, final List<Serializable[]> rows) {
+        final WriteRowsEventData writeRowsEventData = new WriteRowsEventData();
         writeRowsEventData.setTableId(tableId);
         writeRowsEventData.setIncludedColumns(includedColumns);
         writeRowsEventData.setRows(rows);
@@ -89,9 +89,9 @@ public class EventUtils {
         return writeRowsEventData;
     }
 
-    public static UpdateRowsEventData buildUpdateRowsEventData(long tableId, BitSet includedColumnsBeforeUpdate,
-                                                               BitSet includedColumns, List<Map.Entry<Serializable[], Serializable[]>> rows) {
-        UpdateRowsEventData updateRowsEventData = new UpdateRowsEventData();
+    public static UpdateRowsEventData buildUpdateRowsEventData(final long tableId, final BitSet includedColumnsBeforeUpdate,
+                                                               final BitSet includedColumns, final List<Map.Entry<Serializable[], Serializable[]>> rows) {
+        final UpdateRowsEventData updateRowsEventData = new UpdateRowsEventData();
         updateRowsEventData.setTableId(tableId);
         updateRowsEventData.setIncludedColumnsBeforeUpdate(includedColumnsBeforeUpdate);
         updateRowsEventData.setIncludedColumns(includedColumns);
@@ -100,8 +100,8 @@ public class EventUtils {
         return updateRowsEventData;
     }
 
-    public static DeleteRowsEventData buildDeleteRowsEventData(long tableId, BitSet includedColumns, List<Serializable[]> rows) {
-        DeleteRowsEventData deleteRowsEventData = new DeleteRowsEventData();
+    public static DeleteRowsEventData buildDeleteRowsEventData(final long tableId, final BitSet includedColumns, final List<Serializable[]> rows) {
+        final DeleteRowsEventData deleteRowsEventData = new DeleteRowsEventData();
         deleteRowsEventData.setTableId(tableId);
         deleteRowsEventData.setIncludedColumns(includedColumns);
         deleteRowsEventData.setRows(rows);
@@ -110,14 +110,14 @@ public class EventUtils {
     }
 
     @SuppressWarnings("deprecation")
-    public static GtidEventData buildGtidEventData(String sourceId, String transactionId) {
-        GtidEventData gtidEventData = new GtidEventData();
+    public static GtidEventData buildGtidEventData(final String sourceId, final String transactionId) {
+        final GtidEventData gtidEventData = new GtidEventData();
         gtidEventData.setGtid(buildGtid(sourceId, transactionId));
 
         return gtidEventData;
     }
 
-    public static String buildGtid(String sourceId, String... singleOrTransactionRanges) {
+    public static String buildGtid(final String sourceId, final String... singleOrTransactionRanges) {
         return sourceId + ":" + String.join(":", singleOrTransactionRanges);
     }
 }

@@ -56,7 +56,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
     }
 
     @Override
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -65,7 +65,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -74,7 +74,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         return createdTimestamp;
     }
 
-    public void setCreatedTimestamp(long createdTimestamp) {
+    public void setCreatedTimestamp(final long createdTimestamp) {
         this.createdTimestamp = createdTimestamp;
     }
 
@@ -83,7 +83,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -110,7 +110,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
         return permissions;
     }
 
-    public void setPermissions(Permissions permissions) {
+    public void setPermissions(final Permissions permissions) {
         this.permissions = permissions;
     }
 
@@ -124,7 +124,7 @@ public class Bucket extends LinkableEntity implements RevisableEntity {
     }
 
     @Override
-    public void setRevision(RevisionInfo revision) {
+    public void setRevision(final RevisionInfo revision) {
         this.revision = revision;
     }
 

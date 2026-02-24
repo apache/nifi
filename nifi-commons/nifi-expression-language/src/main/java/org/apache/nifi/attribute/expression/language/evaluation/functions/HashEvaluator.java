@@ -40,7 +40,7 @@ public class HashEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext context) {
+    public QueryResult<String> evaluate(final EvaluationContext context) {
         final String subjectValue = subject.evaluate(context).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
@@ -48,7 +48,7 @@ public class HashEvaluator extends StringEvaluator {
 
         final String algorithmValue = algorithm.evaluate(context).getValue();
         final MessageDigest digest = getDigest(algorithmValue);
-        String encoded = new DigestUtils(digest).digestAsHex(subjectValue);
+        final String encoded = new DigestUtils(digest).digestAsHex(subjectValue);
         return new StringQueryResult(encoded);
     }
 
@@ -57,10 +57,10 @@ public class HashEvaluator extends StringEvaluator {
         return subject;
     }
 
-    private MessageDigest getDigest(String algorithm) {
+    private MessageDigest getDigest(final String algorithm) {
         try {
             return MessageDigest.getInstance(algorithm);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new AttributeExpressionLanguageException("Invalid hash algorithm: " + algorithm + " not in set [" + SUPPORTED_ALGORITHMS + "]", e);
         }
     }

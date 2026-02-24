@@ -153,7 +153,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             } finally {
                 if (logger.isDebugEnabled() && wrappedInStream instanceof CopyingInputStream) {
                     final CopyingInputStream copyingInputStream = (CopyingInputStream) wrappedInStream;
-                    byte[] receivedMessage = copyingInputStream.getBytesRead();
+                    final byte[] receivedMessage = copyingInputStream.getBytesRead();
                     logger.debug("Received message: {}", new String(receivedMessage));
                 }
             }
@@ -195,10 +195,10 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             logger.info("Finished processing request {} (type={}, length={} bytes) from {} in {}",
                     requestId, request.getType(), countingIn.getBytesRead(), from, stopWatch.getDuration());
         } catch (final IOException | ProtocolException e) {
-            String msg = "Failed processing protocol message from " + hostname + " due to ";
+            final String msg = "Failed processing protocol message from " + hostname + " due to ";
             // Suppress repeated TLS errors
             if (SocketUtils.isTlsError(e)) {
-                boolean printedAsWarning = handleTlsError(msg, e);
+                final boolean printedAsWarning = handleTlsError(msg, e);
 
                 // TODO: Move into handleTlsError and refactor shared behavior
                 // If the error was printed as a warning, reset the last seen timer
@@ -212,7 +212,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         }
     }
 
-    private boolean handleTlsError(String msg, Throwable e) {
+    private boolean handleTlsError(final String msg, final Throwable e) {
         final String populatedMessage = msg + e.getLocalizedMessage();
         if (tlsErrorRecentlySeen()) {
             logger.debug(populatedMessage);
@@ -224,7 +224,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
         }
     }
 
-    private void publishBulletinWarning(String message) {
+    private void publishBulletinWarning(final String message) {
         if (bulletinRepository != null) {
             final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", message);
             bulletinRepository.addBulletin(bulletin);
@@ -239,7 +239,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
      * @return true if the time since the last similar exception occurred is below the threshold
      */
     private boolean tlsErrorRecentlySeen() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
     }
 

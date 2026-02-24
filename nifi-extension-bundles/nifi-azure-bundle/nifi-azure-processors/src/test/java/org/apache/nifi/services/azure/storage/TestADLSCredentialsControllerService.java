@@ -187,7 +187,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -211,7 +211,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -235,7 +235,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -257,7 +257,7 @@ public class TestADLSCredentialsControllerService {
 
         runner.enableControllerService(credentialsService);
 
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
         assertNull(actual.getAccountKey());
@@ -293,7 +293,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -317,7 +317,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -343,7 +343,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
@@ -368,7 +368,7 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
@@ -385,12 +385,12 @@ public class TestADLSCredentialsControllerService {
         runner.enableControllerService(credentialsService);
 
         // WHEN
-        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         // THEN
         assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
-    private void configureCredentialsType(AzureStorageCredentialsType credentialsType) {
+    private void configureCredentialsType(final AzureStorageCredentialsType credentialsType) {
         runner.setProperty(credentialsService, AzureStorageUtils.CREDENTIALS_TYPE, credentialsType);
     }
 
@@ -415,7 +415,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     private void configureSasTokenUsingEL() {
-        String variableName = "sas.token";
+        final String variableName = "sas.token";
         configurePropertyUsingEL(AzureStorageUtils.SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
     }
 
@@ -428,7 +428,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     private void configureEndpointSuffixUsingEL() {
-        String variableName = "endpoint.suffix";
+        final String variableName = "endpoint.suffix";
         configurePropertyUsingEL(AzureStorageUtils.ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
     }
 
@@ -448,7 +448,7 @@ public class TestADLSCredentialsControllerService {
         runner.setProperty(credentialsService, AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
     }
 
-    private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {
+    private void configurePropertyUsingEL(final PropertyDescriptor propertyDescriptor, final String variableName, final String variableValue) {
         runner.setProperty(credentialsService, propertyDescriptor, String.format("${%s}", variableName));
         runner.setEnvironmentVariableValue(variableName, variableValue);
     }

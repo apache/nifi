@@ -25,7 +25,7 @@ public class ClientIdParameter {
 
     private final String clientId;
 
-    public ClientIdParameter(String clientId) {
+    public ClientIdParameter(final String clientId) {
         if (clientId == null || clientId.isBlank()) {
             this.clientId = UUID.randomUUID().toString();
         } else {

@@ -338,11 +338,11 @@ public class TailFile extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
         if (context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
-            String path = context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue();
+            final String path = context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue();
             if (path == null) {
                 results.add(new ValidationResult.Builder()
                     .subject(BASE_DIRECTORY.getName())
@@ -371,10 +371,10 @@ public class TailFile extends AbstractProcessor {
         lastLookup.set(new Date().getTime());
 
         // maxAge
-        long maxAge = context.getProperty(MAXIMUM_AGE).getValue() == null ? Long.MAX_VALUE : context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maxAge = context.getProperty(MAXIMUM_AGE).getValue() == null ? Long.MAX_VALUE : context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         // get list of files to tail
-        List<String> filesToTail = new ArrayList<>();
+        final List<String> filesToTail = new ArrayList<>();
 
         if (context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
             filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
@@ -404,7 +404,7 @@ public class TailFile extends AbstractProcessor {
         // set isMultiChanging
         isMultiChanging.set(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue()));
 
-        List<String> filesToTail = lookup(context);
+        final List<String> filesToTail = lookup(context);
 
         final Scope scope = getStateScope(context);
         final StateMap stateMap = context.getStateManager().getState(scope);
@@ -433,11 +433,11 @@ public class TailFile extends AbstractProcessor {
             // put back the files we already know about in 'states' object before
             // doing the recovery
             if (states.isEmpty() && !statesMap.isEmpty()) {
-                for (Entry<String, String> entry : statesMap.entrySet()) {
+                for (final Entry<String, String> entry : statesMap.entrySet()) {
                     final String key = entry.getKey();
                     final String value = entry.getValue();
                     if (key.endsWith(TailFileState.StateKeys.FILENAME) && filesToTail.contains(value)) {
-                        int index = Integer.parseInt(key.split("\\.")[1]);
+                        final int index = Integer.parseInt(key.split("\\.")[1]);
                         states.put(value, new TailFileObject(index, statesMap, preAllocatedBufferSize));
                     }
                 }
@@ -445,7 +445,7 @@ public class TailFile extends AbstractProcessor {
 
             // first, we remove the files that are no longer present
             final List<String> toBeRemoved = new ArrayList<>();
-            for (Entry<String, TailFileObject> entry : states.entrySet()) {
+            for (final Entry<String, TailFileObject> entry : states.entrySet()) {
                 final String filePath = entry.getKey();
                 final TailFileObject tailFileObject = entry.getValue();
                 if (!filesToTail.contains(filePath)) {
@@ -457,7 +457,7 @@ public class TailFile extends AbstractProcessor {
 
             // then we need to get the highest ID used so far to be sure
             // we don't mix different files in case we add new files to tail
-            for (TailFileObject tfo : states.values()) {
+            for (final TailFileObject tfo : states.values()) {
                 if (fileIndex <= tfo.getFilenameIndex()) {
                     fileIndex = tfo.getFilenameIndex() + 1;
                 }
@@ -465,7 +465,7 @@ public class TailFile extends AbstractProcessor {
 
         }
 
-        for (String filename : filesToTail) {
+        for (final String filename : filesToTail) {
             if (isCleared || !states.containsKey(filename)) {
                 final TailFileState tailFileState = new TailFileState(filename, null, null, 0L, 0L, 0L, null, ByteBuffer.allocate(preAllocatedBufferSize));
                 states.put(filename, new TailFileObject(fileIndex, tailFileState));
@@ -476,7 +476,7 @@ public class TailFile extends AbstractProcessor {
     }
 
     private void recoverState(final List<String> filesToTail, final Map<String, String> map) throws IOException {
-        for (String file : filesToTail) {
+        for (final String file : filesToTail) {
             recoverState(map, file);
         }
     }
@@ -489,7 +489,7 @@ public class TailFile extends AbstractProcessor {
      * @param isRecursive true if looking for file recursively, false otherwise
      * @return List of files to tail
      */
-    private List<String> getFilesToTail(final String baseDir, String fileRegex, boolean isRecursive, long maxAge) {
+    private List<String> getFilesToTail(final String baseDir, final String fileRegex, final boolean isRecursive, final long maxAge) {
         final Collection<File> files = FileUtils.listFiles(new File(baseDir), null, isRecursive);
         final List<String> result = new ArrayList<>();
 
@@ -504,7 +504,7 @@ public class TailFile extends AbstractProcessor {
         }
         final Pattern p = Pattern.compile(fullRegex);
 
-        for (File file : files) {
+        for (final File file : files) {
             final String path = file.getPath();
             if (p.matcher(path).matches()) {
                 if (isMultiChanging.get()) {
@@ -614,7 +614,7 @@ public class TailFile extends AbstractProcessor {
 
     @OnStopped
     public void cleanup(final ProcessContext context) {
-        for (TailFileObject tfo : states.values()) {
+        for (final TailFileObject tfo : states.values()) {
             cleanReader(tfo);
             final TailFileState state = tfo.getState();
             tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition() - linesBuffer.size(),
@@ -625,7 +625,7 @@ public class TailFile extends AbstractProcessor {
         linesBuffer.reset();
     }
 
-    private void cleanReader(TailFileObject tfo) {
+    private void cleanReader(final TailFileObject tfo) {
         if (tfo.getState() == null) {
             return;
         }
@@ -646,14 +646,14 @@ public class TailFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         if (isMultiChanging.get()) {
-            long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
+            final long timeSinceLastLookup = new Date().getTime() - lastLookup.get();
             if (timeSinceLastLookup > context.getProperty(LOOKUP_FREQUENCY).asTimePeriod(TimeUnit.MILLISECONDS)) {
                 try {
                     final List<String> filesToTail = lookup(context);
                     final Scope scope = getStateScope(context);
                     final StateMap stateMap = session.getState(scope);
                     initStates(filesToTail, stateMap.toMap(), false);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                     context.yield();
                     return;
@@ -664,7 +664,7 @@ public class TailFile extends AbstractProcessor {
         if (requireStateLookup) {
             try {
                 recoverState(context);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Exception raised while attempting to recover state about where the tailing last left off", e);
                 context.yield();
                 return;
@@ -681,7 +681,7 @@ public class TailFile extends AbstractProcessor {
         for (final String tailFile : states.keySet()) {
             try {
                 processTailFile(context, session, tailFile);
-            } catch (NulCharacterEncounteredException e) {
+            } catch (final NulCharacterEncounteredException e) {
                 getLogger().warn("NUL character encountered in {} and '{}' is set to 'true', yielding.", tailFile, REREAD_ON_NUL.getDisplayName());
                 context.yield();
                 return;
@@ -698,21 +698,21 @@ public class TailFile extends AbstractProcessor {
         // which do not have a counterpart in states
         try {
             final Scope scope = getStateScope(context);
-            StateMap sessionStateMap = session.getState(scope);
-            Map<String, String> sessionStates = new HashMap<>(sessionStateMap.toMap());
-            List<String> keysToRemove = collectKeysToBeRemoved(sessionStates);
+            final StateMap sessionStateMap = session.getState(scope);
+            final Map<String, String> sessionStates = new HashMap<>(sessionStateMap.toMap());
+            final List<String> keysToRemove = collectKeysToBeRemoved(sessionStates);
             keysToRemove.forEach(sessionStates.keySet()::remove);
             getLogger().debug("Removed {} references to nonexistent files from session's state map",
                     keysToRemove.size());
             session.setState(sessionStates, scope);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Exception raised while attempting to cleanup session's state map", e);
             context.yield();
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("tail-base-directory", BASE_DIRECTORY.getName());
         config.renameProperty("tail-mode", MODE.getName());
         config.renameProperty("File to Tail", FILENAME.getName());
@@ -724,15 +724,15 @@ public class TailFile extends AbstractProcessor {
         config.renameProperty("pre-allocated-buffer-size", PRE_ALLOCATED_BUFFER_SIZE.getName());
     }
 
-    private List<String> collectKeysToBeRemoved(Map<String, String> sessionStates) {
-        List<String> keysToRemove = new ArrayList<>();
-        List<String> filesToRemove = sessionStates.entrySet().stream()
+    private List<String> collectKeysToBeRemoved(final Map<String, String> sessionStates) {
+        final List<String> keysToRemove = new ArrayList<>();
+        final List<String> filesToRemove = sessionStates.entrySet().stream()
                 .filter(entry -> entry.getKey().endsWith(StateKeys.FILENAME)
                         && !states.containsKey(entry.getValue()))
                 .map(Entry::getKey)
                 .toList();
 
-        for (String key : filesToRemove) {
+        for (final String key : filesToRemove) {
             final String prefix = StringUtils.substringBefore(key, StateKeys.FILENAME);
             keysToRemove.add(prefix + StateKeys.FILENAME);
             keysToRemove.add(prefix + StateKeys.LENGTH);
@@ -748,8 +748,8 @@ public class TailFile extends AbstractProcessor {
     private void processTailFile(final ProcessContext context, final ProcessSession session, final String tailFile) {
         // If user changes the file that is being tailed, we need to consume the already-rolled-over data according
         // to the Initial Start Position property
-        boolean rolloverOccurred;
-        TailFileObject tfo = states.get(tailFile);
+        final boolean rolloverOccurred;
+        final TailFileObject tfo = states.get(tailFile);
 
         if (tfo.isTailFileChanged()) {
             rolloverOccurred = false;
@@ -813,7 +813,7 @@ public class TailFile extends AbstractProcessor {
 
         // initialize local variables from state object; this is done so that we can easily change the values throughout
         // the onTrigger method and then create a new state object after we finish processing the files.
-        TailFileState state = tfo.getState();
+        final TailFileState state = tfo.getState();
         File file = state.getFile();
         FileChannel reader = state.getReader();
         Checksum checksum = state.getChecksum();
@@ -903,11 +903,11 @@ public class TailFile extends AbstractProcessor {
         final AtomicLong positionHolder = new AtomicLong(position);
         final boolean reReadOnNul = context.getProperty(REREAD_ON_NUL).asBoolean();
 
-        AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
+        final AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
         flowFile = session.write(flowFile, rawOut -> {
             try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                 positionHolder.set(readLines(fileReader, currentState.getBuffer(), out, chksum, reReadOnNul));
-            } catch (NulCharacterEncounteredException e) {
+            } catch (final NulCharacterEncounteredException e) {
                 positionHolder.set(e.getRePos());
                 abort.set(e);
             }
@@ -960,11 +960,11 @@ public class TailFile extends AbstractProcessor {
             final long newPosition = positionHolder.get();
             try {
                 reader.position(newPosition);
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 getLogger().warn("Couldn't reposition the reader for {} due to {}", file, ex, ex);
                 try {
                     reader.close();
-                } catch (IOException ex2) {
+                } catch (final IOException ex2) {
                     getLogger().warn("Failed to close reader for {} due to {}", file, ex2, ex2);
                 }
             }
@@ -973,7 +973,7 @@ public class TailFile extends AbstractProcessor {
         }
     }
 
-    private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum, Boolean reReadOnNul) throws IOException {
+    private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum, final Boolean reReadOnNul) throws IOException {
         return readLines(reader, buffer, out, checksum, reReadOnNul, false);
     }
 
@@ -998,7 +998,7 @@ public class TailFile extends AbstractProcessor {
      * @throws java.io.IOException if an I/O error occurs.
      */
     private long readLines(final FileChannel reader, final ByteBuffer buffer, final OutputStream out, final Checksum checksum,
-                           Boolean reReadOnNul, final boolean readFully) throws IOException {
+                           final Boolean reReadOnNul, final boolean readFully) throws IOException {
         getLogger().debug("Reading lines starting at position {}", reader.position());
 
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -1014,7 +1014,7 @@ public class TailFile extends AbstractProcessor {
                 buffer.flip();
 
                 for (int i = 0; i < num; i++) {
-                    byte ch = buffer.get(i);
+                    final byte ch = buffer.get(i);
 
                     switch (ch) {
                         case '\n': {
@@ -1193,7 +1193,7 @@ public class TailFile extends AbstractProcessor {
             final Scope scope = getStateScope(context);
             final StateMap oldState = session == null ? context.getStateManager().getState(scope) : session.getState(scope);
 
-            Map<String, String> updatedState = new HashMap<>(oldState.toMap());
+            final Map<String, String> updatedState = new HashMap<>(oldState.toMap());
             updatedState.putAll(state);
 
             if (session == null) {
@@ -1299,7 +1299,7 @@ public class TailFile extends AbstractProcessor {
             final long position) {
         try {
             getLogger().debug("Recovering Rolled Off Files; total number of files rolled off = {}", rolledOffFiles.size());
-            TailFileObject tfo = states.get(tailFile);
+            final TailFileObject tfo = states.get(tailFile);
 
             final long postRolloverTailMillis = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
             final boolean tailingPostRollover = tfo.getState().isTailingPostRollover();
@@ -1310,7 +1310,7 @@ public class TailFile extends AbstractProcessor {
             // then we know we've already processed this file. If the checksums do not match, then we have not
             // processed this file and we need to seek back to position 0 and ingest the entire file.
             // For all other files that have been rolled over, we need to just ingest the entire file.
-            boolean rolloverOccurred = !rolledOffFiles.isEmpty();
+            final boolean rolloverOccurred = !rolledOffFiles.isEmpty();
 
             final boolean tailFirstFile;
             if (rolloverOccurred) {
@@ -1491,7 +1491,7 @@ public class TailFile extends AbstractProcessor {
      * @return the new, updated state that reflects that the given file has been
      * ingested.
      */
-    private TailFileState consumeFileFully(final File file, final ProcessContext context, final ProcessSession session, TailFileObject tfo) throws IOException {
+    private TailFileState consumeFileFully(final File file, final ProcessContext context, final ProcessSession session, final TailFileObject tfo) throws IOException {
         FlowFile flowFile = session.create();
 
         try (final InputStream fis = new FileInputStream(file)) {
@@ -1540,7 +1540,7 @@ public class TailFile extends AbstractProcessor {
             this.state = fileState;
         }
 
-        public TailFileObject(int index, Map<String, String> statesMap, int preAllocatedBufferSize) {
+        public TailFileObject(final int index, final Map<String, String> statesMap, final int preAllocatedBufferSize) {
             this.filenameIndex = index;
             this.tailFileChanged = false;
             final String prefix = MAP_PREFIX + index + '.';
@@ -1560,7 +1560,7 @@ public class TailFile extends AbstractProcessor {
             return state;
         }
 
-        public void setState(TailFileState state) {
+        public void setState(final TailFileState state) {
             this.state = state;
         }
 
@@ -1568,7 +1568,7 @@ public class TailFile extends AbstractProcessor {
             return expectedRecoveryChecksum;
         }
 
-        public void setExpectedRecoveryChecksum(Long expectedRecoveryChecksum) {
+        public void setExpectedRecoveryChecksum(final Long expectedRecoveryChecksum) {
             this.expectedRecoveryChecksum = expectedRecoveryChecksum;
         }
 
@@ -1576,7 +1576,7 @@ public class TailFile extends AbstractProcessor {
             return tailFileChanged;
         }
 
-        public void setTailFileChanged(boolean tailFileChanged) {
+        public void setTailFileChanged(final boolean tailFileChanged) {
             this.tailFileChanged = tailFileChanged;
         }
 
@@ -1667,7 +1667,7 @@ public class TailFile extends AbstractProcessor {
                 ", tailingPostRollover=" + tailingPostRollover + "]";
         }
 
-        public Map<String, String> toStateMap(int index) {
+        public Map<String, String> toStateMap(final int index) {
             final String prefix = MAP_PREFIX + index + '.';
             final Map<String, String> map = HashMap.newHashMap(4);
             map.put(prefix + StateKeys.FILENAME, filename);
@@ -1683,7 +1683,7 @@ public class TailFile extends AbstractProcessor {
     static class NulCharacterEncounteredException extends RuntimeException {
         private final long rePos;
 
-        public NulCharacterEncounteredException(long rePos) {
+        public NulCharacterEncounteredException(final long rePos) {
             this.rePos = rePos;
         }
 

@@ -55,7 +55,7 @@ class NiFiTableScan extends TableScan implements EnumerableRel {
         // may not invoke the RelNode#register() method.
         try {
             cluster.getPlanner().addRule(new NiFiProjectTableScanRule(NiFiProjectTableScanRule.Config.DEFAULT));
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
             // Rule may already be registered; intentionally ignored to avoid duplicate registration errors.
         }
     }

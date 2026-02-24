@@ -25,15 +25,15 @@ public class ProviderCreationException extends RuntimeException {
     public ProviderCreationException() {
     }
 
-    public ProviderCreationException(String msg) {
+    public ProviderCreationException(final String msg) {
         super(msg);
     }
 
-    public ProviderCreationException(Throwable cause) {
+    public ProviderCreationException(final Throwable cause) {
         super(cause);
     }
 
-    public ProviderCreationException(String msg, Throwable cause) {
+    public ProviderCreationException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

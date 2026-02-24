@@ -58,7 +58,7 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
     }
 
     @Override
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -73,7 +73,7 @@ public class ParameterContextReferenceEntity implements Permissible<ParameterCon
     }
 
     @Override
-    public void setComponent(ParameterContextReferenceDTO component) {
+    public void setComponent(final ParameterContextReferenceDTO component) {
         this.component = component;
     }
 }

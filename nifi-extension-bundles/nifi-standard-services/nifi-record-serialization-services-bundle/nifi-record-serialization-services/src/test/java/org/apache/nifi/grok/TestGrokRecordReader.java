@@ -113,7 +113,7 @@ public class TestGrokRecordReader {
             final GrokRecordReader deserializer = getRecordReader("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}", fis);
             final String[] logLevels = new String[] {"INFO", "INFO", "INFO", "WARN", "WARN"};
 
-            for (String logLevel : logLevels) {
+            for (final String logLevel : logLevels) {
                 final Object[] values = deserializer.nextRecord().getValues();
 
                 assertNotNull(values);
@@ -134,7 +134,7 @@ public class TestGrokRecordReader {
             final GrokRecordReader deserializer = getRecordReader("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}?", fis);
             final String[] logLevels = new String[] {"INFO", "INFO", "ERROR", "WARN", "WARN"};
 
-            for (String logLevel : logLevels) {
+            for (final String logLevel : logLevels) {
                 final Record record = deserializer.nextRecord();
                 final Object[] values = record.getValues();
 

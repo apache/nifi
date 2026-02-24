@@ -29,14 +29,14 @@ import software.amazon.encryption.s3.S3EncryptionClient;
  */
 public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
+    public S3EncryptionClient.Builder createEncryptionClientBuilder(final S3EncryptionKeySpec keySpec) {
         return S3EncryptionClient.builderV4()
                 .kmsKeyId(keySpec.kmsId())
                 .commitmentPolicy(keySpec.commitmentPolicy());
     }
 
     @Override
-    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+    public ValidationResult validateKeySpec(final S3EncryptionKeySpec keySpec) {
         if (StringUtils.isBlank(keySpec.kmsId())) {
             return new ValidationResult.Builder()
                     .subject("KMS Key ID")

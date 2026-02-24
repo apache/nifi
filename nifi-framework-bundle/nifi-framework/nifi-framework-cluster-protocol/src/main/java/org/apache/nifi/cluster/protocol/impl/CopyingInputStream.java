@@ -45,7 +45,7 @@ public class CopyingInputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(final byte[] b) throws IOException {
         final int delegateRead = in.read(b);
         if (delegateRead >= 0) {
             baos.write(b, 0, Math.min(delegateRead, maxBytesToCopy - getNumberOfBytesCopied()));
@@ -55,7 +55,7 @@ public class CopyingInputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         final int delegateRead = in.read(b, off, len);
         if (delegateRead >= 0) {
             baos.write(b, off, Math.min(delegateRead, maxBytesToCopy - getNumberOfBytesCopied()));

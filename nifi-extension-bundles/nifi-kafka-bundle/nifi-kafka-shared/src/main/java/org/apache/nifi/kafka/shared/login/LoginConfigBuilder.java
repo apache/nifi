@@ -50,7 +50,7 @@ public class LoginConfigBuilder {
         this.builder = new StringBuilder(moduleClassName).append(SPACE).append(moduleControlFlag);
     }
 
-    public LoginConfigBuilder append(String key, Object value) {
+    public LoginConfigBuilder append(final String key, final Object value) {
         builder.append(SPACE);
 
         builder.append(key);

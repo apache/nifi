@@ -62,16 +62,16 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     private final BiPredicate<String, Boolean> assetUpdatePrecondition;
     private final BiFunction<String, byte[], Boolean> assetPersistFunction;
 
-    public UpdateAssetOperationHandler(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                       BiPredicate<String, Boolean> assetUpdatePrecondition, BiFunction<String, byte[], Boolean> assetPersistFunction) {
+    public UpdateAssetOperationHandler(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                       final BiPredicate<String, Boolean> assetUpdatePrecondition, final BiFunction<String, byte[], Boolean> assetPersistFunction) {
         this.c2Client = c2Client;
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.assetUpdatePrecondition = assetUpdatePrecondition;
         this.assetPersistFunction = assetPersistFunction;
     }
 
-    public static UpdateAssetOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                                     BiPredicate<String, Boolean> assetUpdatePrecondition, BiFunction<String, byte[], Boolean> assetPersistFunction) {
+    public static UpdateAssetOperationHandler create(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                                     final BiPredicate<String, Boolean> assetUpdatePrecondition, final BiFunction<String, byte[], Boolean> assetPersistFunction) {
         requires(c2Client != null, "C2Client should not be null");
         requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
         requires(assetUpdatePrecondition != null, "Asset update precondition should not be null");
@@ -95,28 +95,28 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        String callbackUrl;
+        final String callbackUrl;
 
         try {
             callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY).orElse(EMPTY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY).orElse(EMPTY));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
-        Optional<String> assetFileName = getOperationArg(operation, ASSET_FILE_KEY);
+        final Optional<String> assetFileName = getOperationArg(operation, ASSET_FILE_KEY);
         if (assetFileName.isEmpty()) {
             LOG.error("Asset file name with key={} was not found in C2 request. C2 request arguments={}", ASSET_FILE_KEY, operation.getArgs());
             return operationAck(operationId, operationState(NOT_APPLIED, ASSET_FILE_NAME_NOT_FOUND));
         }
-        boolean forceDownload = getOperationArg(operation, ASSET_FORCE_DOWNLOAD_KEY).map(Boolean::parseBoolean).orElse(FALSE);
+        final boolean forceDownload = getOperationArg(operation, ASSET_FORCE_DOWNLOAD_KEY).map(Boolean::parseBoolean).orElse(FALSE);
 
         LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
-        C2OperationState operationState = assetUpdatePrecondition.test(assetFileName.get(), forceDownload)
+        final C2OperationState operationState = assetUpdatePrecondition.test(assetFileName.get(), forceDownload)
             ? c2Client.retrieveUpdateAssetContent(callbackUrl)
             .map(content -> assetPersistFunction.apply(assetFileName.get(), content)
                 ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)

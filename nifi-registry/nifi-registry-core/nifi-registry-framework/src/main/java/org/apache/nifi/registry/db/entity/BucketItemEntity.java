@@ -42,7 +42,7 @@ public class BucketItemEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class BucketItemEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -58,7 +58,7 @@ public class BucketItemEntity {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -66,7 +66,7 @@ public class BucketItemEntity {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public void setCreated(final Date created) {
         this.created = created;
     }
 
@@ -74,7 +74,7 @@ public class BucketItemEntity {
         return modified;
     }
 
-    public void setModified(Date modified) {
+    public void setModified(final Date modified) {
         this.modified = modified;
     }
 
@@ -82,7 +82,7 @@ public class BucketItemEntity {
         return type;
     }
 
-    public void setType(BucketItemEntityType type) {
+    public void setType(final BucketItemEntityType type) {
         this.type = type;
     }
 
@@ -90,7 +90,7 @@ public class BucketItemEntity {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -98,7 +98,7 @@ public class BucketItemEntity {
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 

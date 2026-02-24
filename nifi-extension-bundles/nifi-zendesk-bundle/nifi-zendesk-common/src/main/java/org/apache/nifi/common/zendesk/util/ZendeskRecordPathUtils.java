@@ -44,7 +44,7 @@ public final class ZendeskRecordPathUtils {
      * @param baseTicketNode base request object where the field value will be added
      * @param record         record to receive the value from if the field value is a record path
      */
-    public static void addField(String path, String value, ObjectNode baseTicketNode, Record record) {
+    public static void addField(final String path, final String value, final ObjectNode baseTicketNode, final Record record) {
         final String resolvedValue = RecordPathPropertyUtil.resolvePropertyValue(value, record);
 
         if (resolvedValue != null) {
@@ -56,12 +56,13 @@ public final class ZendeskRecordPathUtils {
      * Adds a user defined dynamic field to the request object. If the user specifies the path in the request object as full path (starting with '/ticket' or '/tickets')
      * the method removes them since the root path is specified later based on the number of records.
      *
-     * @param path           path in the request object
+     * @param pathArg        path in the request object
      * @param value          dynamic field value
      * @param baseTicketNode base request object where the field value will be added
      * @param record         record to receive the value from if the field value is a record path
      */
-    public static void addDynamicField(String path, String value, ObjectNode baseTicketNode, Record record) {
+    public static void addDynamicField(final String pathArg, final String value, final ObjectNode baseTicketNode, final Record record) {
+        String path = pathArg;
         if (path.startsWith(ZENDESK_TICKET_ROOT_NODE)) {
             path = path.substring(7);
         } else if (path.startsWith(ZENDESK_TICKETS_ROOT_NODE)) {
@@ -81,15 +82,15 @@ public final class ZendeskRecordPathUtils {
     public static void addNewNodeAtPath(final ObjectNode baseNode, final JsonPointer path, final JsonNode value) {
         final JsonPointer parentPointer = path.head();
         final String fieldName = path.last().toString().substring(1);
-        JsonNode parentNode = getOrCreateParentNode(baseNode, parentPointer, fieldName);
+        final JsonNode parentNode = getOrCreateParentNode(baseNode, parentPointer, fieldName);
 
         setNodeValue(value, fieldName, parentNode);
     }
 
-    private static void setNodeValue(JsonNode value, String fieldName, JsonNode parentNode) {
+    private static void setNodeValue(final JsonNode value, final String fieldName, final JsonNode parentNode) {
         if (parentNode.isArray()) {
-            ArrayNode arrayNode = (ArrayNode) parentNode;
-            int index = Integer.parseInt(fieldName);
+            final ArrayNode arrayNode = (ArrayNode) parentNode;
+            final int index = Integer.parseInt(fieldName);
             for (int i = arrayNode.size(); i <= index; i++) {
                 arrayNode.addNull();
             }
@@ -101,7 +102,7 @@ public final class ZendeskRecordPathUtils {
         }
     }
 
-    private static JsonNode getOrCreateParentNode(ObjectNode rootNode, JsonPointer parentPointer, String fieldName) {
+    private static JsonNode getOrCreateParentNode(final ObjectNode rootNode, final JsonPointer parentPointer, final String fieldName) {
         JsonNode parentNode = rootNode.at(parentPointer);
 
         if (parentNode.isMissingNode() || parentNode.isNull()) {

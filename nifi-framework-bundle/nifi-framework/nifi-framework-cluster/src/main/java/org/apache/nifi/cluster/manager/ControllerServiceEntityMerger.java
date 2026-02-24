@@ -37,9 +37,9 @@ import java.util.stream.Collectors;
 public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
     @Override
-    public void merge(ControllerServiceEntity clientEntity, Map<NodeIdentifier, ControllerServiceEntity> entityMap) {
+    public void merge(final ControllerServiceEntity clientEntity, final Map<NodeIdentifier, ControllerServiceEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, ControllerServiceEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ControllerServiceEntity> entry : entityMap.entrySet()) {
             final ControllerServiceEntity entityStatus = entry.getValue();
             if (clientEntity != entityStatus) {
                 StatusMerger.merge(clientEntity.getStatus(), entry.getValue().getStatus());
@@ -109,7 +109,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client
@@ -221,7 +221,8 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         }
     }
 
-    private static void mergePermissions(Map<String, PermissionsDTO> permissionsHolder, ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity, PermissionsDTO permissions) {
+    private static void mergePermissions(final Map<String, PermissionsDTO> permissionsHolder,
+            final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity, final PermissionsDTO permissions) {
         final PermissionsDTO mergedPermissions = permissionsHolder.get(nodeReferencingComponentEntity.getId());
         if (permissions != null) {
             if (mergedPermissions == null) {
@@ -232,14 +233,14 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         }
     }
 
-    private static void mergeControllerServiceReferencingComponent(ControllerServiceReferencingComponentEntity clientEntity, Map<NodeIdentifier,
+    private static void mergeControllerServiceReferencingComponent(final ControllerServiceReferencingComponentEntity clientEntity, final Map<NodeIdentifier,
             ControllerServiceReferencingComponentEntity> nodeEntities) {
         final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
 
         final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeReferencingComponentsMap = new HashMap<>();
 
         // aggregate the property descriptors
-        for (Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerServiceReferencingComponentEntity nodeEntity = entry.getValue();
             final Map<String, PropertyDescriptorDTO> descriptors = nodeEntity.getComponent().getDescriptors();
@@ -253,7 +254,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client
@@ -268,7 +269,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
 
         // Merge bulletins
         final List<BulletinEntity> bulletins = new ArrayList<>();
-        for (ControllerServiceReferencingComponentEntity entity : nodeEntities.values()) {
+        for (final ControllerServiceReferencingComponentEntity entity : nodeEntities.values()) {
             final List<BulletinEntity> entityBulletins = entity.getBulletins();
             if (entityBulletins != null) {
                 bulletins.addAll(entityBulletins);

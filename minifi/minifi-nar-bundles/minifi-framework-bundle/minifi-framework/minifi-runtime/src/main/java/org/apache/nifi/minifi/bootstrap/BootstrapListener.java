@@ -66,7 +66,7 @@ public class BootstrapListener implements BootstrapCommunicator {
     private Listener listener;
     private final Map<String, BiConsumer<String[], OutputStream>> messageHandlers = new HashMap<>();
 
-    public BootstrapListener(MiNiFiServer minifiServer, int bootstrapPort) {
+    public BootstrapListener(final MiNiFiServer minifiServer, final int bootstrapPort) {
         this.minifiServer = minifiServer;
         this.bootstrapPort = bootstrapPort;
         secretKey = UUID.randomUUID().toString();
@@ -77,18 +77,18 @@ public class BootstrapListener implements BootstrapCommunicator {
         registerHandlers();
     }
 
-    public void start(int listenPort) throws IOException {
+    public void start(final int listenPort) throws IOException {
         logger.debug("Starting Bootstrap Listener to communicate with Bootstrap Port {}", bootstrapPort);
 
-        ServerSocket serverSocket = new ServerSocket();
+        final ServerSocket serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", listenPort));
         serverSocket.setSoTimeout(2000);
 
-        int localPort = serverSocket.getLocalPort();
+        final int localPort = serverSocket.getLocalPort();
         logger.info("Started Bootstrap Listener, Listening for incoming requests on port {}", localPort);
 
         listener = new Listener(serverSocket);
-        Thread listenThread = new Thread(listener);
+        final Thread listenThread = new Thread(listener);
         listenThread.setDaemon(true);
         listenThread.setName("Listen to Bootstrap");
         listenThread.start();
@@ -111,32 +111,32 @@ public class BootstrapListener implements BootstrapCommunicator {
         sendCommand(SHUTDOWN, new String[] {});
     }
 
-    public void sendStartedStatus(boolean status) throws IOException {
+    public void sendStartedStatus(final boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting MiNiFi is {}", status);
         sendCommand(STARTED, new String[] {String.valueOf(status)});
     }
 
     @Override
-    public CommandResult sendCommand(String command, String[] args) throws IOException {
+    public CommandResult sendCommand(final String command, final String[] args) throws IOException {
         try (Socket socket = new Socket()) {
             socket.setSoTimeout(60000);
             socket.connect(new InetSocketAddress("localhost", bootstrapPort));
 
-            StringBuilder commandBuilder = new StringBuilder(command);
+            final StringBuilder commandBuilder = new StringBuilder(command);
 
             Arrays.stream(args).forEach(arg -> commandBuilder.append(" ").append(arg));
             commandBuilder.append("\n");
 
-            String commandWithArgs = commandBuilder.toString();
+            final String commandWithArgs = commandBuilder.toString();
             logger.debug("Sending command to Bootstrap: {}", commandWithArgs);
 
-            OutputStream out = socket.getOutputStream();
+            final OutputStream out = socket.getOutputStream();
             out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
             out.flush();
 
             logger.debug("Awaiting response from Bootstrap...");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String response = reader.readLine();
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            final String response = reader.readLine();
             if ("OK".equals(response)) {
                 logger.info("Successfully initiated communication with Bootstrap");
                 return SUCCESS;
@@ -148,7 +148,7 @@ public class BootstrapListener implements BootstrapCommunicator {
     }
 
     @Override
-    public void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler) {
+    public void registerMessageHandler(final String command, final BiConsumer<String[], OutputStream> handler) {
         messageHandlers.putIfAbsent(command, handler);
     }
 
@@ -176,7 +176,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         });
         messageHandlers.putIfAbsent("FLOW_STATUS_REPORT", (args, outputStream) -> {
             logger.info("Received FLOW_STATUS_REPORT request from Bootstrap");
-            String flowStatusRequestString = args[0];
+            final String flowStatusRequestString = args[0];
             writeStatusReport(flowStatusRequestString, outputStream);
         });
         messageHandlers.putIfAbsent("ENV", (args, outputStream) -> {
@@ -191,7 +191,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         private final ExecutorService executor;
         private volatile boolean stopped = false;
 
-        public Listener(ServerSocket serverSocket) {
+        public Listener(final ServerSocket serverSocket) {
             this.serverSocket = serverSocket;
             this.executor = Executors.newFixedThreadPool(LISTENER_EXECUTOR_THREAD_COUNT);
         }
@@ -203,7 +203,7 @@ public class BootstrapListener implements BootstrapCommunicator {
 
             try {
                 serverSocket.close();
-            } catch (IOException ignored) {
+            } catch (final IOException ignored) {
                 // nothing to really do here. we could log this, but it would just become
                 // confusing in the logs, as we're shutting down and there's no real benefit
             }
@@ -213,16 +213,16 @@ public class BootstrapListener implements BootstrapCommunicator {
         public void run() {
             while (!stopped) {
                 try {
-                    Socket socket;
+                    final Socket socket;
                     try {
                         logger.debug("Listening for Bootstrap Requests");
                         socket = serverSocket.accept();
-                    } catch (SocketTimeoutException ste) {
+                    } catch (final SocketTimeoutException ste) {
                         if (stopped) {
                             return;
                         }
                         continue;
-                    } catch (IOException ioe) {
+                    } catch (final IOException ioe) {
                         if (stopped) {
                             return;
                         }
@@ -233,30 +233,30 @@ public class BootstrapListener implements BootstrapCommunicator {
                     socket.setSoTimeout(5000);
 
                     executor.submit(() -> handleBootstrapRequest(socket));
-                } catch (Throwable t) {
+                } catch (final Throwable t) {
                     logger.error("Failed to process request from Bootstrap", t);
                 }
             }
         }
 
-        private void handleBootstrapRequest(Socket socket) {
+        private void handleBootstrapRequest(final Socket socket) {
             try {
-                BootstrapRequest request = bootstrapRequestReader.readRequest(socket.getInputStream());
-                String requestType = request.getRequestType();
+                final BootstrapRequest request = bootstrapRequestReader.readRequest(socket.getInputStream());
+                final String requestType = request.getRequestType();
 
-                BiConsumer<String[], OutputStream> handler = messageHandlers.get(requestType);
+                final BiConsumer<String[], OutputStream> handler = messageHandlers.get(requestType);
                 if (handler == null) {
                     logger.warn("There is no handler defined for the {}", requestType);
                 } else {
                     handler.accept(request.getArgs(), socket.getOutputStream());
                 }
 
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 logger.error("Failed to process request from Bootstrap", t);
             } finally {
                 try {
                     socket.close();
-                } catch (IOException ioe) {
+                } catch (final IOException ioe) {
                     logger.warn("Failed to close socket to Bootstrap", ioe);
                 }
             }
@@ -264,45 +264,45 @@ public class BootstrapListener implements BootstrapCommunicator {
 
     }
 
-    private void writeStatusReport(String flowStatusRequestString, OutputStream out) throws StatusRequestException {
+    private void writeStatusReport(final String flowStatusRequestString, final OutputStream out) throws StatusRequestException {
         try {
-            FlowStatusReport flowStatusReport = minifiServer.getStatusReport(flowStatusRequestString);
+            final FlowStatusReport flowStatusReport = minifiServer.getStatusReport(flowStatusRequestString);
             objectMapper.writeValue(out, flowStatusReport);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private static void writeEnv(OutputStream out) {
+    private static void writeEnv(final OutputStream out) {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
-            StringBuilder sb = new StringBuilder();
+            final StringBuilder sb = new StringBuilder();
 
             System.getProperties()
                 .forEach((key, value) -> sb.append(key).append("=").append(value).append("\n"));
 
             writer.write(sb.toString());
             writer.flush();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private void writeDump(OutputStream out) {
+    private void writeDump(final OutputStream out) {
         try {
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+            final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
             writer.write(DumpUtil.getDump());
             writer.flush();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private void echoRequestCmd(String cmd, OutputStream out) {
+    private void echoRequestCmd(final String cmd, final OutputStream out) {
         try {
             out.write((cmd + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
             out.close();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }

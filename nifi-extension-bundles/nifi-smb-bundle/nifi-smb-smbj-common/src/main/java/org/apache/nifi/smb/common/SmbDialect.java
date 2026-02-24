@@ -32,7 +32,7 @@ public enum SmbDialect implements DescribedValue {
 
     private final SMB2Dialect smbjDialect;
 
-    SmbDialect(String displayName, SMB2Dialect smbjDialect) {
+    SmbDialect(final String displayName, final SMB2Dialect smbjDialect) {
         this.displayName = displayName;
         this.smbjDialect = smbjDialect;
     }

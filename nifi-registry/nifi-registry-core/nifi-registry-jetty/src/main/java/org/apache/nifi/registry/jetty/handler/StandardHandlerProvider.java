@@ -234,7 +234,7 @@ public class StandardHandlerProvider implements HandlerProvider {
         Path docsDir;
         try {
             docsDir = docsDirectoryPath.toRealPath();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             docsDir = docsDirectoryPath;
             if (!docsDir.toFile().mkdirs()) {
                 final String message = String.format("Documentation Directory [%s] creation failed", docsDirectory);

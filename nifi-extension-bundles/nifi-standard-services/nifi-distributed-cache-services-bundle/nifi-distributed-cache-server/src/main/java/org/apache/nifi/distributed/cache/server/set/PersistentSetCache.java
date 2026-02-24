@@ -148,7 +148,7 @@ public class PersistentSetCache implements SetCache {
         }
 
         @Override
-        public void serializeRecord(SetRecord record, DataOutputStream out) throws IOException {
+        public void serializeRecord(final SetRecord record, final DataOutputStream out) throws IOException {
             serializeEdit(null, record, out);
         }
 
@@ -169,7 +169,7 @@ public class PersistentSetCache implements SetCache {
         }
 
         @Override
-        public SetRecord deserializeRecord(DataInputStream in, int version) throws IOException {
+        public SetRecord deserializeRecord(final DataInputStream in, final int version) throws IOException {
             return deserializeEdit(in, new HashMap<>(), version);
         }
 
@@ -203,22 +203,22 @@ public class PersistentSetCache implements SetCache {
         }
 
         @Override
-        public SerDe<SetRecord> createSerDe(String encodingName) {
+        public SerDe<SetRecord> createSerDe(final String encodingName) {
             return this.serde;
         }
 
         @Override
-        public Object getRecordIdentifier(SetRecord record) {
+        public Object getRecordIdentifier(final SetRecord record) {
             return this.serde.getRecordIdentifier(record);
         }
 
         @Override
-        public UpdateType getUpdateType(SetRecord record) {
+        public UpdateType getUpdateType(final SetRecord record) {
             return this.serde.getUpdateType(record);
         }
 
         @Override
-        public String getLocation(SetRecord record) {
+        public String getLocation(final SetRecord record) {
             return this.serde.getLocation(record);
         }
 

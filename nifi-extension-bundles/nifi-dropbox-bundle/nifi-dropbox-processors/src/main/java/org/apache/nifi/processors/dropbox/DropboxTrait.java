@@ -50,7 +50,7 @@ public interface DropboxTrait {
             .required(true)
             .build();
 
-    default DbxClientV2 getDropboxApiClient(ProcessContext context, String identifier) {
+    default DbxClientV2 getDropboxApiClient(final ProcessContext context, final String identifier) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
         final String dropboxClientId = format("%s-%s", getClass().getSimpleName(), identifier);
         final OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
@@ -81,17 +81,17 @@ public interface DropboxTrait {
                 credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
     }
 
-    default String convertFolderName(String folderName) {
+    default String convertFolderName(final String folderName) {
         return "/".equals(folderName) ? "" : folderName;
     }
 
-    default String getParentPath(String fullPath) {
+    default String getParentPath(final String fullPath) {
         final int idx = fullPath.lastIndexOf("/");
         final String parentPath = fullPath.substring(0, idx);
         return "".equals(parentPath) ? "/" : parentPath;
     }
 
-    default Map<String, String> createAttributeMap(FileMetadata fileMetadata) {
+    default Map<String, String> createAttributeMap(final FileMetadata fileMetadata) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(DropboxAttributes.ID, fileMetadata.getId());
         attributes.put(DropboxAttributes.PATH, getParentPath(fileMetadata.getPathDisplay()));

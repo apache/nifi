@@ -272,7 +272,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         final Collection<ConnectionStatus> connectionStatusCollection = new ArrayList<>();
         status.setConnectionStatus(connectionStatusCollection);
 
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
 
         // get the connection and remote port status
         for (final Connection conn : group.getConnections()) {
@@ -291,7 +291,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             connStatus.setBackPressureObjectThreshold(conn.getFlowFileQueue().getBackPressureObjectThreshold());
             if (includeConnectionDetails) {
                 connStatus.setTotalQueuedDuration(conn.getFlowFileQueue().getTotalQueuedDuration(now));
-                long minLastQueueDate = conn.getFlowFileQueue().getMinLastQueueDate();
+                final long minLastQueueDate = conn.getFlowFileQueue().getMinLastQueueDate();
                 connStatus.setMaxQueuedDuration(minLastQueueDate == 0 ? 0 : now - minLastQueueDate);
             } else {
                 connStatus.setTotalQueuedDuration(0L);
@@ -311,10 +311,10 @@ public abstract class AbstractEventAccess implements EventAccess {
             }
 
             if (statusAnalyticsEngine != null) {
-                StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
+                final StatusAnalytics statusAnalytics =  statusAnalyticsEngine.getStatusAnalytics(conn.getIdentifier());
                 if (statusAnalytics != null) {
-                    Map<String, Long> predictionValues = statusAnalytics.getPredictions();
-                    ConnectionStatusPredictions predictions = new ConnectionStatusPredictions();
+                    final Map<String, Long> predictionValues = statusAnalytics.getPredictions();
+                    final ConnectionStatusPredictions predictions = new ConnectionStatusPredictions();
                     connStatus.setPredictions(predictions);
                     predictions.setPredictedTimeToBytesBackpressureMillis(predictionValues.get("timeToBytesBackpressureMillis"));
                     predictions.setPredictedTimeToCountBackpressureMillis(predictionValues.get("timeToCountBackpressureMillis"));

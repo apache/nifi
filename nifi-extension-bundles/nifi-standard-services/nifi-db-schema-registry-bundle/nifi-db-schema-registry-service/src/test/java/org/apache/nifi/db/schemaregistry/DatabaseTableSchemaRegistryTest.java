@@ -78,7 +78,7 @@ public class DatabaseTableSchemaRegistryTest {
                 Connection connection = dbcpService.getConnection();
                 Statement statement = connection.createStatement()
         ) {
-            for (String createTableStatement : CREATE_TABLE_STATEMENTS) {
+            for (final String createTableStatement : CREATE_TABLE_STATEMENTS) {
                 statement.execute(createTableStatement);
             }
         }
@@ -95,15 +95,15 @@ public class DatabaseTableSchemaRegistryTest {
 
     @Test
     public void testGetSchemaExists() throws Exception {
-        DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
+        final DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
         runner.addControllerService("schemaRegistry", dbSchemaRegistry);
         runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
         runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
         runner.enableControllerService(dbSchemaRegistry);
-        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
+        final SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
                 .name("PERSONS")
                 .build();
-        RecordSchema recordSchema = dbSchemaRegistry.retrieveSchema(schemaIdentifier);
+        final RecordSchema recordSchema = dbSchemaRegistry.retrieveSchema(schemaIdentifier);
         assertNotNull(recordSchema);
         Optional<RecordField> recordField = recordSchema.getField("ID");
         assertTrue(recordField.isPresent());
@@ -124,12 +124,12 @@ public class DatabaseTableSchemaRegistryTest {
 
     @Test
     public void testGetSchemaNotExists() throws Exception {
-        DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
+        final DatabaseTableSchemaRegistry dbSchemaRegistry = new DatabaseTableSchemaRegistry();
         runner.addControllerService("schemaRegistry", dbSchemaRegistry);
         runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.DBCP_SERVICE, SERVICE_ID);
         runner.setProperty(dbSchemaRegistry, DatabaseTableSchemaRegistry.SCHEMA_NAME, "SCHEMA1");
         runner.enableControllerService(dbSchemaRegistry);
-        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
+        final SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder()
                 .name("NOT_A_TABLE")
                 .build();
         assertThrows(SchemaNotFoundException.class, () -> dbSchemaRegistry.retrieveSchema(schemaIdentifier));

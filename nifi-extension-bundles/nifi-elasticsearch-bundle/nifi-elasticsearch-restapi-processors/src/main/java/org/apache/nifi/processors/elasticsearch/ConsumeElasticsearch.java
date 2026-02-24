@@ -238,7 +238,7 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("es-rest-range-field", RANGE_FIELD.getName());
         config.renameProperty("es-rest-sort-order", RANGE_FIELD_SORT_ORDER.getName());

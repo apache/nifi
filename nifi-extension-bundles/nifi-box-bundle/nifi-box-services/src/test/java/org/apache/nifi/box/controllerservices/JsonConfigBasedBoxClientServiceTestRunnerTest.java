@@ -149,7 +149,7 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
         final JsonConfigBasedBoxClientService jsonConfigBasedBoxClientService = new JsonConfigBasedBoxClientService();
         jsonConfigBasedBoxClientService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("box-account-id", JsonConfigBasedBoxClientService.ACCOUNT_ID.getName()),
                 Map.entry("app-config-file", JsonConfigBasedBoxClientService.APP_CONFIG_FILE.getName()),
                 Map.entry("app-config-json", JsonConfigBasedBoxClientService.APP_CONFIG_JSON.getName()),

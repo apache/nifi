@@ -178,7 +178,7 @@ public class SplitText extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onSchedule(ProcessContext context) {
+    public void onSchedule(final ProcessContext context) {
         this.removeTrailingNewLines = context.getProperty(REMOVE_TRAILING_NEWLINES).isSet()
                 ? context.getProperty(REMOVE_TRAILING_NEWLINES).asBoolean() : false;
         this.maxSplitSize = context.getProperty(FRAGMENT_MAX_SIZE).isSet()
@@ -192,21 +192,21 @@ public class SplitText extends AbstractProcessor {
      * Will split the incoming stream releasing all splits as FlowFile at once.
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        FlowFile sourceFlowFile = processSession.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
+        final FlowFile sourceFlowFile = processSession.get();
         if (sourceFlowFile == null) {
             return;
         }
-        AtomicBoolean error = new AtomicBoolean();
-        List<SplitInfo> computedSplitsInfo = new ArrayList<>();
-        AtomicReference<SplitInfo> headerSplitInfoRef = new AtomicReference<>();
+        final AtomicBoolean error = new AtomicBoolean();
+        final List<SplitInfo> computedSplitsInfo = new ArrayList<>();
+        final AtomicReference<SplitInfo> headerSplitInfoRef = new AtomicReference<>();
         processSession.read(sourceFlowFile, in -> {
-            TextLineDemarcator demarcator = new TextLineDemarcator(in);
+            final TextLineDemarcator demarcator = new TextLineDemarcator(in);
             SplitInfo splitInfo = null;
             long startOffset = 0;
 
             // Compute fragment representing the header (if available)
-            long start = System.nanoTime();
+            final long start = System.nanoTime();
             try {
                 if (SplitText.this.headerLineCount > 0) {
                     splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
@@ -219,7 +219,7 @@ public class SplitText extends AbstractProcessor {
                     splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
                 }
                 headerSplitInfoRef.set(splitInfo);
-            } catch (IllegalStateException e) {
+            } catch (final IllegalStateException e) {
                 error.set(true);
                 getLogger().error("Routing to failure.", e);
             }
@@ -229,12 +229,12 @@ public class SplitText extends AbstractProcessor {
                 if (headerSplitInfoRef.get() != null) {
                     startOffset = headerSplitInfoRef.get().length;
                 }
-                long preAccumulatedLength = startOffset;
+                final long preAccumulatedLength = startOffset;
                 while ((splitInfo = SplitText.this.nextSplit(demarcator, startOffset, SplitText.this.lineCount, splitInfo, preAccumulatedLength)) != null) {
                     computedSplitsInfo.add(splitInfo);
                     startOffset += splitInfo.length;
                 }
-                long stop = System.nanoTime();
+                final long stop = System.nanoTime();
                 if (getLogger().isDebugEnabled()) {
                     getLogger().debug("Computed splits in {} milliseconds.", (stop - start));
                 }
@@ -257,9 +257,9 @@ public class SplitText extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>();
-        boolean invalidState = (validationContext.getProperty(LINE_SPLIT_COUNT).asInteger() == 0
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        final boolean invalidState = (validationContext.getProperty(LINE_SPLIT_COUNT).asInteger() == 0
                 && !validationContext.getProperty(FRAGMENT_MAX_SIZE).isSet());
         results.add(new ValidationResult.Builder().subject("Maximum Fragment Size").valid(!invalidState)
                 .explanation("Property must be specified when Line Split Count is 0").build());
@@ -277,8 +277,9 @@ public class SplitText extends AbstractProcessor {
      * it signifies the header information and its contents will be included in
      * each and every computed split.
      */
-    private List<FlowFile> generateSplitFlowFiles(String fragmentId, FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession) {
-        List<FlowFile> splitFlowFiles = new ArrayList<>();
+    private List<FlowFile> generateSplitFlowFiles(final String fragmentId, final FlowFile sourceFlowFile, final SplitInfo splitInfo,
+            final List<SplitInfo> computedSplitsInfo, final ProcessSession processSession) {
+        final List<FlowFile> splitFlowFiles = new ArrayList<>();
 
         FlowFile headerFlowFile = null;
         long headerCrlfLength = 0;
@@ -299,8 +300,8 @@ public class SplitText extends AbstractProcessor {
                 final SplitInfo computedSplitInfo = itr.next();
                 itr.remove();
 
-                long length = this.removeTrailingNewLines ? computedSplitInfo.trimmedLength : computedSplitInfo.length;
-                boolean proceedWithClone = headerFlowFile != null || length > 0;
+                final long length = this.removeTrailingNewLines ? computedSplitInfo.trimmedLength : computedSplitInfo.length;
+                final boolean proceedWithClone = headerFlowFile != null || length > 0;
                 if (proceedWithClone) {
                     FlowFile splitFlowFile = null;
                     if (headerFlowFile != null) {
@@ -325,7 +326,7 @@ public class SplitText extends AbstractProcessor {
 
             final ListIterator<FlowFile> flowFileItr = splitFlowFiles.listIterator();
             while (flowFileItr.hasNext()) {
-                FlowFile splitFlowFile = flowFileItr.next();
+                final FlowFile splitFlowFile = flowFileItr.next();
 
                 final FlowFile updated = processSession.putAttribute(splitFlowFile, FRAGMENT_COUNT, fragmentCount);
                 flowFileItr.set(updated);
@@ -348,9 +349,9 @@ public class SplitText extends AbstractProcessor {
      * representing the header content of the split and the second
      * {@link FlowFile} represents the split itself.
      */
-    private FlowFile concatenateContents(FlowFile sourceFlowFile, ProcessSession session, FlowFile... flowFiles) {
+    private FlowFile concatenateContents(final FlowFile sourceFlowFile, final ProcessSession session, final FlowFile... flowFiles) {
         FlowFile mergedFlowFile = session.create(sourceFlowFile);
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFile : flowFiles) {
             mergedFlowFile = session.append(mergedFlowFile, out -> {
                 try (InputStream is = session.read(flowFile)) {
                     IOUtils.copy(is, out);
@@ -361,9 +362,9 @@ public class SplitText extends AbstractProcessor {
         return mergedFlowFile;
     }
 
-    private FlowFile updateAttributes(ProcessSession processSession, FlowFile splitFlowFile, long splitLineCount, long splitFlowFileSize,
-            String splitId, int splitIndex, String origFileName) {
-        Map<String, String> attributes = new HashMap<>();
+    private FlowFile updateAttributes(final ProcessSession processSession, final FlowFile splitFlowFile, final long splitLineCount, final long splitFlowFileSize,
+            final String splitId, final int splitIndex, final String origFileName) {
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(SPLIT_LINE_COUNT, String.valueOf(splitLineCount));
         attributes.put(FRAGMENT_SIZE, String.valueOf(splitFlowFile.getSize()));
         attributes.put(FRAGMENT_ID, splitId);
@@ -382,8 +383,8 @@ public class SplitText extends AbstractProcessor {
      * will vary but the length of the split will never be > {@link #maxSplitSize} and {@link IllegalStateException} will be thrown.
      * This method also allows one to provide 'startsWithFilter' to allow headers to be determined via such filter (see {@link #HEADER_MARKER}.
      */
-    private SplitInfo computeHeader(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount,
-            byte[] startsWithFilter, SplitInfo previousSplitInfo) throws IOException {
+    private SplitInfo computeHeader(final TextLineDemarcator demarcator, final long startOffset, final long splitMaxLineCount,
+            final byte[] startsWithFilter, final SplitInfo previousSplitInfo) throws IOException {
         long length = 0;
         long actualLineCount = 0;
         OffsetInfo offsetInfo = null;
@@ -425,8 +426,8 @@ public class SplitText extends AbstractProcessor {
      * If split size is controlled by the {@link #maxSplitSize}, then the resulting {@link SplitInfo}
      * line count will vary but the length of the split will never be > {@link #maxSplitSize}.
      */
-    private SplitInfo nextSplit(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount,
-            SplitInfo remainderSplitInfo, long startingLength) throws IOException {
+    private SplitInfo nextSplit(final TextLineDemarcator demarcator, final long startOffset, final long splitMaxLineCount,
+            final SplitInfo remainderSplitInfo, final long startingLength) throws IOException {
         long length = 0;
         long trailingCrlfLength = 0;
         long trailingLineCount = 0;
@@ -489,7 +490,7 @@ public class SplitText extends AbstractProcessor {
         final long lineCount;
         OffsetInfo remaningOffsetInfo;
 
-        SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, OffsetInfo remaningOffsetInfo) {
+        SplitInfo(final long startOffset, final long length, final long trimmedLength, final long lineCount, final OffsetInfo remaningOffsetInfo) {
             this.startOffset = startOffset;
             this.length = length;
             this.lineCount = lineCount;

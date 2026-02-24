@@ -191,8 +191,8 @@ public class DynamicClassPathModificationIT extends NiFiSystemIT {
     private void createFlow() throws NiFiClientException, IOException {
         generate = getClientUtil().createProcessor("GenerateFlowFile");
         modify = getClientUtil().createProcessor("DynamicallyModifyClasspath");
-        ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
-        ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
 
         modifyInputConnection = getClientUtil().createConnection(generate, modify, "success");
         successConnection = getClientUtil().createConnection(modify, terminateSuccess, "success");

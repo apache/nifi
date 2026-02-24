@@ -37,9 +37,9 @@ public class PropertyDescriptorDtoMergerTest {
     @Test
     void testMergeWithNoAllowableValues() {
         // WHEN
-        PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
+        final PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
 
-        Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap =
+        final Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap =
                 Map.of(createNodeIdentifier("node1"), new PropertyDescriptorDTO(), createNodeIdentifier("node2"), new PropertyDescriptorDTO());
 
         PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, dtoMap);
@@ -105,10 +105,10 @@ public class PropertyDescriptorDtoMergerTest {
         );
     }
 
-    private PropertyDescriptorDTO createPropertyDescriptorDTO(AllowableValueData... allowableValueData) {
-        PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
+    private PropertyDescriptorDTO createPropertyDescriptorDTO(final AllowableValueData... allowableValueData) {
+        final PropertyDescriptorDTO clientPropertyDescriptor = new PropertyDescriptorDTO();
 
-        List<AllowableValueEntity> allowableValueEntities = Arrays.stream(allowableValueData)
+        final List<AllowableValueEntity> allowableValueEntities = Arrays.stream(allowableValueData)
             .map(AllowableValueData::toEntity)
             .collect(Collectors.toList());
 
@@ -117,28 +117,28 @@ public class PropertyDescriptorDtoMergerTest {
         return clientPropertyDescriptor;
     }
 
-    private NodeIdentifier createNodeIdentifier(String id) {
-        NodeIdentifier nodeIdentifier = new NodeIdentifier(id, id, 1, id, 1, id, 1, null, false);
+    private NodeIdentifier createNodeIdentifier(final String id) {
+        final NodeIdentifier nodeIdentifier = new NodeIdentifier(id, id, 1, id, 1, id, 1, null, false);
 
         return nodeIdentifier;
     }
 
     private void testMerge(
-        PropertyDescriptorDTO clientPropertyDescriptor,
-        Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap,
-        PropertyDescriptorDTO expected
+        final PropertyDescriptorDTO clientPropertyDescriptor,
+        final Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap,
+        final PropertyDescriptorDTO expected
     ) {
         // WHEN
         PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, dtoMap);
 
         // THEN
-        List<Function<AllowableValueEntity, Object>> equalsProperties = Arrays.asList(
+        final List<Function<AllowableValueEntity, Object>> equalsProperties = Arrays.asList(
             AllowableValueEntity::getAllowableValue,
             AllowableValueEntity::getCanRead
         );
 
-        List<EqualsWrapper<AllowableValueEntity>> expectedWrappers = EqualsWrapper.wrapList(expected.getAllowableValues(), equalsProperties);
-        List<EqualsWrapper<AllowableValueEntity>> actualWrappers = EqualsWrapper.wrapList(clientPropertyDescriptor.getAllowableValues(), equalsProperties);
+        final List<EqualsWrapper<AllowableValueEntity>> expectedWrappers = EqualsWrapper.wrapList(expected.getAllowableValues(), equalsProperties);
+        final List<EqualsWrapper<AllowableValueEntity>> actualWrappers = EqualsWrapper.wrapList(clientPropertyDescriptor.getAllowableValues(), equalsProperties);
 
         assertEquals(expectedWrappers, actualWrappers);
 
@@ -148,15 +148,15 @@ public class PropertyDescriptorDtoMergerTest {
         private final String value;
         private final Boolean canRead;
 
-        private AllowableValueData(String value, Boolean canRead) {
+        private AllowableValueData(final String value, final Boolean canRead) {
             this.value = value;
             this.canRead = canRead;
         }
 
         private AllowableValueEntity toEntity() {
-            AllowableValueEntity entity = new AllowableValueEntity();
+            final AllowableValueEntity entity = new AllowableValueEntity();
 
-            AllowableValueDTO allowableValueDTO = new AllowableValueDTO();
+            final AllowableValueDTO allowableValueDTO = new AllowableValueDTO();
             allowableValueDTO.setValue(value);
 
             entity.setAllowableValue(allowableValueDTO);
@@ -166,14 +166,14 @@ public class PropertyDescriptorDtoMergerTest {
         }
     }
 
-    private static AllowableValueData v(String value) {
-        AllowableValueData allowableValueData = v(value, true);
+    private static AllowableValueData v(final String value) {
+        final AllowableValueData allowableValueData = v(value, true);
 
         return allowableValueData;
     }
 
-    private static AllowableValueData v(String value, Boolean canRead) {
-        AllowableValueData allowableValueData = new AllowableValueData(value, canRead);
+    private static AllowableValueData v(final String value, final Boolean canRead) {
+        final AllowableValueData allowableValueData = new AllowableValueData(value, canRead);
 
         return allowableValueData;
     }

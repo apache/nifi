@@ -64,12 +64,12 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
      * @param mapToSeparator a function to dynamically resolve the field separator based on FlowFile attributes
      */
     private MockCsvRecordWriter(
-            String header,
-            boolean quoteValues,
-            int failAfterN,
-            boolean bufferOutput,
-            RecordSchema schema,
-            Function<Map<String, String>, String> mapToSeparator) {
+            final String header,
+            final boolean quoteValues,
+            final int failAfterN,
+            final boolean bufferOutput,
+            final RecordSchema schema,
+            final Function<Map<String, String>, String> mapToSeparator) {
         super(header, quoteValues, failAfterN, bufferOutput, schema, mapToSeparator);
     }
 
@@ -93,7 +93,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param header the header line (e.g., "id,name,age"); can be {@code null} to omit header
          * @return the current {@code Builder} instance
          */
-        public Builder withHeader(String header) {
+        public Builder withHeader(final String header) {
             this.header = header;
             return this;
         }
@@ -104,7 +104,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param quoteValues {@code true} to quote values, {@code false} otherwise
          * @return the current {@code Builder} instance
          */
-        public Builder quoteValues(boolean quoteValues) {
+        public Builder quoteValues(final boolean quoteValues) {
             this.quoteValues = quoteValues;
             return this;
         }
@@ -116,7 +116,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param failAfterN the number of records after which to fail; use -1 to disable
          * @return the current {@code Builder} instance
          */
-        public Builder failAfterN(int failAfterN) {
+        public Builder failAfterN(final int failAfterN) {
             this.failAfterN = failAfterN;
             return this;
         }
@@ -127,7 +127,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param bufferOutput {@code true} to enable buffering, {@code false} to write directly
          * @return the current {@code Builder} instance
          */
-        public Builder bufferOutput(boolean bufferOutput) {
+        public Builder bufferOutput(final boolean bufferOutput) {
             this.bufferOutput = bufferOutput;
             return this;
         }
@@ -138,7 +138,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param schema the {@link RecordSchema}; can be {@code null} if schema inference is acceptable
          * @return the current {@code Builder} instance
          */
-        public Builder withSchema(RecordSchema schema) {
+        public Builder withSchema(final RecordSchema schema) {
             this.schema = schema;
             return this;
         }
@@ -153,7 +153,7 @@ public final class MockCsvRecordWriter extends MockRecordWriter {
          * @param mapToSeparator a function that maps FlowFile attributes to a separator string
          * @return the current {@code Builder} instance
          */
-        public Builder withSeparator(Function<Map<String, String>, String> mapToSeparator) {
+        public Builder withSeparator(final Function<Map<String, String>, String> mapToSeparator) {
             this.mapToSeparator = mapToSeparator;
             return this;
         }

@@ -53,19 +53,19 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     PERSON("Person", "A person with name, contact information, and address (schema.org/Person)") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // PostalAddress fields per schema.org/PostalAddress
-            List<RecordField> addressFields = Arrays.asList(
+            final List<RecordField> addressFields = Arrays.asList(
                     new RecordField("streetAddress", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("addressLocality", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("addressRegion", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("postalCode", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("addressCountry", RecordFieldType.STRING.getDataType(), nullable)
             );
-            RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
+            final RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
 
             // Person fields per schema.org/Person
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("givenName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("familyName", RecordFieldType.STRING.getDataType(), nullable),
@@ -80,29 +80,29 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("givenName", generateNullableValue(nullPercentage, faker, f -> f.name().firstName()));
             values.put("familyName", generateNullableValue(nullPercentage, faker, f -> f.name().lastName()));
             values.put("email", generateNullableValue(nullPercentage, faker, f -> f.internet().emailAddress()));
             values.put("telephone", generateNullableValue(nullPercentage, faker, f -> f.phoneNumber().phoneNumber()));
             values.put("birthDate", generateNullableValue(nullPercentage, faker, f -> {
-                LocalDate birthday = f.timeAndDate().birthday(18, 80);
+                final LocalDate birthday = f.timeAndDate().birthday(18, 80);
                 return Date.valueOf(birthday);
             }));
             values.put("age", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(18, 80)));
             values.put("active", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
             // Generate nested address record (PostalAddress)
-            Map<String, Object> addressValues = new LinkedHashMap<>();
+            final Map<String, Object> addressValues = new LinkedHashMap<>();
             addressValues.put("streetAddress", generateNullableValue(nullPercentage, faker, f -> f.address().streetAddress()));
             addressValues.put("addressLocality", generateNullableValue(nullPercentage, faker, f -> f.address().city()));
             addressValues.put("addressRegion", generateNullableValue(nullPercentage, faker, f -> f.address().state()));
             addressValues.put("postalCode", generateNullableValue(nullPercentage, faker, f -> f.address().zipCode()));
             addressValues.put("addressCountry", generateNullableValue(nullPercentage, faker, f -> f.address().country()));
 
-            RecordSchema addressSchema = schema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
+            final RecordSchema addressSchema = schema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
                     ? ((RecordDataType) schema.getField("address").get().getDataType()).getChildSchema()
                     : null;
 
@@ -116,18 +116,18 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     ORDER("Order", "An e-commerce order with line items, amounts, and timestamps (schema.org/Order)") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // OrderItem fields per schema.org/OrderItem
-            List<RecordField> orderedItemFields = Arrays.asList(
+            final List<RecordField> orderedItemFields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("orderQuantity", RecordFieldType.INT.getDataType(), nullable),
                     new RecordField("price", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema orderedItemSchema = new SimpleRecordSchema(orderedItemFields);
+            final RecordSchema orderedItemSchema = new SimpleRecordSchema(orderedItemFields);
 
             // Order fields per schema.org/Order
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("orderNumber", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("customer", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("customerName", RecordFieldType.STRING.getDataType(), nullable),
@@ -146,22 +146,22 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             values.put("orderNumber", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("customer", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("customerName", generateNullableValue(nullPercentage, faker, f -> f.name().fullName()));
             values.put("customerEmail", generateNullableValue(nullPercentage, faker, f -> f.internet().emailAddress()));
 
-            Instant orderInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
+            final Instant orderInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
             values.put("orderDate", generateNullableValue(nullPercentage, faker, f -> new Date(orderInstant.toEpochMilli())));
             values.put("orderTime", generateNullableValue(nullPercentage, faker, f -> new Time(orderInstant.toEpochMilli())));
             values.put("orderDelivery", generateNullableValue(nullPercentage, faker, f -> new Timestamp(orderInstant.toEpochMilli())));
 
             // OrderStatus values per schema.org/OrderStatus
-            String[] statuses = {"OrderCancelled", "OrderDelivered", "OrderInTransit", "OrderPaymentDue",
+            final String[] statuses = {"OrderCancelled", "OrderDelivered", "OrderInTransit", "OrderPaymentDue",
                     "OrderPickupAvailable", "OrderProblem", "OrderProcessing", "OrderReturned"};
-            String status = statuses[faker.number().numberBetween(0, statuses.length)];
+            final String status = statuses[faker.number().numberBetween(0, statuses.length)];
             values.put("orderStatus", generateNullableValue(nullPercentage, faker, f -> status));
             values.put("isGift", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
@@ -169,25 +169,25 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("priceCurrency", generateNullableValue(nullPercentage, faker, f -> f.money().currencyCode()));
 
             // Generate ordered items
-            int itemCount = faker.number().numberBetween(1, 5);
+            final int itemCount = faker.number().numberBetween(1, 5);
             values.put("itemCount", generateNullableValue(nullPercentage, faker, f -> itemCount));
 
             RecordSchema orderedItemSchema = null;
             if (schema.getField("orderedItem").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
-                DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
+                final DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
                     orderedItemSchema = ((RecordDataType) elementType).getChildSchema();
                 }
             }
 
             double totalPrice = 0.0;
-            Object[] orderedItems = new Object[itemCount];
+            final Object[] orderedItems = new Object[itemCount];
             for (int i = 0; i < itemCount; i++) {
-                Map<String, Object> orderedItemValues = new LinkedHashMap<>();
+                final Map<String, Object> orderedItemValues = new LinkedHashMap<>();
                 orderedItemValues.put("identifier", "PRD-" + faker.number().digits(8));
                 orderedItemValues.put("name", faker.commerce().productName());
-                int quantity = faker.number().numberBetween(1, 10);
-                double price = faker.number().randomDouble(2, 10, 500);
+                final int quantity = faker.number().numberBetween(1, 10);
+                final double price = faker.number().randomDouble(2, 10, 500);
                 orderedItemValues.put("orderQuantity", quantity);
                 orderedItemValues.put("price", price);
                 totalPrice += quantity * price;
@@ -206,9 +206,9 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     EVENT("Event", "A timestamped event with metadata and keywords (schema.org/Event)") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // Event fields per schema.org/Event
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("additionalType", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("startDate", RecordFieldType.DATE.getDataType(), nullable),
@@ -227,15 +227,15 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
 
             // Use Faker's hacker provider for event type naming
             values.put("additionalType", generateNullableValue(nullPercentage, faker, f ->
                     f.hacker().verb().toUpperCase() + "_" + f.hacker().noun().toUpperCase()));
 
-            Instant eventInstant = faker.timeAndDate().past(30, TimeUnit.DAYS);
+            final Instant eventInstant = faker.timeAndDate().past(30, TimeUnit.DAYS);
             values.put("startDate", generateNullableValue(nullPercentage, faker, f -> new Date(eventInstant.toEpochMilli())));
             values.put("startTime", generateNullableValue(nullPercentage, faker, f -> new Time(eventInstant.toEpochMilli())));
             values.put("endDate", generateNullableValue(nullPercentage, faker, f -> new Timestamp(eventInstant.toEpochMilli())));
@@ -244,7 +244,7 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("organizer", generateNullableValue(nullPercentage, faker, f -> f.app().name().toLowerCase().replace(" ", "-")));
 
             // EventStatus values per schema.org/EventStatusType
-            String[] statuses = {"EventCancelled", "EventMovedOnline", "EventPostponed", "EventRescheduled", "EventScheduled"};
+            final String[] statuses = {"EventCancelled", "EventMovedOnline", "EventPostponed", "EventRescheduled", "EventScheduled"};
             values.put("eventStatus", generateNullableValue(nullPercentage, faker, f -> statuses[f.number().numberBetween(0, statuses.length)]));
             values.put("description", generateNullableValue(nullPercentage, faker, f -> f.lorem().sentence()));
             values.put("isAccessibleForFree", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
@@ -252,15 +252,15 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("duration", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(1L, 10000L)));
 
             // Generate keywords array using Faker's marketing buzzwords
-            int keywordCount = faker.number().numberBetween(1, 4);
-            String[] keywords = new String[keywordCount];
+            final int keywordCount = faker.number().numberBetween(1, 4);
+            final String[] keywords = new String[keywordCount];
             for (int i = 0; i < keywordCount; i++) {
                 keywords[i] = faker.marketing().buzzwords().toLowerCase();
             }
             values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
             // Generate additionalProperty map using Faker providers
-            Map<String, String> additionalProperty = new HashMap<>();
+            final Map<String, String> additionalProperty = new HashMap<>();
             additionalProperty.put("version", faker.app().version());
             additionalProperty.put("environment", faker.options().option("dev", "staging", "prod"));
             // Use Faker's AWS provider for region
@@ -274,16 +274,16 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     SENSOR("Sensor", "An IoT sensor reading with geo coordinates and measurements") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // GeoCoordinates fields per schema.org/GeoCoordinates
-            List<RecordField> geoFields = Arrays.asList(
+            final List<RecordField> geoFields = Arrays.asList(
                     new RecordField("latitude", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("longitude", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("elevation", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
+            final RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
 
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("additionalType", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("manufacturer", RecordFieldType.STRING.getDataType(), nullable),
@@ -300,8 +300,8 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             // Use Faker's device provider for serial number
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> f.device().serial()));
 
@@ -320,12 +320,12 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("isActive", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
             // Generate nested geo record (GeoCoordinates)
-            Map<String, Object> geoValues = new LinkedHashMap<>();
+            final Map<String, Object> geoValues = new LinkedHashMap<>();
             geoValues.put("latitude", faker.number().randomDouble(6, -90, 90));
             geoValues.put("longitude", faker.number().randomDouble(6, -180, 180));
             geoValues.put("elevation", faker.number().randomDouble(2, 0, 3000));
 
-            RecordSchema geoSchema = schema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
+            final RecordSchema geoSchema = schema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
                     ? ((RecordDataType) schema.getField("geo").get().getDataType()).getChildSchema()
                     : null;
 
@@ -339,18 +339,18 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     PRODUCT("Product", "A product catalog entry with pricing and inventory (schema.org/Product)") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // QuantitativeValue for dimensions per schema.org/QuantitativeValue
-            List<RecordField> dimensionFields = Arrays.asList(
+            final List<RecordField> dimensionFields = Arrays.asList(
                     new RecordField("depth", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("width", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("height", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("weight", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema dimensionSchema = new SimpleRecordSchema(dimensionFields);
+            final RecordSchema dimensionSchema = new SimpleRecordSchema(dimensionFields);
 
             // Product fields per schema.org/Product
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("sku", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
@@ -372,8 +372,8 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("sku", generateNullableValue(nullPercentage, faker, f -> "SKU-" + f.number().digits(8)));
             values.put("name", generateNullableValue(nullPercentage, faker, f -> f.commerce().productName()));
@@ -386,7 +386,7 @@ public enum PredefinedRecordSchema implements DescribedValue {
             // Use Faker's money provider for currency codes
             values.put("priceCurrency", generateNullableValue(nullPercentage, faker, f -> f.money().currencyCode()));
 
-            int inventoryLevel = faker.number().numberBetween(0, 500);
+            final int inventoryLevel = faker.number().numberBetween(0, 500);
             values.put("availability", generateNullableValue(nullPercentage, faker, f -> inventoryLevel > 0));
             values.put("inventoryLevel", generateNullableValue(nullPercentage, faker, f -> inventoryLevel));
             values.put("ratingValue", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(1, 1, 5)));
@@ -395,21 +395,21 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("dateModified", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(30, TimeUnit.DAYS).toEpochMilli())));
 
             // Generate keywords array using Faker's marketing buzzwords
-            int keywordCount = faker.number().numberBetween(0, 4);
-            String[] keywords = new String[keywordCount];
+            final int keywordCount = faker.number().numberBetween(0, 4);
+            final String[] keywords = new String[keywordCount];
             for (int i = 0; i < keywordCount; i++) {
                 keywords[i] = faker.marketing().buzzwords().toLowerCase();
             }
             values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
             // Generate nested additionalProperty record (dimensions)
-            Map<String, Object> dimensionValues = new LinkedHashMap<>();
+            final Map<String, Object> dimensionValues = new LinkedHashMap<>();
             dimensionValues.put("depth", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("width", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("height", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("weight", faker.number().randomDouble(2, 1, 50));
 
-            RecordSchema dimensionSchema = schema.getField("additionalProperty").get().getDataType().getFieldType() == RecordFieldType.RECORD
+            final RecordSchema dimensionSchema = schema.getField("additionalProperty").get().getDataType().getFieldType() == RecordFieldType.RECORD
                     ? ((RecordDataType) schema.getField("additionalProperty").get().getDataType()).getChildSchema()
                     : null;
 
@@ -423,9 +423,9 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     STOCK_TRADE("Stock Trade", "A stock market trade with pricing and volume") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // Using schema.org naming conventions where applicable
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("tickerSymbol", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
@@ -447,8 +447,8 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
 
             // Use Faker's stock provider for symbols (randomly choose between NASDAQ and NYSE)
@@ -461,12 +461,12 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("exchange", generateNullableValue(nullPercentage, faker, f -> f.stock().exchanges()));
 
             // Trade types are fundamental financial terms (BUY/SELL)
-            String[] actionTypes = {"BuyAction", "SellAction"};
+            final String[] actionTypes = {"BuyAction", "SellAction"};
             values.put("actionType", generateNullableValue(nullPercentage, faker, f -> actionTypes[f.number().numberBetween(0, actionTypes.length)]));
             values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Timestamp(System.currentTimeMillis() - f.number().numberBetween(0, 86400000))));
 
-            double price = faker.number().randomDouble(4, 10, 3000);
-            long orderQuantity = faker.number().numberBetween(1, 10000);
+            final double price = faker.number().randomDouble(4, 10, 3000);
+            final long orderQuantity = faker.number().numberBetween(1, 10000);
             values.put("price", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price).setScale(4, RoundingMode.HALF_UP)));
             values.put("orderQuantity", generateNullableValue(nullPercentage, faker, f -> orderQuantity));
             values.put("totalPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * orderQuantity).setScale(2, RoundingMode.HALF_UP)));
@@ -485,16 +485,16 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
     COMPLETE_EXAMPLE("Complete Example", "A comprehensive schema demonstrating all supported data types including nested records, arrays, and maps") {
         @Override
-        public RecordSchema getSchema(boolean nullable) {
+        public RecordSchema getSchema(final boolean nullable) {
             // GeoCoordinates per schema.org/GeoCoordinates
-            List<RecordField> geoFields = Arrays.asList(
+            final List<RecordField> geoFields = Arrays.asList(
                     new RecordField("latitude", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("longitude", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
+            final RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
 
             // PostalAddress per schema.org/PostalAddress with nested geo
-            List<RecordField> addressFields = Arrays.asList(
+            final List<RecordField> addressFields = Arrays.asList(
                     new RecordField("streetAddress", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("addressLocality", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("addressRegion", RecordFieldType.STRING.getDataType(), nullable),
@@ -502,10 +502,10 @@ public enum PredefinedRecordSchema implements DescribedValue {
                     new RecordField("addressCountry", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("geo", RecordFieldType.RECORD.getRecordDataType(geoSchema), nullable)
             );
-            RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
+            final RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
 
             // Person per schema.org/Person with nested address
-            List<RecordField> personFields = Arrays.asList(
+            final List<RecordField> personFields = Arrays.asList(
                     new RecordField("givenName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("familyName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("email", RecordFieldType.STRING.getDataType(), nullable),
@@ -513,20 +513,20 @@ public enum PredefinedRecordSchema implements DescribedValue {
                     new RecordField("verified", RecordFieldType.BOOLEAN.getDataType(), nullable),
                     new RecordField("address", RecordFieldType.RECORD.getRecordDataType(addressSchema), nullable)
             );
-            RecordSchema personSchema = new SimpleRecordSchema(personFields);
+            final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
             // Order per schema.org/Order for array of records
-            List<RecordField> orderFields = Arrays.asList(
+            final List<RecordField> orderFields = Arrays.asList(
                     new RecordField("orderNumber", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("totalPrice", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("priceCurrency", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("orderDate", RecordFieldType.DATE.getDataType(), nullable),
                     new RecordField("isGift", RecordFieldType.BOOLEAN.getDataType(), nullable)
             );
-            RecordSchema orderSchema = new SimpleRecordSchema(orderFields);
+            final RecordSchema orderSchema = new SimpleRecordSchema(orderFields);
 
             // Main schema with all types using schema.org naming
-            List<RecordField> fields = Arrays.asList(
+            final List<RecordField> fields = Arrays.asList(
                     // Basic types
                     new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("isActive", RecordFieldType.BOOLEAN.getDataType(), nullable),
@@ -555,8 +555,8 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
 
         @Override
-        public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
-            Map<String, Object> values = new LinkedHashMap<>();
+        public Map<String, Object> generateValues(final Faker faker, final RecordSchema schema, final int nullPercentage) {
+            final Map<String, Object> values = new LinkedHashMap<>();
 
             // Basic types
             values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
@@ -571,29 +571,29 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("position", generateNullableValue(nullPercentage, faker, f -> (short) f.number().numberBetween(1, 1000)));
 
             // Date/Time types per schema.org
-            Instant pastInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
+            final Instant pastInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
             values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Date(pastInstant.toEpochMilli())));
             values.put("lastLogin", generateNullableValue(nullPercentage, faker, f -> new Time(f.timeAndDate().past(1, TimeUnit.DAYS).toEpochMilli())));
             values.put("dateModified", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(7, TimeUnit.DAYS).toEpochMilli())));
 
             // Array of strings (keywords) using Faker's word provider
-            int keywordCount = faker.number().numberBetween(1, 5);
-            String[] keywords = new String[keywordCount];
+            final int keywordCount = faker.number().numberBetween(1, 5);
+            final String[] keywords = new String[keywordCount];
             for (int i = 0; i < keywordCount; i++) {
                 keywords[i] = faker.word().adjective();
             }
             values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
             // Array of integers
-            int scoreCount = faker.number().numberBetween(3, 8);
-            Integer[] scores = new Integer[scoreCount];
+            final int scoreCount = faker.number().numberBetween(3, 8);
+            final Integer[] scores = new Integer[scoreCount];
             for (int i = 0; i < scoreCount; i++) {
                 scores[i] = faker.number().numberBetween(50, 100);
             }
             values.put("scores", generateNullableValue(nullPercentage, faker, f -> scores));
 
             // Map (additionalProperty) using Faker providers
-            Map<String, String> additionalProperty = new HashMap<>();
+            final Map<String, String> additionalProperty = new HashMap<>();
             additionalProperty.put("source", faker.app().name().toLowerCase().replace(" ", "-"));
             additionalProperty.put("version", faker.app().version());
             additionalProperty.put("environment", faker.options().option("dev", "staging", "prod"));
@@ -602,36 +602,36 @@ public enum PredefinedRecordSchema implements DescribedValue {
             values.put("additionalProperty", generateNullableValue(nullPercentage, faker, f -> additionalProperty));
 
             // Nested person record (3 levels deep: person -> address -> geo)
-            RecordSchema personSchema = schema.getField("person").get().getDataType().getFieldType() == RecordFieldType.RECORD
+            final RecordSchema personSchema = schema.getField("person").get().getDataType().getFieldType() == RecordFieldType.RECORD
                     ? ((RecordDataType) schema.getField("person").get().getDataType()).getChildSchema()
                     : null;
 
             if (personSchema != null) {
-                Map<String, Object> personValues = new LinkedHashMap<>();
+                final Map<String, Object> personValues = new LinkedHashMap<>();
                 personValues.put("givenName", faker.name().firstName());
                 personValues.put("familyName", faker.name().lastName());
                 personValues.put("email", faker.internet().emailAddress());
                 personValues.put("age", faker.number().numberBetween(18, 80));
                 personValues.put("verified", faker.bool().bool());
 
-                RecordSchema addressSchema = personSchema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                final RecordSchema addressSchema = personSchema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
                         ? ((RecordDataType) personSchema.getField("address").get().getDataType()).getChildSchema()
                         : null;
 
                 if (addressSchema != null) {
-                    Map<String, Object> addressValues = new LinkedHashMap<>();
+                    final Map<String, Object> addressValues = new LinkedHashMap<>();
                     addressValues.put("streetAddress", faker.address().streetAddress());
                     addressValues.put("addressLocality", faker.address().city());
                     addressValues.put("addressRegion", faker.address().state());
                     addressValues.put("postalCode", faker.address().zipCode());
                     addressValues.put("addressCountry", faker.address().country());
 
-                    RecordSchema geoSchema = addressSchema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                    final RecordSchema geoSchema = addressSchema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
                             ? ((RecordDataType) addressSchema.getField("geo").get().getDataType()).getChildSchema()
                             : null;
 
                     if (geoSchema != null) {
-                        Map<String, Object> geoValues = new LinkedHashMap<>();
+                        final Map<String, Object> geoValues = new LinkedHashMap<>();
                         geoValues.put("latitude", faker.number().randomDouble(6, -90, 90));
                         geoValues.put("longitude", faker.number().randomDouble(6, -180, 180));
                         addressValues.put("geo", new MapRecord(geoSchema, geoValues));
@@ -646,7 +646,7 @@ public enum PredefinedRecordSchema implements DescribedValue {
             // Array of order records (orderedItem)
             RecordSchema orderSchema = null;
             if (schema.getField("orderedItem").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
-                DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
+                final DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
                     orderSchema = ((RecordDataType) elementType).getChildSchema();
                 }
@@ -654,10 +654,10 @@ public enum PredefinedRecordSchema implements DescribedValue {
 
             if (orderSchema != null) {
                 final RecordSchema finalOrderSchema = orderSchema;
-                int orderCount = faker.number().numberBetween(1, 4);
-                Object[] orders = new Object[orderCount];
+                final int orderCount = faker.number().numberBetween(1, 4);
+                final Object[] orders = new Object[orderCount];
                 for (int i = 0; i < orderCount; i++) {
-                    Map<String, Object> orderValues = new LinkedHashMap<>();
+                    final Map<String, Object> orderValues = new LinkedHashMap<>();
                     orderValues.put("orderNumber", "ORD-" + faker.number().digits(8));
                     orderValues.put("totalPrice", faker.number().randomDouble(2, 10, 500));
                     // Use Faker's money provider for currency codes
@@ -676,7 +676,7 @@ public enum PredefinedRecordSchema implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    PredefinedRecordSchema(String displayName, String description) {
+    PredefinedRecordSchema(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }
@@ -722,16 +722,16 @@ public enum PredefinedRecordSchema implements DescribedValue {
      * @param nullPercentage the percentage chance (0-100) that nullable fields will be null
      * @return a Record with generated values
      */
-    public Record generateRecord(Faker faker, boolean nullable, int nullPercentage) {
-        RecordSchema schema = getSchema(nullable);
-        Map<String, Object> values = generateValues(faker, schema, nullPercentage);
+    public Record generateRecord(final Faker faker, final boolean nullable, final int nullPercentage) {
+        final RecordSchema schema = getSchema(nullable);
+        final Map<String, Object> values = generateValues(faker, schema, nullPercentage);
         return new MapRecord(schema, values);
     }
 
     /**
      * Helper method to generate a value with a chance of being null.
      */
-    protected static <T> T generateNullableValue(int nullPercentage, Faker faker, Function<Faker, T> generator) {
+    protected static <T> T generateNullableValue(final int nullPercentage, final Faker faker, final Function<Faker, T> generator) {
         if (nullPercentage > 0 && faker.number().numberBetween(0, 100) < nullPercentage) {
             return null;
         }
@@ -744,13 +744,13 @@ public enum PredefinedRecordSchema implements DescribedValue {
      * @param name the name of the predefined schema
      * @return the PredefinedRecordSchema, or null if not found or name is null/empty
      */
-    public static PredefinedRecordSchema fromName(String name) {
+    public static PredefinedRecordSchema fromName(final String name) {
         if (name == null || name.isEmpty()) {
             return null;
         }
         try {
             return valueOf(name);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             return null;
         }
     }

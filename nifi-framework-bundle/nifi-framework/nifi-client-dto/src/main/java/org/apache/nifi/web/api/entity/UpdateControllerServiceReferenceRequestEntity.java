@@ -40,7 +40,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -51,7 +51,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -61,7 +61,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         return referencingComponentRevisions;
     }
 
-    public void setReferencingComponentRevisions(Map<String, RevisionDTO> referencingComponentRevisions) {
+    public void setReferencingComponentRevisions(final Map<String, RevisionDTO> referencingComponentRevisions) {
         this.referencingComponentRevisions = referencingComponentRevisions;
     }
 
@@ -71,7 +71,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 

@@ -108,12 +108,12 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
+        final List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger());
         if (flowFiles == null || flowFiles.isEmpty()) {
             return;
         }
 
-        Map<ItemKeys, FlowFile> keysToFlowFileMap = new HashMap<>();
+        final Map<ItemKeys, FlowFile> keysToFlowFileMap = new HashMap<>();
 
         final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
 
@@ -126,7 +126,7 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
         final Collection<WriteRequest> requestItems = new ArrayList<>();
         tableNameRequestItemsMap.put(table, requestItems);
 
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFile : flowFiles) {
             final AttributeValue hashKeyValue = getAttributeValue(context, HASH_KEY_VALUE_TYPE, HASH_KEY_VALUE, flowFile.getAttributes());
             final AttributeValue rangeKeyValue = getAttributeValue(context, RANGE_KEY_VALUE_TYPE, RANGE_KEY_VALUE, flowFile.getAttributes());
 
@@ -139,8 +139,9 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             }
 
             if (!isDataValid(flowFile, jsonDocument)) {
-                flowFile = session.putAttribute(flowFile, AWS_DYNAMO_DB_ITEM_SIZE_ERROR, "Max size of item + attribute should be 400kb but was " + flowFile.getSize() + jsonDocument.length());
-                session.transfer(flowFile, REL_FAILURE);
+                final FlowFile failedFlowFile = session.putAttribute(flowFile, AWS_DYNAMO_DB_ITEM_SIZE_ERROR,
+                        "Max size of item + attribute should be 400kb but was " + flowFile.getSize() + jsonDocument.length());
+                session.transfer(failedFlowFile, REL_FAILURE);
                 continue;
             }
 
@@ -195,20 +196,20 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
             }
         } catch (final AwsServiceException exception) {
             getLogger().error("Could not process flowFiles due to service exception", exception);
-            List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processServiceException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         } catch (final SdkException exception) {
             getLogger().error("Could not process flowFiles due to SDK exception", exception);
-            List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processSdkException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             getLogger().error("Could not process flowFiles", exception);
-            List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
+            final List<FlowFile> failedFlowFiles = processException(session, flowFiles, exception);
             session.transfer(failedFlowFiles, REL_FAILURE);
         }
     }
 
-    private boolean isDataValid(FlowFile flowFile, String jsonDocument) {
+    private boolean isDataValid(final FlowFile flowFile, final String jsonDocument) {
         return (flowFile.getSize() + jsonDocument.length()) < DYNAMODB_MAX_ITEM_SIZE;
     }
 

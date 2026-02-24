@@ -63,7 +63,7 @@ public final class AuthorizeControllerServiceReference {
                         if (authorizeTransitiveServices) {
                             authorizeControllerServiceReferences(currentServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                         }
-                    } catch (ResourceNotFoundException ignored) {
+                    } catch (final ResourceNotFoundException ignored) {
                         // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
                     }
                 }
@@ -94,7 +94,7 @@ public final class AuthorizeControllerServiceReference {
                 if (propertyDescriptor.getControllerServiceDefinition() != null) {
                     final String proposedValue = entry.getValue();
 
-                    String proposedEffectiveValue = new PropertyConfigurationMapper()
+                    final String proposedEffectiveValue = new PropertyConfigurationMapper()
                         .mapRawPropertyValuesToPropertyConfiguration(propertyDescriptor, proposedValue)
                         .getEffectiveValue(authorizable.getParameterContext());
 
@@ -107,7 +107,7 @@ public final class AuthorizeControllerServiceReference {
                             try {
                                 final Authorizable currentServiceAuthorizable = lookup.getControllerService(currentValue).getAuthorizable();
                                 currentServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                            } catch (ResourceNotFoundException ignored) {
+                            } catch (final ResourceNotFoundException ignored) {
                                 // ignore if the resource is not found, if currentValue was previously deleted, it should not stop assignment of proposedValue
                             }
                         }
@@ -141,12 +141,12 @@ public final class AuthorizeControllerServiceReference {
      * @param proposedEffectiveValue the new proposed value (id of the controller service) to use as a reference
      */
     public static void authorizeControllerServiceReference(
-        ComponentAuthorizable authorizable,
-        Authorizer authorizer,
-        AuthorizableLookup lookup,
-        NiFiUser user,
-        PropertyDescriptor propertyDescriptor,
-        String proposedEffectiveValue
+        final ComponentAuthorizable authorizable,
+        final Authorizer authorizer,
+        final AuthorizableLookup lookup,
+        final NiFiUser user,
+        final PropertyDescriptor propertyDescriptor,
+        final String proposedEffectiveValue
     ) {
         final String currentValue = authorizable.getValue(propertyDescriptor);
 
@@ -158,9 +158,9 @@ public final class AuthorizeControllerServiceReference {
         }
     }
 
-    private static void authorize(Authorizer authorizer, AuthorizableLookup lookup, NiFiUser user, String serviceId) {
+    private static void authorize(final Authorizer authorizer, final AuthorizableLookup lookup, final NiFiUser user, final String serviceId) {
         Optional.ofNullable(serviceId).map(lookup::getControllerService).ifPresent(service -> {
-            Authorizable serviceAuthorizable = service.getAuthorizable();
+            final Authorizable serviceAuthorizable = service.getAuthorizable();
 
             serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
         });

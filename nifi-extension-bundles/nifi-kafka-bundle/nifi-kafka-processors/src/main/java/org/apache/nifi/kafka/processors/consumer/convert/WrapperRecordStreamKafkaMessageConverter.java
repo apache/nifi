@@ -73,7 +73,7 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
                     ? WrapperRecord.toWrapperSchema(recordKey.getKey(), inputSchema)
                     : InjectMetadataRecord.toWrapperSchema(recordKey.getKey(), inputSchema);
             return writerFactory.getSchema(attributes, fullSchema);
-        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new IOException("Unable to get schema for wrapper record", e);
         }
     }
@@ -86,7 +86,7 @@ public class WrapperRecordStreamKafkaMessageConverter extends AbstractRecordStre
             return outputStrategy == OutputStrategy.USE_WRAPPER
                     ? new ConsumeWrapperRecord(headerEncoding).toWrapperRecord(consumerRecord, record, recordKey)
                     : InjectMetadataRecord.toWrapperRecord(headerEncoding, consumerRecord, record, recordKey);
-        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new IOException("Unable to convert record", e);
         }
     }

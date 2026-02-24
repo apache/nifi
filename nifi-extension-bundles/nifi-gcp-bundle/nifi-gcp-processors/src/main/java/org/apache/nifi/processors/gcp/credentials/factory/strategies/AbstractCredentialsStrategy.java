@@ -24,7 +24,7 @@ import org.apache.nifi.processors.gcp.credentials.factory.CredentialsStrategy;
 public abstract class AbstractCredentialsStrategy implements CredentialsStrategy {
     private final String name;
 
-    public AbstractCredentialsStrategy(String name) {
+    public AbstractCredentialsStrategy(final String name) {
         this.name = name;
     }
 

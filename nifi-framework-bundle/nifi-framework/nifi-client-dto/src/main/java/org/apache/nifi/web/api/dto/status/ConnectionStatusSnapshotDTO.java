@@ -60,7 +60,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -84,7 +84,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -96,7 +96,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return queuedCount;
     }
 
-    public void setQueuedCount(String queuedCount) {
+    public void setQueuedCount(final String queuedCount) {
         this.queuedCount = queuedCount;
     }
 
@@ -108,19 +108,19 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return queuedSize;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
-    public void setOutput(String output) {
+    public void setOutput(final String output) {
         this.output = output;
     }
 
-    public void setQueued(String queued) {
+    public void setQueued(final String queued) {
         this.queued = queued;
     }
 
-    public void setQueuedSize(String queuedSize) {
+    public void setQueuedSize(final String queuedSize) {
         this.queuedSize = queuedSize;
     }
 
@@ -140,7 +140,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -152,7 +152,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -164,7 +164,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -176,7 +176,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return destinationName;
     }
 
-    public void setDestinationName(String destinationName) {
+    public void setDestinationName(final String destinationName) {
         this.destinationName = destinationName;
     }
 
@@ -188,7 +188,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return predictions;
     }
 
-    public void setPredictions(ConnectionStatusPredictionsSnapshotDTO predictions) {
+    public void setPredictions(final ConnectionStatusPredictionsSnapshotDTO predictions) {
         this.predictions = predictions;
     }
 
@@ -213,7 +213,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(Integer flowFilesIn) {
+    public void setFlowFilesIn(final Integer flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -222,7 +222,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return bytesIn;
     }
 
-    public void setBytesIn(Long bytesIn) {
+    public void setBytesIn(final Long bytesIn) {
         this.bytesIn = bytesIn;
     }
 
@@ -231,7 +231,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(Integer flowFilesOut) {
+    public void setFlowFilesOut(final Integer flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -240,7 +240,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return bytesOut;
     }
 
-    public void setBytesOut(Long bytesOut) {
+    public void setBytesOut(final Long bytesOut) {
         this.bytesOut = bytesOut;
     }
 
@@ -249,7 +249,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return flowFilesQueued;
     }
 
-    public void setFlowFilesQueued(Integer flowFilesQueued) {
+    public void setFlowFilesQueued(final Integer flowFilesQueued) {
         this.flowFilesQueued = flowFilesQueued;
     }
 
@@ -258,7 +258,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return bytesQueued;
     }
 
-    public void setBytesQueued(Long bytesQueued) {
+    public void setBytesQueued(final Long bytesQueued) {
         this.bytesQueued = bytesQueued;
     }
 
@@ -267,7 +267,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return percentUseCount;
     }
 
-    public void setPercentUseCount(Integer percentUseCount) {
+    public void setPercentUseCount(final Integer percentUseCount) {
         this.percentUseCount = percentUseCount;
     }
 
@@ -276,7 +276,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return percentUseBytes;
     }
 
-    public void setPercentUseBytes(Integer percentUseBytes) {
+    public void setPercentUseBytes(final Integer percentUseBytes) {
         this.percentUseBytes = percentUseBytes;
     }
 
@@ -297,7 +297,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         return loadBalanceStatus;
     }
 
-    public void setLoadBalanceStatus(LoadBalanceStatus loadBalanceStatus) {
+    public void setLoadBalanceStatus(final LoadBalanceStatus loadBalanceStatus) {
         this.loadBalanceStatus = loadBalanceStatus;
     }
 

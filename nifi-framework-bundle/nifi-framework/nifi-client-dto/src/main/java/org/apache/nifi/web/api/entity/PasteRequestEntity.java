@@ -40,7 +40,7 @@ public class PasteRequestEntity extends Entity {
         return copyResponse;
     }
 
-    public void setCopyResponse(CopyResponseEntity copyResponse) {
+    public void setCopyResponse(final CopyResponseEntity copyResponse) {
         this.copyResponse = copyResponse;
     }
 
@@ -53,7 +53,7 @@ public class PasteRequestEntity extends Entity {
         return revision;
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
 
@@ -64,7 +64,7 @@ public class PasteRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

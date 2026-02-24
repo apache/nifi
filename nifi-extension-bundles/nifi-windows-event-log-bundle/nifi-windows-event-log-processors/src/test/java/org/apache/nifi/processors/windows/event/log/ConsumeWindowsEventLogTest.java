@@ -106,13 +106,13 @@ public class ConsumeWindowsEventLogTest {
     public void testProcessesBlockedEvents() {
         testRunner.setProperty(ConsumeWindowsEventLog.MAX_EVENT_QUEUE_SIZE, "1");
         testRunner.run(1, false, true);
-        EventSubscribeXmlRenderingCallback renderingCallback = getRenderingCallback();
+        final EventSubscribeXmlRenderingCallback renderingCallback = getRenderingCallback();
 
-        List<String> eventXmls = Arrays.asList("one", "two", "three", "four", "five", "six");
-        List<WinNT.HANDLE> eventHandles = mockEventHandles(wEvtApi, kernel32, eventXmls);
-        AtomicBoolean done = new AtomicBoolean(false);
+        final List<String> eventXmls = Arrays.asList("one", "two", "three", "four", "five", "six");
+        final List<WinNT.HANDLE> eventHandles = mockEventHandles(wEvtApi, kernel32, eventXmls);
+        final AtomicBoolean done = new AtomicBoolean(false);
         new Thread(() -> {
-            for (WinNT.HANDLE eventHandle : eventHandles) {
+            for (final WinNT.HANDLE eventHandle : eventHandles) {
                 renderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, eventHandle);
             }
             done.set(true);
@@ -130,7 +130,7 @@ public class ConsumeWindowsEventLogTest {
 
         testRunner.run(1, true, false);
 
-        List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS);
+        final List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS);
         assertEquals(eventXmls.size(), flowFilesForRelationship.size());
         for (int i = 0; i < eventXmls.size(); i++) {
             flowFilesForRelationship.get(i).assertContentEquals(eventXmls.get(i));
@@ -141,14 +141,14 @@ public class ConsumeWindowsEventLogTest {
     public void testStopProcessesQueue() throws InvocationTargetException, IllegalAccessException {
         testRunner.run(1, false);
 
-        List<String> eventXmls = Arrays.asList("one", "two", "three");
-        for (WinNT.HANDLE eventHandle : mockEventHandles(wEvtApi, kernel32, eventXmls)) {
+        final List<String> eventXmls = Arrays.asList("one", "two", "three");
+        for (final WinNT.HANDLE eventHandle : mockEventHandles(wEvtApi, kernel32, eventXmls)) {
             getRenderingCallback().onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, eventHandle);
         }
 
         ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, evtSubscribe, testRunner.getProcessContext());
 
-        List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS);
+        final List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(ConsumeWindowsEventLog.REL_SUCCESS);
         assertEquals(eventXmls.size(), flowFilesForRelationship.size());
         for (int i = 0; i < eventXmls.size(); i++) {
             flowFilesForRelationship.get(i).assertContentEquals(eventXmls.get(i));
@@ -170,10 +170,10 @@ public class ConsumeWindowsEventLogTest {
 
         testRunner.run(1, false, true);
 
-        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
-        List<EventSubscribeXmlRenderingCallback> renderingCallbacks = getRenderingCallbacks(2);
-        EventSubscribeXmlRenderingCallback subscribeRenderingCallback = renderingCallbacks.get(0);
-        EventSubscribeXmlRenderingCallback renderingCallback = renderingCallbacks.get(1);
+        final WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
+        final List<EventSubscribeXmlRenderingCallback> renderingCallbacks = getRenderingCallbacks(2);
+        final EventSubscribeXmlRenderingCallback subscribeRenderingCallback = renderingCallbacks.get(0);
+        final EventSubscribeXmlRenderingCallback renderingCallback = renderingCallbacks.get(1);
         renderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
 
         testRunner.run(1, true, false);
@@ -210,7 +210,7 @@ public class ConsumeWindowsEventLogTest {
     public void testScheduleQueueStopThrowsException() throws Throwable {
         ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, evtSubscribe, testRunner.getProcessContext());
 
-        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
+        final WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, List.of("test")).getFirst();
         getRenderingCallback().onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
 
         assertThrows(ProcessException.class, () -> {
@@ -226,8 +226,8 @@ public class ConsumeWindowsEventLogTest {
         return getRenderingCallbacks(1).getFirst();
     }
 
-    public List<EventSubscribeXmlRenderingCallback> getRenderingCallbacks(int times) {
-        ArgumentCaptor<EventSubscribeXmlRenderingCallback> callbackArgumentCaptor = ArgumentCaptor.forClass(EventSubscribeXmlRenderingCallback.class);
+    public List<EventSubscribeXmlRenderingCallback> getRenderingCallbacks(final int times) {
+        final ArgumentCaptor<EventSubscribeXmlRenderingCallback> callbackArgumentCaptor = ArgumentCaptor.forClass(EventSubscribeXmlRenderingCallback.class);
         verify(wEvtApi, times(times)).EvtSubscribe(isNull(), isNull(), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
                 isNull(), isNull(), callbackArgumentCaptor.capture(),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT));
@@ -259,15 +259,15 @@ public class ConsumeWindowsEventLogTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    public static List<WinNT.HANDLE> mockEventHandles(WEvtApi wEvtApi, Kernel32 kernel32, List<String> eventXmls) {
-        List<WinNT.HANDLE> eventHandles = new ArrayList<>();
-        for (String eventXml : eventXmls) {
-            WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
+    public static List<WinNT.HANDLE> mockEventHandles(final WEvtApi wEvtApi, final Kernel32 kernel32, final List<String> eventXmls) {
+        final List<WinNT.HANDLE> eventHandles = new ArrayList<>();
+        for (final String eventXml : eventXmls) {
+            final WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
             when(wEvtApi.EvtRender(isNull(), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
                     anyInt(), any(Pointer.class), any(Pointer.class), any(Pointer.class))).thenAnswer(invocation -> {
-                        Object[] arguments = invocation.getArguments();
-                        Pointer bufferUsed = (Pointer) arguments[5];
-                        byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
+                        final Object[] arguments = invocation.getArguments();
+                        final Pointer bufferUsed = (Pointer) arguments[5];
+                        final byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
                         if (array.length > (int) arguments[3]) {
                             when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
                         } else {
@@ -281,9 +281,9 @@ public class ConsumeWindowsEventLogTest {
         return eventHandles;
     }
 
-    private static Set<MockProcessSession> getCreatedSessions(TestRunner testRunner) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        MockSessionFactory processSessionFactory = (MockSessionFactory) testRunner.getProcessSessionFactory();
-        Method getCreatedSessions = processSessionFactory.getClass().getDeclaredMethod("getCreatedSessions");
+    private static Set<MockProcessSession> getCreatedSessions(final TestRunner testRunner) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        final MockSessionFactory processSessionFactory = (MockSessionFactory) testRunner.getProcessSessionFactory();
+        final Method getCreatedSessions = processSessionFactory.getClass().getDeclaredMethod("getCreatedSessions");
         getCreatedSessions.setAccessible(true);
         return (Set<MockProcessSession>) getCreatedSessions.invoke(processSessionFactory);
     }

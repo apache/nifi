@@ -285,8 +285,8 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
                 .collect(Collectors.joining(","));
     }
 
-    protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
-        flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
+    protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, final FlowFile flowFileArg) {
+        FlowFile flowFile = session.putAttribute(flowFileArg, "s3.exception", e.getClass().getName());
         if (e instanceof final AwsServiceException ase) {
             flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.statusCode());
             final AwsErrorDetails errorDetails = ase.awsErrorDetails();

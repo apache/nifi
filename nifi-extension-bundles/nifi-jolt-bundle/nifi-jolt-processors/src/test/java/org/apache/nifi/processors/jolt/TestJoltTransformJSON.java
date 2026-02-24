@@ -82,7 +82,7 @@ class TestJoltTransformJSON {
     void testRelationshipsCreated() throws IOException {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.enqueue(JSON_INPUT);
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformJSON.REL_FAILURE));
         assertTrue(relationships.contains(JoltTransformJSON.REL_SUCCESS));
         assertEquals(2, relationships.size());
@@ -92,7 +92,7 @@ class TestJoltTransformJSON {
     void testRelationshipsCreatedFromFile() throws IOException {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, CHAINR_SPEC_PATH);
         runner.enqueue(JSON_INPUT);
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformJSON.REL_FAILURE));
         assertTrue(relationships.contains(JoltTransformJSON.REL_SUCCESS));
         assertEquals(2, relationships.size());
@@ -100,7 +100,7 @@ class TestJoltTransformJSON {
 
     @Test
     void testInvalidJOLTSpec() {
-        String spec = "[{}]";
+        final String spec = "[{}]";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.assertNotValid();
 
@@ -211,7 +211,7 @@ class TestJoltTransformJSON {
 
     @ParameterizedTest()
     @MethodSource("getChainrArguments")
-    void testTransformInputWithChainr(Path specPath) throws IOException {
+    void testTransformInputWithChainr(final Path specPath) throws IOException {
         final String spec = Files.readString(specPath);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
@@ -256,7 +256,7 @@ class TestJoltTransformJSON {
         assertTransformedEquals(SHIFTR_JSON_OUTPUT);
     }
 
-    String addAccentedChars(String input) {
+    String addAccentedChars(final String input) {
         return input.replace("\"primary\"", "\"primaryÄÖÜ\"");
     }
 
@@ -313,10 +313,10 @@ class TestJoltTransformJSON {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
-        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
-        String transformedJsonString = JsonUtils.toJsonString(transformedJson);
-        String compareJsonString = JsonUtils.toJsonString(compareJson);
+        final Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        final Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
+        final String transformedJsonString = JsonUtils.toJsonString(transformedJson);
+        final String compareJsonString = JsonUtils.toJsonString(compareJson);
         assertEquals(compareJsonString, transformedJsonString);
     }
 
@@ -375,10 +375,10 @@ class TestJoltTransformJSON {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
-        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
-        String transformedJsonString = JsonUtils.toJsonString(transformedJson);
-        String compareJsonString = JsonUtils.toJsonString(compareJson);
+        final Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        final Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/sortrOutput.json")));
+        final String transformedJsonString = JsonUtils.toJsonString(transformedJson);
+        final String compareJsonString = JsonUtils.toJsonString(compareJson);
         assertEquals(compareJsonString, transformedJsonString);
     }
 
@@ -398,7 +398,7 @@ class TestJoltTransformJSON {
     void testExpressionLanguageJarFile() throws IOException {
         final String customJoltTransform = CUSTOM_CLASS_NAME;
 
-        Map<String, String> customSpecs = new HashMap<>();
+        final Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", chainrSpecContents);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, "${JOLT_SPEC}");
@@ -471,8 +471,8 @@ class TestJoltTransformJSON {
     }
 
     private static Stream<Arguments> provideJsonSourceAttributeArguments() {
-        String INVALID_INPUT_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":}}}";
-        String EXPECTED_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}";
+        final String INVALID_INPUT_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":}}}";
+        final String EXPECTED_JSON = "{\"rating\":{\"primary\":{\"value\":3},\"series\":{\"value\":[5,4]},\"quality\":{\"value\":3}}}";
 
         return Stream.of(
                 Arguments.argumentSet("testJsonAttributeNotInitialised", JSON_SOURCE_ATTR_NAME, null,
@@ -486,12 +486,12 @@ class TestJoltTransformJSON {
 
     @ParameterizedTest
     @MethodSource("provideJsonSourceAttributeArguments")
-    void testJsonSourceAttribute(String jsonSourceAttribute,
-                                 Map<String, String> flowFileAttributes,
-                                 String joltSpec,
-                                 JoltTransformStrategy joltStrategy,
-                                 boolean expectSuccess,
-                                 String expectedOutputFile) throws IOException {
+    void testJsonSourceAttribute(final String jsonSourceAttribute,
+                                 final Map<String, String> flowFileAttributes,
+                                 final String joltSpec,
+                                 final JoltTransformStrategy joltStrategy,
+                                 final boolean expectSuccess,
+                                 final String expectedOutputFile) throws IOException {
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, joltSpec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, joltStrategy);
         runner.setProperty(JoltTransformJSON.JSON_SOURCE, JsonSourceStrategy.ATTRIBUTE);

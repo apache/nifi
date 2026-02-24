@@ -197,7 +197,7 @@ class TestFilterAttribute {
             runTestWith(attributes, attributeSet, expectedAttributes);
         }
 
-        private void runTestWith(Map<String, String> attributes, String attributeSet, Set<String> expectedAttributes) {
+        private void runTestWith(final Map<String, String> attributes, final String attributeSet, final Set<String> expectedAttributes) {
             runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.ENUMERATION);
             runner.setProperty(FilterAttribute.ATTRIBUTE_ENUMERATION, attributeSet);
 
@@ -211,12 +211,12 @@ class TestFilterAttribute {
             runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, 1);
             final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS).getFirst();
             result.assertContentEquals(exampleContent);
-            for (String expectedName : expectedAttributes) {
+            for (final String expectedName : expectedAttributes) {
                 final String expectedValue = inputAttributes.get(expectedName);
 
                 result.assertAttributeEquals(expectedName, expectedValue);
             }
-            for (String notExpectedName : notExpectedAttributes) {
+            for (final String notExpectedName : notExpectedAttributes) {
                 result.assertAttributeNotExists(notExpectedName);
             }
         }
@@ -315,11 +315,11 @@ class TestFilterAttribute {
             runTestWith(attributes, attributeRegex, expectedAttributes);
         }
 
-        private void runTestWith(Map<String, String> attributes, Pattern regex, Set<String> expectedAttributes) {
+        private void runTestWith(final Map<String, String> attributes, final Pattern regex, final Set<String> expectedAttributes) {
             runTestWith(attributes, regex.pattern(), expectedAttributes);
         }
 
-        private void runTestWith(Map<String, String> attributes, String regexPattern, Set<String> expectedAttributes) {
+        private void runTestWith(final Map<String, String> attributes, final String regexPattern, final Set<String> expectedAttributes) {
             runner.setProperty(FilterAttribute.MATCHING_STRATEGY, FilterAttribute.MatchingStrategy.PATTERN);
             runner.setProperty(FilterAttribute.ATTRIBUTE_PATTERN, regexPattern);
 
@@ -333,12 +333,12 @@ class TestFilterAttribute {
             runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, 1);
             final MockFlowFile result = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS).getFirst();
             result.assertContentEquals(exampleContent);
-            for (String expectedName : expectedAttributes) {
+            for (final String expectedName : expectedAttributes) {
                 final String expectedValue = inputAttributes.get(expectedName);
 
                 result.assertAttributeEquals(expectedName, expectedValue);
             }
-            for (String notExpectedName : notExpectedAttributes) {
+            for (final String notExpectedName : notExpectedAttributes) {
                 result.assertAttributeNotExists(notExpectedName);
             }
         }
@@ -359,7 +359,7 @@ class TestFilterAttribute {
 
         runner.run(flowFileCount);
         runner.assertAllFlowFilesTransferred(FilterAttribute.REL_SUCCESS, flowFileCount);
-        List<MockFlowFile> resultFlowFiles = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS);
+        final List<MockFlowFile> resultFlowFiles = runner.getFlowFilesForRelationship(FilterAttribute.REL_SUCCESS);
         for (final MockFlowFile resultFlowFile : resultFlowFiles) {
             resultFlowFile.assertAttributeExists("foo");
             resultFlowFile.assertAttributeNotExists("bar");

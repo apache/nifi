@@ -126,7 +126,7 @@ public class StatusMerger {
         }
     }
 
-    public static void merge(final ProcessGroupStatusSnapshotEntity target, ProcessGroupStatusSnapshotEntity toMerge) {
+    public static void merge(final ProcessGroupStatusSnapshotEntity target, final ProcessGroupStatusSnapshotEntity toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
@@ -190,7 +190,7 @@ public class StatusMerger {
         }
 
         for (final ConnectionStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getConnectionStatusSnapshots())) {
-            ConnectionStatusSnapshotEntity merged = mergedConnectionMap.get(statusToMerge.getId());
+            final ConnectionStatusSnapshotEntity merged = mergedConnectionMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedConnectionMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -207,7 +207,7 @@ public class StatusMerger {
         }
 
         for (final ProcessorStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getProcessorStatusSnapshots())) {
-            ProcessorStatusSnapshotEntity merged = mergedProcessorMap.get(statusToMerge.getId());
+            final ProcessorStatusSnapshotEntity merged = mergedProcessorMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedProcessorMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -224,7 +224,7 @@ public class StatusMerger {
         }
 
         for (final PortStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getInputPortStatusSnapshots())) {
-            PortStatusSnapshotEntity merged = mergedInputPortMap.get(statusToMerge.getId());
+            final PortStatusSnapshotEntity merged = mergedInputPortMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedInputPortMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -241,7 +241,7 @@ public class StatusMerger {
         }
 
         for (final PortStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getOutputPortStatusSnapshots())) {
-            PortStatusSnapshotEntity merged = mergedOutputPortMap.get(statusToMerge.getId());
+            final PortStatusSnapshotEntity merged = mergedOutputPortMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedOutputPortMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -258,7 +258,7 @@ public class StatusMerger {
         }
 
         for (final ProcessGroupStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getProcessGroupStatusSnapshots())) {
-            ProcessGroupStatusSnapshotEntity merged = mergedGroupMap.get(statusToMerge.getId());
+            final ProcessGroupStatusSnapshotEntity merged = mergedGroupMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedGroupMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -275,7 +275,7 @@ public class StatusMerger {
         }
 
         for (final RemoteProcessGroupStatusSnapshotEntity statusToMerge : replaceNull(toMerge.getRemoteProcessGroupStatusSnapshots())) {
-            RemoteProcessGroupStatusSnapshotEntity merged = mergedRemoteGroupMap.get(statusToMerge.getId());
+            final RemoteProcessGroupStatusSnapshotEntity merged = mergedRemoteGroupMap.get(statusToMerge.getId());
             if (merged == null) {
                 mergedRemoteGroupMap.put(statusToMerge.getId(), statusToMerge.clone());
                 continue;
@@ -413,7 +413,7 @@ public class StatusMerger {
         }
     }
 
-    public static void merge(final ProcessorStatusSnapshotEntity target, ProcessorStatusSnapshotEntity toMerge) {
+    public static void merge(final ProcessorStatusSnapshotEntity target, final ProcessorStatusSnapshotEntity toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
@@ -474,7 +474,7 @@ public class StatusMerger {
         target.setTasksDuration(FormatUtils.formatHoursMinutesSeconds(target.getTasksDurationNanos(), TimeUnit.NANOSECONDS));
     }
 
-    public static void merge(final ConnectionStatusSnapshotEntity target, ConnectionStatusSnapshotEntity toMerge) {
+    public static void merge(final ConnectionStatusSnapshotEntity target, final ConnectionStatusSnapshotEntity toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
@@ -523,8 +523,8 @@ public class StatusMerger {
         }
 
         // Merge predicted values (minimum time to backpressure, maximum percent at next interval
-        ConnectionStatusPredictionsSnapshotDTO targetPredictions = target.getPredictions();
-        ConnectionStatusPredictionsSnapshotDTO toMergePredictions = toMerge.getPredictions();
+        final ConnectionStatusPredictionsSnapshotDTO targetPredictions = target.getPredictions();
+        final ConnectionStatusPredictionsSnapshotDTO toMergePredictions = toMerge.getPredictions();
 
         if (targetPredictions == null) {
             target.setPredictions(toMergePredictions);
@@ -563,7 +563,7 @@ public class StatusMerger {
         updatePrettyPrintedFields(target);
     }
 
-    private static long minNonNegative(long a, long b) {
+    private static long minNonNegative(final long a, final long b) {
         if (a < 0) {
             return b;
         } else if (b < 0) {
@@ -581,7 +581,7 @@ public class StatusMerger {
         target.setOutput(prettyPrint(target.getFlowFilesOut(), target.getBytesOut()));
     }
 
-    public static void merge(final RemoteProcessGroupStatusSnapshotEntity target, RemoteProcessGroupStatusSnapshotEntity toMerge) {
+    public static void merge(final RemoteProcessGroupStatusSnapshotEntity target, final RemoteProcessGroupStatusSnapshotEntity toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
@@ -622,7 +622,7 @@ public class StatusMerger {
         target.setSent(prettyPrint(target.getFlowFilesSent(), target.getBytesSent()));
     }
 
-    public static void merge(final PortStatusSnapshotEntity target, PortStatusSnapshotEntity toMerge) {
+    public static void merge(final PortStatusSnapshotEntity target, final PortStatusSnapshotEntity toMerge) {
         if (target == null || toMerge == null) {
             return;
         }
@@ -696,7 +696,7 @@ public class StatusMerger {
             target.setMaxNonHeapBytes(-1L);
         }
         double systemLoad = target.getProcessorLoadAverage();
-        double toMergeSystemLoad = toMerge.getProcessorLoadAverage();
+        final double toMergeSystemLoad = toMerge.getProcessorLoadAverage();
         if (systemLoad >= 0 && toMergeSystemLoad >= 0) {
             systemLoad += toMergeSystemLoad;
         } else if (systemLoad < 0 && toMergeSystemLoad >= 0) {

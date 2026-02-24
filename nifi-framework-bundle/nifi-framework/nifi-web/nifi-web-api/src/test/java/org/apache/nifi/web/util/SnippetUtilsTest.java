@@ -48,16 +48,16 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateWithSameSeedSameInceptionIdSameInstanceId() throws Exception {
-        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+        final Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
 
-        SnippetUtils utils = new SnippetUtils();
-        String currentId = ComponentIdGenerator.generateId().toString();
-        String seed = ComponentIdGenerator.generateId().toString();
-        String id1 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
-        String id2 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
-        String id3 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
+        final SnippetUtils utils = new SnippetUtils();
+        final String currentId = ComponentIdGenerator.generateId().toString();
+        final String seed = ComponentIdGenerator.generateId().toString();
+        final String id1 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
+        final String id2 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
+        final String id3 = (String) generateIdMethod.invoke(utils, currentId, seed, true);
         assertEquals(id1, id2);
         assertEquals(id2, id3);
     }
@@ -70,29 +70,29 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateWithSameSeedSameInceptionIdNotSameInstanceIdIsCopySet() throws Exception {
-        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+        final Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
 
-        SnippetUtils utils = new SnippetUtils();
-        String seed = ComponentIdGenerator.generateId().toString();
+        final SnippetUtils utils = new SnippetUtils();
+        final String seed = ComponentIdGenerator.generateId().toString();
 
-        UUID rootId = ComponentIdGenerator.generateId();
+        final UUID rootId = ComponentIdGenerator.generateId();
 
-        String id1 = (String) generateIdMethod.invoke(utils,
+        final String id1 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, true);
-        String id2 = (String) generateIdMethod.invoke(utils,
+        final String id2 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, true);
-        String id3 = (String) generateIdMethod.invoke(utils,
+        final String id3 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, true);
         assertNotEquals(id1, id2);
         assertNotEquals(id2, id3);
-        UUID uuid1 = UUID.fromString(id1);
-        UUID uuid2 = UUID.fromString(id2);
-        UUID uuid3 = UUID.fromString(id3);
+        final UUID uuid1 = UUID.fromString(id1);
+        final UUID uuid2 = UUID.fromString(id2);
+        final UUID uuid3 = UUID.fromString(id3);
         // below simply validates that generated UUID is type-one, since timestamp() operation will result
         // in exception if generated UUID is not type-one
         uuid1.timestamp();
@@ -110,29 +110,29 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateWithSameSeedSameInceptionIdNotSameInstanceIdIsCopyNotSet() throws Exception {
-        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+        final Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
 
-        SnippetUtils utils = new SnippetUtils();
-        String seed = ComponentIdGenerator.generateId().toString();
+        final SnippetUtils utils = new SnippetUtils();
+        final String seed = ComponentIdGenerator.generateId().toString();
 
-        UUID rootId = ComponentIdGenerator.generateId();
+        final UUID rootId = ComponentIdGenerator.generateId();
 
-        String id1 = (String) generateIdMethod.invoke(utils,
+        final String id1 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, false);
-        String id2 = (String) generateIdMethod.invoke(utils,
+        final String id2 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, false);
-        String id3 = (String) generateIdMethod.invoke(utils,
+        final String id3 = (String) generateIdMethod.invoke(utils,
                 new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
                 seed, false);
         assertNotEquals(id1, id2);
         assertNotEquals(id2, id3);
-        UUID uuid1 = UUID.fromString(id1);
-        UUID uuid2 = UUID.fromString(id2);
-        UUID uuid3 = UUID.fromString(id3);
+        final UUID uuid1 = UUID.fromString(id1);
+        final UUID uuid2 = UUID.fromString(id2);
+        final UUID uuid3 = UUID.fromString(id3);
         // below simply validates that generated UUID is type-one, since timestamp() operation will result
         // in exception if generated UUID is not type-one
         uuid1.timestamp();
@@ -149,17 +149,17 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateWithoutSeedSameCurrentIdIsCopySet() throws Exception {
-        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+        final Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
 
-        boolean isCopy = true;
+        final boolean isCopy = true;
 
-        SnippetUtils utils = new SnippetUtils();
-        String currentId = ComponentIdGenerator.generateId().toString();
-        UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
-        UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
-        UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final SnippetUtils utils = new SnippetUtils();
+        final String currentId = ComponentIdGenerator.generateId().toString();
+        final UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         // below simply validates that generated UUID is type-one, since timestamp() operation will result
         // in exception if generated UUID is not type-one
         id1.timestamp();
@@ -177,17 +177,17 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateWithoutSeedSameCurrentIdIsCopyNotSet() throws Exception {
-        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+        final Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
 
-        boolean isCopy = false;
+        final boolean isCopy = false;
 
-        SnippetUtils utils = new SnippetUtils();
-        String currentId = ComponentIdGenerator.generateId().toString();
-        UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
-        UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
-        UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final SnippetUtils utils = new SnippetUtils();
+        final String currentId = ComponentIdGenerator.generateId().toString();
+        final UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        final UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         // below simply validates that generated UUID is type-one, since timestamp() operation will result
         // in exception if generated UUID is not type-one
         id1.timestamp();
@@ -203,21 +203,21 @@ public class SnippetUtilsTest {
      */
     @Test
     public void validateIdOrdering() {
-        UUID seed = ComponentIdGenerator.generateId();
-        UUID currentId1 = ComponentIdGenerator.generateId();
-        UUID currentId2 = ComponentIdGenerator.generateId();
-        UUID currentId3 = ComponentIdGenerator.generateId();
+        final UUID seed = ComponentIdGenerator.generateId();
+        final UUID currentId1 = ComponentIdGenerator.generateId();
+        final UUID currentId2 = ComponentIdGenerator.generateId();
+        final UUID currentId3 = ComponentIdGenerator.generateId();
 
-        UUID id1 = new UUID(currentId1.getMostSignificantBits(),
+        final UUID id1 = new UUID(currentId1.getMostSignificantBits(),
                 UUID.nameUUIDFromBytes((currentId1 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
-        UUID id2 = new UUID(currentId2.getMostSignificantBits(),
+        final UUID id2 = new UUID(currentId2.getMostSignificantBits(),
                 UUID.nameUUIDFromBytes((currentId2 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
-        UUID id3 = new UUID(currentId3.getMostSignificantBits(),
+        final UUID id3 = new UUID(currentId3.getMostSignificantBits(),
                 UUID.nameUUIDFromBytes((currentId3 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
-        List<UUID> list = new ArrayList<>();
+        final List<UUID> list = new ArrayList<>();
         list.add(id2);
         list.add(id3);
         list.add(id1);

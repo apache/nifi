@@ -27,7 +27,7 @@ import java.io.IOException;
  * Node representing an xml attribute
  */
 public class AttributeNode extends BxmlNodeWithTokenAndString {
-    public AttributeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public AttributeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
     }
@@ -38,7 +38,7 @@ public class AttributeNode extends BxmlNodeWithTokenAndString {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 

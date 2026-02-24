@@ -28,12 +28,12 @@ import java.nio.file.Paths;
  */
 public class HashiCorpVaultApplicationContext extends StaticApplicationContext {
 
-    public HashiCorpVaultApplicationContext(ConfigurableEnvironment env) {
+    public HashiCorpVaultApplicationContext(final ConfigurableEnvironment env) {
         this.setEnvironment(env);
     }
 
     @Override
-    public Resource getResource(String location) {
+    public Resource getResource(final String location) {
         return new FileSystemResource(Paths.get(location));
     }
 }

@@ -35,7 +35,7 @@ public class GetBundleChecksum extends AbstractNiFiRegistryCommand<StringResult>
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.BUCKET_NAME.createOption());
         addOption(CommandOption.EXT_BUNDLE_GROUP.createOption());
         addOption(CommandOption.EXT_BUNDLE_ARTIFACT.createOption());

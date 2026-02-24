@@ -36,7 +36,7 @@ public class ReportingTaskTypesEntity extends Entity {
         return reportingTaskTypes;
     }
 
-    public void setReportingTaskTypes(Set<DocumentedTypeDTO> reportingTaskTypes) {
+    public void setReportingTaskTypes(final Set<DocumentedTypeDTO> reportingTaskTypes) {
         this.reportingTaskTypes = reportingTaskTypes;
     }
 

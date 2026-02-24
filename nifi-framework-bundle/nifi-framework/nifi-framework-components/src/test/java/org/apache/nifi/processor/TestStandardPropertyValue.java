@@ -111,7 +111,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testGetValueAsAllowableValue() {
-        for (ExampleDescribedValueEnum enumValue : ExampleDescribedValueEnum.values()) {
+        for (final ExampleDescribedValueEnum enumValue : ExampleDescribedValueEnum.values()) {
             final PropertyValue value = new StandardPropertyValue(enumValue.getValue(), lookup, ParameterLookup.EMPTY);
             assertEquals(enumValue, value.asAllowableValue(ExampleDescribedValueEnum.class));
         }
@@ -119,13 +119,13 @@ public class TestStandardPropertyValue {
         final PropertyValue nullDescribedValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
         assertNull(nullDescribedValue.asAllowableValue(ExampleDescribedValueEnum.class));
 
-        IllegalArgumentException describedValueException = assertThrows(IllegalArgumentException.class, () -> {
+        final IllegalArgumentException describedValueException = assertThrows(IllegalArgumentException.class, () -> {
             final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
             invalidValue.asAllowableValue(ExampleDescribedValueEnum.class);
         });
         assertEquals("ExampleDescribedValueEnum does not have an entry with value FOO", describedValueException.getMessage());
 
-        for (ExampleNonDescribedValueEnum enumValue : ExampleNonDescribedValueEnum.values()) {
+        for (final ExampleNonDescribedValueEnum enumValue : ExampleNonDescribedValueEnum.values()) {
             final PropertyValue value = new StandardPropertyValue(enumValue.name(), lookup, ParameterLookup.EMPTY);
             assertEquals(enumValue, value.asAllowableValue(ExampleNonDescribedValueEnum.class));
         }
@@ -133,7 +133,7 @@ public class TestStandardPropertyValue {
         final PropertyValue nullValue = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
         assertNull(nullValue.asAllowableValue(ExampleNonDescribedValueEnum.class));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             final PropertyValue invalidValue = new StandardPropertyValue("FOO", lookup, ParameterLookup.EMPTY);
             invalidValue.asAllowableValue(ExampleNonDescribedValueEnum.class);
         });
@@ -164,7 +164,7 @@ public class TestStandardPropertyValue {
         final PropertyValue value = new StandardPropertyValue(null, lookup, ParameterLookup.EMPTY);
 
         // Act
-        boolean elPresent = value.isExpressionLanguagePresent();
+        final boolean elPresent = value.isExpressionLanguagePresent();
 
         // Assert
         assertFalse(elPresent);

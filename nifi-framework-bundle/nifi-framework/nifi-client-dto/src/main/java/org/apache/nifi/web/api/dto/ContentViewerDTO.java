@@ -39,7 +39,7 @@ public class ContentViewerDTO {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -51,7 +51,7 @@ public class ContentViewerDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -63,7 +63,7 @@ public class ContentViewerDTO {
         return supportedMimeTypes;
     }
 
-    public void setSupportedMimeTypes(List<SupportedMimeTypesDTO> supportedMimeTypes) {
+    public void setSupportedMimeTypes(final List<SupportedMimeTypesDTO> supportedMimeTypes) {
         this.supportedMimeTypes = supportedMimeTypes;
     }
 }

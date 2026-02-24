@@ -55,7 +55,7 @@ public class TestXMLReaderProcessor extends AbstractProcessor {
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").description("success").build();
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         final RecordReaderFactory readerFactory = context.getProperty(XML_READER).asControllerService(RecordReaderFactory.class);
         final String recordFieldAsString = context.getProperty(RECORD_FIELD_TO_GET_AS_STRING).getValue();
@@ -72,7 +72,7 @@ public class TestXMLReaderProcessor extends AbstractProcessor {
                     records.add(record.getAsString(recordFieldAsString));
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 

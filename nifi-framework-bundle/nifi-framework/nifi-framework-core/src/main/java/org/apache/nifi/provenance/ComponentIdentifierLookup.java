@@ -64,10 +64,10 @@ public class ComponentIdentifierLookup implements IdentifierLookup {
 
     @Override
     public List<String> getQueueIdentifiers() {
-        Set<Connection> connectionSet = flowController.getFlowManager().findAllConnections();
-        List<String> identifiers = new ArrayList<>(connectionSet.size());
+        final Set<Connection> connectionSet = flowController.getFlowManager().findAllConnections();
+        final List<String> identifiers = new ArrayList<>(connectionSet.size());
 
-        for (Connection c : connectionSet) {
+        for (final Connection c : connectionSet) {
             identifiers.add(c.getIdentifier());
         }
         return identifiers;

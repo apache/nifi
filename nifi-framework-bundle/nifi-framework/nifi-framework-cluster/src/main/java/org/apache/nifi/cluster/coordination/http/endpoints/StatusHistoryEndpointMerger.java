@@ -95,7 +95,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     }
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (!"GET".equalsIgnoreCase(method)) {
             return false;
         }
@@ -105,7 +105,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
     }
 
     @Override
-    public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
+    public NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         final Map<String, MetricDescriptor<?>> metricDescriptors = getStandardMetricDescriptors(uri);
 
         final StatusHistoryEntity responseEntity = clientResponse.getClientResponse().readEntity(StatusHistoryEntity.class);
@@ -202,7 +202,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
                 final StatusSnapshot snapshot = createSnapshot(snapshotDto, metricDescriptors);
                 final Date normalizedDate = normalizeStatusSnapshotDate(snapshot.getTimestamp(), componentStatusSnapshotMillis);
 
-                Map<String, StatusSnapshot> nodeToSnapshotMap = dateToNodeSnapshots.computeIfAbsent(normalizedDate, k -> new HashMap<>());
+                final Map<String, StatusSnapshot> nodeToSnapshotMap = dateToNodeSnapshots.computeIfAbsent(normalizedDate, k -> new HashMap<>());
                 nodeToSnapshotMap.put(nodeStatusSnapshot.getNodeId(), snapshot);
             }
         }

@@ -40,7 +40,7 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
     }
 
     @Override
-    public synchronized void write(byte[] buffer, int offset, int length)
+    public synchronized void write(final byte[] buffer, final int offset, final int length)
             throws IOException {
         for (final Filter filter : multiByteFilters) {
             if (filter.matches(buffer, offset, length)) {
@@ -52,7 +52,7 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
     }
 
     @Override
-    public synchronized void write(int data) throws IOException {
+    public synchronized void write(final int data) throws IOException {
         for (final Filter filter : singleByteFilters) {
             if (filter.matches((byte) data)) {
                 wrapped.write(filter.replaceWith);

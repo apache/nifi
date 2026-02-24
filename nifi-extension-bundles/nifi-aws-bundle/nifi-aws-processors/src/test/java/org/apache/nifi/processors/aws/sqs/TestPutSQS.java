@@ -48,9 +48,9 @@ public class TestPutSQS {
     @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(SqsClient.class);
-        PutSQS mockPutSQS = new PutSQS() {
+        final PutSQS mockPutSQS = new PutSQS() {
             @Override
-            protected SqsClient getClient(ProcessContext context) {
+            protected SqsClient getClient(final ProcessContext context) {
                 return mockSQSClient;
             }
         };
@@ -67,14 +67,14 @@ public class TestPutSQS {
         attrs.put("filename", "1.txt");
         runner.enqueue("TestMessageBody", attrs);
 
-        SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder().build();
+        final SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder().build();
         Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
 
         runner.run(1);
 
-        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        final ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
-        SendMessageBatchRequest request = captureRequest.getValue();
+        final SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
         assertEquals("hello", request.entries().getFirst().messageAttributes().get("x-custom-prop").stringValue());
         assertEquals("TestMessageBody", request.entries().getFirst().messageBody());
@@ -94,9 +94,9 @@ public class TestPutSQS {
 
         runner.run(1);
 
-        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        final ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
-        SendMessageBatchRequest request = captureRequest.getValue();
+        final SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
         assertEquals("TestMessageBody", request.entries().getFirst().messageBody());
 
@@ -120,9 +120,9 @@ public class TestPutSQS {
 
         runner.run(1);
 
-        ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
+        final ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
-        SendMessageBatchRequest request = captureRequest.getValue();
+        final SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
         assertEquals("hello", request.entries().getFirst().messageAttributes().get("x-custom-prop").stringValue());
         assertEquals("TestMessageBody", request.entries().getFirst().messageBody());

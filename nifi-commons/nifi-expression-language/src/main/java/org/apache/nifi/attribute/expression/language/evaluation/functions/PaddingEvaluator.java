@@ -37,7 +37,7 @@ abstract class PaddingEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
@@ -49,7 +49,7 @@ abstract class PaddingEvaluator extends StringEvaluator {
 
         String padValue = DEFAULT_PADDING_STRING;
         if (pad != null) {
-            String s = pad.evaluate(evaluationContext).getValue();
+            final String s = pad.evaluate(evaluationContext).getValue();
             if (s != null && !s.isEmpty()) {
                 padValue = s;
             }

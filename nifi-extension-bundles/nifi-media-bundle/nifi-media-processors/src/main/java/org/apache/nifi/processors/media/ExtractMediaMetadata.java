@@ -144,8 +144,8 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
     @SuppressWarnings("unused")
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        String metadataKeyFilterInput = context.getProperty(METADATA_KEY_FILTER).getValue();
+    public void onScheduled(final ProcessContext context) {
+        final String metadataKeyFilterInput = context.getProperty(METADATA_KEY_FILTER).getValue();
         if (metadataKeyFilterInput != null && metadataKeyFilterInput.length() > 0) {
             metadataKeyFilterRef.set(Pattern.compile(metadataKeyFilterInput));
         } else {
@@ -171,30 +171,30 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         try {
             session.read(flowFile, in -> {
                 try {
-                    Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
+                    final Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
                     value.set(results);
-                } catch (SAXException | TikaException e) {
+                } catch (final SAXException | TikaException e) {
                     throw new IOException(e);
                 }
             });
 
             // Write the results to attributes
-            Map<String, String> results = value.get();
+            final Map<String, String> results = value.get();
             if (results != null && !results.isEmpty()) {
                 flowFile = session.putAllAttributes(flowFile, results);
             }
 
             session.transfer(flowFile, SUCCESS);
             session.getProvenanceReporter().modifyAttributes(flowFile, "media attributes extracted");
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             logger.error("Failed to extract media metadata from {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, FAILURE);
         }
     }
 
-    private Map<String, String> tika_parse(InputStream sourceStream, String prefix, Integer maxAttribs,
-                                           Integer maxAttribLen) throws IOException, TikaException, SAXException {
+    private Map<String, String> tika_parse(final InputStream sourceStream, final String prefix, final Integer maxAttribs,
+                                           final Integer maxAttribLen) throws IOException, TikaException, SAXException {
         final Metadata metadata = new Metadata();
         final TikaInputStream tikaInputStream = TikaInputStream.get(sourceStream);
 
@@ -220,7 +220,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
             }
             dataBuilder.setLength(0);
             if (metadata.isMultiValued(key)) {
-                for (String val : metadata.getValues(key)) {
+                for (final String val : metadata.getValues(key)) {
                     if (dataBuilder.length() > 1) {
                         dataBuilder.append(", ");
                     }

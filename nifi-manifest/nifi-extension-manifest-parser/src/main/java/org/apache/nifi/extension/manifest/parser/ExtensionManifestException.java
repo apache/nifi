@@ -18,11 +18,11 @@ package org.apache.nifi.extension.manifest.parser;
 
 public class ExtensionManifestException extends RuntimeException {
 
-    public ExtensionManifestException(String message) {
+    public ExtensionManifestException(final String message) {
         super(message);
     }
 
-    public ExtensionManifestException(String message, Throwable cause) {
+    public ExtensionManifestException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

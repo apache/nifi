@@ -111,7 +111,7 @@ public class StandardCounterRepositoryTest {
         assertEquals(3, resetCounters.size());
 
         // Verify all returned counters are reset
-        long totalValue = resetCounters.stream().mapToLong(Counter::getValue).sum();
+        final long totalValue = resetCounters.stream().mapToLong(Counter::getValue).sum();
         assertEquals(0, totalValue);
     }
 

@@ -50,13 +50,13 @@ public class ComponentStateAuditor extends NiFiAuditor {
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.ProcessorNode)) && "
         + "args(processor)")
-    public StateMap clearProcessorStateAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessorNode processor) throws Throwable {
+    public StateMap clearProcessorStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ProcessorNode processor) throws Throwable {
 
         // update the processors state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processor.getComponentType());
 
             // create the clear action
@@ -83,14 +83,14 @@ public class ComponentStateAuditor extends NiFiAuditor {
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.service.ControllerServiceNode)) && "
         + "args(controllerService)")
-    public StateMap clearControllerServiceStateAdvice(ProceedingJoinPoint proceedingJoinPoint, ControllerServiceNode controllerService) throws Throwable {
+    public StateMap clearControllerServiceStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ControllerServiceNode controllerService) throws Throwable {
 
         // update the controller service state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
             // create the controller service details
-            FlowChangeExtensionDetails controllerServiceDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails controllerServiceDetails = new FlowChangeExtensionDetails();
             controllerServiceDetails.setType(controllerService.getComponentType());
 
             // create the clear action
@@ -117,13 +117,13 @@ public class ComponentStateAuditor extends NiFiAuditor {
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.ReportingTaskNode)) && "
         + "args(reportingTask)")
-    public StateMap clearReportingTaskStateAdvice(ProceedingJoinPoint proceedingJoinPoint, ReportingTaskNode reportingTask) throws Throwable {
+    public StateMap clearReportingTaskStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ReportingTaskNode reportingTask) throws Throwable {
 
         // update the reporting task state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            FlowChangeExtensionDetails reportingTaskDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails reportingTaskDetails = new FlowChangeExtensionDetails();
             reportingTaskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
 
             // create the clear action
@@ -150,13 +150,13 @@ public class ComponentStateAuditor extends NiFiAuditor {
     @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
         + "execution(void clearState(org.apache.nifi.controller.FlowAnalysisRuleNode)) && "
         + "args(flowAnalysisRule)")
-    public StateMap clearFlowAnalysisRuleStateAdvice(ProceedingJoinPoint proceedingJoinPoint, FlowAnalysisRuleNode flowAnalysisRule) throws Throwable {
+    public StateMap clearFlowAnalysisRuleStateAdvice(final ProceedingJoinPoint proceedingJoinPoint, final FlowAnalysisRuleNode flowAnalysisRule) throws Throwable {
 
         // update the flow analysis rule state
         final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            FlowChangeExtensionDetails flowAnalysisRuleDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails flowAnalysisRuleDetails = new FlowChangeExtensionDetails();
             flowAnalysisRuleDetails.setType(flowAnalysisRule.getFlowAnalysisRule().getClass().getSimpleName());
 
             // create the clear action

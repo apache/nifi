@@ -31,13 +31,13 @@ public class ReflexiveProtocolHandler implements ProtocolHandler {
     private List<ProtocolMessage> messages = new ArrayList<>();
 
     @Override
-    public ProtocolMessage handle(ProtocolMessage msg, Set<String> nodeIdentities) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage msg, final Set<String> nodeIdentities) throws ProtocolException {
         messages.add(msg);
         return msg;
     }
 
     @Override
-    public boolean canHandle(ProtocolMessage msg) {
+    public boolean canHandle(final ProtocolMessage msg) {
         return true;
     }
 

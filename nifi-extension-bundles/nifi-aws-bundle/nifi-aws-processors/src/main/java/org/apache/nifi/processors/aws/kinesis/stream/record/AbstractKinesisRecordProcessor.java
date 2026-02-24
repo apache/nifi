@@ -192,7 +192,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
             // backoff if we encounter an exception.
             try {
                 Thread.sleep(retryWaitMillis);
-            } catch (InterruptedException ie) {
+            } catch (final InterruptedException ie) {
                 log.debug("Interrupted sleep during record processing back-off", ie);
             }
         }
@@ -266,7 +266,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
             log.debug("Record Processor for shard {} still processing records, waiting before shutdown", kinesisShardId);
             try {
                 Thread.sleep(retryWaitMillis);
-            } catch (InterruptedException ie) {
+            } catch (final InterruptedException ie) {
                 log.debug("Interrupted sleep while waiting for record processing to complete before shutdown (TERMINATE)", ie);
             }
         }
@@ -288,7 +288,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
         } catch (final ShutdownException se) {
             // Ignore checkpoint if the processor instance has been shutdown (fail over).
             log.info("Caught shutdown exception, skipping checkpoint.", se);
-        } catch (InvalidStateException e) {
+        } catch (final InvalidStateException e) {
             // This indicates an issue with the DynamoDB table (check for table, provisioned IOPS).
             log.error("Cannot save checkpoint to the DynamoDB table used by the Amazon Kinesis Client Library.", e);
         }
@@ -308,7 +308,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
 
                 try {
                     Thread.sleep(retryWaitMillis);
-                } catch (InterruptedException ie) {
+                } catch (final InterruptedException ie) {
                     log.debug("Interrupted sleep during checkpoint back-off", ie);
                 }
             }

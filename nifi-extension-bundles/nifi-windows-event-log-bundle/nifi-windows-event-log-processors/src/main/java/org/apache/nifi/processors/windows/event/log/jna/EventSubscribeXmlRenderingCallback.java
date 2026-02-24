@@ -49,7 +49,8 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     private Memory propertyCount;
     private boolean subscriptionFailed;
 
-    public EventSubscribeXmlRenderingCallback(ComponentLog logger, Consumer<String> consumer, int maxBufferSize, WEvtApi wEvtApi, Kernel32 kernel32, ErrorLookup errorLookup) {
+    public EventSubscribeXmlRenderingCallback(final ComponentLog logger, final Consumer<String> consumer, final int maxBufferSize,
+            final WEvtApi wEvtApi, final Kernel32 kernel32, final ErrorLookup errorLookup) {
         this.logger = logger;
         this.consumer = consumer;
         this.maxBufferSize = maxBufferSize;
@@ -63,7 +64,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     }
 
     @Override
-    public synchronized int onEvent(int evtSubscribeNotifyAction, WinDef.PVOID userContext, WinNT.HANDLE eventHandle) {
+    public synchronized int onEvent(final int evtSubscribeNotifyAction, final WinDef.PVOID userContext, final WinNT.HANDLE eventHandle) {
         if (logger.isDebugEnabled()) {
             logger.debug("onEvent({}, {}, {}", evtSubscribeNotifyAction, userContext, eventHandle);
         }
@@ -87,7 +88,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
 
             // Not enough room in buffer, resize so it's big enough
             if (kernel32.GetLastError() == W32Errors.ERROR_INSUFFICIENT_BUFFER) {
-                int newMaxSize = used.getInt(0);
+                final int newMaxSize = used.getInt(0);
                 // Check for overflow or too big
                 if (newMaxSize < size || newMaxSize > maxBufferSize) {
                     logger.error("Dropping event {} because it couldn't be rendered within {} bytes.", eventHandle, maxBufferSize);
@@ -99,9 +100,9 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
                 wEvtApi.EvtRender(null, eventHandle, WEvtApi.EvtRenderFlags.EVENT_XML, size, buffer, used, propertyCount);
             }
 
-            int lastError = kernel32.GetLastError();
+            final int lastError = kernel32.GetLastError();
             if (lastError == W32Errors.ERROR_SUCCESS) {
-                int usedBytes = used.getInt(0);
+                final int usedBytes = used.getInt(0);
                 String string = StandardCharsets.UTF_16LE.decode(buffer.getByteBuffer(0, usedBytes)).toString();
                 if (string.endsWith("\u0000")) {
                     string = string.substring(0, string.length() - 1);

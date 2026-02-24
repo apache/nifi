@@ -26,8 +26,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNullRangeNullEquals() {
-        ItemKeys ik1 = new ItemKeys(null, null);
-        ItemKeys ik2 = new ItemKeys(null, null);
+        final ItemKeys ik1 = new ItemKeys(null, null);
+        final ItemKeys ik2 = new ItemKeys(null, null);
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -35,8 +35,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNullEquals() {
-        ItemKeys ik1 = new ItemKeys(string("abc"), null);
-        ItemKeys ik2 = new ItemKeys(string("abc"), null);
+        final ItemKeys ik1 = new ItemKeys(string("abc"), null);
+        final ItemKeys ik2 = new ItemKeys(string("abc"), null);
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -44,8 +44,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNullRangeNotNullEquals() {
-        ItemKeys ik1 = new ItemKeys(null, string("ab"));
-        ItemKeys ik2 = new ItemKeys(null, string("ab"));
+        final ItemKeys ik1 = new ItemKeys(null, string("ab"));
+        final ItemKeys ik2 = new ItemKeys(null, string("ab"));
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -53,8 +53,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNotNullEquals() {
-        ItemKeys ik1 = new ItemKeys(string("abc"), string("pqr"));
-        ItemKeys ik2 = new ItemKeys(string("abc"), string("pqr"));
+        final ItemKeys ik1 = new ItemKeys(string("abc"), string("pqr"));
+        final ItemKeys ik2 = new ItemKeys(string("abc"), string("pqr"));
         assertEquals(ik1, ik2);
         assertEquals(ik1.hashCode(), ik2.hashCode());
         assertEquals(ik1.toString(), ik2.toString());
@@ -62,8 +62,8 @@ public class ItemKeysTest {
 
     @Test
     public void testHashNotNullRangeNotNullForOtherNotEquals() {
-        ItemKeys ik1 = new ItemKeys(null, string("ab"));
-        ItemKeys ik2 = new ItemKeys(string("ab"), null);
+        final ItemKeys ik1 = new ItemKeys(null, string("ab"));
+        final ItemKeys ik2 = new ItemKeys(string("ab"), null);
         assertNotEquals(ik1, ik2);
     }
 

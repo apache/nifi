@@ -104,19 +104,19 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
     );
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Process group ID(s)", PROCESS_GROUP_IDS.getName());
     }
 
-    protected String createAuthorization(String workspaceId, String key, int contentLength, String rfc1123Date) {
+    protected String createAuthorization(final String workspaceId, final String key, final int contentLength, final String rfc1123Date) {
         try {
-            String signature = String.format("POST\n%d\napplication/json\nx-ms-date:%s\n/api/logs", contentLength,
+            final String signature = String.format("POST\n%d\napplication/json\nx-ms-date:%s\n/api/logs", contentLength,
                     rfc1123Date);
-            Mac mac = Mac.getInstance(HMAC_SHA256_ALG);
+            final Mac mac = Mac.getInstance(HMAC_SHA256_ALG);
             mac.init(new SecretKeySpec(Base64.getDecoder().decode(key), HMAC_SHA256_ALG));
-            String hmac = Base64.getEncoder().encodeToString(mac.doFinal(signature.getBytes(UTF8)));
+            final String hmac = Base64.getEncoder().encodeToString(mac.doFinal(signature.getBytes(UTF8)));
             return String.format("SharedKey %s:%s", workspaceId, hmac);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (final NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }
@@ -137,8 +137,8 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
      */
     protected HttpPost getHttpPost(final String urlFormat, final String workspaceId, final String logName)
             throws IllegalArgumentException {
-        String dataCollectorEndpoint = MessageFormat.format(urlFormat, workspaceId);
-        HttpPost post = new HttpPost(dataCollectorEndpoint);
+        final String dataCollectorEndpoint = MessageFormat.format(urlFormat, workspaceId);
+        final HttpPost post = new HttpPost(dataCollectorEndpoint);
         post.addHeader("Content-Type", "application/json");
         post.addHeader("Log-Type", logName);
         return post;

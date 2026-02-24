@@ -45,14 +45,14 @@ public class TestStandardRemoteProcessGroupDAO {
             if (errMessageKeywords.length > 0) {
                 fail("Validation should fail with keywords: " + Arrays.asList(errMessageKeywords));
             }
-        } catch (ValidationException e) {
+        } catch (final ValidationException e) {
             if (errMessageKeywords.length == 0) {
                 fail("Validation should pass, but failed with: " + e);
             }
             final List<String> validationErrors = e.getValidationErrors();
             assertEquals(1, validationErrors.size(), "Validation should return one validationErrors");
             final String validationError = validationErrors.get(0);
-            for (String errMessageKeyword : errMessageKeywords) {
+            for (final String errMessageKeyword : errMessageKeywords) {
                 assertTrue(validationError.contains(errMessageKeyword), "validation error message should contain " + errMessageKeyword + ", but was: " + validationError);
             }
         }

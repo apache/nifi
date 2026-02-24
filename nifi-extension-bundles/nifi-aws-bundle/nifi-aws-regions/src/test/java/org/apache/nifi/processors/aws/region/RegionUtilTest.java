@@ -34,9 +34,9 @@ public class RegionUtilTest {
 
     @Test
     void testGetRegionWithAwsRegion() {
-        String region = Region.US_WEST_2.id();
+        final String region = Region.US_WEST_2.id();
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, region
         ));
 
@@ -45,9 +45,9 @@ public class RegionUtilTest {
 
     @Test
     void testGetRegionWithStaticCustomRegion() {
-        String region = "non-aws-region";
+        final String region = "non-aws-region";
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, USE_CUSTOM_REGION.getValue(),
                 CUSTOM_REGION, region
         ));
@@ -57,15 +57,15 @@ public class RegionUtilTest {
 
     @Test
     void testGetRegionWithDynamicCustomRegion() {
-        String region = Region.US_WEST_2.id();
-        String flowFileAttributeName = "s3.region";
+        final String region = Region.US_WEST_2.id();
+        final String flowFileAttributeName = "s3.region";
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, USE_CUSTOM_REGION.getValue(),
                 CUSTOM_REGION, String.format("${%s}", flowFileAttributeName)
         ));
 
-        Map<String, String> flowFileAttributes = Map.of(
+        final Map<String, String> flowFileAttributes = Map.of(
                 flowFileAttributeName, region
         );
 
@@ -74,9 +74,9 @@ public class RegionUtilTest {
 
     @Test
     void testIsDynamicRegionWithAwsRegion() {
-        String region = Region.US_WEST_2.id();
+        final String region = Region.US_WEST_2.id();
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, region
         ));
 
@@ -85,9 +85,9 @@ public class RegionUtilTest {
 
     @Test
     void testIsDynamicRegionWithStaticCustomRegion() {
-        String region = "non-aws-region";
+        final String region = "non-aws-region";
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, USE_CUSTOM_REGION.getValue(),
                 CUSTOM_REGION, region
         ));
@@ -97,9 +97,9 @@ public class RegionUtilTest {
 
     @Test
     void testIsDynamicRegionWithDynamicCustomRegion() {
-        String flowFileAttributeName = "s3.region";
+        final String flowFileAttributeName = "s3.region";
 
-        PropertyContext propertyContext = new MockPropertyContext(Map.of(
+        final PropertyContext propertyContext = new MockPropertyContext(Map.of(
                 REGION, USE_CUSTOM_REGION.getValue(),
                 CUSTOM_REGION, String.format("${%s}", flowFileAttributeName)
         ));

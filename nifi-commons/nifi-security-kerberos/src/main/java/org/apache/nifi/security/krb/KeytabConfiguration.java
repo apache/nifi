@@ -72,7 +72,7 @@ public class KeytabConfiguration extends Configuration {
     }
 
     @Override
-    public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+    public AppConfigurationEntry[] getAppConfigurationEntry(final String name) {
         return new AppConfigurationEntry[] {kerberosKeytabConfigEntry};
     }
 

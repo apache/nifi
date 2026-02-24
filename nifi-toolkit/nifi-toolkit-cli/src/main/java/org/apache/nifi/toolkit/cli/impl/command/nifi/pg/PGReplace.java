@@ -94,7 +94,7 @@ public class PGReplace extends AbstractNiFiCommand<VoidResult> {
                             println("Waiting for replacement request to complete...");
                         }
                         Thread.sleep(2000);
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         e.printStackTrace();
                     }
                 }

@@ -30,7 +30,7 @@ import java.io.IOException;
 public class SignedDWordTypeNode extends VariantTypeNode {
     private final UnsignedInteger value;
 
-    public SignedDWordTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public SignedDWordTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         value = binaryReader.readDWord();
     }

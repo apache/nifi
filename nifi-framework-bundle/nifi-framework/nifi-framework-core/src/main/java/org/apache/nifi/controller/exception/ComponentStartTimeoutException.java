@@ -18,7 +18,7 @@
 package org.apache.nifi.controller.exception;
 
 public class ComponentStartTimeoutException extends Exception {
-    public ComponentStartTimeoutException(String message) {
+    public ComponentStartTimeoutException(final String message) {
         super(message);
     }
 }

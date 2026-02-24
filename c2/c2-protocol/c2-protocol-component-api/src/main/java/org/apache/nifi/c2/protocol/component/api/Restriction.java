@@ -30,7 +30,7 @@ public class Restriction {
         return requiredPermission;
     }
 
-    public void setRequiredPermission(String requiredPermission) {
+    public void setRequiredPermission(final String requiredPermission) {
         this.requiredPermission = requiredPermission;
     }
 
@@ -39,19 +39,19 @@ public class Restriction {
         return explanation;
     }
 
-    public void setExplanation(String explanation) {
+    public void setExplanation(final String explanation) {
         this.explanation = explanation;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Restriction that = (Restriction) o;
+        final Restriction that = (Restriction) o;
         return Objects.equals(requiredPermission, that.requiredPermission) && Objects.equals(explanation, that.explanation);
     }
 

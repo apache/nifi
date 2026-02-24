@@ -49,7 +49,7 @@ public class DescribeManifestOperationHandlerTest {
 
     @Test
     void testDescribeManifestOperationHandlerCreateSuccess() {
-        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(null, null, operandPropertiesProvider);
+        final DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(null, null, operandPropertiesProvider);
 
         assertEquals(OperationType.DESCRIBE, handler.getOperationType());
         assertEquals(OperandType.MANIFEST, handler.getOperandType());
@@ -57,25 +57,25 @@ public class DescribeManifestOperationHandlerTest {
 
     @Test
     void testDescribeManifestOperationHandlerPopulatesAckSuccessfully() {
-        RuntimeManifest manifest = new RuntimeManifest();
+        final RuntimeManifest manifest = new RuntimeManifest();
         manifest.setIdentifier("manifestId");
-        RuntimeInfoWrapper runtimeInfoWrapper = new RuntimeInfoWrapper(null, manifest, null, null, null, RUNNING);
+        final RuntimeInfoWrapper runtimeInfoWrapper = new RuntimeInfoWrapper(null, manifest, null, null, null, RUNNING);
 
-        C2Heartbeat heartbeat = new C2Heartbeat();
-        AgentInfo agentInfo = new AgentInfo();
-        DeviceInfo deviceInfo = new DeviceInfo();
-        FlowInfo flowInfo = new FlowInfo();
+        final C2Heartbeat heartbeat = new C2Heartbeat();
+        final AgentInfo agentInfo = new AgentInfo();
+        final DeviceInfo deviceInfo = new DeviceInfo();
+        final FlowInfo flowInfo = new FlowInfo();
         heartbeat.setAgentInfo(agentInfo);
         heartbeat.setDeviceInfo(deviceInfo);
         heartbeat.setFlowInfo(flowInfo);
 
         when(heartbeatFactory.create(runtimeInfoWrapper)).thenReturn(heartbeat);
-        DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(heartbeatFactory, () -> runtimeInfoWrapper, operandPropertiesProvider);
+        final DescribeManifestOperationHandler handler = new DescribeManifestOperationHandler(heartbeatFactory, () -> runtimeInfoWrapper, operandPropertiesProvider);
 
-        C2Operation operation = new C2Operation();
+        final C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
 
-        C2OperationAck response = handler.handle(operation);
+        final C2OperationAck response = handler.handle(operation);
 
         assertEquals(OPERATION_ID, response.getOperationId());
         assertEquals(C2OperationState.OperationState.FULLY_APPLIED, response.getOperationState().getState());

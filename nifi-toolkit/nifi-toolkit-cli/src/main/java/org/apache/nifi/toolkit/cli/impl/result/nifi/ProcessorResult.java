@@ -30,7 +30,7 @@ public class ProcessorResult extends AbstractWritableResult<ProcessorEntity> {
 
     private final ProcessorEntity processorEntity;
 
-    public ProcessorResult(ResultType resultType, ProcessorEntity processorEntity) {
+    public ProcessorResult(final ResultType resultType, final ProcessorEntity processorEntity) {
         super(resultType);
         this.processorEntity = Objects.requireNonNull(processorEntity);
     }
@@ -41,7 +41,7 @@ public class ProcessorResult extends AbstractWritableResult<ProcessorEntity> {
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         final ProcessorDTO processorDTO = processorEntity.getComponent();
 
         final BundleDTO bundle = processorDTO.getBundle();

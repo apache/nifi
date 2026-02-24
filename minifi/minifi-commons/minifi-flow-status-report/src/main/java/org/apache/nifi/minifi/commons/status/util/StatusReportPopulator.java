@@ -53,24 +53,25 @@ public class StatusReportPopulator {
     private StatusReportPopulator() {
     }
 
-    public static void addProcessorStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean validationErrors, boolean addStats, boolean addBulletins, boolean populateBulletins) {
-        ProcessorStatusBean expectedProcessorStatus = new ProcessorStatusBean();
+    public static void addProcessorStatus(final FlowStatusReport flowStatusReport, final boolean addHealth, final boolean validationErrors,
+            final boolean addStats, final boolean addBulletins, final boolean populateBulletins) {
+        final ProcessorStatusBean expectedProcessorStatus = new ProcessorStatusBean();
         expectedProcessorStatus.setId("UpdateAttributeProcessorId");
         expectedProcessorStatus.setName("UpdateAttributeProcessorName");
 
         if (addHealth) {
-            ProcessorHealth processorHealth = new ProcessorHealth();
+            final ProcessorHealth processorHealth = new ProcessorHealth();
             processorHealth.setHasBulletins(populateBulletins);
             processorHealth.setRunStatus("Stopped");
             if (validationErrors) {
-                List<ValidationError> validationErrorList = new LinkedList<>();
-                ValidationError validationError1 = new ValidationError();
+                final List<ValidationError> validationErrorList = new LinkedList<>();
+                final ValidationError validationError1 = new ValidationError();
                 validationError1.setInput("input");
                 validationError1.setSubject("subject");
                 validationError1.setReason("is not valid");
                 validationErrorList.add(validationError1);
 
-                ValidationError validationError2 = new ValidationError();
+                final ValidationError validationError2 = new ValidationError();
                 validationError2.setInput("input2");
                 validationError2.setSubject("subject2");
                 validationError2.setReason("is not valid too");
@@ -84,7 +85,7 @@ public class StatusReportPopulator {
         }
 
         if (addStats) {
-            ProcessorStats expectedProcessorStats = new ProcessorStats();
+            final ProcessorStats expectedProcessorStats = new ProcessorStats();
 
             expectedProcessorStats.setActiveThreads(1);
             expectedProcessorStats.setFlowfilesReceived(2);
@@ -99,7 +100,7 @@ public class StatusReportPopulator {
 
         if (addBulletins) {
             if (populateBulletins) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage("Bulletin message");
                 bulletinStatus.setTimestamp(new Date(1464019245000L));
 
@@ -111,21 +112,21 @@ public class StatusReportPopulator {
         flowStatusReport.setProcessorStatusList(Collections.singletonList(expectedProcessorStatus));
     }
 
-    public static void addConnectionStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addStats) {
+    public static void addConnectionStatus(final FlowStatusReport flowStatusReport, final boolean addHealth, final boolean addStats) {
 
-        ConnectionStatusBean expectedConnectionStatus = new ConnectionStatusBean();
+        final ConnectionStatusBean expectedConnectionStatus = new ConnectionStatusBean();
 
         expectedConnectionStatus.setId("connectionId");
         expectedConnectionStatus.setName("connectionName");
         if (addHealth) {
-            ConnectionHealth connectionHealth = new ConnectionHealth();
+            final ConnectionHealth connectionHealth = new ConnectionHealth();
             connectionHealth.setQueuedCount(10);
             connectionHealth.setQueuedBytes(100);
             expectedConnectionStatus.setConnectionHealth(connectionHealth);
         }
 
         if (addStats) {
-            ConnectionStats expectedConnectionStats = new ConnectionStats();
+            final ConnectionStats expectedConnectionStats = new ConnectionStats();
             expectedConnectionStats.setInputCount(1);
             expectedConnectionStats.setInputBytes(2);
             expectedConnectionStats.setOutputCount(3);
@@ -136,13 +137,13 @@ public class StatusReportPopulator {
         flowStatusReport.setConnectionStatusList(Collections.singletonList(expectedConnectionStatus));
     }
 
-    public static void addExpectedRemoteProcessGroupStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addInputPort, boolean addOutputPort,
-                                                           boolean addStats, boolean addBulletins, boolean populateBulletins) {
-        RemoteProcessGroupStatusBean expectedRemoteProcessGroupStatus = new RemoteProcessGroupStatusBean();
+    public static void addExpectedRemoteProcessGroupStatus(final FlowStatusReport flowStatusReport, final boolean addHealth, final boolean addInputPort, final boolean addOutputPort,
+                                                           final boolean addStats, final boolean addBulletins, final boolean populateBulletins) {
+        final RemoteProcessGroupStatusBean expectedRemoteProcessGroupStatus = new RemoteProcessGroupStatusBean();
         expectedRemoteProcessGroupStatus.setName("rpg1");
 
         if (addHealth) {
-            RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
+            final RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
             remoteProcessGroupHealth.setTransmissionStatus("Transmitting");
             remoteProcessGroupHealth.setHasBulletins(populateBulletins);
             remoteProcessGroupHealth.setActivePortCount(1);
@@ -152,7 +153,7 @@ public class StatusReportPopulator {
 
         if (addBulletins) {
             if (populateBulletins) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage("Bulletin message");
                 bulletinStatus.setTimestamp(new Date(1464019245000L));
                 expectedRemoteProcessGroupStatus.setBulletinList(Collections.singletonList(bulletinStatus));
@@ -162,7 +163,7 @@ public class StatusReportPopulator {
         }
 
         if (addInputPort) {
-            PortStatus expectedInputPortStatus = new PortStatus();
+            final PortStatus expectedInputPortStatus = new PortStatus();
             expectedInputPortStatus.setName("inputPort");
             expectedInputPortStatus.setTargetExists(true);
             expectedInputPortStatus.setTargetRunning(false);
@@ -170,7 +171,7 @@ public class StatusReportPopulator {
         }
 
         if (addOutputPort) {
-            PortStatus expectedOutputPortStatus = new PortStatus();
+            final PortStatus expectedOutputPortStatus = new PortStatus();
             expectedOutputPortStatus.setName("outputPort");
             expectedOutputPortStatus.setTargetExists(true);
             expectedOutputPortStatus.setTargetRunning(false);
@@ -178,7 +179,7 @@ public class StatusReportPopulator {
         }
 
         if (addStats) {
-            RemoteProcessGroupStats remoteProcessGroupStats = new RemoteProcessGroupStats();
+            final RemoteProcessGroupStats remoteProcessGroupStats = new RemoteProcessGroupStats();
             remoteProcessGroupStats.setActiveThreads(3);
             remoteProcessGroupStats.setSentContentSize(4L);
             remoteProcessGroupStats.setSentCount(5);
@@ -188,13 +189,14 @@ public class StatusReportPopulator {
         flowStatusReport.setRemoteProcessGroupStatusList(Collections.singletonList(expectedRemoteProcessGroupStatus));
     }
 
-    public static void addControllerServiceStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addValidationErrors, boolean addBulletins, boolean populateBulletins) {
-        ControllerServiceStatus controllerServiceStatus = new ControllerServiceStatus();
+    public static void addControllerServiceStatus(final FlowStatusReport flowStatusReport, final boolean addHealth,
+            final boolean addValidationErrors, final boolean addBulletins, final boolean populateBulletins) {
+        final ControllerServiceStatus controllerServiceStatus = new ControllerServiceStatus();
         controllerServiceStatus.setName("mockControllerService");
 
         if (addBulletins) {
             if (populateBulletins) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage("Bulletin message");
                 bulletinStatus.setTimestamp(new Date(1464019245000L));
                 controllerServiceStatus.setBulletinList(Collections.singletonList(bulletinStatus));
@@ -204,20 +206,20 @@ public class StatusReportPopulator {
         }
 
         if (addHealth) {
-            ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
+            final ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
             controllerServiceHealth.setState("ENABLED");
             controllerServiceHealth.setHasBulletins(populateBulletins);
             controllerServiceStatus.setControllerServiceHealth(controllerServiceHealth);
 
             if (addValidationErrors) {
-                List<ValidationError> validationErrorList = new LinkedList<>();
-                ValidationError validationError1 = new ValidationError();
+                final List<ValidationError> validationErrorList = new LinkedList<>();
+                final ValidationError validationError1 = new ValidationError();
                 validationError1.setInput("input");
                 validationError1.setSubject("subject");
                 validationError1.setReason("is not valid");
                 validationErrorList.add(validationError1);
 
-                ValidationError validationError2 = new ValidationError();
+                final ValidationError validationError2 = new ValidationError();
                 validationError2.setInput("input2");
                 validationError2.setSubject("subject2");
                 validationError2.setReason("is not valid too");
@@ -232,11 +234,11 @@ public class StatusReportPopulator {
         flowStatusReport.setControllerServiceStatusList(Collections.singletonList(controllerServiceStatus));
     }
 
-    public static void addInstanceStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addStats, boolean addBulletins, boolean populateBulletins) {
-        InstanceStatus instanceStatus = new InstanceStatus();
+    public static void addInstanceStatus(final FlowStatusReport flowStatusReport, final boolean addHealth, final boolean addStats, final boolean addBulletins, final boolean populateBulletins) {
+        final InstanceStatus instanceStatus = new InstanceStatus();
 
         if (addHealth) {
-            InstanceHealth instanceHealth = new InstanceHealth();
+            final InstanceHealth instanceHealth = new InstanceHealth();
             instanceHealth.setQueuedContentSize(1L);
             instanceHealth.setQueuedCount(2);
             instanceHealth.setActiveThreads(3);
@@ -246,7 +248,7 @@ public class StatusReportPopulator {
 
         if (addBulletins) {
             if (populateBulletins) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage("Bulletin message");
                 bulletinStatus.setTimestamp(new Date(1464019245000L));
                 instanceStatus.setBulletinList(Collections.singletonList(bulletinStatus));
@@ -256,7 +258,7 @@ public class StatusReportPopulator {
         }
 
         if (addStats) {
-            InstanceStats instanceStats = new InstanceStats();
+            final InstanceStats instanceStats = new InstanceStats();
             instanceStats.setBytesRead(1L);
             instanceStats.setBytesWritten(2L);
             instanceStats.setBytesSent(3L);
@@ -271,13 +273,13 @@ public class StatusReportPopulator {
         flowStatusReport.setInstanceStatus(instanceStatus);
     }
 
-    public static void addSystemDiagnosticStatus(FlowStatusReport flowStatusReport, boolean addHeap, boolean addProcessorStats, boolean addFlowFileRepoUsage, boolean addContentRepoUsage,
-                                                 boolean addGarbageCollectionStatus) {
+    public static void addSystemDiagnosticStatus(final FlowStatusReport flowStatusReport, final boolean addHeap, final boolean addProcessorStats,
+            final boolean addFlowFileRepoUsage, final boolean addContentRepoUsage, final boolean addGarbageCollectionStatus) {
 
-        SystemDiagnosticsStatus expectedSystemDiagnosticStatus = new SystemDiagnosticsStatus();
+        final SystemDiagnosticsStatus expectedSystemDiagnosticStatus = new SystemDiagnosticsStatus();
 
         if (addHeap) {
-            HeapStatus heapStatus = new HeapStatus();
+            final HeapStatus heapStatus = new HeapStatus();
             heapStatus.setMaxHeap(5);
             heapStatus.setTotalHeap(3);
             heapStatus.setUsedHeap(2);
@@ -292,14 +294,14 @@ public class StatusReportPopulator {
         }
 
         if (addProcessorStats) {
-            SystemProcessorStats systemProcessorStats = new SystemProcessorStats();
+            final SystemProcessorStats systemProcessorStats = new SystemProcessorStats();
             systemProcessorStats.setLoadAverage(80.9);
             systemProcessorStats.setAvailableProcessors(5);
             expectedSystemDiagnosticStatus.setProcessorStatus(systemProcessorStats);
         }
 
         if (addFlowFileRepoUsage) {
-            FlowfileRepositoryUsage flowfileRepositoryUsage = new FlowfileRepositoryUsage();
+            final FlowfileRepositoryUsage flowfileRepositoryUsage = new FlowfileRepositoryUsage();
             flowfileRepositoryUsage.setFreeSpace(30);
             flowfileRepositoryUsage.setTotalSpace(100);
             flowfileRepositoryUsage.setUsedSpace(70);
@@ -308,8 +310,8 @@ public class StatusReportPopulator {
         }
 
         if (addContentRepoUsage) {
-            List<ContentRepositoryUsage> contentRepositoryUsageList = new LinkedList<>();
-            ContentRepositoryUsage contentRepositoryUsage = new ContentRepositoryUsage();
+            final List<ContentRepositoryUsage> contentRepositoryUsageList = new LinkedList<>();
+            final ContentRepositoryUsage contentRepositoryUsage = new ContentRepositoryUsage();
             contentRepositoryUsage.setFreeSpace(30);
             contentRepositoryUsage.setTotalSpace(100);
             contentRepositoryUsage.setName("Content repo1");
@@ -320,8 +322,8 @@ public class StatusReportPopulator {
         }
 
         if (addGarbageCollectionStatus) {
-            List<GarbageCollectionStatus> garbageCollectionStatusList = new LinkedList<>();
-            GarbageCollectionStatus garbageCollectionStatus1 = new GarbageCollectionStatus();
+            final List<GarbageCollectionStatus> garbageCollectionStatusList = new LinkedList<>();
+            final GarbageCollectionStatus garbageCollectionStatus1 = new GarbageCollectionStatus();
             garbageCollectionStatus1.setCollectionCount(1);
             garbageCollectionStatus1.setCollectionTime(10);
             garbageCollectionStatus1.setName("garbage 1");
@@ -332,27 +334,28 @@ public class StatusReportPopulator {
         flowStatusReport.setSystemDiagnosticsStatus(expectedSystemDiagnosticStatus);
     }
 
-    public static void addReportingTaskStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addValidationErrors, boolean addBulletins, boolean populateBulletins) {
-        ReportingTaskStatus reportingTaskStatus = new ReportingTaskStatus();
+    public static void addReportingTaskStatus(final FlowStatusReport flowStatusReport, final boolean addHealth,
+            final boolean addValidationErrors, final boolean addBulletins, final boolean populateBulletins) {
+        final ReportingTaskStatus reportingTaskStatus = new ReportingTaskStatus();
 
         reportingTaskStatus.setName("ReportProvenance");
 
         if (addHealth) {
-            ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
+            final ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
 
             reportingTaskHealth.setActiveThreads(1);
             reportingTaskHealth.setScheduledState("RUNNING");
             reportingTaskHealth.setHasBulletins(populateBulletins);
 
             if (addValidationErrors) {
-                List<ValidationError> validationErrorList = new LinkedList<>();
-                ValidationError validationError1 = new ValidationError();
+                final List<ValidationError> validationErrorList = new LinkedList<>();
+                final ValidationError validationError1 = new ValidationError();
                 validationError1.setInput("input");
                 validationError1.setSubject("subject");
                 validationError1.setReason("is not valid");
                 validationErrorList.add(validationError1);
 
-                ValidationError validationError2 = new ValidationError();
+                final ValidationError validationError2 = new ValidationError();
                 validationError2.setInput("input2");
                 validationError2.setSubject("subject2");
                 validationError2.setReason("is not valid too");
@@ -367,7 +370,7 @@ public class StatusReportPopulator {
 
         if (addBulletins) {
             if (populateBulletins) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage("Bulletin message");
                 bulletinStatus.setTimestamp(new Date(1464019245000L));
                 reportingTaskStatus.setBulletinList(Collections.singletonList(bulletinStatus));

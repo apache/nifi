@@ -35,7 +35,7 @@ public class FlowRegistryBucketDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -44,7 +44,7 @@ public class FlowRegistryBucketDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -53,7 +53,7 @@ public class FlowRegistryBucketDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -62,7 +62,7 @@ public class FlowRegistryBucketDTO {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(final Long created) {
         this.created = created;
     }
 }

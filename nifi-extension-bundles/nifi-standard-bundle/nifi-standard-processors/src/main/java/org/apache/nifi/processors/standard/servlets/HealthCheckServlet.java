@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
 public class HealthCheckServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_OK);
         response.getOutputStream().write("OK".getBytes(StandardCharsets.UTF_8));
     }

@@ -133,10 +133,10 @@ public class ITNeo4JCypherClientServiceSSL {
 
     @Test
     public void testQuery() {
-        String query = "create (n { name:'abc' }) return n.name";
+        final String query = "create (n { name:'abc' }) return n.name";
 
         final List<Map<String, Object>> result = new ArrayList<>();
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
+        final Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
         assertEquals("0", attributes.get(GraphClientService.LABELS_ADDED));
         assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
         assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));

@@ -73,7 +73,7 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
             values.put(columnName, columnValue);
         }
         // Add attributes and variables (but don't override fields with the same name)
-        for (Map.Entry<String, String> variable : variables.entrySet()) {
+        for (final Map.Entry<String, String> variable : variables.entrySet()) {
             values.putIfAbsent(variable.getKey(), variable.getValue());
         }
 

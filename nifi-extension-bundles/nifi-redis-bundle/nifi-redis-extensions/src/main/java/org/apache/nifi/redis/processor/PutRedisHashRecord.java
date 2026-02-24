@@ -200,22 +200,22 @@ public class PutRedisHashRecord extends AbstractProcessor {
                 }
                 final String hashValue = (String) DataTypeUtils.convertType(hashValueObject, RecordFieldType.STRING.getDataType(), charset.name());
 
-                List<Record> dataRecords = getDataRecords(dataRecordPath, record);
+                final List<Record> dataRecords = getDataRecords(dataRecordPath, record);
 
                 count = putDataRecordsToRedis(dataRecords, redisConnection, hashValue, charset, count);
             }
 
-        } catch (MalformedRecordException e) {
+        } catch (final MalformedRecordException e) {
             getLogger().error("Read Records failed {}", flowFile, e);
             flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             getLogger().error("Record Schema not found {}", flowFile, e);
             flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Put Records failed {}", flowFile, e);
             flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
@@ -228,7 +228,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("hash-value-record-path", HASH_VALUE_RECORD_PATH.getName());
         config.renameProperty("data-record-path", DATA_RECORD_PATH.getName());
@@ -265,10 +265,10 @@ public class PutRedisHashRecord extends AbstractProcessor {
 
     private long putDataRecordsToRedis(final List<Record> dataRecords, final RedisConnection redisConnection, final String hashValue, final Charset charset, final long originalCount) {
         long count = originalCount;
-        for (Record dataRecord : dataRecords) {
-            RecordSchema dataRecordSchema = dataRecord.getSchema();
+        for (final Record dataRecord : dataRecords) {
+            final RecordSchema dataRecordSchema = dataRecord.getSchema();
 
-            for (RecordField recordField : dataRecordSchema.getFields()) {
+            for (final RecordField recordField : dataRecordSchema.getFields()) {
                 final String fieldName = recordField.getFieldName();
                 final Object value = dataRecord.getValue(fieldName);
                 if (fieldName == null || value == null) {

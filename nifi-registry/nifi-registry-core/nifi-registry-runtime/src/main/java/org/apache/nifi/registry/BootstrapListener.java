@@ -88,7 +88,7 @@ public class BootstrapListener {
         }
     }
 
-    public void sendStartedStatus(boolean status) throws IOException {
+    public void sendStartedStatus(final boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting NiFi Registry is {}", status);
         sendCommand("STARTED", new String[]{String.valueOf(status)});
     }

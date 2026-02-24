@@ -205,7 +205,7 @@ public class NarInstallTask implements Runnable {
         LOGGER.debug("Unloading NAR chain from [{}] requires unloading {}", coordinate, bundlesToUnload);
         narLoader.unload(bundlesToUnload);
 
-        for (Map.Entry<BundleCoordinate, Set<ExtensionDefinition>> entry : extensionsByCoordinate.entrySet()) {
+        for (final Map.Entry<BundleCoordinate, Set<ExtensionDefinition>> entry : extensionsByCoordinate.entrySet()) {
             narComponentManager.unloadComponents(entry.getKey(), entry.getValue(), stoppedComponents);
         }
 

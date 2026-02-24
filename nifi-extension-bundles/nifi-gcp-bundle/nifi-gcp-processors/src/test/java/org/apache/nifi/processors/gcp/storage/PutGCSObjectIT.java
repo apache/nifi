@@ -54,7 +54,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS).get(0);
         flowFile.assertAttributeNotExists(ENCRYPTION_ALGORITHM_ATTR);
 
-        for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+        for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
             logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
@@ -76,7 +76,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS).get(0);
         flowFile.assertAttributeExists(ENCRYPTION_ALGORITHM_ATTR);
 
-        for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+        for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
             logger.info("{}:{}", entry.getKey(), entry.getValue());
         }
     }
@@ -99,7 +99,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
 
         boolean userIsOwner = false;
         boolean projectOwnerIsReader = false;
-        for (Acl acl : blob.listAcls()) {
+        for (final Acl acl : blob.listAcls()) {
             if (acl.getEntity().getType() == Acl.Entity.Type.USER
                     && acl.getRole() == Acl.Role.OWNER) {
                 userIsOwner = true;

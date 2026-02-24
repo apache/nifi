@@ -34,7 +34,7 @@ public class ResourcesGlobalHash implements Serializable {
         return digest;
     }
 
-    public void setDigest(String digest) {
+    public void setDigest(final String digest) {
         this.digest = digest;
     }
 
@@ -43,7 +43,7 @@ public class ResourcesGlobalHash implements Serializable {
         return hashType;
     }
 
-    public void setHashType(String hashType) {
+    public void setHashType(final String hashType) {
         this.hashType = hashType;
     }
 
@@ -56,14 +56,14 @@ public class ResourcesGlobalHash implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ResourcesGlobalHash that = (ResourcesGlobalHash) o;
+        final ResourcesGlobalHash that = (ResourcesGlobalHash) o;
         return Objects.equals(digest, that.digest) && Objects.equals(hashType, that.hashType);
     }
 

@@ -33,12 +33,12 @@ public class MockLoginIdentityProvider implements LoginIdentityProvider {
     }
 
     @Override
-    public void initialize(LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
+    public void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
 
     }
 
     @Override
-    public void onConfigured(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
 
     }
 

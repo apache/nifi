@@ -219,7 +219,7 @@ public abstract class HadoopFileStatusWriter {
             }
         }
 
-        private void validateMandatoryField(String variableName, Object variable) {
+        private void validateMandatoryField(final String variableName, final Object variable) {
             if (variable == null) {
                 throw new IllegalArgumentException(variableName + " is null but must be set");
             }

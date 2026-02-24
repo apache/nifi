@@ -29,7 +29,7 @@ public class BaseTableEventInfo extends BaseEventInfo implements TableEventInfo 
 
     private List<ColumnDefinition> columns;
 
-    public BaseTableEventInfo(TableInfo tableInfo, String eventType, Long timestamp) {
+    public BaseTableEventInfo(final TableInfo tableInfo, final String eventType, final Long timestamp) {
         super(eventType, timestamp);
         if (tableInfo != null) {
             this.databaseName = tableInfo.getDatabaseName();
@@ -60,10 +60,10 @@ public class BaseTableEventInfo extends BaseEventInfo implements TableEventInfo 
     }
 
     @Override
-    public ColumnDefinition getColumnByIndex(int i) {
+    public ColumnDefinition getColumnByIndex(final int i) {
         try {
             return columns.get(i);
-        } catch (IndexOutOfBoundsException | NullPointerException e) {
+        } catch (final IndexOutOfBoundsException | NullPointerException e) {
             return null;
         }
     }

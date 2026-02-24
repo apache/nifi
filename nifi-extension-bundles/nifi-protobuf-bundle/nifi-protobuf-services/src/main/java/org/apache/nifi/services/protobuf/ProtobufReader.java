@@ -101,7 +101,7 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>();
         final String protoDirectory = validationContext.getProperty(PROTOBUF_DIRECTORY).evaluateAttributeExpressions().getValue();
         final String messageType = validationContext.getProperty(MESSAGE_TYPE).evaluateAttributeExpressions().getValue();
@@ -149,7 +149,7 @@ public class ProtobufReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         return new ProtobufRecordReader(protoSchema, messageType, in, getSchema(variables, in, null));
     }
 

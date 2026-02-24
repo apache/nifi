@@ -54,9 +54,9 @@ public class PortAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
             + "execution(org.apache.nifi.connectable.Port createPort(java.lang.String, org.apache.nifi.web.api.dto.PortDTO))")
-    public Port createPortAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Port createPortAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
-        Port port = (Port) proceedingJoinPoint.proceed();
+        final Port port = (Port) proceedingJoinPoint.proceed();
 
         // audit the port creation
         final Action action = generateAuditRecord(port, Operation.Add);
@@ -82,25 +82,25 @@ public class PortAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.connectable.Port updatePort(org.apache.nifi.web.api.dto.PortDTO)) && "
             + "args(portDTO) && "
             + "target(portDAO)")
-    public Port updatePortAdvice(ProceedingJoinPoint proceedingJoinPoint, PortDTO portDTO, PortDAO portDAO) throws Throwable {
+    public Port updatePortAdvice(final ProceedingJoinPoint proceedingJoinPoint, final PortDTO portDTO, final PortDAO portDAO) throws Throwable {
         final Port port = portDAO.getPort(portDTO.getId());
         final ScheduledState scheduledState = port.getScheduledState();
         final String name = port.getName();
         final String comments = port.getComments();
         final int maxConcurrentTasks = port.getMaxConcurrentTasks();
 
-        boolean isPublicPort = port instanceof PublicPort;
+        final boolean isPublicPort = port instanceof PublicPort;
 
         // perform the underlying operation
         final Port updatedPort = (Port) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            Collection<ActionDetails> configurationDetails = new ArrayList<>();
+            final Collection<ActionDetails> configurationDetails = new ArrayList<>();
 
             // see if the name has changed
             if (name != null && portDTO.getName() != null && !name.equals(updatedPort.getName())) {
                 // create the config details
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                final FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Name");
                 configDetails.setValue(updatedPort.getName());
                 configDetails.setPreviousValue(name);
@@ -111,7 +111,7 @@ public class PortAuditor extends NiFiAuditor {
             // see if the comments has changed
             if (comments != null && portDTO.getComments() != null && !comments.equals(updatedPort.getComments())) {
                 // create the config details
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                final FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Comments");
                 configDetails.setValue(updatedPort.getComments());
                 configDetails.setPreviousValue(comments);
@@ -123,7 +123,7 @@ public class PortAuditor extends NiFiAuditor {
             if (isPublicPort) {
                 if (portDTO.getConcurrentlySchedulableTaskCount() != null && updatedPort.getMaxConcurrentTasks() != maxConcurrentTasks) {
                     // create the config details
-                    FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                    final FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                     configDetails.setName("Concurrent Tasks");
                     configDetails.setValue(String.valueOf(updatedPort.getMaxConcurrentTasks()));
                     configDetails.setPreviousValue(String.valueOf(maxConcurrentTasks));
@@ -143,12 +143,12 @@ public class PortAuditor extends NiFiAuditor {
             // add each configuration detail
             if (!configurationDetails.isEmpty()) {
                 // create the timestamp for the update
-                Date timestamp = new Date();
+                final Date timestamp = new Date();
 
                 // create the actions
-                for (ActionDetails detail : configurationDetails) {
+                for (final ActionDetails detail : configurationDetails) {
                     // create the port action for updating the name
-                    FlowChangeAction portAction = createFlowChangeAction();
+                    final FlowChangeAction portAction = createFlowChangeAction();
                     portAction.setOperation(Operation.Configure);
                     portAction.setTimestamp(timestamp);
                     portAction.setSourceId(updatedPort.getIdentifier());
@@ -166,7 +166,7 @@ public class PortAuditor extends NiFiAuditor {
             // determine if the running state has changed
             if (scheduledState != updatedScheduledState) {
                 // create a processor action
-                FlowChangeAction processorAction = createFlowChangeAction();
+                final FlowChangeAction processorAction = createFlowChangeAction();
                 processorAction.setSourceId(updatedPort.getIdentifier());
                 processorAction.setSourceName(updatedPort.getName());
                 processorAction.setSourceType(componentType);
@@ -209,9 +209,9 @@ public class PortAuditor extends NiFiAuditor {
             + "execution(void deletePort(java.lang.String)) && "
             + "args(portId) && "
             + "target(portDAO)")
-    public void removePortAdvice(ProceedingJoinPoint proceedingJoinPoint, String portId, PortDAO portDAO) throws Throwable {
+    public void removePortAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String portId, final PortDAO portDAO) throws Throwable {
         // get the port before removing it
-        Port port = portDAO.getPort(portId);
+        final Port port = portDAO.getPort(portId);
 
         // remove the port
         proceedingJoinPoint.proceed();
@@ -233,7 +233,7 @@ public class PortAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(Port port, Operation operation) {
+    public Action generateAuditRecord(final Port port, final Operation operation) {
         return generateAuditRecord(port, operation, null);
     }
 
@@ -245,7 +245,7 @@ public class PortAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(Port port, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final Port port, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {

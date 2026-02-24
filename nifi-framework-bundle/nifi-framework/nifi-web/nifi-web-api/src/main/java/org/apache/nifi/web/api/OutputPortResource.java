@@ -77,8 +77,8 @@ public class OutputPortResource extends ApplicationResource {
      * @param outputPortEntities ports
      * @return dtos
      */
-    public Set<PortEntity> populateRemainingOutputPortEntitiesContent(Set<PortEntity> outputPortEntities) {
-        for (PortEntity outputPortEntity : outputPortEntities) {
+    public Set<PortEntity> populateRemainingOutputPortEntitiesContent(final Set<PortEntity> outputPortEntities) {
+        for (final PortEntity outputPortEntity : outputPortEntities) {
             populateRemainingOutputPortEntityContent(outputPortEntity);
         }
         return outputPortEntities;
@@ -90,7 +90,7 @@ public class OutputPortResource extends ApplicationResource {
      * @param outputPortEntity ports
      * @return dtos
      */
-    public PortEntity populateRemainingOutputPortEntityContent(PortEntity outputPortEntity) {
+    public PortEntity populateRemainingOutputPortEntityContent(final PortEntity outputPortEntity) {
         outputPortEntity.setUri(generateResourceUri("output-ports", outputPortEntity.getId()));
         return outputPortEntity;
     }
@@ -188,7 +188,7 @@ public class OutputPortResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        PortDTO requestPortDTO = requestPortEntity.getComponent();
+        final PortDTO requestPortDTO = requestPortEntity.getComponent();
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The output port id (%s) in the request body does not equal the "
                     + "output port id of the requested resource (%s).", requestPortDTO.getId(), id));
@@ -214,7 +214,7 @@ public class OutputPortResource extends ApplicationResource {
                 requestPortEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getOutputPort(id);
+                    final Authorizable authorizable = lookup.getOutputPort(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateOutputPort(requestPortDTO),
@@ -458,12 +458,12 @@ public class OutputPortResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

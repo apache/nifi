@@ -35,7 +35,7 @@ public class AnalyzeFlowRequestEndpointMerger extends AbstractSingleDTOEndpoint<
     public static final Pattern ANALYZE_FLOW_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/flow-analysis/[a-f0-9\\-]{36}");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (
             ("POST".equalsIgnoreCase(method) || "GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))
                 && ANALYZE_FLOW_URI_PATTERN.matcher(uri.getPath()).matches()
@@ -52,20 +52,20 @@ public class AnalyzeFlowRequestEndpointMerger extends AbstractSingleDTOEndpoint<
     }
 
     @Override
-    protected AnalyzeFlowRequestDTO getDto(AnalyzeFlowRequestEntity entity) {
-        AnalyzeFlowRequestDTO dto = entity.getAnalyzeFlowRequest();
+    protected AnalyzeFlowRequestDTO getDto(final AnalyzeFlowRequestEntity entity) {
+        final AnalyzeFlowRequestDTO dto = entity.getAnalyzeFlowRequest();
 
         return dto;
     }
 
     @Override
     protected void mergeResponses(
-        AnalyzeFlowRequestDTO clientDto,
-        Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap,
-        Set<NodeResponse> successfulResponses,
-        Set<NodeResponse> problematicResponses
+        final AnalyzeFlowRequestDTO clientDto,
+        final Map<NodeIdentifier, AnalyzeFlowRequestDTO> dtoMap,
+        final Set<NodeResponse> successfulResponses,
+        final Set<NodeResponse> problematicResponses
     ) {
-        Collection<String> failureReasons = new HashSet<>();
+        final Collection<String> failureReasons = new HashSet<>();
         if (clientDto.getFailureReason() != null) {
             failureReasons.add(clientDto.getFailureReason());
         }
@@ -86,7 +86,7 @@ public class AnalyzeFlowRequestEndpointMerger extends AbstractSingleDTOEndpoint<
             }
         }
 
-        String failureReason = failureReasons.stream()
+        final String failureReason = failureReasons.stream()
             .filter(Objects::nonNull)
             .collect(Collectors.joining("\n"));
         if (!failureReason.isEmpty()) {

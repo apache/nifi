@@ -40,12 +40,13 @@ public class RecordSupplier {
     private final RecordReaderFactory readerFactory;
     private final RecordSetWriterFactory writerFactory;
 
-    public RecordSupplier(RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory) {
+    public RecordSupplier(final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
     }
 
-    public void process(FlowFile flowfile, InputStream in, AtomicInteger processedRecords, Long processFromIndex, ComponentLog logger, MessageHandler messageHandler) throws IOException {
+    public void process(final FlowFile flowfile, final InputStream in, final AtomicInteger processedRecords,
+            final Long processFromIndex, final ComponentLog logger, final MessageHandler messageHandler) throws IOException {
 
         try (final RecordReader reader = readerFactory.createRecordReader(flowfile, in, logger)) {
             final RecordSet recordSet = reader.createRecordSet();
@@ -74,7 +75,7 @@ public class RecordSupplier {
 
                 processedRecords.getAndIncrement();
             }
-        } catch (SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final SchemaNotFoundException | MalformedRecordException e) {
             throw new ProcessException("An error happened during creating components for serialization.", e);
         }
     }

@@ -45,18 +45,18 @@ public class ADLSCredentialsDetails {
     private final ProxyOptions proxyOptions;
 
     public ADLSCredentialsDetails(
-            String accountName,
-            String accountKey,
-            String sasToken,
-            String endpointSuffix,
-            AccessToken accessToken,
-            boolean useManagedIdentity,
-            String managedIdentityClientId,
-            String servicePrincipalTenantId,
-            String servicePrincipalClientId,
-            String servicePrincipalClientSecret,
-            AzureIdentityFederationTokenProvider identityTokenProvider,
-            ProxyOptions proxyOptions
+            final String accountName,
+            final String accountKey,
+            final String sasToken,
+            final String endpointSuffix,
+            final AccessToken accessToken,
+            final boolean useManagedIdentity,
+            final String managedIdentityClientId,
+            final String servicePrincipalTenantId,
+            final String servicePrincipalClientId,
+            final String servicePrincipalClientSecret,
+            final AzureIdentityFederationTokenProvider identityTokenProvider,
+            final ProxyOptions proxyOptions
     ) {
         this.accountName = accountName;
         this.accountKey = accountKey;
@@ -121,7 +121,7 @@ public class ADLSCredentialsDetails {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -130,7 +130,7 @@ public class ADLSCredentialsDetails {
             return false;
         }
 
-        ADLSCredentialsDetails that = (ADLSCredentialsDetails) o;
+        final ADLSCredentialsDetails that = (ADLSCredentialsDetails) o;
         return useManagedIdentity == that.useManagedIdentity
                 && Objects.equals(accountName, that.accountName)
                 && Objects.equals(accountKey, that.accountKey)
@@ -183,52 +183,52 @@ public class ADLSCredentialsDetails {
             return new Builder();
         }
 
-        public Builder setAccountName(String accountName) {
+        public Builder setAccountName(final String accountName) {
             this.accountName = accountName;
             return this;
         }
 
-        public Builder setAccountKey(String accountKey) {
+        public Builder setAccountKey(final String accountKey) {
             this.accountKey = accountKey;
             return this;
         }
 
-        public Builder setSasToken(String sasToken) {
+        public Builder setSasToken(final String sasToken) {
             this.sasToken = sasToken;
             return this;
         }
 
-        public Builder setEndpointSuffix(String endpointSuffix) {
+        public Builder setEndpointSuffix(final String endpointSuffix) {
             this.endpointSuffix = endpointSuffix;
             return this;
         }
 
-        public Builder setAccessToken(AccessToken accessToken) {
+        public Builder setAccessToken(final AccessToken accessToken) {
             this.accessToken = accessToken;
             return this;
         }
 
-        public Builder setUseManagedIdentity(boolean useManagedIdentity) {
+        public Builder setUseManagedIdentity(final boolean useManagedIdentity) {
             this.useManagedIdentity = useManagedIdentity;
             return this;
         }
 
-        public Builder setManagedIdentityClientId(String useManagedIdentityClientId) {
+        public Builder setManagedIdentityClientId(final String useManagedIdentityClientId) {
             this.managedIdentityClientId = useManagedIdentityClientId;
             return this;
         }
 
-        public Builder setServicePrincipalTenantId(String servicePrincipalTenantId) {
+        public Builder setServicePrincipalTenantId(final String servicePrincipalTenantId) {
             this.servicePrincipalTenantId = servicePrincipalTenantId;
             return this;
         }
 
-        public Builder setServicePrincipalClientId(String servicePrincipalClientId) {
+        public Builder setServicePrincipalClientId(final String servicePrincipalClientId) {
             this.servicePrincipalClientId = servicePrincipalClientId;
             return this;
         }
 
-        public Builder setServicePrincipalClientSecret(String servicePrincipalClientSecret) {
+        public Builder setServicePrincipalClientSecret(final String servicePrincipalClientSecret) {
             this.servicePrincipalClientSecret = servicePrincipalClientSecret;
             return this;
         }
@@ -238,7 +238,7 @@ public class ADLSCredentialsDetails {
             return this;
         }
 
-        public Builder setProxyOptions(ProxyOptions proxyOptions) {
+        public Builder setProxyOptions(final ProxyOptions proxyOptions) {
             this.proxyOptions = proxyOptions;
             return this;
         }

@@ -30,12 +30,12 @@ public class BaseBinlogTableEventInfo extends BaseBinlogEventInfo implements Bin
 
     private TableEventInfo delegate;
 
-    public BaseBinlogTableEventInfo(TableInfo tableInfo, String eventType, Long timestamp, String binlogFilename, Long binlogPosition) {
+    public BaseBinlogTableEventInfo(final TableInfo tableInfo, final String eventType, final Long timestamp, final String binlogFilename, final Long binlogPosition) {
         super(eventType, timestamp, binlogFilename, binlogPosition);
         this.delegate = new BaseTableEventInfo(tableInfo, DDL_EVENT, timestamp);
     }
 
-    public BaseBinlogTableEventInfo(TableInfo tableInfo, String eventType, Long timestamp, String binlogGtidSet) {
+    public BaseBinlogTableEventInfo(final TableInfo tableInfo, final String eventType, final Long timestamp, final String binlogGtidSet) {
         super(eventType, timestamp, binlogGtidSet);
         this.delegate = new BaseTableEventInfo(tableInfo, DDL_EVENT, timestamp);
     }
@@ -61,7 +61,7 @@ public class BaseBinlogTableEventInfo extends BaseBinlogEventInfo implements Bin
     }
 
     @Override
-    public ColumnDefinition getColumnByIndex(int i) {
+    public ColumnDefinition getColumnByIndex(final int i) {
         return delegate.getColumnByIndex(i);
     }
 }

@@ -71,21 +71,22 @@ public final class StatusRequestParser {
     private StatusRequestParser() {
     }
 
-    static ProcessorStatusBean parseProcessorStatusRequest(ProcessorStatus inputProcessorStatus, String statusTypes, FlowController flowController, Collection<ValidationResult> validationResults) {
-        ProcessorStatusBean processorStatusBean = new ProcessorStatusBean();
+    static ProcessorStatusBean parseProcessorStatusRequest(final ProcessorStatus inputProcessorStatus, final String statusTypes,
+            final FlowController flowController, final Collection<ValidationResult> validationResults) {
+        final ProcessorStatusBean processorStatusBean = new ProcessorStatusBean();
         processorStatusBean.setId(inputProcessorStatus.getId());
         processorStatusBean.setName(inputProcessorStatus.getName());
 
-        String[] statusSplits = statusTypes.split(",");
-        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
+        final String[] statusSplits = statusTypes.split(",");
+        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
                 new BulletinQuery.Builder()
                         .sourceIdMatches(inputProcessorStatus.getId())
                         .build());
 
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    ProcessorHealth processorHealth = new ProcessorHealth();
+                    final ProcessorHealth processorHealth = new ProcessorHealth();
 
                     processorHealth.setRunStatus(inputProcessorStatus.getRunStatus().name());
                     processorHealth.setHasBulletins(!bulletinList.isEmpty());
@@ -97,7 +98,7 @@ public final class StatusRequestParser {
                     processorStatusBean.setBulletinList(transformBulletins(bulletinList));
                     break;
                 case "stats":
-                    ProcessorStats processorStats = new ProcessorStats();
+                    final ProcessorStats processorStats = new ProcessorStats();
 
                     processorStats.setActiveThreads(inputProcessorStatus.getActiveThreadCount());
                     processorStats.setFlowfilesReceived(inputProcessorStatus.getFlowFilesReceived());
@@ -114,22 +115,23 @@ public final class StatusRequestParser {
         return processorStatusBean;
     }
 
-    static RemoteProcessGroupStatusBean parseRemoteProcessGroupStatusRequest(RemoteProcessGroupStatus inputRemoteProcessGroupStatus, String statusTypes, FlowController flowController) {
-        RemoteProcessGroupStatusBean remoteProcessGroupStatusBean = new RemoteProcessGroupStatusBean();
+    static RemoteProcessGroupStatusBean parseRemoteProcessGroupStatusRequest(final RemoteProcessGroupStatus inputRemoteProcessGroupStatus,
+            final String statusTypes, final FlowController flowController) {
+        final RemoteProcessGroupStatusBean remoteProcessGroupStatusBean = new RemoteProcessGroupStatusBean();
         remoteProcessGroupStatusBean.setName(inputRemoteProcessGroupStatus.getName());
 
-        String rootGroupId = flowController.getFlowManager().getRootGroupId();
-        String[] statusSplits = statusTypes.split(",");
+        final String rootGroupId = flowController.getFlowManager().getRootGroupId();
+        final String[] statusSplits = statusTypes.split(",");
 
-        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
+        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
                 new BulletinQuery.Builder()
                         .sourceIdMatches(inputRemoteProcessGroupStatus.getId())
                         .build());
 
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
+                    final RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
 
                     remoteProcessGroupHealth.setTransmissionStatus(inputRemoteProcessGroupStatus.getTransmissionStatus().name());
                     remoteProcessGroupHealth.setActivePortCount(inputRemoteProcessGroupStatus.getActiveRemotePortCount());
@@ -148,7 +150,7 @@ public final class StatusRequestParser {
                     remoteProcessGroupStatusBean.setOutputPortStatusList(getPortStatusList(inputRemoteProcessGroupStatus, flowController, rootGroupId, RemoteProcessGroup::getOutputPorts));
                     break;
                 case "stats":
-                    RemoteProcessGroupStats remoteProcessGroupStats = new RemoteProcessGroupStats();
+                    final RemoteProcessGroupStats remoteProcessGroupStats = new RemoteProcessGroupStats();
 
                     remoteProcessGroupStats.setActiveThreads(inputRemoteProcessGroupStatus.getActiveThreadCount());
                     remoteProcessGroupStats.setSentContentSize(inputRemoteProcessGroupStatus.getSentContentSize());
@@ -161,10 +163,10 @@ public final class StatusRequestParser {
         return remoteProcessGroupStatusBean;
     }
 
-    private static List<PortStatus> getPortStatusList(RemoteProcessGroupStatus inputRemoteProcessGroupStatus, FlowController flowController, String rootGroupId,
-                                                      Function<RemoteProcessGroup, Set<RemoteGroupPort>> portFunction) {
+    private static List<PortStatus> getPortStatusList(final RemoteProcessGroupStatus inputRemoteProcessGroupStatus, final FlowController flowController, final String rootGroupId,
+                                                      final Function<RemoteProcessGroup, Set<RemoteGroupPort>> portFunction) {
         return portFunction.apply(flowController.getFlowManager().getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
-            PortStatus portStatus = new PortStatus();
+            final PortStatus portStatus = new PortStatus();
 
             portStatus.setName(r.getName());
             portStatus.setTargetExists(r.getTargetExists());
@@ -174,16 +176,16 @@ public final class StatusRequestParser {
         }).collect(Collectors.toList());
     }
 
-    static ConnectionStatusBean parseConnectionStatusRequest(ConnectionStatus inputConnectionStatus, String statusTypes, Logger logger) {
-        ConnectionStatusBean connectionStatusBean = new ConnectionStatusBean();
+    static ConnectionStatusBean parseConnectionStatusRequest(final ConnectionStatus inputConnectionStatus, final String statusTypes, final Logger logger) {
+        final ConnectionStatusBean connectionStatusBean = new ConnectionStatusBean();
         connectionStatusBean.setId(inputConnectionStatus.getId());
         connectionStatusBean.setName(inputConnectionStatus.getName());
 
-        String[] statusSplits = statusTypes.split(",");
-        for (String statusType : statusSplits) {
+        final String[] statusSplits = statusTypes.split(",");
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    ConnectionHealth connectionHealth = new ConnectionHealth();
+                    final ConnectionHealth connectionHealth = new ConnectionHealth();
 
                     connectionHealth.setQueuedBytes(inputConnectionStatus.getQueuedBytes());
                     connectionHealth.setQueuedCount(inputConnectionStatus.getQueuedCount());
@@ -191,7 +193,7 @@ public final class StatusRequestParser {
                     connectionStatusBean.setConnectionHealth(connectionHealth);
                     break;
                 case "stats":
-                    ConnectionStats connectionStats = new ConnectionStats();
+                    final ConnectionStats connectionStats = new ConnectionStats();
 
                     connectionStats.setInputBytes(inputConnectionStatus.getInputBytes());
                     connectionStats.setInputCount(inputConnectionStatus.getInputCount());
@@ -205,25 +207,26 @@ public final class StatusRequestParser {
         return connectionStatusBean;
     }
 
-    static ReportingTaskStatus parseReportingTaskStatusRequest(String id, ReportingTaskNode reportingTaskNode, String statusTypes, FlowController flowController, Logger logger) {
-        ReportingTaskStatus reportingTaskStatus = new ReportingTaskStatus();
+    static ReportingTaskStatus parseReportingTaskStatusRequest(final String id, final ReportingTaskNode reportingTaskNode,
+            final String statusTypes, final FlowController flowController, final Logger logger) {
+        final ReportingTaskStatus reportingTaskStatus = new ReportingTaskStatus();
         reportingTaskStatus.setName(id);
 
-        String[] statusSplits = statusTypes.split(",");
-        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
+        final String[] statusSplits = statusTypes.split(",");
+        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
                 new BulletinQuery.Builder()
                         .sourceIdMatches(id)
                         .build());
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
+                    final ReportingTaskHealth reportingTaskHealth = new ReportingTaskHealth();
 
                     reportingTaskHealth.setScheduledState(reportingTaskNode.getScheduledState().name());
                     reportingTaskHealth.setActiveThreads(reportingTaskNode.getActiveThreadCount());
                     reportingTaskHealth.setHasBulletins(!bulletinList.isEmpty());
 
-                    Collection<ValidationResult> validationResults = reportingTaskNode.getValidationErrors();
+                    final Collection<ValidationResult> validationResults = reportingTaskNode.getValidationErrors();
                     reportingTaskHealth.setValidationErrorList(transformValidationResults(validationResults));
 
                     reportingTaskStatus.setReportingTaskHealth(reportingTaskHealth);
@@ -236,25 +239,26 @@ public final class StatusRequestParser {
         return reportingTaskStatus;
     }
 
-    static ControllerServiceStatus parseControllerServiceStatusRequest(ControllerServiceNode controllerServiceNode, String statusTypes, FlowController flowController, Logger logger) {
-        ControllerServiceStatus controllerServiceStatus = new ControllerServiceStatus();
-        String id = controllerServiceNode.getIdentifier();
+    static ControllerServiceStatus parseControllerServiceStatusRequest(final ControllerServiceNode controllerServiceNode,
+            final String statusTypes, final FlowController flowController, final Logger logger) {
+        final ControllerServiceStatus controllerServiceStatus = new ControllerServiceStatus();
+        final String id = controllerServiceNode.getIdentifier();
         controllerServiceStatus.setName(id);
 
-        String[] statusSplits = statusTypes.split(",");
-        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
+        final String[] statusSplits = statusTypes.split(",");
+        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
                 new BulletinQuery.Builder()
                         .sourceIdMatches(id)
                         .build());
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
+                    final ControllerServiceHealth controllerServiceHealth = new ControllerServiceHealth();
 
                     controllerServiceHealth.setState(controllerServiceNode.getState().name());
                     controllerServiceHealth.setHasBulletins(!bulletinList.isEmpty());
 
-                    Collection<ValidationResult> validationResults = controllerServiceNode.getValidationErrors();
+                    final Collection<ValidationResult> validationResults = controllerServiceNode.getValidationErrors();
                     controllerServiceHealth.setValidationErrorList(transformValidationResults(validationResults));
 
                     controllerServiceStatus.setControllerServiceHealth(controllerServiceHealth);
@@ -267,18 +271,18 @@ public final class StatusRequestParser {
         return controllerServiceStatus;
     }
 
-    static SystemDiagnosticsStatus parseSystemDiagnosticsRequest(SystemDiagnostics inputSystemDiagnostics, String statusTypes) throws StatusRequestException {
+    static SystemDiagnosticsStatus parseSystemDiagnosticsRequest(final SystemDiagnostics inputSystemDiagnostics, final String statusTypes) throws StatusRequestException {
         if (inputSystemDiagnostics == null) {
             throw new StatusRequestException("Unable to get system diagnostics");
         }
 
-        SystemDiagnosticsStatus systemDiagnosticsStatus = new SystemDiagnosticsStatus();
-        String[] statusSplits = statusTypes.split(",");
+        final SystemDiagnosticsStatus systemDiagnosticsStatus = new SystemDiagnosticsStatus();
+        final String[] statusSplits = statusTypes.split(",");
 
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "heap":
-                    HeapStatus heapStatus = new HeapStatus();
+                    final HeapStatus heapStatus = new HeapStatus();
                     heapStatus.setTotalHeap(inputSystemDiagnostics.getTotalHeap());
                     heapStatus.setMaxHeap(inputSystemDiagnostics.getMaxHeap());
                     heapStatus.setFreeHeap(inputSystemDiagnostics.getFreeHeap());
@@ -292,18 +296,18 @@ public final class StatusRequestParser {
                     systemDiagnosticsStatus.setHeapStatus(heapStatus);
                     break;
                 case "processorstats":
-                    SystemProcessorStats systemProcessorStats = new SystemProcessorStats();
+                    final SystemProcessorStats systemProcessorStats = new SystemProcessorStats();
                     systemProcessorStats.setAvailableProcessors(inputSystemDiagnostics.getAvailableProcessors());
                     systemProcessorStats.setLoadAverage(inputSystemDiagnostics.getProcessorLoadAverage());
                     systemDiagnosticsStatus.setProcessorStatus(systemProcessorStats);
                     break;
                 case "contentrepositoryusage":
-                    List<ContentRepositoryUsage> contentRepositoryUsageList = new LinkedList<>();
-                    Map<String, StorageUsage> contentRepoStorage = inputSystemDiagnostics.getContentRepositoryStorageUsage();
+                    final List<ContentRepositoryUsage> contentRepositoryUsageList = new LinkedList<>();
+                    final Map<String, StorageUsage> contentRepoStorage = inputSystemDiagnostics.getContentRepositoryStorageUsage();
 
-                    for (Map.Entry<String, StorageUsage> stringStorageUsageEntry : contentRepoStorage.entrySet()) {
-                        ContentRepositoryUsage contentRepositoryUsage = new ContentRepositoryUsage();
-                        StorageUsage storageUsage = stringStorageUsageEntry.getValue();
+                    for (final Map.Entry<String, StorageUsage> stringStorageUsageEntry : contentRepoStorage.entrySet()) {
+                        final ContentRepositoryUsage contentRepositoryUsage = new ContentRepositoryUsage();
+                        final StorageUsage storageUsage = stringStorageUsageEntry.getValue();
 
                         contentRepositoryUsage.setName(storageUsage.getIdentifier());
                         contentRepositoryUsage.setFreeSpace(storageUsage.getFreeSpace());
@@ -316,8 +320,8 @@ public final class StatusRequestParser {
                     systemDiagnosticsStatus.setContentRepositoryUsageList(contentRepositoryUsageList);
                     break;
                 case "flowfilerepositoryusage":
-                    FlowfileRepositoryUsage flowfileRepositoryUsage = new FlowfileRepositoryUsage();
-                    StorageUsage flowFileRepoStorage = inputSystemDiagnostics.getFlowFileRepositoryStorageUsage();
+                    final FlowfileRepositoryUsage flowfileRepositoryUsage = new FlowfileRepositoryUsage();
+                    final StorageUsage flowFileRepoStorage = inputSystemDiagnostics.getFlowFileRepositoryStorageUsage();
 
                     flowfileRepositoryUsage.setFreeSpace(flowFileRepoStorage.getFreeSpace());
                     flowfileRepositoryUsage.setTotalSpace(flowFileRepoStorage.getTotalSpace());
@@ -327,12 +331,12 @@ public final class StatusRequestParser {
                     systemDiagnosticsStatus.setFlowfileRepositoryUsage(flowfileRepositoryUsage);
                     break;
                 case "garbagecollection":
-                    List<GarbageCollectionStatus> garbageCollectionStatusList = new LinkedList<>();
-                    Map<String, GarbageCollection> garbageCollectionMap = inputSystemDiagnostics.getGarbageCollection();
+                    final List<GarbageCollectionStatus> garbageCollectionStatusList = new LinkedList<>();
+                    final Map<String, GarbageCollection> garbageCollectionMap = inputSystemDiagnostics.getGarbageCollection();
 
-                    for (Map.Entry<String, GarbageCollection> stringGarbageCollectionEntry : garbageCollectionMap.entrySet()) {
-                        GarbageCollectionStatus garbageCollectionStatus = new GarbageCollectionStatus();
-                        GarbageCollection garbageCollection = stringGarbageCollectionEntry.getValue();
+                    for (final Map.Entry<String, GarbageCollection> stringGarbageCollectionEntry : garbageCollectionMap.entrySet()) {
+                        final GarbageCollectionStatus garbageCollectionStatus = new GarbageCollectionStatus();
+                        final GarbageCollection garbageCollection = stringGarbageCollectionEntry.getValue();
 
                         garbageCollectionStatus.setName(garbageCollection.getName());
                         garbageCollectionStatus.setCollectionCount(garbageCollection.getCollectionCount());
@@ -347,17 +351,17 @@ public final class StatusRequestParser {
         return systemDiagnosticsStatus;
     }
 
-    static InstanceStatus parseInstanceRequest(String statusTypes, FlowController flowController, ProcessGroupStatus rootGroupStatus) {
-        InstanceStatus instanceStatus = new InstanceStatus();
+    static InstanceStatus parseInstanceRequest(final String statusTypes, final FlowController flowController, final ProcessGroupStatus rootGroupStatus) {
+        final InstanceStatus instanceStatus = new InstanceStatus();
 
         flowController.getFlowManager().getAllControllerServices();
-        List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletinsForController();
-        String[] statusSplits = statusTypes.split(",");
+        final List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletinsForController();
+        final String[] statusSplits = statusTypes.split(",");
 
-        for (String statusType : statusSplits) {
+        for (final String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
                 case "health":
-                    InstanceHealth instanceHealth = new InstanceHealth();
+                    final InstanceHealth instanceHealth = new InstanceHealth();
 
                     instanceHealth.setQueuedCount(rootGroupStatus.getQueuedCount());
                     instanceHealth.setQueuedContentSize(rootGroupStatus.getQueuedContentSize());
@@ -370,7 +374,7 @@ public final class StatusRequestParser {
                     instanceStatus.setBulletinList(transformBulletins(flowController.getBulletinRepository().findBulletinsForController()));
                     break;
                 case "stats":
-                    InstanceStats instanceStats = new InstanceStats();
+                    final InstanceStats instanceStats = new InstanceStats();
 
                     instanceStats.setBytesRead(rootGroupStatus.getBytesRead());
                     instanceStats.setBytesWritten(rootGroupStatus.getBytesWritten());
@@ -388,11 +392,11 @@ public final class StatusRequestParser {
         return instanceStatus;
     }
 
-    private static List<ValidationError> transformValidationResults(Collection<ValidationResult> validationResults) {
-        List<ValidationError> validationErrorList = new LinkedList<>();
-        for (ValidationResult validationResult : validationResults) {
+    private static List<ValidationError> transformValidationResults(final Collection<ValidationResult> validationResults) {
+        final List<ValidationError> validationErrorList = new LinkedList<>();
+        for (final ValidationResult validationResult : validationResults) {
             if (!validationResult.isValid()) {
-                ValidationError validationError = new ValidationError();
+                final ValidationError validationError = new ValidationError();
                 validationError.setSubject(validationResult.getSubject());
                 validationError.setInput(validationResult.getInput());
                 validationError.setReason(validationResult.getExplanation());
@@ -403,11 +407,11 @@ public final class StatusRequestParser {
         return validationErrorList;
     }
 
-    private static List<BulletinStatus> transformBulletins(List<Bulletin> bulletinList) {
-        List<BulletinStatus> bulletinStatusList = new LinkedList<>();
+    private static List<BulletinStatus> transformBulletins(final List<Bulletin> bulletinList) {
+        final List<BulletinStatus> bulletinStatusList = new LinkedList<>();
         if (!bulletinList.isEmpty()) {
-            for (Bulletin bulletin : bulletinList) {
-                BulletinStatus bulletinStatus = new BulletinStatus();
+            for (final Bulletin bulletin : bulletinList) {
+                final BulletinStatus bulletinStatus = new BulletinStatus();
                 bulletinStatus.setMessage(bulletin.getMessage());
                 bulletinStatus.setTimestamp(bulletin.getTimestamp());
                 bulletinStatusList.add(bulletinStatus);

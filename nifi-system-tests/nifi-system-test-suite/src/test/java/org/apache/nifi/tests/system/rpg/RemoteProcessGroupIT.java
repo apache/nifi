@@ -79,7 +79,7 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
                 }
 
                 return false;
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException("Could not retrieve RPG with ID " + rpgId);
             }
         });

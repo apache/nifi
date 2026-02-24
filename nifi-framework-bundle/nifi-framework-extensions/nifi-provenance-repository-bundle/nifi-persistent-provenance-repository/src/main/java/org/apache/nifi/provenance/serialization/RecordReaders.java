@@ -41,7 +41,7 @@ public class RecordReaders {
     /**
      * Creates a new Record Reader that is capable of reading Provenance Event Journals
      *
-     * @param file               the Provenance Event Journal to read data from
+     * @param fileArg            the Provenance Event Journal to read data from
      * @param provenanceLogFiles collection of all provenance journal files
      * @param maxAttributeChars  the maximum number of characters to retrieve for any one attribute. This allows us to avoid
      *                           issues where a FlowFile has an extremely large attribute and reading events
@@ -49,8 +49,9 @@ public class RecordReaders {
      * @return a Record Reader capable of reading Provenance Event Journals
      * @throws IOException if unable to create a Record Reader for the given file
      */
-    public static RecordReader newRecordReader(File file, final Collection<Path> provenanceLogFiles, final int maxAttributeChars) throws IOException {
-        final File originalFile = file;
+    public static RecordReader newRecordReader(final File fileArg, final Collection<Path> provenanceLogFiles, final int maxAttributeChars) throws IOException {
+        final File originalFile = fileArg;
+        File file = fileArg;
         InputStream fis = null;
 
         try {

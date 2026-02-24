@@ -55,8 +55,8 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
         emptyRepo = createRepo(BUFSIZE3);
     }
 
-    private static VolatileComponentStatusRepository initRepo(int bufferSize, int offset) {
-        VolatileComponentStatusRepository repo = createRepo(bufferSize);
+    private static VolatileComponentStatusRepository initRepo(final int bufferSize, final int offset) {
+        final VolatileComponentStatusRepository repo = createRepo(bufferSize);
 
         for (long i = 0; i < bufferSize - offset; i++) {
             repo.timestamps.add(new Date(i * FIVE_MINUTES));
@@ -66,13 +66,13 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
         return repo;
     }
 
-    private static VolatileComponentStatusRepository createRepo(int bufferSize) {
+    private static VolatileComponentStatusRepository createRepo(final int bufferSize) {
         final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
         Mockito.when(niFiProperties.getIntegerProperty(VolatileComponentStatusRepository.NUM_DATA_POINTS_PROPERTY, VolatileComponentStatusRepository.DEFAULT_NUM_DATA_POINTS)).thenReturn(bufferSize);
         return new VolatileComponentStatusRepository(niFiProperties);
     }
 
-    private static Date asDate(LocalDateTime localDateTime) {
+    private static Date asDate(final LocalDateTime localDateTime) {
         return Date.from(localDateTime.toInstant(ZoneOffset.UTC));
     }
 
@@ -82,8 +82,8 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
         testFilterDatesReturnAll(partiallyFilledRepo);
     }
 
-    private void testFilterDatesReturnAll(VolatileComponentStatusRepository repo) {
-        List<Date> dates = repo.filterDates(null, null, Integer.MAX_VALUE);
+    private void testFilterDatesReturnAll(final VolatileComponentStatusRepository repo) {
+        final List<Date> dates = repo.filterDates(null, null, Integer.MAX_VALUE);
         assertNotNull(repo.timestamps);
         assertEquals(repo.timestamps.getSize(), dates.size());
         assertEquals(dates, repo.timestamps.asList());
@@ -92,7 +92,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
 
     @Test
     public void testFilterDatesUsingPreferredDataPoints() {
-        List<Date> dates = filledRepo.filterDates(null, null, 1);
+        final List<Date> dates = filledRepo.filterDates(null, null, 1);
         assertEquals(1, dates.size());
         assertEquals(filledRepo.timestamps.getNewestElement(), dates.get(0));
 
@@ -100,8 +100,8 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
         testFilterDatesUsingPreferredDataPoints(partiallyFilledRepo, 22);
     }
 
-    private void testFilterDatesUsingPreferredDataPoints(VolatileComponentStatusRepository repo, int numPoints) {
-        List<Date> dates = repo.filterDates(null, null, numPoints);
+    private void testFilterDatesUsingPreferredDataPoints(final VolatileComponentStatusRepository repo, final int numPoints) {
+        final List<Date> dates = repo.filterDates(null, null, numPoints);
         assertEquals(numPoints, dates.size());
         assertEquals(repo.timestamps.getNewestElement(), dates.get(dates.size() - 1));
         assertEquals(repo.timestamps.asList().get(repo.timestamps.getSize() - numPoints), dates.get(0));
@@ -178,7 +178,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
     @Test
     public void testFilterDatesUsingStartEndAndPreferredFilter() {
         // Filter with dates that exactly matches entries in timestamps buffer
-        int numPoints = 5;
+        final int numPoints = 5;
         Date start = asDate(LocalDateTime.of(1977, 1, 1, 0, 30, 0));
         Date end = asDate(LocalDateTime.of(1977, 2, 1, 1, 0, 0));
         List<Date> dates = filledRepo.filterDates(start, end, numPoints);
@@ -212,7 +212,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
         // This repository is used to verify circular actions behave as expected.
         for (int i = 0; i < BUFSIZE3 + 15; i++) {
             emptyRepo.timestamps.add(new Date(i * FIVE_MINUTES));
-            List<Date> dates = emptyRepo.filterDates(null, null, Integer.MAX_VALUE);
+            final List<Date> dates = emptyRepo.filterDates(null, null, Integer.MAX_VALUE);
             if (i < BUFSIZE3 - 1) {
                 assertNull(emptyRepo.timestamps.getOldestElement());
             } else {

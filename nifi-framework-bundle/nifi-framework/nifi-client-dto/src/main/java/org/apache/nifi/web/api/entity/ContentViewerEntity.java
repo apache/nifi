@@ -38,7 +38,7 @@ public class ContentViewerEntity extends Entity {
         return contentViewers;
     }
 
-    public void setContentViewers(List<ContentViewerDTO> contentViewers) {
+    public void setContentViewers(final List<ContentViewerDTO> contentViewers) {
         this.contentViewers = contentViewers;
     }
 }

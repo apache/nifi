@@ -33,7 +33,7 @@ public class IllegalNodeDisconnectionExceptionMapper implements ExceptionMapper<
     private static final Logger logger = LoggerFactory.getLogger(IllegalNodeDisconnectionExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalNodeDisconnectionException exception) {
+    public Response toResponse(final IllegalNodeDisconnectionException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

@@ -32,7 +32,7 @@ public class MatchesRegex extends FunctionFilter {
 
     private final Pattern compiledPattern;
 
-    public MatchesRegex(RecordPathSegment recordPath, final RecordPathSegment regexPath) {
+    public MatchesRegex(final RecordPathSegment recordPath, final RecordPathSegment regexPath) {
         super(recordPath);
         this.regexPath = regexPath;
 

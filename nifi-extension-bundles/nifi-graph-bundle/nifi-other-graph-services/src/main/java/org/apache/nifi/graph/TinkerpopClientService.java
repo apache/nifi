@@ -247,7 +247,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         loadClasses(context);
-        GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader());
+        final GroovyClassLoader loader = new GroovyClassLoader(this.getClass().getClassLoader());
         groovyShell = new GroovyShell(loader);
         compiledCode = new ConcurrentHashMap<>();
 
@@ -268,7 +268,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
             if (traversalSource != null) {
                 traversalSource.close();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         } finally {
             if (cluster != null) {
@@ -280,14 +280,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
     }
 
     @Override
-    public Map<String, String> executeQuery(String s, Map<String, Object> map, GraphQueryResultCallback graphQueryResultCallback) {
+    public Map<String, String> executeQuery(final String s, final Map<String, Object> map, final GraphQueryResultCallback graphQueryResultCallback) {
         try {
             if (scriptSubmission) {
                 return scriptSubmission(s, map, graphQueryResultCallback);
             } else {
                 return bytecodeSubmission(s, map, graphQueryResultCallback);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new ProcessException(ex);
         }
     }
@@ -303,20 +303,20 @@ public class TinkerpopClientService extends AbstractControllerService implements
     }
 
     @Override
-    public Collection<ValidationResult> customValidate(ValidationContext context) {
-        Collection<ValidationResult> results = new ArrayList<>();
-        boolean jarsIsSet = !StringUtils.isEmpty(context.getProperty(EXTRA_RESOURCE).getValue());
-        boolean clzIsSet = !StringUtils.isEmpty(context.getProperty(EXTENSION_CLASSES).getValue());
+    public Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final Collection<ValidationResult> results = new ArrayList<>();
+        final boolean jarsIsSet = !StringUtils.isEmpty(context.getProperty(EXTRA_RESOURCE).getValue());
+        final boolean clzIsSet = !StringUtils.isEmpty(context.getProperty(EXTENSION_CLASSES).getValue());
 
         if (jarsIsSet && clzIsSet) {
             try {
                 final ClassLoader loader = ClassLoaderUtils
                         .getCustomClassLoader(context.getProperty(EXTRA_RESOURCE).getValue(), this.getClass().getClassLoader(), null);
-                String[] classes = context.getProperty(EXTENSION_CLASSES).evaluateAttributeExpressions().getValue().split(",[\\s]*");
-                for (String clz : classes) {
+                final String[] classes = context.getProperty(EXTENSION_CLASSES).evaluateAttributeExpressions().getValue().split(",[\\s]*");
+                for (final String clz : classes) {
                     Class.forName(clz, true, loader);
                 }
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 results.add(new ValidationResult.Builder().subject(EXTENSION_CLASSES.getDisplayName()).valid(false).explanation(ex.toString()).build());
             }
         }
@@ -334,12 +334,12 @@ public class TinkerpopClientService extends AbstractControllerService implements
         return results;
     }
 
-    protected Cluster.Builder setupSSL(ConfigurationContext context, Cluster.Builder builder) {
+    protected Cluster.Builder setupSSL(final ConfigurationContext context, final Cluster.Builder builder) {
         if (context.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
             final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-            ApplicationProtocolConfig applicationProtocolConfig = new ApplicationProtocolConfig(ApplicationProtocolConfig.Protocol.NONE,
+            final ApplicationProtocolConfig applicationProtocolConfig = new ApplicationProtocolConfig(ApplicationProtocolConfig.Protocol.NONE,
                     ApplicationProtocolConfig.SelectorFailureBehavior.FATAL_ALERT, ApplicationProtocolConfig.SelectedListenerFailureBehavior.FATAL_ALERT);
-            JdkSslContext jdkSslContext = new JdkSslContext(sslContextProvider.createContext(), true, null,
+            final JdkSslContext jdkSslContext = new JdkSslContext(sslContextProvider.createContext(), true, null,
                     IdentityCipherSuiteFilter.INSTANCE, applicationProtocolConfig, ClientAuth.NONE, null, false);
 
             builder
@@ -351,35 +351,35 @@ public class TinkerpopClientService extends AbstractControllerService implements
         return builder;
     }
 
-    public void loadClasses(ConfigurationContext context) {
-        String path = context.getProperty(EXTRA_RESOURCE).getValue();
-        String classList = context.getProperty(EXTENSION_CLASSES).getValue();
+    public void loadClasses(final ConfigurationContext context) {
+        final String path = context.getProperty(EXTRA_RESOURCE).getValue();
+        final String classList = context.getProperty(EXTENSION_CLASSES).getValue();
         if (path != null && classList != null && !path.isEmpty() && !classList.isEmpty()) {
             try {
-                ClassLoader loader = ClassLoaderUtils.getCustomClassLoader(path, this.getClass().getClassLoader(), null);
-                String[] classes = context.getProperty(EXTENSION_CLASSES).evaluateAttributeExpressions().getValue().split(",[\\s]*");
-                for (String cls : classes) {
-                    Class<?> clz = Class.forName(cls.trim(), true, loader);
+                final ClassLoader loader = ClassLoaderUtils.getCustomClassLoader(path, this.getClass().getClassLoader(), null);
+                final String[] classes = context.getProperty(EXTENSION_CLASSES).evaluateAttributeExpressions().getValue().split(",[\\s]*");
+                for (final String cls : classes) {
+                    final Class<?> clz = Class.forName(cls.trim(), true, loader);
                     if (getLogger().isDebugEnabled()) {
                         getLogger().debug(clz.getName());
                     }
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new ProcessException(e);
             }
         }
     }
 
-    protected Cluster buildCluster(ConfigurationContext context) {
+    protected Cluster buildCluster(final ConfigurationContext context) {
 
         Cluster.Builder builder = Cluster.build();
-        List<String> hosts = new ArrayList<>();
+        final List<String> hosts = new ArrayList<>();
         if (!context.getProperty(REMOTE_OBJECTS_FILE).isSet()) {
-            String contactProp = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
-            int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-            String path = context.getProperty(PATH).evaluateAttributeExpressions().getValue();
-            String[] contactPoints = contactProp.split(",[\\s]*");
-            for (String contactPoint : contactPoints) {
+            final String contactProp = context.getProperty(CONTACT_POINTS).evaluateAttributeExpressions().getValue();
+            final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            final String path = context.getProperty(PATH).evaluateAttributeExpressions().getValue();
+            final String[] contactPoints = contactProp.split(",[\\s]*");
+            for (final String contactPoint : contactPoints) {
                 builder.addContactPoint(contactPoint.trim());
                 hosts.add(contactPoint.trim());
             }
@@ -391,22 +391,22 @@ public class TinkerpopClientService extends AbstractControllerService implements
             //ToDo: there is a bug in getting the hostname from the builder, therefore when doing
             // bytecode submission, the transitUrl ends up being effectively useless. Need to extract it
             // from the yaml to get this to work as expected.
-            File yamlFile = new File(context.getProperty(REMOTE_OBJECTS_FILE).evaluateAttributeExpressions().getValue());
+            final File yamlFile = new File(context.getProperty(REMOTE_OBJECTS_FILE).evaluateAttributeExpressions().getValue());
             try {
                 builder = Cluster.build(yamlFile);
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 throw new ProcessException(ex);
             }
         }
         builder = setupSSL(context, builder);
 
         if (context.getProperty(USERNAME).isSet() && context.getProperty(PASSWORD).isSet()) {
-            String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-            String password = context.getProperty(PASSWORD).getValue();
+            final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            final String password = context.getProperty(PASSWORD).getValue();
             builder.credentials(username, password);
         }
 
-        Cluster cluster = builder.create();
+        final Cluster cluster = builder.create();
 
         transitUrl = String.format("gremlin%s://%s:%s%s", usesSSL ? "+ssl" : "",
                 String.join(",", hosts), cluster.getPort(), cluster.getPath());
@@ -414,14 +414,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
         return cluster;
     }
 
-    protected Map<String, String> scriptSubmission(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    protected Map<String, String> scriptSubmission(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
         try {
-            Client client = cluster.connect();
-            Iterator<Result> iterator = client.submit(query, parameters).iterator();
+            final Client client = cluster.connect();
+            final Iterator<Result> iterator = client.submit(query, parameters).iterator();
             long count = 0;
             while (iterator.hasNext()) {
-                Result result = iterator.next();
-                Object obj = result.getObject();
+                final Result result = iterator.next();
+                final Object obj = result.getObject();
                 if (obj instanceof Map) {
                     handler.process((Map) obj, iterator.hasNext());
                 } else {
@@ -430,7 +430,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                 count++;
             }
 
-            Map<String, String> resultAttributes = new HashMap<>();
+            final Map<String, String> resultAttributes = new HashMap<>();
             resultAttributes.put(NODES_CREATED, NOT_SUPPORTED);
             resultAttributes.put(RELATIONS_CREATED, NOT_SUPPORTED);
             resultAttributes.put(LABELS_ADDED, NOT_SUPPORTED);
@@ -441,14 +441,14 @@ public class TinkerpopClientService extends AbstractControllerService implements
 
             return resultAttributes;
 
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new ProcessException(ex);
         }
     }
 
-    protected Map<String, String> bytecodeSubmission(String s, Map<String, Object> map, GraphQueryResultCallback graphQueryResultCallback) {
-        String hash = DigestUtils.sha256Hex(s);
-        Script compiled;
+    protected Map<String, String> bytecodeSubmission(final String s, final Map<String, Object> map, final GraphQueryResultCallback graphQueryResultCallback) {
+        final String hash = DigestUtils.sha256Hex(s);
+        final Script compiled;
 
         if (this.traversalSource == null) {
             this.traversalSource = createTraversal();
@@ -466,27 +466,27 @@ public class TinkerpopClientService extends AbstractControllerService implements
             getLogger().debug("{}", map);
         }
 
-        Binding bindings = new Binding();
+        final Binding bindings = new Binding();
         map.forEach(bindings::setProperty);
         bindings.setProperty("g", traversalSource);
         bindings.setProperty("log", getLogger());
         try {
             compiled.setBinding(bindings);
-            Object result = compiled.run();
+            final Object result = compiled.run();
             if (result instanceof Map) {
-                Map<String, Object> resultMap = (Map<String, Object>) result;
+                final Map<String, Object> resultMap = (Map<String, Object>) result;
                 if (!resultMap.isEmpty()) {
-                    Iterator outerResultSet = resultMap.entrySet().iterator();
+                    final Iterator outerResultSet = resultMap.entrySet().iterator();
                     while (outerResultSet.hasNext()) {
-                        Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
+                        final Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
                         if (innerResultSet.getValue() instanceof Map) {
-                            Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
+                            final Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
                             while (resultSet.hasNext()) {
-                                Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
-                                Map<String, Object> tempRetObject = new HashMap<>();
+                                final Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
+                                final Map<String, Object> tempRetObject = new HashMap<>();
                                 tempRetObject.put(tempResult.getKey(), tempResult.getValue());
-                                SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
-                                Map<String, Object> resultReturnMap = new HashMap<>();
+                                final SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
+                                final Map<String, Object> resultReturnMap = new HashMap<>();
                                 resultReturnMap.put(innerResultSet.getKey(), returnObject);
                                 if (getLogger().isDebugEnabled()) {
                                     getLogger().debug("{}", resultReturnMap);
@@ -494,7 +494,7 @@ public class TinkerpopClientService extends AbstractControllerService implements
                                 graphQueryResultCallback.process(resultReturnMap, resultSet.hasNext());
                             }
                         } else {
-                            Map<String, Object> resultReturnMap = new HashMap<>();
+                            final Map<String, Object> resultReturnMap = new HashMap<>();
                             resultReturnMap.put(innerResultSet.getKey(), innerResultSet.getValue());
                             graphQueryResultCallback.process(resultReturnMap, false);
                         }
@@ -503,25 +503,25 @@ public class TinkerpopClientService extends AbstractControllerService implements
 
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 
-        Map<String, String> resultAttributes = new HashMap<>();
+        final Map<String, String> resultAttributes = new HashMap<>();
         resultAttributes.put(ROWS_RETURNED, String.valueOf(rowsReturned));
 
         return resultAttributes;
     }
 
     protected GraphTraversalSource createTraversal() {
-        GraphTraversalSource traversal;
+        final GraphTraversalSource traversal;
         try {
             if (StringUtils.isEmpty(traversalSourceName)) {
                 traversal = AnonymousTraversalSource.traversal().with(DriverRemoteConnection.using(cluster));
             } else {
                 traversal = AnonymousTraversalSource.traversal().with(DriverRemoteConnection.using(cluster, traversalSourceName));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 

@@ -84,7 +84,7 @@ class SmbClient extends SMBClient {
             connection.lease();
 
             return connection;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.info("Stale connection found, unregistering it and creating a new one");
             bus.publish(new ConnectionClosed(hostname, port));
         }

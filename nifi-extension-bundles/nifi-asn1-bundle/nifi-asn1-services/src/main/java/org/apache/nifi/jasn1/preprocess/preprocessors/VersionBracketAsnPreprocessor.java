@@ -35,7 +35,7 @@ public class VersionBracketAsnPreprocessor implements AsnPreprocessor {
     public static final String ADD_OPTIONAL = " OPTIONAL$1$2$3";
 
     @Override
-    public List<String> preprocessAsn(List<String> lines) {
+    public List<String> preprocessAsn(final List<String> lines) {
         final List<String> preprocessedLines = new ArrayList<>();
 
         final AtomicBoolean inVersionBracket = new AtomicBoolean(false);

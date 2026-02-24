@@ -55,7 +55,7 @@ public class JASN1RecordReader implements RecordReader {
 
     private Iterator<BerType> recordModelIterator;
 
-    private <T> T withClassLoader(Supplier<T> supplier) {
+    private <T> T withClassLoader(final Supplier<T> supplier) {
         final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             if (classLoader != null) {
@@ -71,10 +71,10 @@ public class JASN1RecordReader implements RecordReader {
     }
 
     @SuppressWarnings("unchecked")
-    public JASN1RecordReader(String rootClassName, String recordField,
-                             RecordSchemaProvider schemaProvider, ClassLoader classLoader,
-                             String iteratorProviderClassName,
-                             InputStream inputStream, ComponentLog logger) {
+    public JASN1RecordReader(final String rootClassName, final String recordField,
+                             final RecordSchemaProvider schemaProvider, final ClassLoader classLoader,
+                             final String iteratorProviderClassName,
+                             final InputStream inputStream, final ComponentLog logger) {
 
         this.schemaProvider = schemaProvider;
         this.classLoader = classLoader;
@@ -85,7 +85,7 @@ public class JASN1RecordReader implements RecordReader {
         this.rootClass = withClassLoader(() -> {
             try {
                 return (Class<? extends BerType>) classLoader.loadClass(rootClassName);
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 throw new RuntimeException("The root class " + rootClassName + " was not found.", e);
             }
         });
@@ -97,7 +97,7 @@ public class JASN1RecordReader implements RecordReader {
 
             try {
                 return (Class<? extends RecordModelIteratorProvider>) classLoader.loadClass(iteratorProviderClassName);
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 throw new RuntimeException("The iterator provider class " + iteratorProviderClassName + " was not found.", e);
             }
         });
@@ -115,7 +115,7 @@ public class JASN1RecordReader implements RecordReader {
                 } else {
                     recordModelClass = (Class<? extends BerType>) readPointType;
                 }
-            } catch (ReflectiveOperationException e) {
+            } catch (final ReflectiveOperationException e) {
                 throw new RuntimeException("Failed to get record model class due to " + e, e);
             }
         }
@@ -124,7 +124,7 @@ public class JASN1RecordReader implements RecordReader {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
 
         return withClassLoader(() -> {
             if (recordModelIterator == null) {
@@ -132,7 +132,7 @@ public class JASN1RecordReader implements RecordReader {
                 final RecordModelIteratorProvider recordModelIteratorProvider;
                 try {
                     recordModelIteratorProvider = iteratorProviderClass.getDeclaredConstructor().newInstance();
-                } catch (ReflectiveOperationException e) {
+                } catch (final ReflectiveOperationException e) {
                     throw new RuntimeException("Failed to instantiate " + iteratorProviderClass.getCanonicalName(), e);
                 }
 
@@ -158,13 +158,13 @@ public class JASN1RecordReader implements RecordReader {
         }
     }
 
-    private Record convertBerRecord(BerType berRecord) {
+    private Record convertBerRecord(final BerType berRecord) {
         final Class<? extends BerType> recordClass = berRecord.getClass();
         final RecordSchema recordSchema = schemaProvider.get(recordClass);
         final MapRecord record = new MapRecord(recordSchema, new HashMap<>());
 
-        for (RecordField field : recordSchema.getFields()) {
-            String fieldName = field.getFieldName();
+        for (final RecordField field : recordSchema.getFields()) {
+            final String fieldName = field.getFieldName();
 
             final Object value = invokeGetter(berRecord, toGetterMethod(fieldName));
             record.setValue(field, convertBerValue(fieldName, field.getDataType(), berRecord, value));

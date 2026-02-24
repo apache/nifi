@@ -38,7 +38,7 @@ public class FlowSnapshotEntityV1 {
         return flowId;
     }
 
-    public void setFlowId(String flowId) {
+    public void setFlowId(final String flowId) {
         this.flowId = flowId;
     }
 
@@ -46,7 +46,7 @@ public class FlowSnapshotEntityV1 {
         return version;
     }
 
-    public void setVersion(Integer version) {
+    public void setVersion(final Integer version) {
         this.version = version;
     }
 
@@ -54,7 +54,7 @@ public class FlowSnapshotEntityV1 {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public void setCreated(final Date created) {
         this.created = created;
     }
 
@@ -62,7 +62,7 @@ public class FlowSnapshotEntityV1 {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(final String createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -70,7 +70,7 @@ public class FlowSnapshotEntityV1 {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -80,7 +80,7 @@ public class FlowSnapshotEntityV1 {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

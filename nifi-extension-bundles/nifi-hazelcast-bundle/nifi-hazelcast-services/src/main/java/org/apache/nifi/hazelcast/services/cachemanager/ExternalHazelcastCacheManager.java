@@ -88,7 +88,7 @@ public class ExternalHazelcastCacheManager extends IMapBasedHazelcastCacheManage
     );
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("hazelcast-server-address", HAZELCAST_SERVER_ADDRESS.getName());
         config.renameProperty("hazelcast-retry-backoff-initial", HAZELCAST_RETRY_BACKOFF_INITIAL.getName());

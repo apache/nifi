@@ -47,17 +47,17 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void emptyStreamNoStartWithFilter() throws IOException {
-        String data = "";
-        InputStream is = stringToIs(data);
-        TextLineDemarcator demarcator = new TextLineDemarcator(is);
+        final String data = "";
+        final InputStream is = stringToIs(data);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is);
         assertNull(demarcator.nextOffsetInfo());
     }
 
     @Test
     public void emptyStreamAndStartWithFilter() throws IOException {
-        String data = "";
-        InputStream is = stringToIs(data);
-        TextLineDemarcator demarcator = new TextLineDemarcator(is);
+        final String data = "";
+        final InputStream is = stringToIs(data);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is);
         assertNull(demarcator.nextOffsetInfo("hello".getBytes()));
     }
 
@@ -65,27 +65,27 @@ public class TextLineDemarcatorTest {
     // of failure (see NIFI-3278)
     @Test
     public void endsWithCRWithBufferLengthEqualStringLengthA() throws Exception {
-        String str = "\r";
-        InputStream is = stringToIs(str);
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
+        final String str = "\r";
+        final InputStream is = stringToIs(str);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
         while (demarcator.nextOffsetInfo() != null) {
         }
     }
 
     @Test
     public void endsWithCRWithBufferLengthEqualStringLengthB() throws Exception {
-        String str = "abc\r";
-        InputStream is = stringToIs(str);
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
+        final String str = "abc\r";
+        final InputStream is = stringToIs(str);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
         while (demarcator.nextOffsetInfo() != null) {
         }
     }
 
     @Test
     public void singleCR() throws IOException {
-        InputStream is = stringToIs("\r");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is);
-        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        final InputStream is = stringToIs("\r");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is);
+        final OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
         assertEquals(0, offsetInfo.getStartOffset());
         assertEquals(1, offsetInfo.getLength());
         assertEquals(1, offsetInfo.getCrlfLength());
@@ -94,9 +94,9 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void singleLF() throws IOException {
-        InputStream is = stringToIs("\n");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is);
-        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        final InputStream is = stringToIs("\n");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is);
+        final OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
         assertEquals(0, offsetInfo.getStartOffset());
         assertEquals(1, offsetInfo.getLength());
         assertEquals(1, offsetInfo.getCrlfLength());
@@ -106,8 +106,8 @@ public class TextLineDemarcatorTest {
     @Test
     // essentially validates the internal 'isEol()' operation to ensure it will perform read-ahead
     public void crlfWhereLFdoesNotFitInInitialBuffer() throws Exception {
-        InputStream is = stringToIs("oleg\r\njoe");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 5);
+        final InputStream is = stringToIs("oleg\r\njoe");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 5);
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
         assertEquals(0, offsetInfo.getStartOffset());
         assertEquals(6, offsetInfo.getLength());
@@ -123,9 +123,9 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void validateNiFi_3495() throws IOException {
-        String str = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
-        InputStream is = stringToIs(str);
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 10);
+        final String str = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
+        final InputStream is = stringToIs(str);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 10);
         OffsetInfo info = demarcator.nextOffsetInfo();
         assertEquals(0, info.getStartOffset());
         assertEquals(3, info.getLength());
@@ -155,8 +155,8 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void mixedCRLF() throws Exception {
-        InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
+        final InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
         assertEquals(0, offsetInfo.getStartOffset());
         assertEquals(5, offsetInfo.getLength());
@@ -184,8 +184,8 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void consecutiveAndMixedCRLF() throws Exception {
-        InputStream is = stringToIs("oleg\r\r\njoe\n\n\rjack\n\r\nstacymike\r\n\n\n\r");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
+        final InputStream is = stringToIs("oleg\r\r\njoe\n\n\rjack\n\r\nstacymike\r\n\n\n\r");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
 
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo(); // oleg\r
         assertEquals(5, offsetInfo.getLength());
@@ -234,8 +234,8 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void startWithNoMatchOnWholeStream() throws Exception {
-        InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
+        final InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
 
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
         assertEquals(0, offsetInfo.getStartOffset());
@@ -264,8 +264,8 @@ public class TextLineDemarcatorTest {
 
     @Test
     public void startWithSomeMatches() throws Exception {
-        InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
-        TextLineDemarcator demarcator = new TextLineDemarcator(is, 7);
+        final InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 7);
 
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
         assertEquals(0, offsetInfo.getStartOffset());
@@ -338,7 +338,7 @@ public class TextLineDemarcatorTest {
         }
     }
 
-    private InputStream stringToIs(String data) {
+    private InputStream stringToIs(final String data) {
         return new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
     }
 }

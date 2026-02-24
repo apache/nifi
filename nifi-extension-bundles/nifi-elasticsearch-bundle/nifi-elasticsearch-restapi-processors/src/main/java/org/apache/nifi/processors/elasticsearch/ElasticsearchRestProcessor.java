@@ -217,7 +217,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
     String DEFAULT_QUERY_JSON = "{}";
 
     @Override
-    default void migrateProperties(PropertyConfiguration config) {
+    default void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("el-rest-fetch-index", INDEX.getName());
         config.renameProperty("el-rest-type", TYPE.getName());
         config.renameProperty("el-rest-query-definition-style", QUERY_DEFINITION_STYLE.getName());

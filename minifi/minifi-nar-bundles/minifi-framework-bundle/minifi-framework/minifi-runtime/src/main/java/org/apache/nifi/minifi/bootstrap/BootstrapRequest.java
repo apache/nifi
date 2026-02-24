@@ -21,7 +21,7 @@ public class BootstrapRequest {
     private final String requestType;
     private final String[] args;
 
-    public BootstrapRequest(String request, String[] args) {
+    public BootstrapRequest(final String request, final String[] args) {
         this.requestType = request;
         this.args = args;
     }

@@ -22,11 +22,11 @@ package org.apache.nifi.amqp.processors;
  */
 public class AMQPException extends RuntimeException {
 
-    public AMQPException(String message) {
+    public AMQPException(final String message) {
         super(message);
     }
 
-    public AMQPException(String message, Throwable cause) {
+    public AMQPException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

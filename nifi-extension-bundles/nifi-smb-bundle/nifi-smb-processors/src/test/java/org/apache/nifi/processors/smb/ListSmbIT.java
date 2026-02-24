@@ -57,12 +57,12 @@ public class ListSmbIT extends SambaTestContainers {
 
     @ParameterizedTest
     @ValueSource(ints = {4, 50, 45000})
-    public void shouldFillSizeAttributeProperly(int size) throws Exception {
+    public void shouldFillSizeAttributeProperly(final int size) throws Exception {
         writeFile("1.txt", generateContentWithSize(size));
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.getFlowFilesForRelationship(REL_SUCCESS)
@@ -77,7 +77,7 @@ public class ListSmbIT extends SambaTestContainers {
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
         testRunner.setProperty(DIRECTORY, "folderDoesNotExists");
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.run();
         assertEquals(1, testRunner.getLogger().getErrorMessages().size());
         testRunner.assertValid();
@@ -87,7 +87,7 @@ public class ListSmbIT extends SambaTestContainers {
     @Test
     public void shouldShowBulletinWhenShareIsInvalid() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
+        final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, false);
         testRunner.setProperty(smbjClientProviderService, SHARE, "invalid_share");
         testRunner.enableControllerService(smbjClientProviderService);
         testRunner.run();
@@ -271,7 +271,7 @@ public class ListSmbIT extends SambaTestContainers {
         testInitialListingStrategy(InitialListingStrategy.FROM_TIMESTAMP, 1);
     }
 
-    private void testInitialListingStrategy(InitialListingStrategy initialListingStrategy, int expectedCount) throws Exception {
+    private void testInitialListingStrategy(final InitialListingStrategy initialListingStrategy, final int expectedCount) throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final SmbjClientProviderService smbjClientProviderService = configureSmbClient(testRunner, true);
         testRunner.setProperty(MINIMUM_AGE, "0 ms");

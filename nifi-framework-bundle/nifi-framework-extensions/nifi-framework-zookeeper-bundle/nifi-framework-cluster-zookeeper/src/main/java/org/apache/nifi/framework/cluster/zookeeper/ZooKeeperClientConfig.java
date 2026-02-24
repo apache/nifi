@@ -57,11 +57,11 @@ public class ZooKeeperClientConfig {
     private final String removeRealmFromPrincipal;
     private final int juteMaxbuffer;
 
-    private ZooKeeperClientConfig(String connectString, int sessionTimeoutMillis, int connectionTimeoutMillis,
-                                  String rootPath, String authType, String authPrincipal, String removeHostFromPrincipal,
-                                  String removeRealmFromPrincipal, boolean clientSecure, String keyStore, String keyStoreType,
-                                  String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword,
-                                  final int juteMaxbuffer, boolean withEnsembleTracker) {
+    private ZooKeeperClientConfig(final String connectString, final int sessionTimeoutMillis, final int connectionTimeoutMillis,
+                                  final String rootPath, final String authType, final String authPrincipal, final String removeHostFromPrincipal,
+                                  final String removeRealmFromPrincipal, final boolean clientSecure, final String keyStore, final String keyStoreType,
+                                  final String keyStorePassword, final String trustStore, final String trustStoreType, final String trustStorePassword,
+                                  final int juteMaxbuffer, final boolean withEnsembleTracker) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;

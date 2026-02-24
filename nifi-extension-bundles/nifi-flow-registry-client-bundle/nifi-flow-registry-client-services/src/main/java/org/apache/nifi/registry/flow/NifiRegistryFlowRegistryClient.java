@@ -97,7 +97,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final String portSuffix = port < 0 ? "" : ":" + port;
             final String uriString = fullUri.getScheme() + "://" + fullUri.getHost() + portSuffix;
             uri = URI.create(uriString);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + configuredUrl);
         }
 
@@ -259,7 +259,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
     }
 
     @Override
-    public RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot, RegisterAction action)
+    public RegisteredFlowSnapshot registerFlowSnapshot(final FlowRegistryClientConfigurationContext context, final RegisteredFlowSnapshot flowSnapshot, final RegisterAction action)
             throws FlowRegistryException, IOException {
         try {
             final RegisteredFlowSnapshotMetadata snapshotMetadata = flowSnapshot.getSnapshotMetadata();
@@ -288,7 +288,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
             final RegisteredFlowSnapshot registeredFlowSnapshot = NifiRegistryUtil.convert(versionedFlowSnapshot);
             registeredFlowSnapshot.setLatest(true);
             return registeredFlowSnapshot;
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
     }
@@ -310,7 +310,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
             final FlowSnapshotClient snapshotClient = getFlowSnapshotClient(context);
             return snapshotClient.getSnapshotMetadata(bucketId, flowId).stream().map(NifiRegistryUtil::convert).collect(Collectors.toSet());
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
     }
@@ -324,7 +324,7 @@ public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
             final int versionCount = (int) getFlowClient(context).get(bucketId, flowId).getVersionCount();
             return versionCount == 0 ? Optional.empty() : Optional.of(String.valueOf(versionCount));
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             throw new FlowRegistryException(e.getMessage(), e);
         }
     }

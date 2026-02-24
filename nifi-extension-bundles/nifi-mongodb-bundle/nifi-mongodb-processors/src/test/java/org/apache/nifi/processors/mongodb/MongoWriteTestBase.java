@@ -46,7 +46,7 @@ public class MongoWriteTestBase extends AbstractMongoIT {
     protected MongoCollection<Document> collection;
     protected MongoDBClientService clientService;
 
-    public void setup(Class processor) {
+    public void setup(final Class processor) {
         DATABASE_NAME = processor.getSimpleName().toLowerCase();
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
         collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
@@ -54,8 +54,8 @@ public class MongoWriteTestBase extends AbstractMongoIT {
         clientService = new MongoDBControllerService();
     }
 
-    public TestRunner init(Class processor) throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(processor);
+    public TestRunner init(final Class processor) throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");

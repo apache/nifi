@@ -117,7 +117,7 @@ public class TestListenTCP {
 
         run(messages, messages.size(), null);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
         }
@@ -137,12 +137,12 @@ public class TestListenTCP {
 
         run(messages, 2, null);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
 
-        MockFlowFile mockFlowFile1 = mockFlowFiles.get(0);
+        final MockFlowFile mockFlowFile1 = mockFlowFiles.get(0);
         mockFlowFile1.assertContentEquals("This is message 1\nThis is message 2\nThis is message 3");
 
-        MockFlowFile mockFlowFile2 = mockFlowFiles.get(1);
+        final MockFlowFile mockFlowFile2 = mockFlowFiles.get(1);
         mockFlowFile2.assertContentEquals("This is message 4\nThis is message 5");
     }
 
@@ -161,7 +161,7 @@ public class TestListenTCP {
 
         run(messages, messages.size(), keyStoreSslContext);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
             mockFlowFiles.get(i).assertAttributeExists(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE);
@@ -185,7 +185,7 @@ public class TestListenTCP {
 
         run(messages, messages.size(), trustStoreSslContext);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
             mockFlowFiles.get(i).assertAttributeNotExists(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE);

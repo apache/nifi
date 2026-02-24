@@ -25,7 +25,7 @@ public enum Status {
 
     private final int statusCode;
 
-    Status(int statusCode) {
+    Status(final int statusCode) {
         this.statusCode = statusCode;
     }
 

@@ -33,7 +33,7 @@ public class JsonParseExceptionMapper implements ExceptionMapper<JsonParseExcept
     private static final Logger logger = LoggerFactory.getLogger(JsonMappingExceptionMapper.class);
 
     @Override
-    public Response toResponse(JsonParseException ex) {
+    public Response toResponse(final JsonParseException ex) {
         // log the error
         logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 

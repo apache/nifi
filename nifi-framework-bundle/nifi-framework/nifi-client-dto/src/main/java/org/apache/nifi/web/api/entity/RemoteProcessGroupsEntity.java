@@ -35,7 +35,7 @@ public class RemoteProcessGroupsEntity extends Entity {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<RemoteProcessGroupEntity> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Set<RemoteProcessGroupEntity> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

@@ -22,8 +22,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class AllowableValueEntityMerger {
-    public static AllowableValueEntity merge(List<AllowableValueEntity> entities) {
-        AllowableValueEntity mergedEntity;
+    public static AllowableValueEntity merge(final List<AllowableValueEntity> entities) {
+        final AllowableValueEntity mergedEntity;
 
         mergedEntity = entities.remove(0);
         merge(mergedEntity, entities);
@@ -31,8 +31,8 @@ public class AllowableValueEntityMerger {
         return mergedEntity;
     }
 
-    public static void merge(AllowableValueEntity clientAllowableValue, Collection<AllowableValueEntity> allowableValues) {
-        for (AllowableValueEntity allowableValue : allowableValues) {
+    public static void merge(final AllowableValueEntity clientAllowableValue, final Collection<AllowableValueEntity> allowableValues) {
+        for (final AllowableValueEntity allowableValue : allowableValues) {
             if (clientAllowableValue.getCanRead() && !allowableValue.getCanRead()) {
                 clientAllowableValue.setAllowableValue(allowableValue.getAllowableValue());
                 clientAllowableValue.setCanRead(allowableValue.getCanRead());

@@ -108,18 +108,18 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
         final ByteBuffer buffer = bufferSource.acquire();
         while (!stopped) {
             try {
-                int selected = selector.select();
+                final int selected = selector.select();
                 // if stopped the selector could already be closed which would result in a ClosedSelectorException
                 if (selected > 0 && !stopped) {
-                    Iterator<SelectionKey> selectorKeys = selector.selectedKeys().iterator();
+                    final Iterator<SelectionKey> selectorKeys = selector.selectedKeys().iterator();
                     // if stopped we don't want to modify the keys because close() may still be in progress
                     while (selectorKeys.hasNext() && !stopped) {
-                        SelectionKey key = selectorKeys.next();
+                        final SelectionKey key = selectorKeys.next();
                         selectorKeys.remove();
                         if (!key.isValid()) {
                             continue;
                         }
-                        DatagramChannel channel = (DatagramChannel) key.channel();
+                        final DatagramChannel channel = (DatagramChannel) key.channel();
                         SocketAddress socketAddress;
                         buffer.clear();
                         while (!stopped && (socketAddress = channel.receive(buffer)) != null) {
@@ -132,7 +132,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
 
                             // create a byte array from the buffer
                             buffer.flip();
-                            byte[] bytes = new byte[buffer.limit()];
+                            final byte[] bytes = new byte[buffer.limit()];
                             buffer.get(bytes, 0, buffer.limit());
 
                             final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender, port);
@@ -143,10 +143,10 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                         }
                     }
                 }
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 stopped = true;
                 Thread.currentThread().interrupt();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Error reading from DatagramChannel", e);
             }
         }

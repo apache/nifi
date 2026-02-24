@@ -65,7 +65,7 @@ public class UploadBundle extends AbstractNiFiRegistryCommand<BundleVersionResul
         final BundleType bundleType;
         try {
             bundleType = BundleType.fromString(getRequiredArg(properties, CommandOption.EXT_BUNDLE_TYPE));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NiFiRegistryException("Invalid bundle type, should be one of "
                     + BundleType.NIFI_NAR.toString() + " or " + BundleType.MINIFI_CPP.toString());
         }

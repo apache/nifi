@@ -212,7 +212,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
     }
 
@@ -319,7 +319,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Event Hub Consumer Group", CONSUMER_GROUP.getName());
         config.renameProperty("Event Hub Message Enqueue Time", ENQUEUE_TIME.getName());
         config.renameProperty("Partition Recivier Fetch Size", RECEIVER_FETCH_SIZE.getName());

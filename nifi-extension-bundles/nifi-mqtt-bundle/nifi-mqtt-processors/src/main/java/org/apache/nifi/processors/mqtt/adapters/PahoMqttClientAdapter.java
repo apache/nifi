@@ -43,7 +43,7 @@ public class PahoMqttClientAdapter implements MqttClient {
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
-    public PahoMqttClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {
+    public PahoMqttClientAdapter(final URI brokerUri, final MqttClientProperties clientProperties, final ComponentLog logger) {
         this.client = createClient(brokerUri, clientProperties, logger);
         this.clientProperties = clientProperties;
         this.logger = logger;
@@ -74,7 +74,7 @@ public class PahoMqttClientAdapter implements MqttClient {
 
             final String lastWillTopic = clientProperties.getLastWillTopic();
             if (lastWillTopic != null) {
-                boolean lastWillRetain = clientProperties.getLastWillRetain() != null && clientProperties.getLastWillRetain();
+                final boolean lastWillRetain = clientProperties.getLastWillRetain() != null && clientProperties.getLastWillRetain();
                 connectOptions.setWill(lastWillTopic, clientProperties.getLastWillMessage().getBytes(), clientProperties.getLastWillQos(), lastWillRetain);
             }
 
@@ -85,7 +85,7 @@ public class PahoMqttClientAdapter implements MqttClient {
             }
 
             client.connect(connectOptions);
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during connecting to broker", e);
         }
     }
@@ -96,7 +96,7 @@ public class PahoMqttClientAdapter implements MqttClient {
 
         try {
             client.disconnect(DISCONNECT_TIMEOUT);
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during disconnecting client with timeout: " + DISCONNECT_TIMEOUT, e);
         }
     }
@@ -107,36 +107,36 @@ public class PahoMqttClientAdapter implements MqttClient {
 
         try {
             client.close();
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during closing client", e);
         }
     }
 
     @Override
-    public void publish(String topic, StandardMqttMessage message) {
+    public void publish(final String topic, final StandardMqttMessage message) {
         logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
 
         try {
             client.publish(topic, message.getPayload(), message.getQos(), message.isRetained());
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during publishing message to " + topic + " with QoS: " + message.getQos(), e);
         }
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(final String topicFilter, final int qos, final ReceivedMqttMessageHandler handler) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
         client.setCallback(new ConsumerMqttCallback(handler));
 
         try {
             client.subscribe(topicFilter, qos);
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during subscribing to " + topicFilter + " with QoS: " + qos, e);
         }
     }
 
-    public static Properties transformSSLContextService(TlsConfiguration tlsConfiguration) {
+    public static Properties transformSSLContextService(final TlsConfiguration tlsConfiguration) {
         final Properties properties = new Properties();
         if (tlsConfiguration.getProtocol() != null) {
             properties.setProperty("com.ibm.ssl.protocol", tlsConfiguration.getProtocol());
@@ -162,12 +162,12 @@ public class PahoMqttClientAdapter implements MqttClient {
         return properties;
     }
 
-    private static org.eclipse.paho.client.mqttv3.MqttClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) {
+    private static org.eclipse.paho.client.mqttv3.MqttClient createClient(final URI brokerUri, final MqttClientProperties clientProperties, final ComponentLog logger) {
         logger.debug("Creating Mqtt v3 client");
 
         try {
             return new org.eclipse.paho.client.mqttv3.MqttClient(brokerUri.toString(), clientProperties.getClientId(), new MemoryPersistence());
-        } catch (org.eclipse.paho.client.mqttv3.MqttException e) {
+        } catch (final org.eclipse.paho.client.mqttv3.MqttException e) {
             throw new MqttException("An error has occurred during creating adapter for MQTT v3 client", e);
         }
     }
@@ -182,12 +182,12 @@ public class PahoMqttClientAdapter implements MqttClient {
     private class DefaultMqttCallback implements MqttCallback {
 
         @Override
-        public void connectionLost(Throwable cause) {
+        public void connectionLost(final Throwable cause) {
             logger.error("Connection to [{}] lost", clientProperties.getRawBrokerUris(), cause);
         }
 
         @Override
-        public void messageArrived(String topic, MqttMessage message) {
+        public void messageArrived(final String topic, final MqttMessage message) {
             // Unlikely situation. The Paho api uses the same callback for publisher and consumer as well. That's why
             // we have this log message here to indicate something messy thing happened because we don't expect to
             // receive messages until the client is not subscribed and the callback is not changed to ConsumerMqttCallback.
@@ -195,7 +195,7 @@ public class PahoMqttClientAdapter implements MqttClient {
         }
 
         @Override
-        public void deliveryComplete(IMqttDeliveryToken token) {
+        public void deliveryComplete(final IMqttDeliveryToken token) {
             logger.trace("Received 'delivery complete' message from broker. Token: [{}]", token);
         }
     }
@@ -207,19 +207,19 @@ public class PahoMqttClientAdapter implements MqttClient {
 
         private final ReceivedMqttMessageHandler handler;
 
-        private ConsumerMqttCallback(ReceivedMqttMessageHandler handler) {
+        private ConsumerMqttCallback(final ReceivedMqttMessageHandler handler) {
             this.handler = handler;
         }
 
         @Override
-        public void messageArrived(String topic, MqttMessage message) {
+        public void messageArrived(final String topic, final MqttMessage message) {
             logger.debug("Message arrived. Id: [{}]", message.getId());
             final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic);
             handler.handleReceivedMessage(receivedMessage);
         }
 
         @Override
-        public void deliveryComplete(IMqttDeliveryToken token) {
+        public void deliveryComplete(final IMqttDeliveryToken token) {
             // Unlikely situation. The Paho api uses the same callback for publisher and consumer as well. That's why
             // we have this log message here to indicate something messy thing happened because we don't expect to
             // receive 'delivery complete' messages while the client is subscribed.

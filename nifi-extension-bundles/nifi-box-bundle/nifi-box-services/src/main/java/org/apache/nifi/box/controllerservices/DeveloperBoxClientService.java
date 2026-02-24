@@ -94,7 +94,7 @@ public class DeveloperBoxClientService extends AbstractControllerService impleme
         return boxAPIConnection;
     }
 
-    private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
+    private BoxAPIConnection createBoxApiConnection(final ConfigurationContext context) {
         final String devToken = context.getProperty(DEVELOPER_TOKEN).evaluateAttributeExpressions().getValue();
         return new BoxAPIConnection(devToken);
     }

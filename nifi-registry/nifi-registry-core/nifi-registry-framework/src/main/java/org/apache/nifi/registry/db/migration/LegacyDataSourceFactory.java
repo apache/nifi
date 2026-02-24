@@ -70,7 +70,7 @@ public class LegacyDataSourceFactory {
 
         // format the database url
         String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
-        String databaseUrlAppend = properties.getLegacyDatabaseUrlAppend();
+        final String databaseUrlAppend = properties.getLegacyDatabaseUrlAppend();
         if (StringUtils.isNotBlank(databaseUrlAppend)) {
             databaseUrl += databaseUrlAppend;
         }

@@ -48,7 +48,7 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
+        final MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertContentEquals("This is my custom text!");
         generatedFlowFile.assertAttributeNotExists("mime.type");
     }
@@ -77,7 +77,7 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
+        final MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
@@ -95,7 +95,7 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
+        final MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertAttributeEquals("expression.context.parameter", "context.parameter.value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
     }

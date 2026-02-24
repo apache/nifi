@@ -41,8 +41,8 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
     private final FlowAnalysisRuleEntityMerger flowAnalysisRuleEntityMerger = new FlowAnalysisRuleEntityMerger();
 
     @Override
-    public boolean canHandle(URI uri, String method) {
-        boolean canHandle = SUPPORTED_ENDPOINTS.stream()
+    public boolean canHandle(final URI uri, final String method) {
+        final boolean canHandle = SUPPORTED_ENDPOINTS.stream()
                 .filter(supportedEndpoint -> supportedEndpoint.canHandle(uri, method))
                 .findAny()
                 .isPresent();
@@ -57,10 +57,10 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
 
     @Override
     protected void mergeResponses(
-        FlowAnalysisRuleEntity clientEntity,
-        Map<NodeIdentifier, FlowAnalysisRuleEntity> entityMap,
-        Set<NodeResponse> successfulResponses,
-        Set<NodeResponse> problematicResponses
+        final FlowAnalysisRuleEntity clientEntity,
+        final Map<NodeIdentifier, FlowAnalysisRuleEntity> entityMap,
+        final Set<NodeResponse> successfulResponses,
+        final Set<NodeResponse> problematicResponses
     ) {
         flowAnalysisRuleEntityMerger.merge(clientEntity, entityMap);
     }
@@ -76,14 +76,14 @@ public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint
             this.uriPattern = null;
         }
 
-        public Endpoint(Pattern uriPattern, String... httpMethods) {
+        public Endpoint(final Pattern uriPattern, final String... httpMethods) {
             this.httpMethods = Arrays.asList(httpMethods);
             this.uri = null;
             this.uriPattern = uriPattern;
         }
 
-        public boolean canHandle(URI uri, String method) {
-            boolean canHandle =
+        public boolean canHandle(final URI uri, final String method) {
+            final boolean canHandle =
                     httpMethods.stream().filter(httpMethod -> httpMethod.equalsIgnoreCase(method)).findAny().isPresent()
                     && (
                             this.uri != null && this.uri.equals(uri.getPath())

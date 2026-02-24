@@ -52,7 +52,7 @@ class TestGetS3ObjectTags {
     @BeforeEach
     void setUp() {
         mockS3Client = mock(S3Client.class);
-        GetS3ObjectTags mockGetS3ObjectTags = new GetS3ObjectTags() {
+        final GetS3ObjectTags mockGetS3ObjectTags = new GetS3ObjectTags() {
             @Override
             protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
@@ -62,7 +62,7 @@ class TestGetS3ObjectTags {
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
 
         mockTags = mock(GetObjectTaggingResponse.class);
-        List<Tag> tags = List.of(Tag.builder().key("foo").value("bar").build(), Tag.builder().key("zip").value("zap").build());
+        final List<Tag> tags = List.of(Tag.builder().key("foo").value("bar").build(), Tag.builder().key("zip").value("zap").build());
         when(mockTags.tagSet()).thenReturn(tags);
     }
 

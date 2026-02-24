@@ -31,7 +31,7 @@ public class FailureCause {
         return validationResults;
     }
 
-    public void setValidationResults(List<ValidationResult> validationResults) {
+    public void setValidationResults(final List<ValidationResult> validationResults) {
         this.validationResults = validationResults;
     }
 
@@ -39,7 +39,7 @@ public class FailureCause {
         return exceptionMessage;
     }
 
-    public void setExceptionMessage(String exceptionMessage) {
+    public void setExceptionMessage(final String exceptionMessage) {
         this.exceptionMessage = exceptionMessage;
     }
 
@@ -47,19 +47,19 @@ public class FailureCause {
         return causedByMessages;
     }
 
-    public void setCausedByMessages(List<String> causedByMessages) {
+    public void setCausedByMessages(final List<String> causedByMessages) {
         this.causedByMessages = causedByMessages;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        FailureCause that = (FailureCause) o;
+        final FailureCause that = (FailureCause) o;
         return Objects.equals(validationResults, that.validationResults) && Objects.equals(exceptionMessage, that.exceptionMessage) && Objects.equals(causedByMessages, that.causedByMessages);
     }
 

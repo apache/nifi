@@ -70,12 +70,12 @@ public class PublishGCPubSubTest {
         runner = TestRunners.newTestRunner(new PublishGCPubSub() {
             @Override
             @OnScheduled
-            public void onScheduled(ProcessContext context) {
+            public void onScheduled(final ProcessContext context) {
                 publisher = publisherMock;
             }
 
             @Override
-            protected void addCallback(ApiFuture<String> apiFuture, ApiFutureCallback<? super String> callback, Executor executor) {
+            protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, final Executor executor) {
                 if (callback instanceof TrackedApiFutureCallback apiFutureCallback) {
                     if (throwable == null) {
                         apiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
@@ -229,7 +229,7 @@ public class PublishGCPubSubTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(PublishGCPubSub.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(PublishGCPubSub.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("gcp-pubsub-topic", PublishGCPubSub.TOPIC_NAME.getName()),
                 Map.entry("gcp-pubsub-publish-batch-size", AbstractGCPubSubProcessor.BATCH_SIZE_THRESHOLD.getName()),
@@ -271,7 +271,7 @@ public class PublishGCPubSubTest {
         return readerServiceId;
     }
 
-    private static String getWriterServiceId(TestRunner runner) throws InitializationException {
+    private static String getWriterServiceId(final TestRunner runner) throws InitializationException {
         final ControllerService writerService = new JsonRecordSetWriter();
         final String writerServiceId = writerService.getClass().getName();
         runner.addControllerService(writerServiceId, writerService);

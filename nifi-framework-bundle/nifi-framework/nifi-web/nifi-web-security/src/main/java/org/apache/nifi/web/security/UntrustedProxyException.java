@@ -23,11 +23,11 @@ import org.springframework.security.core.AuthenticationException;
  */
 public class UntrustedProxyException extends AuthenticationException {
 
-    public UntrustedProxyException(String msg) {
+    public UntrustedProxyException(final String msg) {
         super(msg);
     }
 
-    public UntrustedProxyException(String msg, Throwable t) {
+    public UntrustedProxyException(final String msg, final Throwable t) {
         super(msg, t);
     }
 

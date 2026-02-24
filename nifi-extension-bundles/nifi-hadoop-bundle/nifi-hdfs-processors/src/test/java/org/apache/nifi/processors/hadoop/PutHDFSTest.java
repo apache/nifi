@@ -107,7 +107,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Directory is required"));
         }
 
@@ -129,7 +129,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
@@ -144,7 +144,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
 
@@ -159,7 +159,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because octal umask [-1] cannot be negative"));
         }
 
@@ -174,7 +174,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because [18] is not a valid short octal number"));
         }
 
@@ -187,7 +187,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because octal umask [2000] is not a valid umask"));
         }
 
@@ -202,7 +202,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
         }
 
@@ -217,7 +217,7 @@ public class PutHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertEquals(vr.getSubject(), "Codec");
             assertEquals(vr.getExplanation(), "Compression codec cannot be set when used in 'append avro' mode");
         }
@@ -366,26 +366,26 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenTargetDirExists() throws IOException {
-        String targetDir = "target/test-classes";
-        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
+        final String targetDir = "target/test-classes";
+        final PutHDFS proc = new TestablePutHDFS(mockFileSystem);
         proc.getFileSystem().mkdirs(new Path(targetDir));
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, targetDir);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
         assertTrue(failedFlowFiles.isEmpty());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1")));
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
@@ -402,25 +402,25 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithCompression() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final PutHDFS proc = new TestablePutHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, "GZIP");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
         assertTrue(failedFlowFiles.isEmpty());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1.gz")));
         assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
@@ -429,18 +429,18 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithGSSException() throws IOException {
-        FileSystem noCredentialsFileSystem = new MockFileSystem() {
+        final FileSystem noCredentialsFileSystem = new MockFileSystem() {
             @Override
-            public FileStatus getFileStatus(Path path) throws IOException {
+            public FileStatus getFileStatus(final Path path) throws IOException {
                 throw new IOException("ioe", new SaslException("sasle", new GSSException(13)));
             }
         };
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(noCredentialsFileSystem));
+        final TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(noCredentialsFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -453,14 +453,14 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWithProcessException() throws IOException {
-        String dirName = "target/testPutFileWrongPermissions";
-        File file = new File(dirName);
+        final String dirName = "target/testPutFileWrongPermissions";
+        final File file = new File(dirName);
         file.mkdirs();
-        Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
+        final Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem) {
+        final TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem) {
             @Override
-            protected void changeOwner(ProcessContext context, FileSystem hdfs, Path name, FlowFile flowFile) {
+            protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {
                 throw new ProcessException("Forcing Exception to get thrown in order to verify proper handling");
             }
         });
@@ -468,13 +468,13 @@ public class PutHDFSTest {
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
         assertFalse(failedFlowFiles.isEmpty());
         assertTrue(failedFlowFiles.getFirst().isPenalized());
@@ -484,24 +484,24 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesValidELFunction() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final PutHDFS proc = new TestablePutHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):substring(0,4)}");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
         assertTrue(failedFlowFiles.isEmpty());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertTrue(mockFileSystem.exists(new Path("target/data_test/randombytes-1")));
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/data_test", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
@@ -510,8 +510,8 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesUnrecognizedEL() throws IOException {
-        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final PutHDFS proc = new TestablePutHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
 
         // this value somehow causes NiFi to not even recognize the EL, and thus it returns successfully from calling
         // evaluateAttributeExpressions and then tries to create a Path with the exact value below and blows up
@@ -519,7 +519,7 @@ public class PutHDFSTest {
 
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -530,8 +530,8 @@ public class PutHDFSTest {
 
     @Test
     public void testPutFileWhenDirectoryUsesInvalidEL() {
-        PutHDFS proc = new TestablePutHDFS(mockFileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final PutHDFS proc = new TestablePutHDFS(mockFileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         // the validator should pick up the invalid EL
         runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):foo()}");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
@@ -541,18 +541,18 @@ public class PutHDFSTest {
     @Test
     public void testPutFilePermissionsWithProcessorConfiguredUmask() throws IOException {
         // assert the file permission is the same value as processor's property
-        MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(fileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MockFileSystem fileSystem = new MockFileSystem();
+        final PutHDFS proc = new TestablePutHDFS(fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        String umaskPropertyValue = "027";
+        final String umaskPropertyValue = "027";
         runner.setProperty(PutHDFS.UMASK, umaskPropertyValue);
         // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
         proc.abstractOnScheduled(runner.getProcessContext());
         fileSystem.setConf(proc.getConfiguration());
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -563,9 +563,9 @@ public class PutHDFSTest {
     @Test
     public void testPutFilePermissionsWithXmlConfiguredUmask() throws IOException {
         // assert the file permission is the same value as xml
-        MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(fileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MockFileSystem fileSystem = new MockFileSystem();
+        final PutHDFS proc = new TestablePutHDFS(fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site-perms.xml");
@@ -573,7 +573,7 @@ public class PutHDFSTest {
         proc.abstractOnScheduled(runner.getProcessContext());
         fileSystem.setConf(proc.getConfiguration());
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -584,16 +584,16 @@ public class PutHDFSTest {
     @Test
     public void testPutFilePermissionsWithNoConfiguredUmask() throws IOException {
         // assert the file permission fallback works. It should read FsPermission.DEFAULT_UMASK
-        MockFileSystem fileSystem = new MockFileSystem();
-        PutHDFS proc = new TestablePutHDFS(fileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MockFileSystem fileSystem = new MockFileSystem();
+        final PutHDFS proc = new TestablePutHDFS(fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         // invoke the abstractOnScheduled method so the Hadoop configuration is available to apply the MockFileSystem instance
         proc.abstractOnScheduled(runner.getProcessContext());
         fileSystem.setConf(proc.getConfiguration());
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -633,7 +633,7 @@ public class PutHDFSTest {
     @Test
     public void testPutFileWithNoDefaultACL() {
         final List<Boolean> setUmask = Arrays.asList(false, true);
-        for (boolean setUmaskIt : setUmask) {
+        for (final boolean setUmaskIt : setUmask) {
             final MockFileSystem fileSystem = new MockFileSystem();
             final Path directory = new Path("/withNoDACL");
             assertTrue(fileSystem.mkdirs(directory));
@@ -662,7 +662,7 @@ public class PutHDFSTest {
     @Test
     public void testPutFileWithDefaultACL() {
         final List<Boolean> setUmask = Arrays.asList(false, true);
-        for (boolean setUmaskIt : setUmask) {
+        for (final boolean setUmaskIt : setUmask) {
             final MockFileSystem fileSystem = new MockFileSystem();
             final Path directory = new Path("/withACL");
             assertTrue(fileSystem.mkdirs(directory));
@@ -689,23 +689,23 @@ public class PutHDFSTest {
     public void testPutFileWithCloseException() throws IOException {
         mockFileSystem = new MockFileSystem();
         mockFileSystem.setFailOnClose(true);
-        String dirName = "target/testPutFileCloseException";
-        File file = new File(dirName);
+        final String dirName = "target/testPutFileCloseException";
+        final File file = new File(dirName);
         file.mkdirs();
-        Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
+        final Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
+        final TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
         assertFalse(failedFlowFiles.isEmpty());
         assertTrue(failedFlowFiles.getFirst().isPenalized());
@@ -714,7 +714,7 @@ public class PutHDFSTest {
     }
 
     @Test
-    public void testPutFileFromLocalFile(@TempDir java.nio.file.Path tempDir) throws Exception {
+    public void testPutFileFromLocalFile(final @TempDir java.nio.file.Path tempDir) throws Exception {
         final FileSystem spyFileSystem = Mockito.spy(mockFileSystem);
         final PutHDFS proc = new TestablePutHDFS(spyFileSystem);
         final TestRunner runner = TestRunners.newTestRunner(proc);
@@ -723,21 +723,21 @@ public class PutHDFSTest {
         runner.setProperty(PutHDFS.WRITING_STRATEGY, PutHDFS.SIMPLE_WRITE);
 
         //Adding StandardFileResourceService controller service
-        String attributeName = "file.path";
+        final String attributeName = "file.path";
 
-        String serviceId = FileResourceService.class.getSimpleName();
-        FileResourceService service = new StandardFileResourceService();
-        byte[] EMPTY_CONTENT = new byte[0];
+        final String serviceId = FileResourceService.class.getSimpleName();
+        final FileResourceService service = new StandardFileResourceService();
+        final byte[] EMPTY_CONTENT = new byte[0];
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
         runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
         runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
-        java.nio.file.Path tempFilePath = tempDir.resolve("PutHDFS_testPutFileFromLocalFile_" + System.currentTimeMillis());
+        final java.nio.file.Path tempFilePath = tempDir.resolve("PutHDFS_testPutFileFromLocalFile_" + System.currentTimeMillis());
         Files.writeString(tempFilePath, "0123456789");
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
 
         attributes.put(CoreAttributes.FILENAME.key(), FILE_NAME);
         attributes.put(attributeName, tempFilePath.toString());
@@ -745,7 +745,7 @@ public class PutHDFSTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutHDFS.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(EMPTY_CONTENT);
 
         //assert HDFS File and Directory structures
@@ -759,8 +759,8 @@ public class PutHDFSTest {
         verify(spyFileSystem, Mockito.never()).rename(any(Path.class), any(Path.class));
 
         //assert Provenance events
-        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(ProvenanceEventType.SEND);
-        Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
+        final Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(ProvenanceEventType.SEND);
+        final Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(Collectors.toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
@@ -771,23 +771,23 @@ public class PutHDFSTest {
     public void testPutFileWithCreateException() throws IOException {
         mockFileSystem = new MockFileSystem();
         mockFileSystem.setFailOnCreate(true);
-        String dirName = "target/testPutFileCreateException";
-        File file = new File(dirName);
+        final String dirName = "target/testPutFileCreateException";
+        final File file = new File(dirName);
         file.mkdirs();
-        Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
+        final Path p = new Path(dirName).makeQualified(mockFileSystem.getUri(), mockFileSystem.getWorkingDirectory());
 
-        TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
+        final TestRunner runner = TestRunners.newTestRunner(new TestablePutHDFS(mockFileSystem));
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
 
-        List<MockFlowFile> failedFlowFiles = runner
+        final List<MockFlowFile> failedFlowFiles = runner
                 .getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
         assertFalse(failedFlowFiles.isEmpty());
         assertTrue(failedFlowFiles.getFirst().isPenalized());
@@ -795,7 +795,7 @@ public class PutHDFSTest {
         mockFileSystem.delete(p, true);
     }
 
-    private static void assertAvroAppendValues(TestRunner runner, FileSystem spyFileSystem, Path targetPath) throws IOException {
+    private static void assertAvroAppendValues(final TestRunner runner, final FileSystem spyFileSystem, final Path targetPath) throws IOException {
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_FAILURE);
         assertTrue(failedFlowFiles.isEmpty());
 
@@ -845,12 +845,12 @@ public class PutHDFSTest {
 
         private final FileSystem fileSystem;
 
-        TestablePutHDFS(FileSystem fileSystem) {
+        TestablePutHDFS(final FileSystem fileSystem) {
             this.fileSystem = fileSystem;
         }
 
         @Override
-        protected FileSystem getFileSystem(Configuration config) {
+        protected FileSystem getFileSystem(final Configuration config) {
             fileSystem.setConf(config);
             return fileSystem;
         }

@@ -63,7 +63,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
         runner.clearTransferState();
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key", "value");
         attributes.put("key1", "value1");
 
@@ -128,7 +128,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
         runner.clearTransferState();
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key", "value");
         attributes.put("key1", "value1");
 
@@ -444,7 +444,7 @@ public class TestMonitorActivity {
         assertTransferCountSuccessInactiveRestored(runner, 2, 0);
     }
 
-    private void runNext(TestRunner runner) {
+    private void runNext(final TestRunner runner) {
         // Don't initialize, otherwise @OnScheduled is called and state gets reset
         runner.run(1, false, false);
     }
@@ -464,7 +464,7 @@ public class TestMonitorActivity {
         return Long.valueOf(runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
     }
 
-    private void assertTransferCountSuccessInactiveRestored(TestRunner runner, final int success, final int inactive) {
+    private void assertTransferCountSuccessInactiveRestored(final TestRunner runner, final int success, final int inactive) {
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, success);
         runner.assertTransferCount(MonitorActivity.REL_INACTIVE, inactive);
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 0);
@@ -505,7 +505,7 @@ public class TestMonitorActivity {
         runner.enqueue(new byte[0]);
         runner.run(1, false);
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
-        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS).get(0);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS).get(0);
         runner.clearTransferState();
 
         TimeUnit.MILLISECONDS.sleep(200);
@@ -514,7 +514,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE, 1);
         runner.clearTransferState();
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("key", "value");
         attributes.put("key1", "value1");
 
@@ -581,7 +581,7 @@ public class TestMonitorActivity {
             // does not  get called more than MonitorActivity.THRESHOLD apart
             runner.run();
             runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
-            List<MockFlowFile> inactiveFlowFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_INACTIVE);
+            final List<MockFlowFile> inactiveFlowFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_INACTIVE);
             if (inactiveFlowFiles.size() == 1) {
                 // Seems Threshold was not sufficient, which has caused One inactive message.
                 // Step-up and rerun the test until successful or jUnit times out
@@ -681,7 +681,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
 
         final StateMap postProcessedState = runner.getStateManager().getState(Scope.CLUSTER);
-        long postProcessedTimestamp = Long.parseLong(postProcessedState.get(
+        final long postProcessedTimestamp = Long.parseLong(postProcessedState.get(
                 MonitorActivity.STATE_KEY_COMMON_FLOW_ACTIVITY_INFO));
         assertTrue(existingTimestamp < postProcessedTimestamp);
         // State should be updated. Null in this case.

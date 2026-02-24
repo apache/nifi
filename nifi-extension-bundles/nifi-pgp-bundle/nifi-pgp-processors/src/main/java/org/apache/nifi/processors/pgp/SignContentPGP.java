@@ -204,7 +204,7 @@ public class SignContentPGP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("file-encoding", FILE_ENCODING.getName());
         config.renameProperty("hash-algorithm", HASH_ALGORITHM.getName());
         config.renameProperty("signing-strategy", SIGNING_STRATEGY.getName());

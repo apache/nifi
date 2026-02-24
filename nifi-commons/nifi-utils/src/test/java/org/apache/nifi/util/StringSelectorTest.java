@@ -89,26 +89,26 @@ public class StringSelectorTest {
         );
     }
 
-    public void test(String expected, boolean expectedFound, String... inputs) {
+    public void test(final String expected, final boolean expectedFound, final String... inputs) {
         // GIVEN
 
         // WHEN
-        StringSelector selector = StringSelector.of(inputs);
+        final StringSelector selector = StringSelector.of(inputs);
 
         // THEN
-        boolean actualFound = selector.found();
-        String actual = selector.toString();
+        final boolean actualFound = selector.found();
+        final String actual = selector.toString();
 
         assertEquals(expected, actual);
         assertEquals(expectedFound, actualFound);
     }
 
-    public void test(String expected, boolean expectedFound, String[] firstInputs, String[]... otherInputs) {
+    public void test(final String expected, final boolean expectedFound, final String[] firstInputs, final String[]... otherInputs) {
         // GIVEN
 
         // WHEN
         StringSelector selector = StringSelector.of(firstInputs);
-        for (String[] otherInput : otherInputs) {
+        for (final String[] otherInput : otherInputs) {
             selector = selector.or(otherInput);
 
             if (selector.found()) {
@@ -119,8 +119,8 @@ public class StringSelectorTest {
         }
 
         // THEN
-        boolean actualFound = selector.found();
-        String actual = selector.toString();
+        final boolean actualFound = selector.found();
+        final String actual = selector.toString();
 
         assertEquals(expected, actual);
         assertEquals(expectedFound, actualFound);

@@ -81,11 +81,11 @@ public class ProvenanceEventConsumer {
 
     private ComponentLog logger;
 
-    public void setStartPositionValue(String startPositionValue) {
+    public void setStartPositionValue(final String startPositionValue) {
         this.startPositionValue = startPositionValue;
     }
 
-    public void setBatchSize(int batchSize) {
+    public void setBatchSize(final int batchSize) {
         this.batchSize = batchSize;
     }
 
@@ -129,7 +129,7 @@ public class ProvenanceEventConsumer {
         Collections.addAll(componentIdsExclude, ids);
     }
 
-    public void setScheduled(boolean scheduled) {
+    public void setScheduled(final boolean scheduled) {
         this.scheduled = scheduled;
     }
 
@@ -137,7 +137,7 @@ public class ProvenanceEventConsumer {
         return scheduled;
     }
 
-    public void setLogger(ComponentLog logger) {
+    public void setLogger(final ComponentLog logger) {
         this.logger = logger;
     }
 
@@ -153,7 +153,7 @@ public class ProvenanceEventConsumer {
         final ComponentMapHolder componentMapHolder = ComponentMapHolder.createComponentMap(procGroupStatus);
         final StateManager stateManager = context.getStateManager();
 
-        Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
+        final Long currMaxId = eventAccess.getProvenanceRepository().getMaxEventId();
 
         if (currMaxId == null) {
             logger.debug("No events to send because no events have been created yet.");
@@ -161,10 +161,10 @@ public class ProvenanceEventConsumer {
         }
 
         if (firstEventId < 0) {
-            Map<String, String> state;
+            final Map<String, String> state;
             try {
                 state = stateManager.getState(Scope.LOCAL).toMap();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Failed to get state at start up", e);
                 return;
             }
@@ -241,7 +241,7 @@ public class ProvenanceEventConsumer {
         final ProvenanceEventRecord lastEvent = events.get(events.size() - 1);
         final String lastEventId = String.valueOf(lastEvent.getEventId());
         try {
-            Map<String, String> newMapOfState = new HashMap<>();
+            final Map<String, String> newMapOfState = new HashMap<>();
             newMapOfState.put(LAST_EVENT_ID_KEY, lastEventId);
             stateManager.setState(newMapOfState, Scope.LOCAL);
         } catch (final IOException ioe) {
@@ -254,13 +254,13 @@ public class ProvenanceEventConsumer {
 
     protected boolean isFilteringEnabled() {
         // Collect all non-blank patterns
-        boolean anyPatternPresent = Stream.of(componentTypeRegex, componentTypeRegexExclude, componentNameRegex, componentNameRegexExclude)
+        final boolean anyPatternPresent = Stream.of(componentTypeRegex, componentTypeRegexExclude, componentNameRegex, componentNameRegexExclude)
                 .filter(Objects::nonNull)
                 .map(Pattern::toString)
                 .anyMatch(this::isNotEmpty);
 
         // Collect all non-empty lists
-        boolean anyListPresent = Stream.of(eventTypes, eventTypesExclude, componentIds, componentIdsExclude)
+        final boolean anyListPresent = Stream.of(eventTypes, eventTypesExclude, componentIds, componentIdsExclude)
                 .filter(Objects::nonNull)
                 .anyMatch(list -> !list.isEmpty());
 
@@ -268,11 +268,11 @@ public class ProvenanceEventConsumer {
         return anyPatternPresent || anyListPresent;
     }
 
-    private List<ProvenanceEventRecord> filterEvents(ComponentMapHolder componentMapHolder, List<ProvenanceEventRecord> provenanceEvents) {
+    private List<ProvenanceEventRecord> filterEvents(final ComponentMapHolder componentMapHolder, final List<ProvenanceEventRecord> provenanceEvents) {
         if (isFilteringEnabled()) {
-            List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
+            final List<ProvenanceEventRecord> filteredEvents = new ArrayList<>();
 
-            for (ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
+            for (final ProvenanceEventRecord provenanceEventRecord : provenanceEvents) {
 
                 if (!eventTypesExclude.isEmpty() && eventTypesExclude.contains(provenanceEventRecord.getEventType())) {
                     continue;

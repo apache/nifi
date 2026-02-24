@@ -90,7 +90,7 @@ public class ConsumeGCPubSubTest {
 
         runner = TestRunners.newTestRunner(new ConsumeGCPubSub() {
             @Override
-            protected SubscriberStub getSubscriber(ProcessContext context) {
+            protected SubscriberStub getSubscriber(final ProcessContext context) {
                 return subscriberMock;
             }
         });
@@ -245,7 +245,7 @@ public class ConsumeGCPubSubTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("gcp-pubsub-subscription", ConsumeGCPubSub.SUBSCRIPTION.getName()),
                 Map.entry("gcp-pubsub-publish-batch-size", AbstractGCPubSubProcessor.BATCH_SIZE_THRESHOLD.getName()),
@@ -270,7 +270,7 @@ public class ConsumeGCPubSubTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private ReceivedMessage createMessage(String content) {
+    private ReceivedMessage createMessage(final String content) {
         final byte[] data = content.getBytes();
         return ReceivedMessage.newBuilder()
                 .setMessage(PubsubMessage.newBuilder()

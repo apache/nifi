@@ -35,7 +35,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
         return (supportedSchedulingStrategies != null ? Collections.unmodifiableList(supportedSchedulingStrategies) : null);
     }
 
-    public void setSupportedSchedulingStrategies(List<String> supportedSchedulingStrategies) {
+    public void setSupportedSchedulingStrategies(final List<String> supportedSchedulingStrategies) {
         this.supportedSchedulingStrategies = supportedSchedulingStrategies;
     }
 
@@ -44,7 +44,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
         return defaultSchedulingStrategy;
     }
 
-    public void setDefaultSchedulingStrategy(String defaultSchedulingStrategy) {
+    public void setDefaultSchedulingStrategy(final String defaultSchedulingStrategy) {
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
@@ -54,7 +54,7 @@ public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
         return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;
     }
 
-    public void setDefaultSchedulingPeriodBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
+    public void setDefaultSchedulingPeriodBySchedulingStrategy(final Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
         this.defaultSchedulingPeriodBySchedulingStrategy = defaultSchedulingPeriodBySchedulingStrategy;
     }
 

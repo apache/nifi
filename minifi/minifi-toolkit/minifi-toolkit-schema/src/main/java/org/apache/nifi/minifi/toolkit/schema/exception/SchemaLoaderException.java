@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.toolkit.schema.exception;
 
 public class SchemaLoaderException extends Exception {
-    public SchemaLoaderException(String message) {
+    public SchemaLoaderException(final String message) {
         super(message);
     }
 }

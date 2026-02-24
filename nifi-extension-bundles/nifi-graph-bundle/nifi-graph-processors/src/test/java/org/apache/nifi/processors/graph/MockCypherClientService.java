@@ -27,11 +27,11 @@ import java.util.Map;
 public class MockCypherClientService extends AbstractControllerService implements GraphClientService {
 
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
+    public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
         handler.process(Map.of("name", "John Smith", "age", 40), true);
         handler.process(Map.of("name", "John Smith", "age", 40), false);
 
-        Map<String, String> resultAttributes = new HashMap<>();
+        final Map<String, String> resultAttributes = new HashMap<>();
         resultAttributes.put(NODES_CREATED, String.valueOf(1));
         resultAttributes.put(RELATIONS_CREATED, String.valueOf(1));
         resultAttributes.put(LABELS_ADDED, String.valueOf(1));

@@ -67,7 +67,7 @@ public class ProcessorDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -82,7 +82,7 @@ public class ProcessorDTO extends ComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -97,7 +97,7 @@ public class ProcessorDTO extends ComponentDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -111,7 +111,7 @@ public class ProcessorDTO extends ComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -124,7 +124,7 @@ public class ProcessorDTO extends ComponentDTO {
         return style;
     }
 
-    public void setStyle(Map<String, String> style) {
+    public void setStyle(final Map<String, String> style) {
         this.style = style;
     }
 
@@ -137,7 +137,7 @@ public class ProcessorDTO extends ComponentDTO {
         return supportsParallelProcessing;
     }
 
-    public void setSupportsParallelProcessing(Boolean supportsParallelProcessing) {
+    public void setSupportsParallelProcessing(final Boolean supportsParallelProcessing) {
         this.supportsParallelProcessing = supportsParallelProcessing;
     }
 
@@ -163,7 +163,7 @@ public class ProcessorDTO extends ComponentDTO {
         return persistsState;
     }
 
-    public void setPersistsState(Boolean persistsState) {
+    public void setPersistsState(final Boolean persistsState) {
         this.persistsState = persistsState;
     }
 
@@ -176,7 +176,7 @@ public class ProcessorDTO extends ComponentDTO {
         return multipleVersionsAvailable;
     }
 
-    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+    public void setMultipleVersionsAvailable(final Boolean multipleVersionsAvailable) {
         this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
@@ -189,7 +189,7 @@ public class ProcessorDTO extends ComponentDTO {
         return isExtensionMissing;
     }
 
-    public void setExtensionMissing(Boolean extensionMissing) {
+    public void setExtensionMissing(final Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
     }
 
@@ -202,7 +202,7 @@ public class ProcessorDTO extends ComponentDTO {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -215,7 +215,7 @@ public class ProcessorDTO extends ComponentDTO {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -228,7 +228,7 @@ public class ProcessorDTO extends ComponentDTO {
         return inputRequirement;
     }
 
-    public void setInputRequirement(String inputRequirement) {
+    public void setInputRequirement(final String inputRequirement) {
         this.inputRequirement = inputRequirement;
     }
 
@@ -242,7 +242,7 @@ public class ProcessorDTO extends ComponentDTO {
         return physicalState;
     }
 
-    public void setPhysicalState(String physicalState) {
+    public void setPhysicalState(final String physicalState) {
         this.physicalState = physicalState;
     }
 
@@ -255,7 +255,7 @@ public class ProcessorDTO extends ComponentDTO {
         return supportsBatching;
     }
 
-    public void setSupportsBatching(Boolean supportsBatching) {
+    public void setSupportsBatching(final Boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
     }
 
@@ -271,7 +271,7 @@ public class ProcessorDTO extends ComponentDTO {
         return relationships;
     }
 
-    public void setRelationships(List<RelationshipDTO> relationships) {
+    public void setRelationships(final List<RelationshipDTO> relationships) {
         this.relationships = relationships;
     }
 
@@ -286,7 +286,7 @@ public class ProcessorDTO extends ComponentDTO {
         return config;
     }
 
-    public void setConfig(ProcessorConfigDTO config) {
+    public void setConfig(final ProcessorConfigDTO config) {
         this.config = config;
     }
 
@@ -301,7 +301,7 @@ public class ProcessorDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -312,7 +312,7 @@ public class ProcessorDTO extends ComponentDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 
@@ -338,7 +338,7 @@ public class ProcessorDTO extends ComponentDTO {
         return executionNodeRestricted;
     }
 
-    public void setExecutionNodeRestricted(Boolean executionNodeRestricted) {
+    public void setExecutionNodeRestricted(final Boolean executionNodeRestricted) {
         this.executionNodeRestricted = executionNodeRestricted;
     }
 }

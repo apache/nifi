@@ -228,7 +228,7 @@ public class TestEnforceOrder {
 
         runner.run();
 
-        List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
+        final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS);
         assertEquals(4, succeeded.size());
         succeeded.get(0).assertContentEquals("a.100");
         succeeded.get(1).assertContentEquals("a.101");
@@ -352,7 +352,7 @@ public class TestEnforceOrder {
         succeeded.get(1).assertContentEquals("b.2");
         succeeded.get(2).assertContentEquals("b.3");
 
-        List<MockFlowFile> overtook = runner.getFlowFilesForRelationship(EnforceOrder.REL_OVERTOOK);
+        final List<MockFlowFile> overtook = runner.getFlowFilesForRelationship(EnforceOrder.REL_OVERTOOK);
         assertEquals(3, overtook.size());
         overtook.get(0).assertContentEquals("a.5"); // overtook a.3.
         overtook.get(0).assertAttributeEquals(EnforceOrder.ATTR_EXPECTED_ORDER, "3");
@@ -451,7 +451,7 @@ public class TestEnforceOrder {
         a2.assertContentEquals("a.2");
 
         runner.assertTransferCount(EnforceOrder.REL_SUCCESS, 1);
-        MockFlowFile b1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
+        final MockFlowFile b1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
         b1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
         b1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
         b1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);
@@ -466,7 +466,7 @@ public class TestEnforceOrder {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(EnforceOrder.REL_SUCCESS, 2);
-        MockFlowFile a1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
+        final MockFlowFile a1 = runner.getFlowFilesForRelationship(EnforceOrder.REL_SUCCESS).getFirst();
         a1.assertAttributeEquals(EnforceOrder.ATTR_RESULT, "success");
         a1.assertAttributeExists(EnforceOrder.ATTR_STARTED_AT);
         a1.assertAttributeNotExists(EnforceOrder.ATTR_DETAIL);

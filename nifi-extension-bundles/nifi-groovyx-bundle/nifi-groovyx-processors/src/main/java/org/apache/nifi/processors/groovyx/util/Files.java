@@ -36,12 +36,12 @@ public class Files {
      *
      * @return file list defined by classpath parameter
      */
-    public static Set<File> listPathsFiles(String classpath, ComponentLog logger) {
+    public static Set<File> listPathsFiles(final String classpath, final ComponentLog logger) {
         if (classpath == null || classpath.isEmpty()) {
             return Collections.emptySet();
         }
-        Set<File> files = new HashSet<>();
-        for (String cp : classpath.split("\\s*[;,]\\s*")) {
+        final Set<File> files = new HashSet<>();
+        for (final String cp : classpath.split("\\s*[;,]\\s*")) {
             files.addAll(listPathFiles(cp, logger));
         }
         return files;
@@ -51,12 +51,12 @@ public class Files {
      * returns file list from one path. the path could be exact filename (one file returned), exact directory (all files from dir returned)
      * or exact dir with masked file names like ./dir/*.jar (all jars returned)
      */
-    public static List<File> listPathFiles(String path, ComponentLog logger) {
-        File f = new File(path);
-        String fname = f.getName();
+    public static List<File> listPathFiles(final String path, final ComponentLog logger) {
+        final File f = new File(path);
+        final String fname = f.getName();
         if (fname.contains("?") || fname.contains("*")) {
-            Pattern pattern = Pattern.compile(fname.replace(".", "\\.").replace("?", ".?").replace("*", ".*?"));
-            File[] list = f.getParentFile().listFiles((dir, name) -> pattern.matcher(name).find());
+            final Pattern pattern = Pattern.compile(fname.replace(".", "\\.").replace("?", ".?").replace("*", ".*?"));
+            final File[] list = f.getParentFile().listFiles((dir, name) -> pattern.matcher(name).find());
             return list == null ? Collections.emptyList() : Arrays.asList(list);
         }
         if (!f.exists()) {

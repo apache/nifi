@@ -30,7 +30,7 @@ public class ControllerServiceHealth implements java.io.Serializable {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -38,7 +38,7 @@ public class ControllerServiceHealth implements java.io.Serializable {
         return hasBulletins;
     }
 
-    public void setHasBulletins(boolean hasBulletins) {
+    public void setHasBulletins(final boolean hasBulletins) {
         this.hasBulletins = hasBulletins;
     }
 
@@ -46,12 +46,12 @@ public class ControllerServiceHealth implements java.io.Serializable {
         return validationErrorList;
     }
 
-    public void setValidationErrorList(List<ValidationError> validationErrorList) {
+    public void setValidationErrorList(final List<ValidationError> validationErrorList) {
         this.validationErrorList = validationErrorList;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -59,7 +59,7 @@ public class ControllerServiceHealth implements java.io.Serializable {
             return false;
         }
 
-        ControllerServiceHealth that = (ControllerServiceHealth) o;
+        final ControllerServiceHealth that = (ControllerServiceHealth) o;
 
         if (isHasBulletins() != that.isHasBulletins()) {
             return false;

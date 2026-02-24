@@ -53,20 +53,20 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
     private static final Pattern LOOKS_LIKE_FILENAME = Pattern.compile("^[\\w/].*");
     private final ProcessSession session;
 
-    public ValueReader(ProcessSession session) {
+    public ValueReader(final ProcessSession session) {
         this.session = session;
     }
 
     @Override
-    public Set<FlowFile> readSequenceFile(final Path file, Configuration configuration, FileSystem fileSystem) throws IOException {
+    public Set<FlowFile> readSequenceFile(final Path file, final Configuration configuration, final FileSystem fileSystem) throws IOException {
 
-        Set<FlowFile> flowFiles = new HashSet<>();
+        final Set<FlowFile> flowFiles = new HashSet<>();
         final SequenceFile.Reader reader = new SequenceFile.Reader(configuration, Reader.file(fileSystem.makeQualified(file)));
         final String inputfileName = file.getName() + "." + System.nanoTime() + ".";
         int counter = 0;
         LOG.debug("Reading from sequence file {}", file);
         final OutputStreamWritableCallback writer = new OutputStreamWritableCallback(reader);
-        Text key = new Text();
+        final Text key = new Text();
         try {
             while (reader.next(key)) {
                 String fileName = key.toString();
@@ -84,7 +84,7 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
                 try {
                     flowFile = session.write(flowFile, writer);
                     flowFiles.add(flowFile);
-                } catch (ProcessException e) {
+                } catch (final ProcessException e) {
                     LOG.error("Could not write to flowfile {}", flowFile, e);
                     session.remove(flowFile);
                 }
@@ -101,12 +101,12 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
 
         private final Reader reader;
 
-        private OutputStreamWritableCallback(Reader reader) {
+        private OutputStreamWritableCallback(final Reader reader) {
             this.reader = reader;
         }
 
         @Override
-        public void process(OutputStream out) throws IOException {
+        public void process(final OutputStream out) throws IOException {
             final OutputStreamWritable fileData = new OutputStreamWritable(out, false);
             reader.getCurrentValue(fileData);
         }

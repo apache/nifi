@@ -44,7 +44,7 @@ public class ExtensionRepoExtensionMetadata extends LinkableEntity implements Li
         return extensionMetadata;
     }
 
-    public void setExtensionMetadata(ExtensionMetadata extensionMetadata) {
+    public void setExtensionMetadata(final ExtensionMetadata extensionMetadata) {
         this.extensionMetadata = extensionMetadata;
     }
 
@@ -58,12 +58,12 @@ public class ExtensionRepoExtensionMetadata extends LinkableEntity implements Li
     }
 
     @Override
-    public void setLinkDocs(Link link) {
+    public void setLinkDocs(final Link link) {
         this.linkDocs = link;
     }
 
     @Override
-    public int compareTo(ExtensionRepoExtensionMetadata o) {
+    public int compareTo(final ExtensionRepoExtensionMetadata o) {
         return Comparator.comparing(ExtensionRepoExtensionMetadata::getExtensionMetadata).compare(this, o);
     }
 }

@@ -153,7 +153,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     ) {
         final Map<String, String> attributes = new HashMap<>();
 
-        for (BoxFlowFileAttribute attribute : BoxFlowFileAttribute.values()) {
+        for (final BoxFlowFileAttribute attribute : BoxFlowFileAttribute.values()) {
             Optional.ofNullable(attribute.getValue(entity))
                 .ifPresent(value -> attributes.put(attribute.getName(), value));
         }
@@ -163,13 +163,13 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        BoxClientService boxClientService = context.getProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
         boxAPIConnection = boxClientService.getBoxApiConnection();
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName());
         config.renameProperty("box-folder-id", FOLDER_ID.getName());
@@ -224,14 +224,14 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        long createdAtMax = Instant.now().toEpochMilli() - minAge;
+        final long createdAtMax = Instant.now().toEpochMilli() - minAge;
         listFolder(listing, folderId, recursive, createdAtMax);
         return listing;
     }
 
-    private void listFolder(List<BoxFileInfo> listing, String folderId, Boolean recursive, long createdAtMax) {
-        BoxFolder folder = getFolder(folderId);
-        for (BoxItem.Info itemInfo : folder.getChildren(
+    private void listFolder(final List<BoxFileInfo> listing, final String folderId, final Boolean recursive, final long createdAtMax) {
+        final BoxFolder folder = getFolder(folderId);
+        for (final BoxItem.Info itemInfo : folder.getChildren(
             "id",
             "name",
             "item_status",
@@ -244,10 +244,10 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         )) {
             if (itemInfo instanceof BoxFile.Info info) {
 
-                long createdAt = itemInfo.getCreatedAt().getTime();
+                final long createdAt = itemInfo.getCreatedAt().getTime();
 
                 if (createdAt <= createdAtMax) {
-                    BoxFileInfo boxFileInfo = new BoxFileInfo.Builder()
+                    final BoxFileInfo boxFileInfo = new BoxFileInfo.Builder()
                         .id(info.getID())
                         .fileName(info.getName())
                         .path(BoxFileUtils.getParentPath(info))
@@ -263,7 +263,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
         }
     }
 
-    BoxFolder getFolder(String folderId) {
+    BoxFolder getFolder(final String folderId) {
         return new BoxFolder(boxAPIConnection, folderId);
     }
 

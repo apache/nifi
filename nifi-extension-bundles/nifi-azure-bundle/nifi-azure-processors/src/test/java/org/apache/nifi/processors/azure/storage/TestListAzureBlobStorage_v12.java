@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestListAzureBlobStorage_v12 {
     @Test
     void testMigration() {
-        TestRunner runner = TestRunners.newTestRunner(ListAzureBlobStorage_v12.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListAzureBlobStorage_v12.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
                 Map.of(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, ListAzureBlobStorage_v12.CONTAINER.getName(),

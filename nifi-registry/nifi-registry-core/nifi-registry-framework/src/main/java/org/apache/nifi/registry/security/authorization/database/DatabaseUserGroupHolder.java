@@ -72,14 +72,14 @@ public class DatabaseUserGroupHolder {
         return groupsById;
     }
 
-    public User getUser(String identity) {
+    public User getUser(final String identity) {
         if (identity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }
         return usersByIdentity.get(identity);
     }
 
-    public Set<Group> getGroups(String userIdentity) {
+    public Set<Group> getGroups(final String userIdentity) {
         if (userIdentity == null) {
             throw new IllegalArgumentException("User Identity cannot be null");
         }

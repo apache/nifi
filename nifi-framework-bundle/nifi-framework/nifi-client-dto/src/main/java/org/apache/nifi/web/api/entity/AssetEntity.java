@@ -34,7 +34,7 @@ public class AssetEntity extends Entity {
         return asset;
     }
 
-    public void setAsset(AssetDTO asset) {
+    public void setAsset(final AssetDTO asset) {
         this.asset = asset;
     }
 

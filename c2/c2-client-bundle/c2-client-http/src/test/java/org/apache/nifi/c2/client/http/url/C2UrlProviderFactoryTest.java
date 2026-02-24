@@ -49,7 +49,7 @@ public class C2UrlProviderFactoryTest {
         when(clientConfig.getC2RestPathAcknowledge()).thenReturn(ACKNOWLEDGE_PATH);
 
         // when
-        C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
+        final C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
 
         // then
         assertInstanceOf(ProxyAwareC2UrlProvider.class, c2UrlProvider);
@@ -62,7 +62,7 @@ public class C2UrlProviderFactoryTest {
         when(clientConfig.getC2AckUrl()).thenReturn(C2_REST_BASE + ACKNOWLEDGE_PATH);
 
         // when
-        C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
+        final C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
 
         // then
         assertInstanceOf(LegacyC2UrlProvider.class, c2UrlProvider);
@@ -78,7 +78,7 @@ public class C2UrlProviderFactoryTest {
         lenient().when(clientConfig.getC2AckUrl()).thenReturn(C2_REST_BASE + ACKNOWLEDGE_PATH);
 
         // when
-        C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
+        final C2UrlProvider c2UrlProvider = testC2UrlProviderFactory.create();
 
         // then
         assertInstanceOf(ProxyAwareC2UrlProvider.class, c2UrlProvider);

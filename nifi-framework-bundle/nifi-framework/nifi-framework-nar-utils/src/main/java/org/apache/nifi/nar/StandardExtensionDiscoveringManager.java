@@ -163,7 +163,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     @Override
     public synchronized void discoverExtensions(final Set<Bundle> narBundles, final Set<Class<?>> extensionTypes, final boolean logDetails) {
         // get the current context class loader
-        ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
+        final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
 
         // consider each nar class loader
         for (final Bundle bundle : narBundles) {
@@ -505,7 +505,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      * @param type a Class that we found from a service loader
      * @return true if the given class is a processor, controller service, or reporting task
      */
-    private static boolean multipleVersionsAllowed(Class<?> type) {
+    private static boolean multipleVersionsAllowed(final Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
                 || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
     }
@@ -545,7 +545,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
         // InstanceClassLoader that has the NAR ClassLoader as a parent
 
-        InstanceClassLoader instanceClassLoader;
+        final InstanceClassLoader instanceClassLoader;
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
 
         final boolean requiresInstanceClassLoader = isInstanceClassLoaderRequired(classType, bundle);
@@ -615,7 +615,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
                     logger.debug("Creating InstanceClassLoader for type {} using newly created shared Base ClassLoader {} for component {}", type, sharedClassLoader, instanceIdentifier);
                     if (logger.isTraceEnabled()) {
-                        for (URL url : sharedClassLoader.getURLs()) {
+                        for (final URL url : sharedClassLoader.getURLs()) {
                             logger.trace("Shared Base ClassLoader URL resource: {}", url.toExternalForm());
                         }
                     }
@@ -634,7 +634,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
 
         if (logger.isTraceEnabled()) {
-            for (URL url : instanceClassLoader.getURLs()) {
+            for (final URL url : instanceClassLoader.getURLs()) {
                 logger.trace("URL resource {} for {}...", url.toExternalForm(), instanceIdentifier);
             }
         }
@@ -697,7 +697,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {
                 urlClassLoader.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Unable to close URLClassLoader for {}", instanceIdentifier);
             }
         }

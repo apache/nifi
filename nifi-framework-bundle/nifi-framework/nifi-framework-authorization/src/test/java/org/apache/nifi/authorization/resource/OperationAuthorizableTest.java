@@ -46,7 +46,7 @@ public class OperationAuthorizableTest {
         private final String identifier;
         private final MockProcessGroup parent;
 
-        private MockProcessGroup(String identifier, MockProcessGroup parent) {
+        private MockProcessGroup(final String identifier, final MockProcessGroup parent) {
             this.identifier = identifier;
             this.parent = parent;
         }
@@ -70,7 +70,7 @@ public class OperationAuthorizableTest {
         private final String identifier;
         private final MockProcessGroup processGroup;
 
-        private MockProcessor(String identifier, MockProcessGroup processGroup) {
+        private MockProcessor(final String identifier, final MockProcessGroup processGroup) {
             this.identifier = identifier;
             this.processGroup = processGroup;
         }
@@ -96,11 +96,11 @@ public class OperationAuthorizableTest {
         }
     }
 
-    private void shouldBeDenied(String message, Runnable test) {
+    private void shouldBeDenied(final String message, final Runnable test) {
         try {
             test.run();
             fail(message);
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             assertNotNull(e);
         }
     }

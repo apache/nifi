@@ -73,7 +73,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
                 scriptingComponentHelper.createResources();
             }
         }
-        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
+        final List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
 
         return Collections.unmodifiableList(supportedPropertyDescriptors);
     }
@@ -131,9 +131,9 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
 
-        Collection<ValidationResult> commonValidationResults = new ArrayList<>(super.customValidate(validationContext));
+        final Collection<ValidationResult> commonValidationResults = new ArrayList<>(super.customValidate(validationContext));
         commonValidationResults.addAll(scriptingComponentHelper.customValidate(validationContext));
 
         if (!commonValidationResults.isEmpty()) {

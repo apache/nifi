@@ -63,7 +63,7 @@ public class MetricsBuilder {
         return this;
     }
 
-    public MetricsBuilder metric(final String name, String value) {
+    public MetricsBuilder metric(final String name, final String value) {
         this.metrics.put(name, value);
         return this;
     }
@@ -80,7 +80,7 @@ public class MetricsBuilder {
 
         final JsonArrayBuilder metricArrayBuilder = factory.createArrayBuilder();
 
-        for (Map.Entry<String, String> entry : metrics.entrySet()) {
+        for (final Map.Entry<String, String> entry : metrics.entrySet()) {
             metricBuilder.metricName(entry.getKey()).metricValue(entry.getValue());
             metricArrayBuilder.add(metricBuilder.build(allowNullValues));
         }

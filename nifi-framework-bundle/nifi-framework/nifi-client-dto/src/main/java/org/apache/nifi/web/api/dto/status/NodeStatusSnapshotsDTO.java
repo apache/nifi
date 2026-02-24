@@ -41,7 +41,7 @@ public class NodeStatusSnapshotsDTO {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(final String address) {
         this.address = address;
     }
 
@@ -54,7 +54,7 @@ public class NodeStatusSnapshotsDTO {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
+    public void setNodeId(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -67,7 +67,7 @@ public class NodeStatusSnapshotsDTO {
         return apiPort;
     }
 
-    public void setApiPort(Integer port) {
+    public void setApiPort(final Integer port) {
         this.apiPort = port;
     }
 
@@ -76,7 +76,7 @@ public class NodeStatusSnapshotsDTO {
         return statusSnapshots;
     }
 
-    public void setStatusSnapshots(List<StatusSnapshotDTO> statusSnapshots) {
+    public void setStatusSnapshots(final List<StatusSnapshotDTO> statusSnapshots) {
         this.statusSnapshots = statusSnapshots;
     }
 }

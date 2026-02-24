@@ -91,8 +91,8 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         }
 
         private boolean isExpired() {
-            long elapsedMillis = System.currentTimeMillis() - lastCommunicationAt;
-            long elapsedSec = TimeUnit.SECONDS.convert(elapsedMillis, TimeUnit.MILLISECONDS);
+            final long elapsedMillis = System.currentTimeMillis() - lastCommunicationAt;
+            final long elapsedSec = TimeUnit.SECONDS.convert(elapsedMillis, TimeUnit.MILLISECONDS);
             return elapsedSec > transactionTtlSec;
         }
 
@@ -102,11 +102,11 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     @Override
-    public void setRootGroup(ProcessGroup rootGroup) {
+    public void setRootGroup(final ProcessGroup rootGroup) {
         this.rootGroup = rootGroup;
     }
 
-    public void setupServerProtocol(HttpFlowFileServerProtocol serverProtocol) {
+    public void setupServerProtocol(final HttpFlowFileServerProtocol serverProtocol) {
         serverProtocol.setRootProcessGroup(rootGroup);
     }
 
@@ -114,7 +114,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     public void start() {
         transactionMaintenanceTask = taskExecutor.scheduleWithFixedDelay(() -> {
 
-            int originalSize = transactions.size();
+            final int originalSize = transactions.size();
             logger.trace("Transaction maintenance task started.");
             try {
                 for (final String transactionId : transactions.keySet()) {
@@ -122,7 +122,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
                         cancelTransaction(transactionId);
                     }
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // Swallow exception so that this thread can keep working.
                 logger.error("An exception occurred while maintaining transactions", e);
             }
@@ -131,18 +131,18 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         }, 0, transactionTtlSec / 2, TimeUnit.SECONDS);
     }
 
-    public void cancelTransaction(String transactionId) {
-        TransactionWrapper wrapper = transactions.remove(transactionId);
+    public void cancelTransaction(final String transactionId) {
+        final TransactionWrapper wrapper = transactions.remove(transactionId);
         if (wrapper == null) {
             logger.debug("The transaction was not found. transactionId={}", transactionId);
         } else {
             logger.debug("Cancel a transaction. transactionId={}", transactionId);
-            FlowFileTransaction t = wrapper.transaction;
+            final FlowFileTransaction t = wrapper.transaction;
             if (t != null && t.getSession() != null) {
                 logger.info("Cancel a transaction, rollback its session. transactionId={}", transactionId);
                 try {
                     t.getSession().rollback();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     // Swallow exception so that it can keep expiring other transactions.
                     logger.error("Failed to rollback. transactionId={}", transactionId, e);
                 }
@@ -176,11 +176,11 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     public boolean isTransactionActive(final String transactionId) {
-        TransactionWrapper transaction = transactions.get(transactionId);
+        final TransactionWrapper transaction = transactions.get(transactionId);
         return isTransactionActive(transaction);
     }
 
-    private boolean isTransactionActive(TransactionWrapper transaction) {
+    private boolean isTransactionActive(final TransactionWrapper transaction) {
         if (transaction == null) {
             return false;
         }
@@ -197,7 +197,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
      * HandshakeProperties, otherwise return null
      */
     public HandshakeProperties getHandshakenProperties(final String transactionId) {
-        TransactionWrapper transaction = transactions.get(transactionId);
+        final TransactionWrapper transaction = transactions.get(transactionId);
         if (isTransactionActive(transaction)) {
             return transaction.handshakeProperties;
         }
@@ -208,7 +208,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             final HandshakeProperties handshakenProperties) throws IllegalStateException {
         // We don't check expiration of the transaction here, to support large file transport or slow network.
         // The availability of current transaction is already checked when the HTTP request was received at SiteToSiteResource.
-        TransactionWrapper currentTransaction = transactions.remove(transactionId);
+        final TransactionWrapper currentTransaction = transactions.remove(transactionId);
         if (currentTransaction == null) {
             logger.debug("The transaction was not found, it looks it took longer than transaction TTL.");
         } else if (currentTransaction.transaction != null) {
@@ -227,7 +227,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         if (!isTransactionActive(transactionId)) {
             throw new IllegalStateException("Transaction was not found or not active anymore. transactionId=" + transactionId);
         }
-        TransactionWrapper transaction = transactions.remove(transactionId);
+        final TransactionWrapper transaction = transactions.remove(transactionId);
         if (transaction == null) {
             throw new IllegalStateException("Transaction was not found anymore. It's already finalized or expired. transactionId=" + transactionId);
         }
@@ -242,7 +242,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         if (!isTransactionActive(transactionId)) {
             throw new IllegalStateException("Transaction was not found or not active anymore. transactionId=" + transactionId);
         }
-        TransactionWrapper transaction = transactions.get(transactionId);
+        final TransactionWrapper transaction = transactions.get(transactionId);
         if (transaction != null) {
             logger.debug("Extending transaction TTL, transactionId={}", transactionId);
             transaction.extend();

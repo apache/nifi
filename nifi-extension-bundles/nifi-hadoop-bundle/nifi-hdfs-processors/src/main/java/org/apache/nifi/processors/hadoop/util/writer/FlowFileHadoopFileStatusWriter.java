@@ -49,7 +49,7 @@ public class FlowFileHadoopFileStatusWriter extends HadoopFileStatusWriter {
 
     @Override
     public void write() {
-        for (FileStatus status : fileStatusIterable) {
+        for (final FileStatus status : fileStatusIterable) {
             if (determineListable(status)) {
 
                 final Map<String, String> attributes = createAttributes(status);

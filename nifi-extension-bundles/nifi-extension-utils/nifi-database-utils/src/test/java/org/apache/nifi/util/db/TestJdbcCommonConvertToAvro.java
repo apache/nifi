@@ -49,20 +49,20 @@ public class TestJdbcCommonConvertToAvro {
     private static final boolean SIGNED = true;
     private static final boolean UNSIGNED = false;
 
-    private static int[] range(int start, int end) {
+    private static int[] range(final int start, final int end) {
         return IntStream.rangeClosed(start, end).toArray();
     }
 
     public static Stream<TestParams> data() {
-        Map<Integer, int[]> typeWithPrecisionRange = new HashMap<>();
+        final Map<Integer, int[]> typeWithPrecisionRange = new HashMap<>();
         typeWithPrecisionRange.put(TINYINT, range(1, 3));
         typeWithPrecisionRange.put(SMALLINT, range(1, 5));
         typeWithPrecisionRange.put(INTEGER, range(1, 9));
 
-        List<TestParams> params = new ArrayList<>();
+        final List<TestParams> params = new ArrayList<>();
 
         typeWithPrecisionRange.forEach((sqlType, precisions) -> {
-            for (int precision : precisions) {
+            for (final int precision : precisions) {
                 params.add(new TestParams(sqlType, precision, SIGNED));
                 params.add(new TestParams(sqlType, precision, UNSIGNED));
             }
@@ -83,7 +83,7 @@ public class TestJdbcCommonConvertToAvro {
         int precision;
         boolean signed;
 
-        TestParams(int sqlType, int precision, boolean signed) {
+        TestParams(final int sqlType, final int precision, final boolean signed) {
             this.sqlType = sqlType;
             this.precision = precision;
             this.signed = signed;
@@ -115,7 +115,7 @@ public class TestJdbcCommonConvertToAvro {
 
     @ParameterizedTest
     @MethodSource("data")
-    public void testConvertToAvroStreamForNumbers(TestParams testParams) throws SQLException, IOException {
+    public void testConvertToAvroStreamForNumbers(final TestParams testParams) throws SQLException, IOException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(testParams.sqlType);

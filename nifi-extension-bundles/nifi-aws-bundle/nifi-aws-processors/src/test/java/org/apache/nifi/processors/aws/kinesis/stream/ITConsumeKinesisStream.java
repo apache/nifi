@@ -49,7 +49,7 @@ public abstract class ITConsumeKinesisStream {
 
     @Test
     public void readHorizon() throws InterruptedException, IOException {
-        String partitionKey = "1";
+        final String partitionKey = "1";
 
         final PutRecordRequest request = PutRecordRequest.builder()
                 .streamName(KINESIS_STREAM_NAME)
@@ -72,7 +72,7 @@ public abstract class ITConsumeKinesisStream {
 
     @Test
     public void readLatest() throws InterruptedException, IOException {
-        String partitionKey = "1";
+        final String partitionKey = "1";
 
         final PutRecordRequest request = PutRecordRequest.builder()
                 .streamName(KINESIS_STREAM_NAME)
@@ -106,7 +106,7 @@ public abstract class ITConsumeKinesisStream {
         Thread.sleep(10_000);
     }
 
-    private void startKCL(TestRunner runner, InitialPositionInStream initialPositionInStream) throws InterruptedException {
+    private void startKCL(final TestRunner runner, final InitialPositionInStream initialPositionInStream) throws InterruptedException {
         runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, initialPositionInStream.name());
 
         runner.assertValid();
@@ -128,8 +128,8 @@ public abstract class ITConsumeKinesisStream {
 
     private void cleanupDynamoDB() {
         if (dynamoDB != null) {
-            ListTablesResponse tableResults = dynamoDB.listTables();
-            List<String> tableName = tableResults.tableNames();
+            final ListTablesResponse tableResults = dynamoDB.listTables();
+            final List<String> tableName = tableResults.tableNames();
             if (tableName.contains(APPLICATION_NAME)) {
                 dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(APPLICATION_NAME).build());
             }
@@ -140,7 +140,7 @@ public abstract class ITConsumeKinesisStream {
     private void cleanupKinesis() {
         if (kinesis != null) {
             final ListStreamsResponse streamsResult = kinesis.listStreams();
-            List<String> streamNames = streamsResult.streamNames();
+            final List<String> streamNames = streamsResult.streamNames();
             if (streamNames.contains(KINESIS_STREAM_NAME)) {
                 kinesis.deleteStream(DeleteStreamRequest.builder().streamName(KINESIS_STREAM_NAME).build());
             }

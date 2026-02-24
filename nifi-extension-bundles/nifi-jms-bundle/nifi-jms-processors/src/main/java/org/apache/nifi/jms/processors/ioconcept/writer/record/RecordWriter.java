@@ -59,12 +59,12 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
     private final OutputStrategy outputStrategy;
     private final ComponentLog logger;
 
-    public RecordWriter(RecordReaderFactory readerFactory,
-                        RecordSetWriterFactory writerFactory,
-                        Marshaller<T> marshaller,
-                        AttributeSource<T> attributeSource,
-                        OutputStrategy outputStrategy,
-                        ComponentLog logger) {
+    public RecordWriter(final RecordReaderFactory readerFactory,
+                        final RecordSetWriterFactory writerFactory,
+                        final Marshaller<T> marshaller,
+                        final AttributeSource<T> attributeSource,
+                        final OutputStrategy outputStrategy,
+                        final ComponentLog logger) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.marshaller = marshaller;
@@ -74,8 +74,8 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
     }
 
     @Override
-    public void write(ProcessSession session, List<T> messages, FlowFileWriterCallback<T> flowFileWriterCallback) {
-        FlowFile flowFile = session.create();
+    public void write(final ProcessSession session, final List<T> messages, final FlowFileWriterCallback<T> flowFileWriterCallback) {
+        final FlowFile flowFile = session.create();
 
         final Map<String, String> attributes = new HashMap<>();
         final AtomicInteger recordCount = new AtomicInteger();
@@ -87,7 +87,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         boolean isWriterInitialized = false;
 
         try {
-            for (T message : messages) {
+            for (final T message : messages) {
                 if (message == null) {
                     break;
                 }
@@ -129,7 +129,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                                 final RecordSchema recordSchema = record.getSchema();
                                 final OutputStream rawOut = session.write(flowFile);
 
-                                RecordSchema writeSchema;
+                                final RecordSchema writeSchema;
                                 try {
                                     writeSchema = writerFactory.getSchema(flowFile.getAttributes(), recordSchema);
                                 } catch (final Exception e) {
@@ -158,7 +158,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                         failedMessages.add(message);
                         flowFileWriterCallback.onParseFailure(flowFile, message, e);
                     }
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Failed to write message, sending to the parse failure relationship", e);
                     failedMessages.add(message);
                     flowFileWriterCallback.onParseFailure(flowFile, message, e);

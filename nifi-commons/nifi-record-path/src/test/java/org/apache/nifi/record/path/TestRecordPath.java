@@ -296,7 +296,7 @@ public class TestRecordPath {
         public void supportReferenceToMultipleArrayIndices() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1, 3]"));
 
-            String[] expectedValues = new String[]{friendValues[1], friendValues[3]};
+            final String[] expectedValues = new String[]{friendValues[1], friendValues[3]};
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
             assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
         }
@@ -313,7 +313,7 @@ public class TestRecordPath {
         public void supportReferenceToRangeOfArrayIndices() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1..2]"));
 
-            String[] expectedValues = new String[]{friendValues[1], friendValues[2]};
+            final String[] expectedValues = new String[]{friendValues[1], friendValues[2]};
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
             assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
         }
@@ -330,7 +330,7 @@ public class TestRecordPath {
         public void canReferenceSameArrayItemMultipleTimes() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1, 1..1, -3]"));
 
-            String[] expectedValues = new String[]{friendValues[1], friendValues[1], friendValues[1]};
+            final String[] expectedValues = new String[]{friendValues[1], friendValues[1], friendValues[1]};
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
             assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
         }
@@ -339,7 +339,7 @@ public class TestRecordPath {
         public void supportReferenceWithCombinationOfArrayAccesses() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[1..2, 0, -1]"));
 
-            String[] expectedValues = new String[]{
+            final String[] expectedValues = new String[]{
                     friendValues[1], friendValues[2], friendValues[0], friendValues[friendValues.length - 1]
             };
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
@@ -366,7 +366,7 @@ public class TestRecordPath {
         public void predicateCanBeAppliedOnMultipleArrayItems() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/friends[0, 1, 2][. != 'Jane']"));
 
-            String[] expectedValues = new String[]{friendValues[0], friendValues[2]};
+            final String[] expectedValues = new String[]{friendValues[0], friendValues[2]};
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
             assertSingleFieldMultipleValueResult(record, "friends", expectedValues, fieldValues);
         }
@@ -428,7 +428,7 @@ public class TestRecordPath {
         public void supportReferenceToMultipleMapKeys() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key3']"));
 
-            String[] expectedValues = new String[]{attributes.get("key1"), attributes.get("key3")};
+            final String[] expectedValues = new String[]{attributes.get("key1"), attributes.get("key3")};
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
             assertSingleFieldMultipleValueResult(record, "attributes", expectedValues, fieldValues);
         }
@@ -445,7 +445,7 @@ public class TestRecordPath {
         public void canReferenceSameMapItemMultipleTimes() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key3', 'key1']"));
 
-            String[] expectedValues = new String[]{
+            final String[] expectedValues = new String[]{
                     attributes.get("key1"), attributes.get("key3"), attributes.get("key1")
             };
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
@@ -472,7 +472,7 @@ public class TestRecordPath {
         public void predicateCanBeAppliedOnMultipleMapItems() {
             final RecordPath recordPath = assertDoesNotThrow(() -> RecordPath.compile("/attributes['key1', 'key2', 'key3'][. != 'value2']"));
 
-            String[] expectedValues = new String[]{
+            final String[] expectedValues = new String[]{
                     attributes.get("key1"), attributes.get("key3")
             };
             final List<FieldValue> fieldValues = evaluateMultiFieldValue(recordPath, record);
@@ -847,7 +847,7 @@ public class TestRecordPath {
                 );
             };
 
-            Stream<Executable> valueChecks = expectedValues.map(originalAndExpectedValue -> () -> {
+            final Stream<Executable> valueChecks = expectedValues.map(originalAndExpectedValue -> () -> {
                 final Record record = createSingleFieldRecord(expectedType);
 
                 final FieldValue initialFieldValue = evaluateSingleFieldValue("/field", record);
@@ -865,7 +865,7 @@ public class TestRecordPath {
             assertAll(Stream.concat(Stream.of(nullCheck), valueChecks));
         }
 
-        private static Record createSingleFieldRecord(DataType expectedType) {
+        private static Record createSingleFieldRecord(final DataType expectedType) {
             final RecordSchema schema = recordSchemaOf(recordFieldOf("field", expectedType));
             return new MapRecord(schema, new HashMap<>(), true, true);
         }
@@ -1169,7 +1169,7 @@ public class TestRecordPath {
             public void yieldsOneForReferencesToASingleFieldRegardlessOfItsValue() {
                 assertAll(Stream.of("id", "name", "missing", "attributes", "friends", "mainAccount")
                         .map(fieldName -> () -> {
-                            FieldValue fieldValue = evaluateSingleFieldValue("count(/%s)".formatted(fieldName), record);
+                            final FieldValue fieldValue = evaluateSingleFieldValue("count(/%s)".formatted(fieldName), record);
                             assertEquals(1L, fieldValue.getValue());
                         }
                         ));
@@ -1400,7 +1400,7 @@ public class TestRecordPath {
         class MapOf {
             @Test
             public void generatesMapOfStringFromProvidedArguments() {
-                Map<String, String> expectedResult = Map.of(
+                final Map<String, String> expectedResult = Map.of(
                         "id", "48",
                         "fullName", "John Doe",
                         "money", "123.45",
@@ -2289,7 +2289,7 @@ public class TestRecordPath {
             @Test
             public void supportsToUnescapeReferencedObjectAndNestedObjectsAsRecordValue() {
                 record.setValue("name", "{\"id\":1,\"balance\":2.3,\"nested\":[{\"city\":\"New York\",\"state\":\"NY\"}]}");
-                Record[] expectedNestedValue = {createAddressRecord("New York", "NY")};
+                final Record[] expectedNestedValue = {createAddressRecord("New York", "NY")};
 
                 final FieldValue fieldValue = evaluateSingleFieldValue("unescapeJson(/name, 'true', 'true')", record);
                 assertInstanceOf(Record.class, fieldValue.getValue());
@@ -2304,7 +2304,7 @@ public class TestRecordPath {
                 final List<String> nonStringFields = List.of("id", "attributes", "mainAccount", "numbers", "bytes");
 
                 assertAll(nonStringFields.stream().map(fieldName -> () -> {
-                    Exception exception =
+                    final Exception exception =
                             assertThrows(Exception.class, () -> evaluateSingleFieldValue("unescapeJson(/%s)".formatted(fieldName), record));
                     assertEquals("Argument supplied to unescapeJson must be a String", exception.getMessage());
                 }));
@@ -2313,7 +2313,7 @@ public class TestRecordPath {
             @Test
             public void throwsExceptionWhenAppliedToNonJsonStringValue() {
                 record.setValue("name", "<xml>value</xml>");
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("unescapeJson(/name)", record));
                 assertEquals("Unable to deserialise JSON String into Record Path value", exception.getMessage());
             }
@@ -2410,19 +2410,19 @@ public class TestRecordPath {
         }
         @Test
         public void throwsExceptionOnUnsupportedLhsType() {
-            Exception exception =
+            final Exception exception =
                     assertThrows(Exception.class, () -> evaluateSingleFieldValue("multiply(/numbers, 2)", record));
             assertEquals("Cannot coerce field 'numbers' to number", exception.getMessage());
         }
         @Test
         public void throwsExceptionOnUnsupportedRhsType() {
-            Exception exception =
+            final Exception exception =
                     assertThrows(Exception.class, () -> evaluateSingleFieldValue("multiply(2, /firstName)", record));
             assertEquals("Cannot coerce field 'firstName' to number", exception.getMessage());
         }
         @Test
         public void throwsExceptionOnUnsupportedTypeWithAnonymousField() {
-            Exception exception =
+            final Exception exception =
                     assertThrows(Exception.class, () -> evaluateSingleFieldValue("multiply(2, 'hello')", record));
             assertEquals("Cannot coerce field '<Anonymous Inner Field>' to number", exception.getMessage());
         }
@@ -2484,13 +2484,13 @@ public class TestRecordPath {
             }
             @Test
             public void throwsExceptionOnInvalidArityMissingLhs() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("multiply(multiply(/notAField, 0), multiply(/notAField, 0))", record));
                 assertEquals("multiply function requires a left-hand operand", exception.getMessage());
             }
             @Test
             public void throwsExceptionOnInvalidArityMissingRhs() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("multiply(0, multiply(/notAField, 0))", record));
                 assertEquals("multiply function requires a right-hand operand", exception.getMessage());
             }
@@ -2553,25 +2553,25 @@ public class TestRecordPath {
             }
             @Test
             public void throwsExceptionOnDivideByZeroLong() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("divide(2, 0)", record));
                 assertEquals("Division by zero in RecordPath divide function", exception.getMessage());
             }
             @Test
             public void throwsExceptionOnDivideByZeroDouble() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("divide('2.0', 0)", record));
                 assertEquals("Division by zero in RecordPath divide function", exception.getMessage());
             }
             @Test
             public void throwsExceptionOnInvalidArityMissingLhs() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("divide(divide(/notAField, 0), divide(/notAField, 0))", record));
                 assertEquals("divide function requires a left-hand operand", exception.getMessage());
             }
             @Test
             public void throwsExceptionOnInvalidArityMissingRhs() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("divide(0, divide(/notAField, 0))", record));
                 assertEquals("divide function requires a right-hand operand", exception.getMessage());
             }
@@ -2610,13 +2610,13 @@ public class TestRecordPath {
             }
             @Test
             public void throwsExceptionOnUnsupportedType() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("toNumber(/firstName)", record));
                 assertEquals("Cannot coerce field 'firstName' to number", exception.getMessage());
             }
             @Test
             public void throwsExceptionOnInvalidArityMissingOperand() {
-                Exception exception =
+                final Exception exception =
                         assertThrows(Exception.class, () -> evaluateSingleFieldValue("toNumber(multiply(/notAField, 0))", record));
                 assertEquals("toNumber function requires an operand", exception.getMessage());
             }
@@ -2634,7 +2634,7 @@ public class TestRecordPath {
         @Test
         public void multiResultRecordPathCanBeFiltered() {
             final Record record = reduceRecord(TestRecordPath.this.record, "firstName", "lastName", "name");
-            List<FieldValue> fieldValues = evaluateMultiFieldValue("/*[contains(., 'John')]", record);
+            final List<FieldValue> fieldValues = evaluateMultiFieldValue("/*[contains(., 'John')]", record);
             assertAll(
                     () -> assertEquals(2, fieldValues.size()),
                     () -> assertEquals("John", fieldValues.getFirst().getValue()),
@@ -3490,14 +3490,14 @@ public class TestRecordPath {
         )));
     }
 
-    private static Record createAddressRecord(String city, String state) {
+    private static Record createAddressRecord(final String city, final String state) {
         return new MapRecord(getAddressSchema(), new HashMap<>(Map.of(
                 "city", city,
                 "state", state
         )));
     }
 
-    private static Record reduceRecord(final Record record, String... fieldsToRetain) {
+    private static Record reduceRecord(final Record record, final String... fieldsToRetain) {
         final RecordSchema schema = record.getSchema();
 
         final RecordField[] retainedFields = Arrays.stream(fieldsToRetain)
@@ -3544,7 +3544,7 @@ public class TestRecordPath {
         return evaluateMultiFieldValue(path, record, null);
     }
 
-    private static RecordSchema recordSchemaOf(RecordField... fields) {
+    private static RecordSchema recordSchemaOf(final RecordField... fields) {
         return new SimpleRecordSchema(Arrays.asList(fields));
     }
 
@@ -3586,7 +3586,7 @@ public class TestRecordPath {
     }
 
     private static Byte[] boxBytes(final byte[] bytes) {
-        Byte[] boxedBytes = new Byte[bytes.length];
+        final Byte[] boxedBytes = new Byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             boxedBytes[i] = bytes[i];
         }

@@ -70,7 +70,7 @@ public class DeleteSFTP extends AbstractProcessor {
         FILE("File", "Specify a file to delete"),
         DIRECTORY("Directory", "Specify an empty directory to delete");
 
-        RemovalStrategy(String displayName, String description) {
+        RemovalStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -172,14 +172,14 @@ public class DeleteSFTP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         SFTPTransfer.migrateAlgorithmProperties(config);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -226,9 +226,9 @@ public class DeleteSFTP extends AbstractProcessor {
                     final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                     logger.debug("Successfully deleted file at path {} in {} millis; routing to success", flowFile, transferMillis);
                     session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUri, "Object deleted");
-                } catch (FileNotFoundException fileNotFoundException) {
+                } catch (final FileNotFoundException fileNotFoundException) {
                     session.transfer(flowFile, REL_NOT_FOUND);
-                } catch (IOException ioException) {
+                } catch (final IOException ioException) {
                     final String errorMessage;
                     if (removalStrategy == RemovalStrategy.DIRECTORY) {
                         errorMessage = "Failed to delete directory '%s'".formatted(directoryPathProperty);
@@ -245,25 +245,25 @@ public class DeleteSFTP extends AbstractProcessor {
         } catch (final IOException | FlowFileAccessException | ProcessException e) {
             context.yield();
 
-            Throwable cause = switch (e) {
+            final Throwable cause = switch (e) {
                 case FlowFileAccessException ffaEx -> ffaEx.getCause();
                 case ProcessException pEx -> pEx.getCause();
                 default -> e;
             };
 
-            String errorMessage = "Routing to failure since unable to delete %s from remote host %s".formatted(flowFile, hostname);
+            final String errorMessage = "Routing to failure since unable to delete %s from remote host %s".formatted(flowFile, hostname);
             handleFailure(session, flowFile, errorMessage, cause);
         }
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
         SFTPTransfer.validateProxySpec(validationContext, results);
         return results;
     }
 
-    private void handleFailure(ProcessSession session, FlowFile flowFile, String errorMessage, Throwable throwable) {
+    private void handleFailure(final ProcessSession session, final FlowFile flowFile, final String errorMessage, final Throwable throwable) {
         getLogger().error(errorMessage, throwable);
 
         session.penalize(flowFile);

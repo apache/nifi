@@ -72,7 +72,7 @@ public class TestWait {
 
         // no cache key attribute
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
         ff.assertAttributeExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be set
         runner.clearTransferState();
     }
@@ -173,7 +173,7 @@ public class TestWait {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_FAILURE).getFirst();
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_FAILURE).getFirst();
         ff.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be cleared
         runner.clearTransferState();
     }
@@ -188,7 +188,7 @@ public class TestWait {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_FAILURE).getFirst();
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_FAILURE).getFirst();
         ff.assertAttributeNotExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be cleared
         ff.assertAttributeNotExists("wait.counter.total");
 
@@ -221,7 +221,7 @@ public class TestWait {
         runner.run(1, false);
 
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
         ff.assertAttributeExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be set
         runner.clearTransferState();
 
@@ -242,7 +242,7 @@ public class TestWait {
 
     @Test
     public void testReplaceAttributes() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
@@ -258,7 +258,7 @@ public class TestWait {
         waitAttributes.put("releaseSignalAttribute", "key");
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         // make sure the key is in the cache before Wait runs
@@ -287,7 +287,7 @@ public class TestWait {
 
     @Test
     public void testKeepOriginalAttributes() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
@@ -303,7 +303,7 @@ public class TestWait {
         waitAttributes.put("releaseSignalAttribute", "key");
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         runner.run();
@@ -326,7 +326,7 @@ public class TestWait {
 
     @Test
     public void testWaitForTotalCount() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
@@ -343,7 +343,7 @@ public class TestWait {
         waitAttributes.put("targetSignalCount", "3");
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
@@ -353,7 +353,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
         waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be set
-        String initialTimestamp = waitingFlowFile.getAttribute(Wait.WAIT_START_TIMESTAMP);
+        final String initialTimestamp = waitingFlowFile.getAttribute(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 2nd iteration.
@@ -412,7 +412,7 @@ public class TestWait {
 
     @Test
     public void testWaitForSpecificCount() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
@@ -431,7 +431,7 @@ public class TestWait {
         waitAttributes.put("signalCounterName", "counter-B");
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
@@ -441,7 +441,7 @@ public class TestWait {
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
         MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).getFirst();
         waitingFlowFile.assertAttributeExists(Wait.WAIT_START_TIMESTAMP); // timestamp must be set
-        String initialTimestamp = waitingFlowFile.getAttribute(Wait.WAIT_START_TIMESTAMP);
+        final String initialTimestamp = waitingFlowFile.getAttribute(Wait.WAIT_START_TIMESTAMP);
 
         /*
          * 2nd iteration.
@@ -508,7 +508,7 @@ public class TestWait {
 
     @Test
     public void testDecrementCache() throws ConcurrentModificationException, IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("both", "notifyValue");
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
@@ -533,7 +533,7 @@ public class TestWait {
         waitAttributes.put("wait.only", "waitValue");
         waitAttributes.put("both", "waitValue");
         waitAttributes.put("uuid", UUID.randomUUID().toString());
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), waitAttributes);
 
         /*
@@ -610,7 +610,7 @@ public class TestWait {
 
     @Test
     public void testWaitBufferCount() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("notified", "notified-value");
 
         // Setup existing cache entry.
@@ -672,7 +672,7 @@ public class TestWait {
 
     @Test
     public void testReleaseMultipleFlowFiles() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("notified", "notified-value");
 
         // Setup existing cache entry.
@@ -730,7 +730,7 @@ public class TestWait {
 
     @Test
     public void testOpenGate() throws IOException {
-        Map<String, String> cachedAttributes = new HashMap<>();
+        final Map<String, String> cachedAttributes = new HashMap<>();
         cachedAttributes.put("notified", "notified-value");
 
         // Setup existing cache entry.

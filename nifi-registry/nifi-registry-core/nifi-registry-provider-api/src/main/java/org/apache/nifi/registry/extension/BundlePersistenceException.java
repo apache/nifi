@@ -21,11 +21,11 @@ package org.apache.nifi.registry.extension;
  */
 public class BundlePersistenceException extends RuntimeException {
 
-    public BundlePersistenceException(String message) {
+    public BundlePersistenceException(final String message) {
         super(message);
     }
 
-    public BundlePersistenceException(String message, Throwable cause) {
+    public BundlePersistenceException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

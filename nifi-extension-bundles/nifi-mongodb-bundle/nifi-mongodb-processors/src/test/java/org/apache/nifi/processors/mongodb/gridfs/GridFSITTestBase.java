@@ -40,12 +40,12 @@ public class GridFSITTestBase extends AbstractMongoIT {
     static final String DB  = "gridfs_test_database";
     MongoClient client;
 
-    public void setup(TestRunner runner, String bucketName) throws Exception {
+    public void setup(final TestRunner runner, final String bucketName) throws Exception {
         setup(runner, bucketName, true);
     }
 
-    public void setup(TestRunner runner, String bucketName, boolean validate) throws Exception {
-        MongoDBClientService clientService = new MongoDBControllerService();
+    public void setup(final TestRunner runner, final String bucketName, final boolean validate) throws Exception {
+        final MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(AbstractGridFSProcessor.CLIENT_SERVICE, "clientService");
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
@@ -64,36 +64,36 @@ public class GridFSITTestBase extends AbstractMongoIT {
         client.close();
     }
 
-    public boolean fileExists(String name, String bucketName) {
-        GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
-        MongoCursor it = bucket.find(Document.parse(String.format("{ \"filename\": \"%s\" }", name))).iterator();
-        boolean retVal = it.hasNext();
+    public boolean fileExists(final String name, final String bucketName) {
+        final GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
+        final MongoCursor it = bucket.find(Document.parse(String.format("{ \"filename\": \"%s\" }", name))).iterator();
+        final boolean retVal = it.hasNext();
         it.close();
 
         return retVal;
     }
 
-    public ObjectId writeTestFile(String fileName, String content, String bucketName, Map<String, Object> attrs) {
-        GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
-        GridFSUploadOptions options = new GridFSUploadOptions().metadata(new Document(attrs));
-        ByteArrayInputStream input = new ByteArrayInputStream(content.getBytes());
-        ObjectId retVal = bucket.uploadFromStream(fileName, input, options);
+    public ObjectId writeTestFile(final String fileName, final String content, final String bucketName, final Map<String, Object> attrs) {
+        final GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
+        final GridFSUploadOptions options = new GridFSUploadOptions().metadata(new Document(attrs));
+        final ByteArrayInputStream input = new ByteArrayInputStream(content.getBytes());
+        final ObjectId retVal = bucket.uploadFromStream(fileName, input, options);
 
         return retVal;
     }
 
-    public boolean fileHasProperties(String name, String bucketName, Map<String, String> attrs) {
-        GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
-        MongoCursor it = bucket.find(Document.parse(String.format("{ \"filename\": \"%s\" }", name))).iterator();
+    public boolean fileHasProperties(final String name, final String bucketName, final Map<String, String> attrs) {
+        final GridFSBucket bucket = GridFSBuckets.create(client.getDatabase(DB), bucketName);
+        final MongoCursor it = bucket.find(Document.parse(String.format("{ \"filename\": \"%s\" }", name))).iterator();
         boolean retVal = false;
 
         if (it.hasNext()) {
-            GridFSFile file = (GridFSFile) it.next();
-            Document metadata = file.getMetadata();
+            final GridFSFile file = (GridFSFile) it.next();
+            final Document metadata = file.getMetadata();
             if (metadata != null && metadata.size() == attrs.size()) {
                 retVal = true;
-                for (Map.Entry<String, Object> entry : metadata.entrySet()) {
-                    Object val = attrs.get(entry.getKey());
+                for (final Map.Entry<String, Object> entry : metadata.entrySet()) {
+                    final Object val = attrs.get(entry.getKey());
                     if (val == null || !entry.getValue().equals(val)) {
                         retVal = false;
                         break;

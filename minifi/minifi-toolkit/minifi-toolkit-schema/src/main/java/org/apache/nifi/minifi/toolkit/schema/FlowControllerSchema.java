@@ -33,14 +33,14 @@ public class FlowControllerSchema extends BaseSchema implements WritableSchema {
     private String name;
     private String comment;
 
-    public FlowControllerSchema(Map map) {
+    public FlowControllerSchema(final Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, FLOW_CONTROLLER_PROPS_KEY);
         comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, FLOW_CONTROLLER_PROPS_KEY, "");
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(NAME_KEY, name);
         result.put(COMMENT_KEY, comment);
         return result;

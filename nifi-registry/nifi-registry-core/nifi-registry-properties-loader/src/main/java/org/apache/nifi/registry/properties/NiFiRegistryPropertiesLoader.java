@@ -58,7 +58,7 @@ public class NiFiRegistryPropertiesLoader {
      * @return the NiFiRegistryProperties instance
      * @see NiFiRegistryPropertiesLoader#load(File)
      */
-    public NiFiRegistryProperties load(String path) {
+    public NiFiRegistryProperties load(final String path) {
         if (path != null && !path.isBlank()) {
             return load(new File(path));
         } else {

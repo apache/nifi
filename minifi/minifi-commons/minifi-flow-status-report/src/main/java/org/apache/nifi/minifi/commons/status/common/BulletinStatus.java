@@ -27,7 +27,7 @@ public class BulletinStatus implements java.io.Serializable {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -35,12 +35,12 @@ public class BulletinStatus implements java.io.Serializable {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -48,7 +48,7 @@ public class BulletinStatus implements java.io.Serializable {
             return false;
         }
 
-        BulletinStatus bulletin = (BulletinStatus) o;
+        final BulletinStatus bulletin = (BulletinStatus) o;
 
         if (getTimestamp() != null ? !getTimestamp().equals(bulletin.getTimestamp()) : bulletin.getTimestamp() != null) {
             return false;

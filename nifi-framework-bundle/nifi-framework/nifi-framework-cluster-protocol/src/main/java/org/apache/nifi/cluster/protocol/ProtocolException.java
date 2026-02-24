@@ -26,15 +26,15 @@ public class ProtocolException extends RuntimeException {
     public ProtocolException() {
     }
 
-    public ProtocolException(String msg) {
+    public ProtocolException(final String msg) {
         super(msg);
     }
 
-    public ProtocolException(Throwable cause) {
+    public ProtocolException(final Throwable cause) {
         super(cause);
     }
 
-    public ProtocolException(String msg, Throwable cause) {
+    public ProtocolException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

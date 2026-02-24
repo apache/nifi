@@ -23,19 +23,19 @@ public class StartupFailureException extends RuntimeException {
     public StartupFailureException() {
     }
 
-    public StartupFailureException(String message) {
+    public StartupFailureException(final String message) {
         super(message);
     }
 
-    public StartupFailureException(String message, Throwable cause) {
+    public StartupFailureException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public StartupFailureException(Throwable cause) {
+    public StartupFailureException(final Throwable cause) {
         super(cause);
     }
 
-    public StartupFailureException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public StartupFailureException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

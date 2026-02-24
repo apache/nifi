@@ -148,7 +148,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getBucketAuthorizable(String bucketIdentifier) {
+    public Authorizable getBucketAuthorizable(final String bucketIdentifier) {
         // Note - this creates a special Authorizable type that inherits permissions from the parent Authorizable
         final Authorizable inheritingAuthorizable = new InheritingAuthorizable() {
 
@@ -173,8 +173,8 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getAuthorizableByResource(String resource) {
-        ResourceType resourceType = ResourceType.mapFullResourcePathToResourceType(resource);
+    public Authorizable getAuthorizableByResource(final String resource) {
+        final ResourceType resourceType = ResourceType.mapFullResourcePathToResourceType(resource);
 
         if (resourceType == null) {
             throw new ResourceNotFoundException("Unrecognized resource: " + resource);
@@ -223,9 +223,9 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     private Authorizable getAuthorizableByChildResource(final ResourceType baseResourceType, final String childResourceId) {
-        Authorizable authorizable;
+        final Authorizable authorizable;
         if (baseResourceType == ResourceType.Bucket) {
-            String[] childResourcePathParts = childResourceId.split("/");
+            final String[] childResourcePathParts = childResourceId.split("/");
             if (childResourcePathParts.length >= 1) {
                 final String bucketId = childResourcePathParts[1];
                 authorizable = getBucketAuthorizable(bucketId);
@@ -265,11 +265,11 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         try {
             final Bucket bucket = registryService.getBucket(bucketId);
             return bucket.isAllowPublicRead();
-        } catch (ResourceNotFoundException rnfe) {
+        } catch (final ResourceNotFoundException rnfe) {
             // if not found then we can't determine public access, so return false to delegate to regular authorizer
             logger.debug("Cannot determine public access, bucket not found with id [{}]", bucketId);
             return false;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Error checking public access to bucket with id [{}]", bucketId, e);
             return false;
         }

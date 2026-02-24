@@ -37,7 +37,7 @@ public class BucketEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -45,7 +45,7 @@ public class BucketEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -53,7 +53,7 @@ public class BucketEntity {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public void setCreated(final Date created) {
         this.created = created;
     }
 
@@ -61,7 +61,7 @@ public class BucketEntity {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -77,7 +77,7 @@ public class BucketEntity {
         return allowPublicRead;
     }
 
-    public void setAllowPublicRead(boolean allowPublicRead) {
+    public void setAllowPublicRead(final boolean allowPublicRead) {
         this.allowPublicRead = allowPublicRead;
     }
 

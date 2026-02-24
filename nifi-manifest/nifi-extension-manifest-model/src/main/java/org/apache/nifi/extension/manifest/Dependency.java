@@ -32,7 +32,7 @@ public class Dependency {
         return propertyName;
     }
 
-    public void setPropertyName(String propertyName) {
+    public void setPropertyName(final String propertyName) {
         this.propertyName = propertyName;
     }
 
@@ -41,7 +41,7 @@ public class Dependency {
         return propertyDisplayName;
     }
 
-    public void setPropertyDisplayName(String propertyDisplayName) {
+    public void setPropertyDisplayName(final String propertyDisplayName) {
         this.propertyDisplayName = propertyDisplayName;
     }
 
@@ -50,7 +50,7 @@ public class Dependency {
         return dependentValues;
     }
 
-    public void setDependentValues(DependentValues dependentValues) {
+    public void setDependentValues(final DependentValues dependentValues) {
         this.dependentValues = dependentValues;
     }
 }

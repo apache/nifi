@@ -113,7 +113,7 @@ class ConfluentSchemaRegistryTest {
         final ConfluentSchemaRegistry confluentSchemaRegistry = new ConfluentSchemaRegistry();
         confluentSchemaRegistry.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("url", ConfluentSchemaRegistry.SCHEMA_REGISTRY_URLS.getName()),
                 Map.entry("ssl-context", ConfluentSchemaRegistry.SSL_CONTEXT.getName()),
                 Map.entry("cache-size", ConfluentSchemaRegistry.CACHE_SIZE.getName()),

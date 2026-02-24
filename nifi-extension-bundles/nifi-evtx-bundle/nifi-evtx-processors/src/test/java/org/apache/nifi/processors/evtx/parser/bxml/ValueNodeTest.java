@@ -50,14 +50,14 @@ public class ValueNodeTest extends BxmlNodeWithTokenTestBase {
     @Test
     public void testInit() {
         assertEquals(getToken(), valueNode.getToken());
-        List<BxmlNode> children = valueNode.getChildren();
+        final List<BxmlNode> children = valueNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(NullTypeNode.class, children.get(0));
     }
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         valueNode.accept(mock);
         verify(mock).visit(valueNode);
         verifyNoMoreInteractions(mock);

@@ -52,7 +52,7 @@ public class StandardKustoIngestServiceTest {
 
     private static class TestableKustoIngestService extends StandardKustoIngestService {
         private final ComponentLog logger;
-        TestableKustoIngestService(ComponentLog logger, Client mockClient) {
+        TestableKustoIngestService(final ComponentLog logger, final Client mockClient) {
             this.logger = logger;
             this.executionClient = mockClient;
         }
@@ -77,8 +77,8 @@ public class StandardKustoIngestServiceTest {
         "false",
         "null" //needs to be a constant
     })
-    void testIsStreamingPolicyEnabled(String isStreamingEnabled) throws Exception {
-        KustoResultColumn[] krcArray = Map.of(0, "PolicyName", 1, "EntityName", 2, "Policy", 3, "ChildEntities", 4, "EntityType")
+    void testIsStreamingPolicyEnabled(final String isStreamingEnabled) throws Exception {
+        final KustoResultColumn[] krcArray = Map.of(0, "PolicyName", 1, "EntityName", 2, "Policy", 3, "ChildEntities", 4, "EntityType")
             .entrySet().stream().map(entry -> new KustoResultColumn(entry.getValue(), "string", entry.getKey()))
             .toArray(KustoResultColumn[]::new);
 
@@ -96,10 +96,10 @@ public class StandardKustoIngestServiceTest {
             .thenReturn(mockKustoOperationResult);
 
         // Act
-        boolean actual = service.isStreamingPolicyEnabled("db");
+        final boolean actual = service.isStreamingPolicyEnabled("db");
 
         // Assert
-        boolean expected = "true".equals(isStreamingEnabled);
+        final boolean expected = "true".equals(isStreamingEnabled);
         assertEquals(expected, actual, "Streaming policy enabled check failed for value: " + isStreamingEnabled);
     }
 
@@ -108,11 +108,11 @@ public class StandardKustoIngestServiceTest {
         "100",
         "-1"
     })
-    void testIsTableReadable(String rowCount) {
-        String databaseName = "db";
-        String tableName = "table";
+    void testIsTableReadable(final String rowCount) {
+        final String databaseName = "db";
+        final String tableName = "table";
 
-        KustoResultColumn[] krcArray = Map.of(0, "Count")
+        final KustoResultColumn[] krcArray = Map.of(0, "Count")
             .entrySet().stream().map(entry -> new KustoResultColumn(entry.getValue(), "int64", entry.getKey()))
             .toArray(KustoResultColumn[]::new);
 
@@ -138,7 +138,7 @@ public class StandardKustoIngestServiceTest {
             .thenReturn(mockKustoOperationResult);
 
         // Act
-        boolean actual = service.isTableReadable(databaseName, tableName);
+        final boolean actual = service.isTableReadable(databaseName, tableName);
 
         // Assert
         if ("-1".equals(rowCount)) {

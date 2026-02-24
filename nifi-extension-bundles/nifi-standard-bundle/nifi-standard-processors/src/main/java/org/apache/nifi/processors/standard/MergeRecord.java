@@ -451,7 +451,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("merge-strategy", MERGE_STRATEGY.getName());
@@ -475,7 +475,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             getLogger().debug("Got Group ID {} for {}", groupId, flowFile);
 
             binManager.add(groupId, flowFile, reader, session, block);
-        } catch (MalformedRecordException | IOException | SchemaNotFoundException e) {
+        } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
             throw new ProcessException(e);
         }
     }

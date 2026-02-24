@@ -64,7 +64,7 @@ public abstract class AbstractGCSTest {
         }
     }
 
-    public static TestRunner buildNewRunner(Processor processor) throws Exception {
+    public static TestRunner buildNewRunner(final Processor processor) throws Exception {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
 
         final TestRunner runner = TestRunners.newTestRunner(processor);

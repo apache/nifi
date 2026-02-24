@@ -41,7 +41,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return id;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.id = groupId;
     }
 
@@ -52,7 +52,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
+    public void setGroupName(final String groupName) {
         this.groupName = groupName;
     }
 
@@ -63,7 +63,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
@@ -74,7 +74,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return versionedFlowSnapshot;
     }
 
-    public void setFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
+    public void setFlowSnapshot(final RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
@@ -85,7 +85,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return positionDTO;
     }
 
-    public void setPositionDTO(PositionDTO positionDTO) {
+    public void setPositionDTO(final PositionDTO positionDTO) {
         this.positionDTO = positionDTO;
     }
 
@@ -96,7 +96,7 @@ public class ProcessGroupUploadEntity extends Entity {
         return revisionDTO;
     }
 
-    public void setRevisionDTO(RevisionDTO revisionDTO) {
+    public void setRevisionDTO(final RevisionDTO revisionDTO) {
         this.revisionDTO = revisionDTO;
     }
 }

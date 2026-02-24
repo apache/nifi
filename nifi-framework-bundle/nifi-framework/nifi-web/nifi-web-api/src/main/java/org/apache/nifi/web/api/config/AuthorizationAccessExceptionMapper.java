@@ -32,7 +32,7 @@ public class AuthorizationAccessExceptionMapper implements ExceptionMapper<Autho
     private static final Logger logger = LoggerFactory.getLogger(AdministrationExceptionMapper.class);
 
     @Override
-    public Response toResponse(AuthorizationAccessException e) {
+    public Response toResponse(final AuthorizationAccessException e) {
         // log the error
         logger.error("{}. Returning {} response.", e, Response.Status.INTERNAL_SERVER_ERROR, e);
 

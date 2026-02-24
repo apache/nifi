@@ -82,11 +82,11 @@ public class WriteLifecycleEvents extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
             writeEvent(context, "OnTrigger");
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }

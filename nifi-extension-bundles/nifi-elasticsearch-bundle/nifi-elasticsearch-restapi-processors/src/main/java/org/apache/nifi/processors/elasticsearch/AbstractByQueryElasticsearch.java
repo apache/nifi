@@ -169,7 +169,7 @@ public abstract class AbstractByQueryElasticsearch extends AbstractProcessor imp
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ElasticsearchRestProcessor.super.migrateProperties(config);
     }
 }

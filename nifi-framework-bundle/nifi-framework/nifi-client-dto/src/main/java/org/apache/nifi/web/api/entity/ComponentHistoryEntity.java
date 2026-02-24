@@ -36,7 +36,7 @@ public class ComponentHistoryEntity extends Entity {
         return componentHistory;
     }
 
-    public void setComponentHistory(ComponentHistoryDTO componentHistory) {
+    public void setComponentHistory(final ComponentHistoryDTO componentHistory) {
         this.componentHistory = componentHistory;
     }
 

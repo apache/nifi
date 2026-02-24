@@ -162,8 +162,8 @@ public class FileUtils {
                 // null if abstract pathname does not denote a directory, or if an I/O error occurs
                 throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
             }
-            for (File ingestFile : ingestFiles) {
-                boolean process = (filter == null) || filter.accept(directory, ingestFile.getName());
+            for (final File ingestFile : ingestFiles) {
+                final boolean process = (filter == null) || filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {
                     deleteFile(ingestFile, logger, 3);
                 }

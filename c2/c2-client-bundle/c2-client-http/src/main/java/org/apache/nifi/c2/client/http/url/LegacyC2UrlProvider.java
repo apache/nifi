@@ -30,7 +30,7 @@ public class LegacyC2UrlProvider implements C2UrlProvider {
     private final String c2Url;
     private final String c2AckUrl;
 
-    LegacyC2UrlProvider(String c2Url, String c2AckUrl) {
+    LegacyC2UrlProvider(final String c2Url, final String c2AckUrl) {
         this.c2Url = c2Url;
         this.c2AckUrl = c2AckUrl;
     }
@@ -46,7 +46,7 @@ public class LegacyC2UrlProvider implements C2UrlProvider {
     }
 
     @Override
-    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
+    public String getCallbackUrl(final String absoluteUrl, final String relativeUrl) {
         return Optional.ofNullable(absoluteUrl)
                    .filter(StringUtils::isNotBlank)
                    .orElseThrow(() -> {

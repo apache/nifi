@@ -36,7 +36,7 @@ public class DropRequestEntity extends Entity {
         return dropRequest;
     }
 
-    public void setDropRequest(DropRequestDTO dropRequest) {
+    public void setDropRequest(final DropRequestDTO dropRequest) {
         this.dropRequest = dropRequest;
     }
 

@@ -45,7 +45,7 @@ public class ZendeskRecordPathUtilsTest {
     @Test
     public void testFieldValueEvaluation() {
         ObjectNode testNode;
-        Record record = initRecord();
+        final Record record = initRecord();
 
         testNode = mapper.createObjectNode();
         addField("/a/b", "@{/field1}", testNode, record);
@@ -59,39 +59,39 @@ public class ZendeskRecordPathUtilsTest {
         addField("/a/0", "array_element", testNode, record);
         Assertions.assertEquals("{\"a\":[\"array_element\"]}", testNode.toString());
 
-        ProcessException e1 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field2}", mapper.createObjectNode(), record));
+        final ProcessException e1 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field2}", mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field2] points to a [ARRAY] type value", e1.getMessage());
 
-        ProcessException e2 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field3}", mapper.createObjectNode(), record));
+        final ProcessException e2 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field3}", mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field3] points to a [RECORD] type value", e2.getMessage());
 
-        ProcessException e3 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field4}", mapper.createObjectNode(), record));
+        final ProcessException e3 = assertThrows(ProcessException.class, () -> addField("/a", "@{/field4}", mapper.createObjectNode(), record));
         Assertions.assertEquals("The provided RecordPath [/field4] points to a [CHOICE] type value with Record subtype", e3.getMessage());
     }
 
     private Record initRecord() {
-        List<RecordField> recordFields = new ArrayList<>();
+        final List<RecordField> recordFields = new ArrayList<>();
         recordFields.add(new RecordField("nestedField1", RecordFieldType.STRING.getDataType()));
         recordFields.add(new RecordField("nestedField2", RecordFieldType.STRING.getDataType()));
 
-        RecordSchema nestedRecordSchema = new SimpleRecordSchema(recordFields);
+        final RecordSchema nestedRecordSchema = new SimpleRecordSchema(recordFields);
 
-        List<RecordField> fields = new ArrayList<>();
+        final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("field1", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("field2", new ArrayDataType(RecordFieldType.STRING.getDataType())));
         fields.add(new RecordField("field3", new RecordDataType(nestedRecordSchema)));
         fields.add(new RecordField("field4", RecordFieldType.CHOICE.getChoiceDataType(
                 RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType(), RecordFieldType.RECORD.getDataType())));
-        RecordSchema schema = new SimpleRecordSchema(fields);
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        List<String> valueList = new ArrayList<>();
+        final List<String> valueList = new ArrayList<>();
         valueList.add("listElement");
 
-        Map<String, Object> nestedValueMap = new HashMap<>();
+        final Map<String, Object> nestedValueMap = new HashMap<>();
         nestedValueMap.put("nestedField1", "nestedValue1");
         nestedValueMap.put("nestedField2", "nestedValue2");
 
-        Map<String, Object> valueMap = new HashMap<>();
+        final Map<String, Object> valueMap = new HashMap<>();
         valueMap.put("field1", "value1");
         valueMap.put("field2", valueList);
         valueMap.put("field3", nestedValueMap);

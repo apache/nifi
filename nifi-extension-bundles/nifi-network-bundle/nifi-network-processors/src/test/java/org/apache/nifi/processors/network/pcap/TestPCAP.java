@@ -54,14 +54,14 @@ public class TestPCAP {
     void testReadBytesFull() {
 
         // Create a header for the test PCAP
-        ByteBuffer headerBuffer = ByteBuffer.allocate(PCAPHeader.PCAP_HEADER_LENGTH);
+        final ByteBuffer headerBuffer = ByteBuffer.allocate(PCAPHeader.PCAP_HEADER_LENGTH);
         headerBuffer.put(new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4});
-        for (int[] value : PCAP_HEADER_VALUES) {
+        for (final int[] value : PCAP_HEADER_VALUES) {
             headerBuffer.put(PCAP.readIntToNBytes(value[0], value[1]));
         }
-        PCAPHeader hdr = new PCAPHeader(new ByteBufferReader(headerBuffer.array()));
+        final PCAPHeader hdr = new PCAPHeader(new ByteBufferReader(headerBuffer.array()));
         // Create a sample packet
-        List<Packet> packets = new ArrayList<>();
+        final List<Packet> packets = new ArrayList<>();
         packets.add(new Packet(
                 packetHeaderValues.get("tsSec"),
                 packetHeaderValues.get("tsUsec"),
@@ -71,21 +71,21 @@ public class TestPCAP {
         ));
 
         // create test PCAP
-        PCAP testPcap = new PCAP(hdr, packets);
+        final PCAP testPcap = new PCAP(hdr, packets);
 
         // Call the readBytesFull method
-        byte[] result = testPcap.toByteArray();
+        final byte[] result = testPcap.toByteArray();
 
         // Assert the expected byte array length
         assertEquals(70, result.length);
 
         // Assert the expected byte array values
-        ByteBuffer buffer = ByteBuffer.wrap(result);
+        final ByteBuffer buffer = ByteBuffer.wrap(result);
         assertEquals(0xa1b2c3d4, buffer.getInt());
-        ByteBuffer litteEndianBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
+        final ByteBuffer litteEndianBuffer = ByteBuffer.wrap(result).order(ByteOrder.LITTLE_ENDIAN);
         litteEndianBuffer.position(4);
 
-        for (int[] value : PCAP_HEADER_VALUES) {
+        for (final int[] value : PCAP_HEADER_VALUES) {
             if (value[1] == 2) {
                 assertEquals(value[0], litteEndianBuffer.getShort());
             } else {
@@ -97,7 +97,7 @@ public class TestPCAP {
         assertEquals(packetHeaderValues.get("tsUsec"), litteEndianBuffer.getInt());
         assertEquals(packetHeaderValues.get("inclLen"), litteEndianBuffer.getInt());
         assertEquals(packetHeaderValues.get("origLen"), litteEndianBuffer.getInt());
-        byte[] body = new byte[30];
+        final byte[] body = new byte[30];
         litteEndianBuffer.get(40, body, 0, 30);
         assertArrayEquals(body, PACKET_DATA);
     }

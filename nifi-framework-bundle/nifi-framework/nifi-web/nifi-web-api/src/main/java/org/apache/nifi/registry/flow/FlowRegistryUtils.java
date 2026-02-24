@@ -47,7 +47,7 @@ public class FlowRegistryUtils {
 
     }
 
-    private static Set<ConfigurableComponent> getRestrictedComponents(NiFiServiceFacade serviceFacade, Set<Tuple<String, BundleCoordinate>> componentTypes) {
+    private static Set<ConfigurableComponent> getRestrictedComponents(final NiFiServiceFacade serviceFacade, final Set<Tuple<String, BundleCoordinate>> componentTypes) {
         final Set<ConfigurableComponent> restrictedComponents = new HashSet<>();
 
         for (final Tuple<String, BundleCoordinate> tuple : componentTypes) {

@@ -119,7 +119,7 @@ public class ParameterProviderAuditor extends NiFiAuditor {
             final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
+            for (final String property : updatedValues.keySet()) {
                 String newValue = updatedValues.get(property);
                 String oldValue = values.get(property);
                 Operation operation = null;
@@ -213,7 +213,7 @@ public class ParameterProviderAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(ParameterProviderNode parameterProvider, Operation operation) {
+    public Action generateAuditRecord(final ParameterProviderNode parameterProvider, final Operation operation) {
         return generateAuditRecord(parameterProvider, operation, null);
     }
 
@@ -225,12 +225,12 @@ public class ParameterProviderAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(ParameterProviderNode parameterProvider, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final ParameterProviderNode parameterProvider, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the parameter provider details
-            FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(parameterProvider.getComponentType());
 
             // create the parameter provider action for adding this parameter provider
@@ -271,9 +271,9 @@ public class ParameterProviderAuditor extends NiFiAuditor {
         }
         if (parameterProviderDTO.getProperties() != null) {
             // for each property specified, extract its configured value
-            Map<String, String> properties = parameterProviderDTO.getProperties();
-            Map<PropertyDescriptor, String> configuredProperties = parameterProvider.getRawPropertyValues();
-            for (String propertyName : properties.keySet()) {
+            final Map<String, String> properties = parameterProviderDTO.getProperties();
+            final Map<PropertyDescriptor, String> configuredProperties = parameterProvider.getRawPropertyValues();
+            for (final String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();
                 String configuredPropertyValue = configuredProperties.get(propertyDescriptor);

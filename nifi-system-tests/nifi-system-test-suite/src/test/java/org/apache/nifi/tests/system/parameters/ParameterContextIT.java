@@ -367,7 +367,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         fetchAndWaitForAppliedParameters(updatedProvider, Collections.singletonList(groupConfiguration));
 
-        ParameterContextEntity fetchedContext = getNifiClient().getParamContextClient().getParamContext(createdContextEntity.getId(), false);
+        final ParameterContextEntity fetchedContext = getNifiClient().getParamContextClient().getParamContext(createdContextEntity.getId(), false);
         assertEquals(Set.of("a", "b"), getParameterNames(fetchedContext));
 
         final Map<String, String> removedProperties = new HashMap<>();
@@ -534,7 +534,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         setParameterContext("root", createdContextEntity);
 
         // Create a Processor and update it to reference Parameter "name"
-        ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
         final String processorId = processorEntity.getId();
 
         // Update processor to reference Parameter "name"
@@ -584,7 +584,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         try {
             // Create a Processor
-            ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+            final ProcessorEntity processorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".Sleep", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
             final String processorId = processorEntity.getId();
 
             processorEntity.getComponent().getConfig().setProperties(Collections.singletonMap("Sleep Service", serviceId));
@@ -696,8 +696,8 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         // Create simple dataflow: GenerateFlowFile -> SplitByLine -> <auto-terminate>
         // Set SplitByLine to use a parameter for the "Use Clone" property such that it's valid.
-        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        ProcessorEntity splitByLine = getClientUtil().createProcessor("SplitByLine");
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity splitByLine = getClientUtil().createProcessor("SplitByLine");
 
         getClientUtil().updateProcessorProperties(splitByLine, Collections.singletonMap("Use Clone", "#{clone}"));
         getClientUtil().setAutoTerminatedRelationships(splitByLine, Collections.singleton("success"));
@@ -1190,7 +1190,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         this.fetchAndWaitForAppliedParameters(entity, null);
     }
 
-    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity, Collection<ParameterGroupConfigurationEntity> inputParameterGroupConfigs)
+    public void fetchAndWaitForAppliedParameters(final ParameterProviderEntity entity, final Collection<ParameterGroupConfigurationEntity> inputParameterGroupConfigs)
             throws NiFiClientException, IOException, InterruptedException {
         final ParameterProviderEntity fetched = fetchParameters(entity);
         final Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations = inputParameterGroupConfigs != null
@@ -1199,11 +1199,11 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForAppliedParameters(request);
     }
 
-    void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
+    void waitForValidProcessor(final String id) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForValidProcessor(id);
     }
 
-    private void waitForInvalidProcessor(String id) throws NiFiClientException, IOException, InterruptedException {
+    private void waitForInvalidProcessor(final String id) throws NiFiClientException, IOException, InterruptedException {
         getClientUtil().waitForInvalidProcessor(id);
     }
 

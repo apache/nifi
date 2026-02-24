@@ -75,9 +75,9 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
         return parameters.stream();
     }
 
-    private static void addAction(List<Arguments> parameters, Action action, List<Action> baseActions, int currentDepth, int recursiveDepth) {
+    private static void addAction(final List<Arguments> parameters, final Action action, final List<Action> baseActions, final int currentDepth, final int recursiveDepth) {
         for (int triggerIndex = 0; triggerIndex < baseActions.size(); triggerIndex++) {
-            List<Action> actions = new LinkedList<>(baseActions);
+            final List<Action> actions = new LinkedList<>(baseActions);
             actions.add(triggerIndex, action);
 
             parameters.add(Arguments.of(actions));
@@ -91,7 +91,7 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
     @ParameterizedTest
     @MethodSource("provideActionsForTestScenario")
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
-    public void testParameterizedScenario(List<Action> actions) throws Exception {
+    public void testParameterizedScenario(final List<Action> actions) throws Exception {
         testScenario(actions);
     }
 }

@@ -28,7 +28,7 @@ public class RuntimeManifestEntity extends Entity {
         return runtimeManifest;
     }
 
-    public void setRuntimeManifest(RuntimeManifest runtimeManifest) {
+    public void setRuntimeManifest(final RuntimeManifest runtimeManifest) {
         this.runtimeManifest = runtimeManifest;
     }
 

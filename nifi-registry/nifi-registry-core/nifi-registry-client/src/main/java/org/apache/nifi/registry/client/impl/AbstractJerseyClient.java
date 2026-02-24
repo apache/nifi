@@ -54,7 +54,7 @@ public class AbstractJerseyClient {
      * @param revision the RevisionInfo
      * @return the target with query params added
      */
-    protected WebTarget addRevisionQueryParams(WebTarget target, RevisionInfo revision) {
+    protected WebTarget addRevisionQueryParams(final WebTarget target, final RevisionInfo revision) {
         if (revision == null) {
             return target;
         }

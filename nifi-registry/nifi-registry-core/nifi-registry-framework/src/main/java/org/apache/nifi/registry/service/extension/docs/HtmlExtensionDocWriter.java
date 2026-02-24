@@ -62,7 +62,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             xmlStreamWriter.writeEndElement();
             xmlStreamWriter.close();
             outputStream.flush();
-        } catch (XMLStreamException | FactoryConfigurationError e) {
+        } catch (final XMLStreamException | FactoryConfigurationError e) {
             throw new IOException("Unable to create XMLOutputStream", e);
         }
     }
@@ -313,7 +313,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             xmlStreamWriter.writeEndElement();
 
             // write the individual properties
-            for (Property property : properties) {
+            for (final Property property : properties) {
                 xmlStreamWriter.writeStartElement("tr");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "name");
@@ -344,7 +344,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
 
                 if (property.isExpressionLanguageSupported()) {
                     xmlStreamWriter.writeEmptyElement("br");
-                    StringBuilder text = new StringBuilder("Supports Expression Language: true");
+                    final StringBuilder text = new StringBuilder("Supports Expression Language: true");
                     final String perFF = " (will be evaluated using flow file attributes and Environment variables)";
                     final String registry = " (will be evaluated using Environment variables only)";
                     final InputRequirement inputRequirement = extension.getInputRequirement();
@@ -381,7 +381,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     }
 
     private boolean containsExpressionLanguage(final Extension extension) {
-        for (Property property : extension.getProperties()) {
+        for (final Property property : extension.getProperties()) {
             if (property.isExpressionLanguageSupported()) {
                 return true;
             }
@@ -390,7 +390,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     }
 
     private boolean containsSensitiveProperties(final Extension extension) {
-        for (Property property : extension.getProperties()) {
+        for (final Property property : extension.getProperties()) {
             if (property.isSensitive()) {
                 return true;
             }
@@ -401,7 +401,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     protected void writeValidValues(final XMLStreamWriter xmlStreamWriter, final Property property) throws XMLStreamException {
         if (property.getAllowableValues() != null && !property.getAllowableValues().isEmpty()) {
             xmlStreamWriter.writeStartElement("ul");
-            for (AllowableValue value : property.getAllowableValues()) {
+            for (final AllowableValue value : property.getAllowableValues()) {
                 xmlStreamWriter.writeStartElement("li");
                 xmlStreamWriter.writeCharacters(value.getDisplayName());
 
@@ -429,7 +429,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     }
 
     private String getSimpleName(final String extensionName) {
-        int index = extensionName.lastIndexOf('.');
+        final int index = extensionName.lastIndexOf('.');
         if (index > 0 && (index < (extensionName.length() - 1))) {
             return extensionName.substring(index + 1);
         } else {
@@ -477,7 +477,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 final ExpressionLanguageScope elScope = dynamicProperty.getExpressionLanguageScope() == null
                         ? ExpressionLanguageScope.NONE : dynamicProperty.getExpressionLanguageScope();
 
-                String text;
+                final String text;
                 if (elScope.equals(ExpressionLanguageScope.NONE)) {
                     if (dynamicProperty.isExpressionLanguageSupported()) {
                         text = "Supports Expression Language: true (undefined scope)";
@@ -556,7 +556,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 writeSimpleElement(xmlStreamWriter, "th", "Explanation");
                 xmlStreamWriter.writeEndElement();
 
-                for (Restriction restriction : restrictions) {
+                for (final Restriction restriction : restrictions) {
                     final String permission = StringUtils.isBlank(restriction.getRequiredPermission())
                             ? "Not Specified" : restriction.getRequiredPermission();
 
@@ -600,7 +600,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
     private void writeSystemResourceConsiderationInfo(final Extension extension, final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
 
-        List<SystemResourceConsideration> systemResourceConsiderations = extension.getSystemResourceConsiderations();
+        final List<SystemResourceConsideration> systemResourceConsiderations = extension.getSystemResourceConsiderations();
 
         writeSimpleElement(xmlStreamWriter, "h3", "System Resource Considerations:");
         if (systemResourceConsiderations != null && !systemResourceConsiderations.isEmpty()) {
@@ -611,7 +611,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
 
-            for (SystemResourceConsideration systemResourceConsideration : systemResourceConsiderations) {
+            for (final SystemResourceConsideration systemResourceConsideration : systemResourceConsiderations) {
                 final String resource = StringUtils.isBlank(systemResourceConsideration.getResource())
                         ? "Not Specified" : systemResourceConsideration.getResource();
                 final String description = StringUtils.isBlank(systemResourceConsideration.getDescription())
@@ -693,7 +693,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      * stream.
      */
     protected static final void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
-                                                   final String characters, boolean strong) throws XMLStreamException {
+                                                   final String characters, final boolean strong) throws XMLStreamException {
         writeSimpleElement(writer, elementName, characters, strong, null);
     }
 
@@ -711,7 +711,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      * @throws XMLStreamException xse
      */
     protected static final void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
-                                                   final String characters, boolean strong, String id) throws XMLStreamException {
+                                                   final String characters, final boolean strong, final String id) throws XMLStreamException {
         writer.writeStartElement(elementName);
         if (id != null) {
             writer.writeAttribute("id", id);

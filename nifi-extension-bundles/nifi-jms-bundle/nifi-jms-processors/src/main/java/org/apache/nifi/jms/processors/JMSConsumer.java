@@ -52,7 +52,7 @@ import java.util.function.Consumer;
  */
 class JMSConsumer extends JMSWorker {
 
-    JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
+    JMSConsumer(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate, final ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);
         logger.debug("Created Message Consumer for '{}'", jmsTemplate);
     }
@@ -70,7 +70,7 @@ class JMSConsumer extends JMSWorker {
                     } else {
                         return session.createSharedConsumer((Topic) destination, subscriptionName, messageSelector);
                     }
-                } catch (AbstractMethodError e) {
+                } catch (final AbstractMethodError e) {
                     throw new ProcessException("Failed to create a shared consumer. Make sure the target broker is JMS 2.0 compliant.", e);
                 }
             } else {
@@ -88,7 +88,7 @@ class JMSConsumer extends JMSWorker {
     /**
      * Receives a list of messages from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
      */
-    public void consumeMessageSet(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
+    public void consumeMessageSet(final String destinationName, final String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
                                   final String charset, final int batchSize, final Consumer<List<JMSResponse>> messageSetConsumer) {
         doWithJmsTemplate(destinationName, durable, shared, subscriptionName, messageSelector, (session, messageConsumer) -> {
             final List<JMSResponse> jmsResponses = new ArrayList<>();
@@ -112,19 +112,20 @@ class JMSConsumer extends JMSWorker {
         });
     }
 
-    private void doWithJmsTemplate(String destinationName, boolean durable, boolean shared, String subscriptionName, String messageSelector, MessageReceiver messageReceiver) {
+    private void doWithJmsTemplate(final String destinationName, final boolean durable, final boolean shared,
+            final String subscriptionName, final String messageSelector, final MessageReceiver messageReceiver) {
         this.jmsTemplate.execute((SessionCallback<Void>) session -> {
 
             final MessageConsumer messageConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
             try {
                 messageReceiver.consume(session, messageConsumer);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // We need to call recover to ensure that in the event of
                 // abrupt end or exception the current session will stop message
                 // delivery and restart with the oldest unacknowledged message
                 try {
                     session.recover();
-                } catch (Exception e1) {
+                } catch (final Exception e1) {
                     // likely the session is closed...need to catch this so that the root cause of failure is propagated
                     processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
                 }
@@ -137,7 +138,7 @@ class JMSConsumer extends JMSWorker {
         }, true);
     }
 
-    private JMSResponse receiveMessage(Session session, MessageConsumer msgConsumer, String charset, String errorQueueName) throws JMSException {
+    private JMSResponse receiveMessage(final Session session, final MessageConsumer msgConsumer, final String charset, final String errorQueueName) throws JMSException {
         final Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
 
         // If there is no message, there's nothing for us to do. We can simply close the consumer and return.
@@ -146,8 +147,8 @@ class JMSConsumer extends JMSWorker {
             return null;
         }
 
-        String messageType;
-        byte[] messageBody;
+        final String messageType;
+        final byte[] messageBody;
 
         try {
             if (message instanceof TextMessage) {
@@ -207,10 +208,10 @@ class JMSConsumer extends JMSWorker {
         try {
             final Enumeration<String> propertyNames = message.getPropertyNames();
             while (propertyNames.hasMoreElements()) {
-                String propertyName = propertyNames.nextElement();
+                final String propertyName = propertyNames.nextElement();
                 properties.put(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
             }
-        } catch (JMSException e) {
+        } catch (final JMSException e) {
             this.processLog.warn("Failed to extract message properties", e);
         }
         return properties;
@@ -228,12 +229,12 @@ class JMSConsumer extends JMSWorker {
         messageHeaders.put(JmsHeaders.MESSAGE_ID, message.getJMSMessageID());
         messageHeaders.put(JmsHeaders.TYPE, message.getJMSType());
 
-        String replyToDestinationName = this.retrieveDestinationName(message.getJMSReplyTo(), JmsHeaders.REPLY_TO);
+        final String replyToDestinationName = this.retrieveDestinationName(message.getJMSReplyTo(), JmsHeaders.REPLY_TO);
         if (replyToDestinationName != null) {
             messageHeaders.put(JmsHeaders.REPLY_TO, replyToDestinationName);
         }
 
-        String destinationName = this.retrieveDestinationName(message.getJMSDestination(), JmsHeaders.DESTINATION);
+        final String destinationName = this.retrieveDestinationName(message.getJMSDestination(), JmsHeaders.DESTINATION);
         if (destinationName != null) {
             messageHeaders.put(JmsHeaders.DESTINATION, destinationName);
         }
@@ -241,13 +242,13 @@ class JMSConsumer extends JMSWorker {
         return messageHeaders;
     }
 
-    private String retrieveDestinationName(Destination destination, String headerName) {
+    private String retrieveDestinationName(final Destination destination, final String headerName) {
         String destinationName = null;
         if (destination != null) {
             try {
                 destinationName = (destination instanceof Queue) ? ((Queue) destination).getQueueName()
                         : ((Topic) destination).getTopicName();
-            } catch (JMSException e) {
+            } catch (final JMSException e) {
                 this.processLog.warn("Failed to retrieve Destination name for '{}' header", headerName, e);
             }
         }
@@ -309,7 +310,7 @@ class JMSConsumer extends JMSWorker {
             return batchOrder;
         }
 
-        public void setBatchOrder(Integer batchOrder) {
+        public void setBatchOrder(final Integer batchOrder) {
             this.batchOrder = batchOrder;
         }
     }

@@ -41,7 +41,7 @@ public class C2Heartbeat implements Serializable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -50,7 +50,7 @@ public class C2Heartbeat implements Serializable {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(final Long created) {
         this.created = created;
     }
 
@@ -59,7 +59,7 @@ public class C2Heartbeat implements Serializable {
         return deviceInfo;
     }
 
-    public void setDeviceInfo(DeviceInfo deviceInfo) {
+    public void setDeviceInfo(final DeviceInfo deviceInfo) {
         this.deviceInfo = deviceInfo;
     }
 
@@ -68,7 +68,7 @@ public class C2Heartbeat implements Serializable {
         return agentInfo;
     }
 
-    public void setAgentInfo(AgentInfo agentInfo) {
+    public void setAgentInfo(final AgentInfo agentInfo) {
         this.agentInfo = agentInfo;
     }
 
@@ -77,7 +77,7 @@ public class C2Heartbeat implements Serializable {
         return flowInfo;
     }
 
-    public void setFlowInfo(FlowInfo flowInfo) {
+    public void setFlowInfo(final FlowInfo flowInfo) {
         this.flowInfo = flowInfo;
     }
 
@@ -86,7 +86,7 @@ public class C2Heartbeat implements Serializable {
         return resourceInfo;
     }
 
-    public void setResourceInfo(ResourceInfo resourceInfo) {
+    public void setResourceInfo(final ResourceInfo resourceInfo) {
         this.resourceInfo = resourceInfo;
     }
 
@@ -132,7 +132,7 @@ public class C2Heartbeat implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

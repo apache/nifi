@@ -40,7 +40,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
      * @param corePoolSize the maximum number of threads available to tasks running in the engine.
      * @param threadNamePrefix for naming the thread
      */
-    public FlowEngine(int corePoolSize, final String threadNamePrefix) {
+    public FlowEngine(final int corePoolSize, final String threadNamePrefix) {
         this(corePoolSize, threadNamePrefix, false);
     }
 
@@ -51,7 +51,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
      * @param threadNamePrefix for thread naming
      * @param daemon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
      */
-    public FlowEngine(int corePoolSize, final String threadNamePrefix, final boolean daemon) {
+    public FlowEngine(final int corePoolSize, final String threadNamePrefix, final boolean daemon) {
         super(corePoolSize);
 
         final AtomicInteger threadIndex = new AtomicInteger(0);

@@ -60,8 +60,8 @@ class StandardTlsConfiguration implements TlsConfiguration {
      * @param truststoreType     the truststore type as a String
      * @param protocol           the TLS protocol version string
      */
-    public StandardTlsConfiguration(String keystorePath, String keystorePassword, String keyPassword,
-                            String keystoreType, String truststorePath, String truststorePassword, String truststoreType, String protocol) {
+    public StandardTlsConfiguration(final String keystorePath, final String keystorePassword, final String keyPassword,
+                            final String keystoreType, final String truststorePath, final String truststorePassword, final String truststoreType, final String protocol) {
         this(keystorePath, keystorePassword, keyPassword,
                 (KeystoreType.isValidKeystoreType(keystoreType) ? KeystoreType.valueOf(keystoreType.toUpperCase()) : null),
                 truststorePath, truststorePassword,
@@ -81,8 +81,8 @@ class StandardTlsConfiguration implements TlsConfiguration {
      * @param truststoreType     the truststore type
      * @param protocol           the TLS protocol version string
      */
-    public StandardTlsConfiguration(String keystorePath, String keystorePassword, String keyPassword,
-                            KeystoreType keystoreType, String truststorePath, String truststorePassword, KeystoreType truststoreType, String protocol) {
+    public StandardTlsConfiguration(final String keystorePath, final String keystorePassword, final String keyPassword,
+                            final KeystoreType keystoreType, final String truststorePath, final String truststorePassword, final KeystoreType truststoreType, final String protocol) {
         this.keystorePath = keystorePath;
         this.keystorePassword = keystorePassword;
         this.keyPassword = keyPassword;
@@ -303,14 +303,14 @@ class StandardTlsConfiguration implements TlsConfiguration {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        org.apache.nifi.security.util.TlsConfiguration that = (org.apache.nifi.security.util.TlsConfiguration) o;
+        final org.apache.nifi.security.util.TlsConfiguration that = (org.apache.nifi.security.util.TlsConfiguration) o;
         return Objects.equals(keystorePath, that.getKeystorePath())
                 && Objects.equals(keystorePassword, that.getKeystorePassword())
                 && Objects.equals(keyPassword, that.getKeyPassword())
@@ -326,11 +326,11 @@ class StandardTlsConfiguration implements TlsConfiguration {
         return Objects.hash(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, protocol);
     }
 
-    private static String maskPasswordForLog(String password) {
+    private static String maskPasswordForLog(final String password) {
         return isNotBlank(password) ? MASKED_PASSWORD_LOG : NULL_LOG;
     }
 
-    private boolean isAnyPopulated(String path, String password, KeystoreType type) {
+    private boolean isAnyPopulated(final String path, final String password, final KeystoreType type) {
         return isNotBlank(path) || isNotBlank(password) || type != null;
     }
 

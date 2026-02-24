@@ -36,7 +36,7 @@ public class ClusterSearchResultsEntity {
         return nodeResults;
     }
 
-    public void setNodeResults(List<NodeSearchResultDTO> nodeResults) {
+    public void setNodeResults(final List<NodeSearchResultDTO> nodeResults) {
         this.nodeResults = nodeResults;
     }
 

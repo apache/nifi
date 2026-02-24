@@ -48,12 +48,12 @@ public class FileHeader extends Block {
     private long currentOffset;
     private int count = 1;
 
-    public FileHeader(InputStream inputStream, ComponentLog log) throws IOException {
+    public FileHeader(final InputStream inputStream, final ComponentLog log) throws IOException {
         super(new BinaryReader(inputStream, 4096));
         this.log = log;
         // Bytes will be checksummed
-        BinaryReader binaryReader = getBinaryReader();
-        CRC32 crc32 = new CRC32();
+        final BinaryReader binaryReader = getBinaryReader();
+        final CRC32 crc32 = new CRC32();
         crc32.update(binaryReader.peekBytes(120));
 
         magicString = binaryReader.readString(8);
@@ -156,12 +156,12 @@ public class FileHeader extends Block {
      */
     public ChunkHeader next() throws MalformedChunkException, IOException {
         if (count <= chunkCount) {
-            long currentOffset = this.currentOffset;
+            final long currentOffset = this.currentOffset;
             this.currentOffset += CHUNK_SIZE;
-            BinaryReader binaryReader = new BinaryReader(inputStream, CHUNK_SIZE);
+            final BinaryReader binaryReader = new BinaryReader(inputStream, CHUNK_SIZE);
             try {
                 return new ChunkHeader(binaryReader, log, currentOffset, count++);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new MalformedChunkException("Malformed chunk, unable to parse", e, currentOffset, count - 1, binaryReader.getBytes());
             }
         } else {

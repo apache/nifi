@@ -332,7 +332,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
                         try {
                             TimeUnit.SECONDS.sleep(1);
-                        } catch (InterruptedException interrupted) {
+                        } catch (final InterruptedException interrupted) {
                             logger.warn("NiFi Startup sleep interrupted", interrupted);
                             break;
                         }

@@ -36,7 +36,7 @@ public class ZipUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
     }
 
     @Override
-    protected void processInputStream(InputStream stream, final FlowFile flowFile, final Writer writer) throws IOException {
+    protected void processInputStream(final InputStream stream, final FlowFile flowFile, final Writer writer) throws IOException {
 
         try (final ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(stream))) {
             ZipEntry zipEntry;
@@ -46,7 +46,7 @@ public class ZipUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
                 }
                 final File file = new File(zipEntry.getName());
                 final String key = file.getName();
-                long fileSize = zipEntry.getSize();
+                final long fileSize = zipEntry.getSize();
                 final InputStreamWritable inStreamWritable = new InputStreamWritable(zipIn, (int) fileSize);
                 writer.append(new Text(key), inStreamWritable);
                 logger.debug("Appending FlowFile {} to Sequence File", key);

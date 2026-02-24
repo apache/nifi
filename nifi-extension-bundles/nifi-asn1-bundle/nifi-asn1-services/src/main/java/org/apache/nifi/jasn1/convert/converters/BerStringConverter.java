@@ -52,8 +52,8 @@ public class BerStringConverter implements JASN1TypeAndValueConverter {
     );
 
     @Override
-    public boolean supportsType(Class<?> berType) {
-        for (Class<?> supportedBerType : supportedBerTypes) {
+    public boolean supportsType(final Class<?> berType) {
+        for (final Class<?> supportedBerType : supportedBerTypes) {
             if (supportedBerType.isAssignableFrom(berType)) {
                 return true;
             }
@@ -63,13 +63,13 @@ public class BerStringConverter implements JASN1TypeAndValueConverter {
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
         return RecordFieldType.STRING.getDataType();
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
-        for (Class<?> supportedBerType : supportedBerTypes) {
+    public boolean supportsValue(final BerType value, final DataType dataType) {
+        for (final Class<?> supportedBerType : supportedBerTypes) {
             if (supportedBerType.isInstance(value)) {
                 return true;
             }
@@ -79,7 +79,7 @@ public class BerStringConverter implements JASN1TypeAndValueConverter {
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType value, final DataType dataType, final JASN1Converter converter) {
         return value.toString();
     }
 }

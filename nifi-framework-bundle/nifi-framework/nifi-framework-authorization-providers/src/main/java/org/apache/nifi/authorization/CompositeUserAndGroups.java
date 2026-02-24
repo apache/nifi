@@ -29,7 +29,7 @@ public class CompositeUserAndGroups implements UserAndGroups {
         this.groups = null;
     }
 
-    public CompositeUserAndGroups(User user, Set<Group> groups) {
+    public CompositeUserAndGroups(final User user, final Set<Group> groups) {
         this.user = user;
         setGroups(groups);
     }
@@ -39,7 +39,7 @@ public class CompositeUserAndGroups implements UserAndGroups {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(final User user) {
         this.user = user;
     }
 
@@ -48,7 +48,7 @@ public class CompositeUserAndGroups implements UserAndGroups {
         return groups;
     }
 
-    public void setGroups(Set<Group> groups) {
+    public void setGroups(final Set<Group> groups) {
         // copy the collection so that if we add to this collection it does not modify other references
         if (groups != null) {
             this.groups = new HashSet<>(groups);
@@ -57,7 +57,7 @@ public class CompositeUserAndGroups implements UserAndGroups {
         }
     }
 
-    public void addAllGroups(Set<Group> groups) {
+    public void addAllGroups(final Set<Group> groups) {
         if (groups != null) {
             if (this.groups == null) {
                 this.groups = new HashSet<>();
@@ -66,7 +66,7 @@ public class CompositeUserAndGroups implements UserAndGroups {
         }
     }
 
-    public void addGroup(Group group) {
+    public void addGroup(final Group group) {
         if (group != null) {
             if (this.groups == null) {
                 this.groups = new HashSet<>();

@@ -74,7 +74,7 @@ public class UpdateAssetCommandHelperTest {
         updateAssetCommandHelper.createAssetDirectory();
 
         // when
-        boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
+        final boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
 
         // then
         assertTrue(result);
@@ -87,7 +87,7 @@ public class UpdateAssetCommandHelperTest {
         touchAssetFile();
 
         // when
-        boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
+        final boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, FALSE);
 
         // then
         assertFalse(result);
@@ -100,7 +100,7 @@ public class UpdateAssetCommandHelperTest {
         touchAssetFile();
 
         // when
-        boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, TRUE);
+        final boolean result = updateAssetCommandHelper.assetUpdatePrecondition(ASSET_FILE, TRUE);
 
         // then
         assertTrue(result);
@@ -110,10 +110,10 @@ public class UpdateAssetCommandHelperTest {
     public void testAssetPersistedCorrectly() throws IOException {
         // given
         updateAssetCommandHelper.createAssetDirectory();
-        String testAssetContent = "test file content";
+        final String testAssetContent = "test file content";
 
         // when
-        boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
+        final boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
 
         // then
         assertTrue(result);
@@ -123,10 +123,10 @@ public class UpdateAssetCommandHelperTest {
     @Test
     public void testAssetDirectoryDoesNotExistWhenPersistingAsset() {
         // given
-        String testAssetContent = "test file content";
+        final String testAssetContent = "test file content";
 
         // when
-        boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
+        final boolean result = updateAssetCommandHelper.assetPersistFunction(ASSET_FILE, testAssetContent.getBytes(defaultCharset()));
 
         // then
         assertFalse(result);
@@ -136,7 +136,7 @@ public class UpdateAssetCommandHelperTest {
     private void touchAssetFile() {
         try {
             write(Paths.get(assetDirectory.toString(), ASSET_FILE), EMPTY.getBytes(UTF_8));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Failed to touch file", e);
         }
     }

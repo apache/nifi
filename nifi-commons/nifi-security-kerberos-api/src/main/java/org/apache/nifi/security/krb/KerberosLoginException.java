@@ -21,11 +21,11 @@ package org.apache.nifi.security.krb;
  */
 public class KerberosLoginException extends RuntimeException {
 
-    public KerberosLoginException(String message) {
+    public KerberosLoginException(final String message) {
         super(message);
     }
 
-    public KerberosLoginException(String message, Throwable cause) {
+    public KerberosLoginException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

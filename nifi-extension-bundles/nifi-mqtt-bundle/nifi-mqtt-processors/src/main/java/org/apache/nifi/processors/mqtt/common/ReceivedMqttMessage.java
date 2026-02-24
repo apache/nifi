@@ -23,7 +23,7 @@ public class ReceivedMqttMessage extends StandardMqttMessage {
 
     private String topic;
 
-    public ReceivedMqttMessage(byte[] payload, int qos, boolean retained, String topic) {
+    public ReceivedMqttMessage(final byte[] payload, final int qos, final boolean retained, final String topic) {
         super(payload, qos, retained);
         this.topic = topic;
     }

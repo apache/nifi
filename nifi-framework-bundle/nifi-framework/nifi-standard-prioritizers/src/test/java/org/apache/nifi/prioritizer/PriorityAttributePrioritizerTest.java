@@ -73,7 +73,7 @@ public class PriorityAttributePrioritizerTest {
         assertEquals(1, prioritizer.compare(ffWithPriority1, ffWithNegativeLongPriority));
     }
 
-    private MockFlowFile enqueueWithPriority(String priority) {
+    private MockFlowFile enqueueWithPriority(final String priority) {
         return testRunner.enqueue("data", Map.of(CoreAttributes.PRIORITY.key(), priority));
     }
 }

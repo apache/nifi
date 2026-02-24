@@ -149,7 +149,7 @@ public class OidcService {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             throw new IllegalStateException("Unable to store the login request state.");
         }
 

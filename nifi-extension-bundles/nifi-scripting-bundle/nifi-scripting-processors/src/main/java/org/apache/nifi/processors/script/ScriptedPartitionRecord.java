@@ -116,7 +116,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
         }
 
         final ScriptRunner scriptRunner = pollScriptRunner();
-        boolean success;
+        final boolean success;
 
         try {
             final ScriptEvaluator evaluator;

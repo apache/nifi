@@ -77,7 +77,7 @@ public class NiFiRegistry {
         // jetty will not attempt to re-extract the war into the directory. by removing
         // the working directory, we can be assured that it will attempt to extract the
         // war every time the application starts.
-        File webWorkingDir = properties.getWebWorkingDirectory();
+        final File webWorkingDir = properties.getWebWorkingDirectory();
         FileUtils.deleteFilesInDirectory(webWorkingDir, null, LOGGER, true, true);
         FileUtils.deleteFile(webWorkingDir, LOGGER, 3);
 
@@ -145,7 +145,7 @@ public class NiFiRegistry {
      *
      * @param args things which are ignored
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         LOGGER.info("Launching NiFi Registry...");
 
         try {

@@ -37,7 +37,7 @@ public class ActivateControllerServicesEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class ActivateControllerServicesEntity extends Entity {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -59,7 +59,7 @@ public class ActivateControllerServicesEntity extends Entity {
         return components;
     }
 
-    public void setComponents(Map<String, RevisionDTO> components) {
+    public void setComponents(final Map<String, RevisionDTO> components) {
         this.components = components;
     }
 
@@ -69,7 +69,7 @@ public class ActivateControllerServicesEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

@@ -33,7 +33,7 @@ public class JsonMappingExceptionMapper implements ExceptionMapper<JsonMappingEx
     private static final Logger logger = LoggerFactory.getLogger(JsonMappingExceptionMapper.class);
 
     @Override
-    public Response toResponse(JsonMappingException ex) {
+    public Response toResponse(final JsonMappingException ex) {
         // log the error
         logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 

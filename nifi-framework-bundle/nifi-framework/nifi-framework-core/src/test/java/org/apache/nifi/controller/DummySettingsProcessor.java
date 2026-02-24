@@ -30,7 +30,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 @DefaultSettings(yieldDuration = "5 sec", penaltyDuration = "1 min", bulletinLevel = LogLevel.DEBUG)
 public class DummySettingsProcessor extends AbstractProcessor {
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
     }
 }

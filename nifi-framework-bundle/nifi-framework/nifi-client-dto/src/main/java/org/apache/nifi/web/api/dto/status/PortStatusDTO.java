@@ -41,7 +41,7 @@ public class PortStatusDTO {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -50,7 +50,7 @@ public class PortStatusDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -59,7 +59,7 @@ public class PortStatusDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -68,7 +68,7 @@ public class PortStatusDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -78,7 +78,7 @@ public class PortStatusDTO {
         return runStatus;
     }
 
-    public void setRunStatus(String runStatus) {
+    public void setRunStatus(final String runStatus) {
         this.runStatus = runStatus;
     }
 
@@ -88,7 +88,7 @@ public class PortStatusDTO {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(PortStatusSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final PortStatusSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -98,7 +98,7 @@ public class PortStatusDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodePortStatusSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodePortStatusSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 
@@ -115,7 +115,7 @@ public class PortStatusDTO {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 }

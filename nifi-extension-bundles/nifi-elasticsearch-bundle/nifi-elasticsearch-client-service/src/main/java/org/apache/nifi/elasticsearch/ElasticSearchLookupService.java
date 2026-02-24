@@ -131,11 +131,11 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
         return new PropertyDescriptor.Builder()
             .name(name)
             .addValidator((subject, input, context) -> {
-                ValidationResult.Builder builder = new ValidationResult.Builder();
+                final ValidationResult.Builder builder = new ValidationResult.Builder();
                 try {
                     JsonPath.parse(input);
                     builder.valid(true);
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     builder.explanation(ex.getMessage())
                         .valid(false)
                         .subject(subject);
@@ -170,14 +170,14 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
             }
 
             return record == null ? Optional.empty() : Optional.of(record);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Error during lookup.", ex);
             throw new LookupFailureException(ex);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("el-rest-client-service", CLIENT_SERVICE.getName());
         config.renameProperty("el-lookup-index", INDEX.getName());
@@ -266,7 +266,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
                 return record;
             }
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new LookupFailureException(e);
         }
     }
@@ -279,7 +279,7 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
                 final Object o = JsonPath.read(source, key);
                 final Optional<FieldValue> first = path.evaluate(rec).getSelectedFields().findFirst();
                 first.ifPresent(fieldValue -> fieldValue.updateValue(o));
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 throw new RuntimeException(ex);
             }
         });

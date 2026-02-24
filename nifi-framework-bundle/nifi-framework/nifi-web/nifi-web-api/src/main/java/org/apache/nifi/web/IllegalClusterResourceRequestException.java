@@ -22,11 +22,11 @@ package org.apache.nifi.web;
 @SuppressWarnings("serial")
 public class IllegalClusterResourceRequestException extends RuntimeException {
 
-    public IllegalClusterResourceRequestException(String message) {
+    public IllegalClusterResourceRequestException(final String message) {
         super(message);
     }
 
-    public IllegalClusterResourceRequestException(String message, Throwable cause) {
+    public IllegalClusterResourceRequestException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

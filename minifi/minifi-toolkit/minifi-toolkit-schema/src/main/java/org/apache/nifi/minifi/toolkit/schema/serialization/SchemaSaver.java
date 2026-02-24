@@ -28,17 +28,17 @@ import java.io.OutputStreamWriter;
 import java.util.Map;
 
 public class SchemaSaver {
-    public static void saveConfigSchema(ConfigSchema configSchema, OutputStream output) throws IOException {
-        DumperOptions dumperOptions = new DumperOptions();
+    public static void saveConfigSchema(final ConfigSchema configSchema, final OutputStream output) throws IOException {
+        final DumperOptions dumperOptions = new DumperOptions();
         dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 
-        Yaml yaml = new Yaml(new ConfigRepresenter(), dumperOptions);
+        final Yaml yaml = new Yaml(new ConfigRepresenter(), dumperOptions);
 
-        Map<String, Object> yamlMap = configSchema.toMap();
+        final Map<String, Object> yamlMap = configSchema.toMap();
         try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(output)) {
             try {
                 yaml.dump(yamlMap, outputStreamWriter);
-            } catch (YAMLException e) {
+            } catch (final YAMLException e) {
                 throw new IOException(e);
             }
         }

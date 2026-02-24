@@ -97,42 +97,42 @@ public class UploadRequest<T> {
         private int successfulResponseStatus;
         private final Map<String, String> headers = new HashMap<>();
 
-        public Builder<T> user(NiFiUser user) {
+        public Builder<T> user(final NiFiUser user) {
             this.user = user;
             return this;
         }
 
-        public Builder<T> filename(String filename) {
+        public Builder<T> filename(final String filename) {
             this.filename = filename;
             return this;
         }
 
-        public Builder<T> identifier(String identifier) {
+        public Builder<T> identifier(final String identifier) {
             this.identifier = identifier;
             return this;
         }
 
-        public Builder<T> contents(InputStream contents) {
+        public Builder<T> contents(final InputStream contents) {
             this.contents = contents;
             return this;
         }
 
-        public Builder<T> exampleRequestUri(URI exampleRequestUri) {
+        public Builder<T> exampleRequestUri(final URI exampleRequestUri) {
             this.exampleRequestUri = exampleRequestUri;
             return this;
         }
 
-        public Builder<T> responseClass(Class<T> responseClass) {
+        public Builder<T> responseClass(final Class<T> responseClass) {
             this.responseClass = responseClass;
             return this;
         }
 
-        public Builder<T> successfulResponseStatus(int successResponseStatus) {
+        public Builder<T> successfulResponseStatus(final int successResponseStatus) {
             this.successfulResponseStatus = successResponseStatus;
             return this;
         }
 
-        public Builder<T> header(String name, String value) {
+        public Builder<T> header(final String name, final String value) {
             this.headers.put(name, value);
             return this;
         }

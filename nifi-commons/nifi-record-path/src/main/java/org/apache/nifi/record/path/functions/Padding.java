@@ -51,8 +51,8 @@ abstract class Padding extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
-        String pad = getPaddingString(context);
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
+        final String pad = getPaddingString(context);
 
         final Stream<FieldValue> evaluatedStr = inputStringPath.evaluate(context);
         return evaluatedStr.map(fv -> {
@@ -62,7 +62,7 @@ abstract class Padding extends RecordPathSegment {
                 return new StandardFieldValue("", fv.getField(), fv.getParent().orElse(null));
             }
 
-            int desiredLength = desiredLengthOpt.getAsInt();
+            final int desiredLength = desiredLengthOpt.getAsInt();
             final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
             return new StandardFieldValue(doPad(value, desiredLength, pad), fv.getField(), fv.getParent().orElse(null));
         });
@@ -70,9 +70,9 @@ abstract class Padding extends RecordPathSegment {
 
     protected abstract String doPad(String inputString, int desiredLength, String pad);
 
-    private OptionalInt getDesiredLength(RecordPathEvaluationContext context) {
+    private OptionalInt getDesiredLength(final RecordPathEvaluationContext context) {
 
-        Optional<FieldValue> lengthOption = desiredLengthPath.evaluate(context).findFirst();
+        final Optional<FieldValue> lengthOption = desiredLengthPath.evaluate(context).findFirst();
 
         if (!lengthOption.isPresent()) {
             return OptionalInt.empty();
@@ -91,13 +91,13 @@ abstract class Padding extends RecordPathSegment {
         return OptionalInt.of(DataTypeUtils.toInteger(length, fieldName));
     }
 
-    private String getPaddingString(RecordPathEvaluationContext context) {
+    private String getPaddingString(final RecordPathEvaluationContext context) {
 
         if (null == paddingStringPath) {
             return DEFAULT_PADDING_STRING;
         }
 
-        String padStr = RecordPathUtils.getFirstStringValue(paddingStringPath, context);
+        final String padStr = RecordPathUtils.getFirstStringValue(paddingStringPath, context);
 
         if (null != padStr && !padStr.isEmpty()) {
             return padStr;

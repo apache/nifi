@@ -82,14 +82,14 @@ public interface UserGroupProvider {
      * @return the Group with the given name, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    default Group getGroupByName(String name) throws AuthorizationAccessException {
+    default Group getGroupByName(final String name) throws AuthorizationAccessException {
         final Set<Group> allGroups = getGroups();
         if (allGroups == null) {
             return null;
         }
 
         Group matchingGroup = null;
-        for (Group group : allGroups) {
+        for (final Group group : allGroups) {
             if (group.getName().equals(name)) {
                 matchingGroup = group;
                 break;

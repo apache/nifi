@@ -75,13 +75,13 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
 
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
 
-        MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
-        String[] values = new String[] {"a", "b", "c"};
+        final MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
+        final String[] values = new String[] {"a", "b", "c"};
         mappings = new HashMap<>();
 
         for (int x = 0; x < values.length; x++) {
             for (int y = 0; y < x + 2; y++) {
-                Document doc = new Document().append("val", values[x]).append("date", now.getTime());
+                final Document doc = new Document().append("val", values[x]).append("date", now.getTime());
                 collection.insertOne(doc);
             }
             mappings.put(values[x], x + 2);
@@ -125,9 +125,9 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         evaluateRunner(0);
 
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
-        for (MockFlowFile mff : flowFiles) {
-            String val = mff.getAttribute(AGG_ATTR);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
+        for (final MockFlowFile mff : flowFiles) {
+            final String val = mff.getAttribute(AGG_ATTR);
             assertNotNull("Missing query attribute", val);
             assertEquals(val, queryInput, "Value was wrong");
         }
@@ -185,10 +185,10 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         runner.run(1, true, true);
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
-        ObjectMapper mapper = new ObjectMapper();
-        for (MockFlowFile mockFlowFile : flowFiles) {
-            byte[] raw = runner.getContentAsByteArray(mockFlowFile);
-            Map<String, List<String>> read = mapper.readValue(raw, Map.class);
+        final ObjectMapper mapper = new ObjectMapper();
+        for (final MockFlowFile mockFlowFile : flowFiles) {
+            final byte[] raw = runner.getContentAsByteArray(mockFlowFile);
+            final Map<String, List<String>> read = mapper.readValue(raw, Map.class);
             assertNotNull(read.get("myArray").get(1));
         }
 
@@ -199,24 +199,24 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         runner.run(1, true, true);
 
         flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
-        for (MockFlowFile mockFlowFile : flowFiles) {
-            byte[] raw = runner.getContentAsByteArray(mockFlowFile);
-            Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
+        for (final MockFlowFile mockFlowFile : flowFiles) {
+            final byte[] raw = runner.getContentAsByteArray(mockFlowFile);
+            final Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
             assertEquals((long) read.get("myArray").get(1), now.getTimeInMillis());
         }
     }
 
-    private void evaluateRunner(int original) throws IOException {
+    private void evaluateRunner(final int original) throws IOException {
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
         runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, original);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
-        ObjectMapper mapper = new ObjectMapper();
-        for (MockFlowFile mockFlowFile : flowFiles) {
-            byte[] raw = runner.getContentAsByteArray(mockFlowFile);
-            Map read = mapper.readValue(raw, Map.class);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
+        final ObjectMapper mapper = new ObjectMapper();
+        for (final MockFlowFile mockFlowFile : flowFiles) {
+            final byte[] raw = runner.getContentAsByteArray(mockFlowFile);
+            final Map read = mapper.readValue(raw, Map.class);
             assertTrue(mappings.containsKey(read.get("_id")), "Value was not found");
 
-            String queryAttr = mockFlowFile.getAttribute(AGG_ATTR);
+            final String queryAttr = mockFlowFile.getAttribute(AGG_ATTR);
             assertNotNull("Query attribute was null.", queryAttr);
             assertTrue(queryAttr.contains("$project"), "Missing $project");
             assertTrue(queryAttr.contains("$group"), "Missing $group");
@@ -225,11 +225,11 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
 
     @Test
     public void testExtendedJsonSupport() throws Exception {
-        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        final String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(pattern);
         //Let's put this a week from now to make sure that we're not getting too close to
         //the creation date
-        OffsetDateTime nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000)).toInstant().atOffset(ZoneOffset.UTC);
+        final OffsetDateTime nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000)).toInstant().atOffset(ZoneOffset.UTC);
 
         final String queryInput = "[\n" +
             "  {\n" +

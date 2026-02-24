@@ -49,7 +49,7 @@ public class LineageDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -62,7 +62,7 @@ public class LineageDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -77,7 +77,7 @@ public class LineageDTO {
         return submissionTime;
     }
 
-    public void setSubmissionTime(Date submissionTime) {
+    public void setSubmissionTime(final Date submissionTime) {
         this.submissionTime = submissionTime;
     }
 
@@ -92,7 +92,7 @@ public class LineageDTO {
         return expiration;
     }
 
-    public void setExpiration(Date expiration) {
+    public void setExpiration(final Date expiration) {
         this.expiration = expiration;
     }
 
@@ -105,7 +105,7 @@ public class LineageDTO {
         return percentCompleted;
     }
 
-    public void setPercentCompleted(Integer percentCompleted) {
+    public void setPercentCompleted(final Integer percentCompleted) {
         this.percentCompleted = percentCompleted;
     }
 
@@ -118,7 +118,7 @@ public class LineageDTO {
         return finished;
     }
 
-    public void setFinished(Boolean finished) {
+    public void setFinished(final Boolean finished) {
         this.finished = finished;
     }
 
@@ -131,7 +131,7 @@ public class LineageDTO {
         return request;
     }
 
-    public void setRequest(LineageRequestDTO request) {
+    public void setRequest(final LineageRequestDTO request) {
         this.request = request;
     }
 
@@ -144,7 +144,7 @@ public class LineageDTO {
         return results;
     }
 
-    public void setResults(LineageResultsDTO results) {
+    public void setResults(final LineageResultsDTO results) {
         this.results = results;
     }
 

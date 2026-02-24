@@ -47,19 +47,19 @@ class TestConnection implements Connection {
     private boolean open;
     private String id;
 
-    public TestConnection(Map<String, String> exchangeToRoutingKeyMappings, Map<String, List<String>> routingKeyToQueueMappings) {
+    public TestConnection(final Map<String, String> exchangeToRoutingKeyMappings, final Map<String, List<String>> routingKeyToQueueMappings) {
         this.channel = new TestChannel(exchangeToRoutingKeyMappings, routingKeyToQueueMappings);
         this.channel.setConnection(this);
         this.open = true;
     }
 
     @Override
-    public void addShutdownListener(ShutdownListener listener) {
+    public void addShutdownListener(final ShutdownListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void removeShutdownListener(ShutdownListener listener) {
+    public void removeShutdownListener(final ShutdownListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -82,7 +82,7 @@ class TestConnection implements Connection {
     public InetAddress getAddress() {
         try {
             return InetAddress.getByName("localhost");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
     }
@@ -123,7 +123,7 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public Channel createChannel(int channelNumber) throws IOException {
+    public Channel createChannel(final int channelNumber) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -132,23 +132,23 @@ class TestConnection implements Connection {
         this.open = false;
         try {
             this.channel.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public void close(int closeCode, String closeMessage) throws IOException {
+    public void close(final int closeCode, final String closeMessage) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void close(int timeout) throws IOException {
+    public void close(final int timeout) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void close(int closeCode, String closeMessage, int timeout) throws IOException {
+    public void close(final int closeCode, final String closeMessage, final int timeout) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -158,27 +158,27 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public void abort(int closeCode, String closeMessage) {
+    public void abort(final int closeCode, final String closeMessage) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void abort(int timeout) {
+    public void abort(final int timeout) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void abort(int closeCode, String closeMessage, int timeout) {
+    public void abort(final int closeCode, final String closeMessage, final int timeout) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void addBlockedListener(BlockedListener listener) {
+    public void addBlockedListener(final BlockedListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public boolean removeBlockedListener(BlockedListener listener) {
+    public boolean removeBlockedListener(final BlockedListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -198,7 +198,7 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public BlockedListener addBlockedListener(BlockedCallback blockedCallback, UnblockedCallback unblockedCallback) {
+    public BlockedListener addBlockedListener(final BlockedCallback blockedCallback, final UnblockedCallback unblockedCallback) {
         return null;
     }
 
@@ -208,7 +208,7 @@ class TestConnection implements Connection {
     }
 
     @Override
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 }

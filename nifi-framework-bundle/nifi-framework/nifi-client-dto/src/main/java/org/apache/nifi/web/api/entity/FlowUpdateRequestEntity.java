@@ -30,7 +30,7 @@ public abstract class FlowUpdateRequestEntity<T extends FlowUpdateRequestDTO> ex
         return processGroupRevision;
     }
 
-    public void setProcessGroupRevision(RevisionDTO revision) {
+    public void setProcessGroupRevision(final RevisionDTO revision) {
         this.processGroupRevision = revision;
     }
 

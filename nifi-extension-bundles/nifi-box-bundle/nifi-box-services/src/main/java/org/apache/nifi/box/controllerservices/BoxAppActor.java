@@ -29,7 +29,7 @@ public enum BoxAppActor implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    BoxAppActor(String value, String displayName, String description) {
+    BoxAppActor(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;

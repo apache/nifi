@@ -25,7 +25,7 @@ public enum CheckpointStrategy implements DescribedValue {
     private final String label;
     private final String description;
 
-    CheckpointStrategy(String label, String description) {
+    CheckpointStrategy(final String label, final String description) {
         this.label = label;
         this.description = description;
     }

@@ -29,7 +29,7 @@ import java.io.IOException;
 public class SizeTypeNode extends VariantTypeNode {
     private final Number value;
 
-    public SizeTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public SizeTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         if (length == 4) {
             value = binaryReader.readDWord();

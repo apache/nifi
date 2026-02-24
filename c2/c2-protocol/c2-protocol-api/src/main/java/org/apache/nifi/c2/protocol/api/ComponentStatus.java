@@ -28,7 +28,7 @@ public class ComponentStatus implements Serializable {
         return running;
     }
 
-    public void setRunning(Boolean running) {
+    public void setRunning(final Boolean running) {
         this.running = running;
     }
 }

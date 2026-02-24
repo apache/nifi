@@ -56,7 +56,7 @@ public class TimedBuffer<T> {
 
         T total = null;
         for (int i = 0; i < numBins; i++) {
-            int binIdx = (startBinIdx + i) % numBins;
+            final int binIdx = (startBinIdx + i) % numBins;
             final EntitySum<T> bin = bins[binIdx];
 
             if (!bin.isExpired()) {

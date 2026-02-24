@@ -29,7 +29,7 @@ public class C2UrlProviderFactory {
 
     private final C2ClientConfig clientConfig;
 
-    public C2UrlProviderFactory(C2ClientConfig clientConfig) {
+    public C2UrlProviderFactory(final C2ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
     }
 

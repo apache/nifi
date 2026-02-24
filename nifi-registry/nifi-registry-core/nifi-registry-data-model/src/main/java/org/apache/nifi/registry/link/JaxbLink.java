@@ -43,7 +43,7 @@ public class JaxbLink {
      *
      * @param uri underlying URI.
      */
-    public JaxbLink(URI uri) {
+    public JaxbLink(final URI uri) {
         this.uri = uri;
     }
 
@@ -53,7 +53,7 @@ public class JaxbLink {
      * @param uri    underlying URI.
      * @param params parameters of this link.
      */
-    public JaxbLink(URI uri, Map<String, String> params) {
+    public JaxbLink(final URI uri, final Map<String, String> params) {
         this.uri = uri;
         this.params = params;
     }
@@ -88,7 +88,7 @@ public class JaxbLink {
      *
      * This setter is needed for JAXB unmarshalling.
      */
-    void setUri(URI uri) {
+    void setUri(final URI uri) {
         this.uri = uri;
     }
 
@@ -97,12 +97,12 @@ public class JaxbLink {
      *
      * This setter is needed for JAXB unmarshalling.
      */
-    void setParams(Map<String, String> params) {
+    void setParams(final Map<String, String> params) {
         this.params = params;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -110,7 +110,7 @@ public class JaxbLink {
             return false;
         }
 
-        JaxbLink jaxbLink = (JaxbLink) o;
+        final JaxbLink jaxbLink = (JaxbLink) o;
 
         if (uri != null ? !uri.equals(jaxbLink.uri) : jaxbLink.uri != null) {
             return false;

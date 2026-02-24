@@ -44,7 +44,7 @@ public class TestPartitionRecord {
     @BeforeEach
     public void setup() throws InitializationException {
         readerService = new MockRecordParser();
-        MockRecordWriter writerService = new MockRecordWriter(null, false);
+        final MockRecordWriter writerService = new MockRecordWriter(null, false);
 
         runner = TestRunners.newTestRunner(PartitionRecord.class);
         runner.addControllerService("reader", readerService);

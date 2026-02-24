@@ -43,10 +43,10 @@ public class GetNodes extends AbstractNiFiCommand<NodesResult> {
     }
 
     @Override
-    public NodesResult doExecute(NiFiClient client, Properties properties) throws NiFiClientException, IOException, MissingOptionException, CommandException {
+    public NodesResult doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final ControllerClient controllerClient = client.getControllerClient();
 
-        ClusterEntity clusterEntityResult = controllerClient.getNodes();
+        final ClusterEntity clusterEntityResult = controllerClient.getNodes();
         return new NodesResult(getResultType(properties), clusterEntityResult);
     }
 }

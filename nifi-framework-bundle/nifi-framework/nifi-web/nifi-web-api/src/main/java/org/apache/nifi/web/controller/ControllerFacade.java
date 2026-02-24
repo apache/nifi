@@ -195,7 +195,7 @@ public class ControllerFacade implements Authorizable {
      * @param processorId processor id
      * @return group id
      */
-    public String findProcessGroupIdForProcessor(String processorId) {
+    public String findProcessGroupIdForProcessor(final String processorId) {
         final ProcessGroup rootGroup = getRootGroup();
         final ProcessorNode processor = rootGroup.findProcessor(processorId);
         if (processor == null) {
@@ -205,7 +205,7 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
-    public Connectable findLocalConnectable(String componentId) {
+    public Connectable findLocalConnectable(final String componentId) {
         return flowController.getFlowManager().findConnectable(componentId);
     }
 
@@ -230,7 +230,7 @@ public class ControllerFacade implements Authorizable {
      *
      * @param name name
      */
-    public void setName(String name) {
+    public void setName(final String name) {
         getRootGroup().setName(name);
     }
 
@@ -249,7 +249,7 @@ public class ControllerFacade implements Authorizable {
      *
      * @param comments comments
      */
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         getRootGroup().setComments(comments);
     }
 
@@ -278,7 +278,7 @@ public class ControllerFacade implements Authorizable {
      *
      * @param maxTimerDrivenThreadCount count
      */
-    public void setMaxTimerDrivenThreadCount(int maxTimerDrivenThreadCount) {
+    public void setMaxTimerDrivenThreadCount(final int maxTimerDrivenThreadCount) {
         flowController.setMaxTimerDrivenThreadCount(maxTimerDrivenThreadCount);
     }
 
@@ -618,7 +618,7 @@ public class ControllerFacade implements Authorizable {
         return runtimeManifestService.getManifest();
     }
 
-    private ComponentManifest getComponentManifest(String group, String artifact, String version) {
+    private ComponentManifest getComponentManifest(final String group, final String artifact, final String version) {
         final RuntimeManifest manifest = runtimeManifestService.getManifestForBundle(group, artifact, version);
         final List<org.apache.nifi.c2.protocol.component.api.Bundle> manifestBundles = manifest.getBundles();
 
@@ -626,31 +626,31 @@ public class ControllerFacade implements Authorizable {
             throw new ResourceNotFoundException("Unable to find bundle [%s:%s:%s]".formatted(group, artifact, version));
         }
 
-        org.apache.nifi.c2.protocol.component.api.Bundle manifestBundle = manifestBundles.getFirst();
+        final org.apache.nifi.c2.protocol.component.api.Bundle manifestBundle = manifestBundles.getFirst();
         return manifestBundle.getComponentManifest();
     }
 
-    public ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type) {
+    public ProcessorDefinition getProcessorDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getProcessors().stream().filter(processorDefinition -> type.equals(processorDefinition.getType())).findFirst().orElse(null);
     }
 
-    public ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type) {
+    public ControllerServiceDefinition getControllerServiceDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getControllerServices().stream().filter(controllerServiceDefinition -> type.equals(controllerServiceDefinition.getType())).findFirst().orElse(null);
     }
 
-    public ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type) {
+    public ReportingTaskDefinition getReportingTaskDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getReportingTasks().stream().filter(reportingTaskDefinition -> type.equals(reportingTaskDefinition.getType())).findFirst().orElse(null);
     }
 
-    public ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type) {
+    public ParameterProviderDefinition getParameterProviderDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getParameterProviders().stream().filter(parameterProviderDefinition -> type.equals(parameterProviderDefinition.getType())).findFirst().orElse(null);
     }
 
-    public FlowRegistryClientDefinition getFlowRegistryClientDefinition(String group, String artifact, String version, String type) {
+    public FlowRegistryClientDefinition getFlowRegistryClientDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         final List<FlowRegistryClientDefinition> flowRegistryClientDefinitions = componentManifest.getFlowRegistryClients();
         if (flowRegistryClientDefinitions == null) {
@@ -659,12 +659,12 @@ public class ControllerFacade implements Authorizable {
         return flowRegistryClientDefinitions.stream().filter(flowRegistryClientDefinition -> type.equals(flowRegistryClientDefinition.getType())).findFirst().orElse(null);
     }
 
-    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
+    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(final String group, final String artifact, final String version, final String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getFlowAnalysisRules().stream().filter(flowAnalysisRuleDefinition -> type.equals(flowAnalysisRuleDefinition.getType())).findFirst().orElse(null);
     }
 
-    public String getAdditionalDetails(String group, String artifact, String version, String type) {
+    public String getAdditionalDetails(final String group, final String artifact, final String version, final String type) {
         final Map<String, File> additionalDetailsMap = runtimeManifestService.discoverAdditionalDetails(group, artifact, version);
         final File additionalDetailsFile = additionalDetailsMap.get(type);
 
@@ -1176,7 +1176,7 @@ public class ControllerFacade implements Authorizable {
      * @param provenanceDto dto
      * @return provenance info
      */
-    public ProvenanceDTO submitProvenance(ProvenanceDTO provenanceDto) {
+    public ProvenanceDTO submitProvenance(final ProvenanceDTO provenanceDto) {
         final ProvenanceRequestDTO requestDto = provenanceDto.getRequest();
 
         // create the query
@@ -1230,7 +1230,7 @@ public class ControllerFacade implements Authorizable {
      * @param provenanceId id
      * @return the results of a provenance query
      */
-    public ProvenanceDTO getProvenanceQuery(String provenanceId, Boolean summarize, Boolean incrementalResults) {
+    public ProvenanceDTO getProvenanceQuery(final String provenanceId, final Boolean summarize, final Boolean incrementalResults) {
         try {
             // get the query to the provenance repository
             final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
@@ -1327,7 +1327,7 @@ public class ControllerFacade implements Authorizable {
      * @param lineageDto dto
      * @return updated lineage
      */
-    public LineageDTO submitLineage(LineageDTO lineageDto) {
+    public LineageDTO submitLineage(final LineageDTO lineageDto) {
         final LineageRequestDTO requestDto = lineageDto.getRequest();
 
         // get the provenance repo
@@ -1498,7 +1498,7 @@ public class ControllerFacade implements Authorizable {
      * @return the ProvenanceEventDTO representing the event that was replayed, or <code>null</code> if the no event was available
      * @throws AccessDeniedException if an event is available but the current user is not permitted to replay the event
      */
-    public ProvenanceEventDTO submitReplayLastEvent(String componentId) {
+    public ProvenanceEventDTO submitReplayLastEvent(final String componentId) {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             if (user == null) {
@@ -1598,7 +1598,7 @@ public class ControllerFacade implements Authorizable {
      *
      * @param event event
      */
-    private AuthorizationResult checkAuthorizationForData(ProvenanceEventRecord event) {
+    private AuthorizationResult checkAuthorizationForData(final ProvenanceEventRecord event) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Authorizable dataAuthorizable = getDataAuthorizable(event);
 
@@ -1917,7 +1917,7 @@ public class ControllerFacade implements Authorizable {
         return listenPorts;
     }
 
-    public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {
+    public void verifyComponentTypes(final VersionedProcessGroup versionedFlow) {
         flowController.verifyComponentTypesInSnippet(versionedFlow);
     }
 
@@ -1965,35 +1965,35 @@ public class ControllerFacade implements Authorizable {
      * setters
      */
 
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
-    public void setFlowService(FlowService flowService) {
+    public void setFlowService(final FlowService flowService) {
         this.flowService = flowService;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
-    public void setDtoFactory(DtoFactory dtoFactory) {
+    public void setDtoFactory(final DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
-    public void setSearchQueryParser(SearchQueryParser searchQueryParser) {
+    public void setSearchQueryParser(final SearchQueryParser searchQueryParser) {
         this.searchQueryParser = searchQueryParser;
     }
 
-    public void setControllerSearchService(ControllerSearchService controllerSearchService) {
+    public void setControllerSearchService(final ControllerSearchService controllerSearchService) {
         this.controllerSearchService = controllerSearchService;
     }
 
-    public void setRuntimeManifestService(RuntimeManifestService runtimeManifestService) {
+    public void setRuntimeManifestService(final RuntimeManifestService runtimeManifestService) {
         this.runtimeManifestService = runtimeManifestService;
     }
 }

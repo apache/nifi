@@ -70,7 +70,7 @@ public class VersionedFlowSnapshotsResult implements WritableResult<Iterator<Ver
                 final String exportFileName = String.format(EXPORT_FILE_NAME, exportDirectoryName, FILE_NAME_PREFIX, bucketName, flowName, version);
                 try (final OutputStream resultOut = Files.newOutputStream(Paths.get(exportFileName))) {
                     JacksonUtils.write(versionedFlowSnapshot, resultOut);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new RuntimeException("Unable to write flow snapshot to: " + exportFileName, e);
                 }
             } else {

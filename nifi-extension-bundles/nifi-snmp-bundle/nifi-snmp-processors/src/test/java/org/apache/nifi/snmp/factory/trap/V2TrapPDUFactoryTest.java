@@ -48,8 +48,8 @@ class V2TrapPDUFactoryTest {
 
         final List<? extends VariableBinding> variableBindings = pdu.getVariableBindings();
 
-        Set<String> expected = new HashSet<>(Arrays.asList(SnmpConstants.snmpTrapOID.toString(), TRAP_OID));
-        Set<String> actual = variableBindings.stream()
+        final Set<String> expected = new HashSet<>(Arrays.asList(SnmpConstants.snmpTrapOID.toString(), TRAP_OID));
+        final Set<String> actual = variableBindings.stream()
                 .flatMap(c -> Stream.of(c.getOid().toString(), c.getVariable().toString()))
                 .collect(Collectors.toSet());
         assertTrue(actual.containsAll(expected));

@@ -27,11 +27,11 @@ public class RuleViolationKey {
     private final String ruleId;
     private final String issueId;
 
-    public RuleViolationKey(RuleViolation violation) {
+    public RuleViolationKey(final RuleViolation violation) {
         this(violation.getScope(), violation.getSubjectId(), violation.getRuleId(), violation.getIssueId());
     }
 
-    public RuleViolationKey(String scope, String subjectId, String ruleId, String issueId) {
+    public RuleViolationKey(final String scope, final String subjectId, final String ruleId, final String issueId) {
         this.scope = scope;
         this.subjectId = subjectId;
         this.ruleId = ruleId;
@@ -39,14 +39,14 @@ public class RuleViolationKey {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        RuleViolationKey that = (RuleViolationKey) o;
+        final RuleViolationKey that = (RuleViolationKey) o;
         return Objects.equals(scope, that.scope)
             && Objects.equals(subjectId, that.subjectId)
             && Objects.equals(ruleId, that.ruleId)

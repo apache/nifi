@@ -89,7 +89,7 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
      * URLs of the InstanceClassLoader, when the resource wasn't find in the parent hierarchy.
      */
     @Override
-    public URL findResource(String name) {
+    public URL findResource(final String name) {
         URL resourceUrl = super.findResource(name);
 
         if (resourceUrl == null) {
@@ -116,7 +116,7 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
                     logger.debug("Found resource '{}' from URL '{}'", name, url.toExternalForm());
                     return url;
                 }
-            } catch (URISyntaxException e) {
+            } catch (final URISyntaxException e) {
                 logger.error(e.getMessage(), e);
                 return null;
             }
@@ -125,24 +125,24 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         return null;
     }
 
-    private static List<File> initNativeLibDirList(Set<File> narNativeLibDirs, Set<URL> additionalResourceUrls) {
-        List<File> nativeLibDirList = new ArrayList<>(narNativeLibDirs);
+    private static List<File> initNativeLibDirList(final Set<File> narNativeLibDirs, final Set<URL> additionalResourceUrls) {
+        final List<File> nativeLibDirList = new ArrayList<>(narNativeLibDirs);
 
-        Set<File> additionalNativeLibDirs = new HashSet<>();
+        final Set<File> additionalNativeLibDirs = new HashSet<>();
         if (additionalResourceUrls != null) {
-            for (URL url : additionalResourceUrls) {
+            for (final URL url : additionalResourceUrls) {
                 File file;
 
                 try {
                     file = new File(url.toURI());
-                } catch (URISyntaxException e) {
+                } catch (final URISyntaxException e) {
                     file = new File(url.getPath());
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Couldn't convert url '{}' to a file", url);
                     file = null;
                 }
 
-                File dir = toDir(file);
+                final File dir = toDir(file);
                 if (dir != null) {
                     additionalNativeLibDirs.add(dir);
                 }

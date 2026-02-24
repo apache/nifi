@@ -130,7 +130,7 @@ public class PeerDescriptionModifier {
                             route.secure = Query.prepare(routingConfigValue);
                             break;
                     }
-                } catch (AttributeExpressionLanguageParsingException e) {
+                } catch (final AttributeExpressionLanguageParsingException e) {
                     throw new IllegalArgumentException(format("Failed to parse NiFi expression language configured" +
                             " for Site-to-Site routing property at '%s' due to '%s'", propertyKey, e.getMessage()), e);
                 }
@@ -140,7 +140,7 @@ public class PeerDescriptionModifier {
 
     }
 
-    private void addVariables(Map<String, String> map, String prefix, PeerDescription peer) {
+    private void addVariables(final Map<String, String> map, final String prefix, final PeerDescription peer) {
         map.put(format("%s.hostname", prefix), peer.getHostname());
         map.put(format("%s.port", prefix), String.valueOf(peer.getPort()));
         map.put(format("%s.secure", prefix), String.valueOf(peer.isSecure()));

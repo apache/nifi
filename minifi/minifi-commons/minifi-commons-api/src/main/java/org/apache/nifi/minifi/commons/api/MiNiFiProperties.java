@@ -132,7 +132,7 @@ public enum MiNiFiProperties {
     private final boolean modifiable;
     private final ValidatorNames validator;
 
-    MiNiFiProperties(String key, String defaultValue, boolean sensitive, boolean modifiable, ValidatorNames validator) {
+    MiNiFiProperties(final String key, final String defaultValue, final boolean sensitive, final boolean modifiable, final ValidatorNames validator) {
         this.key = key;
         this.defaultValue = defaultValue;
         this.sensitive = sensitive;

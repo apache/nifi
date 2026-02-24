@@ -56,7 +56,7 @@ public class PutGroup<FC, C extends AutoCloseable, FFG extends PartialFunctions.
      * Throws UnsupportedOperationException if called.
      */
     @Override
-    public void putFlowFile(PutFlowFile<FC, C> putFlowFile) {
+    public void putFlowFile(final PutFlowFile<FC, C> putFlowFile) {
         throw new UnsupportedOperationException("PutFlowFile can not be used with PutGroup pattern. Specify PutFlowFiles instead.");
     }
 
@@ -71,24 +71,24 @@ public class PutGroup<FC, C extends AutoCloseable, FFG extends PartialFunctions.
     /**
      * Specify a function that groups input FlowFiles into FlowFile groups.
      */
-    public void groupFetchedFlowFiles(GroupFlowFiles<FC, C, FFG> f) {
+    public void groupFetchedFlowFiles(final GroupFlowFiles<FC, C, FFG> f) {
         groupFlowFiles = f;
     }
 
     /**
      * Specify a function that puts an input FlowFile group to a target storage using a given connection.
      */
-    public void putFlowFiles(PutFlowFiles<FC, C, FFG> f) {
+    public void putFlowFiles(final PutFlowFiles<FC, C, FFG> f) {
         putFlowFiles = f;
     }
 
     @Override
-    protected void putFlowFiles(ProcessContext context, ProcessSession session, FC functionContext,
-                               C connection, List<FlowFile> flowFiles, RoutingResult result) throws ProcessException {
+    protected void putFlowFiles(final ProcessContext context, final ProcessSession session, final FC functionContext,
+                               final C connection, final List<FlowFile> flowFiles, final RoutingResult result) throws ProcessException {
         final List<FFG> flowFileGroups = groupFlowFiles
                 .apply(context, session, functionContext, connection, flowFiles, result);
 
-        for (FFG group : flowFileGroups) {
+        for (final FFG group : flowFileGroups) {
             putFlowFiles.apply(context, session, functionContext, connection, group, result);
         }
     }

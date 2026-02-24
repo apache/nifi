@@ -85,7 +85,7 @@ public class PublishKafkaValueRecordIT extends AbstractPublishKafkaIT {
             consumer.subscribe(Collections.singletonList(getClass().getName()));
             final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
             assertEquals(TEST_RECORD_COUNT, records.count());
-            for (ConsumerRecord<String, String> record : records) {
+            for (final ConsumerRecord<String, String> record : records) {
                 // kafka record headers
                 final List<Header> headers = Arrays.asList(record.headers().toArray());
                 assertEquals(1, headers.size());

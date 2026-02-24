@@ -27,7 +27,7 @@ public class ValidationDTO implements Serializable {
     public ValidationDTO() {
     }
 
-    public ValidationDTO(Boolean valid, String message) {
+    public ValidationDTO(final Boolean valid, final String message) {
         this.valid = valid;
         this.message = message;
     }
@@ -36,7 +36,7 @@ public class ValidationDTO implements Serializable {
         return valid;
     }
 
-    public void setValid(Boolean valid) {
+    public void setValid(final Boolean valid) {
         this.valid = valid;
     }
 
@@ -44,7 +44,7 @@ public class ValidationDTO implements Serializable {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 }

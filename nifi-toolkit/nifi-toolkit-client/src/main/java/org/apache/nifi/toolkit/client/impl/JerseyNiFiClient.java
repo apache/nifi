@@ -122,7 +122,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ControllerClient getControllerClient(RequestConfig requestConfig) {
+    public ControllerClient getControllerClient(final RequestConfig requestConfig) {
         return new JerseyControllerClient(baseTarget, requestConfig);
     }
 
@@ -132,7 +132,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ControllerServicesClient getControllerServicesClient(RequestConfig requestConfig) {
+    public ControllerServicesClient getControllerServicesClient(final RequestConfig requestConfig) {
         return new JerseyControllerServicesClient(baseTarget, requestConfig);
     }
 
@@ -142,7 +142,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public FlowClient getFlowClient(RequestConfig requestConfig) {
+    public FlowClient getFlowClient(final RequestConfig requestConfig) {
         return new JerseyFlowClient(baseTarget, requestConfig);
     }
 
@@ -152,7 +152,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ProcessGroupClient getProcessGroupClient(RequestConfig requestConfig) {
+    public ProcessGroupClient getProcessGroupClient(final RequestConfig requestConfig) {
         return new JerseyProcessGroupClient(baseTarget, requestConfig);
     }
 
@@ -162,7 +162,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ProcessorClient getProcessorClient(RequestConfig requestConfig) {
+    public ProcessorClient getProcessorClient(final RequestConfig requestConfig) {
         return new JerseyProcessorClient(baseTarget, requestConfig);
     }
 
@@ -172,7 +172,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public VersionsClient getVersionsClient(RequestConfig requestConfig) {
+    public VersionsClient getVersionsClient(final RequestConfig requestConfig) {
         return new JerseyVersionsClient(baseTarget, requestConfig);
     }
 
@@ -182,7 +182,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public TenantsClient getTenantsClient(RequestConfig requestConfig) {
+    public TenantsClient getTenantsClient(final RequestConfig requestConfig) {
         return new JerseyTenantsClient(baseTarget, requestConfig);
     }
 
@@ -192,7 +192,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
+    public PoliciesClient getPoliciesClient(final RequestConfig requestConfig) {
         return new JerseyPoliciesClient(baseTarget, requestConfig);
     }
 
@@ -202,7 +202,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig) {
+    public ReportingTasksClient getReportingTasksClient(final RequestConfig requestConfig) {
         return new JerseyReportingTasksClient(baseTarget, requestConfig);
     }
 
@@ -212,7 +212,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+    public ParamProviderClient getParamProviderClient(final RequestConfig requestConfig) {
         return new JerseyParamProviderClient(baseTarget, requestConfig);
     }
 
@@ -222,7 +222,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ParamContextClient getParamContextClient(RequestConfig requestConfig) {
+    public ParamContextClient getParamContextClient(final RequestConfig requestConfig) {
         return new JerseyParamContextClient(baseTarget, requestConfig);
     }
 
@@ -232,7 +232,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public CountersClient getCountersClient(RequestConfig requestConfig) {
+    public CountersClient getCountersClient(final RequestConfig requestConfig) {
         return new JerseyCountersClient(baseTarget, requestConfig);
     }
 
@@ -242,7 +242,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ConnectionClient getConnectionClient(RequestConfig requestConfig) {
+    public ConnectionClient getConnectionClient(final RequestConfig requestConfig) {
         return new JerseyConnectionClient(baseTarget, requestConfig);
     }
 
@@ -252,7 +252,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public RemoteProcessGroupClient getRemoteProcessGroupClient(RequestConfig requestConfig) {
+    public RemoteProcessGroupClient getRemoteProcessGroupClient(final RequestConfig requestConfig) {
         return new JerseyRemoteProcessGroupClient(baseTarget, requestConfig);
     }
 
@@ -262,7 +262,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public InputPortClient getInputPortClient(RequestConfig requestConfig) {
+    public InputPortClient getInputPortClient(final RequestConfig requestConfig) {
         return new JerseyInputPortClient(baseTarget, requestConfig);
     }
 
@@ -272,7 +272,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public OutputPortClient getOutputPortClient(RequestConfig requestConfig) {
+    public OutputPortClient getOutputPortClient(final RequestConfig requestConfig) {
         return new JerseyOutputPortClient(baseTarget, requestConfig);
     }
 
@@ -282,7 +282,7 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public ProvenanceClient getProvenanceClient(RequestConfig requestConfig) {
+    public ProvenanceClient getProvenanceClient(final RequestConfig requestConfig) {
         return new JerseyProvenanceClient(baseTarget, requestConfig);
     }
 
@@ -316,7 +316,7 @@ public class JerseyNiFiClient implements NiFiClient {
         if (this.client != null) {
             try {
                 this.client.close();
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
 
             }
         }
@@ -348,9 +348,9 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     private static JacksonJaxbJsonProvider jacksonJaxbJsonProvider() {
-        JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
+        final JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
-        ObjectMapper mapper = new ObjectMapper();
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
         mapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory()));
         // Ignore unknown properties so that deployed client remain compatible with

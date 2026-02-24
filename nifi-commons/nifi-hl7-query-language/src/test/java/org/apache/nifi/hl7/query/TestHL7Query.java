@@ -233,8 +233,8 @@ public class TestHL7Query {
 
     @Test
     public void testDistinctValuesReturned() {
-        HL7Query hl7Query = HL7Query.compile("DECLARE result1 AS REQUIRED OBX, result2 AS REQUIRED OBX SELECT MESSAGE WHERE result1.7 = 'L' OR result2.7 != 'H'");
-        QueryResult result = hl7Query.evaluate(hypoglycemia);
+        final HL7Query hl7Query = HL7Query.compile("DECLARE result1 AS REQUIRED OBX, result2 AS REQUIRED OBX SELECT MESSAGE WHERE result1.7 = 'L' OR result2.7 != 'H'");
+        final QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
         assertEquals(1, result.getHitCount());
     }

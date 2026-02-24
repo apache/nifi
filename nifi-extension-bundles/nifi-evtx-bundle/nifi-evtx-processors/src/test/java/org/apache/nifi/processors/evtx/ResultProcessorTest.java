@@ -52,11 +52,11 @@ public class ResultProcessorTest {
 
     @Test
     public void testProcessResultFileSuccess() {
-        ProcessSession processSession = mock(ProcessSession.class);
-        ComponentLog componentLog = mock(ComponentLog.class);
-        FlowFile flowFile = mock(FlowFile.class);
-        Exception exception = null;
-        String name = "basename";
+        final ProcessSession processSession = mock(ProcessSession.class);
+        final ComponentLog componentLog = mock(ComponentLog.class);
+        final FlowFile flowFile = mock(FlowFile.class);
+        final Exception exception = null;
+        final String name = "basename";
 
         when(processSession.putAttribute(eq(flowFile), anyString(), anyString())).thenReturn(flowFile);
 
@@ -69,11 +69,11 @@ public class ResultProcessorTest {
 
     @Test
     public void testProcessResultFileFalure() {
-        ProcessSession processSession = mock(ProcessSession.class);
-        ComponentLog componentLog = mock(ComponentLog.class);
-        FlowFile flowFile = mock(FlowFile.class);
-        Exception exception = new Exception();
-        String name = "name";
+        final ProcessSession processSession = mock(ProcessSession.class);
+        final ComponentLog componentLog = mock(ComponentLog.class);
+        final FlowFile flowFile = mock(FlowFile.class);
+        final Exception exception = new Exception();
+        final String name = "name";
 
         when(processSession.putAttribute(eq(flowFile), anyString(), anyString())).thenReturn(flowFile);
 

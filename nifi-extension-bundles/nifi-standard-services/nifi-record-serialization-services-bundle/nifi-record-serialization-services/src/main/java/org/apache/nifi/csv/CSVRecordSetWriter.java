@@ -112,7 +112,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
-        CSVFormat csvFormat;
+        final CSVFormat csvFormat;
         if (this.csvFormat != null) {
             csvFormat = this.csvFormat;
         } else {
@@ -131,7 +131,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("csv-writer", CSV_WRITER.getName());
         config.renameProperty(CSVUtils.OLD_CHARSET_PROPERTY_NAME, CSVUtils.CHARSET.getName());

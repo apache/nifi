@@ -51,11 +51,11 @@ public class CommandRunnerFactory {
     private final ProcessUtils processUtils;
     private final ConfigurationChangeListener configurationChangeListener;
 
-    public CommandRunnerFactory(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider, MiNiFiParameters miNiFiParameters,
-        MiNiFiStatusProvider miNiFiStatusProvider, PeriodicStatusReporterManager periodicStatusReporterManager,
-        BootstrapFileProvider bootstrapFileProvider, MiNiFiStdLogHandler miNiFiStdLogHandler, File bootstrapConfigFile, RunMiNiFi runMiNiFi,
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, MiNiFiExecCommandProvider miNiFiExecCommandProvider, ProcessUtils processUtils,
-        ConfigurationChangeListener configurationChangeListener) {
+    public CommandRunnerFactory(final MiNiFiCommandSender miNiFiCommandSender, final CurrentPortProvider currentPortProvider, final MiNiFiParameters miNiFiParameters,
+        final MiNiFiStatusProvider miNiFiStatusProvider, final PeriodicStatusReporterManager periodicStatusReporterManager,
+        final BootstrapFileProvider bootstrapFileProvider, final MiNiFiStdLogHandler miNiFiStdLogHandler, final File bootstrapConfigFile, final RunMiNiFi runMiNiFi,
+        final GracefulShutdownParameterProvider gracefulShutdownParameterProvider, final MiNiFiExecCommandProvider miNiFiExecCommandProvider, final ProcessUtils processUtils,
+        final ConfigurationChangeListener configurationChangeListener) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
         this.miNiFiParameters = miNiFiParameters;
@@ -76,8 +76,8 @@ public class CommandRunnerFactory {
      * @param command the bootstrap command
      * @return the runner
      */
-    public CommandRunner getRunner(BootstrapCommand command) {
-        CommandRunner commandRunner = switch (command) {
+    public CommandRunner getRunner(final BootstrapCommand command) {
+        final CommandRunner commandRunner = switch (command) {
             case START, RUN ->
                 new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
                         bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener);
@@ -94,7 +94,7 @@ public class CommandRunnerFactory {
     }
 
     private List<CommandRunner> getRestartServices() {
-        List<CommandRunner> compositeList = new LinkedList<>();
+        final List<CommandRunner> compositeList = new LinkedList<>();
         compositeList.add(new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, processUtils));
         compositeList.add(new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
             bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener));

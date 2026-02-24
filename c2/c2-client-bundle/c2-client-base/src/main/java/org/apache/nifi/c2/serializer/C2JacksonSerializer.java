@@ -44,13 +44,13 @@ public class C2JacksonSerializer implements C2Serializer {
         objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
 
-        SimpleModule module = new SimpleModule();
+        final SimpleModule module = new SimpleModule();
         module.addDeserializer(OperandType.class, new OperandTypeDeserializer());
         objectMapper.registerModule(module);
     }
 
     @Override
-    public <T> Optional<String> serialize(T object) {
+    public <T> Optional<String> serialize(final T object) {
         if (object == null) {
             logger.trace("C2 Object was null. Nothing to serialize. Returning empty.");
             return empty();
@@ -59,7 +59,7 @@ public class C2JacksonSerializer implements C2Serializer {
         String contentString = null;
         try {
             contentString = objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             logger.error("Object serialization to JSON failed", e);
         }
 
@@ -67,7 +67,7 @@ public class C2JacksonSerializer implements C2Serializer {
     }
 
     @Override
-    public <T> Optional<T> deserialize(String content, Class<T> valueType) {
+    public <T> Optional<T> deserialize(final String content, final Class<T> valueType) {
         if (content == null) {
             logger.trace("Content for deserialization was null. Returning empty");
             return empty();
@@ -76,7 +76,7 @@ public class C2JacksonSerializer implements C2Serializer {
         T responseObject = null;
         try {
             responseObject = objectMapper.readValue(content, valueType);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             logger.error("Object deserialization from JSON failed", e);
         }
 
@@ -84,7 +84,7 @@ public class C2JacksonSerializer implements C2Serializer {
     }
 
     @Override
-    public <T> Optional<T> convert(Object content, TypeReference<T> valueType) {
+    public <T> Optional<T> convert(final Object content, final TypeReference<T> valueType) {
         if (content == null) {
             logger.trace("Content for conversion was null. Returning empty");
             return empty();
@@ -92,7 +92,7 @@ public class C2JacksonSerializer implements C2Serializer {
 
         try {
             return ofNullable(objectMapper.convertValue(content, valueType));
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             logger.error("Object conversion failed", e);
             return empty();
         }

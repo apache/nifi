@@ -300,7 +300,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcs-bucket", BUCKET.getName());
         config.renameProperty("gcs-key", KEY.getName());
@@ -518,7 +518,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                     if (blob.getUpdateTimeOffsetDateTime() != null) {
                         attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTimeOffsetDateTime().toInstant().toEpochMilli()));
                     }
-                } catch (StorageException | IOException e) {
+                } catch (final StorageException | IOException e) {
                     getLogger().error("Failure completing upload flowfile={} bucket={} key={} reason={}",
                             ffFilename, bucket, key, e.getMessage(), e);
                     throw (e);

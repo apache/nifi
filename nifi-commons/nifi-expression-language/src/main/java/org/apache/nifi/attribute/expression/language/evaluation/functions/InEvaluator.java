@@ -42,7 +42,7 @@ public class InEvaluator extends BooleanEvaluator {
         }
 
         boolean isInList = false;
-        for (Evaluator<String> evaluator : search) {
+        for (final Evaluator<String> evaluator : search) {
             final String searchString = evaluator.evaluate(evaluationContext).getValue();
             isInList = searchString == null ? false : subjectValue.equals(searchString);
             if (isInList) {

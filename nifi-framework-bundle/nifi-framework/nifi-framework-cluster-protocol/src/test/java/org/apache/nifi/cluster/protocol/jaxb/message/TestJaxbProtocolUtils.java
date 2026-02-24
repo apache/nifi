@@ -182,7 +182,7 @@ public class TestJaxbProtocolUtils {
         response.getNodeWorkloads().entrySet().stream().forEach(entry -> {
             assertTrue(expectedNodeWorkloads.containsKey(entry.getKey()));
             final NodeWorkload w = entry.getValue();
-            NodeWorkload expectedW = expectedNodeWorkloads.get(entry.getKey());
+            final NodeWorkload expectedW = expectedNodeWorkloads.get(entry.getKey());
             assertEquals(expectedW.getActiveThreadCount(), w.getActiveThreadCount());
             assertEquals(expectedW.getReportedTimestamp(), w.getReportedTimestamp());
             assertEquals(expectedW.getSystemStartTime(), w.getSystemStartTime());

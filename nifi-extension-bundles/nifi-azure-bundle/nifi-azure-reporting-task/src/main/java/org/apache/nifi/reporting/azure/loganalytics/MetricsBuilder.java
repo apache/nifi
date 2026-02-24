@@ -34,7 +34,7 @@ public class MetricsBuilder {
     private boolean isProcessorMetric = false;
     private String tags = null;
 
-    public MetricsBuilder(String category, String instanceId, String processGroupId, String processGroupName) {
+    public MetricsBuilder(final String category, final String instanceId, final String processGroupId, final String processGroupName) {
         this.computer = instanceId;
         this.processGroupName = processGroupName;
         this.processGroupId = processGroupId;
@@ -44,42 +44,42 @@ public class MetricsBuilder {
         }
     }
 
-    public MetricsBuilder(String category, String instanceId, String processGroupId, String processGroupName, String processorId, String processorName) {
+    public MetricsBuilder(final String category, final String instanceId, final String processGroupId, final String processGroupName, final String processorId, final String processorName) {
         this(category, instanceId, processGroupId, processGroupName);
         this.processorId = processorId;
         this.processorName = processorName;
     }
 
-    public MetricsBuilder setProcessorId(String processorId) {
+    public MetricsBuilder setProcessorId(final String processorId) {
         this.processorId = processorId;
         return this;
     }
 
-    public MetricsBuilder setProcessorName(String processorName) {
+    public MetricsBuilder setProcessorName(final String processorName) {
         this.processorName = processorName;
         return this;
     }
 
-    public MetricsBuilder setTags(String tags) {
+    public MetricsBuilder setTags(final String tags) {
         this.tags = tags;
         return this;
     }
 
-    public MetricsBuilder metric(String metricName, long count) {
+    public MetricsBuilder metric(final String metricName, final long count) {
         final Metric metric = buildMetric(metricName);
         metric.setCount(count);
         metrics.add(metric);
         return this;
     }
 
-    public MetricsBuilder metric(String metricName, double count) {
+    public MetricsBuilder metric(final String metricName, final double count) {
         final Metric metric = buildMetric(metricName);
         metric.setCount(count);
         metrics.add(metric);
         return this;
     }
 
-    public MetricsBuilder metric(String metricName, int count) {
+    public MetricsBuilder metric(final String metricName, final int count) {
         final Metric metric = buildMetric(metricName);
         metric.setCount(count);
         metrics.add(metric);
@@ -92,7 +92,7 @@ public class MetricsBuilder {
     public List<Metric> getMetrics() {
         return this.metrics;
     }
-    public void setMetrics(List<Metric> metrics) {
+    public void setMetrics(final List<Metric> metrics) {
         this.metrics = metrics;
     }
 
@@ -100,7 +100,7 @@ public class MetricsBuilder {
         return this.computer;
     }
 
-    public void setComputer(String Computer) {
+    public void setComputer(final String Computer) {
         this.computer = Computer;
     }
 
@@ -108,7 +108,7 @@ public class MetricsBuilder {
         return this.categoryName;
     }
 
-    public void setCategoryName(String CategoryName) {
+    public void setCategoryName(final String CategoryName) {
         this.categoryName = CategoryName;
     }
 
@@ -116,7 +116,7 @@ public class MetricsBuilder {
         return this.processGroupId;
     }
 
-    public void setProcessGroupId(String ProcessGroupId) {
+    public void setProcessGroupId(final String ProcessGroupId) {
         this.processGroupId = ProcessGroupId;
     }
 
@@ -124,7 +124,7 @@ public class MetricsBuilder {
         return this.processGroupName;
     }
 
-    public void setProcessGroupName(String ProcessGroupName) {
+    public void setProcessGroupName(final String ProcessGroupName) {
         this.processGroupName = ProcessGroupName;
     }
 
@@ -144,7 +144,7 @@ public class MetricsBuilder {
         return this.isProcessorMetric;
     }
 
-    public void setIsProcessorMetric(boolean isProcessorMetric) {
+    public void setIsProcessorMetric(final boolean isProcessorMetric) {
         this.isProcessorMetric = isProcessorMetric;
     }
 
@@ -152,7 +152,7 @@ public class MetricsBuilder {
         return this.tags;
     }
 
-    private Metric buildMetric(String metricName) {
+    private Metric buildMetric(final String metricName) {
         final Metric metric = new Metric(this.computer, this.processGroupId, this.processGroupName);
         if (this.isProcessorMetric) {
             metric.setProcessorId(this.processorId);

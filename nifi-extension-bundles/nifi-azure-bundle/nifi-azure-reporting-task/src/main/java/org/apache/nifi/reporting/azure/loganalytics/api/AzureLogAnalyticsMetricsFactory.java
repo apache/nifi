@@ -30,11 +30,11 @@ import java.util.concurrent.TimeUnit;
 
 public class AzureLogAnalyticsMetricsFactory {
 
-    public static List<Metric> getDataFlowMetrics(ProcessGroupStatus status, String instanceId) {
+    public static List<Metric> getDataFlowMetrics(final ProcessGroupStatus status, final String instanceId) {
 
         final String groupId = status.getId();
         final String groupName = status.getName();
-        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_DATAFLOW, instanceId, groupId, groupName);
+        final MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_DATAFLOW, instanceId, groupId, groupName);
 
         // build dataflow metrics
         builder.metric(MetricNames.FLOW_FILES_RECEIVED, status.getFlowFilesReceived())
@@ -50,13 +50,13 @@ public class AzureLogAnalyticsMetricsFactory {
         return builder.build();
     }
 
-    public static List<Metric> getConnectionStatusMetrics(ConnectionStatus status, String instanceId, String groupName) {
+    public static List<Metric> getConnectionStatusMetrics(final ConnectionStatus status, final String instanceId, final String groupName) {
 
         final String groupId = status.getGroupId();
         final String tags = String.format(
             "[source=%s][destination=%s][cname=%s]", status.getSourceName(), status.getDestinationName(),
             status.getName());
-        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_CONNECTIONS, instanceId, groupId, groupName);
+        final MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_CONNECTIONS, instanceId, groupId, groupName);
 
         builder.setTags(tags)
             .metric(MetricNames.INPUT_COUNT, status.getInputCount())
@@ -69,9 +69,9 @@ public class AzureLogAnalyticsMetricsFactory {
         return builder.build();
     }
 
-    public static List<Metric> getProcessorMetrics(ProcessorStatus status, String instanceId, String groupName) {
+    public static List<Metric> getProcessorMetrics(final ProcessorStatus status, final String instanceId, final String groupName) {
 
-        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_PROCESSOR, instanceId, status.getGroupId(), groupName);
+        final MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_PROCESSOR, instanceId, status.getGroupId(), groupName);
 
         builder.setProcessorId(status.getId())
             .setProcessorName(status.getName())
@@ -86,9 +86,9 @@ public class AzureLogAnalyticsMetricsFactory {
     }
 
     //virtual machine metrics
-    public static List<Metric> getJvmMetrics(JvmMetrics virtualMachineMetrics, String instanceId, String groupName) {
+    public static List<Metric> getJvmMetrics(final JvmMetrics virtualMachineMetrics, final String instanceId, final String groupName) {
 
-        MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_JVM, instanceId, "", groupName);
+        final MetricsBuilder builder = new MetricsBuilder(Metric.CATEGORY_JVM, instanceId, "", groupName);
 
         builder.metric(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B))
             .metric(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage())
@@ -109,7 +109,7 @@ public class AzureLogAnalyticsMetricsFactory {
         // Append thread states
         virtualMachineMetrics.threadStatePercentages()
                 .forEach((state, usage) -> {
-                    String name = state.name().toLowerCase().replaceAll("\\s", "_");
+                    final String name = state.name().toLowerCase().replaceAll("\\s", "_");
                     builder.metric("jvm.thread_states." + name, usage);
                 });
 

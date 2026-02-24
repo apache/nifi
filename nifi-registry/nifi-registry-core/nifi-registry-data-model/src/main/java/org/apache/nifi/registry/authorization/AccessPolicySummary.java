@@ -39,7 +39,7 @@ public class AccessPolicySummary implements RevisableEntity {
     }
 
     @Override
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -48,7 +48,7 @@ public class AccessPolicySummary implements RevisableEntity {
         return resource;
     }
 
-    public void setResource(String resource) {
+    public void setResource(final String resource) {
         this.resource = resource;
     }
 
@@ -60,7 +60,7 @@ public class AccessPolicySummary implements RevisableEntity {
         return action;
     }
 
-    public void setAction(String action) {
+    public void setAction(final String action) {
         this.action = action;
     }
 
@@ -69,7 +69,7 @@ public class AccessPolicySummary implements RevisableEntity {
         return configurable;
     }
 
-    public void setConfigurable(Boolean configurable) {
+    public void setConfigurable(final Boolean configurable) {
         this.configurable = configurable;
     }
 
@@ -83,7 +83,7 @@ public class AccessPolicySummary implements RevisableEntity {
     }
 
     @Override
-    public void setRevision(RevisionInfo revision) {
+    public void setRevision(final RevisionInfo revision) {
         this.revision = revision;
     }
 

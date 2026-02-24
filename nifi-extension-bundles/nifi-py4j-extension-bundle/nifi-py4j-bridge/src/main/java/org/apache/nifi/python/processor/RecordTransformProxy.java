@@ -91,7 +91,7 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -106,7 +106,7 @@ public class RecordTransformProxy extends PythonProcessorProxy<RecordTransform> 
         long recordsWritten = 0L;
 
         final RecordTransform transform = getTransform();
-        Map<Relationship, List<FlowFile>> flowFilesPerRelationship;
+        final Map<Relationship, List<FlowFile>> flowFilesPerRelationship;
         try (final InputStream in = session.read(flowFile);
              final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
 

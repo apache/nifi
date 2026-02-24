@@ -75,12 +75,12 @@ public class AccessPolicyResource extends ApplicationResource {
     private final Authorizer authorizer;
 
     public AccessPolicyResource(
-            NiFiServiceFacade serviceFacade,
-            Authorizer authorizer,
-            NiFiProperties properties,
+            final NiFiServiceFacade serviceFacade,
+            final Authorizer authorizer,
+            final NiFiProperties properties,
             @Autowired(required = false) final RequestReplicator requestReplicator,
-            @Autowired(required = false) ClusterCoordinator clusterCoordinator,
-            @Autowired(required = false) FlowController flowController
+            final @Autowired(required = false) ClusterCoordinator clusterCoordinator,
+            final @Autowired(required = false) FlowController flowController
     ) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
@@ -96,7 +96,7 @@ public class AccessPolicyResource extends ApplicationResource {
      * @param accessPolicyEntity accessPolicyEntity
      * @return accessPolicyEntity
      */
-    public AccessPolicyEntity populateRemainingAccessPolicyEntityContent(AccessPolicyEntity accessPolicyEntity) {
+    public AccessPolicyEntity populateRemainingAccessPolicyEntityContent(final AccessPolicyEntity accessPolicyEntity) {
         accessPolicyEntity.setUri(generateResourceUri("policies", accessPolicyEntity.getId()));
         return accessPolicyEntity;
     }
@@ -141,7 +141,7 @@ public class AccessPolicyResource extends ApplicationResource {
                     required = true
             )
             @PathParam("action") final String action,
-            @Parameter(
+            final @Parameter(
                     description = "The resource of the policy.",
                     required = true
             )
@@ -254,7 +254,7 @@ public class AccessPolicyResource extends ApplicationResource {
 
                     // get revision from the config
                     final RevisionDTO revisionDTO = accessPolicyEntity.getRevision();
-                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), accessPolicyEntity.getComponent().getId());
+                    final Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), accessPolicyEntity.getComponent().getId());
 
                     // create the access policy and generate the json
                     final AccessPolicyEntity entity = serviceFacade.createAccessPolicy(revision, accessPolicyEntity.getComponent());
@@ -308,7 +308,7 @@ public class AccessPolicyResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            Authorizable authorizable = lookup.getAccessPolicyById(id);
+            final Authorizable authorizable = lookup.getAccessPolicyById(id);
             authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -388,7 +388,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 requestAccessPolicyEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getAccessPolicyById(id);
+                    final Authorizable authorizable = lookup.getAccessPolicyById(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,

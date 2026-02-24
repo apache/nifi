@@ -38,7 +38,7 @@ public class ClusterStatusDTO {
         return nodeStatus;
     }
 
-    public void setNodeStatus(Collection<NodeStatusDTO> nodeStatus) {
+    public void setNodeStatus(final Collection<NodeStatusDTO> nodeStatus) {
         this.nodeStatus = nodeStatus;
     }
 

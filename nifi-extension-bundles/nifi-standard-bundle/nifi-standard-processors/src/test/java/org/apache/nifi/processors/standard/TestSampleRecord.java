@@ -162,7 +162,7 @@ public class TestSampleRecord {
 
         runner.clearTransferState();
         runner.setProperty(SampleRecord.SAMPLING_RANGE, "${range}");
-        Map<String, String> attrs = Collections.singletonMap("range", "8,20");
+        final Map<String, String> attrs = Collections.singletonMap("range", "8,20");
         runner.enqueue("", attrs);
         runner.run();
 
@@ -193,7 +193,7 @@ public class TestSampleRecord {
         readerService.addSchemaField("name", RecordFieldType.STRING);
         readerService.addSchemaField("age", RecordFieldType.INT);
 
-        Random randomAge = new Random();
+        final Random randomAge = new Random();
         for (int i = 0; i < 100; i++) {
             readerService.addRecord(UUID.randomUUID(), randomAge.nextInt());
         }
@@ -202,7 +202,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String firstContent = new String(runner.getContentAsByteArray(first));
+        final String firstContent = new String(runner.getContentAsByteArray(first));
 
         runner.clearTransferState();
         runner.enqueue("");
@@ -210,7 +210,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String secondContent = new String(runner.getContentAsByteArray(second));
+        final String secondContent = new String(runner.getContentAsByteArray(second));
 
         assertEquals(firstContent, secondContent);
     }
@@ -221,21 +221,21 @@ public class TestSampleRecord {
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_PROBABILITY, "100");
 
-        RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
-        RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
+        final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
+        final RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
 
         readerService.addSchemaField(nameField);
         readerService.addSchemaField(ageField);
-        List<RecordField> recordFieldList = Arrays.asList(nameField, ageField);
+        final List<RecordField> recordFieldList = Arrays.asList(nameField, ageField);
 
-        RecordSchema recordSchema = new SimpleRecordSchema(recordFieldList);
+        final RecordSchema recordSchema = new SimpleRecordSchema(recordFieldList);
 
-        Random randomAge = new Random();
+        final Random randomAge = new Random();
         final List<Record> records = new ArrayList<>(100);
         for (int i = 0; i < 100; i++) {
-            Map<String, Object> recordMap = new HashMap<>();
-            Object name = UUID.randomUUID();
-            Object age = randomAge.nextInt();
+            final Map<String, Object> recordMap = new HashMap<>();
+            final Object name = UUID.randomUUID();
+            final Object age = randomAge.nextInt();
             recordMap.put("name", name);
             recordMap.put("age", age);
             records.add(new MapRecord(recordSchema, recordMap));
@@ -246,7 +246,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String[] content = new String(runner.getContentAsByteArray(first)).split(".*\n");
+        final String[] content = new String(runner.getContentAsByteArray(first)).split(".*\n");
         for (int i = 0; i < content.length; i++) {
             assertEquals(content[i], records.get(i).toString());
         }
@@ -258,13 +258,13 @@ public class TestSampleRecord {
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_PROBABILITY, "0");
 
-        RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
-        RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
+        final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
+        final RecordField ageField = new RecordField("age", RecordFieldType.INT.getDataType());
 
         readerService.addSchemaField(nameField);
         readerService.addSchemaField(ageField);
 
-        Random randomAge = new Random();
+        final Random randomAge = new Random();
         for (int i = 0; i < 100; i++) {
             readerService.addRecord(UUID.randomUUID(), randomAge.nextInt());
         }
@@ -273,7 +273,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String content = new String(runner.getContentAsByteArray(first));
+        final String content = new String(runner.getContentAsByteArray(first));
         assertTrue(content.isEmpty());
     }
 
@@ -318,7 +318,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String firstContent = new String(runner.getContentAsByteArray(first));
+        final String firstContent = new String(runner.getContentAsByteArray(first));
         first.assertAttributeEquals("record.count", "10");
 
         runner.clearTransferState();
@@ -327,7 +327,7 @@ public class TestSampleRecord {
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
         final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
-        String secondContent = new String(runner.getContentAsByteArray(second));
+        final String secondContent = new String(runner.getContentAsByteArray(second));
 
         assertEquals(firstContent, secondContent);
     }

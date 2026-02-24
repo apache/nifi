@@ -45,12 +45,12 @@ public class ProcessorClearState extends AbstractNiFiCommand<ProcessorResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PROC_ID.createOption());
     }
 
     @Override
-    public ProcessorResult doExecute(NiFiClient client, Properties properties)
+    public ProcessorResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final String procId = getRequiredArg(properties, CommandOption.PROC_ID);

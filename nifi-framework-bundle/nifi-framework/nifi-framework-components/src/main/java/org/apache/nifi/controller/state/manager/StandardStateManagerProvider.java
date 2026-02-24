@@ -401,10 +401,10 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            StateProvider provider = mgrClass.getDeclaredConstructor().newInstance();
+            final StateProvider provider = mgrClass.getDeclaredConstructor().newInstance();
             try {
                 performMethodInjection(provider, mgrClass);
-            } catch (InvocationTargetException e) {
+            } catch (final InvocationTargetException e) {
                 logger.error("Failed to inject nifi.properties to the '{}' state provider.", type, e);
             }
             return withNarClassLoader(provider);
@@ -425,7 +425,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private static StateProvider withNarClassLoader(final StateProvider stateProvider) {
         return new StateProvider() {
             @Override
-            public void initialize(StateProviderInitializationContext context) throws IOException {
+            public void initialize(final StateProviderInitializationContext context) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.initialize(context);
                 }
@@ -439,35 +439,35 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             }
 
             @Override
-            public void setState(Map<String, String> state, String componentId) throws IOException {
+            public void setState(final Map<String, String> state, final String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.setState(state, componentId);
                 }
             }
 
             @Override
-            public StateMap getState(String componentId) throws IOException {
+            public StateMap getState(final String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getState(componentId);
                 }
             }
 
             @Override
-            public boolean replace(StateMap oldValue, Map<String, String> newValue, String componentId) throws IOException {
+            public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.replace(oldValue, newValue, componentId);
                 }
             }
 
             @Override
-            public void clear(String componentId) throws IOException {
+            public void clear(final String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.clear(componentId);
                 }
             }
 
             @Override
-            public void onComponentRemoved(String componentId) throws IOException {
+            public void onComponentRemoved(final String componentId) throws IOException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.onComponentRemoved(componentId);
                 }
@@ -502,21 +502,21 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             }
 
             @Override
-            public Collection<ValidationResult> validate(ValidationContext context) {
+            public Collection<ValidationResult> validate(final ValidationContext context) {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.validate(context);
                 }
             }
 
             @Override
-            public PropertyDescriptor getPropertyDescriptor(String name) {
+            public PropertyDescriptor getPropertyDescriptor(final String name) {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return stateProvider.getPropertyDescriptor(name);
                 }
             }
 
             @Override
-            public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+            public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     stateProvider.onPropertyModified(descriptor, oldValue, newValue);
                 }

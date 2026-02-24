@@ -54,7 +54,7 @@ public class ExportParamContext extends AbstractNiFiCommand<ExportParamContext.E
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
         addOption(CommandOption.OUTPUT_FILE.createOption());
     }

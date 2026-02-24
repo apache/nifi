@@ -35,7 +35,7 @@ public class NameStringNode extends BxmlNode {
     private final String string;
     private final int stringLength;
 
-    public NameStringNode(BinaryReader binaryReader, ChunkHeader chunkHeader) throws IOException {
+    public NameStringNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader) throws IOException {
         super(binaryReader, chunkHeader, null);
         nextOffset = binaryReader.readDWord();
         hash = binaryReader.readWord();
@@ -63,7 +63,7 @@ public class NameStringNode extends BxmlNode {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

@@ -53,7 +53,7 @@ public interface EventAuthorizer {
      * @param events the events to filtered
      * @return a List that contains only events from the original, for which the user has access
      */
-    default List<ProvenanceEventRecord> filterUnauthorizedEvents(List<ProvenanceEventRecord> events) {
+    default List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events) {
         return events.stream()
             .filter(event -> isAuthorized(event))
             .collect(Collectors.toList());
@@ -66,7 +66,7 @@ public interface EventAuthorizer {
      * @param events the events to filter
      * @return a Set containing only provenance events that the user has access to
      */
-    default Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(Set<ProvenanceEventRecord> events) {
+    default Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events) {
         return events.stream()
             .map(event -> isAuthorized(event) ? event : new PlaceholderProvenanceEvent(event))
             .collect(Collectors.toSet());
@@ -74,43 +74,43 @@ public interface EventAuthorizer {
 
     EventAuthorizer GRANT_ALL = new EventAuthorizer() {
         @Override
-        public boolean isAuthorized(ProvenanceEventRecord event) {
+        public boolean isAuthorized(final ProvenanceEventRecord event) {
             return true;
         }
 
         @Override
-        public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+        public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
         }
 
         @Override
-        public List<ProvenanceEventRecord> filterUnauthorizedEvents(List<ProvenanceEventRecord> events) {
+        public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events) {
             return events;
         }
 
         @Override
-        public Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(Set<ProvenanceEventRecord> events) {
+        public Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events) {
             return events;
         }
     };
 
     EventAuthorizer DENY_ALL = new EventAuthorizer() {
         @Override
-        public boolean isAuthorized(ProvenanceEventRecord event) {
+        public boolean isAuthorized(final ProvenanceEventRecord event) {
             return false;
         }
 
         @Override
-        public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+        public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
             throw new AccessDeniedException();
         }
 
         @Override
-        public List<ProvenanceEventRecord> filterUnauthorizedEvents(List<ProvenanceEventRecord> events) {
+        public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events) {
             return Collections.emptyList();
         }
 
         @Override
-        public Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(Set<ProvenanceEventRecord> events) {
+        public Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events) {
             return events.stream()
                 .map(event -> new PlaceholderProvenanceEvent(event))
                 .collect(Collectors.toSet());

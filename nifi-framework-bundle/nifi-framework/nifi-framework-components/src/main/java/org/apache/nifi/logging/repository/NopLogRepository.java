@@ -27,7 +27,7 @@ public class NopLogRepository implements LogRepository {
     private volatile ComponentLog logger;
 
     @Override
-    public void addLogMessage(LogMessage logMessage) {
+    public void addLogMessage(final LogMessage logMessage) {
     }
 
     @Override

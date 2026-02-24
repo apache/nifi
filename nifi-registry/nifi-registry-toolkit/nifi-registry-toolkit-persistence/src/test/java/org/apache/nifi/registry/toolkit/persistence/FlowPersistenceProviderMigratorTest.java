@@ -72,30 +72,30 @@ public class FlowPersistenceProviderMigratorTest {
         when(metadataService.getFlowsByBucket(anyString())).thenAnswer(invocation -> new ArrayList<>(bucketFlows.get(invocation.<String>getArgument(0)).values()));
         when(metadataService.getSnapshots(anyString())).thenAnswer(invocation -> new ArrayList<>(flowSnapshots.get(invocation.<String>getArgument(0))));
         when(fromProvider.getFlowContent(anyString(), anyString(), anyInt())).thenAnswer(invocation -> {
-            FlowSnapshotEntity flowSnapshotEntity = flowSnapshots.get(invocation.<String>getArgument(1)).get(invocation.<Integer>getArgument(2) - 1);
+            final FlowSnapshotEntity flowSnapshotEntity = flowSnapshots.get(invocation.<String>getArgument(1)).get(invocation.<Integer>getArgument(2) - 1);
             assertEquals(invocation.getArgument(2), flowSnapshotEntity.getVersion());
-            FlowEntity flowEntity = bucketFlows.get(invocation.<String>getArgument(0)).get(invocation.<String>getArgument(1));
+            final FlowEntity flowEntity = bucketFlows.get(invocation.<String>getArgument(0)).get(invocation.<String>getArgument(1));
             assertEquals(invocation.getArgument(0), flowEntity.getBucketId());
             assertNotNull(buckets.get(invocation.<String>getArgument(0)));
             return getContent(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
         });
     }
 
-    private byte[] getContent(String bucketId, String flowId, int version) {
+    private byte[] getContent(final String bucketId, final String flowId, final int version) {
         return (bucketId + "-" + flowId + "-" + version).getBytes(StandardCharsets.UTF_8);
     }
 
     @Test
     public void testMigration() {
         createBucket("bucket1");
-        BucketEntity bucket2 = createBucket("bucket2");
-        BucketEntity bucket3 = createBucket("bucket3");
+        final BucketEntity bucket2 = createBucket("bucket2");
+        final BucketEntity bucket3 = createBucket("bucket3");
 
-        FlowEntity flow1 = createFlow(bucket2, "flow1");
-        FlowEntity flow2 = createFlow(bucket3, "flow2");
-        FlowEntity flow3 = createFlow(bucket3, "flow3");
+        final FlowEntity flow1 = createFlow(bucket2, "flow1");
+        final FlowEntity flow2 = createFlow(bucket3, "flow2");
+        final FlowEntity flow3 = createFlow(bucket3, "flow3");
 
-        List<FlowSnapshotEntity> snapshots = Arrays.asList(
+        final List<FlowSnapshotEntity> snapshots = Arrays.asList(
                 createSnapshot(flow1, 1),
                 createSnapshot(flow2, 1),
                 createSnapshot(flow2, 2),
@@ -105,15 +105,15 @@ public class FlowPersistenceProviderMigratorTest {
 
         new FlowPersistenceProviderMigrator().doMigrate(metadataService, fromProvider, toProvider);
 
-        for (FlowSnapshotEntity snapshot : snapshots) {
+        for (final FlowSnapshotEntity snapshot : snapshots) {
             verifyMigrate(snapshot);
         }
 
         verifyNoMoreInteractions(toProvider);
     }
 
-    private BucketEntity createBucket(String id) {
-        BucketEntity bucketEntity = new BucketEntity();
+    private BucketEntity createBucket(final String id) {
+        final BucketEntity bucketEntity = new BucketEntity();
         bucketEntity.setId(id);
         bucketEntity.setName(id + "Name");
         bucketEntity.setCreated(new Date());
@@ -122,8 +122,8 @@ public class FlowPersistenceProviderMigratorTest {
         return bucketEntity;
     }
 
-    private FlowEntity createFlow(BucketEntity bucketEntity, String id) {
-        FlowEntity flowEntity = new FlowEntity();
+    private FlowEntity createFlow(final BucketEntity bucketEntity, final String id) {
+        final FlowEntity flowEntity = new FlowEntity();
         flowEntity.setBucketId(bucketEntity.getId());
         flowEntity.setId(id);
         flowEntity.setName(id + "Name");
@@ -135,8 +135,8 @@ public class FlowPersistenceProviderMigratorTest {
         return flowEntity;
     }
 
-    private FlowSnapshotEntity createSnapshot(FlowEntity flowEntity, int version) {
-        FlowSnapshotEntity flowSnapshotEntity = new FlowSnapshotEntity();
+    private FlowSnapshotEntity createSnapshot(final FlowEntity flowEntity, final int version) {
+        final FlowSnapshotEntity flowSnapshotEntity = new FlowSnapshotEntity();
         flowSnapshotEntity.setFlowId(flowEntity.getId());
         flowSnapshotEntity.setVersion(version);
         flowSnapshotEntity.setCreated(new Date());
@@ -144,9 +144,9 @@ public class FlowPersistenceProviderMigratorTest {
         return flowSnapshotEntity;
     }
 
-    private void verifyMigrate(FlowSnapshotEntity flowSnapshotEntity) {
-        BucketEntity bucketEntity = flowBuckets.get(flowSnapshotEntity.getFlowId());
-        FlowEntity flowEntity = bucketFlows.get(bucketEntity.getId()).get(flowSnapshotEntity.getFlowId());
+    private void verifyMigrate(final FlowSnapshotEntity flowSnapshotEntity) {
+        final BucketEntity bucketEntity = flowBuckets.get(flowSnapshotEntity.getFlowId());
+        final FlowEntity flowEntity = bucketFlows.get(bucketEntity.getId()).get(flowSnapshotEntity.getFlowId());
         verify(toProvider).saveFlowContent(eq(new StandardFlowSnapshotContext.Builder(
                 BucketMappings.map(bucketEntity),
                 FlowMappings.map(bucketEntity, flowEntity),

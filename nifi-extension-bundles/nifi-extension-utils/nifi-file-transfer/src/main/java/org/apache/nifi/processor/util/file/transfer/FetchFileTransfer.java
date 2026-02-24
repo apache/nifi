@@ -246,8 +246,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         }
 
         // we have a queue of FileTransfer Objects. Get one from the queue or create a new one.
-        FileTransfer transfer;
-        FileTransferIdleWrapper transferWrapper = transferQueue.poll();
+        final FileTransfer transfer;
+        final FileTransferIdleWrapper transferWrapper = transferQueue.poll();
         if (transferWrapper == null) {
             transfer = createFileTransfer(context);
         } else {

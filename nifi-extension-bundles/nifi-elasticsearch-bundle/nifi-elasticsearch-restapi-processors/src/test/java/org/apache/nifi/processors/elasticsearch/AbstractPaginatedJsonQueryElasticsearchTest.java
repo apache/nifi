@@ -181,7 +181,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         // Per response outputs an array of values
         final boolean ndJsonCopy = ndjson;
         final List<MockFlowFile> hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS);
-        for (MockFlowFile hit : hits) {
+        for (final MockFlowFile hit : hits) {
             hit.assertAttributeEquals("hit.count", hitsCount);
             AbstractJsonQueryElasticsearchTest.assertOutputContent(hit.getContent(), Integer.parseInt(hitsCount), ndJsonCopy);
             if (ResultOutputStrategy.PER_RESPONSE.equals(resultOutputStrategy)) {

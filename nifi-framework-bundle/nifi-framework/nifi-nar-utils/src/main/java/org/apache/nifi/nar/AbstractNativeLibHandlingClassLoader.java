@@ -66,21 +66,21 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
      */
     private final String tmpLibFilePrefix;
 
-    public AbstractNativeLibHandlingClassLoader(URL[] urls, List<File> initialNativeLibDirList, String tmpLibFilePrefix) {
+    public AbstractNativeLibHandlingClassLoader(final URL[] urls, final List<File> initialNativeLibDirList, final String tmpLibFilePrefix) {
         super(urls);
 
         this.nativeLibDirList = buildNativeLibDirList(initialNativeLibDirList);
         this.tmpLibFilePrefix = tmpLibFilePrefix;
     }
 
-    public AbstractNativeLibHandlingClassLoader(URL[] urls, ClassLoader parent, List<File> initialNativeLibDirList, String tmpLibFilePrefix) {
+    public AbstractNativeLibHandlingClassLoader(final URL[] urls, final ClassLoader parent, final List<File> initialNativeLibDirList, final String tmpLibFilePrefix) {
         super(urls, parent);
 
         this.nativeLibDirList = buildNativeLibDirList(initialNativeLibDirList);
         this.tmpLibFilePrefix = tmpLibFilePrefix;
     }
 
-    public static File toDir(File fileOrDir) {
+    public static File toDir(final File fileOrDir) {
         if (fileOrDir == null) {
             return null;
         } else if (fileOrDir.isFile()) {
@@ -93,17 +93,17 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
     }
 
     @Override
-    public String findLibrary(String libname) {
-        String libLocationString;
+    public String findLibrary(final String libname) {
+        final String libLocationString;
 
-        Path libLocation = nativeLibNameToPath.compute(
+        final Path libLocation = nativeLibNameToPath.compute(
                 libname,
                 (__, currentLocation) -> {
                     if (currentLocation != null && currentLocation.toFile().exists()) {
                         return currentLocation;
                     } else {
-                        for (File nativeLibDir : nativeLibDirList) {
-                            String libraryOriginalPathString = findLibrary(libname, nativeLibDir);
+                        for (final File nativeLibDir : nativeLibDirList) {
+                            final String libraryOriginalPathString = findLibrary(libname, nativeLibDir);
                             if (libraryOriginalPathString != null) {
                                 return createTempCopy(libname, libraryOriginalPathString);
                             }
@@ -124,7 +124,7 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
     }
 
     protected Set<File> getUsrLibDirs() {
-        Set<File> usrLibDirs = Arrays.stream(getJavaLibraryPath().split(File.pathSeparator))
+        final Set<File> usrLibDirs = Arrays.stream(getJavaLibraryPath().split(File.pathSeparator))
                 .map(String::trim)
                 .filter(pathAsString -> !pathAsString.isEmpty())
                 .map(File::new)
@@ -139,13 +139,13 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
         return System.getProperty("java.library.path", "");
     }
 
-    protected Path createTempCopy(String libname, String libraryOriginalPathString) {
+    protected Path createTempCopy(final String libname, final String libraryOriginalPathString) {
         Path tempFile;
 
         try {
             tempFile = Files.createTempFile(tmpLibFilePrefix + "_", "_" + libname);
             Files.copy(Paths.get(libraryOriginalPathString), tempFile, REPLACE_EXISTING);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Couldn't create temporary copy of the library '{}' found at '{}'", libname, libraryOriginalPathString, e);
 
             tempFile = null;
@@ -154,7 +154,7 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
         return tempFile;
     }
 
-    protected String findLibrary(String libname, File nativeLibDir) {
+    protected String findLibrary(final String libname, final File nativeLibDir) {
         final File dllFile = new File(nativeLibDir, libname + ".dll");
         final File dylibFile = new File(nativeLibDir, libname + ".dylib");
         final File libdylibFile = new File(nativeLibDir, "lib" + libname + ".dylib");
@@ -185,8 +185,8 @@ public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoade
         return null;
     }
 
-    private List<File> buildNativeLibDirList(List<File> initialNativeLibDirList) {
-        List<File> allNativeLibDirList = new ArrayList<>(initialNativeLibDirList);
+    private List<File> buildNativeLibDirList(final List<File> initialNativeLibDirList) {
+        final List<File> allNativeLibDirList = new ArrayList<>(initialNativeLibDirList);
 
         allNativeLibDirList.addAll(getUsrLibDirs());
 

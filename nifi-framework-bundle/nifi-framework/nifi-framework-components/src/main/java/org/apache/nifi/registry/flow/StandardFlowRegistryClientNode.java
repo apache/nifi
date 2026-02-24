@@ -133,7 +133,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public void reload(Set<URL> additionalUrls) throws Exception {
+    public void reload(final Set<URL> additionalUrls) throws Exception {
         final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
@@ -392,7 +392,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         return new StandardFlowRegistryClientConfigurationContext(null, getRawPropertyValues(), this, serviceProvider);
     }
 
-    private FlowRegistryClientConfigurationContext getConfigurationContext(FlowRegistryClientUserContext clientContext) {
+    private FlowRegistryClientConfigurationContext getConfigurationContext(final FlowRegistryClientUserContext clientContext) {
         final String userIdentity = clientContext.getNiFiUserIdentity().orElse(null);
         return new StandardFlowRegistryClientConfigurationContext(userIdentity, getRawPropertyValues(), this, serviceProvider);
     }
@@ -406,7 +406,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             final VersionedProcessGroup group,
             final FlowSnapshotContainer snapshotContainer
     ) throws FlowRegistryException {
-        Map<String, VersionedParameterContext> accumulatedParameterContexts = new HashMap<>();
+        final Map<String, VersionedParameterContext> accumulatedParameterContexts = new HashMap<>();
 
         if (group == null) {
             return accumulatedParameterContexts;

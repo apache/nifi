@@ -41,7 +41,7 @@ public class ProcessGroupFlowEntity extends Entity {
         return revision;
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
 
@@ -56,7 +56,7 @@ public class ProcessGroupFlowEntity extends Entity {
         return permissions;
     }
 
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -69,7 +69,7 @@ public class ProcessGroupFlowEntity extends Entity {
         return processGroupFlow;
     }
 
-    public void setProcessGroupFlow(ProcessGroupFlowDTO flow) {
+    public void setProcessGroupFlow(final ProcessGroupFlowDTO flow) {
         this.processGroupFlow = flow;
     }
 

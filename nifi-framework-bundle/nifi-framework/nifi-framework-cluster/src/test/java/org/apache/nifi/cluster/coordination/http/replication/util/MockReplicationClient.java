@@ -49,7 +49,7 @@ public class MockReplicationClient implements HttpReplicationClient {
     }
 
     @Override
-    public PreparedRequest prepareRequest(String method, Map<String, String> headers, Object entity) {
+    public PreparedRequest prepareRequest(final String method, final Map<String, String> headers, final Object entity) {
         return new PreparedRequest() {
             @Override
             public String getMethod() {
@@ -69,7 +69,7 @@ public class MockReplicationClient implements HttpReplicationClient {
     }
 
     @Override
-    public Response replicate(PreparedRequest request, URI uri) {
+    public Response replicate(final PreparedRequest request, final URI uri) {
         return new Response() {
 
             @Override
@@ -88,7 +88,7 @@ public class MockReplicationClient implements HttpReplicationClient {
             }
 
             @Override
-            public <T> T readEntity(Class<T> entityType) {
+            public <T> T readEntity(final Class<T> entityType) {
                 if (responseEntity == null) {
                     return null;
                 }
@@ -101,17 +101,17 @@ public class MockReplicationClient implements HttpReplicationClient {
             }
 
             @Override
-            public <T> T readEntity(GenericType<T> entityType) {
+            public <T> T readEntity(final GenericType<T> entityType) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public <T> T readEntity(Class<T> entityType, Annotation[] annotations) {
+            public <T> T readEntity(final Class<T> entityType, final Annotation[] annotations) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public <T> T readEntity(GenericType<T> entityType, Annotation[] annotations) {
+            public <T> T readEntity(final GenericType<T> entityType, final Annotation[] annotations) {
                 throw new UnsupportedOperationException();
             }
 
@@ -180,17 +180,17 @@ public class MockReplicationClient implements HttpReplicationClient {
             }
 
             @Override
-            public boolean hasLink(String relation) {
+            public boolean hasLink(final String relation) {
                 return false;
             }
 
             @Override
-            public Link getLink(String relation) {
+            public Link getLink(final String relation) {
                 return null;
             }
 
             @Override
-            public Builder getLinkBuilder(String relation) {
+            public Builder getLinkBuilder(final String relation) {
                 return null;
             }
 
@@ -206,7 +206,7 @@ public class MockReplicationClient implements HttpReplicationClient {
             }
 
             @Override
-            public String getHeaderString(String name) {
+            public String getHeaderString(final String name) {
                 return headers.getFirst(name);
             }
         };

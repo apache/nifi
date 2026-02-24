@@ -87,7 +87,7 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     }
 
     @Override
-    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg, boolean allowConnectToSelf) throws ProtocolException, UnknownServiceAddressException {
+    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg, final boolean allowConnectToSelf) throws ProtocolException, UnknownServiceAddressException {
         return sender.requestConnection(msg, allowConnectToSelf);
     }
 
@@ -102,12 +102,12 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     }
 
     @Override
-    public ClusterWorkloadResponseMessage clusterWorkload(ClusterWorkloadRequestMessage msg) throws ProtocolException {
+    public ClusterWorkloadResponseMessage clusterWorkload(final ClusterWorkloadRequestMessage msg) throws ProtocolException {
         return sender.clusterWorkload(msg);
     }
 
     @Override
-    public NodeStatusesResponseMessage nodeStatuses(NodeStatusesRequestMessage msg) throws ProtocolException {
+    public NodeStatusesResponseMessage nodeStatuses(final NodeStatusesRequestMessage msg) throws ProtocolException {
         return sender.nodeStatuses(msg);
     }
 }

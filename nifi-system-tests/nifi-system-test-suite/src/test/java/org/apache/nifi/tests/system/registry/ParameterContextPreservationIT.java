@@ -177,11 +177,11 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         return getNifiClient().getProcessGroupClient().createProcessGroup("root", groupEntity, false);
     }
 
-    private ProcessGroupEntity getNestedProcessGroup(ProcessGroupEntity parent, String name) throws NiFiClientException, IOException {
+    private ProcessGroupEntity getNestedProcessGroup(final ProcessGroupEntity parent, final String name) throws NiFiClientException, IOException {
         final ProcessGroupFlowEntity flowEntity = getNifiClient().getFlowClient().getProcessGroup(parent.getId());
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
 
-        for (ProcessGroupEntity childGroup : flowDto.getProcessGroups()) {
+        for (final ProcessGroupEntity childGroup : flowDto.getProcessGroups()) {
             if (name.equals(childGroup.getComponent().getName())) {
                 return getNifiClient().getProcessGroupClient().getProcessGroup(childGroup.getId());
             }

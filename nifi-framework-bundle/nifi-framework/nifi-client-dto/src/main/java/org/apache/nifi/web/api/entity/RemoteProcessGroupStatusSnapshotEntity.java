@@ -37,7 +37,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
         return remoteProcessGroupStatusSnapshot;
     }
 
-    public void setRemoteProcessGroupStatusSnapshot(RemoteProcessGroupStatusSnapshotDTO remoteProcessGroupStatusSnapshot) {
+    public void setRemoteProcessGroupStatusSnapshot(final RemoteProcessGroupStatusSnapshotDTO remoteProcessGroupStatusSnapshot) {
         this.remoteProcessGroupStatusSnapshot = remoteProcessGroupStatusSnapshot;
     }
 
@@ -60,7 +60,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

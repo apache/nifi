@@ -79,7 +79,7 @@ public class TestAbstractHeartbeatMonitor {
         final List<NodeIdentifier> requestedToConnect = Collections.synchronizedList(new ArrayList<>());
         final ClusterCoordinatorAdapter coordinator = new ClusterCoordinatorAdapter() {
             @Override
-            public synchronized void requestNodeConnect(final NodeIdentifier nodeId, String userDn) {
+            public synchronized void requestNodeConnect(final NodeIdentifier nodeId, final String userDn) {
                 requestedToConnect.add(nodeId);
             }
 
@@ -228,59 +228,59 @@ public class TestAbstractHeartbeatMonitor {
         private final Map<NodeIdentifier, NodeConnectionStatus> statuses = new HashMap<>();
         private final List<ReportedEvent> events = new ArrayList<>();
 
-        public synchronized void requestNodeConnect(NodeIdentifier nodeId) {
+        public synchronized void requestNodeConnect(final NodeIdentifier nodeId) {
             requestNodeConnect(nodeId, null);
         }
 
         @Override
-        public synchronized void requestNodeConnect(NodeIdentifier nodeId, String userDn) {
+        public synchronized void requestNodeConnect(final NodeIdentifier nodeId, final String userDn) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
         }
 
         @Override
-        public void removeNode(NodeIdentifier nodeId, String userDn) {
+        public void removeNode(final NodeIdentifier nodeId, final String userDn) {
             statuses.remove(nodeId);
         }
 
         @Override
-        public synchronized void finishNodeConnection(NodeIdentifier nodeId) {
+        public synchronized void finishNodeConnection(final NodeIdentifier nodeId) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
         }
 
         @Override
-        public synchronized void finishNodeOffload(NodeIdentifier nodeId) {
+        public synchronized void finishNodeOffload(final NodeIdentifier nodeId) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
         }
 
         @Override
-        public synchronized Future<Void> requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation) {
+        public synchronized Future<Void> requestNodeOffload(final NodeIdentifier nodeId, final OffloadCode offloadCode, final String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.OFFLOADED));
             return CompletableFuture.completedFuture(null);
         }
 
         @Override
-        public synchronized Future<Void> requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
+        public synchronized Future<Void> requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
             return CompletableFuture.completedFuture(null);
         }
 
         @Override
-        public synchronized void disconnectionRequestedByNode(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
+        public synchronized void disconnectionRequestedByNode(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
             statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
 
         @Override
-        public synchronized NodeConnectionStatus getConnectionStatus(NodeIdentifier nodeId) {
+        public synchronized NodeConnectionStatus getConnectionStatus(final NodeIdentifier nodeId) {
             return statuses.get(nodeId);
         }
 
         @Override
-        public NodeConnectionStatus fetchConnectionStatus(NodeIdentifier nodeId) {
+        public NodeConnectionStatus fetchConnectionStatus(final NodeIdentifier nodeId) {
             return getConnectionStatus(nodeId);
         }
 
         @Override
-        public synchronized Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState... states) {
+        public synchronized Set<NodeIdentifier> getNodeIdentifiers(final NodeConnectionState... states) {
             final Set<NodeConnectionState> stateSet = new HashSet<>();
             for (final NodeConnectionState state : states) {
                 stateSet.add(state);
@@ -293,7 +293,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized boolean isBlockedByFirewall(Set<String> nodeIds) {
+        public synchronized boolean isBlockedByFirewall(final Set<String> nodeIds) {
             return false;
         }
 
@@ -303,7 +303,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized void reportEvent(NodeIdentifier nodeId, Severity severity, String event) {
+        public synchronized void reportEvent(final NodeIdentifier nodeId, final Severity severity, final String event) {
             events.add(new ReportedEvent(nodeId, severity, event));
         }
 
@@ -322,7 +322,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public List<NodeEvent> getNodeEvents(NodeIdentifier nodeId) {
+        public List<NodeEvent> getNodeEvents(final NodeIdentifier nodeId) {
             return null;
         }
 
@@ -332,11 +332,11 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public void setFlowService(FlowService flowService) {
+        public void setFlowService(final FlowService flowService) {
         }
 
         @Override
-        public void resetNodeStatuses(Map<NodeIdentifier, NodeConnectionStatus> statusMap) {
+        public void resetNodeStatuses(final Map<NodeIdentifier, NodeConnectionStatus> statusMap) {
         }
 
         @Override
@@ -344,7 +344,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public void setLocalNodeIdentifier(NodeIdentifier nodeId) {
+        public void setLocalNodeIdentifier(final NodeIdentifier nodeId) {
         }
 
         @Override
@@ -353,7 +353,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public void setConnected(boolean connected) {
+        public void setConnected(final boolean connected) {
         }
 
         @Override
@@ -382,7 +382,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId) {
+        public boolean resetNodeStatus(final NodeConnectionStatus connectionStatus, final long qualifyingUpdateId) {
             return false;
         }
 
@@ -412,7 +412,7 @@ public class TestAbstractHeartbeatMonitor {
         private final Object mutex = new Object();
         private long purgeTimestamp = System.currentTimeMillis();
 
-        public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, NiFiProperties nifiProperties) {
+        public TestFriendlyHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final NiFiProperties nifiProperties) {
             super(clusterCoordinator, nifiProperties);
         }
 

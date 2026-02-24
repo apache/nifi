@@ -36,7 +36,7 @@ public class ClusterStatusEntity extends Entity {
         return clusterStatus;
     }
 
-    public void setClusterStatus(ClusterStatusDTO clusterStatus) {
+    public void setClusterStatus(final ClusterStatusDTO clusterStatus) {
         this.clusterStatus = clusterStatus;
     }
 

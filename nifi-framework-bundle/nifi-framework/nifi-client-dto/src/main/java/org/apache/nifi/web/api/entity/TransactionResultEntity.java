@@ -31,7 +31,7 @@ public class TransactionResultEntity extends Entity {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
@@ -39,7 +39,7 @@ public class TransactionResultEntity extends Entity {
         return responseCode;
     }
 
-    public void setResponseCode(int responseCode) {
+    public void setResponseCode(final int responseCode) {
         this.responseCode = responseCode;
     }
 
@@ -47,7 +47,7 @@ public class TransactionResultEntity extends Entity {
         return flowFileSent;
     }
 
-    public void setFlowFileSent(int flowFileSent) {
+    public void setFlowFileSent(final int flowFileSent) {
         this.flowFileSent = flowFileSent;
     }
 }

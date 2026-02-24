@@ -194,7 +194,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     @Override
     public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
-        SecretsManagerClient secretsManager = this.configureClient(context);
+        final SecretsManagerClient secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
 

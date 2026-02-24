@@ -198,7 +198,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
 
         // Add the events to the writer and ensure that we always
         // relinquish the claim that we've obtained on the writer
-        Map<ProvenanceEventRecord, StorageSummary> storageMap;
+        final Map<ProvenanceEventRecord, StorageSummary> storageMap;
         final RecordWriter writer = lease.getWriter();
         try {
             storageMap = addEvents(events, writer);
@@ -405,13 +405,12 @@ public class WriteAheadStorePartition implements EventStorePartition {
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxEvents, final EventAuthorizer authorizer) throws IOException {
         final List<ProvenanceEventRecord> events = new ArrayList<>(Math.min(maxEvents, 1000));
         try (final EventIterator iterator = createEventIterator(firstRecordId)) {
-            Optional<ProvenanceEventRecord> eventOption = iterator.nextEvent();
-            while (eventOption.isPresent() && events.size() < maxEvents) {
+            Optional<ProvenanceEventRecord> eventOption;
+            while ((eventOption = iterator.nextEvent()).isPresent() && events.size() < maxEvents) {
                 final ProvenanceEventRecord event = eventOption.get();
                 if (authorizer.isAuthorized(event)) {
                     events.add(event);
                 }
-                eventOption = iterator.nextEvent();
             }
         }
 

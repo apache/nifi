@@ -48,7 +48,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -60,7 +60,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -72,7 +72,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return targetUri;
     }
 
-    public void setTargetUri(String targetUri) {
+    public void setTargetUri(final String targetUri) {
         this.targetUri = targetUri;
     }
 
@@ -84,7 +84,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -96,7 +96,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return transmissionStatus;
     }
 
-    public void setTransmissionStatus(String transmissionStatus) {
+    public void setTransmissionStatus(final String transmissionStatus) {
         this.transmissionStatus = transmissionStatus;
     }
 
@@ -108,7 +108,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -120,7 +120,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return sent;
     }
 
-    public void setSent(String sent) {
+    public void setSent(final String sent) {
         this.sent = sent;
     }
 
@@ -132,7 +132,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return received;
     }
 
-    public void setReceived(String received) {
+    public void setReceived(final String received) {
         this.received = received;
     }
 
@@ -141,7 +141,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesSent;
     }
 
-    public void setFlowFilesSent(Integer flowFilesSent) {
+    public void setFlowFilesSent(final Integer flowFilesSent) {
         this.flowFilesSent = flowFilesSent;
     }
 
@@ -150,7 +150,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesSent;
     }
 
-    public void setBytesSent(Long bytesSent) {
+    public void setBytesSent(final Long bytesSent) {
         this.bytesSent = bytesSent;
     }
 
@@ -159,7 +159,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesReceived;
     }
 
-    public void setFlowFilesReceived(Integer flowFilesReceived) {
+    public void setFlowFilesReceived(final Integer flowFilesReceived) {
         this.flowFilesReceived = flowFilesReceived;
     }
 
@@ -168,7 +168,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesReceived;
     }
 
-    public void setBytesReceived(Long bytesReceived) {
+    public void setBytesReceived(final Long bytesReceived) {
         this.bytesReceived = bytesReceived;
     }
 

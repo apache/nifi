@@ -237,7 +237,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
                 try {
                     establishConnection();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     penalize();
 
                     partitionQueue.offer(readyPartition);
@@ -458,7 +458,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 socketChannel.configureBlocking(false);
                 selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Unable to connect to {} for load balancing", nodeIdentifier, e);
 
             close();

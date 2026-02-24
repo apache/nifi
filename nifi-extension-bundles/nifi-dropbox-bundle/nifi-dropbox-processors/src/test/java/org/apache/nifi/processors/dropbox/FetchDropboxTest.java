@@ -53,9 +53,9 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     @Override
     @BeforeEach
     public void setUp() throws Exception {
-        FetchDropbox testSubject = new FetchDropbox() {
+        final FetchDropbox testSubject = new FetchDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
+            public DbxClientV2 getDropboxApiClient(final ProcessContext context, final String id) {
                 return mockDropboxClient;
             }
         };
@@ -74,13 +74,13 @@ public class FetchDropboxTest extends AbstractDropboxTest {
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes(UTF_8)));
         when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile();
+        final MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertContentEquals("content");
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
@@ -94,13 +94,13 @@ public class FetchDropboxTest extends AbstractDropboxTest {
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("contentByPath".getBytes(UTF_8)));
         when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile();
+        final MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertContentEquals("contentByPath");
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
@@ -112,21 +112,21 @@ public class FetchDropboxTest extends AbstractDropboxTest {
 
         when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenThrow(new DbxException("Error in Dropbox"));
 
-        MockFlowFile inputFlowFile = getMockFlowFile();
+        final MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_FAILURE);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeEquals(ERROR_MESSAGE, "Error in Dropbox");
         assertOutFlowFileAttributes(ff0);
         assertNoProvenanceEvent();
     }
 
     private MockFlowFile getMockFlowFile() {
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
-        Map<String, String> attributes = new HashMap<>();
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(DropboxAttributes.ID, FILE_ID_1);
         attributes.put(DropboxAttributes.REVISION, REVISION);
         attributes.put(DropboxAttributes.FILENAME, FILENAME_1);

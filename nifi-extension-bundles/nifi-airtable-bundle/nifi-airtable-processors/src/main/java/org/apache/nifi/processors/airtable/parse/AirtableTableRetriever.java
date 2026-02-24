@@ -66,7 +66,7 @@ public class AirtableTableRetriever {
                 .map(writer -> {
                     try {
                         return writer.closeRecordSet(session);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         throw new ProcessException("Failed to close Airtable record writer", e);
                     }
                 })

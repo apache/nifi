@@ -44,7 +44,7 @@ public class AccessPolicyEntity extends ComponentEntity implements Permissible<A
     }
 
     @Override
-    public void setComponent(AccessPolicyDTO component) {
+    public void setComponent(final AccessPolicyDTO component) {
         this.component = component;
     }
 
@@ -59,7 +59,7 @@ public class AccessPolicyEntity extends ComponentEntity implements Permissible<A
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 }

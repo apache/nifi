@@ -39,14 +39,14 @@ public class NiFiAuthenticationProviderTest {
         final String pattern = "^cn=(.*?),dc=(.*?),dc=(.*?)$";
         final String value = "$1@$2.$3";
 
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.setProperty("nifi.security.identity.mapping.pattern.dn", pattern);
         properties.setProperty("nifi.security.identity.mapping.value.dn", value);
 
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
-        TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<IdentityMapping> mappings = provider.getMappings();
+        final TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
+        final List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(1, mappings.size());
         assertEquals("dn", mappings.get(0).getKey());
         assertEquals(pattern, mappings.get(0).getPattern().pattern());
@@ -55,11 +55,11 @@ public class NiFiAuthenticationProviderTest {
 
     @Test
     public void testNoMappings() {
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
-        TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<IdentityMapping> mappings = provider.getMappings();
+        final TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
+        final List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
 
         final String identity = "john";
@@ -68,32 +68,32 @@ public class NiFiAuthenticationProviderTest {
 
     @Test
     public void testPatternPropertyWithNoValue() {
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.setProperty("nifi.security.identity.mapping.pattern.dn", "");
         properties.setProperty("nifi.security.identity.mapping.value.dn", "value");
 
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
-        TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<IdentityMapping> mappings = provider.getMappings();
+        final TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
+        final List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
     }
 
     @Test
     public void testPatternPropertyWithNoCorrespondingValueProperty() {
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.setProperty("nifi.security.identity.mapping.pattern.dn", "");
 
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
-        TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<IdentityMapping> mappings = provider.getMappings();
+        final TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
+        final List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
     }
 
     @Test
     public void testMultipleMappings() {
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         properties.setProperty("nifi.security.identity.mapping.pattern.1", "pattern1");
         properties.setProperty("nifi.security.identity.mapping.value.1", "value1");
         properties.setProperty("nifi.security.identity.mapping.pattern.2", "pattern2");
@@ -103,8 +103,8 @@ public class NiFiAuthenticationProviderTest {
 
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
-        TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<IdentityMapping> mappings = provider.getMappings();
+        final TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
+        final List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(3, mappings.size());
     }
 
@@ -180,17 +180,17 @@ public class NiFiAuthenticationProviderTest {
         /**
          * @param properties the NiFiProperties instance
          */
-        public TestableNiFiAuthenticationProvider(NiFiProperties properties) {
+        public TestableNiFiAuthenticationProvider(final NiFiProperties properties) {
             super(properties, mock(Authorizer.class));
         }
 
         @Override
-        public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
             return null;
         }
 
         @Override
-        public boolean supports(Class<?> authentication) {
+        public boolean supports(final Class<?> authentication) {
             return false;
         }
 

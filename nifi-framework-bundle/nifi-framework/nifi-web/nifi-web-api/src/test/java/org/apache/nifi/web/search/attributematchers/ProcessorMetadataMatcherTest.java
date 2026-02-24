@@ -58,7 +58,7 @@ public class ProcessorMetadataMatcherTest extends AbstractAttributeMatcherTest {
     private static class LoremProcessor implements Processor {
 
         @Override
-        public void initialize(ProcessorInitializationContext context) {
+        public void initialize(final ProcessorInitializationContext context) {
             // noop
         }
 
@@ -68,22 +68,22 @@ public class ProcessorMetadataMatcherTest extends AbstractAttributeMatcherTest {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
             // noop
         }
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
             // noop
         }
 

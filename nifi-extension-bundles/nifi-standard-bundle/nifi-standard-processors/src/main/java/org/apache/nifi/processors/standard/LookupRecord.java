@@ -263,7 +263,7 @@ public class LookupRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("lookup-service", LOOKUP_SERVICE.getName());
@@ -361,7 +361,7 @@ public class LookupRecord extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -540,7 +540,7 @@ public class LookupRecord extends AbstractProcessor {
                 final RecordPath recordPath = entry.getValue();
 
                 final RecordPathResult pathResult = recordPath.evaluate(record);
-                AtomicLong selectedFieldsCount = new AtomicLong(0);
+                final AtomicLong selectedFieldsCount = new AtomicLong(0);
                 final List<FieldValue> lookupFieldValues = pathResult.getSelectedFields()
                         .filter(fieldVal -> {
                             selectedFieldsCount.incrementAndGet();
@@ -619,7 +619,7 @@ public class LookupRecord extends AbstractProcessor {
 
         private volatile Cache<Map<String, Object>, Optional<?>> cache;
 
-        public RecordPathReplacementStrategy(ProcessContext context) {
+        public RecordPathReplacementStrategy(final ProcessContext context) {
             final int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
 
             if (this.cache == null || cacheSize > 0) {

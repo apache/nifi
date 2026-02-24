@@ -21,15 +21,15 @@ package org.apache.nifi.web;
  */
 public class ClusterRequestException extends RuntimeException {
 
-    public ClusterRequestException(Throwable cause) {
+    public ClusterRequestException(final Throwable cause) {
         super(cause);
     }
 
-    public ClusterRequestException(String message, Throwable cause) {
+    public ClusterRequestException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public ClusterRequestException(String message) {
+    public ClusterRequestException(final String message) {
         super(message);
     }
 

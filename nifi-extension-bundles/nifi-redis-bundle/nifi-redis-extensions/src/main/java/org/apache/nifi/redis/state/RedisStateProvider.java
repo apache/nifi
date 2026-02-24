@@ -131,7 +131,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(RedisUtils.validate(validationContext));
 
         final RedisType redisType = RedisType.fromDisplayName(validationContext.getProperty(RedisUtils.REDIS_MODE).getValue());
@@ -356,7 +356,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             if (redisConnection != null) {
                 try {
                     redisConnection.close();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.warn("Error closing connection", e);
                 }
             }

@@ -48,8 +48,8 @@ public class ExecuteGraphQueryRecordTest {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        MockRecordWriter writer = new MockRecordWriter();
-        JsonTreeReader reader = new JsonTreeReader();
+        final MockRecordWriter writer = new MockRecordWriter();
+        final JsonTreeReader reader = new JsonTreeReader();
         runner = TestRunners.newTestRunner(ExecuteGraphQueryRecord.class);
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
@@ -63,13 +63,13 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testFlowFileContent() throws Exception {
         setupGraphClient(false);
-        List<Map<String, Object>> test = new ArrayList<>();
-        Map<String, Object> tempMap = new HashMap<>();
+        final List<Map<String, Object>> test = new ArrayList<>();
+        final Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", 1);
         test.add(tempMap);
 
-        byte[] json = JsonOutput.toJson(test).getBytes();
-        String submissionScript;
+        final byte[] json = JsonOutput.toJson(test).getBytes();
+        final String submissionScript;
         submissionScript = "[ 'M': M ]";
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
@@ -80,7 +80,7 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
+        final MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileContent.json"));
     }
@@ -88,13 +88,13 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testFlowFileList() throws Exception {
         setupGraphClient(false);
-        List<Map<String, Object>> test = new ArrayList<>();
-        Map<String, Object> tempMap = new HashMap<>();
+        final List<Map<String, Object>> test = new ArrayList<>();
+        final Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", List.of(1, 2, 3));
         test.add(tempMap);
 
-        byte[] json = JsonOutput.toJson(test).getBytes();
-        String submissionScript = "[ " +
+        final byte[] json = JsonOutput.toJson(test).getBytes();
+        final String submissionScript = "[ " +
                 "'M': M " +
                 "]";
 
@@ -106,7 +106,7 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
+        final MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testFlowFileList.json"));
     }
@@ -114,17 +114,17 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testAttributes() throws Exception {
         setupGraphClient(false);
-        List<Map<String, Object>> test = new ArrayList<>();
-        Map<String, Object> tempMap = new HashMap<>();
+        final List<Map<String, Object>> test = new ArrayList<>();
+        final Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("tMap", "123");
         test.add(tempMap);
 
-        byte[] json = JsonOutput.toJson(test).getBytes();
-        String submissionScript = "[ " +
+        final byte[] json = JsonOutput.toJson(test).getBytes();
+        final String submissionScript = "[ " +
                 "'testProperty': testProperty " +
                 "] ";
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
-        Map<String, String> enqueProperties = new HashMap<>();
+        final Map<String, String> enqueProperties = new HashMap<>();
         enqueProperties.put("testProperty", "test");
         runner.enqueue(json, enqueProperties);
 
@@ -132,19 +132,19 @@ public class ExecuteGraphQueryRecordTest {
         runner.assertTransferCount(ExecuteGraphQueryRecord.GRAPH, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.SUCCESS, 1);
         runner.assertTransferCount(ExecuteGraphQueryRecord.FAILURE, 0);
-        MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
+        final MockFlowFile relGraph = runner.getFlowFilesForRelationship(ExecuteGraphQueryRecord.GRAPH).getFirst();
 
         assertTrue(contentEqualsWindowsSafe(relGraph, "/testAttributes.json"));
     }
 
-    private boolean contentEqualsWindowsSafe(MockFlowFile flowFile, String expectedPath) throws IOException {
-        InputStream is = ExecuteGraphQueryRecordTest.class.getResourceAsStream(expectedPath);
-        String expectedRaw = IOUtils.toString(is, StandardCharsets.UTF_8);
-        String contentRaw = new String(runner.getContentAsByteArray(flowFile));
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> expected = mapper.readValue(expectedRaw, new TypeReference<>() {
+    private boolean contentEqualsWindowsSafe(final MockFlowFile flowFile, final String expectedPath) throws IOException {
+        final InputStream is = ExecuteGraphQueryRecordTest.class.getResourceAsStream(expectedPath);
+        final String expectedRaw = IOUtils.toString(is, StandardCharsets.UTF_8);
+        final String contentRaw = new String(runner.getContentAsByteArray(flowFile));
+        final ObjectMapper mapper = new ObjectMapper();
+        final List<Map<String, Object>> expected = mapper.readValue(expectedRaw, new TypeReference<>() {
         });
-        List<Map<String, Object>> content = mapper.readValue(contentRaw, new TypeReference<>() {
+        final List<Map<String, Object>> content = mapper.readValue(contentRaw, new TypeReference<>() {
         });
 
         assertEquals(expected.size(), content.size());
@@ -158,13 +158,13 @@ public class ExecuteGraphQueryRecordTest {
     @Test
     public void testExceptionOnQuery() throws Exception {
         setupGraphClient(true);
-        List<Map<String, Object>> test = new ArrayList<>();
-        Map<String, Object> tempMap = new HashMap<>();
+        final List<Map<String, Object>> test = new ArrayList<>();
+        final Map<String, Object> tempMap = new HashMap<>();
         tempMap.put("M", 1);
         test.add(tempMap);
 
-        byte[] json = JsonOutput.toJson(test).getBytes();
-        String submissionScript;
+        final byte[] json = JsonOutput.toJson(test).getBytes();
+        final String submissionScript;
         submissionScript = "[ 'M': M[0] ]";
 
         runner.setProperty(ExecuteGraphQueryRecord.SUBMISSION_SCRIPT, submissionScript);
@@ -190,8 +190,8 @@ public class ExecuteGraphQueryRecordTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void setupGraphClient(boolean failOnQuery) throws InitializationException {
-        InMemoryGraphClient graphClient = new InMemoryGraphClient(failOnQuery);
+    private void setupGraphClient(final boolean failOnQuery) throws InitializationException {
+        final InMemoryGraphClient graphClient = new InMemoryGraphClient(failOnQuery);
         runner.addControllerService("graphClient", graphClient);
 
         runner.setProperty(ExecuteGraphQueryRecord.CLIENT_SERVICE, "graphClient");

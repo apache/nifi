@@ -18,11 +18,11 @@
 package org.apache.nifi.oauth2;
 
 public class AccessTokenAcquisitionException extends Exception {
-    public AccessTokenAcquisitionException(String message) {
+    public AccessTokenAcquisitionException(final String message) {
         super(message);
     }
 
-    public AccessTokenAcquisitionException(Throwable t) {
+    public AccessTokenAcquisitionException(final Throwable t) {
         super(t);
     }
 }

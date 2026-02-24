@@ -35,7 +35,7 @@ public class AdaptedNodeConnectionStatus {
         return updateId;
     }
 
-    public void setUpdateId(Long updateId) {
+    public void setUpdateId(final Long updateId) {
         this.updateId = updateId;
     }
 
@@ -43,7 +43,7 @@ public class AdaptedNodeConnectionStatus {
         return nodeId;
     }
 
-    public void setNodeId(NodeIdentifier nodeId) {
+    public void setNodeId(final NodeIdentifier nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -51,7 +51,7 @@ public class AdaptedNodeConnectionStatus {
         return state;
     }
 
-    public void setState(NodeConnectionState state) {
+    public void setState(final NodeConnectionState state) {
         this.state = state;
     }
 
@@ -63,11 +63,11 @@ public class AdaptedNodeConnectionStatus {
         return disconnectCode;
     }
 
-    public void setOffloadCode(OffloadCode offloadCode) {
+    public void setOffloadCode(final OffloadCode offloadCode) {
         this.offloadCode = offloadCode;
     }
 
-    public void setDisconnectCode(DisconnectionCode disconnectCode) {
+    public void setDisconnectCode(final DisconnectionCode disconnectCode) {
         this.disconnectCode = disconnectCode;
     }
 
@@ -75,7 +75,7 @@ public class AdaptedNodeConnectionStatus {
         return reason;
     }
 
-    public void setReason(String reason) {
+    public void setReason(final String reason) {
         this.reason = reason;
     }
 
@@ -83,7 +83,7 @@ public class AdaptedNodeConnectionStatus {
         return connectionRequestTime;
     }
 
-    public void setConnectionRequestTime(Long connectionRequestTime) {
+    public void setConnectionRequestTime(final Long connectionRequestTime) {
         this.connectionRequestTime = connectionRequestTime;
     }
 }

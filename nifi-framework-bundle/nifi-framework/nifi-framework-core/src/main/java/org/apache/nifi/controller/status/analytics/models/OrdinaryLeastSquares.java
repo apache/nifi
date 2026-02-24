@@ -44,20 +44,20 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
     }
 
     @Override
-    public void learn(Stream<Double[]> features, Stream<Double> labels) {
-        double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
-        double[][] featuresMatrix = features.map(ArrayUtils::toPrimitive).toArray(double[][]::new);
+    public void learn(final Stream<Double[]> features, final Stream<Double> labels) {
+        final double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
+        final double[][] featuresMatrix = features.map(ArrayUtils::toPrimitive).toArray(double[][]::new);
         this.olsModel.newSampleData(labelArray, featuresMatrix);
         try {
             this.coefficients = olsModel.estimateRegressionParameters();
-        } catch (SingularMatrixException sme) {
+        } catch (final SingularMatrixException sme) {
             LOG.debug("The OLSMultipleLinearRegression model's matrix has no inverse (i.e. it is singular) so regression parameters can not be estimated at this time.");
 
         }
     }
 
     @Override
-    public Double predict(Double[] feature) {
+    public Double predict(final Double[] feature) {
         if (coefficients == null) {
             return null;
         } else {
@@ -72,7 +72,7 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
     }
 
     @Override
-    public Double predictVariable(Integer predictVariableIndex, Map<Integer, Double> knownVariablesWithIndex, Double label) {
+    public Double predictVariable(final Integer predictVariableIndex, final Map<Integer, Double> knownVariablesWithIndex, final Double label) {
         if (coefficients == null) {
             return null;
         } else {
@@ -92,11 +92,11 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
         if (coefficients == null) {
             return null;
         } else {
-            Map<String, Double> scores = new HashMap<>();
+            final Map<String, Double> scores = new HashMap<>();
             try {
                 scores.put("rSquared", olsModel.calculateRSquared());
                 scores.put("totalSumOfSquares", olsModel.calculateTotalSumOfSquares());
-            } catch (SingularMatrixException sme) {
+            } catch (final SingularMatrixException sme) {
                 LOG.debug("The OLSMultipleLinearRegression model's matrix has no inverse (i.e. it is singular) so no scores can be calculated at this time.");
             }
             return scores;

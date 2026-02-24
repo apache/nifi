@@ -32,19 +32,19 @@ class Flow {
      */
     private final Map<Integer, FlowPointer> versions = new HashMap<>();
 
-    public Flow(String flowId) {
+    public Flow(final String flowId) {
         this.flowId = flowId;
     }
 
-    public boolean hasVersion(int version) {
+    public boolean hasVersion(final int version) {
         return versions.containsKey(version);
     }
 
-    public FlowPointer getFlowVersion(int version) {
+    public FlowPointer getFlowVersion(final int version) {
         return versions.get(version);
     }
 
-    public void putVersion(int version, FlowPointer pointer) {
+    public void putVersion(final int version, final FlowPointer pointer) {
         versions.put(version, pointer);
     }
 
@@ -68,11 +68,11 @@ class Flow {
          * Create new FlowPointer instance.
          * @param fileName The filename must be sanitized, use {@link org.apache.nifi.registry.util.FileUtils#sanitizeFilename(String)} to do so.
          */
-        public FlowPointer(String fileName) {
+        public FlowPointer(final String fileName) {
             this.fileName = fileName;
         }
 
-        public void setGitRev(String gitRev) {
+        public void setGitRev(final String gitRev) {
             this.gitRev = gitRev;
         }
 
@@ -88,7 +88,7 @@ class Flow {
             return objectId;
         }
 
-        public void setObjectId(String objectId) {
+        public void setObjectId(final String objectId) {
             this.objectId = objectId;
         }
 
@@ -96,7 +96,7 @@ class Flow {
             return flowName;
         }
 
-        public void setFlowName(String flowName) {
+        public void setFlowName(final String flowName) {
             this.flowName = flowName;
         }
 
@@ -104,7 +104,7 @@ class Flow {
             return flowDescription;
         }
 
-        public void setFlowDescription(String flowDescription) {
+        public void setFlowDescription(final String flowDescription) {
             this.flowDescription = flowDescription;
         }
 
@@ -112,7 +112,7 @@ class Flow {
             return author;
         }
 
-        public void setAuthor(String author) {
+        public void setAuthor(final String author) {
             this.author = author;
         }
 
@@ -120,7 +120,7 @@ class Flow {
             return comment;
         }
 
-        public void setComment(String comment) {
+        public void setComment(final String comment) {
             this.comment = comment;
         }
 
@@ -128,7 +128,7 @@ class Flow {
             return created;
         }
 
-        public void setCreated(Long created) {
+        public void setCreated(final Long created) {
             this.created = created;
         }
     }

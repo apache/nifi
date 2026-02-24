@@ -33,7 +33,7 @@ public class LimitingInputStreamTest {
     @Test
     public void testReadLimitNotReached() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 50);
-        long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
+        final long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
         assertEquals(bytesRead, TEST_BUFFER.length);
         assertFalse(is.hasReachedLimit());
     }
@@ -41,7 +41,7 @@ public class LimitingInputStreamTest {
     @Test
     public void testReadLimitMatched() throws IOException {
         final LimitingInputStream is = new LimitingInputStream(new ByteArrayInputStream(TEST_BUFFER), 10);
-        long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
+        final long bytesRead = StreamUtils.copy(is, new ByteArrayOutputStream());
         assertEquals(bytesRead, TEST_BUFFER.length);
         assertTrue(is.hasReachedLimit());
     }

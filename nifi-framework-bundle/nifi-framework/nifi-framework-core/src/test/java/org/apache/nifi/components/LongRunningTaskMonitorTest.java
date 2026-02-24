@@ -47,31 +47,31 @@ public class LongRunningTaskMonitorTest {
 
     @Test
     public void test() {
-        ThreadDetails threadDetails = mock(ThreadDetails.class);
+        final ThreadDetails threadDetails = mock(ThreadDetails.class);
 
-        ActiveThreadInfo activeThreadInfo11 = mockActiveThreadInfo("Thread-11", 60_000);
-        ActiveThreadInfo activeThreadInfo12 = mockActiveThreadInfo("Thread-12", 60_001);
+        final ActiveThreadInfo activeThreadInfo11 = mockActiveThreadInfo("Thread-11", 60_000);
+        final ActiveThreadInfo activeThreadInfo12 = mockActiveThreadInfo("Thread-12", 60_001);
 
-        TerminationAwareLogger processorLogger1 = mock(TerminationAwareLogger.class);
-        ProcessorNode processorNode1 = mockProcessorNode("Processor-1-ID", "Processor-1-Name", "Processor-1-Type", processorLogger1,
+        final TerminationAwareLogger processorLogger1 = mock(TerminationAwareLogger.class);
+        final ProcessorNode processorNode1 = mockProcessorNode("Processor-1-ID", "Processor-1-Name", "Processor-1-Type", processorLogger1,
                 threadDetails, activeThreadInfo11, activeThreadInfo12);
 
-        ActiveThreadInfo activeThreadInfo21 = mockActiveThreadInfo("Thread-21", 1_000_000);
-        ActiveThreadInfo activeThreadInfo22 = mockActiveThreadInfo("Thread-22", 1_000);
+        final ActiveThreadInfo activeThreadInfo21 = mockActiveThreadInfo("Thread-21", 1_000_000);
+        final ActiveThreadInfo activeThreadInfo22 = mockActiveThreadInfo("Thread-22", 1_000);
 
-        TerminationAwareLogger processorLogger2 = mock(TerminationAwareLogger.class);
-        ProcessorNode processorNode2 = mockProcessorNode("Processor-2-ID", "Processor-2-Name", "Processor-2-Type", processorLogger2,
+        final TerminationAwareLogger processorLogger2 = mock(TerminationAwareLogger.class);
+        final ProcessorNode processorNode2 = mockProcessorNode("Processor-2-ID", "Processor-2-Name", "Processor-2-Type", processorLogger2,
                 threadDetails, activeThreadInfo21, activeThreadInfo22);
 
-        ProcessGroup processGroup = mockProcessGroup(processorNode1, processorNode2);
+        final ProcessGroup processGroup = mockProcessGroup(processorNode1, processorNode2);
 
-        FlowManager flowManager = mockFlowManager(processGroup);
+        final FlowManager flowManager = mockFlowManager(processGroup);
 
-        EventReporter eventReporter = mock(EventReporter.class);
+        final EventReporter eventReporter = mock(EventReporter.class);
 
-        Logger longRunningTaskMonitorLogger = mock(Logger.class);
+        final Logger longRunningTaskMonitorLogger = mock(Logger.class);
 
-        LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(flowManager, eventReporter, 60_000) {
+        final LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(flowManager, eventReporter, 60_000) {
             @Override
             protected Logger getLogger() {
                 return longRunningTaskMonitorLogger;
@@ -85,13 +85,13 @@ public class LongRunningTaskMonitorTest {
 
         longRunningTaskMonitor.run();
 
-        ArgumentCaptor<String> logMessages = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> logMessages = ArgumentCaptor.forClass(String.class);
         verify(longRunningTaskMonitorLogger, times(2)).warn(logMessages.capture());
         assertEquals("Long running task detected on processor [id=Processor-1-ID, name=Processor-1-Name, type=Processor-1-Type]. Task time: 60 seconds. Stack trace:\n" + STACKTRACE,
                 logMessages.getAllValues().get(0));
         assertEquals("Long running task detected on processor [id=Processor-2-ID, name=Processor-2-Name, type=Processor-2-Type]. Task time: 1,000 seconds. Stack trace:\n" + STACKTRACE,
                 logMessages.getAllValues().get(1).replace(NumberFormat.getInstance(Locale.getDefault()).format(1000), NumberFormat.getInstance(Locale.US).format(1000)));
-        ArgumentCaptor<String> controllerBulletinMessages = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> controllerBulletinMessages = ArgumentCaptor.forClass(String.class);
         verify(eventReporter, times(2)).reportEvent(eq(Severity.WARNING), eq("Long Running Task"), controllerBulletinMessages.capture());
 
         final String firstBulletinMessage = controllerBulletinMessages.getAllValues().get(0);
@@ -107,8 +107,8 @@ public class LongRunningTaskMonitorTest {
         assertTrue(secondBulletinMessage.contains("Thread-21"));
     }
 
-    private ActiveThreadInfo mockActiveThreadInfo(String threadName, long activeMillis) {
-        ActiveThreadInfo activeThreadInfo = mock(ActiveThreadInfo.class);
+    private ActiveThreadInfo mockActiveThreadInfo(final String threadName, final long activeMillis) {
+        final ActiveThreadInfo activeThreadInfo = mock(ActiveThreadInfo.class);
 
         when(activeThreadInfo.getThreadName()).thenReturn(threadName);
         when(activeThreadInfo.getStackTrace()).thenReturn(STACKTRACE);
@@ -117,9 +117,9 @@ public class LongRunningTaskMonitorTest {
         return activeThreadInfo;
     }
 
-    private ProcessorNode mockProcessorNode(String processorId, String processorName, String processorType, TerminationAwareLogger processorLogger,
-                                            ThreadDetails threadDetails, ActiveThreadInfo... activeThreadInfos) {
-        ProcessorNode processorNode = mock(ProcessorNode.class);
+    private ProcessorNode mockProcessorNode(final String processorId, final String processorName, final String processorType, final TerminationAwareLogger processorLogger,
+                                            final ThreadDetails threadDetails, final ActiveThreadInfo... activeThreadInfos) {
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
 
         when(processorNode.getIdentifier()).thenReturn(processorId);
         when(processorNode.getName()).thenReturn(processorName);
@@ -130,16 +130,16 @@ public class LongRunningTaskMonitorTest {
         return processorNode;
     }
 
-    private ProcessGroup mockProcessGroup(ProcessorNode... processorNodes) {
-        ProcessGroup processGroup = mock(ProcessGroup.class);
+    private ProcessGroup mockProcessGroup(final ProcessorNode... processorNodes) {
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
 
         when(processGroup.findAllProcessors()).thenReturn(Arrays.asList(processorNodes));
 
         return processGroup;
     }
 
-    private FlowManager mockFlowManager(ProcessGroup processGroup) {
-        FlowManager flowManager = mock(FlowManager.class);
+    private FlowManager mockFlowManager(final ProcessGroup processGroup) {
+        final FlowManager flowManager = mock(FlowManager.class);
 
         when(flowManager.getRootGroup()).thenReturn(processGroup);
 

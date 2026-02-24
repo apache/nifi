@@ -248,12 +248,12 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
     }
 
     @Override
-    public boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location) {
+    public boolean isStorageLocationApplicable(final FlowRegistryClientConfigurationContext context, final String location) {
         return location != null && location.startsWith(STORAGE_LOCATION_PREFIX);
     }
 
     @Override
-    protected String getStorageLocation(GitRepositoryClient repositoryClient) {
+    protected String getStorageLocation(final GitRepositoryClient repositoryClient) {
         final BitbucketRepositoryClient bitbucketRepositoryClient = (BitbucketRepositoryClient) repositoryClient;
 
         if (bitbucketRepositoryClient.getFormFactor() == BitbucketFormFactor.DATA_CENTER) {

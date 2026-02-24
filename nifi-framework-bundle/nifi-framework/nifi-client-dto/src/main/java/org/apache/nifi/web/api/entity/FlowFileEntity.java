@@ -36,7 +36,7 @@ public class FlowFileEntity extends Entity {
         return flowFile;
     }
 
-    public void setFlowFile(FlowFileDTO flowFile) {
+    public void setFlowFile(final FlowFileDTO flowFile) {
         this.flowFile = flowFile;
     }
 

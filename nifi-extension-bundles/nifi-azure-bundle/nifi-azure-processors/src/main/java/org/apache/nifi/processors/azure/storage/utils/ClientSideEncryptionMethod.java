@@ -29,7 +29,7 @@ public enum ClientSideEncryptionMethod implements DescribedValue {
 
     private final String description;
 
-    ClientSideEncryptionMethod(String description) {
+    ClientSideEncryptionMethod(final String description) {
         this.description = description;
     }
 

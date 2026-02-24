@@ -99,7 +99,7 @@ public class DatabaseRecordSinkTest {
     @BeforeEach
     public void setService(@TempDir final Path tempDir) throws InitializationException {
         dbcpService = new DBCPConnectionPool();
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, dbcpService);
 
         connectionUrl = CONNECTION_URL_FORMAT.formatted(tempDir);
@@ -285,7 +285,7 @@ public class DatabaseRecordSinkTest {
         assertEquals(expectedRenamed, propertiesRenamed);
     }
 
-    private DatabaseRecordSink initTask(String tableName) throws InitializationException {
+    private DatabaseRecordSink initTask(final String tableName) throws InitializationException {
         final ComponentLog logger = mock(ComponentLog.class);
         final DatabaseRecordSink task = new DatabaseRecordSink();
         final ConfigurationContext context = mock(ConfigurationContext.class);

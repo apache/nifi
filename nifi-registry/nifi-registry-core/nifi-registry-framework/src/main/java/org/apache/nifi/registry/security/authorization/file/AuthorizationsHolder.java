@@ -68,8 +68,8 @@ public class AuthorizationsHolder {
      * @param policies the JAXB Policies element
      * @return a set of AccessPolicies corresponding to the provided Resources
      */
-    private Set<AccessPolicy> createAccessPolicies(org.apache.nifi.registry.security.authorization.file.generated.Policies policies) {
-        Set<AccessPolicy> allPolicies = new HashSet<>();
+    private Set<AccessPolicy> createAccessPolicies(final org.apache.nifi.registry.security.authorization.file.generated.Policies policies) {
+        final Set<AccessPolicy> allPolicies = new HashSet<>();
         if (policies == null || policies.getPolicy() == null) {
             return allPolicies;
         }
@@ -85,12 +85,12 @@ public class AuthorizationsHolder {
                     .resource(resourceIdentifier);
 
             // add each user identifier
-            for (org.apache.nifi.registry.security.authorization.file.generated.Policy.User user : policy.getUser()) {
+            for (final org.apache.nifi.registry.security.authorization.file.generated.Policy.User user : policy.getUser()) {
                 builder.addUser(user.getIdentifier());
             }
 
             // add each group identifier
-            for (org.apache.nifi.registry.security.authorization.file.generated.Policy.Group group : policy.getGroup()) {
+            for (final org.apache.nifi.registry.security.authorization.file.generated.Policy.Group group : policy.getGroup()) {
                 builder.addGroup(group.getIdentifier());
             }
 

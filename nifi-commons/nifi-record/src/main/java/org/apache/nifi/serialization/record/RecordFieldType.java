@@ -219,7 +219,7 @@ public enum RecordFieldType {
     private static final Map<String, RecordFieldType> SIMPLE_NAME_MAP = new HashMap<>();
 
     static {
-        for (RecordFieldType value : values()) {
+        for (final RecordFieldType value : values()) {
             SIMPLE_NAME_MAP.put(value.simpleName, value);
         }
     }
@@ -397,7 +397,7 @@ public enum RecordFieldType {
      * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
      *         is not the MAP type.
      */
-    public DataType getMapDataType(final DataType valueDataType, boolean valuesNullable) {
+    public DataType getMapDataType(final DataType valueDataType, final boolean valuesNullable) {
         if (this != MAP) {
             return null;
         }

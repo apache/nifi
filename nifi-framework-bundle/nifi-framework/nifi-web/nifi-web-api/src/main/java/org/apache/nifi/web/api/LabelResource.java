@@ -69,8 +69,8 @@ public class LabelResource extends ApplicationResource {
      * @param labelEntities labels
      * @return entites
      */
-    public Set<LabelEntity> populateRemainingLabelEntitiesContent(Set<LabelEntity> labelEntities) {
-        for (LabelEntity labelEntity : labelEntities) {
+    public Set<LabelEntity> populateRemainingLabelEntitiesContent(final Set<LabelEntity> labelEntities) {
+        for (final LabelEntity labelEntity : labelEntities) {
             populateRemainingLabelEntityContent(labelEntity);
         }
         return labelEntities;
@@ -82,7 +82,7 @@ public class LabelResource extends ApplicationResource {
      * @param labelEntity label
      * @return entities
      */
-    public LabelEntity populateRemainingLabelEntityContent(LabelEntity labelEntity) {
+    public LabelEntity populateRemainingLabelEntityContent(final LabelEntity labelEntity) {
         labelEntity.setUri(generateResourceUri("labels", labelEntity.getId()));
         return labelEntity;
     }
@@ -206,7 +206,7 @@ public class LabelResource extends ApplicationResource {
                 requestLabelEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getLabel(id);
+                    final Authorizable authorizable = lookup.getLabel(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
@@ -302,12 +302,12 @@ public class LabelResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

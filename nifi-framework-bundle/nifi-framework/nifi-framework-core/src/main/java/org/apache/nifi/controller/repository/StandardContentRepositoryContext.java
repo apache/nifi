@@ -24,7 +24,7 @@ public class StandardContentRepositoryContext implements ContentRepositoryContex
     private final ResourceClaimManager resourceClaimManager;
     private final EventReporter eventReporter;
 
-    public StandardContentRepositoryContext(ResourceClaimManager resourceClaimManager, EventReporter eventReporter) {
+    public StandardContentRepositoryContext(final ResourceClaimManager resourceClaimManager, final EventReporter eventReporter) {
         this.resourceClaimManager = resourceClaimManager;
         this.eventReporter = eventReporter;
     }

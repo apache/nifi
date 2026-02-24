@@ -36,7 +36,7 @@ public enum NarManifestEntry {
 
     final String manifestName;
 
-    NarManifestEntry(String manifestName) {
+    NarManifestEntry(final String manifestName) {
         this.manifestName = manifestName;
     }
 

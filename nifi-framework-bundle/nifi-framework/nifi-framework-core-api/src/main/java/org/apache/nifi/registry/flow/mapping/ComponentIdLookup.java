@@ -31,7 +31,7 @@ public interface ComponentIdLookup {
      * @param componentId the ID of the component
      * @return the ID to use for mapping a component to a Versioned Component
      */
-    default String getComponentId(Optional<String> currentVersionedId, String componentId) {
+    default String getComponentId(final Optional<String> currentVersionedId, final String componentId) {
         return getComponentId(currentVersionedId, componentId, DEFAULT_VERSIONED_UUID_GENERATOR);
     }
 

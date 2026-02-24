@@ -75,8 +75,8 @@ public class LoadNativeLibAspectTest {
     @Test
     public void testWhenNativeLibraryFileNotExistsThenProceedNormally() throws Throwable {
         // GIVEN
-        String libFileName = "mylib_dummy.so";
-        Path libFilePath = Paths.get("target", libFileName).toAbsolutePath();
+        final String libFileName = "mylib_dummy.so";
+        final Path libFilePath = Paths.get("target", libFileName).toAbsolutePath();
 
         when(joinPoint.getArgs()).thenReturn(new Object[]{libFilePath.toString()});
 
@@ -90,9 +90,9 @@ public class LoadNativeLibAspectTest {
     @Test
     public void testWhenNativeLibraryFileExistsThenCreateATempCopyAndProceedWithThat() throws Throwable {
         // GIVEN
-        String libFileName = "mylib.so";
-        byte[] libFileContent = "code".getBytes();
-        Path libFilePath = Paths.get("target", libFileName).toAbsolutePath();
+        final String libFileName = "mylib.so";
+        final byte[] libFileContent = "code".getBytes();
+        final Path libFilePath = Paths.get("target", libFileName).toAbsolutePath();
         Files.write(libFilePath, libFileContent);
 
         when(joinPoint.getArgs()).thenReturn(new Object[]{libFilePath.toString()});
@@ -101,17 +101,17 @@ public class LoadNativeLibAspectTest {
         aspect.around(joinPoint);
 
         // THEN
-        ArgumentCaptor<Object[]> captor = ArgumentCaptor.forClass(Object[].class);
+        final ArgumentCaptor<Object[]> captor = ArgumentCaptor.forClass(Object[].class);
         verify(joinPoint).proceed(captor.capture());
 
-        Object[] args = captor.getValue();
+        final Object[] args = captor.getValue();
         assertNotNull(args);
         assertEquals(1, args.length);
         assertNotNull(args[0]);
         assertInstanceOf(String.class, args[0]);
 
-        String tempLibFilePathStr = (String) args[0];
-        Path tempLibFilePath = Paths.get(tempLibFilePathStr);
+        final String tempLibFilePathStr = (String) args[0];
+        final Path tempLibFilePath = Paths.get(tempLibFilePathStr);
         assertEquals(TEMP_DIR, tempLibFilePath.getParent());
         assertTrue(tempLibFilePathStr.endsWith(libFileName));
         assertTrue(Files.exists(tempLibFilePath));

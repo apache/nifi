@@ -27,7 +27,7 @@ public class FlowSnapshotEntityRowMapper implements RowMapper<FlowSnapshotEntity
 
     @Nullable
     @Override
-    public FlowSnapshotEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public FlowSnapshotEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final FlowSnapshotEntity entity = new FlowSnapshotEntity();
         entity.setFlowId(rs.getString("FLOW_ID"));
         entity.setVersion(rs.getInt("VERSION"));

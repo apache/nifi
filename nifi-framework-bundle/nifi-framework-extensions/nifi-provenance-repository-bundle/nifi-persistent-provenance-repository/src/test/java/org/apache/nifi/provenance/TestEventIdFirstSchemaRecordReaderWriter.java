@@ -438,7 +438,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
             4, 80, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 40_000, 80_000, 99_000
         };
 
-        boolean loopForever = true;
+        final boolean loopForever = true;
         while (loopForever) {
             final long start = System.nanoTime();
             for (int i = 0; i < 1000; i++) {

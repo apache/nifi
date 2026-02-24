@@ -26,7 +26,7 @@ import static org.apache.nifi.minifi.bootstrap.Status.OK;
 public class FlowStatusRunner implements CommandRunner {
     private final PeriodicStatusReporterManager periodicStatusReporterManager;
 
-    public FlowStatusRunner(PeriodicStatusReporterManager periodicStatusReporterManager) {
+    public FlowStatusRunner(final PeriodicStatusReporterManager periodicStatusReporterManager) {
         this.periodicStatusReporterManager = periodicStatusReporterManager;
     }
 
@@ -37,7 +37,7 @@ public class FlowStatusRunner implements CommandRunner {
      * @return status code
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         if (args.length == 2) {
             CMD_LOGGER.info("{}", periodicStatusReporterManager.statusReport(args[1]));
             return OK.getStatusCode();

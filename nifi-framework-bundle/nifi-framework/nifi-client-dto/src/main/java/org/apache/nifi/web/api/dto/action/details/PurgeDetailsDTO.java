@@ -42,7 +42,7 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
         return endDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(final Date endDate) {
         this.endDate = endDate;
     }
 }

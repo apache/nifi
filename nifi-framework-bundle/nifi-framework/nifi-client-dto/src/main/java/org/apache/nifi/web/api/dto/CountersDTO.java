@@ -33,7 +33,7 @@ public class CountersDTO {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(CountersSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final CountersSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -43,7 +43,7 @@ public class CountersDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeCountersSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeCountersSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 }

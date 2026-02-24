@@ -50,7 +50,7 @@ public class ProvenanceNodeDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -63,7 +63,7 @@ public class ProvenanceNodeDTO {
         return flowFileUuid;
     }
 
-    public void setFlowFileUuid(String flowFileUuid) {
+    public void setFlowFileUuid(final String flowFileUuid) {
         this.flowFileUuid = flowFileUuid;
     }
 
@@ -76,7 +76,7 @@ public class ProvenanceNodeDTO {
         return parentUuids;
     }
 
-    public void setParentUuids(List<String> parentUuids) {
+    public void setParentUuids(final List<String> parentUuids) {
         this.parentUuids = parentUuids;
     }
 
@@ -89,7 +89,7 @@ public class ProvenanceNodeDTO {
         return childUuids;
     }
 
-    public void setChildUuids(List<String> childUuids) {
+    public void setChildUuids(final List<String> childUuids) {
         this.childUuids = childUuids;
     }
 
@@ -102,7 +102,7 @@ public class ProvenanceNodeDTO {
         return clusterNodeIdentifier;
     }
 
-    public void setClusterNodeIdentifier(String clusterNodeIdentifier) {
+    public void setClusterNodeIdentifier(final String clusterNodeIdentifier) {
         this.clusterNodeIdentifier = clusterNodeIdentifier;
     }
 
@@ -116,7 +116,7 @@ public class ProvenanceNodeDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -129,7 +129,7 @@ public class ProvenanceNodeDTO {
         return eventType;
     }
 
-    public void setEventType(String eventType) {
+    public void setEventType(final String eventType) {
         this.eventType = eventType;
     }
 
@@ -142,7 +142,7 @@ public class ProvenanceNodeDTO {
         return componentType;
     }
 
-    public void setComponentType(String componentType) {
+    public void setComponentType(final String componentType) {
         this.componentType = componentType;
     }
 
@@ -157,7 +157,7 @@ public class ProvenanceNodeDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -170,7 +170,7 @@ public class ProvenanceNodeDTO {
         return millis;
     }
 
-    public void setMillis(Long millis) {
+    public void setMillis(final Long millis) {
         this.millis = millis;
     }
 

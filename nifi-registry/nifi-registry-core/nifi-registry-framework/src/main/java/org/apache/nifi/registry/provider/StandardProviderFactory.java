@@ -69,7 +69,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
     private static JAXBContext initializeJaxbContext() {
         try {
             return JAXBContext.newInstance(JAXB_GENERATED_PATH, StandardProviderFactory.class.getClassLoader());
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }
@@ -120,7 +120,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                     // set the holder for later use
                     final JAXBElement<Providers> element = unmarshaller.unmarshal(new StreamSource(providersConfigFile), Providers.class);
                     providersHolder.set(element.getValue());
-                } catch (SAXException | JAXBException e) {
+                } catch (final SAXException | JAXBException e) {
                     LOGGER.error(e.getMessage(), e);
                     throw new ProviderFactoryException("Unable to load the providers configuration file at: " + providersConfigFile.getAbsolutePath(), e);
                 }
@@ -157,7 +157,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 performMethodInjection(flowPersistenceProvider, flowProviderClass);
 
                 LOGGER.info("Instantiated FlowPersistenceProvider with class name {}", flowProviderClassName);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating FlowPersistenceProvider with class name: " + flowProviderClassName, e);
             }
@@ -188,10 +188,10 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 return eventHookProviders;
             }
 
-            for (org.apache.nifi.registry.provider.generated.Provider hookProvider : jaxbHookProvider) {
+            for (final org.apache.nifi.registry.provider.generated.Provider hookProvider : jaxbHookProvider) {
 
                 final String hookProviderClassName = hookProvider.getClazz();
-                EventHookProvider hook;
+                final EventHookProvider hook;
 
                 try {
                     final ClassLoader classLoader = extensionManager.getExtensionClassLoader(hookProviderClassName);
@@ -208,7 +208,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                     performMethodInjection(hook, hookProviderClass);
 
                     LOGGER.info("Instantiated EventHookProvider with class name {}", hookProviderClassName);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     LOGGER.error(e.getMessage(), e);
                     throw new ProviderFactoryException("Error creating EventHookProvider with class name: " + hookProviderClassName, e);
                 }
@@ -252,7 +252,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
                 performMethodInjection(bundlePersistenceProvider, extensionBundleProviderClass);
 
                 LOGGER.info("Instantiated BundlePersistenceProvider with class name {}", extensionBundleProviderClassName);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.error(e.getMessage(), e);
                 throw new ProviderFactoryException("Error creating BundlePersistenceProvider with class name: " + extensionBundleProviderClassName, e);
             }
@@ -275,7 +275,7 @@ public class StandardProviderFactory implements ProviderFactory, DisposableBean 
             if (provider != null) {
                 try {
                     provider.preDestruction();
-                } catch (Throwable t) {
+                } catch (final Throwable t) {
                     LOGGER.error(t.getMessage(), t);
                 }
             }

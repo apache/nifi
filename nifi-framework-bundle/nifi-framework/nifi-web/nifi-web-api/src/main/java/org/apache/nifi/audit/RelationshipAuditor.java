@@ -79,9 +79,9 @@ public class RelationshipAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(org.apache.nifi.connectable.Connection createConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO))")
-    public Connection createConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Connection createConnectionAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
-        Connection connection = (Connection) proceedingJoinPoint.proceed();
+        final Connection connection = (Connection) proceedingJoinPoint.proceed();
 
         // audit the connection creation
         final ConnectDetails connectDetails = createConnectDetails(connection, connection.getRelationships());
@@ -108,25 +108,25 @@ public class RelationshipAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.connectable.Connection updateConnection(org.apache.nifi.web.api.dto.ConnectionDTO)) && "
             + "args(connectionDTO) && "
             + "target(connectionDAO)")
-    public Connection updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
+    public Connection updateConnectionAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ConnectionDTO connectionDTO, final ConnectionDAO connectionDAO) throws Throwable {
         // get the previous configuration
         Connection connection = connectionDAO.getConnection(connectionDTO.getId());
-        Connectable previousDestination = connection.getDestination();
-        Collection<Relationship> previousRelationships = connection.getRelationships();
-        Map<String, String> values = extractConfiguredPropertyValues(connection, connectionDTO);
+        final Connectable previousDestination = connection.getDestination();
+        final Collection<Relationship> previousRelationships = connection.getRelationships();
+        final Map<String, String> values = extractConfiguredPropertyValues(connection, connectionDTO);
 
         // perform the underlying operation
         connection = (Connection) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            Collection<Action> actions = new ArrayList<>();
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(connection, connectionDTO);
+            final Collection<Action> actions = new ArrayList<>();
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(connection, connectionDTO);
 
             // get the source
-            Connectable source = connection.getSource();
+            final Connectable source = connection.getSource();
 
             // get the current target
-            Connectable destination = connection.getDestination();
+            final Connectable destination = connection.getDestination();
 
             // determine if a new target was specified in the initial request
             if (destination != null && !previousDestination.getIdentifier().equals(destination.getIdentifier())) {
@@ -140,11 +140,11 @@ public class RelationshipAuditor extends NiFiAuditor {
             }
 
             // audit and relationships added/removed
-            Collection<Relationship> newRelationships = connection.getRelationships();
+            final Collection<Relationship> newRelationships = connection.getRelationships();
 
             // identify any relationships that were added
             if (newRelationships != null) {
-                List<Relationship> relationshipsToAdd = new ArrayList<>(newRelationships);
+                final List<Relationship> relationshipsToAdd = new ArrayList<>(newRelationships);
                 if (previousRelationships != null) {
                     relationshipsToAdd.removeAll(previousRelationships);
                 }
@@ -156,7 +156,7 @@ public class RelationshipAuditor extends NiFiAuditor {
 
             // identify any relationships that were removed
             if (previousRelationships != null) {
-                List<Relationship> relationshipsToRemove = new ArrayList<>(previousRelationships);
+                final List<Relationship> relationshipsToRemove = new ArrayList<>(previousRelationships);
                 if (newRelationships != null) {
                     relationshipsToRemove.removeAll(newRelationships);
                 }
@@ -167,15 +167,15 @@ public class RelationshipAuditor extends NiFiAuditor {
             }
 
             // go through each updated value
-            Date actionTimestamp = new Date();
-            for (String property : updatedValues.keySet()) {
-                String newValue = updatedValues.get(property);
-                String oldValue = values.get(property);
+            final Date actionTimestamp = new Date();
+            for (final String property : updatedValues.keySet()) {
+                final String newValue = updatedValues.get(property);
+                final String oldValue = values.get(property);
 
                 // ensure the value is changing
                 if (oldValue == null || newValue == null || !newValue.equals(oldValue)) {
                     // create the config details
-                    FlowChangeConfigureDetails configurationDetails = new FlowChangeConfigureDetails();
+                    final FlowChangeConfigureDetails configurationDetails = new FlowChangeConfigureDetails();
                     configurationDetails.setName(property);
                     configurationDetails.setValue(newValue);
                     configurationDetails.setPreviousValue(oldValue);
@@ -214,9 +214,9 @@ public class RelationshipAuditor extends NiFiAuditor {
             + "execution(void deleteConnection(java.lang.String)) && "
             + "args(id) && "
             + "target(connectionDAO)")
-    public void removeConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String id, ConnectionDAO connectionDAO) throws Throwable {
+    public void removeConnectionAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String id, final ConnectionDAO connectionDAO) throws Throwable {
         // get the connection before performing the update
-        Connection connection = connectionDAO.getConnection(id);
+        final Connection connection = connectionDAO.getConnection(id);
 
         // perform the underlying operation
         proceedingJoinPoint.proceed();
@@ -249,7 +249,7 @@ public class RelationshipAuditor extends NiFiAuditor {
         final Component destiantionType = determineConnectableType(destination);
 
         // format the relationship names
-        Collection<String> relationshipNames = new HashSet<>(connection.getRelationships().size());
+        final Collection<String> relationshipNames = new HashSet<>(connection.getRelationships().size());
         for (final Relationship relationship : relationships) {
             relationshipNames.add(relationship.getName());
         }
@@ -274,8 +274,8 @@ public class RelationshipAuditor extends NiFiAuditor {
      * @param connectionDTO dto
      * @return properties
      */
-    private Map<String, String> extractConfiguredPropertyValues(Connection connection, ConnectionDTO connectionDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final Connection connection, final ConnectionDTO connectionDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (connectionDTO.getName() != null) {
             values.put(NAME, connection.getName());
@@ -290,8 +290,8 @@ public class RelationshipAuditor extends NiFiAuditor {
             values.put(BACK_PRESSURE_DATA_SIZE_THRESHOLD, String.valueOf(connection.getFlowFileQueue().getBackPressureDataSizeThreshold()));
         }
         if (connectionDTO.getPrioritizers() != null) {
-            List<String> prioritizers = new ArrayList<>();
-            for (FlowFilePrioritizer prioritizer : connection.getFlowFileQueue().getPriorities()) {
+            final List<String> prioritizers = new ArrayList<>();
+            for (final FlowFilePrioritizer prioritizer : connection.getFlowFileQueue().getPriorities()) {
                 prioritizers.add(prioritizer.getClass().getCanonicalName());
             }
             values.put(PRIORITIZERS, StringUtils.join(prioritizers, ", "));
@@ -307,7 +307,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecordForConnection(Connection connection, Operation operation) {
+    public Action generateAuditRecordForConnection(final Connection connection, final Operation operation) {
         return generateAuditRecordForConnection(connection, operation, null);
     }
 
@@ -319,7 +319,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecordForConnection(Connection connection, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecordForConnection(final Connection connection, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
@@ -328,7 +328,7 @@ public class RelationshipAuditor extends NiFiAuditor {
 
             String connectionName = connection.getName();
             if (StringUtils.isBlank(connectionName)) {
-                Collection<String> relationshipNames = new HashSet<>(connection.getRelationships().size());
+                final Collection<String> relationshipNames = new HashSet<>(connection.getRelationships().size());
                 for (final Relationship relationship : connection.getRelationships()) {
                     relationshipNames.add(relationship.getName());
                 }
@@ -336,7 +336,7 @@ public class RelationshipAuditor extends NiFiAuditor {
             }
 
             // go through each relationship added
-            Date actionTimestamp = new Date();
+            final Date actionTimestamp = new Date();
 
             // create a new relationship action
             action = createFlowChangeAction();
@@ -357,8 +357,8 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Determines the type of component the specified connectable is.
      */
-    private Component determineConnectableType(Connectable connectable) {
-        String sourceId = connectable.getIdentifier();
+    private Component determineConnectableType(final Connectable connectable) {
+        final String sourceId = connectable.getIdentifier();
         Component componentType = Component.Controller;
         if (connectable instanceof ProcessorNode) {
             componentType = Component.Processor;
@@ -378,7 +378,7 @@ public class RelationshipAuditor extends NiFiAuditor {
                 }
             }
         } else if (connectable instanceof Port) {
-            ProcessGroup processGroup = connectable.getProcessGroup();
+            final ProcessGroup processGroup = connectable.getProcessGroup();
             if (processGroup.getInputPort(sourceId) != null) {
                 componentType = Component.InputPort;
             } else if (processGroup.getOutputPort(sourceId) != null) {

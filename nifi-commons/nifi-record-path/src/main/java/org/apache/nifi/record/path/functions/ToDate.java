@@ -54,7 +54,7 @@ public class ToDate extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {

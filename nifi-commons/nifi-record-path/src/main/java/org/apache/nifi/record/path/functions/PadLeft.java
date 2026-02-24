@@ -36,7 +36,7 @@ public class PadLeft extends Padding {
     }
 
     @Override
-    protected String doPad(String inputString, int desiredLength, String pad) {
+    protected String doPad(final String inputString, final int desiredLength, final String pad) {
         return StringUtils.leftPad(inputString, desiredLength, pad);
     }
 }

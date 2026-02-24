@@ -32,7 +32,7 @@ public class FlowComparisonEntity extends Entity {
         return componentDifferences;
     }
 
-    public void setComponentDifferences(Set<ComponentDifferenceDTO> componentDifferences) {
+    public void setComponentDifferences(final Set<ComponentDifferenceDTO> componentDifferences) {
         this.componentDifferences = componentDifferences;
     }
 }

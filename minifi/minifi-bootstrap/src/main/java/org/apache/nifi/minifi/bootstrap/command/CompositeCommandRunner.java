@@ -29,7 +29,7 @@ import static org.apache.nifi.minifi.bootstrap.Status.OK;
 public class CompositeCommandRunner implements CommandRunner {
     final List<CommandRunner> services;
 
-    public CompositeCommandRunner(List<CommandRunner> services) {
+    public CompositeCommandRunner(final List<CommandRunner> services) {
         this.services = Optional.ofNullable(services).map(Collections::unmodifiableList).orElse(Collections.emptyList());
     }
 
@@ -39,7 +39,7 @@ public class CompositeCommandRunner implements CommandRunner {
      * @return the first failed command status code or OK if there was no failure
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         return services.stream()
             .map(service -> service.runCommand(args))
             .filter(code -> code != OK.getStatusCode())

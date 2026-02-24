@@ -30,7 +30,7 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
         return garbageCollectionStatusList;
     }
 
-    public void setGarbageCollectionStatusList(List<GarbageCollectionStatus> garbageCollectionStatusList) {
+    public void setGarbageCollectionStatusList(final List<GarbageCollectionStatus> garbageCollectionStatusList) {
         this.garbageCollectionStatusList = garbageCollectionStatusList;
     }
 
@@ -38,7 +38,7 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
         return heapStatus;
     }
 
-    public void setHeapStatus(HeapStatus heapStatus) {
+    public void setHeapStatus(final HeapStatus heapStatus) {
         this.heapStatus = heapStatus;
     }
 
@@ -46,7 +46,7 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
         return systemProcessorStats;
     }
 
-    public void setProcessorStatus(SystemProcessorStats processorStatus) {
+    public void setProcessorStatus(final SystemProcessorStats processorStatus) {
         this.systemProcessorStats = processorStatus;
     }
 
@@ -54,7 +54,7 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
         return contentRepositoryUsageList;
     }
 
-    public void setContentRepositoryUsageList(List<ContentRepositoryUsage> contentRepositoryUsageList) {
+    public void setContentRepositoryUsageList(final List<ContentRepositoryUsage> contentRepositoryUsageList) {
         this.contentRepositoryUsageList = contentRepositoryUsageList;
     }
 
@@ -62,12 +62,12 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
         return flowfileRepositoryUsage;
     }
 
-    public void setFlowfileRepositoryUsage(FlowfileRepositoryUsage flowfileRepositoryUsage) {
+    public void setFlowfileRepositoryUsage(final FlowfileRepositoryUsage flowfileRepositoryUsage) {
         this.flowfileRepositoryUsage = flowfileRepositoryUsage;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -75,7 +75,7 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
             return false;
         }
 
-        SystemDiagnosticsStatus that = (SystemDiagnosticsStatus) o;
+        final SystemDiagnosticsStatus that = (SystemDiagnosticsStatus) o;
 
         if (getGarbageCollectionStatusList() != null ? !getGarbageCollectionStatusList().equals(that.getGarbageCollectionStatusList()) : that.getGarbageCollectionStatusList() != null) {
             return false;

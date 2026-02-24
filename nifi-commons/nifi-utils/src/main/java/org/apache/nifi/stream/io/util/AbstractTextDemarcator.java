@@ -68,7 +68,7 @@ public abstract class AbstractTextDemarcator implements Closeable {
      * and max buffer size. Each demarcated token must fit within max buffer
      * size, otherwise the exception will be raised.
      */
-    AbstractTextDemarcator(Reader reader, int maxDataSize) {
+    AbstractTextDemarcator(final Reader reader, final int maxDataSize) {
         this(reader, maxDataSize, INIT_BUFFER_SIZE);
     }
 
@@ -77,7 +77,7 @@ public abstract class AbstractTextDemarcator implements Closeable {
      * and max buffer size and initial buffer size. Each demarcated token must
      * fit within max buffer size, otherwise the exception will be raised.
      */
-    AbstractTextDemarcator(Reader reader, int maxDataSize, int initialBufferSize) {
+    AbstractTextDemarcator(final Reader reader, final int maxDataSize, final int initialBufferSize) {
         this.validate(reader, maxDataSize, initialBufferSize);
         this.reader = reader;
         this.buffer = new char[initialBufferSize];
@@ -100,16 +100,16 @@ public abstract class AbstractTextDemarcator implements Closeable {
     void fill() throws IOException {
         if (this.index >= this.buffer.length) {
             if (this.mark == 0) { // expand
-                long expandedSize = Math.min(this.buffer.length * 2, this.buffer.length + 1_048_576);
+                final long expandedSize = Math.min(this.buffer.length * 2, this.buffer.length + 1_048_576);
                 if (expandedSize > maxDataSize) {
                     throw new BufferOverflowException();
                 }
 
-                char[] newBuff = new char[(int) expandedSize];
+                final char[] newBuff = new char[(int) expandedSize];
                 System.arraycopy(this.buffer, 0, newBuff, 0, this.buffer.length);
                 this.buffer = newBuff;
             } else { // shift the data left in the buffer
-                int length = this.index - this.mark;
+                final int length = this.index - this.mark;
                 System.arraycopy(this.buffer, this.mark, this.buffer, 0, length);
                 this.index = length;
                 this.mark = 0;
@@ -132,7 +132,7 @@ public abstract class AbstractTextDemarcator implements Closeable {
     /**
      * Validates prerequisites for constructor arguments
      */
-    private void validate(Reader reader, int maxDataSize, int initialBufferSize) {
+    private void validate(final Reader reader, final int maxDataSize, final int initialBufferSize) {
         if (reader == null) {
             throw new IllegalArgumentException("'reader' must not be null");
         } else if (maxDataSize <= 0) {

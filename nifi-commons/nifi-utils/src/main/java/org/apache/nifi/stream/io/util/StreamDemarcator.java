@@ -51,7 +51,7 @@ public class StreamDemarcator extends AbstractDemarcator {
      *            that neither {@link InputStream} nor its individual tokens (if
      *            delimiter is used) can ever be greater then this size.
      */
-    public StreamDemarcator(InputStream is, byte[] delimiterBytes, int maxDataSize) {
+    public StreamDemarcator(final InputStream is, final byte[] delimiterBytes, final int maxDataSize) {
         this(is, delimiterBytes, maxDataSize, INIT_BUFFER_SIZE);
     }
 
@@ -78,7 +78,7 @@ public class StreamDemarcator extends AbstractDemarcator {
      *            automatically as needed up to the Integer.MAX_VALUE;
      *
      */
-    public StreamDemarcator(InputStream is, byte[] delimiterBytes, int maxDataSize, int initialBufferSize) {
+    public StreamDemarcator(final InputStream is, final byte[] delimiterBytes, final int maxDataSize, final int initialBufferSize) {
         super(is, maxDataSize, initialBufferSize);
         this.validate(delimiterBytes);
         this.delimiterBytes = delimiterBytes;
@@ -115,7 +115,7 @@ public class StreamDemarcator extends AbstractDemarcator {
 
                     if (delimiterFound) {
                         this.index = i + 1;
-                        int size = this.index - this.mark - this.delimiterBytes.length;
+                        final int size = this.index - this.mark - this.delimiterBytes.length;
                         token = this.extractDataToken(size);
                         this.mark = this.index;
                         j = 0;
@@ -136,7 +136,7 @@ public class StreamDemarcator extends AbstractDemarcator {
     /**
      * Validates prerequisites for constructor arguments
      */
-    private void validate(byte[] delimiterBytes) {
+    private void validate(final byte[] delimiterBytes) {
         if (delimiterBytes != null && delimiterBytes.length == 0) {
             throw new IllegalArgumentException("'delimiterBytes' is an optional argument, but when provided its length must be > 0");
         }

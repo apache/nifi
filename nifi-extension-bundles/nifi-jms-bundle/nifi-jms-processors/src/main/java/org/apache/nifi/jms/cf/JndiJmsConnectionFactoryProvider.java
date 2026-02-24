@@ -55,7 +55,7 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         delegate = new JndiJmsConnectionFactoryHandler(context, getLogger());
     }
 
@@ -70,12 +70,12 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
     }
 
     @Override
-    public void resetConnectionFactory(ConnectionFactory cachedFactory) {
+    public void resetConnectionFactory(final ConnectionFactory cachedFactory) {
         delegate.resetConnectionFactory(cachedFactory);
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_INITIAL_CONTEXT_FACTORY_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY.getName());
         config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_PROVIDER_URL_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL.getName());
         config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CONNECTION_FACTORY_NAME_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME.getName());

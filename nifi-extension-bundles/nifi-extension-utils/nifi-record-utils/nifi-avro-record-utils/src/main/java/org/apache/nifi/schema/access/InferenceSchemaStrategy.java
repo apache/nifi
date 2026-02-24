@@ -42,16 +42,16 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
     private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        byte[] bytes = IOUtils.toByteArray(contentStream);
-        ObjectMapper mapper = new ObjectMapper();
+    public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        final byte[] bytes = IOUtils.toByteArray(contentStream);
+        final ObjectMapper mapper = new ObjectMapper();
 
         return convertSchema(mapper.readValue(bytes, Map.class));
     }
 
-    protected RecordSchema convertSchema(Map<String, Object> result) {
-        List<RecordField> fields = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : result.entrySet()) {
+    protected RecordSchema convertSchema(final Map<String, Object> result) {
+        final List<RecordField> fields = new ArrayList<>();
+        for (final Map.Entry<String, Object> entry : result.entrySet()) {
             final RecordField field = new RecordField(entry.getKey(), getDataType(entry.getValue()));
             fields.add(field);
         }
@@ -59,7 +59,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
         return new SimpleRecordSchema(fields);
     }
 
-    private DataType getDataType(Object value) {
+    private DataType getDataType(final Object value) {
         return switch (value) {
             case Integer ignored -> RecordFieldType.INT.getDataType();
             case Long ignored -> RecordFieldType.LONG.getDataType();
@@ -73,7 +73,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
             case List listField -> {
                 DataType mergedDataType = null;
 
-                for (Object listElement : listField) {
+                for (final Object listElement : listField) {
                     final DataType inferredDataType = getDataType(listElement);
                     mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
                 }
@@ -100,7 +100,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, Map<String, Object> content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final Map<String, Object> content, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return convertSchema(content);
     }
 }

@@ -36,15 +36,15 @@ public class EmptyRecordReader implements RecordReader {
     }
 
     @Override
-    public void skip(long bytesToSkip) throws IOException {
+    public void skip(final long bytesToSkip) throws IOException {
     }
 
     @Override
-    public void skipTo(long position) throws IOException {
+    public void skipTo(final long position) throws IOException {
     }
 
     @Override
-    public void skipToBlock(int blockIndex) throws IOException {
+    public void skipToBlock(final int blockIndex) throws IOException {
     }
 
     @Override
@@ -73,7 +73,7 @@ public class EmptyRecordReader implements RecordReader {
     }
 
     @Override
-    public Optional<ProvenanceEventRecord> skipToEvent(long eventId) throws IOException {
+    public Optional<ProvenanceEventRecord> skipToEvent(final long eventId) throws IOException {
         return Optional.empty();
     }
 

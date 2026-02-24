@@ -47,7 +47,7 @@ public class DeleteFlow extends AbstractNiFiRegistryCommand<OkResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.FLOW_ID.createOption());
         addOption(CommandOption.FORCE.createOption());
     }

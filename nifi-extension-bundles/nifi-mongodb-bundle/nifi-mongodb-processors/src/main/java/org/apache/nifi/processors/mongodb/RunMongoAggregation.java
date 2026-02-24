@@ -66,13 +66,13 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .name("results")
             .build();
 
-    static final List<Bson> buildAggregationQuery(String query) throws IOException {
-        List<Bson> result = new ArrayList<>();
+    static final List<Bson> buildAggregationQuery(final String query) throws IOException {
+        final List<Bson> result = new ArrayList<>();
 
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map> querySteps = mapper.readValue(query, List.class);
-        for (Map<?, ?> queryStep : querySteps) {
-            BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep)); //NOPMD
+        final ObjectMapper mapper = new ObjectMapper();
+        final List<Map> querySteps = mapper.readValue(query, List.class);
+        for (final Map<?, ?> queryStep : querySteps) {
+            final BasicDBObject bson = BasicDBObject.parse(mapper.writeValueAsString(queryStep)); //NOPMD
             result.add(bson);
         }
 
@@ -127,11 +127,11 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
-    private String buildBatch(List<Document> batch) {
+    private String buildBatch(final List<Document> batch) {
         String retVal;
         try {
             retVal = objectMapper.writeValueAsString(batch.size() > 1 ? batch : batch.getFirst());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             retVal = null;
         }
 
@@ -139,7 +139,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = null;
         if (context.hasIncomingConnection()) {
             flowFile = session.get();
@@ -159,7 +159,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
 
         configureMapper(jsonTypeSetting, dateFormat);
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         if (queryAttr != null && !queryAttr.isBlank()) {
             attrs.put(queryAttr, query);
         }
@@ -167,9 +167,9 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         MongoCursor<Document> iter = null;
 
         try {
-            MongoCollection<Document> collection = getCollection(context, flowFile);
-            List<Bson> aggQuery = buildAggregationQuery(query);
-            AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);
+            final MongoCollection<Document> collection = getCollection(context, flowFile);
+            final List<Bson> aggQuery = buildAggregationQuery(query);
+            final AggregateIterable<Document> it = collection.aggregate(aggQuery).allowDiskUse(allowDiskUse);
             it.batchSize(batchSize != null ? batchSize : 1);
 
             iter = it.iterator();
@@ -196,7 +196,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             if (flowFile != null) {
                 session.transfer(flowFile, REL_ORIGINAL);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error running MongoDB aggregation query.", e);
             if (flowFile != null) {
                 session.transfer(flowFile, REL_FAILURE);
@@ -209,7 +209,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("mongo-agg-query", QUERY.getName());
         config.renameProperty("allow-disk-use", ALLOW_DISK_USE.getName());

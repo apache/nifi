@@ -71,7 +71,7 @@ public interface ClientSideEncryptionSupport {
             .sensitive(true)
             .build();
 
-    default Collection<ValidationResult> validateClientSideEncryptionProperties(ValidationContext validationContext) {
+    default Collection<ValidationResult> validateClientSideEncryptionProperties(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>();
         final ClientSideEncryptionMethod cseKeyType = validationContext.getProperty(CSE_KEY_TYPE).asAllowableValue(ClientSideEncryptionMethod.class);
         final String cseKeyId = validationContext.getProperty(CSE_KEY_ID).getValue();
@@ -86,7 +86,7 @@ public interface ClientSideEncryptionSupport {
         return validationResults;
     }
 
-    default List<ValidationResult> validateLocalKey(String keyHex) {
+    default List<ValidationResult> validateLocalKey(final String keyHex) {
         final List<ValidationResult> validationResults = new ArrayList<>();
         if (StringUtils.isBlank(keyHex)) {
             validationResults.add(new ValidationResult.Builder().subject(CSE_LOCAL_KEY.getDisplayName())
@@ -98,10 +98,10 @@ public interface ClientSideEncryptionSupport {
                     validationResults.add(new ValidationResult.Builder().subject(CSE_LOCAL_KEY.getDisplayName())
                             .explanation(String.format("Key size in bits must be one of [128, 192, 256, 384, 512] instead of [%d]", keyBytes.length * 8)).build());
                 }
-            } catch (DecoderException e) {
+            } catch (final DecoderException e) {
                 validationResults.add(new ValidationResult.Builder().subject(CSE_LOCAL_KEY.getDisplayName())
                         .explanation("Key must be a valid hexadecimal string").build());
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 validationResults.add(new ValidationResult.Builder().subject(CSE_LOCAL_KEY.getDisplayName())
                         .explanation(e.getMessage()).build());
             }
@@ -110,19 +110,19 @@ public interface ClientSideEncryptionSupport {
         return validationResults;
     }
 
-    default boolean isClientSideEncryptionEnabled(PropertyContext context) {
+    default boolean isClientSideEncryptionEnabled(final PropertyContext context) {
         final ClientSideEncryptionMethod cseKeyType = context.getProperty(CSE_KEY_TYPE).asAllowableValue(ClientSideEncryptionMethod.class);
         return cseKeyType != ClientSideEncryptionMethod.NONE;
     }
 
-    default BlobClient getEncryptedBlobClient(PropertyContext context, BlobContainerClient containerClient, String blobName) throws DecoderException {
+    default BlobClient getEncryptedBlobClient(final PropertyContext context, final BlobContainerClient containerClient, final String blobName) throws DecoderException {
         final String cseKeyId = context.getProperty(CSE_KEY_ID).getValue();
         final String cseLocalKeyHex = context.getProperty(CSE_LOCAL_KEY).getValue();
         final BlobClient blobClient = containerClient.getBlobClient(blobName);
         final byte[] keyBytes = Hex.decodeHex(cseLocalKeyHex);
-        JsonWebKey localKey = JsonWebKey.fromAes(new SecretKeySpec(keyBytes, "AES"), KEY_OPERATIONS)
+        final JsonWebKey localKey = JsonWebKey.fromAes(new SecretKeySpec(keyBytes, "AES"), KEY_OPERATIONS)
                 .setId(cseKeyId);
-        AsyncKeyEncryptionKey akek = new KeyEncryptionKeyClientBuilder()
+        final AsyncKeyEncryptionKey akek = new KeyEncryptionKeyClientBuilder()
                 .buildAsyncKeyEncryptionKey(localKey).block();
         final String keyWrapAlgorithm = getKeyWrapAlgorithm(keyBytes).orElseThrow(() -> new IllegalArgumentException("Failed to derive key wrap algorithm"));
 
@@ -132,7 +132,7 @@ public interface ClientSideEncryptionSupport {
                 .buildEncryptedBlobClient();
     }
 
-    default Optional<String> getKeyWrapAlgorithm(byte[] keyBytes) {
+    default Optional<String> getKeyWrapAlgorithm(final byte[] keyBytes) {
         final int keySize128 = 16;
         final int keySize192 = 24;
         final int keySize256 = 32;

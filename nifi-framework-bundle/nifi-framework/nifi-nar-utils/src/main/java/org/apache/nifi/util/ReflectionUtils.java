@@ -74,7 +74,7 @@ public class ReflectionUtils {
             final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args)
                     throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
-        Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
+        final Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
                 ? new Class<?>[] {preferredAnnotation, alternateAnnotation} : new Class<?>[] {preferredAnnotation});
         invokeMethodsWithAnnotations(false, null, instance, annotationArray, args);
     }
@@ -128,23 +128,24 @@ public class ReflectionUtils {
         return quietlyInvokeMethodsWithAnnotations(preferredAnnotation, alternateAnnotation, instance, null, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance, Class<? extends Annotation>[] annotations, Object... args)
+    private static boolean invokeMethodsWithAnnotations(final boolean quietly, final ComponentLog logger, final Object instance, final Class<? extends Annotation>[] annotations, final Object... args)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         return invokeMethodsWithAnnotations(quietly, logger, instance, instance.getClass(), annotations, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance, Class<?> clazz, Class<? extends Annotation>[] annotations, Object... args)
+    private static boolean invokeMethodsWithAnnotations(final boolean quietly, final ComponentLog logger, final Object instance,
+            final Class<?> clazz, final Class<? extends Annotation>[] annotations, final Object... args)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         boolean isSuccess = true;
         final List<Method> methods = findMethodsWithAnnotations(clazz, annotations);
         for (final Method method : methods) {
-            Object[] modifiedArgs = buildUpdatedArgumentsList(quietly, method, annotations, logger, args);
+            final Object[] modifiedArgs = buildUpdatedArgumentsList(quietly, method, annotations, logger, args);
             if (modifiedArgs != null) {
                 try {
                     method.invoke(instance, modifiedArgs);
-                } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                } catch (final IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
                     isSuccess = false;
                     if (quietly) {
                         final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
@@ -209,7 +210,7 @@ public class ReflectionUtils {
         // We want to de-dupe methods that are equal to one another based on our definition of equality (name & argument class types).
         final Set<Method> methods = new TreeSet<>(comparator);
 
-        for (Method method : clazz.getMethods()) {
+        for (final Method method : clazz.getMethods()) {
             if (isAnyAnnotationPresent(method, annotations)) {
                 methods.add(method);
             }
@@ -227,8 +228,8 @@ public class ReflectionUtils {
         return new ArrayList<>(methods);
     }
 
-    private static boolean isAnyAnnotationPresent(Method method, Class<? extends Annotation>[] annotations) {
-        for (Class<? extends Annotation> annotation : annotations) {
+    private static boolean isAnyAnnotationPresent(final Method method, final Class<? extends Annotation>[] annotations) {
+        for (final Class<? extends Annotation> annotation : annotations) {
             if (isAnnotationPresent(method, annotation)) {
                 return true;
             }
@@ -241,11 +242,11 @@ public class ReflectionUtils {
         return annotation != null;
     }
 
-    private static Object[] buildUpdatedArgumentsList(boolean quietly, Method method, Class<?>[] annotations, ComponentLog processLogger, Object... args) {
+    private static Object[] buildUpdatedArgumentsList(final boolean quietly, final Method method, final Class<?>[] annotations, final ComponentLog processLogger, final Object... args) {
         boolean parametersCompatible = true;
         int argsCount = 0;
 
-        Class<?>[] paramTypes = method.getParameterTypes();
+        final Class<?>[] paramTypes = method.getParameterTypes();
         for (int i = 0; parametersCompatible && i < paramTypes.length && i < args.length; i++) {
             if (paramTypes[i].isAssignableFrom(args[i].getClass())) {
                 argsCount++;
@@ -268,7 +269,7 @@ public class ReflectionUtils {
         return updatedArguments;
     }
 
-    private static void logErrorMessage(String message, ComponentLog processLogger, Throwable e) {
+    private static void logErrorMessage(final String message, final ComponentLog processLogger, final Throwable e) {
         if (processLogger != null) {
             if (e != null) {
                 processLogger.error(message, e);
@@ -310,11 +311,11 @@ public class ReflectionUtils {
     public static boolean quietlyInvokeMethodsWithAnnotations(final Class<? extends Annotation> preferredAnnotation,
             final Class<? extends Annotation> alternateAnnotation, final Object instance, final ComponentLog logger,
             final Object... args) {
-        Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
+        final Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
                 ? new Class<?>[] {preferredAnnotation, alternateAnnotation} : new Class<?>[] {preferredAnnotation});
         try {
             return invokeMethodsWithAnnotations(true, logger, instance, annotationArray, args);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Failed while attempting to invoke methods with '{}' annotations", Arrays.asList(annotationArray), e);
             return false;
         }

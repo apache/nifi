@@ -83,14 +83,14 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return Configuration.builder().jsonProvider(jsonProvider).build();
     }
 
-    static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile, Configuration jsonPathConfiguration) {
+    static DocumentContext validateAndEstablishJsonContext(final ProcessSession processSession, final FlowFile flowFile, final Configuration jsonPathConfiguration) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
         final AtomicReference<DocumentContext> contextHolder = new AtomicReference<>(null);
         processSession.read(flowFile, in -> {
             try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                DocumentContext ctx = JsonPath.using(jsonPathConfiguration).parse(bufferedInputStream);
+                final DocumentContext ctx = JsonPath.using(jsonPathConfiguration).parse(bufferedInputStream);
                 contextHolder.set(ctx);
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 // The JsonPath.parse() above first parses the json, then creates a context object from the parsed
                 // json.  It is possible for the json parsing to complete without error, but produce a null object.
                 // In this case the context creation will fail and throw an IllegalArgumentException.  This is in
@@ -113,12 +113,12 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
      * @param obj item to be inspected if it is a scalar or a JSON element
      * @return false, if the object is a supported type; true otherwise
      */
-    static boolean isJsonScalar(Object obj) {
+    static boolean isJsonScalar(final Object obj) {
         // For the default provider, JsonSmartJsonProvider, a Map or List is able to be handled as a JSON entity
         return !(obj instanceof Map || obj instanceof List);
     }
 
-    static String getResultRepresentation(JsonProvider jsonProvider, Object jsonPathResult, String defaultValue) {
+    static String getResultRepresentation(final JsonProvider jsonProvider, final Object jsonPathResult, final String defaultValue) {
         if (isJsonScalar(jsonPathResult)) {
             return Objects.toString(jsonPathResult, defaultValue);
         }
@@ -133,9 +133,9 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             if (isStale(subject, input)) {
                 if (!StringUtils.isBlank(input)) {
                     try {
-                        JsonPath compiledJsonPath = JsonPath.compile(input);
+                        final JsonPath compiledJsonPath = JsonPath.compile(input);
                         cacheComputedValue(subject, input, compiledJsonPath);
-                    } catch (Exception ex) {
+                    } catch (final Exception ex) {
                         error = String.format("specified expression was not valid: %s", input);
                     }
                 } else {

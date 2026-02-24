@@ -30,7 +30,7 @@ public class RuleViolationEndpointMerger extends AbstractSingleEntityEndpoint<Ru
     public static final String UPDATE_RULE_VIOLATION_URI = "/nifi-api/controller/analyze-flow/update-rule-violation";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if ("PUT".equalsIgnoreCase(method) && UPDATE_RULE_VIOLATION_URI.equals(uri.getPath())) {
             return true;
         }
@@ -44,7 +44,8 @@ public class RuleViolationEndpointMerger extends AbstractSingleEntityEndpoint<Ru
     }
 
     @Override
-    protected void mergeResponses(RuleViolationEntity clientEntity, Map<NodeIdentifier, RuleViolationEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final RuleViolationEntity clientEntity, final Map<NodeIdentifier, RuleViolationEntity> entityMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         // Nothing to do, if there are no issues the entities are the same
     }
 }

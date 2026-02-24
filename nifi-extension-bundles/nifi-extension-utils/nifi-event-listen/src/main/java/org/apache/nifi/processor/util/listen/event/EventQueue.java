@@ -56,7 +56,7 @@ public class EventQueue<E extends Event> {
      * @throws InterruptedException if interrupted while waiting to offer
      */
     public void offer(final E event) throws InterruptedException {
-        boolean queued = events.offer(event, offerWaitMs, TimeUnit.MILLISECONDS);
+        final boolean queued = events.offer(event, offerWaitMs, TimeUnit.MILLISECONDS);
         if (!queued) {
             logger.error("Internal queue at maximum capacity, could not queue event");
         }

@@ -56,7 +56,7 @@ public class TestFlowConfigurationArchiveManager {
         if (Files.isDirectory(archiveDir.toPath())) {
             Files.walkFileTree(archiveDir.toPath(), new SimpleFileVisitor<>() {
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                     Files.delete(file);
                     return FileVisitResult.CONTINUE;
                 }
@@ -193,7 +193,7 @@ public class TestFlowConfigurationArchiveManager {
     public void testArchiveExpiration() throws Exception {
 
         final long intervalMillis = 60_000;
-        File[] oldArchives = new File[5];
+        final File[] oldArchives = new File[5];
         createSimulatedOldArchives(oldArchives, intervalMillis);
 
         // Now, we will test expiration. There should be following old archives created above:
@@ -218,7 +218,7 @@ public class TestFlowConfigurationArchiveManager {
     public void testArchiveStorageSizeLimit() throws Exception {
 
         final long intervalMillis = 60_000;
-        File[] oldArchives = new File[5];
+        final File[] oldArchives = new File[5];
         createSimulatedOldArchives(oldArchives, intervalMillis);
 
         // Now, we will test storage size limit. There should be following old archives created above:
@@ -241,7 +241,7 @@ public class TestFlowConfigurationArchiveManager {
     public void testArchiveStorageCountLimit() throws Exception {
 
         final long intervalMillis = 60_000;
-        File[] oldArchives = new File[5];
+        final File[] oldArchives = new File[5];
         createSimulatedOldArchives(oldArchives, intervalMillis);
 
         // Now, we will test count limit. There should be following old archives created above:
@@ -263,7 +263,7 @@ public class TestFlowConfigurationArchiveManager {
     @Test
     public void testLargeConfigFile() throws Exception {
         final long intervalMillis = 60_000;
-        File[] oldArchives = new File[5];
+        final File[] oldArchives = new File[5];
         createSimulatedOldArchives(oldArchives, intervalMillis);
 
         // Now, we will test storage size limit. There should be following old archives created above:

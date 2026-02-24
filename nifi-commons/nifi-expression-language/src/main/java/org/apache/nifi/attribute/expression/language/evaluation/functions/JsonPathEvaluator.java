@@ -38,22 +38,22 @@ public class JsonPathEvaluator extends JsonPathBaseEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext context) {
-        DocumentContext documentContext = getDocumentContext(context);
+    public QueryResult<String> evaluate(final EvaluationContext context) {
+        final DocumentContext documentContext = getDocumentContext(context);
 
         final JsonPath compiledJsonPath = getJsonPath(context);
 
         Object result = null;
         try {
             result = documentContext.read(compiledJsonPath);
-        } catch (PathNotFoundException pnf) {
+        } catch (final PathNotFoundException pnf) {
             // it is valid for a path not to be found, keys may not be there
             // do not spam the error log for this, instead we can log debug if enabled
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("PathNotFoundException for JsonPath {}", compiledJsonPath.getPath(), pnf);
             }
             return EMPTY_RESULT;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // a failure for something *other* than path not found however, should at least be
             // logged.
             LOGGER.error("Exception while reading JsonPath {}", compiledJsonPath.getPath(), e);

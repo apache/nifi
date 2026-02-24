@@ -24,19 +24,19 @@ public class LifeCycleException extends RuntimeException {
 
     private static final long serialVersionUID = 1234908230984239L;
 
-    public LifeCycleException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public LifeCycleException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public LifeCycleException(Throwable cause) {
+    public LifeCycleException(final Throwable cause) {
         super(cause);
     }
 
-    public LifeCycleException(String message, Throwable cause) {
+    public LifeCycleException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public LifeCycleException(String message) {
+    public LifeCycleException(final String message) {
         super(message);
     }
 

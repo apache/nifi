@@ -513,7 +513,7 @@ public class TestReplaceText {
 
     @Test
     public void testBackRefFollowedByNumbers() throws IOException {
-        String expected = "Hell23o, World!";
+        final String expected = "Hell23o, World!";
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(ell)");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "$123");
 
@@ -867,7 +867,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testZeroByteContentFileLineByLine(@TempDir Path tempDir) throws IOException {
+    public void testZeroByteContentFileLineByLine(final @TempDir Path tempDir) throws IOException {
         runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "odo");
         runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "ood");
@@ -1600,7 +1600,7 @@ public class TestReplaceText {
         testSubstituteVariables("Line1: ${}\nLine2: ${}", "Line1: ${}\nLine2: ${}", ReplaceText.ENTIRE_TEXT, createAttributesMap());
     }
 
-    private void testSubstituteVariables(String inputContent, String expectedContent, String evaluationMode, Map<String, String> attributesMap) {
+    private void testSubstituteVariables(final String inputContent, final String expectedContent, final String evaluationMode, final Map<String, String> attributesMap) {
         runner.setProperty(ReplaceText.EVALUATION_MODE, evaluationMode);
         runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.SUBSTITUTE_VARIABLES.getValue());
         runner.enqueue(inputContent, attributesMap);
@@ -1631,7 +1631,7 @@ public class TestReplaceText {
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s)(^(A|B)*$)");
         runner.assertValid();
 
-        char[] data = new char[1_000_000];
+        final char[] data = new char[1_000_000];
         Arrays.fill(data, 'A');
         runner.enqueue(new String(data));
 

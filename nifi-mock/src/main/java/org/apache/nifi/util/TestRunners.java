@@ -37,7 +37,7 @@ public class TestRunners {
      * @param kerberosContext the {@code KerberosContext} used during the test
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext) {
+    public static TestRunner newTestRunner(final Processor processor, final KerberosContext kerberosContext) {
         return newTestRunner(processor, processor.getClass().getName(), kerberosContext);
     }
 
@@ -48,7 +48,7 @@ public class TestRunners {
      * @param logger the {@code ComponentLog} used for logging
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Processor processor, MockComponentLog logger) {
+    public static TestRunner newTestRunner(final Processor processor, final MockComponentLog logger) {
         return newTestRunner(processor, processor.getClass().getName(), logger);
     }
 
@@ -59,7 +59,7 @@ public class TestRunners {
      * @param name the name to give the {@code Processor}
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Processor processor, String name) {
+    public static TestRunner newTestRunner(final Processor processor, final String name) {
         return new StandardProcessorTestRunner(processor, name);
     }
 
@@ -70,7 +70,7 @@ public class TestRunners {
      * @param kerberosContext the {@code KerberosContext} used during the test
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Processor processor, String name, KerberosContext kerberosContext) {
+    public static TestRunner newTestRunner(final Processor processor, final String name, final KerberosContext kerberosContext) {
         return new StandardProcessorTestRunner(processor, name, kerberosContext);
     }
 
@@ -82,7 +82,7 @@ public class TestRunners {
      * @param logger the {@code ComponentLog} used for logging
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Processor processor, String name, MockComponentLog logger) {
+    public static TestRunner newTestRunner(final Processor processor, final String name, final MockComponentLog logger) {
         return new StandardProcessorTestRunner(processor, name, logger);
     }
 
@@ -103,7 +103,7 @@ public class TestRunners {
      * @param logger the {@code ComponentLog} used for logging
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, MockComponentLog logger) {
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, final MockComponentLog logger) {
         return newTestRunner(processorClass, processorClass.getName(), logger);
     }
 
@@ -114,7 +114,7 @@ public class TestRunners {
      * @param name the name to give the {@code Processor}
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name) {
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, final String name) {
         try {
             return newTestRunner(processorClass.getDeclaredConstructor().newInstance(), name);
         } catch (final Exception e) {
@@ -131,7 +131,7 @@ public class TestRunners {
      * @param logger the {@code ComponentLog} used for logging
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name, MockComponentLog logger) {
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, final String name, final MockComponentLog logger) {
         try {
             return newTestRunner(processorClass.getDeclaredConstructor().newInstance(), name, logger);
         } catch (final Exception e) {

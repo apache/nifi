@@ -188,7 +188,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
         final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFile : flowFiles) {
             if (flowFile.getSize() > maxBufferSize) {
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
@@ -196,15 +196,15 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
             final StopWatch stopWatch = new StopWatch(true);
 
-            flowFile = session.write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
+            final FlowFile updatedFlowFile = session.write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
 
-            logger.info("Transferred {} to 'success'", flowFile);
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
+            logger.info("Transferred {} to 'success'", updatedFlowFile);
+            session.getProvenanceReporter().modifyContent(updatedFlowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(updatedFlowFile, REL_SUCCESS);
         }
     }
 
-    protected String fillReplacementValueBackReferences(String rawReplacementValue, int numCapturingGroups) {
+    protected String fillReplacementValueBackReferences(final String rawReplacementValue, final int numCapturingGroups) {
         String replacement = rawReplacementValue;
         final Matcher backRefMatcher = backReferencePattern.matcher(replacement);
         int replacementCount = 0;
@@ -232,10 +232,10 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             try {
                 // if not queried mapping file lastUpdate time in
                 // mapppingRefreshPeriodSecs, do so.
-                long currentTimeSecs = System.currentTimeMillis() / 1000;
-                long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
+                final long currentTimeSecs = System.currentTimeMillis() / 1000;
+                final long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
 
-                boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
+                final boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
                 if (retry) {
                     mappingTestTime.set(System.currentTimeMillis() / 1000);
                     // see if the mapping file needs to be reloaded
@@ -250,7 +250,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                                 final Map<String, String> mapping = loadMappingFile(is);
                                 final ConfigurationState newState = new ConfigurationState(mapping);
                                 configurationStateRef.set(newState);
-                            } catch (IOException e) {
+                            } catch (final IOException e) {
                                 logger.error("Error reading mapping file", e);
                             }
                         }
@@ -258,7 +258,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                         logger.error("Mapping file does not exist or is not readable: {}", fileName);
                     }
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Error loading mapping file", e);
             } finally {
                 processorLock.unlock();
@@ -266,9 +266,9 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         }
     }
 
-    protected Map<String, String> loadMappingFile(InputStream is) throws IOException {
-        Map<String, String> mapping = new HashMap<>();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+    protected Map<String, String> loadMappingFile(final InputStream is) throws IOException {
+        final Map<String, String> mapping = new HashMap<>();
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         String line = null;
         while ((line = reader.readLine()) != null) {
             final String[] splits = StringUtils.split(line, "\t ", 2);
@@ -318,7 +318,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             }
         };
 
-        private ReplaceTextCallback(ProcessContext context, FlowFile flowFile, int maxBufferSize) {
+        private ReplaceTextCallback(final ProcessContext context, final FlowFile flowFile, final int maxBufferSize) {
             this.regex = context.getProperty(REGEX).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
             this.flowFile = flowFile;
 
@@ -348,21 +348,21 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             matcher.reset();
             boolean result = matcher.find();
             if (result) {
-                StringBuffer sb = new StringBuffer();
+                final StringBuffer sb = new StringBuffer();
                 do {
-                    String matched = matcher.group(groupToMatch);
-                    String rv = mapping.get(matched);
+                    final String matched = matcher.group(groupToMatch);
+                    final String rv = mapping.get(matched);
 
                     if (rv == null) {
-                        String replacement = matcher.group().replace("$", "\\$");
+                        final String replacement = matcher.group().replace("$", "\\$");
                         matcher.appendReplacement(sb, replacement);
                     } else {
-                        String allRegexMatched = matcher.group(); //this is everything that matched the regex
+                        final String allRegexMatched = matcher.group(); //this is everything that matched the regex
 
-                        int scaledStart = matcher.start(groupToMatch) - matcher.start();
-                        int scaledEnd = scaledStart + matcher.group(groupToMatch).length();
+                        final int scaledStart = matcher.start(groupToMatch) - matcher.start();
+                        final int scaledEnd = scaledStart + matcher.group(groupToMatch).length();
 
-                        StringBuilder replacementBuilder = new StringBuilder();
+                        final StringBuilder replacementBuilder = new StringBuilder();
 
                         replacementBuilder.append(allRegexMatched.substring(0, scaledStart).replace("$", "\\$"));
                         replacementBuilder.append(fillReplacementValueBackReferences(rv, numCapturingGroups));

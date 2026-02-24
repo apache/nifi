@@ -70,7 +70,7 @@ public class AsyncQuerySubmission implements QuerySubmission {
     @Override
     public void cancel() {
         this.canceled = true;
-        for (Future<?> queryExecution : this.queryExecutions) {
+        for (final Future<?> queryExecution : this.queryExecutions) {
             queryExecution.cancel(true);
         }
         queryResult.cancel();
@@ -91,7 +91,7 @@ public class AsyncQuerySubmission implements QuerySubmission {
         return queryResult;
     }
 
-    public void addQueryExecution(Future<?> execution) {
+    public void addQueryExecution(final Future<?> execution) {
         this.queryExecutions.add(execution);
     }
 }

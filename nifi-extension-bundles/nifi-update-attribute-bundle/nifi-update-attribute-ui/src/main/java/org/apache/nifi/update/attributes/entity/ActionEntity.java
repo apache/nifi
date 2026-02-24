@@ -34,7 +34,7 @@ public class ActionEntity {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -42,7 +42,7 @@ public class ActionEntity {
         return revision;
     }
 
-    public void setRevision(Long revision) {
+    public void setRevision(final Long revision) {
         this.revision = revision;
     }
 
@@ -50,7 +50,7 @@ public class ActionEntity {
         return processorId;
     }
 
-    public void setProcessorId(String processorId) {
+    public void setProcessorId(final String processorId) {
         this.processorId = processorId;
     }
 
@@ -58,7 +58,7 @@ public class ActionEntity {
         return action;
     }
 
-    public void setAction(ActionDTO action) {
+    public void setAction(final ActionDTO action) {
         this.action = action;
     }
 

@@ -34,7 +34,7 @@ public class TemplateNode extends BxmlNode {
     private final String guid;
     private final int dataLength;
 
-    public TemplateNode(BinaryReader binaryReader, ChunkHeader chunkHeader) throws IOException {
+    public TemplateNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader) throws IOException {
         super(binaryReader, chunkHeader, null);
         nextOffset = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid offset.");
 
@@ -72,7 +72,7 @@ public class TemplateNode extends BxmlNode {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

@@ -35,7 +35,7 @@ public class StreamStartNode extends BxmlNodeWithToken {
     @SuppressWarnings("PMD.UnusedPrivateField")
     private final int unknown2;
 
-    public StreamStartNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public StreamStartNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         if (getFlags() != 0) {
             throw new IOException("Invalid flags");
@@ -54,7 +54,7 @@ public class StreamStartNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

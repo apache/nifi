@@ -141,9 +141,9 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
         }
     }
 
-    private void thenPartitionContains(final String partition, int index, int count, final Object[]... records) {
+    private void thenPartitionContains(final String partition, final int index, final int count, final Object[]... records) {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS);
-        Set<MockFlowFile> outgoingFlowFiles = new HashSet<>();
+        final Set<MockFlowFile> outgoingFlowFiles = new HashSet<>();
 
         for (final MockFlowFile flowFile : flowFiles) {
             // If the partition is deliberately <code>null</code>, we also check if the attribute is added to the collection of attributes.

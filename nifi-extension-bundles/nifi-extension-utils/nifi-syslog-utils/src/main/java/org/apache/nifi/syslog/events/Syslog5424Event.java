@@ -78,32 +78,32 @@ public class Syslog5424Event {
             this.exception = null;
         }
 
-        public Builder sender(String sender) {
+        public Builder sender(final String sender) {
             this.sender = sender;
             return this;
         }
 
-        public Builder exception(Exception exception) {
+        public Builder exception(final Exception exception) {
             this.exception = exception;
             return this;
         }
 
-        public Builder fieldMap(Map<String, Object> fieldMap) {
+        public Builder fieldMap(final Map<String, Object> fieldMap) {
             this.fieldMap = fieldMap;
             return this;
         }
 
-        public Builder fullMessage(String fullMessage) {
+        public Builder fullMessage(final String fullMessage) {
             this.fullMessage = fullMessage;
             return this;
         }
 
-        public Builder rawMessage(byte[] rawMessage) {
+        public Builder rawMessage(final byte[] rawMessage) {
             this.rawMessage = rawMessage;
             return this;
         }
 
-        public Builder valid(boolean valid) {
+        public Builder valid(final boolean valid) {
             this.valid = valid;
             return this;
         }

@@ -190,17 +190,17 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     }
 
     @Override
-    public void initialize(ControllerServiceInitializationContext context) {
+    public void initialize(final ControllerServiceInitializationContext context) {
         identifier = context.getIdentifier();
         logger = context.getLogger();
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        PropertyValue rootModelNameProperty = validationContext.getProperty(ROOT_MODEL_NAME);
-        PropertyValue rootClassNameProperty = validationContext.getProperty(ROOT_CLASS_NAME);
+        final PropertyValue rootModelNameProperty = validationContext.getProperty(ROOT_MODEL_NAME);
+        final PropertyValue rootClassNameProperty = validationContext.getProperty(ROOT_CLASS_NAME);
 
         if (rootModelNameProperty.isSet() && rootClassNameProperty.isSet()) {
             results.add(new ValidationResult.Builder()
@@ -265,34 +265,34 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("root-model-name", ROOT_MODEL_NAME.getName());
         config.renameProperty("root-model-class-name", ROOT_CLASS_NAME.getName());
         config.renameProperty("asn-files", ASN_FILES.getName());
     }
 
-    private void compileAsnToClass(String... asnFilePaths) {
+    private void compileAsnToClass(final String... asnFilePaths) {
         try {
             asnOutDir = Files.createTempDirectory(getIdentifier() + "_asn_");
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Could not create temporary directory for compiled ASN.1 files", e);
         }
 
-        HashMap<String, AsnModule> modulesByName = new HashMap<>(); // NOPMD
+        final HashMap<String, AsnModule> modulesByName = new HashMap<>(); // NOPMD
 
         Exception parseException = null;
-        for (String asn1File : asnFilePaths) {
+        for (final String asn1File : asnFilePaths) {
             logger.info("Parsing {}", asn1File);
             try {
-                AsnModel model = getJavaModelFromAsn1File(asn1File);
+                final AsnModel model = getJavaModelFromAsn1File(asn1File);
                 modulesByName.putAll(model.modulesByName);
-            } catch (FileNotFoundException e) {
+            } catch (final FileNotFoundException e) {
                 logger.error("ASN.1 file not found [{}]", asn1File, e);
                 parseException = e;
-            } catch (TokenStreamException | RecognitionException e) {
+            } catch (final TokenStreamException | RecognitionException e) {
                 logger.error("ASN.1 stream parsing failed [{}]", asn1File, e);
                 parseException = e;
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("ASN.1 parsing failed [{}]", asn1File, e);
                 parseException = e;
             }
@@ -305,14 +305,14 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         try {
             logger.info("Writing ASN.1 classes to directory [{}]", asnOutDir);
 
-            BerClassWriter classWriter = BerClassWriterFactory.createBerClassWriter(modulesByName, asnOutDir);
+            final BerClassWriter classWriter = BerClassWriterFactory.createBerClassWriter(modulesByName, asnOutDir);
 
             classWriter.translate();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("ASN.1 compilation failed", e);
         }
 
-        List<File> javaFiles;
+        final List<File> javaFiles;
         try (Stream<Path> stream = Files.walk(asnOutDir)) {
             javaFiles = stream
                 .filter(Files::isRegularFile)
@@ -320,24 +320,24 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 .filter(filePath -> filePath.endsWith(".java"))
                 .map(File::new)
                 .collect(Collectors.toList());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Access directory failed " + asnOutDir);
         }
 
-        JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
-        StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(null, null, null);
+        final JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
+        final StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(null, null, null);
 
-        List<String> optionList = new ArrayList<>(Arrays.asList("-classpath", com.beanit.asn1bean.ber.types.BerType.class.getProtectionDomain().getCodeSource().getLocation().getFile()));
+        final List<String> optionList = new ArrayList<>(Arrays.asList("-classpath", com.beanit.asn1bean.ber.types.BerType.class.getProtectionDomain().getCodeSource().getLocation().getFile()));
 
-        Iterable<? extends JavaFileObject> units;
+        final Iterable<? extends JavaFileObject> units;
         units = fileManager.getJavaFileObjectsFromFiles(javaFiles);
 
-        DiagnosticCollector<JavaFileObject> diagnosticListener = new DiagnosticCollector<>();
-        JavaCompiler.CompilationTask task = javaCompiler.getTask(null, fileManager, diagnosticListener, optionList, null, units);
+        final DiagnosticCollector<JavaFileObject> diagnosticListener = new DiagnosticCollector<>();
+        final JavaCompiler.CompilationTask task = javaCompiler.getTask(null, fileManager, diagnosticListener, optionList, null, units);
 
-        Boolean success = task.call();
+        final Boolean success = task.call();
         if (!success) {
-            Set<String> errorMessages = new LinkedHashSet<>();
+            final Set<String> errorMessages = new LinkedHashSet<>();
             diagnosticListener.getDiagnostics().stream().map(d -> d.getMessage(Locale.getDefault())).forEach(errorMessages::add);
 
             errorMessages.forEach(logger::error);
@@ -357,7 +357,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 stream.sorted(Comparator.reverseOrder())
                     .map(Path::toFile)
                     .forEach(File::delete);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Delete directory failed " + asnOutDir);
             }
         }
@@ -370,10 +370,10 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
 
     @Override
     public RecordReader createRecordReader(
-        Map<String, String> variables,
-        InputStream in,
-        long inputLength,
-        ComponentLog logger
+        final Map<String, String> variables,
+        final InputStream in,
+        final long inputLength,
+        final ComponentLog logger
     ) {
         final String rootClassName;
         if (rootModelNameProperty != null && rootModelNameProperty.isSet()) {
@@ -386,28 +386,28 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         return new JASN1RecordReader(rootClassName, recordField, schemaProvider, customClassLoader, iteratorProviderClassName, in, logger);
     }
 
-    AsnModel getJavaModelFromAsn1File(String inputFileName)
+    AsnModel getJavaModelFromAsn1File(final String inputFileName)
             throws FileNotFoundException, TokenStreamException, RecognitionException {
 
-        InputStream stream = new FileInputStream(inputFileName);
-        ASNLexer lexer = new ASNLexer(stream);
+        final InputStream stream = new FileInputStream(inputFileName);
+        final ASNLexer lexer = new ASNLexer(stream);
 
-        AtomicBoolean parseError = new AtomicBoolean(false);
-        ASNParser parser = new ASNParser(lexer) {
+        final AtomicBoolean parseError = new AtomicBoolean(false);
+        final ASNParser parser = new ASNParser(lexer) {
             @Override
-            public void reportError(String s) {
+            public void reportError(final String s) {
                 logger.error("{} - {}", inputFileName, s);
                 parseError.set(true);
             }
 
             @Override
-            public void reportError(RecognitionException e) {
+            public void reportError(final RecognitionException e) {
                 logger.error("{} - {}", inputFileName, e.toString());
                 parseError.set(true);
             }
         };
 
-        AsnModel model = new AsnModel();
+        final AsnModel model = new AsnModel();
         parser.module_definitions(model);
 
         if (parseError.get()) {
@@ -417,20 +417,20 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         return model;
     }
 
-    String guessRootClassName(String rootModelName) {
+    String guessRootClassName(final String rootModelName) {
         try {
-            StringBuilder rootClassNameBuilder = new StringBuilder();
+            final StringBuilder rootClassNameBuilder = new StringBuilder();
 
-            int moduleTypeDelimiterIndex = rootModelName.lastIndexOf(".");
+            final int moduleTypeDelimiterIndex = rootModelName.lastIndexOf(".");
 
-            String moduleName = rootModelName.substring(0, moduleTypeDelimiterIndex);
-            String typeName = rootModelName.substring(moduleTypeDelimiterIndex);
+            final String moduleName = rootModelName.substring(0, moduleTypeDelimiterIndex);
+            final String typeName = rootModelName.substring(moduleTypeDelimiterIndex);
 
             rootClassNameBuilder.append(moduleName.replaceAll("-", ".").toLowerCase());
             rootClassNameBuilder.append(typeName);
 
             return rootClassNameBuilder.toString();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("Could not infer root model name from '" + rootModelName + "'", e);
         }
     }

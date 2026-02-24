@@ -45,12 +45,12 @@ public class MiNiFiCommandSender {
     private final MiNiFiParameters miNiFiParameters;
     private final ObjectMapper objectMapper;
 
-    public MiNiFiCommandSender(MiNiFiParameters miNiFiParameters, ObjectMapper objectMapper) {
+    public MiNiFiCommandSender(final MiNiFiParameters miNiFiParameters, final ObjectMapper objectMapper) {
         this.miNiFiParameters = miNiFiParameters;
         this.objectMapper = objectMapper;
     }
 
-    public Optional<String> sendCommand(String cmd, Integer port, String... extraParams) throws IOException {
+    public Optional<String> sendCommand(final String cmd, final Integer port, final String... extraParams) throws IOException {
         Optional<String> response = Optional.empty();
 
         if (port == null) {
@@ -67,7 +67,7 @@ public class MiNiFiCommandSender {
 
             LOGGER.debug("Sending {} Command to port {}", cmd, port);
 
-            String responseString;
+            final String responseString;
             try (OutputStream out = socket.getOutputStream()) {
                 out.write(getCommand(cmd, extraParams));
                 out.flush();
@@ -76,22 +76,22 @@ public class MiNiFiCommandSender {
 
             LOGGER.debug("Received response to {} command: {}", cmd, responseString);
             response = Optional.of(responseString);
-        } catch (EOFException | SocketTimeoutException e) {
-            String message = "Failed to get response for " + cmd + " Potentially due to the process currently being down (restarting or otherwise)";
+        } catch (final EOFException | SocketTimeoutException e) {
+            final String message = "Failed to get response for " + cmd + " Potentially due to the process currently being down (restarting or otherwise)";
             LOGGER.error(message, e);
             throw new RuntimeException(message);
         }
         return response;
     }
 
-    <T> T sendCommandForObject(String cmd, Integer port, Class<T> clazz, String... extraParams) throws IOException {
+    <T> T sendCommandForObject(final String cmd, final Integer port, final Class<T> clazz, final String... extraParams) throws IOException {
         return sendCommand(cmd, port, extraParams)
             .map(response -> deserialize(cmd, response, clazz))
             .orElse(null);
     }
 
-    private String readResponse(Socket socket) throws IOException {
-        StringBuilder sb = new StringBuilder();
+    private String readResponse(final Socket socket) throws IOException {
+        final StringBuilder sb = new StringBuilder();
         int numLines = 0;
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String line;
@@ -106,28 +106,28 @@ public class MiNiFiCommandSender {
         return sb.toString().trim();
     }
 
-    private byte[] getCommand(String cmd, String... args) {
-        String argsString = Arrays.stream(args).collect(Collectors.joining(" "));
-        String commandWithArgs = cmd + " " + miNiFiParameters.getSecretKey() + (args.length > 0 ? " " : "") + argsString + "\n";
+    private byte[] getCommand(final String cmd, final String... args) {
+        final String argsString = Arrays.stream(args).collect(Collectors.joining(" "));
+        final String commandWithArgs = cmd + " " + miNiFiParameters.getSecretKey() + (args.length > 0 ? " " : "") + argsString + "\n";
         return commandWithArgs.getBytes(StandardCharsets.UTF_8);
     }
 
-    private <T> T deserialize(String cmd, String obj, Class<T> clazz) {
-        T response;
+    private <T> T deserialize(final String cmd, final String obj, final Class<T> clazz) {
+        final T response;
         try {
             response = objectMapper.readValue(obj, clazz);
-        } catch (JsonProcessingException e) {
-            String message = "Failed to deserialize " + cmd + " response";
+        } catch (final JsonProcessingException e) {
+            final String message = "Failed to deserialize " + cmd + " response";
             LOGGER.error(message);
             throw new RuntimeException(message, e);
         }
         return response;
     }
 
-    public boolean isPingSuccessful(int port) {
+    public boolean isPingSuccessful(final int port) {
         try {
             return sendCommand(PING_CMD, port).filter(PING_CMD::equals).isPresent();
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             return false;
         }
     }

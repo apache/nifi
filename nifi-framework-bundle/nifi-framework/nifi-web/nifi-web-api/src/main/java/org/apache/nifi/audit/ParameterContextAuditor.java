@@ -59,20 +59,21 @@ public class ParameterContextAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.parameter.ParameterContext createParameterContext(org.apache.nifi.web.api.dto.ParameterContextDTO)) && "
             + "args(parameterContextDTO) && "
             + "target(parameterContextDAO)")
-    public ParameterContext createParameterContextAdvice(ProceedingJoinPoint proceedingJoinPoint, ParameterContextDTO parameterContextDTO, ParameterContextDAO parameterContextDAO) throws Throwable {
+    public ParameterContext createParameterContextAdvice(final ProceedingJoinPoint proceedingJoinPoint,
+            final ParameterContextDTO parameterContextDTO, final ParameterContextDAO parameterContextDAO) throws Throwable {
         // update the processor state
-        ParameterContext parameterContext = (ParameterContext) proceedingJoinPoint.proceed();
+        final ParameterContext parameterContext = (ParameterContext) proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
             // create a parameter context action
-            Collection<Action> actions = new ArrayList<>();
+            final Collection<Action> actions = new ArrayList<>();
 
             // if no exceptions were thrown, add the processor action...
             final Action createAction = generateAuditRecord(parameterContext, Operation.Add);
             actions.add(createAction);
 
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
+            final Map<String, String> updatedValues = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
 
             // determine the actions performed in this request
             final Date actionTimestamp = new Date(createAction.getTimestamp().getTime() + 1);
@@ -98,7 +99,8 @@ public class ParameterContextAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.parameter.ParameterContext updateParameterContext(org.apache.nifi.web.api.dto.ParameterContextDTO)) && "
             + "args(parameterContextDTO) && "
             + "target(parameterContextDAO)")
-    public ParameterContext updateParameterContextAdvice(ProceedingJoinPoint proceedingJoinPoint, ParameterContextDTO parameterContextDTO, ParameterContextDAO parameterContextDAO) throws Throwable {
+    public ParameterContext updateParameterContextAdvice(final ProceedingJoinPoint proceedingJoinPoint,
+            final ParameterContextDTO parameterContextDTO, final ParameterContextDAO parameterContextDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextDTO.getId());
         final Map<String, String> values = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
@@ -111,11 +113,11 @@ public class ParameterContextAuditor extends NiFiAuditor {
 
         if (isAuditable()) {
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
+            final Map<String, String> updatedValues = extractConfiguredParameterContextValues(parameterContext, parameterContextDTO);
 
             // create a parameter context action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // determine the actions performed in this request
             determineActions(parameterContext, actions, actionTimestamp, updatedValues, values);
@@ -143,7 +145,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
                                    final Date actionTimestamp, final Map<String, String> updatedValues, final Map<String, String> values) {
 
         // go through each updated value
-        for (String key : updatedValues.keySet()) {
+        for (final String key : updatedValues.keySet()) {
             String newValue = updatedValues.get(key);
             String oldValue = values.get(key);
             Operation operation = null;
@@ -196,9 +198,9 @@ public class ParameterContextAuditor extends NiFiAuditor {
             + "execution(void deleteParameterContext(java.lang.String)) && "
             + "args(parameterContextId) && "
             + "target(parameterContextDAO)")
-    public void removeParameterContextAdvice(ProceedingJoinPoint proceedingJoinPoint, String parameterContextId, ParameterContextDAO parameterContextDAO) throws Throwable {
+    public void removeParameterContextAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String parameterContextId, final ParameterContextDAO parameterContextDAO) throws Throwable {
         // get the parameter context before removing it
-        ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
+        final ParameterContext parameterContext = parameterContextDAO.getParameterContext(parameterContextId);
 
         // remove the processor
         proceedingJoinPoint.proceed();
@@ -220,7 +222,7 @@ public class ParameterContextAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    private Action generateAuditRecord(ParameterContext parameterContext, Operation operation) {
+    private Action generateAuditRecord(final ParameterContext parameterContext, final Operation operation) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {

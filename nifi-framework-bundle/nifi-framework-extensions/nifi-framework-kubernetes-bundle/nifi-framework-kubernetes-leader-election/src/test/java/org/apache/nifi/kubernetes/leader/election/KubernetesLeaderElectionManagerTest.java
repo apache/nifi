@@ -264,7 +264,7 @@ class KubernetesLeaderElectionManagerTest {
     }
 
     private class MockKubernetesLeaderElectionManager extends KubernetesLeaderElectionManager {
-        public MockKubernetesLeaderElectionManager(NiFiProperties nifiProperties) {
+        public MockKubernetesLeaderElectionManager(final NiFiProperties nifiProperties) {
             super(nifiProperties);
         }
 

@@ -22,11 +22,11 @@ package org.apache.nifi.amqp.processors;
  */
 public class AMQPRollbackException extends RuntimeException {
 
-    public AMQPRollbackException(String message) {
+    public AMQPRollbackException(final String message) {
         super(message);
     }
 
-    public AMQPRollbackException(String message, Throwable cause) {
+    public AMQPRollbackException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

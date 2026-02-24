@@ -34,18 +34,18 @@ import javax.xml.transform.stream.StreamResult;
  */
 public class GenerateExtensionManifestSchema {
 
-    public static void main(String[] args) throws IOException, JAXBException {
-        JAXBContext jaxbContext = JAXBContext.newInstance(ExtensionManifest.class);
-        SchemaOutputResolver sor = new MySchemaOutputResolver();
+    public static void main(final String[] args) throws IOException, JAXBException {
+        final JAXBContext jaxbContext = JAXBContext.newInstance(ExtensionManifest.class);
+        final SchemaOutputResolver sor = new MySchemaOutputResolver();
         jaxbContext.generateSchema(sor);
     }
 
     public static class MySchemaOutputResolver extends SchemaOutputResolver {
 
         @Override
-        public Result createOutput(String namespaceURI, String suggestedFileName) throws IOException {
-            File file = new File("./target", suggestedFileName);
-            StreamResult result = new StreamResult(file);
+        public Result createOutput(final String namespaceURI, final String suggestedFileName) throws IOException {
+            final File file = new File("./target", suggestedFileName);
+            final StreamResult result = new StreamResult(file);
             result.setSystemId(file.toURI().toURL().toString());
             return result;
         }

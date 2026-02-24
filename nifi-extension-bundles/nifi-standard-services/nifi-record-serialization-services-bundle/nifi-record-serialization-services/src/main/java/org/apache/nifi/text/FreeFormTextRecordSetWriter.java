@@ -80,7 +80,7 @@ public class FreeFormTextRecordSetWriter extends AbstractControllerService imple
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return readSchema;
     }
 

@@ -26,9 +26,9 @@ public class HashiCorpVaultSslProperties {
     private final String enabledCipherSuites;
     private final String enabledProtocols;
 
-    public HashiCorpVaultSslProperties(String keyStore, String keyStoreType, String keyStorePassword, String trustStore,
-                                       String trustStoreType, String trustStorePassword,
-                                       String enabledCipherSuites, String enabledProtocols) {
+    public HashiCorpVaultSslProperties(final String keyStore, final String keyStoreType, final String keyStorePassword, final String trustStore,
+                                       final String trustStoreType, final String trustStorePassword,
+                                       final String enabledCipherSuites, final String enabledProtocols) {
         this.keyStore = keyStore;
         this.keyStoreType = keyStoreType;
         this.keyStorePassword = keyStorePassword;

@@ -27,12 +27,12 @@ import java.util.function.Predicate;
 public class JsonValidator implements Predicate<byte[]> {
 
     @Override
-    public boolean test(byte[] content) {
+    public boolean test(final byte[] content) {
         try {
             final String jsonString = new String(content, StandardCharsets.UTF_8);
             JsonObject.fromJson(jsonString);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }

@@ -64,7 +64,7 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
     public static final String ERROR_MESSAGE = "graph.error.message";
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String name) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String name) {
         return new PropertyDescriptor.Builder()
             .name(name)
             .displayName(name)
@@ -77,17 +77,17 @@ abstract class AbstractGraphExecutor extends AbstractProcessor {
     protected List<PropertyDescriptor> queryParameters;
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         queryParameters = context.getProperties()
             .keySet().stream()
             .filter(prop -> prop.isDynamic())
             .collect(Collectors.toList());
     }
 
-    protected Map<String, Object> getParameters(ProcessContext context, FlowFile input) {
-        Map<String, Object> params = new HashMap<>();
-        for (PropertyDescriptor descriptor : queryParameters) {
-            String value = context.getProperty(descriptor).evaluateAttributeExpressions(input).getValue();
+    protected Map<String, Object> getParameters(final ProcessContext context, final FlowFile input) {
+        final Map<String, Object> params = new HashMap<>();
+        for (final PropertyDescriptor descriptor : queryParameters) {
+            final String value = context.getProperty(descriptor).evaluateAttributeExpressions(input).getValue();
             params.put(descriptor.getName(), value);
         }
 

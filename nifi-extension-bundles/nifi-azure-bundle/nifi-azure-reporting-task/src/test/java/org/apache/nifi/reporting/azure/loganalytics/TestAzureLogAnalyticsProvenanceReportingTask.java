@@ -45,8 +45,8 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyBoolean", true, true);
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNotSupportedObject", 1.25, true);
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, "TestKeyNull", null, true);
-        jakarta.json.JsonObject actualJson = builder.build();
-        String expectedjsonString = "{" +
+        final jakarta.json.JsonObject actualJson = builder.build();
+        final String expectedjsonString = "{" +
                                         "\"TestKeyString\": \"StringValue\"," +
                                         "\"TestKeyInteger\": 2674440," +
                                         "\"TestKeyLong\": 1289904147324," +
@@ -54,7 +54,7 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
                                         "\"TestKeyNotSupportedObject\": \"1.25\"," +
                                         "\"TestKeyNull\": null" +
                                     "}";
-        JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
+        final JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
     }
 
@@ -64,13 +64,13 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        Map<String, String> values = new LinkedHashMap<>();
+        final Map<String, String> values = new LinkedHashMap<>();
         values.put("TestKeyString1", "StringValue1");
         values.put("TestKeyString2", "StringValue2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
-        jakarta.json.JsonObject actualJson = builder.build();
-        String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString1\":\"StringValue1\",\"TestKeyString2\":\"StringValue2\"}}";
-        JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
+        final jakarta.json.JsonObject actualJson = builder.build();
+        final String expectedjsonString = "{\"TestKeyString\":{\"TestKeyString1\":\"StringValue1\",\"TestKeyString2\":\"StringValue2\"}}";
+        final JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
     }
 
@@ -80,13 +80,13 @@ public class TestAzureLogAnalyticsProvenanceReportingTask {
         final Map<String, Object> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        Collection<String> values = new ArrayList<>();
+        final Collection<String> values = new ArrayList<>();
         values.add("TestValueString1");
         values.add("TestValueString2");
         AzureLogAnalyticsProvenanceReportingTask.addField(builder, factory, "TestKeyString", values, true);
-        jakarta.json.JsonObject actualJson = builder.build();
-        String expectedjsonString = "{\"TestKeyString\":[\"TestValueString1\",\"TestValueString2\"]}";
-        JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
+        final jakarta.json.JsonObject actualJson = builder.build();
+        final String expectedjsonString = "{\"TestKeyString\":[\"TestValueString1\",\"TestValueString2\"]}";
+        final JsonObject expectedJson = new Gson().fromJson(expectedjsonString, JsonObject.class);
         assertEquals(expectedJson.toString(), actualJson.toString());
     }
 }

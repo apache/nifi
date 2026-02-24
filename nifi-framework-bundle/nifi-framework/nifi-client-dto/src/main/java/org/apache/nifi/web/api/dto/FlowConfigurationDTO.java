@@ -50,7 +50,7 @@ public class FlowConfigurationDTO {
         return supportsManagedAuthorizer;
     }
 
-    public void setSupportsManagedAuthorizer(Boolean supportsManagedAuthorizer) {
+    public void setSupportsManagedAuthorizer(final Boolean supportsManagedAuthorizer) {
         this.supportsManagedAuthorizer = supportsManagedAuthorizer;
     }
 
@@ -64,7 +64,7 @@ public class FlowConfigurationDTO {
         return supportsConfigurableUsersAndGroups;
     }
 
-    public void setSupportsConfigurableUsersAndGroups(Boolean supportsConfigurableUsersAndGroups) {
+    public void setSupportsConfigurableUsersAndGroups(final Boolean supportsConfigurableUsersAndGroups) {
         this.supportsConfigurableUsersAndGroups = supportsConfigurableUsersAndGroups;
     }
 
@@ -78,7 +78,7 @@ public class FlowConfigurationDTO {
         return supportsConfigurableAuthorizer;
     }
 
-    public void setSupportsConfigurableAuthorizer(Boolean supportsConfigurableAuthorizer) {
+    public void setSupportsConfigurableAuthorizer(final Boolean supportsConfigurableAuthorizer) {
         this.supportsConfigurableAuthorizer = supportsConfigurableAuthorizer;
     }
 
@@ -93,7 +93,7 @@ public class FlowConfigurationDTO {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 
@@ -106,7 +106,7 @@ public class FlowConfigurationDTO {
         return timeOffset;
     }
 
-    public void setTimeOffset(Integer timeOffset) {
+    public void setTimeOffset(final Integer timeOffset) {
         this.timeOffset = timeOffset;
     }
 
@@ -119,7 +119,7 @@ public class FlowConfigurationDTO {
         return defaultBackPressureObjectThreshold;
     }
 
-    public void setDefaultBackPressureObjectThreshold(Long backPressureObjectThreshold) {
+    public void setDefaultBackPressureObjectThreshold(final Long backPressureObjectThreshold) {
         this.defaultBackPressureObjectThreshold = backPressureObjectThreshold;
     }
 
@@ -132,7 +132,7 @@ public class FlowConfigurationDTO {
         return defaultBackPressureDataSizeThreshold;
     }
 
-    public void setDefaultBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+    public void setDefaultBackPressureDataSizeThreshold(final String backPressureDataSizeThreshold) {
         this.defaultBackPressureDataSizeThreshold = backPressureDataSizeThreshold;
     }
 }

@@ -38,7 +38,7 @@ public class TestDuplicateFlowFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(DuplicateFlowFile.REL_SUCCESS, numCopies + 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DuplicateFlowFile.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(DuplicateFlowFile.REL_SUCCESS);
         // copy.index starts with 1, original has copy.index = 0 but is transferred last
         for (int i = 1; i <= numCopies; i++) {
             flowFiles.get(i - 1).assertAttributeEquals(COPY_INDEX_ATTRIBUTE, Integer.toString(i));

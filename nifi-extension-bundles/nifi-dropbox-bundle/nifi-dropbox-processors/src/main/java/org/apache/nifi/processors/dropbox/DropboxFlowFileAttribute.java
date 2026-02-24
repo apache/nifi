@@ -29,7 +29,7 @@ public enum DropboxFlowFileAttribute {
     private final String name;
     private final Function<DropboxFileInfo, String> fromFileInfo;
 
-    DropboxFlowFileAttribute(String attributeName, Function<DropboxFileInfo, String> fromFileInfo) {
+    DropboxFlowFileAttribute(final String attributeName, final Function<DropboxFileInfo, String> fromFileInfo) {
         this.name = attributeName;
         this.fromFileInfo = fromFileInfo;
     }
@@ -38,7 +38,7 @@ public enum DropboxFlowFileAttribute {
         return name;
     }
 
-    public String getValue(DropboxFileInfo fileInfo) {
+    public String getValue(final DropboxFileInfo fileInfo) {
         return fromFileInfo.apply(fileInfo);
     }
 

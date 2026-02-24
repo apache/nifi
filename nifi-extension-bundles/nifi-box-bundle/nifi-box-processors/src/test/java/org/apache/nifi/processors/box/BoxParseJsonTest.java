@@ -115,24 +115,24 @@ public class BoxParseJsonTest {
     @Test
     void testParseObjectAndArray() {
         // JSON objects return their string representation
-        JsonObject jsonObject = Json.object().add("key", "value");
+        final JsonObject jsonObject = Json.object().add("key", "value");
         Object result = BoxMetadataUtils.parseJsonValue(jsonObject);
         assertEquals(jsonObject.toString(), result);
 
         // JSON arrays return their string representation
-        JsonArray jsonArray = Json.array().add("item1").add("item2");
+        final JsonArray jsonArray = Json.array().add("item1").add("item2");
         result = BoxMetadataUtils.parseJsonValue(jsonArray);
         assertEquals(jsonArray.toString(), result);
     }
 
     @Test
     void testParseNumberFormatException() {
-        String largeIntegerString = "9999999999999999999"; // Beyond Long.MAX_VALUE
-        JsonValue jsonValue = Json.parse(largeIntegerString);
+        final String largeIntegerString = "9999999999999999999"; // Beyond Long.MAX_VALUE
+        final JsonValue jsonValue = Json.parse(largeIntegerString);
         Object result = BoxMetadataUtils.parseJsonValue(jsonValue);
         assertEquals(largeIntegerString, result);
 
-        double doubleValue = 123.456;
+        final double doubleValue = 123.456;
         result = BoxMetadataUtils.parseJsonValue(Json.value(doubleValue));
         assertEquals(String.valueOf(doubleValue), result);
     }

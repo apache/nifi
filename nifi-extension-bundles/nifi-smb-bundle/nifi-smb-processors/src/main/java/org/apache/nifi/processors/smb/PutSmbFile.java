@@ -241,7 +241,7 @@ public class PutSmbFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_ENABLE_DFS_PROPERTY_NAME, ENABLE_DFS.getName());
         config.renameProperty(OLD_SMB_DIALECT_PROPERTY_NAME, SMB_DIALECT.getName());
         config.renameProperty(OLD_TIMEOUT_PROPERTY_NAME, TIMEOUT.getName());
@@ -249,8 +249,8 @@ public class PutSmbFile extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> set = new ArrayList<>();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> set = new ArrayList<>();
         if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
             set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
         }
@@ -261,20 +261,20 @@ public class PutSmbFile extends AbstractProcessor {
         return buildSmbClient(context);
     }
 
-    private void createMissingDirectoriesRecursively(ComponentLog logger, DiskShare share, String pathToCreate) {
-        List<String> paths = new ArrayList<>();
+    private void createMissingDirectoriesRecursively(final ComponentLog logger, final DiskShare share, final String pathToCreate) {
+        final List<String> paths = new ArrayList<>();
 
         java.io.File file = new java.io.File(pathToCreate);
         paths.add(file.getPath());
 
         while (file.getParent() != null) {
-            String parent = file.getParent();
+            final String parent = file.getParent();
             paths.add(parent);
             file = new java.io.File(parent);
         }
 
         Collections.reverse(paths);
-        for (String path : paths) {
+        for (final String path : paths) {
             if (!share.folderExists(path)) {
                 logger.debug("Creating folder {}", path);
                 share.mkdir(path);
@@ -299,7 +299,7 @@ public class PutSmbFile extends AbstractProcessor {
         final String shareName = flowFileFilter.getShare();
         final String domain = context.getProperty(DOMAIN).getValue();
         final String username = context.getProperty(USERNAME).getValue();
-        String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
 
         AuthenticationContext ac = null;
         if (username != null && password != null) {
@@ -315,7 +315,8 @@ public class PutSmbFile extends AbstractProcessor {
             Session smbSession = connection.authenticate(ac);
             DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
 
-            for (FlowFile flowFile : flowFiles) {
+            for (final FlowFile originalFlowFile : flowFiles) {
+                FlowFile flowFile = originalFlowFile;
                 try {
                     final long processingStartTime = System.nanoTime();
 
@@ -342,7 +343,7 @@ public class PutSmbFile extends AbstractProcessor {
                     } else if (!share.folderExists(destinationFileParentDirectory)) {
                         try {
                             createMissingDirectoriesRecursively(logger, share, destinationFileParentDirectory);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationFileParentDirectory, e);
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
@@ -368,7 +369,7 @@ public class PutSmbFile extends AbstractProcessor {
                     // handle temporary suffix
                     final String renameSuffixValue = context.getProperty(RENAME_SUFFIX).getValue();
                     final boolean renameSuffix = renameSuffixValue != null && !renameSuffixValue.isBlank();
-                    StringBuilder finalDestinationFullPath = new StringBuilder(destinationFullPath);
+                    final StringBuilder finalDestinationFullPath = new StringBuilder(destinationFullPath);
                     if (renameSuffix) {
                         finalDestinationFullPath.append(renameSuffixValue);
                     }
@@ -384,7 +385,7 @@ public class PutSmbFile extends AbstractProcessor {
                                     EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH));
                             OutputStream shareDestinationFileOutputStream = shareDestinationFile.getOutputStream()) {
                         session.exportTo(flowFile, shareDestinationFileOutputStream);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         logger.error("Cannot transfer the file. Penalizing {} and routing to 'failure'", flowFile, e);
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
@@ -406,7 +407,7 @@ public class PutSmbFile extends AbstractProcessor {
 
                             // rename the file on the share and replace it in case it exists
                             fileDiskEntry.rename(destinationFullPath, true);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             logger.error("Cannot rename the file. Penalizing {} and routing to 'failure'", flowFile, e);
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
@@ -420,13 +421,13 @@ public class PutSmbFile extends AbstractProcessor {
                     final long processingTimeInMilli = TimeUnit.MILLISECONDS.convert(processingTimeInNano, TimeUnit.NANOSECONDS);
                     session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli);
                     session.transfer(flowFile, REL_SUCCESS);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Error processing flowfile {}", flowFile, e);
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Could not establish smb connection", e);
             session.transfer(flowFiles, REL_FAILURE);
             smbClient.getServerList().unregister(hostname);

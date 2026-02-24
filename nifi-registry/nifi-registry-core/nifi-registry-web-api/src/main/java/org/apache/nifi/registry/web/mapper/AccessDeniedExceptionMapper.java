@@ -38,9 +38,9 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
     private static final Logger logger = LoggerFactory.getLogger(AccessDeniedExceptionMapper.class);
 
     @Override
-    public Response toResponse(AccessDeniedException exception) {
+    public Response toResponse(final AccessDeniedException exception) {
         // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // if the user was authenticated - forbidden, otherwise unauthorized... the user may be null if the
         // AccessDeniedException was thrown from a /access endpoint that isn't subject to the security

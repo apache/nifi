@@ -87,11 +87,11 @@ public abstract class ITAbstractAzureCosmosDBDocument {
                 .key(testDBContainer)
                 .buildClient();
 
-        CosmosDatabaseResponse databaseResponse = client.createDatabase(TEST_COSMOS_DB_NAME);
+        final CosmosDatabaseResponse databaseResponse = client.createDatabase(TEST_COSMOS_DB_NAME);
         cdb = client.getDatabase(databaseResponse.getProperties().getId());
-        CosmosContainerProperties containerProperties =
+        final CosmosContainerProperties containerProperties =
             new CosmosContainerProperties(TEST_COSMOS_CONTAINER_NAME, "/" + TEST_COSMOS_PARTITION_KEY_FIELD_NAME);
-        CosmosContainerResponse containerResponse = cdb.createContainer(containerProperties);
+        final CosmosContainerResponse containerResponse = cdb.createContainer(containerProperties);
         container = cdb.getContainer(containerResponse.getProperties().getId());
         assertNotNull(container);
     }
@@ -102,7 +102,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if (container != null) {
             try {
                 container.delete();
-            } catch (CosmosException e) {
+            } catch (final CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 container = null;
@@ -111,7 +111,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if (cdb != null) {
             try {
                 cdb.delete();
-            } catch (CosmosException e) {
+            } catch (final CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 cdb = null;
@@ -120,7 +120,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         if (client != null) {
             try {
                 client.close();
-            } catch (CosmosException e) {
+            } catch (final CosmosException e) {
                 logger.info(e.getMessage());
             } finally {
                 client = null;
@@ -145,7 +145,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
     protected static void closeClient() {
         try {
             client.close();
-        } catch (CosmosException e) {
+        } catch (final CosmosException e) {
             logger.info(e.getMessage());
         } finally {
             client = null;
@@ -175,7 +175,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         runner.removeProperty(AzureCosmosDBUtils.URI);
         runner.removeProperty(AzureCosmosDBUtils.DB_ACCESS_KEY);
 
-        AzureCosmosDBClientService service = new AzureCosmosDBClientService();
+        final AzureCosmosDBClientService service = new AzureCosmosDBClientService();
         runner.addControllerService("connService", service);
 
         runner.setProperty(service, AzureCosmosDBUtils.URI, getComosURI());
@@ -188,14 +188,14 @@ public abstract class ITAbstractAzureCosmosDBDocument {
 
     protected void clearTestData() throws Exception {
         logger.info("clearing test data");
-        CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
+        final CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
 
-        CosmosPagedIterable<JsonNode> response = container.queryItems(
+        final CosmosPagedIterable<JsonNode> response = container.queryItems(
             "select * from c order by c._ts", queryOptions, JsonNode.class);
 
         response.forEach(data -> {
             if (data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME) != null) {
-                PartitionKey pkey = new PartitionKey(data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME).asText());
+                final PartitionKey pkey = new PartitionKey(data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME).asText());
                 container.deleteItem(data.get("id").asText(), pkey, new CosmosItemRequestOptions());
             } else {
                 container.deleteItem(data.get("id").asText(), PartitionKey.NONE, new CosmosItemRequestOptions());

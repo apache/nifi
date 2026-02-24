@@ -66,9 +66,9 @@ public class AccessPolicyAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.AccessPolicyDAO+) && "
             + "execution(org.apache.nifi.authorization.AccessPolicy createAccessPolicy(org.apache.nifi.web.api.dto.AccessPolicyDTO))")
-    public AccessPolicy createAccessPolicyAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public AccessPolicy createAccessPolicyAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the access policy
-        AccessPolicy policy = (AccessPolicy) proceedingJoinPoint.proceed();
+        final AccessPolicy policy = (AccessPolicy) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the policy action...
         final Action action = generateAuditRecord(policy, Operation.Add);
@@ -94,7 +94,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.AccessPolicy updateAccessPolicy(org.apache.nifi.web.api.dto.AccessPolicyDTO)) && "
             + "args(accessPolicyDTO) && "
             + "target(accessPolicyDAO)")
-    public AccessPolicy updateAccessPolicyAdvice(ProceedingJoinPoint proceedingJoinPoint, AccessPolicyDTO accessPolicyDTO, AccessPolicyDAO accessPolicyDAO) throws Throwable {
+    public AccessPolicy updateAccessPolicyAdvice(final ProceedingJoinPoint proceedingJoinPoint, final AccessPolicyDTO accessPolicyDTO, final AccessPolicyDAO accessPolicyDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(accessPolicyDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(accessPolicy, accessPolicyDTO);
@@ -107,16 +107,16 @@ public class AccessPolicyAuditor extends NiFiAuditor {
 
         if (isAuditable()) {
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(accessPolicy, accessPolicyDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(accessPolicy, accessPolicyDTO);
 
             // create a policy action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
-                String newValue = updatedValues.get(property);
-                String oldValue = values.get(property);
+            for (final String property : updatedValues.keySet()) {
+                final String newValue = updatedValues.get(property);
+                final String oldValue = values.get(property);
                 Operation operation = null;
 
                 // determine the type of operation
@@ -165,9 +165,9 @@ public class AccessPolicyAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.AccessPolicy deleteAccessPolicy(java.lang.String)) && "
             + "args(policyId) && "
             + "target(accessPolicyDAO)")
-    public AccessPolicy removePolicyAdvice(ProceedingJoinPoint proceedingJoinPoint, String policyId, AccessPolicyDAO accessPolicyDAO) throws Throwable {
+    public AccessPolicy removePolicyAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String policyId, final AccessPolicyDAO accessPolicyDAO) throws Throwable {
         // get the policy before removing it
-        AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(policyId);
+        final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(policyId);
 
         // remove the policy
         final AccessPolicy removedAccessPolicy = (AccessPolicy) proceedingJoinPoint.proceed();
@@ -191,7 +191,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(AccessPolicy policy, Operation operation) {
+    public Action generateAuditRecord(final AccessPolicy policy, final Operation operation) {
         return generateAuditRecord(policy, operation, null);
     }
 
@@ -203,7 +203,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(AccessPolicy policy, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final AccessPolicy policy, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
@@ -235,8 +235,8 @@ public class AccessPolicyAuditor extends NiFiAuditor {
     /**
      * Extracts the values for the configured properties from the specified policy.
      */
-    private Map<String, String> extractConfiguredPropertyValues(AccessPolicy policy, AccessPolicyDTO policyDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final AccessPolicy policy, final AccessPolicyDTO policyDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (policyDTO.getUsers() != null) {
             // get each of the auto terminated relationship names

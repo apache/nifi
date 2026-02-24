@@ -133,7 +133,7 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
             final byte[] outputContents;
             try {
                 outputContents = result.readContentAsByteArray(out);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
             assertEquals("Good-bye World", new String(outputContents));

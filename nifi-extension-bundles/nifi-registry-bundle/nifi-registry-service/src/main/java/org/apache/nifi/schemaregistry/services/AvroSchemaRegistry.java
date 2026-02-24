@@ -91,14 +91,14 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
-        boolean strict = validationContext.getProperty(VALIDATE_FIELD_NAMES).asBoolean();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Set<ValidationResult> results = new HashSet<>();
+        final boolean strict = validationContext.getProperty(VALIDATE_FIELD_NAMES).asBoolean();
 
         // Iterate over dynamic properties, validating the schemas, and adding results
         validationContext.getProperties().entrySet().stream().filter(entry -> entry.getKey().isDynamic()).forEach(entry -> {
-            String subject = entry.getKey().getDisplayName();
-            String input = entry.getValue();
+            final String subject = entry.getKey().getDisplayName();
+            final String input = entry.getValue();
 
             try {
                 final Schema.Parser parser = strict
@@ -137,7 +137,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("avro-reg-validated-field-names", VALIDATE_FIELD_NAMES.getName());
     }
 

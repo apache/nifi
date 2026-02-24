@@ -122,13 +122,13 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("storage-api-url", STORAGE_API_URL.getName());
     }
 
     @Override
-    protected final Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected final Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = super.customValidate(validationContext);
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
         customValidate(validationContext, results);
@@ -138,7 +138,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     /**
      * If sub-classes needs to implement any custom validation, override this method then add validation result to the results.
      */
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> results) {
     }
 
     /**
@@ -151,12 +151,12 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     }
 
     @Override
-    protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
+    protected StorageOptions getServiceOptions(final ProcessContext context, final GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
         final String storageApiUrl = context.getProperty(STORAGE_API_URL).evaluateAttributeExpressions().getValue();
         final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
-        StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
+        final StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
                 .setCredentials(credentials)
                 .setRetrySettings(RetrySettings.newBuilder()
                         .setMaxAttempts(retryCount)

@@ -44,12 +44,12 @@ public class GetControllerService extends AbstractNiFiCommand<ControllerServiceR
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.CS_ID.createOption());
     }
 
     @Override
-    public ControllerServiceResult doExecute(NiFiClient client, Properties properties) throws NiFiClientException, IOException, MissingOptionException {
+    public ControllerServiceResult doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException, MissingOptionException {
         final String csId = getRequiredArg(properties, CommandOption.CS_ID);
         final ControllerServicesClient csClient = client.getControllerServicesClient();
 

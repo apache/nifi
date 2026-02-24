@@ -28,7 +28,7 @@ import java.util.OptionalInt;
 public class ApicurioSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryApiClient apiClient;
 
-    public ApicurioSchemaRegistryClient(SchemaRegistryApiClient apiClient) {
+    public ApicurioSchemaRegistryClient(final SchemaRegistryApiClient apiClient) {
         this.apiClient = apiClient;
     }
 

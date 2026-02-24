@@ -30,7 +30,7 @@ public enum MetadataTarget implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    MetadataTarget(String displayName, String description) {
+    MetadataTarget(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

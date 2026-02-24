@@ -38,7 +38,7 @@ public class ListFlows extends AbstractNiFiCommand<RegistryFlowsResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.FLOW_BRANCH.createOption());

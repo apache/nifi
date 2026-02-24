@@ -28,7 +28,7 @@ public class InterruptedExceptionMapper implements ExceptionMapper<InterruptedEx
     private static final Logger logger = LoggerFactory.getLogger(InterruptedExceptionMapper.class);
 
     @Override
-    public Response toResponse(InterruptedException exception) {
+    public Response toResponse(final InterruptedException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.INTERNAL_SERVER_ERROR);
 

@@ -42,7 +42,7 @@ public class TestExceptionHandler {
      */
     static class ExternalProcedure {
         private boolean available = true;
-        int divide(Integer a, Integer b) throws Exception {
+        int divide(final Integer a, final Integer b) throws Exception {
             if (!available) {
                 throw new IOException("Not available");
             }
@@ -68,7 +68,7 @@ public class TestExceptionHandler {
             // Ends up having a lot of same code.
             final int r1 = p.divide(4, 2);
             assertEquals(2, r1);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 
@@ -82,13 +82,13 @@ public class TestExceptionHandler {
         });
 
         // If return value is needed, use AtomicReference.
-        AtomicReference<Integer> r = new AtomicReference<>();
+        final AtomicReference<Integer> r = new AtomicReference<>();
         handler.execute(context, 8, i -> r.set(p.divide(i, 2)));
         assertEquals(4, r.get().intValue());
 
         // If no exception mapping is specified, any Exception thrown is wrapped by ProcessException.
         final Integer nullInput = null;
-        ProcessException pe = assertThrows(ProcessException.class, () -> handler.execute(context, nullInput, i -> r.set(p.divide(i, 2))),
+        final ProcessException pe = assertThrows(ProcessException.class, () -> handler.execute(context, nullInput, i -> r.set(p.divide(i, 2))),
                 "Exception should be thrown because input is null.");
         assertInstanceOf(NullPointerException.class, pe.getCause());
     }
@@ -97,13 +97,13 @@ public class TestExceptionHandler {
     static Function<Exception, ErrorTypes> exceptionMapping = i -> {
         try {
             throw i;
-        } catch (NullPointerException | ArithmeticException | NumberFormatException e) {
+        } catch (final NullPointerException | ArithmeticException | NumberFormatException e) {
             return ErrorTypes.InvalidInput;
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             return ErrorTypes.TemporalInputFailure;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return ErrorTypes.TemporalFailure;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
     };
@@ -169,7 +169,7 @@ public class TestExceptionHandler {
         handler.onError(createArrayInputErrorHandler());
 
         // It's especially handy when looping through inputs. [a, b, expected result]
-        Integer[][] inputs = new Integer[][]{{4, 2, 2}, {null, 2, 999}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
+        final Integer[][] inputs = new Integer[][]{{4, 2, 2}, {null, 2, 999}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
 
         Arrays.stream(inputs).forEach(input ->  handler.execute(context, input, (in) -> {
             final Integer r = p.divide(in[0], in[1]);
@@ -177,8 +177,8 @@ public class TestExceptionHandler {
             assertEquals(in[2], r);
         }));
 
-        AtomicReference<Integer> r = new AtomicReference<>();
-        for (Integer[] input : inputs) {
+        final AtomicReference<Integer> r = new AtomicReference<>();
+        for (final Integer[] input : inputs) {
 
             if (!handler.execute(context, input, (in) -> {
                 r.set(p.divide(in[0], in[1]));

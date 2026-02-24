@@ -25,7 +25,7 @@ import org.apache.nifi.processors.standard.db.impl.RemoveUnderscoreNormalizer;
 import java.util.regex.Pattern;
 
 public class NameNormalizerFactory {
-    public static NameNormalizer getNormalizer(TranslationStrategy strategy, Pattern regex) {
+    public static NameNormalizer getNormalizer(final TranslationStrategy strategy, final Pattern regex) {
 
         return switch (strategy) {
             case REMOVE_UNDERSCORE -> new RemoveUnderscoreNormalizer();

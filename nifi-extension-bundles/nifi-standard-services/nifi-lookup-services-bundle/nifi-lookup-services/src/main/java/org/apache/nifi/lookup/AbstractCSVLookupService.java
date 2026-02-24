@@ -148,7 +148,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("csv-file", CSV_FILE.getName());
         config.renameProperty("lookup-key-column", LOOKUP_KEY_COLUMN.getName());
         config.renameProperty("ignore-duplicates", IGNORE_DUPLICATES.getName());

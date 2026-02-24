@@ -188,7 +188,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
+    public List<Bulletin> findBulletinsForGroupBySource(final String groupId) {
         return findBulletinsForGroupBySource(groupId, COMPONENT_BUFFER_SIZE);
     }
 
@@ -322,7 +322,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public int clearBulletinsForComponents(Collection<String> sourceIds, Instant fromTimestamp) throws IllegalArgumentException {
+    public int clearBulletinsForComponents(final Collection<String> sourceIds, final Instant fromTimestamp) throws IllegalArgumentException {
         if (sourceIds == null || sourceIds.isEmpty()) {
             throw new IllegalArgumentException("Source IDs cannot be null or empty");
         }

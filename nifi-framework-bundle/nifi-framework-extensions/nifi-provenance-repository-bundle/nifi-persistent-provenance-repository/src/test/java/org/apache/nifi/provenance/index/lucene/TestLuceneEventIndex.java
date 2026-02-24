@@ -203,12 +203,12 @@ public class TestLuceneEventIndex {
 
         final EventAuthorizer allowJoinEvents = new EventAuthorizer() {
             @Override
-            public boolean isAuthorized(ProvenanceEventRecord event) {
+            public boolean isAuthorized(final ProvenanceEventRecord event) {
                 return event.getEventType() == ProvenanceEventType.JOIN;
             }
 
             @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+            public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
             }
         };
 
@@ -253,12 +253,12 @@ public class TestLuceneEventIndex {
         final Query query = new Query(UUID.randomUUID().toString());
         final EventAuthorizer authorizer = new EventAuthorizer() {
             @Override
-            public boolean isAuthorized(ProvenanceEventRecord event) {
+            public boolean isAuthorized(final ProvenanceEventRecord event) {
                 return event.getEventId() % 2 == 0;
             }
 
             @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+            public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
                 throw new AccessDeniedException();
             }
         };

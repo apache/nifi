@@ -38,8 +38,8 @@ public class X509CertificateExtractor {
      * @param request http request
      * @return cert
      */
-    public X509Certificate[] extractClientCertificate(HttpServletRequest request) {
-        X509Certificate[] certs = (X509Certificate[]) request.getAttribute("jakarta.servlet.request.X509Certificate");
+    public X509Certificate[] extractClientCertificate(final HttpServletRequest request) {
+        final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("jakarta.servlet.request.X509Certificate");
 
         if (certs != null && certs.length > 0) {
             return certs;

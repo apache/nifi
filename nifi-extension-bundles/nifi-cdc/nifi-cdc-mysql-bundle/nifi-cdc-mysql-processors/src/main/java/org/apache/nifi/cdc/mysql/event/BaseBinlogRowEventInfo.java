@@ -31,13 +31,14 @@ public class BaseBinlogRowEventInfo<RowEventDataType> extends BaseBinlogTableEve
     private BitSet includedColumns;
     private RowEventInfo<RowEventDataType> delegate;
 
-    public BaseBinlogRowEventInfo(TableInfo tableInfo, String type, Long timestamp, String binlogFilename, Long binlogPosition, BitSet includedColumns, List<RowEventDataType> rows) {
+    public BaseBinlogRowEventInfo(final TableInfo tableInfo, final String type, final Long timestamp,
+            final String binlogFilename, final Long binlogPosition, final BitSet includedColumns, final List<RowEventDataType> rows) {
         super(tableInfo, type, timestamp, binlogFilename, binlogPosition);
         this.includedColumns = includedColumns;
         this.delegate = new BaseRowEventInfo<>(tableInfo, type, timestamp, rows);
     }
 
-    public BaseBinlogRowEventInfo(TableInfo tableInfo, String type, Long timestamp, String binlogGtidSet, BitSet includedColumns, List<RowEventDataType> rows) {
+    public BaseBinlogRowEventInfo(final TableInfo tableInfo, final String type, final Long timestamp, final String binlogGtidSet, final BitSet includedColumns, final List<RowEventDataType> rows) {
         super(tableInfo, type, timestamp, binlogGtidSet);
         this.includedColumns = includedColumns;
         this.delegate = new BaseRowEventInfo<>(tableInfo, type, timestamp, rows);

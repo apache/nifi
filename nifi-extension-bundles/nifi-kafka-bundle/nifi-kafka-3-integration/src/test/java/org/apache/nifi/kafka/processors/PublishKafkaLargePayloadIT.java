@@ -87,7 +87,7 @@ public class PublishKafkaLargePayloadIT extends AbstractPublishKafkaIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishKafka.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishKafka.REL_SUCCESS).getFirst();
         assertEquals(Integer.toString(EXPECTED_RECORD_COUNT), flowFile.getAttribute("msg.count"));
     }
 
@@ -110,13 +110,13 @@ public class PublishKafkaLargePayloadIT extends AbstractPublishKafkaIT {
 
     // Create sample data with multiple records
     private static void populateSampleInput() {
-        StringBuilder sb = new StringBuilder();
-        int recordCount = EXPECTED_RECORD_COUNT;
-        int approximateRecordSize = MAX_MESSAGE_SIZE / recordCount;
+        final StringBuilder sb = new StringBuilder();
+        final int recordCount = EXPECTED_RECORD_COUNT;
+        final int approximateRecordSize = MAX_MESSAGE_SIZE / recordCount;
 
         for (int i = 0; i < recordCount; i++) {
             sb.append("{\"key\": \"").append(i).append("\",\"value\":\"");
-            int payloadSize = approximateRecordSize - 30;
+            final int payloadSize = approximateRecordSize - 30;
             for (int j = 0; j < payloadSize; j++) {
                 sb.append((char) ('A' + (j % 26)));
             }
@@ -129,11 +129,11 @@ public class PublishKafkaLargePayloadIT extends AbstractPublishKafkaIT {
             }
         }
 
-        byte[] stringBytes = sb.toString().getBytes();
+        final byte[] stringBytes = sb.toString().getBytes();
 
         Arrays.fill(LARGE_SAMPLE_INPUT, (byte) ' '); // Fill with spaces instead of NULL
 
-        int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
+        final int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
         System.arraycopy(stringBytes, 0, LARGE_SAMPLE_INPUT, 0, copyLength);
     }
 }

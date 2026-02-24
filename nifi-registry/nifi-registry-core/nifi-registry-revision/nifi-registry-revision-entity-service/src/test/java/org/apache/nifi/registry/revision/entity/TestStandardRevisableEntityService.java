@@ -220,7 +220,7 @@ public class TestStandardRevisableEntityService {
         private String identifier;
         private RevisionInfo revisionInfo;
 
-        public TestEntity(String identifier, RevisionInfo revisionInfo) {
+        public TestEntity(final String identifier, final RevisionInfo revisionInfo) {
             this.identifier = identifier;
             this.revisionInfo = revisionInfo;
         }
@@ -231,7 +231,7 @@ public class TestStandardRevisableEntityService {
         }
 
         @Override
-        public void setIdentifier(String identifier) {
+        public void setIdentifier(final String identifier) {
             this.identifier = identifier;
         }
 
@@ -241,7 +241,7 @@ public class TestStandardRevisableEntityService {
         }
 
         @Override
-        public void setRevision(RevisionInfo revision) {
+        public void setRevision(final RevisionInfo revision) {
             this.revisionInfo = revision;
         }
     }

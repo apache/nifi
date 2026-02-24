@@ -57,9 +57,9 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
     private String annotationData = "";
 
-    public ProcessorSchema(Map map) {
+    public ProcessorSchema(final Map map) {
         super(map, "Processor(id: {id}, name: {name})");
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
         processorClass = getRequiredKeyAsType(map, CLASS_KEY, String.class, wrapperName);
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, wrapperName);
         if (schedulingStrategy != null && !isSchedulingStrategy(schedulingStrategy)) {
@@ -77,10 +77,10 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, wrapperName, "");
     }
 
-    public static boolean isSchedulingStrategy(String string) {
+    public static boolean isSchedulingStrategy(final String string) {
         try {
             SchedulingStrategy.valueOf(string);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
         return true;
@@ -88,7 +88,7 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(CLASS_KEY, processorClass);
         result.put(MAX_CONCURRENT_TASKS_KEY, maxConcurrentTasks);
         result.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);

@@ -35,7 +35,7 @@ public class SerializationContainer<T> {
         return header;
     }
 
-    public void setHeader(Map<String, String> header) {
+    public void setHeader(final Map<String, String> header) {
         this.header = header;
     }
 
@@ -44,7 +44,7 @@ public class SerializationContainer<T> {
         return content;
     }
 
-    public void setContent(T content) {
+    public void setContent(final T content) {
         this.content = content;
     }
 }

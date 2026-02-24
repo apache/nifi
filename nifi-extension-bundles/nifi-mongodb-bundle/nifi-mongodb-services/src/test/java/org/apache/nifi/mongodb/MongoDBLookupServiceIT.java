@@ -75,7 +75,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         runner.setProperty(controllerService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.setProperty(service, MongoDBLookupService.CONTROLLER_SERVICE, "Client Service 2");
-        SchemaRegistry registry = new StubSchemaRegistry();
+        final SchemaRegistry registry = new StubSchemaRegistry();
         runner.addControllerService("registry", registry);
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
         runner.setProperty(service, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
@@ -104,23 +104,23 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         runner.disableControllerService(service);
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.enableControllerService(service);
-        Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
+        final Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         col.insertOne(document);
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
         assertNotNull(result.get(), "The value was null.");
         assertEquals("Hello, world", result.get(), "The value was wrong.");
 
-        Map<String, Object> clean = new HashMap<>();
+        final Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
         col.deleteOne(new Document(clean));
 
         try {
             result = service.lookup(criteria);
-        } catch (LookupFailureException ex) {
+        } catch (final LookupFailureException ex) {
             fail();
         }
 
@@ -136,9 +136,9 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
             .append("password", "testing1234")
         );
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("username", "john.smith");
-        Map<String, String> context = new HashMap<>();
+        final Map<String, String> context = new HashMap<>();
         context.put("schema.name", "user");
         Optional result = service.lookup(criteria, context);
         assertTrue(result.isPresent());
@@ -162,7 +162,7 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
     @Test
     public void testSchemaTextStrategy() throws Exception {
-        byte[] contents = IOUtils.toByteArray(getClass().getResourceAsStream("/simple.avsc"));
+        final byte[] contents = IOUtils.toByteArray(getClass().getResourceAsStream("/simple.avsc"));
 
         runner.disableControllerService(service);
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "");
@@ -174,12 +174,12 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
         col.insertOne(new Document().append("msg", "Testing1234"));
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("msg", "Testing1234");
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.text", new String(contents));
 
-        Optional results = service.lookup(criteria, attrs);
+        final Optional results = service.lookup(criteria, attrs);
         assertNotNull(results);
         assertTrue(results.isPresent());
     }
@@ -191,9 +191,9 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         runner.setProperty(service, MongoDBLookupService.PROJECTION, "{ \"_id\": 0 }");
         runner.enableControllerService(service);
 
-        Date d = new Date();
-        Timestamp ts = new Timestamp(new Date().getTime());
-        List list = Arrays.asList("a", "b", "c", "d", "e");
+        final Date d = new Date();
+        final Timestamp ts = new Timestamp(new Date().getTime());
+        final List list = Arrays.asList("a", "b", "c", "d", "e");
 
         col.insertOne(new Document()
             .append("uuid", "x-y-z")
@@ -208,14 +208,14 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
             .append("arrayField", list)
         );
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
         Optional result = service.lookup(criteria);
 
         assertNotNull(result.get(), "The value was null.");
         assertInstanceOf(MapRecord.class, result.get(), "The value was wrong.");
-        MapRecord record = (MapRecord) result.get();
-        RecordSchema subSchema = ((RecordDataType) record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
+        final MapRecord record = (MapRecord) result.get();
+        final RecordSchema subSchema = ((RecordDataType) record.getSchema().getField("subrecordField").get().getDataType()).getChildSchema();
 
         assertEquals("Hello, world", record.getValue("stringField"), "The value was wrong.");
         assertEquals("x-y-z", record.getValue("uuid"), "The value was wrong.");
@@ -224,19 +224,19 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
         assertEquals(d, record.getValue("dateField"));
         assertEquals(ts.getTime(), ((Date) record.getValue("timestampField")).getTime());
 
-        Record subRecord = record.getAsRecord("subrecordField", subSchema);
+        final Record subRecord = record.getAsRecord("subrecordField", subSchema);
         assertNotNull(subRecord);
         assertEquals("test", subRecord.getValue("nestedString"));
         assertEquals(Long.valueOf(1000), subRecord.getValue("nestedLong"));
         assertEquals(list, record.getValue("arrayField"));
 
-        Map<String, Object> clean = new HashMap<>();
+        final Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
         col.deleteOne(new Document(clean));
 
         try {
             result = service.lookup(criteria);
-        } catch (LookupFailureException ex) {
+        } catch (final LookupFailureException ex) {
             fail();
         }
 
@@ -245,10 +245,10 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
     @Test
     public void testServiceParameters() {
-        Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
+        final Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
         col.insertOne(document);
 
-        Map<String, Object> criteria = new HashMap<>();
+        final Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
 
         assertDoesNotThrow(() -> service.lookup(criteria));

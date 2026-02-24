@@ -43,7 +43,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     }
 
     @Override
-    public void setComponent(PortDTO component) {
+    public void setComponent(final PortDTO component) {
         this.component = component;
     }
 
@@ -56,7 +56,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
         return status;
     }
 
-    public void setStatus(PortStatusDTO status) {
+    public void setStatus(final PortStatusDTO status) {
         this.status = status;
     }
 
@@ -64,7 +64,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
         return portType;
     }
 
-    public void setPortType(String portType) {
+    public void setPortType(final String portType) {
         this.portType = portType;
     }
 
@@ -79,7 +79,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 
@@ -92,7 +92,7 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO>,
         return allowRemoteAccess;
     }
 
-    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+    public void setAllowRemoteAccess(final Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
     }
 }

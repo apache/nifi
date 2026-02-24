@@ -62,8 +62,8 @@ public class MoveHDFSTest {
 
     @AfterEach
     public void teardown() {
-        File inputDirectory = new File(INPUT_DIRECTORY);
-        File outputDirectory = new File(OUTPUT_DIRECTORY);
+        final File inputDirectory = new File(INPUT_DIRECTORY);
+        final File outputDirectory = new File(OUTPUT_DIRECTORY);
         if (inputDirectory.exists()) {
             assertTrue(FileUtils.deleteQuietly(inputDirectory), "Could not delete input directory: " + inputDirectory);
         }
@@ -74,10 +74,10 @@ public class MoveHDFSTest {
 
     @Test
     public void testOutputDirectoryValidator() {
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
-        ProcessContext pc;
+        final ProcessContext pc;
 
         results = new HashSet<>();
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "/source");
@@ -87,17 +87,17 @@ public class MoveHDFSTest {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("Output Directory is required"));
         }
     }
 
     @Test
     public void testBothInputAndOutputDirectoriesAreValid() {
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         Collection<ValidationResult> results;
-        ProcessContext pc;
+        final ProcessContext pc;
 
         results = new HashSet<>();
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
@@ -113,13 +113,13 @@ public class MoveHDFSTest {
     @Test
     public void testOnScheduledShouldRunCleanly() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(7, flowFiles.size());
     }
@@ -127,14 +127,14 @@ public class MoveHDFSTest {
     @Test
     public void testDotFileFilterIgnore() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.IGNORE_DOTTED_FILES, "true");
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(7, flowFiles.size());
         assertTrue(new File(INPUT_DIRECTORY, ".dotfile").exists());
@@ -143,14 +143,14 @@ public class MoveHDFSTest {
     @Test
     public void testDotFileFilterInclude() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.IGNORE_DOTTED_FILES, "false");
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(8, flowFiles.size());
     }
@@ -158,14 +158,14 @@ public class MoveHDFSTest {
     @Test
     public void testFileFilterRegex() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.FILE_FILTER_REGEX, ".*\\.gz");
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
     }
@@ -173,14 +173,14 @@ public class MoveHDFSTest {
     @Test
     public void testSingleFileAsInputCopy() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OPERATION, "copy");
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         assertTrue(new File(INPUT_DIRECTORY, "randombytes-1").exists());
@@ -190,13 +190,13 @@ public class MoveHDFSTest {
     @Test
     public void testSingleFileAsInputMove() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY + "/randombytes-1");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
         assertFalse(new File(INPUT_DIRECTORY, "randombytes-1").exists());
@@ -206,15 +206,15 @@ public class MoveHDFSTest {
     @Test
     public void testDirectoryWithSubDirectoryAsInputMove() throws IOException {
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), new File(INPUT_DIRECTORY));
-        File subdir = new File(INPUT_DIRECTORY, "subdir");
+        final File subdir = new File(INPUT_DIRECTORY, "subdir");
         FileUtils.copyDirectory(new File(TEST_DATA_DIRECTORY), subdir);
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(7, flowFiles.size());
         assertTrue(new File(INPUT_DIRECTORY).exists());
@@ -223,35 +223,35 @@ public class MoveHDFSTest {
 
     @Test
     public void testEmptyInputDirectory() throws IOException {
-        MoveHDFS proc = new TestableMoveHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final MoveHDFS proc = new TestableMoveHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         Files.createDirectories(Paths.get(INPUT_DIRECTORY));
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.enqueue(new byte[0]);
         assertEquals(0, Files.list(Paths.get(INPUT_DIRECTORY)).count());
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(MoveHDFS.REL_SUCCESS);
         runner.assertAllFlowFilesTransferred(MoveHDFS.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
     @Test
     public void testPutFileWithGSSException() throws IOException {
-        MockFileSystem noCredentialsFileSystem = new MockFileSystem() {
+        final MockFileSystem noCredentialsFileSystem = new MockFileSystem() {
             @Override
-            public FileStatus getFileStatus(Path path) throws IOException {
+            public FileStatus getFileStatus(final Path path) throws IOException {
                 throw new IOException("ioe", new SaslException("sasle", new GSSException(13)));
             }
         };
         noCredentialsFileSystem.setFailOnExists(true);
-        TestRunner runner = TestRunners.newTestRunner(new TestableMoveHDFS(noCredentialsFileSystem));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableMoveHDFS(noCredentialsFileSystem));
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, "input/does/not/exist");
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, "target/test-classes");
         runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, "replace");
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
@@ -282,21 +282,21 @@ public class MoveHDFSTest {
         testPutWhenAlreadyExisting(MoveHDFS.REPLACE_RESOLUTION, MoveHDFS.REL_SUCCESS, "randombytes-2");
     }
 
-    private void testPutWhenAlreadyExisting(String conflictResolution, Relationship expectedDestination, String expectedContent) throws IOException {
+    private void testPutWhenAlreadyExisting(final String conflictResolution, final Relationship expectedDestination, final String expectedContent) throws IOException {
         // GIVEN
         Files.createDirectories(Paths.get(INPUT_DIRECTORY));
         Files.createDirectories(Paths.get(OUTPUT_DIRECTORY));
         Files.copy(Paths.get(TEST_DATA_DIRECTORY, "randombytes-2"), Paths.get(INPUT_DIRECTORY, "randombytes-1"));
         Files.copy(Paths.get(TEST_DATA_DIRECTORY, "randombytes-1"), Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
 
-        MoveHDFS processor = new MoveHDFS();
+        final MoveHDFS processor = new MoveHDFS();
 
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(MoveHDFS.INPUT_DIRECTORY_OR_FILE, INPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.OUTPUT_DIRECTORY, OUTPUT_DIRECTORY);
         runner.setProperty(MoveHDFS.CONFLICT_RESOLUTION, conflictResolution);
 
-        byte[] expected = Files.readAllBytes(Paths.get(TEST_DATA_DIRECTORY, expectedContent));
+        final byte[] expected = Files.readAllBytes(Paths.get(TEST_DATA_DIRECTORY, expectedContent));
 
         // WHEN
         runner.enqueue(new byte[0]);
@@ -305,10 +305,10 @@ public class MoveHDFSTest {
         // THEN
         runner.assertAllFlowFilesTransferred(expectedDestination);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(expectedDestination);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(expectedDestination);
         assertEquals(1, flowFiles.size());
 
-        byte[] actual = Files.readAllBytes(Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
+        final byte[] actual = Files.readAllBytes(Paths.get(OUTPUT_DIRECTORY, "randombytes-1"));
 
         assertArrayEquals(expected, actual);
     }
@@ -326,7 +326,7 @@ public class MoveHDFSTest {
         }
 
         @Override
-        protected FileSystem getFileSystem(Configuration config) throws IOException {
+        protected FileSystem getFileSystem(final Configuration config) throws IOException {
             return fileSystem == null ? super.getFileSystem(config) : fileSystem;
         }
         @Override

@@ -21,7 +21,7 @@ import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class EndsWith extends StringComparisonFilter {
 
-    public EndsWith(RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
+    public EndsWith(final RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
         super(recordPath, searchValuePath);
     }
 

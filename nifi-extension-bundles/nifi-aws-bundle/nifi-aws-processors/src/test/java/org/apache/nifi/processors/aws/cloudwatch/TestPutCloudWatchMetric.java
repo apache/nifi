@@ -73,7 +73,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
+        final MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1d, datum.value(), 0.0001d);
     }
@@ -134,7 +134,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
+        final MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1.23d, datum.value(), 0.0001d);
     }
@@ -158,7 +158,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
+        final MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1.0d, datum.statisticValues().minimum(), 0.0001d);
         assertEquals(2.0d, datum.statisticValues().maximum(), 0.0001d);
@@ -183,11 +183,11 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
+        final MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1d, datum.value(), 0.0001d);
 
-        List<Dimension> dimensions = new ArrayList<>(datum.dimensions());
+        final List<Dimension> dimensions = new ArrayList<>(datum.dimensions());
         dimensions.sort(Comparator.comparing(Dimension::name));
         assertEquals(2, dimensions.size());
         assertEquals("dim1", dimensions.get(0).name());
@@ -234,7 +234,7 @@ public class TestPutCloudWatchMetric {
 
     @ParameterizedTest
     @CsvSource({"nan", "percent", "count"})
-    public void testInvalidUnit(String unit) {
+    public void testInvalidUnit(final String unit) {
         runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
         runner.assertNotValid();
@@ -246,7 +246,7 @@ public class TestPutCloudWatchMetric {
 
     @ParameterizedTest
     @MethodSource("data")
-    public void testValidUnit(String unit) {
+    public void testValidUnit(final String unit) {
         runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1");
         runner.assertValid();
@@ -270,7 +270,7 @@ public class TestPutCloudWatchMetric {
 
     @ParameterizedTest
     @CsvSource({"null", "us-west-100", "us-east-a"})
-    public void testInvalidRegion(String region) {
+    public void testInvalidRegion(final String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(RegionUtil.REGION, region);
         runner.assertNotValid();
@@ -278,7 +278,7 @@ public class TestPutCloudWatchMetric {
 
     @ParameterizedTest
     @CsvSource({"us-east-1", "us-west-1", "us-east-2"})
-    public void testValidRegionRoutesToSuccess(String region) {
+    public void testValidRegionRoutesToSuccess(final String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
         runner.setProperty(RegionUtil.REGION, region);
         runner.assertValid();

@@ -159,17 +159,17 @@ public class TestRecordSetWriterLookup {
 
         private final String name;
 
-        public MockRecordSetWriterFactory(String name) {
+        public MockRecordSetWriterFactory(final String name) {
             this.name = name;
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
+        public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) {
             return new SimpleRecordSchema(SchemaIdentifier.builder().name(name).build());
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) {
+        public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) {
             return new MockRecordSetWriter(name);
         }
     }
@@ -177,12 +177,12 @@ public class TestRecordSetWriterLookup {
     private static class MockRecordSetWriter implements RecordSetWriter {
         public String name;
 
-        public MockRecordSetWriter(String name) {
+        public MockRecordSetWriter(final String name) {
             this.name = name;
         }
 
         @Override
-        public WriteResult write(RecordSet recordSet) {
+        public WriteResult write(final RecordSet recordSet) {
             return null;
         }
 
@@ -197,7 +197,7 @@ public class TestRecordSetWriterLookup {
         }
 
         @Override
-        public WriteResult write(Record record) {
+        public WriteResult write(final Record record) {
             return null;
         }
 

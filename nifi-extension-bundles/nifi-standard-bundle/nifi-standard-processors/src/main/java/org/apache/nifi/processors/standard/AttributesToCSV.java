@@ -177,16 +177,16 @@ public class AttributesToCSV extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
-    private Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Pattern attPattern) {
-        Map<String, String> result;
-        Map<String, String> ffAttributes = ff.getAttributes();
+    private Map<String, String> buildAttributesMapForFlowFile(final FlowFile ff, final Set<String> attributes, final Pattern attPattern) {
+        final Map<String, String> result;
+        final Map<String, String> ffAttributes = ff.getAttributes();
         result = new LinkedHashMap<>(ffAttributes.size());
 
         if (!attributes.isEmpty() || attPattern != null) {
             if (!attributes.isEmpty()) {
                 //the user gave a list of attributes
-                for (String attribute : attributes) {
-                    String val = ff.getAttribute(attribute);
+                for (final String attribute : attributes) {
+                    final String val = ff.getAttribute(attribute);
                     if (val != null && !val.isEmpty()) {
                         result.put(attribute, val);
                     } else {
@@ -199,7 +199,7 @@ public class AttributesToCSV extends AbstractProcessor {
                 }
             }
             if (attPattern != null) {
-                for (Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
+                for (final Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
                     if (attPattern.matcher(e.getKey()).matches()) {
                         result.put(e.getKey(), e.getValue());
                     }
@@ -212,9 +212,9 @@ public class AttributesToCSV extends AbstractProcessor {
 
         //now glue on the core attributes if the user wants them.
         if (includeCoreAttributes) {
-            for (String coreAttribute : coreAttributes) {
+            for (final String coreAttribute : coreAttributes) {
                 //make sure this coreAttribute is applicable to this flowfile.
-                String val = ff.getAttribute(coreAttribute);
+                final String val = ff.getAttribute(coreAttribute);
                 if (ffAttributes.containsKey(coreAttribute)) {
                     if (!StringUtils.isEmpty(val)) {
                         result.put(coreAttribute, val);
@@ -229,7 +229,7 @@ public class AttributesToCSV extends AbstractProcessor {
             }
         } else {
             //remove core attributes since the user does not want them, unless they are in the attribute list. Attribute List always wins
-            for (String coreAttribute : coreAttributes) {
+            for (final String coreAttribute : coreAttributes) {
                 //never override user specified attributes, even if the user has selected to exclude core attributes
                 if (!attributes.contains(coreAttribute)) {
                     result.remove(coreAttribute);
@@ -239,12 +239,12 @@ public class AttributesToCSV extends AbstractProcessor {
         return result;
     }
 
-    private Set<String> attributeListStringToSet(String attributeList) {
+    private Set<String> attributeListStringToSet(final String attributeList) {
         //take the user specified attribute list string and convert to list of strings.
-        Set<String> result = new LinkedHashSet<>();
+        final Set<String> result = new LinkedHashSet<>();
         if (StringUtils.isNotBlank(attributeList)) {
-            String[] ats = attributeList.split(SPLIT_REGEX);
-            for (String str : ats) {
+            final String[] ats = attributeList.split(SPLIT_REGEX);
+            for (final String str : ats) {
                 result.add(StringEscapeUtils.unescapeCsv(str.trim()));
             }
         }
@@ -252,7 +252,7 @@ public class AttributesToCSV extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         includeCoreAttributes = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean();
         coreAttributes = Arrays.stream(CoreAttributes.values()).map(CoreAttributes::key).collect(Collectors.toCollection(LinkedHashSet::new));
         destinationContent = OUTPUT_OVERWRITE_CONTENT.getValue().equals(context.getProperty(DESTINATION).getValue());
@@ -261,7 +261,7 @@ public class AttributesToCSV extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {
             return;
@@ -304,20 +304,20 @@ public class AttributesToCSV extends AbstractProcessor {
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), OUTPUT_MIME_TYPE);
                 session.transfer(conFlowfile, REL_SUCCESS);
             } else {
-                FlowFile atFlowfile = session.putAttribute(original, DATA_ATTRIBUTE_NAME, sbValues.toString());
+                final FlowFile atFlowfile = session.putAttribute(original, DATA_ATTRIBUTE_NAME, sbValues.toString());
                 if (includeSchema) {
                     session.putAttribute(original, SCHEMA_ATTRIBUTE_NAME, sbNames.toString());
                 }
                 session.transfer(atFlowfile, REL_SUCCESS);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error(e.getMessage());
             session.transfer(original, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("attribute-list", ATTRIBUTES_LIST.getName());
         config.renameProperty("attributes-regex", ATTRIBUTES_REGEX.getName());
         config.renameProperty("destination", DESTINATION.getName());

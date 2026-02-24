@@ -55,7 +55,7 @@ public class MatchesEvaluator extends BooleanEvaluator {
         }
         final Pattern pattern;
         if (compiledPattern == null) {
-            String expression = search.evaluate(evaluationContext).getValue();
+            final String expression = search.evaluate(evaluationContext).getValue();
             if (expression == null) {
                 return new BooleanQueryResult(false);
             }

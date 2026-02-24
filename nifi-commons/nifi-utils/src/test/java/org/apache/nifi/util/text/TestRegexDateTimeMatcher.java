@@ -28,7 +28,7 @@ public class TestRegexDateTimeMatcher {
 
     @ParameterizedTest
     @MethodSource("exampleToPattern")
-    public void testCommonFormatsExpectedToPass(String example, String pattern) {
+    public void testCommonFormatsExpectedToPass(final String example, final String pattern) {
         final RegexDateTimeMatcher matcher = new RegexDateTimeMatcher.Compiler().compile(pattern);
         assertTrue(matcher.matches(example), String.format("Pattern <%s> did not match <%s>", pattern, example));
     }

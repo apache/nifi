@@ -33,7 +33,7 @@ public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
     public static final String REPORTING_TASKS_URI = "/nifi-api/flow/reporting-tasks";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && REPORTING_TASKS_URI.equals(uri.getPath());
     }
 
@@ -52,7 +52,7 @@ public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
             final Set<ReportingTaskEntity> nodeReportingTaskEntities = nodeResponseEntity.getReportingTasks();
 
             for (final ReportingTaskEntity nodeReportingTaskEntity : nodeReportingTaskEntities) {
-                Map<NodeIdentifier, ReportingTaskEntity> innerMap = entityMap.computeIfAbsent(nodeReportingTaskEntity.getId(), k -> new HashMap<>());
+                final Map<NodeIdentifier, ReportingTaskEntity> innerMap = entityMap.computeIfAbsent(nodeReportingTaskEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeReportingTaskEntity);
             }
         }

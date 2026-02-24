@@ -525,7 +525,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
 
     @Override
-    public void setBatchCount(Integer batchCount) {
+    public void setBatchCount(final Integer batchCount) {
         this.batchCount.set(batchCount);
     }
 
@@ -535,7 +535,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
 
     @Override
-    public void setBatchSize(String batchSize) {
+    public void setBatchSize(final String batchSize) {
         this.batchSize.set(batchSize);
     }
 
@@ -545,7 +545,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
 
     @Override
-    public void setBatchDuration(String batchDuration) {
+    public void setBatchDuration(final String batchDuration) {
         this.batchDuration.set(batchDuration);
     }
 

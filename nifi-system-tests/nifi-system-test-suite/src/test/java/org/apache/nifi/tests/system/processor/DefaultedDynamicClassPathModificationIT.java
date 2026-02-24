@@ -85,8 +85,8 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
     private void createFlow() throws NiFiClientException, IOException {
         generateFlowFileProcessor = getClientUtil().createProcessor("GenerateFlowFile");
         defaultedModifyClasspathProcessor = getClientUtil().createProcessor("DefaultedDynamicallyModifyClasspath");
-        ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
-        ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
 
         // Find the commons-lang3 jar that is in the bootstrap directory and set the processor to use it.
         final File lib = new File(getNiFiInstance().getInstanceDirectory(), "lib");

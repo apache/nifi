@@ -53,7 +53,7 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     @Test
     public void testResolveAssetReferenceProperties() {
         initProperties();
-        VersionedDataflow dataFlow = aVersionedDataflow();
+        final VersionedDataflow dataFlow = aVersionedDataflow();
 
         when(assetPathResolver.apply("asset1")).thenReturn(Optional.of(Path.of("asset1Path")));
         when(assetPathResolver.apply("asset2")).thenReturn(Optional.of(Path.of("asset2Path")));
@@ -66,7 +66,7 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     @Test
     public void testResolveNestedAssetReferenceProperties() {
         initProperties();
-        VersionedDataflow dataFlow = aVersionedDataflowWithNestedProcessGroup();
+        final VersionedDataflow dataFlow = aVersionedDataflowWithNestedProcessGroup();
 
         when(assetPathResolver.apply("asset1")).thenReturn(Optional.of(Path.of("asset1Path")));
         when(assetPathResolver.apply("asset2")).thenReturn(Optional.of(Path.of("asset2Path")));
@@ -79,7 +79,7 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     @Test
     public void testResolveAssetReferencePropertiesThrowIllegalStateException() {
         initProperties();
-        VersionedDataflow dataFlow = aVersionedDataflow();
+        final VersionedDataflow dataFlow = aVersionedDataflow();
 
         when(assetPathResolver.apply("asset1")).thenReturn(Optional.empty());
 
@@ -106,14 +106,14 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     }
 
     private VersionedDataflow aVersionedDataflow() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
         versionedDataflow.setRootGroup(aVersionedProcessGroup());
         return versionedDataflow;
     }
 
     private VersionedDataflow aVersionedDataflowWithNestedProcessGroup() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
-        VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
         versionedProcessGroup.setProcessGroups(Set.of(aVersionedProcessGroup()));
         versionedDataflow.setRootGroup(versionedProcessGroup);
 
@@ -121,9 +121,9 @@ public class StandardFlowPropertyAssetReferenceResolverServiceTest {
     }
 
     private VersionedProcessGroup aVersionedProcessGroup() {
-        VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
-        VersionedProcessor versionedProcessor = new VersionedProcessor();
-        VersionedControllerService versionedControllerService = new VersionedControllerService();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        final VersionedProcessor versionedProcessor = new VersionedProcessor();
+        final VersionedControllerService versionedControllerService = new VersionedControllerService();
 
         versionedControllerService.setProperties(controllerServiceProperties);
         versionedProcessor.setProperties(processorProperties);

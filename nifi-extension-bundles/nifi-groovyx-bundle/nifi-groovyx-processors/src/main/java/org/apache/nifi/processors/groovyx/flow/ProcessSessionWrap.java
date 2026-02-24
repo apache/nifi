@@ -110,7 +110,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return ff;
     }
 
-    public FlowFile unwrap(FlowFile f) {
+    public FlowFile unwrap(final FlowFile f) {
         if (f == null) {
             return null;
         }
@@ -124,14 +124,14 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         if (flowFiles == null) {
             return null;
         }
-        List<FlowFile> ff = new ArrayList<>(flowFiles);
+        final List<FlowFile> ff = new ArrayList<>(flowFiles);
         for (int i = 0; i < ff.size(); i++) {
             ff.set(i, unwrap(ff.get(i)));
         }
         return ff;
     }
 
-    private void assertNotSessionFile(FlowFile f) {
+    private void assertNotSessionFile(final FlowFile f) {
         if (f instanceof SessionFile) {
             throw new RuntimeException("SessionFile not accepted at this point. " + this.getClass() + " developer failure.");
         }
@@ -140,7 +140,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     /**
      * called when file created or modified
      */
-    private FlowFile onMod(FlowFile f) {
+    private FlowFile onMod(final FlowFile f) {
         assertNotSessionFile(f);
         if (failureOnError) {
             toDrop.put(f.getAttribute("uuid"), f);
@@ -151,7 +151,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     /**
      * called when got file from incoming queue
      */
-    private FlowFile onGet(FlowFile f) {
+    private FlowFile onGet(final FlowFile f) {
         assertNotSessionFile(f);
         if (f == null) {
             return null;
@@ -163,12 +163,12 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return f;
     }
 
-    private List<FlowFile> onGet(List<FlowFile> ff) {
+    private List<FlowFile> onGet(final List<FlowFile> ff) {
         if (ff == null) {
             return null;
         }
         if (failureOnError) {
-            for (FlowFile f : ff) {
+            for (final FlowFile f : ff) {
                 onGet(f);
             }
         }
@@ -178,16 +178,16 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     /**
      * called when the file removed
      */
-    private void onDrop(FlowFile f) {
+    private void onDrop(final FlowFile f) {
         assertNotSessionFile(f);
         if (failureOnError) {
             toDrop.remove(f.getAttribute("uuid"));
         }
     }
 
-    private void onDrop(Collection<FlowFile> ff) {
+    private void onDrop(final Collection<FlowFile> ff) {
         if (failureOnError) {
-            for (FlowFile f : ff) {
+            for (final FlowFile f : ff) {
                 onDrop(f);
             }
         }
@@ -206,22 +206,23 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @param r where to transfer flow files, when null then transfers to input with penalize.
      * @param t the cause why we do this transfer, when relationship specified then additional properties populated: ERROR_MESSAGE and ERROR_STACKTRACE.
      */
-    public void revertReceivedTo(Relationship r, Throwable t) {
-        for (FlowFile f : toDrop.values()) {
+    public void revertReceivedTo(final Relationship r, final Throwable t) {
+        for (final FlowFile f : toDrop.values()) {
             session.remove(f);
         }
-        String errorMessage = Throwables.getMessage(t, null, 950);
-        String stackTrace = Throwables.stringStackTrace(t);
-        for (FlowFile f : toFail) {
+        final String errorMessage = Throwables.getMessage(t, null, 950);
+        final String stackTrace = Throwables.stringStackTrace(t);
+        for (final FlowFile f : toFail) {
+            FlowFile updated = f;
             if (t != null && r != null) {
-                f = session.putAttribute(f, ERROR_MESSAGE, errorMessage);
-                f = session.putAttribute(f, ERROR_STACKTRACE, stackTrace);
+                updated = session.putAttribute(updated, ERROR_MESSAGE, errorMessage);
+                updated = session.putAttribute(updated, ERROR_STACKTRACE, stackTrace);
             }
             if (r != null) {
-                session.transfer(f, r);
+                session.transfer(updated, r);
             } else {
-                f = session.penalize(f);
-                session.transfer(f);
+                updated = session.penalize(updated);
+                session.transfer(updated);
             }
         }
         session.commit();
@@ -292,7 +293,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @param penalize whether or not the FlowFiles that are being restored back to their queues should be penalized
      */
     @Override
-    public void rollback(boolean penalize) {
+    public void rollback(final boolean penalize) {
         session.rollback(penalize);
         onClear();
     }
@@ -308,7 +309,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                  when the ProcessSession is committed.
      */
     @Override
-    public void adjustCounter(String name, long delta, boolean immediate) {
+    public void adjustCounter(final String name, final long delta, final boolean immediate) {
         session.adjustCounter(name, delta, immediate);
     }
 
@@ -337,7 +338,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws IllegalArgumentException if <code>maxResults</code> is less than 0
      */
     @Override
-    public List<FlowFile> get(int maxResults) {
+    public List<FlowFile> get(final int maxResults) {
         return wrap(onGet(session.get(maxResults)));
     }
 
@@ -355,7 +356,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @return all FlowFiles from all of the incoming queues for which the given {@link FlowFileFilter} indicates should be accepted.
      */
     @Override
-    public List<FlowFile> get(FlowFileFilter filter) {
+    public List<FlowFile> get(final FlowFileFilter filter) {
         return wrap(onGet(session.get(filter)));
     }
 
@@ -398,7 +399,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @return newly created flowfile
      */
     @Override
-    public SessionFile create(FlowFile parent) {
+    public SessionFile create(final FlowFile parent) {
         return wrap(onMod(session.create(unwrap(parent))));
     }
 
@@ -414,7 +415,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @return new flowfile
      */
     @Override
-    public SessionFile create(Collection<FlowFile> parents) {
+    public SessionFile create(final Collection<FlowFile> parents) {
         return wrap(onMod(session.create(unwrap(parents))));
     }
 
@@ -433,7 +434,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public SessionFile clone(FlowFile example) {
+    public SessionFile clone(final FlowFile example) {
         return wrap(onMod(session.clone(unwrap(example))));
     }
 
@@ -457,7 +458,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                                    rolled back and what is left of the FlowFile is destroyed.
      */
     @Override
-    public SessionFile clone(FlowFile parent, long offset, long size) {
+    public SessionFile clone(final FlowFile parent, final long offset, final long size) {
         return wrap(onMod(session.clone(unwrap(parent), offset, size)));
     }
 
@@ -472,8 +473,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public SessionFile penalize(FlowFile flowFile) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile penalize(final FlowFile flowFile) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.penalize(sf.flowFile));
         return sf;
     }
@@ -490,8 +491,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if an argument is null
      */
     @Override
-    public SessionFile putAttribute(FlowFile flowFile, String key, String value) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile putAttribute(final FlowFile flowFile, final String key, final String value) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.putAttribute(sf.flowFile, key, value));
         return sf;
     }
@@ -509,8 +510,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if an argument is null
      */
     @Override
-    public SessionFile putAllAttributes(FlowFile flowFile, Map<String, String> attributes) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile putAllAttributes(final FlowFile flowFile, final Map<String, String> attributes) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.putAllAttributes(sf.flowFile, attributes));
         return sf;
     }
@@ -528,8 +529,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public SessionFile removeAttribute(FlowFile flowFile, String key) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile removeAttribute(final FlowFile flowFile, final String key) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.removeAttribute(sf.flowFile, key));
         return sf;
     }
@@ -546,8 +547,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public SessionFile removeAllAttributes(FlowFile flowFile, Set<String> keys) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile removeAllAttributes(final FlowFile flowFile, final Set<String> keys) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.removeAllAttributes(sf.flowFile, keys));
         return sf;
     }
@@ -562,8 +563,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @return FlowFile containing only attributes which did not meet the key pattern
      */
     @Override
-    public SessionFile removeAllAttributes(FlowFile flowFile, Pattern keyPattern) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile removeAllAttributes(final FlowFile flowFile, final Pattern keyPattern) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.removeAllAttributes(sf.flowFile, keyPattern));
         return sf;
     }
@@ -588,9 +589,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws IllegalArgumentException  if given relationship is not a known or registered relationship
      */
     @Override
-    public void transfer(FlowFile flowFile, Relationship relationship) {
-        flowFile = unwrap(flowFile);
-        session.transfer(flowFile, relationship);
+    public void transfer(final FlowFile flowFile, final Relationship relationship) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.transfer(unwrapped, relationship);
     }
 
     /**
@@ -607,9 +608,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public void transfer(FlowFile flowFile) {
-        flowFile = unwrap(flowFile);
-        session.transfer(flowFile);
+    public void transfer(final FlowFile flowFile) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.transfer(unwrapped);
     }
 
     /**
@@ -627,9 +628,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws NullPointerException      if the argument null
      */
     @Override
-    public void transfer(Collection<FlowFile> flowFiles) {
-        flowFiles = unwrap(flowFiles);
-        session.transfer(flowFiles);
+    public void transfer(final Collection<FlowFile> flowFiles) {
+        final Collection<FlowFile> unwrapped = unwrap(flowFiles);
+        session.transfer(unwrapped);
     }
 
     /**
@@ -652,9 +653,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws IllegalArgumentException  if given relationship is not a known or registered relationship
      */
     @Override
-    public void transfer(Collection<FlowFile> flowFiles, Relationship relationship) {
-        flowFiles = unwrap(flowFiles);
-        session.transfer(flowFiles, relationship);
+    public void transfer(final Collection<FlowFile> flowFiles, final Relationship relationship) {
+        final Collection<FlowFile> unwrapped = unwrap(flowFiles);
+        session.transfer(unwrapped, relationship);
     }
 
     /**
@@ -668,10 +669,10 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileHandlingException if the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      */
     @Override
-    public void remove(FlowFile flowFile) {
-        flowFile = unwrap(flowFile);
-        session.remove(flowFile);
-        onDrop(flowFile);
+    public void remove(final FlowFile flowFile) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.remove(unwrapped);
+        onDrop(unwrapped);
     }
 
     /**
@@ -685,10 +686,10 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileHandlingException if any of the given FlowFile is already transferred or removed or doesn't belong to this session. Automatic rollback will occur.
      */
     @Override
-    public void remove(Collection<FlowFile> flowFiles) {
-        flowFiles = unwrap(flowFiles);
-        session.remove(flowFiles);
-        onDrop(flowFiles);
+    public void remove(final Collection<FlowFile> flowFiles) {
+        final Collection<FlowFile> unwrapped = unwrap(flowFiles);
+        session.remove(unwrapped);
+        onDrop(unwrapped);
     }
 
     /**
@@ -701,9 +702,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                                    this method completed its execution
      */
     @Override
-    public void read(FlowFile flowFile, InputStreamCallback reader) throws FlowFileAccessException {
-        flowFile = unwrap(flowFile);
-        session.read(flowFile, reader);
+    public void read(final FlowFile flowFile, final InputStreamCallback reader) throws FlowFileAccessException {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.read(unwrapped, reader);
     }
 
     /**
@@ -724,9 +725,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                                   rolled back and what is left of the FlowFile is destroyed.
      */
     @Override
-    public InputStream read(FlowFile flowFile) {
-        flowFile = unwrap(flowFile);
-        return session.read(flowFile);
+    public InputStream read(final FlowFile flowFile) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        return session.read(unwrapped);
     }
 
     /**
@@ -744,10 +745,10 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content. The state of the destination will be as it was prior to this call.
      */
     @Override
-    public SessionFile merge(Collection<FlowFile> sources, FlowFile destination) {
-        SessionFile sfDestination = wrap(destination);
-        sources = unwrap(sources);
-        sfDestination.flowFile = onMod(session.merge(sources, sfDestination.flowFile));
+    public SessionFile merge(final Collection<FlowFile> sources, final FlowFile destination) {
+        final SessionFile sfDestination = wrap(destination);
+        final Collection<FlowFile> unwrappedSources = unwrap(sources);
+        sfDestination.flowFile = onMod(session.merge(unwrappedSources, sfDestination.flowFile));
         return sfDestination;
     }
 
@@ -769,10 +770,10 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content. The state of the destination will be as it was prior to this call.
      */
     @Override
-    public SessionFile merge(Collection<FlowFile> sources, FlowFile destination, byte[] header, byte[] footer, byte[] demarcator) {
-        SessionFile sfDestination = wrap(destination);
-        sources = unwrap(sources);
-        sfDestination.flowFile = onMod(session.merge(sources, sfDestination.flowFile, header, footer, demarcator));
+    public SessionFile merge(final Collection<FlowFile> sources, final FlowFile destination, final byte[] header, final byte[] footer, final byte[] demarcator) {
+        final SessionFile sfDestination = wrap(destination);
+        final Collection<FlowFile> unwrappedSources = unwrap(sources);
+        sfDestination.flowFile = onMod(session.merge(unwrappedSources, sfDestination.flowFile, header, footer, demarcator));
         return sfDestination;
     }
 
@@ -794,8 +795,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                                   method completed its execution
      */
     @Override
-    public SessionFile write(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile write(final FlowFile flowFile, final OutputStreamCallback writer) throws FlowFileAccessException {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.write(sf.flowFile, writer));
         return sf;
     }
@@ -819,8 +820,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      *                                    after  this method completed its execution
      */
     @Override
-    public SessionFile write(FlowFile flowFile, StreamCallback writer) throws FlowFileAccessException {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile write(final FlowFile flowFile, final StreamCallback writer) throws FlowFileAccessException {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.write(sf.flowFile, writer));
         return sf;
     }
@@ -839,8 +840,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException if an attempt is made to access the OutputStream provided to the given OutputStreamCallback after this method completed its execution
      */
     @Override
-    public SessionFile append(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile append(final FlowFile flowFile, final OutputStreamCallback writer) throws FlowFileAccessException {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.append(sf.flowFile, writer));
         return sf;
     }
@@ -861,8 +862,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content
      */
     @Override
-    public SessionFile importFrom(Path source, boolean keepSourceFile, FlowFile flowFile) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile importFrom(final Path source, final boolean keepSourceFile, final FlowFile flowFile) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.importFrom(source, keepSourceFile, sf.flowFile));
         return sf;
     }
@@ -880,8 +881,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content
      */
     @Override
-    public SessionFile importFrom(InputStream source, FlowFile flowFile) {
-        SessionFile sf = wrap(flowFile);
+    public SessionFile importFrom(final InputStream source, final FlowFile flowFile) {
+        final SessionFile sf = wrap(flowFile);
         sf.flowFile = onMod(session.importFrom(source, sf.flowFile));
         return sf;
     }
@@ -899,9 +900,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content
      */
     @Override
-    public void exportTo(FlowFile flowFile, Path destination, boolean append) {
-        flowFile = unwrap(flowFile);
-        session.exportTo(flowFile, destination, append);
+    public void exportTo(final FlowFile flowFile, final Path destination, final boolean append) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.exportTo(unwrapped, destination, append);
     }
 
     /**
@@ -916,9 +917,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * @throws FlowFileAccessException   if some IO problem occurs accessing FlowFile content
      */
     @Override
-    public void exportTo(FlowFile flowFile, OutputStream destination) {
-        flowFile = unwrap(flowFile);
-        session.exportTo(flowFile, destination);
+    public void exportTo(final FlowFile flowFile, final OutputStream destination) {
+        final FlowFile unwrapped = unwrap(flowFile);
+        session.exportTo(unwrapped, destination);
     }
 
     /**
@@ -937,9 +938,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     }
 
     @Override
-    public void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles) {
-        flowFiles = unwrap(flowFiles);
-        session.migrate(newOwner, flowFiles);
+    public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {
+        final Collection<FlowFile> unwrapped = unwrap(flowFiles);
+        session.migrate(newOwner, unwrapped);
     }
 
     /**
@@ -967,9 +968,9 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      * its execution
      */
     @Override
-    public OutputStream write(FlowFile source) {
-        source = unwrap(source);
-        return session.write(source);
+    public OutputStream write(final FlowFile source) {
+        final FlowFile unwrapped = unwrap(source);
+        return session.write(unwrapped);
     }
 
     @Override

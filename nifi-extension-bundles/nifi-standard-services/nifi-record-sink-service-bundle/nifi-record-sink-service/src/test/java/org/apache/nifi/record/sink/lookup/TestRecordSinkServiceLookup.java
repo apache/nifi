@@ -56,7 +56,7 @@ public class TestRecordSinkServiceLookup {
         sinkB = new MockRecordSinkService("b");
         sinkLookup = new MockRecordSinkServiceLookup();
 
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final String sinkServiceAIdentifier = "a";
         runner.addControllerService(sinkServiceAIdentifier, sinkA);
@@ -100,7 +100,7 @@ public class TestRecordSinkServiceLookup {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
-            String returnedName = writeResult.getAttributes().get("my.name");
+            final String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
         }, "Should have completed successfully");
     }
@@ -113,7 +113,7 @@ public class TestRecordSinkServiceLookup {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
-            String returnedName = writeResult.getAttributes().get("my.name");
+            final String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("b", returnedName);
         }, "Should have completed successfully");
     }
@@ -125,7 +125,7 @@ public class TestRecordSinkServiceLookup {
 
         assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
-            String returnedName = writeResult.getAttributes().get("my.name");
+            final String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("a", returnedName);
             assertEquals(1, sinkA.getResetCount());
         }, "Should have completed successfully");
@@ -134,7 +134,7 @@ public class TestRecordSinkServiceLookup {
 
         assertDoesNotThrow(() -> {
             final WriteResult writeResult = sinkLookup.sendData(recordSet, attributes, false);
-            String returnedName = writeResult.getAttributes().get("my.name");
+            final String returnedName = writeResult.getAttributes().get("my.name");
             assertEquals("b", returnedName);
             assertEquals(1, sinkB.getResetCount());
         }, "Should have completed successfully");

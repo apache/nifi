@@ -81,23 +81,23 @@ public abstract class AbstractFlowAnalaysisRuleTest<T extends AbstractFlowAnalys
         });
     }
 
-    protected void setProperty(PropertyDescriptor propertyDescriptor, String value) {
+    protected void setProperty(final PropertyDescriptor propertyDescriptor, final String value) {
         properties.put(propertyDescriptor, new StandardPropertyValue(value, null, null));
     }
 
-    private VersionedProcessGroup getProcessGroup(String flowDefinition) throws Exception {
+    private VersionedProcessGroup getProcessGroup(final String flowDefinition) throws Exception {
         final RegisteredFlowSnapshot flowSnapshot = FLOW_MAPPER.readValue(new FileInputStream(flowDefinition), RegisteredFlowSnapshot.class);
         return flowSnapshot.getFlowContents();
     }
 
-    protected void testAnalyzeProcessGroup(String flowDefinition, List<String> expected) throws Exception {
+    protected void testAnalyzeProcessGroup(final String flowDefinition, final List<String> expected) throws Exception {
         final Collection<GroupAnalysisResult> actual = rule.analyzeProcessGroup(getProcessGroup(flowDefinition), flowAnalysisRuleContext);
         assertIterableEquals(expected, actual.stream().map(r -> r.getComponent().get().getInstanceIdentifier()).sorted().toList());
     }
 
-    protected void testAnalyzeProcessors(String flowDefinition, List<ComponentAnalysisResult> expected) throws Exception {
-        VersionedProcessGroup rootPG = getProcessGroup(flowDefinition);
-        for (VersionedProcessor processor : rootPG.getProcessors()) {
+    protected void testAnalyzeProcessors(final String flowDefinition, final List<ComponentAnalysisResult> expected) throws Exception {
+        final VersionedProcessGroup rootPG = getProcessGroup(flowDefinition);
+        for (final VersionedProcessor processor : rootPG.getProcessors()) {
             final Collection<ComponentAnalysisResult> actual = rule.analyzeComponent(processor, flowAnalysisRuleContext);
             final int expectedSize = (expected == null) ? 0 : expected.size();
             final int actualSize = (actual == null) ? 0 : actual.size();

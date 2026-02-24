@@ -519,7 +519,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * @see ProcessorNode#runOnce(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback)
      */
     @Override
-    public Future<Void> runProcessorOnce(ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
+    public Future<Void> runProcessorOnce(final ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true, false);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
@@ -634,7 +634,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void onFunnelRemoved(Funnel funnel) {
+    public void onFunnelRemoved(final Funnel funnel) {
         lifecycleStateManager.removeLifecycleState(funnel.getIdentifier());
     }
 
@@ -906,7 +906,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         CompletableFuture<Void> future = null;
-        for (ControllerServiceNode controllerServiceNode : services) {
+        for (final ControllerServiceNode controllerServiceNode : services) {
             final CompletableFuture<Void> serviceFuture = this.disableControllerService(controllerServiceNode);
 
             if (future == null) {

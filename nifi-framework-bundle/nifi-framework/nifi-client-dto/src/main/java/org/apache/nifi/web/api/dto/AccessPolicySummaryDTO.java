@@ -41,7 +41,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
         return action;
     }
 
-    public void setAction(String action) {
+    public void setAction(final String action) {
         this.action = action;
     }
 
@@ -53,7 +53,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
         return resource;
     }
 
-    public void setResource(String resource) {
+    public void setResource(final String resource) {
         this.resource = resource;
     }
 
@@ -65,7 +65,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
         return componentReference;
     }
 
-    public void setComponentReference(ComponentReferenceEntity componentReference) {
+    public void setComponentReference(final ComponentReferenceEntity componentReference) {
         this.componentReference = componentReference;
     }
 
@@ -77,7 +77,7 @@ public class AccessPolicySummaryDTO extends ComponentDTO {
         return configurable;
     }
 
-    public void setConfigurable(Boolean configurable) {
+    public void setConfigurable(final Boolean configurable) {
         this.configurable = configurable;
     }
 }

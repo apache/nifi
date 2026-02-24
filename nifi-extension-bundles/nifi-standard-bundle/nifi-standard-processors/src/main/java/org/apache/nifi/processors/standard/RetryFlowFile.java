@@ -182,7 +182,7 @@ public class RetryFlowFile extends AbstractProcessor {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .description("Attribute " + propertyDescriptorName + " will be placed on FlowFiles " +
@@ -210,19 +210,19 @@ public class RetryFlowFile extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowfile = session.get();
         if (null == flowfile) {
             return;
         }
 
-        String retryAttributeValue = flowfile.getAttribute(retryAttribute);
+        final String retryAttributeValue = flowfile.getAttribute(retryAttribute);
         Integer currentRetry;
         try {
             currentRetry = (null == retryAttributeValue)
                     ? 1
                     : Integer.parseInt(retryAttributeValue.trim()) + 1;
-        } catch (NumberFormatException ex) {
+        } catch (final NumberFormatException ex) {
             // Configured to fail if this was not a number
             if (failOnOverwrite) {
                 session.transfer(flowfile, FAILURE);
@@ -232,8 +232,8 @@ public class RetryFlowFile extends AbstractProcessor {
             currentRetry = 1;
         }
 
-        String lastRetriedByUUID = flowfile.getAttribute(lastRetriedBy);
-        String currentInstanceUUID = getIdentifier();
+        final String lastRetriedByUUID = flowfile.getAttribute(lastRetriedBy);
+        final String currentInstanceUUID = getIdentifier();
         if (!StringUtils.isBlank(lastRetriedByUUID) && !currentInstanceUUID.equals(lastRetriedByUUID)) {
             LogLevel reuseLogLevel = LogLevel.DEBUG;
             switch (reuseMode) {
@@ -255,7 +255,7 @@ public class RetryFlowFile extends AbstractProcessor {
             }
         }
 
-        Integer maximumRetries;
+        final Integer maximumRetries;
         try {
             maximumRetries = context.getProperty(MAXIMUM_RETRIES)
                     .evaluateAttributeExpressions(flowfile)
@@ -266,7 +266,7 @@ public class RetryFlowFile extends AbstractProcessor {
                 session.transfer(flowfile, FAILURE);
                 return;
             }
-        } catch (NumberFormatException ex) {
+        } catch (final NumberFormatException ex) {
             getLogger().warn("Maximum Retries was not a number for this FlowFile, route to 'failure'");
             session.transfer(flowfile, FAILURE);
             return;
@@ -274,12 +274,12 @@ public class RetryFlowFile extends AbstractProcessor {
 
         if (currentRetry > maximumRetries) {
             // Add dynamic properties
-            for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
                 if (!descriptor.isDynamic()) {
                     continue;
                 }
 
-                String value = context.getProperty(descriptor)
+                final String value = context.getProperty(descriptor)
                         .evaluateAttributeExpressions(flowfile)
                         .getValue();
                 if (!StringUtils.isBlank(value)) {
@@ -303,7 +303,7 @@ public class RetryFlowFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("retry-attribute", RETRY_ATTRIBUTE.getName());
         config.renameProperty("maximum-retries", MAXIMUM_RETRIES.getName());
         config.renameProperty("penalize-retries", PENALIZE_RETRIED.getName());

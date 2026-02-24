@@ -58,16 +58,16 @@ public class RecordSinkServiceLookup
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         try {
-            RecordSinkService recordSink = lookupService(attributes);
+            final RecordSinkService recordSink = lookupService(attributes);
             if (recordSinkService != recordSink) {
                 // Save for later reset(), and do a reset now since it has changed
                 recordSinkService = recordSink;
                 recordSinkService.reset();
             }
             return recordSinkService.sendData(recordSet, attributes, sendZeroResults);
-        } catch (ProcessException pe) {
+        } catch (final ProcessException pe) {
             // Lookup was unsuccessful, wrap the exception in an IOException to honor the contract
             throw new IOException(pe);
         }

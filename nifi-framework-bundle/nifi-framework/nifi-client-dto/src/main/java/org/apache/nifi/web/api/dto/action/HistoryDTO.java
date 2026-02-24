@@ -44,7 +44,7 @@ public class HistoryDTO {
         return total;
     }
 
-    public void setTotal(Integer total) {
+    public void setTotal(final Integer total) {
         this.total = total;
     }
 
@@ -59,7 +59,7 @@ public class HistoryDTO {
         return lastRefreshed;
     }
 
-    public void setLastRefreshed(Date lastRefreshed) {
+    public void setLastRefreshed(final Date lastRefreshed) {
         this.lastRefreshed = lastRefreshed;
     }
 
@@ -72,7 +72,7 @@ public class HistoryDTO {
         return actions;
     }
 
-    public void setActions(Collection<ActionEntity> actions) {
+    public void setActions(final Collection<ActionEntity> actions) {
         this.actions = actions;
     }
 }

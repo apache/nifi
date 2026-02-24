@@ -35,7 +35,7 @@ public class FlowResponseMessage extends ProtocolMessage {
         return dataFlow;
     }
 
-    public void setDataFlow(StandardDataFlow dataFlow) {
+    public void setDataFlow(final StandardDataFlow dataFlow) {
         this.dataFlow = dataFlow;
     }
 

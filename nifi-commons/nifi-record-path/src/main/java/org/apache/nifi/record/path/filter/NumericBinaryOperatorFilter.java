@@ -35,7 +35,7 @@ public abstract class NumericBinaryOperatorFilter extends BinaryOperatorFilter {
 
         final Object value = fieldValue.getValue();
 
-        boolean lhsNumeric;
+        final boolean lhsNumeric;
         final boolean lhsLongCompatible = DataTypeUtils.isLongTypeCompatible(value);
         final boolean lhsDoubleCompatible;
         if (lhsLongCompatible) {
@@ -49,7 +49,7 @@ public abstract class NumericBinaryOperatorFilter extends BinaryOperatorFilter {
             return false;
         }
 
-        boolean rhsNumeric;
+        final boolean rhsNumeric;
         final boolean rhsLongCompatible = DataTypeUtils.isLongTypeCompatible(rhsValue);
         final boolean rhsDoubleCompatible;
         if (rhsLongCompatible) {

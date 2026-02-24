@@ -48,7 +48,7 @@ public class DocumentedTypeDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -61,7 +61,7 @@ public class DocumentedTypeDTO {
         return restricted;
     }
 
-    public void setRestricted(boolean restricted) {
+    public void setRestricted(final boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -74,7 +74,7 @@ public class DocumentedTypeDTO {
         return explicitRestrictions;
     }
 
-    public void setExplicitRestrictions(Set<ExplicitRestrictionDTO> explicitRestrictions) {
+    public void setExplicitRestrictions(final Set<ExplicitRestrictionDTO> explicitRestrictions) {
         this.explicitRestrictions = explicitRestrictions;
     }
 
@@ -87,7 +87,7 @@ public class DocumentedTypeDTO {
         return usageRestriction;
     }
 
-    public void setUsageRestriction(String usageRestriction) {
+    public void setUsageRestriction(final String usageRestriction) {
         this.usageRestriction = usageRestriction;
     }
 
@@ -100,7 +100,7 @@ public class DocumentedTypeDTO {
         return deprecationReason;
     }
 
-    public void setDeprecationReason(String deprecationReason) {
+    public void setDeprecationReason(final String deprecationReason) {
         this.deprecationReason = deprecationReason;
     }
 
@@ -113,7 +113,7 @@ public class DocumentedTypeDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -128,7 +128,7 @@ public class DocumentedTypeDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -143,7 +143,7 @@ public class DocumentedTypeDTO {
         return controllerServiceApis;
     }
 
-    public void setControllerServiceApis(List<ControllerServiceApiDTO> controllerServiceApis) {
+    public void setControllerServiceApis(final List<ControllerServiceApiDTO> controllerServiceApis) {
         this.controllerServiceApis = controllerServiceApis;
     }
 
@@ -161,7 +161,7 @@ public class DocumentedTypeDTO {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

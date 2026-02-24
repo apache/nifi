@@ -31,7 +31,7 @@ public class ProcessingInstructionDataNode extends BxmlNodeWithToken {
     private final int tagLength;
     private final String data;
 
-    public ProcessingInstructionDataNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public ProcessingInstructionDataNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         stringLength = binaryReader.readWord();
         tagLength = 3 + (2 * stringLength);
@@ -53,7 +53,7 @@ public class ProcessingInstructionDataNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

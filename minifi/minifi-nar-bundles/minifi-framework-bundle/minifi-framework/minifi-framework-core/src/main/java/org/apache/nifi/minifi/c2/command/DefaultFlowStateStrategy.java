@@ -38,14 +38,14 @@ public class DefaultFlowStateStrategy implements FlowStateStrategy {
 
     private final FlowController flowController;
 
-    public DefaultFlowStateStrategy(FlowController flowController) {
+    public DefaultFlowStateStrategy(final FlowController flowController) {
         this.flowController = flowController;
     }
 
     @Override
     public OperationState start() {
         try {
-            ProcessGroup rootProcessGroup = flowController.getFlowManager().getRootGroup();
+            final ProcessGroup rootProcessGroup = flowController.getFlowManager().getRootGroup();
             if (rootProcessGroup != null) {
                 startProcessGroup(rootProcessGroup);
                 LOGGER.info("Flow started");
@@ -54,7 +54,7 @@ public class DefaultFlowStateStrategy implements FlowStateStrategy {
                 LOGGER.error("Failed to start flow as the root process group is null.");
                 return NOT_APPLIED;
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to start flow as one or more components failed to stop.", e);
             return PARTIALLY_APPLIED;
         }
@@ -63,7 +63,7 @@ public class DefaultFlowStateStrategy implements FlowStateStrategy {
     @Override
     public OperationState stop() {
         try {
-            ProcessGroup rootProcessGroup = flowController.getFlowManager().getRootGroup();
+            final ProcessGroup rootProcessGroup = flowController.getFlowManager().getRootGroup();
             if (rootProcessGroup != null) {
                 stopProcessGroup(rootProcessGroup);
                 LOGGER.info("Flow stopped");
@@ -72,20 +72,20 @@ public class DefaultFlowStateStrategy implements FlowStateStrategy {
                 LOGGER.error("Failed to stop flow as the root process group is null.");
                 return NOT_APPLIED;
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to stop flow as one or more components failed to stop.", e);
             return PARTIALLY_APPLIED;
         }
     }
 
-    private void startProcessGroup(ProcessGroup processGroup) {
+    private void startProcessGroup(final ProcessGroup processGroup) {
         processGroup.startProcessing();
         processGroup.getRemoteProcessGroups().forEach(RemoteProcessGroup::startTransmitting);
 
         processGroup.getProcessGroups().forEach(this::startProcessGroup);
     }
 
-    private void stopProcessGroup(ProcessGroup processGroup) {
+    private void stopProcessGroup(final ProcessGroup processGroup) {
         waitForStopOrLogTimeOut(processGroup.stopProcessing());
         processGroup.getRemoteProcessGroups().stream()
                 .map(RemoteProcessGroup::stopTransmitting)
@@ -94,10 +94,10 @@ public class DefaultFlowStateStrategy implements FlowStateStrategy {
         processGroup.getProcessGroups().forEach(this::stopProcessGroup);
     }
 
-    private void waitForStopOrLogTimeOut(Future<?> future) {
+    private void waitForStopOrLogTimeOut(final Future<?> future) {
         try {
             future.get(10, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Unable to stop component within defined interval", e);
         }
     }

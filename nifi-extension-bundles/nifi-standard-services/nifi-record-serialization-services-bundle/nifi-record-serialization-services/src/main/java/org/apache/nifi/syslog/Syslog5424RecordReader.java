@@ -52,7 +52,7 @@ public class Syslog5424RecordReader implements RecordReader {
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         String line;
         while (true) {
             line = reader.readLine();
@@ -103,7 +103,7 @@ public class Syslog5424RecordReader implements RecordReader {
         this.reader.close();
     }
 
-    private Timestamp convertTimeStamp(String timeString) {
+    private Timestamp convertTimeStamp(final String timeString) {
         /*
         From RFC 5424: https://tools.ietf.org/html/rfc5424#page-11
 

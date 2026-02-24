@@ -37,16 +37,17 @@ import static org.apache.nifi.jasn1.util.RecordTestUtil.assertRecordsEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public interface JASN1ReadRecordTester {
-    default void testReadRecord(String dataFile, BerType berObject, Map<String, Object> expectedValues, RecordSchema expectedSchema) throws IOException, MalformedRecordException {
+    default void testReadRecord(final String dataFile, final BerType berObject, final Map<String, Object> expectedValues,
+            final RecordSchema expectedSchema) throws IOException, MalformedRecordException {
         testReadRecord(dataFile, berObject, __ -> expectedValues, __ -> expectedSchema);
     }
 
     default void testReadRecord(
-        String dataFile,
-        BerType berObject,
-        Function<Record,
+        final String dataFile,
+        final BerType berObject,
+        final Function<Record,
         Map<String, Object>> expectedValuesProvider,
-        Function<Record, RecordSchema> expectedSchemaProvider
+        final Function<Record, RecordSchema> expectedSchemaProvider
     ) throws IOException, MalformedRecordException {
         JASN1DataWriter.write(berObject, dataFile);
 
@@ -62,18 +63,18 @@ public interface JASN1ReadRecordTester {
                     new MockComponentLog("id", new JASN1Reader())
             );
 
-            Record actual = reader.nextRecord(true, false);
-            RecordSchema actualSchema = actual.getSchema();
+            final Record actual = reader.nextRecord(true, false);
+            final RecordSchema actualSchema = actual.getSchema();
 
-            Record expected = new MapRecord(actualSchema, expectedValuesProvider.apply(actual));
-            RecordSchema expectedSchema = expectedSchemaProvider.apply(actual);
+            final Record expected = new MapRecord(actualSchema, expectedValuesProvider.apply(actual));
+            final RecordSchema expectedSchema = expectedSchemaProvider.apply(actual);
 
             assertRecordsEqual(expected, actual);
             assertEquals(expectedSchema, actualSchema);
         }
     }
 
-    default String octetStringExpectedValueConverter(byte[] rawValue) {
+    default String octetStringExpectedValueConverter(final byte[] rawValue) {
         return Hex.encodeHexString(rawValue).toUpperCase();
     }
 }

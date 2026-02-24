@@ -21,11 +21,11 @@ package org.apache.nifi.registry.flow;
  */
 public class FlowPersistenceException extends RuntimeException {
 
-    public FlowPersistenceException(String message) {
+    public FlowPersistenceException(final String message) {
         super(message);
     }
 
-    public FlowPersistenceException(String message, Throwable cause) {
+    public FlowPersistenceException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

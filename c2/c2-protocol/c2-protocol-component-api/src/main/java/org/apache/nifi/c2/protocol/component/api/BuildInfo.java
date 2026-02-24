@@ -36,7 +36,7 @@ public class BuildInfo implements Serializable {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -45,7 +45,7 @@ public class BuildInfo implements Serializable {
         return revision;
     }
 
-    public void setRevision(String revision) {
+    public void setRevision(final String revision) {
         this.revision = revision;
     }
 
@@ -54,7 +54,7 @@ public class BuildInfo implements Serializable {
         return timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
+    public void setTimestamp(final Long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -63,7 +63,7 @@ public class BuildInfo implements Serializable {
         return targetArch;
     }
 
-    public void setTargetArch(String targetArch) {
+    public void setTargetArch(final String targetArch) {
         this.targetArch = targetArch;
     }
 
@@ -72,7 +72,7 @@ public class BuildInfo implements Serializable {
         return compiler;
     }
 
-    public void setCompiler(String compiler) {
+    public void setCompiler(final String compiler) {
         this.compiler = compiler;
     }
 
@@ -81,7 +81,7 @@ public class BuildInfo implements Serializable {
         return compilerFlags;
     }
 
-    public void setCompilerFlags(String compilerFlags) {
+    public void setCompilerFlags(final String compilerFlags) {
         this.compilerFlags = compilerFlags;
     }
 

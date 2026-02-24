@@ -32,7 +32,7 @@ public class NetworkUtils {
     public static InetAddress getInterfaceAddress(final String interfaceName) throws SocketException {
         InetAddress interfaceAddress = null;
         if (interfaceName != null && !interfaceName.isEmpty()) {
-            NetworkInterface networkInterface = NetworkInterface.getByName(interfaceName);
+            final NetworkInterface networkInterface = NetworkInterface.getByName(interfaceName);
             interfaceAddress = networkInterface.getInetAddresses().nextElement();
         }
         return interfaceAddress;

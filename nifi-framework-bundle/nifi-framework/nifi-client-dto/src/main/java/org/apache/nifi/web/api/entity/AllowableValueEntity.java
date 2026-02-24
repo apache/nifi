@@ -35,7 +35,7 @@ public class AllowableValueEntity extends Entity implements ReadablePermission {
         return allowableValue;
     }
 
-    public void setAllowableValue(AllowableValueDTO allowableValue) {
+    public void setAllowableValue(final AllowableValueDTO allowableValue) {
         this.allowableValue = allowableValue;
     }
 
@@ -45,7 +45,7 @@ public class AllowableValueEntity extends Entity implements ReadablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

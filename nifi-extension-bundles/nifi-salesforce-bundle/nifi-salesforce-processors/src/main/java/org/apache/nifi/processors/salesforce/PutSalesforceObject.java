@@ -124,43 +124,43 @@ public class PutSalesforceObject extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         maxRecordCount = getMaxRecordCount();
-        SalesforceConfiguration configuration = createSalesforceConfiguration(context);
+        final SalesforceConfiguration configuration = createSalesforceConfiguration(context);
         salesforceRestClient = new SalesforceRestClient(configuration);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        String objectType = flowFile.getAttribute(ATTR_OBJECT_TYPE);
+        final String objectType = flowFile.getAttribute(ATTR_OBJECT_TYPE);
         if (objectType == null) {
             handleInvalidFlowFile(session, flowFile);
             return;
         }
 
         try {
-            long startNanos = System.nanoTime();
+            final long startNanos = System.nanoTime();
             processRecords(flowFile, objectType, context, session);
             session.transfer(flowFile, REL_SUCCESS);
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, salesforceRestClient.getVersionedBaseUrl() + "/put/" + objectType, transferMillis);
-        } catch (MalformedRecordException e) {
+        } catch (final MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
             transferToFailure(session, flowFile, e.getMessage());
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             getLogger().error("Couldn't create record writer", e);
             transferToFailure(session, flowFile, e.getMessage());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to put records to Salesforce.", e);
             transferToFailure(session, flowFile, e.getMessage());
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty(OLD_SALESFORCE_INSTANCE_URL_PROPERTY_NAME, SALESFORCE_INSTANCE_URL.getName());
         config.renameProperty(OLD_API_VERSION_PROPERTY_NAME, API_VERSION.getName());
@@ -168,72 +168,73 @@ public class PutSalesforceObject extends AbstractProcessor {
         config.renameProperty(OLD_TOKEN_PROVIDER_PROPERTY_NAME, TOKEN_PROVIDER.getName());
     }
 
-    private void processRecords(FlowFile flowFile, String objectType, ProcessContext context, ProcessSession session) throws IOException, MalformedRecordException, SchemaNotFoundException {
-        RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
+    private void processRecords(final FlowFile flowFile, final String objectType, final ProcessContext context,
+            final ProcessSession session) throws IOException, MalformedRecordException, SchemaNotFoundException {
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
         int count = 0;
+        final RecordExtender recordExtender;
 
         try (InputStream in = session.read(flowFile);
              RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            RecordExtender recordExtender = getExtender(reader);
-            try (WriteJsonResult writer = getWriter(recordExtender, out)) {
-                Record record;
-                while ((record = reader.nextRecord()) != null) {
-                    count++;
-                    if (!writer.isActiveRecordSet()) {
-                        writer.beginRecordSet();
-                    }
+             ByteArrayOutputStream out = new ByteArrayOutputStream();
+             WriteJsonResult writer = getWriter(recordExtender = getExtender(reader), out)) {
 
-                    MapRecord extendedRecord = recordExtender.getExtendedRecord(objectType, count, record);
-                    writer.write(extendedRecord);
-
-                    if (count == maxRecordCount) {
-                        count = 0;
-                        postRecordBatch(objectType, out, writer, recordExtender);
-                        out.reset();
-                    }
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                count++;
+                if (!writer.isActiveRecordSet()) {
+                    writer.beginRecordSet();
                 }
-                if (writer.isActiveRecordSet()) {
+
+                final MapRecord extendedRecord = recordExtender.getExtendedRecord(objectType, count, record);
+                writer.write(extendedRecord);
+
+                if (count == maxRecordCount) {
+                    count = 0;
                     postRecordBatch(objectType, out, writer, recordExtender);
+                    out.reset();
                 }
+            }
+            if (writer.isActiveRecordSet()) {
+                postRecordBatch(objectType, out, writer, recordExtender);
             }
         }
     }
 
-    private SalesforceConfiguration createSalesforceConfiguration(ProcessContext context) {
-        String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
-        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
-        OAuth2AccessTokenProvider accessTokenProvider =
+    private SalesforceConfiguration createSalesforceConfiguration(final ProcessContext context) {
+        final String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
+        final String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
+        final OAuth2AccessTokenProvider accessTokenProvider =
                 context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
         return SalesforceConfiguration.create(instanceUrl, salesforceVersion,
                 () -> accessTokenProvider.getAccessDetails().getAccessToken(), 0);
     }
 
-    private void handleInvalidFlowFile(ProcessSession session, FlowFile flowFile) {
-        String errorMessage = "Salesforce object type not found among the incoming FlowFile attributes";
+    private void handleInvalidFlowFile(final ProcessSession session, final FlowFile flowFile) {
+        final String errorMessage = "Salesforce object type not found among the incoming FlowFile attributes";
         getLogger().error(errorMessage);
         transferToFailure(session, flowFile, errorMessage);
     }
 
-    private void transferToFailure(ProcessSession session, FlowFile flowFile, String message) {
-        flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, message);
-        session.transfer(session.penalize(flowFile), REL_FAILURE);
+    private void transferToFailure(final ProcessSession session, final FlowFile flowFile, final String message) {
+        final FlowFile updatedFlowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, message);
+        session.transfer(session.penalize(updatedFlowFile), REL_FAILURE);
     }
 
-    private void postRecordBatch(String objectType, ByteArrayOutputStream out, WriteJsonResult writer, RecordExtender extender) throws IOException {
+    private void postRecordBatch(final String objectType, final ByteArrayOutputStream out, final WriteJsonResult writer, final RecordExtender extender) throws IOException {
         writer.finishRecordSet();
         writer.flush();
-        ObjectNode wrappedJson = extender.getWrappedRecordsJson(out);
+        final ObjectNode wrappedJson = extender.getWrappedRecordsJson(out);
         salesforceRestClient.postRecord(objectType, wrappedJson.toPrettyString());
     }
 
-    private WriteJsonResult getWriter(RecordExtender extender, ByteArrayOutputStream out) throws IOException {
+    private WriteJsonResult getWriter(final RecordExtender extender, final ByteArrayOutputStream out) throws IOException {
         final RecordSchema extendedSchema = extender.getExtendedSchema();
         return new WriteJsonResult(getLogger(), extendedSchema, new NopSchemaAccessWriter(), out,
                 true, NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null);
     }
 
-    private RecordExtender getExtender(RecordReader reader) throws MalformedRecordException {
+    private RecordExtender getExtender(final RecordReader reader) throws MalformedRecordException {
         return new RecordExtender(reader.getSchema());
     }
 

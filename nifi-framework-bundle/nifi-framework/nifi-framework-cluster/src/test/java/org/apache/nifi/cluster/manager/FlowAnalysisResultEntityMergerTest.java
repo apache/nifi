@@ -49,12 +49,12 @@ public class FlowAnalysisResultEntityMergerTest {
     @Test
     void differentViolationsAreMerged() {
         // GIVEN
-        FlowAnalysisResultEntity clientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity clientEntity = resultEntityOf(
                 listOf(ruleOf("ruleId")),
                 listOf(ruleViolationOf("ruleId", true, true))
         );
 
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
                 resultEntityOf(
                         listOf(ruleOf("ruleId1")),
                         listOf(ruleViolationOf("ruleId1", true, true))
@@ -65,7 +65,7 @@ public class FlowAnalysisResultEntityMergerTest {
                 )
         );
 
-        FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
                 listOf(ruleOf("ruleId"), ruleOf("ruleId1"), ruleOf("ruleId2")),
                 listOf(
                         ruleViolationOf("ruleId", true, true),
@@ -80,14 +80,14 @@ public class FlowAnalysisResultEntityMergerTest {
     @Test
     void violationThatCannotBeReadOnAnyNodeIsOmitted() {
         // GIVEN
-        String ruleId = "ruleWithViolationThatCantBeReadOnOneNode";
+        final String ruleId = "ruleWithViolationThatCantBeReadOnOneNode";
 
-        FlowAnalysisResultEntity clientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity clientEntity = resultEntityOf(
                 listOf(ruleOf(ruleId)),
                 listOf(ruleViolationOf(ruleId, true, true))
         );
 
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
                 resultEntityOf(
                         listOf(ruleOf(ruleId)),
                         listOf(ruleViolationOf(ruleId, false, true))
@@ -98,7 +98,7 @@ public class FlowAnalysisResultEntityMergerTest {
                 )
         );
 
-        FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
                 listOf(ruleOf(ruleId)),
                 listOf()
         );
@@ -109,12 +109,12 @@ public class FlowAnalysisResultEntityMergerTest {
     @Test
     void evenWhenViolationIsOmittedTheRuleIsNot() {
         // GIVEN
-        FlowAnalysisResultEntity clientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity clientEntity = resultEntityOf(
                 listOf(),
                 listOf()
         );
 
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
                 resultEntityOf(
                         listOf(ruleOf("notOmittedRuleButOmittedViolation")),
                         listOf(ruleViolationOf("notOmittedRuleButOmittedViolation", false, true))
@@ -125,7 +125,7 @@ public class FlowAnalysisResultEntityMergerTest {
                 )
         );
 
-        FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity expectedClientEntity = resultEntityOf(
                 listOf(ruleOf("notOmittedRuleButOmittedViolation")),
                 listOf()
         );
@@ -136,14 +136,14 @@ public class FlowAnalysisResultEntityMergerTest {
     @Test
     void violationThatCannotBeWrittenIsNotOmitted() {
         // GIVEN
-        String ruleId = "ruleWithViolationThatCantBeWrittenOnOneNode";
+        final String ruleId = "ruleWithViolationThatCantBeWrittenOnOneNode";
 
-        FlowAnalysisResultEntity clientEntity = resultEntityOf(
+        final FlowAnalysisResultEntity clientEntity = resultEntityOf(
                 listOf(ruleOf(ruleId)),
                 listOf(ruleViolationOf(ruleId, true, false))
         );
 
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = resultEntityMapOf(
                 resultEntityOf(
                         listOf(ruleOf(ruleId)),
                         listOf(ruleViolationOf(ruleId, true, false))
@@ -154,21 +154,21 @@ public class FlowAnalysisResultEntityMergerTest {
                 )
         );
 
-        FlowAnalysisResultEntity expectedClientEntity = clientEntity;
+        final FlowAnalysisResultEntity expectedClientEntity = clientEntity;
 
         testMerge(clientEntity, entityMap, expectedClientEntity);
     }
 
-    private void testMerge(FlowAnalysisResultEntity clientEntity, Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap, FlowAnalysisResultEntity expectedClientEntity) {
+    private void testMerge(final FlowAnalysisResultEntity clientEntity, final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap, final FlowAnalysisResultEntity expectedClientEntity) {
         // GIVEN
-        List<Function<FlowAnalysisRuleDTO, Object>> rulePropertiesProviders = Arrays.asList(FlowAnalysisRuleDTO::getId);
-        List<Function<FlowAnalysisRuleViolationDTO, Object>> list = Arrays.asList(
+        final List<Function<FlowAnalysisRuleDTO, Object>> rulePropertiesProviders = Arrays.asList(FlowAnalysisRuleDTO::getId);
+        final List<Function<FlowAnalysisRuleViolationDTO, Object>> list = Arrays.asList(
                 FlowAnalysisRuleViolationDTO::getRuleId,
                 FlowAnalysisRuleViolationDTO::isEnabled,
                 ruleViolation -> ruleViolation.getSubjectPermissionDto().getCanRead(),
                 ruleViolation -> ruleViolation.getSubjectPermissionDto().getCanWrite()
         );
-        List<Function<FlowAnalysisResultEntity, Object>> resultEntityEqualsPropertiesProviders = Arrays.asList(
+        final List<Function<FlowAnalysisResultEntity, Object>> resultEntityEqualsPropertiesProviders = Arrays.asList(
                 resultEntity -> new HashSet<>(EqualsWrapper.wrapList(resultEntity.getRules(), rulePropertiesProviders)),
                 resultEntity -> new HashSet<>(EqualsWrapper.wrapList(resultEntity.getRuleViolations(), list))
         );
@@ -186,13 +186,13 @@ public class FlowAnalysisResultEntityMergerTest {
         ));
     }
 
-    private static NodeIdentifier nodeIdOf(String nodeId) {
-        NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "unimportant", 1, "unimportant", 1, "unimportant", 1, 1, false);
+    private static NodeIdentifier nodeIdOf(final String nodeId) {
+        final NodeIdentifier nodeIdentifier = new NodeIdentifier(nodeId, "unimportant", 1, "unimportant", 1, "unimportant", 1, 1, false);
         return nodeIdentifier;
     }
 
-    private static FlowAnalysisRuleDTO ruleOf(String ruleId) {
-        FlowAnalysisRuleDTO rule = new FlowAnalysisRuleDTO();
+    private static FlowAnalysisRuleDTO ruleOf(final String ruleId) {
+        final FlowAnalysisRuleDTO rule = new FlowAnalysisRuleDTO();
 
         rule.setId(ruleId);
 
@@ -200,11 +200,11 @@ public class FlowAnalysisResultEntityMergerTest {
     }
 
     private static FlowAnalysisRuleViolationDTO ruleViolationOf(
-            String ruleId,
-            boolean canRead,
-            boolean canWrite
+            final String ruleId,
+            final boolean canRead,
+            final boolean canWrite
     ) {
-        FlowAnalysisRuleViolationDTO ruleViolation = new FlowAnalysisRuleViolationDTO();
+        final FlowAnalysisRuleViolationDTO ruleViolation = new FlowAnalysisRuleViolationDTO();
 
         ruleViolation.setRuleId(ruleId);
         ruleViolation.setSubjectPermissionDto(permissionOf(canRead, canWrite));
@@ -212,8 +212,8 @@ public class FlowAnalysisResultEntityMergerTest {
         return ruleViolation;
     }
 
-    private static PermissionsDTO permissionOf(boolean canRead, boolean canWrite) {
-        PermissionsDTO subjectPermissionDto = new PermissionsDTO();
+    private static PermissionsDTO permissionOf(final boolean canRead, final boolean canWrite) {
+        final PermissionsDTO subjectPermissionDto = new PermissionsDTO();
 
         subjectPermissionDto.setCanRead(canRead);
         subjectPermissionDto.setCanWrite(canWrite);
@@ -221,8 +221,8 @@ public class FlowAnalysisResultEntityMergerTest {
         return subjectPermissionDto;
     }
 
-    private static FlowAnalysisResultEntity resultEntityOf(List<FlowAnalysisRuleDTO> rules, List<FlowAnalysisRuleViolationDTO> ruleViolations) {
-        FlowAnalysisResultEntity clientEntity = new FlowAnalysisResultEntity();
+    private static FlowAnalysisResultEntity resultEntityOf(final List<FlowAnalysisRuleDTO> rules, final List<FlowAnalysisRuleViolationDTO> ruleViolations) {
+        final FlowAnalysisResultEntity clientEntity = new FlowAnalysisResultEntity();
 
         clientEntity.setRules(rules);
         clientEntity.setRuleViolations(ruleViolations);
@@ -230,8 +230,8 @@ public class FlowAnalysisResultEntityMergerTest {
         return clientEntity;
     }
 
-    private static Map<NodeIdentifier, FlowAnalysisResultEntity> resultEntityMapOf(FlowAnalysisResultEntity clientEntity1, FlowAnalysisResultEntity clientEntity2) {
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = new HashMap<>();
+    private static Map<NodeIdentifier, FlowAnalysisResultEntity> resultEntityMapOf(final FlowAnalysisResultEntity clientEntity1, final FlowAnalysisResultEntity clientEntity2) {
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap = new HashMap<>();
 
         entityMap.put(NODE_ID_1, clientEntity1);
         entityMap.put(NODE_ID_2, clientEntity2);
@@ -239,9 +239,9 @@ public class FlowAnalysisResultEntityMergerTest {
         return entityMap;
     }
 
-    private static <T> List<T> listOf(T... items) {
-        List<T> itemSet = new ArrayList<>();
-        for (T item : items) {
+    private static <T> List<T> listOf(final T... items) {
+        final List<T> itemSet = new ArrayList<>();
+        for (final T item : items) {
             itemSet.add(item);
 
         }

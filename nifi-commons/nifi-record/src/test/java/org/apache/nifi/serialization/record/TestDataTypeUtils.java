@@ -250,9 +250,9 @@ public class TestDataTypeUtils {
         assertNotNull(resultMap);
         assertTrue(resultMap.isEmpty());
 
-        int[] intArray = {3, 2, 1};
+        final int[] intArray = {3, 2, 1};
 
-        Map<String, Object> inputMap = Map.of("field1", "hello", "field2", 1, "field3", intArray);
+        final Map<String, Object> inputMap = Map.of("field1", "hello", "field2", 1, "field3", intArray);
 
         resultMap = DataTypeUtils.convertRecordMapToJavaMap(inputMap, RecordFieldType.STRING.getDataType());
         assertNotNull(resultMap);
@@ -266,51 +266,51 @@ public class TestDataTypeUtils {
 
     @Test
     public void testUUIDStringToUUIDObject() {
-        UUID generated = UUID.randomUUID();
-        String uuidString = generated.toString();
+        final UUID generated = UUID.randomUUID();
+        final String uuidString = generated.toString();
 
-        Object result = DataTypeUtils.convertType(uuidString, RecordFieldType.UUID.getDataType(), "uuid_test");
+        final Object result = DataTypeUtils.convertType(uuidString, RecordFieldType.UUID.getDataType(), "uuid_test");
         assertInstanceOf(UUID.class, result);
         assertEquals(generated, result);
     }
 
     @Test
     public void testUUIDObjectToUUIDString() {
-        UUID generated = UUID.randomUUID();
-        String uuid = generated.toString();
+        final UUID generated = UUID.randomUUID();
+        final String uuid = generated.toString();
 
-        Object result = DataTypeUtils.convertType(generated, RecordFieldType.STRING.getDataType(), "uuid_test");
+        final Object result = DataTypeUtils.convertType(generated, RecordFieldType.STRING.getDataType(), "uuid_test");
         assertInstanceOf(String.class, result);
         assertEquals(uuid, result);
     }
 
     @Test
     public void testUUIDToByteArray() {
-        UUID generated = UUID.randomUUID();
-        ByteBuffer buffer = ByteBuffer.allocate(16);
+        final UUID generated = UUID.randomUUID();
+        final ByteBuffer buffer = ByteBuffer.allocate(16);
         buffer.putLong(generated.getMostSignificantBits());
         buffer.putLong(generated.getLeastSignificantBits());
-        byte[] expected = buffer.array();
+        final byte[] expected = buffer.array();
 
-        Object result = DataTypeUtils.convertType(expected, RecordFieldType.UUID.getDataType(), "uuid_test");
+        final Object result = DataTypeUtils.convertType(expected, RecordFieldType.UUID.getDataType(), "uuid_test");
         assertInstanceOf(UUID.class, result);
         assertEquals(generated, result);
     }
 
     @Test
     public void testByteArrayToUUID() {
-        UUID generated = UUID.randomUUID();
-        ByteBuffer buffer = ByteBuffer.allocate(16);
+        final UUID generated = UUID.randomUUID();
+        final ByteBuffer buffer = ByteBuffer.allocate(16);
         buffer.putLong(generated.getMostSignificantBits());
         buffer.putLong(generated.getLeastSignificantBits());
-        byte[] expected = buffer.array();
+        final byte[] expected = buffer.array();
 
-        Object result = DataTypeUtils.convertType(expected, RecordFieldType.ARRAY.getDataType(), "uuid_test");
+        final Object result = DataTypeUtils.convertType(expected, RecordFieldType.ARRAY.getDataType(), "uuid_test");
         assertInstanceOf(Byte[].class, result);
         assertEquals(16, ((Byte[]) result).length);
-        Byte[] bytes = (Byte[]) result;
+        final Byte[] bytes = (Byte[]) result;
         for (int x = 0; x < bytes.length; x++) {
-            byte current = bytes[x];
+            final byte current = bytes[x];
             assertEquals(expected[x], current);
         }
     }
@@ -319,10 +319,10 @@ public class TestDataTypeUtils {
     public void testConvertRecordArrayToJavaArray() {
         assertNull(DataTypeUtils.convertRecordArrayToJavaArray(null, null));
         assertNull(DataTypeUtils.convertRecordArrayToJavaArray(null, RecordFieldType.STRING.getDataType()));
-        String[] stringArray = {"Hello", "World!"};
-        Object[] resultArray = DataTypeUtils.convertRecordArrayToJavaArray(stringArray, RecordFieldType.STRING.getDataType());
+        final String[] stringArray = {"Hello", "World!"};
+        final Object[] resultArray = DataTypeUtils.convertRecordArrayToJavaArray(stringArray, RecordFieldType.STRING.getDataType());
         assertNotNull(resultArray);
-        for (Object o : resultArray) {
+        for (final Object o : resultArray) {
             assertInstanceOf(String.class, o);
         }
     }
@@ -345,12 +345,12 @@ public class TestDataTypeUtils {
         values2.put("intField", 50);
         final Record inputRecord2 = new MapRecord(schema, values2);
 
-        Object[] recordArray = {inputRecord1, inputRecord2};
-        Object resultObj = DataTypeUtils.convertRecordFieldtoObject(recordArray, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(schema)));
+        final Object[] recordArray = {inputRecord1, inputRecord2};
+        final Object resultObj = DataTypeUtils.convertRecordFieldtoObject(recordArray, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(schema)));
         assertNotNull(resultObj);
         assertInstanceOf(Object[].class, resultObj);
-        Object[] resultArray = (Object[]) resultObj;
-        for (Object o : resultArray) {
+        final Object[] resultArray = (Object[]) resultObj;
+        for (final Object o : resultArray) {
             assertInstanceOf(Map.class, o);
         }
     }
@@ -494,10 +494,10 @@ public class TestDataTypeUtils {
 
     @Test
     public void testStringToBytes() {
-        Object bytes = DataTypeUtils.convertType("Hello", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), null, StandardCharsets.UTF_8);
+        final Object bytes = DataTypeUtils.convertType("Hello", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), null, StandardCharsets.UTF_8);
         assertInstanceOf(Byte[].class, bytes);
         assertNotNull(bytes);
-        Byte[] b = (Byte[]) bytes;
+        final Byte[] b = (Byte[]) bytes;
         assertEquals((long) 72, (long) b[0], "Conversion from String to byte[] failed");  // H
         assertEquals((long) 101, (long) b[1], "Conversion from String to byte[] failed"); // e
         assertEquals((long) 108, (long) b[2], "Conversion from String to byte[] failed"); // l
@@ -507,7 +507,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testBytesToString() {
-        Object s = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.STRING.getDataType(), null, StandardCharsets.UTF_16);
+        final Object s = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.STRING.getDataType(), null, StandardCharsets.UTF_16);
         assertNotNull(s);
         assertInstanceOf(String.class, s);
         assertEquals("Hello", s, "Conversion from byte[] to String failed");
@@ -515,7 +515,8 @@ public class TestDataTypeUtils {
 
     @Test
     public void testBytesToBytes() {
-        Object b = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), null, StandardCharsets.UTF_16);
+        final Object b = DataTypeUtils.convertType("Hello".getBytes(StandardCharsets.UTF_16),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), null, StandardCharsets.UTF_16);
         assertNotNull(b);
         assertInstanceOf(Byte[].class, b);
         assertEquals((Object) "Hello".getBytes(StandardCharsets.UTF_16)[0], ((Byte[]) b)[0], "Conversion from byte[] to String failed at char 0");
@@ -590,7 +591,7 @@ public class TestDataTypeUtils {
 
     @ParameterizedTest
     @MethodSource("decimalTypeCompatibleData")
-    public void testIsBigDecimalTypeCompatible(Object value, boolean compatible) {
+    public void testIsBigDecimalTypeCompatible(final Object value, final boolean compatible) {
         if (compatible) {
             assertTrue(DataTypeUtils.isDecimalTypeCompatible(value));
         } else {
@@ -680,7 +681,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testIsCompatibleDataTypeMap() {
-        Map<String, Object> testMap = new HashMap<>();
+        final Map<String, Object> testMap = new HashMap<>();
         testMap.put("Hello", "World");
         assertTrue(DataTypeUtils.isCompatibleDataType(testMap, RecordFieldType.RECORD.getDataType()));
     }
@@ -737,7 +738,7 @@ public class TestDataTypeUtils {
         Exception e = null;
         try {
             toBigInteger.apply("1234567XYZ");
-        } catch (IllegalTypeConversionException itce) {
+        } catch (final IllegalTypeConversionException itce) {
             e = itce;
         }
         assertNotNull(e);
@@ -745,22 +746,22 @@ public class TestDataTypeUtils {
 
     @Test
     public void testFindMostSuitableTypeByStringValueShouldReturnEvenWhenOneTypeThrowsException() {
-        String valueAsString = "value";
+        final String valueAsString = "value";
 
-        String nonMatchingType = "nonMatchingType";
-        String throwsExceptionType = "throwsExceptionType";
-        String matchingType = "matchingType";
+        final String nonMatchingType = "nonMatchingType";
+        final String throwsExceptionType = "throwsExceptionType";
+        final String matchingType = "matchingType";
 
-        List<String> types = Arrays.asList(
+        final List<String> types = Arrays.asList(
                 nonMatchingType,
                 throwsExceptionType,
                 matchingType
         );
-        Optional<String> expected = Optional.of(matchingType);
+        final Optional<String> expected = Optional.of(matchingType);
 
-        AtomicBoolean exceptionThrown = new AtomicBoolean(false);
+        final AtomicBoolean exceptionThrown = new AtomicBoolean(false);
 
-        Function<String, DataType> dataTypeMapper = type -> {
+        final Function<String, DataType> dataTypeMapper = type -> {
             if (type.equals(nonMatchingType)) {
                 return RecordFieldType.BOOLEAN.getDataType();
             } else if (type.equals(throwsExceptionType)) {
@@ -778,7 +779,7 @@ public class TestDataTypeUtils {
             return null;
         };
 
-        Optional<String> actual = DataTypeUtils.findMostSuitableTypeByStringValue(valueAsString, types, dataTypeMapper);
+        final Optional<String> actual = DataTypeUtils.findMostSuitableTypeByStringValue(valueAsString, types, dataTypeMapper);
         assertTrue(exceptionThrown.get(), "Exception not thrown during test as intended.");
         assertEquals(expected, actual);
     }
@@ -786,13 +787,13 @@ public class TestDataTypeUtils {
     @Test
     public void testChooseDataTypeWhenInt_vs_INT_FLOAT_ThenShouldReturnINT() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType()
         );
 
-        Object value = 1;
-        DataType expected = RecordFieldType.INT.getDataType();
+        final Object value = 1;
+        final DataType expected = RecordFieldType.INT.getDataType();
 
         // WHEN
         // THEN
@@ -802,13 +803,13 @@ public class TestDataTypeUtils {
     @Test
     public void testChooseDataTypeWhenFloat_vs_INT_FLOAT_ThenShouldReturnFLOAT() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType()
         );
 
-        Object value = 1.5f;
-        DataType expected = RecordFieldType.FLOAT.getDataType();
+        final Object value = 1.5f;
+        final DataType expected = RecordFieldType.FLOAT.getDataType();
 
         // WHEN
         // THEN
@@ -818,7 +819,7 @@ public class TestDataTypeUtils {
     @Test
     public void testChooseDataTypeWhenHasChoiceThenShouldReturnSingleMatchingFromChoice() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.DOUBLE.getDataType(),
                 RecordFieldType.CHOICE.getChoiceDataType(
@@ -827,26 +828,26 @@ public class TestDataTypeUtils {
                 )
         );
 
-        Object value = 1.5f;
-        DataType expected = RecordFieldType.FLOAT.getDataType();
+        final Object value = 1.5f;
+        final DataType expected = RecordFieldType.FLOAT.getDataType();
 
         // WHEN
         // THEN
         testChooseDataTypeAlsoReverseTypes(value, dataTypes, expected);
     }
 
-    private void testChooseDataTypeAlsoReverseTypes(Object value, List<DataType> dataTypes, DataType expected) {
+    private void testChooseDataTypeAlsoReverseTypes(final Object value, final List<DataType> dataTypes, final DataType expected) {
         testChooseDataType(dataTypes, value, expected);
         Collections.reverse(dataTypes);
         testChooseDataType(dataTypes, value, expected);
     }
 
-    private void testChooseDataType(List<DataType> dataTypes, Object value, DataType expected) {
+    private void testChooseDataType(final List<DataType> dataTypes, final Object value, final DataType expected) {
         // GIVEN
-        ChoiceDataType choiceDataType = (ChoiceDataType) RecordFieldType.CHOICE.getChoiceDataType(dataTypes.toArray(new DataType[dataTypes.size()]));
+        final ChoiceDataType choiceDataType = (ChoiceDataType) RecordFieldType.CHOICE.getChoiceDataType(dataTypes.toArray(new DataType[dataTypes.size()]));
 
         // WHEN
-        DataType actual = DataTypeUtils.chooseDataType(value, choiceDataType);
+        final DataType actual = DataTypeUtils.chooseDataType(value, choiceDataType);
 
         // THEN
         assertEquals(expected, actual);
@@ -854,31 +855,31 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferTypeWithMapStringKeys() {
-        Map<String, String> map = new LinkedHashMap<>();
+        final Map<String, String> map = new LinkedHashMap<>();
         map.put("a", "Hello");
         map.put("b", "World");
 
-        RecordDataType expected = (RecordDataType) RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+        final RecordDataType expected = (RecordDataType) RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
                 new RecordField("a", RecordFieldType.STRING.getDataType()),
                 new RecordField("b", RecordFieldType.STRING.getDataType())
         )));
 
-        DataType actual = DataTypeUtils.inferDataType(map, null);
+        final DataType actual = DataTypeUtils.inferDataType(map, null);
         assertEquals(expected, actual);
     }
 
     @Test
     public void testInferTypeWithMapNonStringKeys() {
-        Map<Integer, String> map = new LinkedHashMap<>();
+        final Map<Integer, String> map = new LinkedHashMap<>();
         map.put(1, "Hello");
         map.put(2, "World");
 
-        RecordDataType expected = (RecordDataType) RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+        final RecordDataType expected = (RecordDataType) RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
                 new RecordField("1", RecordFieldType.STRING.getDataType()),
                 new RecordField("2", RecordFieldType.STRING.getDataType())
         )));
 
-        DataType actual = DataTypeUtils.inferDataType(map, null);
+        final DataType actual = DataTypeUtils.inferDataType(map, null);
         assertEquals(expected, actual);
     }
 
@@ -962,13 +963,13 @@ public class TestDataTypeUtils {
         testFindMostSuitableType(new int[]{1, 2, 3}, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()));
     }
 
-    private void testFindMostSuitableType(Object value, DataType expected, DataType... filtered) {
-        List<DataType> filteredOutDataTypes = Arrays.stream(filtered).toList();
+    private void testFindMostSuitableType(final Object value, final DataType expected, final DataType... filtered) {
+        final List<DataType> filteredOutDataTypes = Arrays.stream(filtered).toList();
 
         // GIVEN
-        List<DataType> unexpectedTypes = Arrays.stream(RecordFieldType.values())
+        final List<DataType> unexpectedTypes = Arrays.stream(RecordFieldType.values())
                 .flatMap(recordFieldType -> {
-                    Stream<DataType> dataTypeStream;
+                    final Stream<DataType> dataTypeStream;
 
                     if (RecordFieldType.ARRAY.equals(recordFieldType)) {
                         dataTypeStream = Arrays.stream(RecordFieldType.values()).map(elementType -> RecordFieldType.ARRAY.getArrayDataType(elementType.getDataType()));
@@ -983,11 +984,11 @@ public class TestDataTypeUtils {
                 .toList();
 
         IntStream.rangeClosed(0, unexpectedTypes.size()).forEach(insertIndex -> {
-            List<DataType> allTypes = new LinkedList<>(unexpectedTypes);
+            final List<DataType> allTypes = new LinkedList<>(unexpectedTypes);
             allTypes.add(insertIndex, expected);
 
             // WHEN
-            Optional<DataType> actual = DataTypeUtils.findMostSuitableType(value, allTypes, Function.identity());
+            final Optional<DataType> actual = DataTypeUtils.findMostSuitableType(value, allTypes, Function.identity());
 
             // THEN
             assertEquals(Optional.ofNullable(expected), actual);
@@ -1167,15 +1168,15 @@ public class TestDataTypeUtils {
 
     @Test
     public void testConvertDateToUTC() {
-        int year = 2021;
-        int month = 1;
-        int dayOfMonth = 25;
+        final int year = 2021;
+        final int month = 1;
+        final int dayOfMonth = 25;
 
-        Date dateLocalTZ = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth, 0, 0, 0), ZoneId.systemDefault()).toInstant().toEpochMilli());
+        final Date dateLocalTZ = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth, 0, 0, 0), ZoneId.systemDefault()).toInstant().toEpochMilli());
 
-        Date dateUTC = DataTypeUtils.convertDateToUTC(dateLocalTZ);
+        final Date dateUTC = DataTypeUtils.convertDateToUTC(dateLocalTZ);
 
-        ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneId.of("UTC"));
+        final ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneId.of("UTC"));
         assertEquals(year, zdt.getYear());
         assertEquals(month, zdt.getMonthValue());
         assertEquals(dayOfMonth, zdt.getDayOfMonth());

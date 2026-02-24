@@ -64,12 +64,12 @@ public class TestFastCSVRecordReader {
         return fields;
     }
 
-    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
+    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format) throws IOException {
         return new FastCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", false);
     }
 
-    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+    private FastCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new FastCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
                 RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
     }
@@ -412,7 +412,7 @@ public class TestFastCSVRecordReader {
             try {
                 reader.nextRecord();
                 fail("Should have thrown MalformedRecordException");
-            } catch (MalformedRecordException ignored) {
+            } catch (final MalformedRecordException ignored) {
                 // Expected behavior
             }
         }
@@ -450,7 +450,7 @@ public class TestFastCSVRecordReader {
     @Test
     public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
-        char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
+        final char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
         final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).get();
         final List<RecordField> fields = getDefaultFields();

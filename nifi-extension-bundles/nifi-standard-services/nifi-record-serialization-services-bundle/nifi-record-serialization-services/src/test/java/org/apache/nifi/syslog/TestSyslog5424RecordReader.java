@@ -72,7 +72,7 @@ public class TestSyslog5424RecordReader {
         final Syslog5424Reader reader = new Syslog5424Reader();
 
         try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_all.txt")) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
+            final StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
@@ -94,10 +94,10 @@ public class TestSyslog5424RecordReader {
             assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
-            Map<String, Object> structured = (Map<String, Object>) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
+            final Map<String, Object> structured = (Map<String, Object>) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
 
             assertTrue(structured.containsKey("exampleSDID@32473"));
-            Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
+            final Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
 
             assertTrue(example1.containsKey("iut"));
             assertTrue(example1.containsKey("eventSource"));
@@ -107,7 +107,7 @@ public class TestSyslog5424RecordReader {
             assertEquals(expectedEventID1, example1.get("eventID").toString());
 
             assertTrue(structured.containsKey("exampleSDID@32480"));
-            Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
+            final Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
 
             assertTrue(example2.containsKey("iut"));
             assertTrue(example2.containsKey("eventSource"));
@@ -126,7 +126,7 @@ public class TestSyslog5424RecordReader {
         final Syslog5424Reader reader = new Syslog5424Reader();
 
         try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log.txt")) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
+            final StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
@@ -148,10 +148,10 @@ public class TestSyslog5424RecordReader {
             assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
-            Map<String, Object> structured = (Map<String, Object>) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
+            final Map<String, Object> structured = (Map<String, Object>) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
 
             assertTrue(structured.containsKey("exampleSDID@32473"));
-            Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
+            final Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
 
             assertTrue(example1.containsKey("iut"));
             assertTrue(example1.containsKey("eventSource"));
@@ -161,7 +161,7 @@ public class TestSyslog5424RecordReader {
             assertEquals(expectedEventID1, example1.get("eventID").toString());
 
             assertTrue(structured.containsKey("exampleSDID@32480"));
-            Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
+            final Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
 
             assertTrue(example2.containsKey("iut"));
             assertTrue(example2.containsKey("eventSource"));
@@ -179,7 +179,7 @@ public class TestSyslog5424RecordReader {
         final Syslog5424Reader reader = new Syslog5424Reader();
 
         try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_mix.txt")) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
+            final StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
@@ -202,7 +202,7 @@ public class TestSyslog5424RecordReader {
         final Syslog5424Reader reader = new Syslog5424Reader();
 
         try (final InputStream fis = new FileInputStream("src/test/resources/syslog/syslog5424/log_mix_in_error.txt")) {
-            StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
+            final StrictSyslog5424Parser parser = new StrictSyslog5424Parser(
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
@@ -216,7 +216,7 @@ public class TestSyslog5424RecordReader {
                 try {
                     record = deserializer.nextRecord();
                     count++;
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     exceptionCount++;
                 }
             }

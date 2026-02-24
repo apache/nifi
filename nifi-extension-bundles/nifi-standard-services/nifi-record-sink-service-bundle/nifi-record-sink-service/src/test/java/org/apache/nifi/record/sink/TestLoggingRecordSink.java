@@ -51,11 +51,11 @@ public class TestLoggingRecordSink {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         recordSink = new LoggingRecordSink();
         runner.addControllerService("log", recordSink);
 
-        MockRecordWriter writerFactory = new MockRecordWriter();
+        final MockRecordWriter writerFactory = new MockRecordWriter();
         runner.addControllerService("writer", writerFactory);
         runner.setProperty(recordSink, LoggingRecordSink.RECORD_WRITER_FACTORY, "writer");
 

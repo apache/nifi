@@ -57,7 +57,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
     private GitFlowMetaData flowMetaData;
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         flowMetaData = new GitFlowMetaData();
 
         final Map<String, String> props = configurationContext.getProperties();
@@ -103,13 +103,13 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             flowMetaData.loadGitRepository(flowStorageDir);
             flowMetaData.startPushThread();
             logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}", flowStorageDir.getAbsolutePath());
-        } catch (IOException | GitAPIException e) {
+        } catch (final IOException | GitAPIException e) {
             throw new ProviderCreationException("Failed to load a git repository " + flowStorageDir, e);
         }
     }
 
     @Override
-    public void saveFlowContent(FlowSnapshotContext context, byte[] content) throws FlowPersistenceException {
+    public void saveFlowContent(final FlowSnapshotContext context, final byte[] content) throws FlowPersistenceException {
 
         try {
             // Check if working dir is clean, any uncommitted file?
@@ -118,7 +118,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                                 " or has uncommitted changes, resolve those changes first to save flow contents.",
                         flowStorageDir));
             }
-        } catch (GitAPIException e) {
+        } catch (final GitAPIException e) {
             throw new FlowPersistenceException(format("Failed to get Git status for directory %s due to %s",
                     flowStorageDir, e));
         }
@@ -184,7 +184,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             // Create a Git Commit.
             flowMetaData.commit(context.getAuthor(), context.getComments(), bucket, flowPointer);
 
-        } catch (IOException | GitAPIException e) {
+        } catch (final IOException | GitAPIException e) {
             throw new FlowPersistenceException("Failed to persist flow.", e);
         }
 
@@ -192,7 +192,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
     }
 
     @Override
-    public byte[] getFlowContent(String bucketId, String flowId, int version) throws FlowPersistenceException {
+    public byte[] getFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
 
         final Bucket bucket = getBucketOrFail(bucketId);
         final Flow flow = getFlowOrFail(bucket, flowId);
@@ -204,7 +204,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         final Flow.FlowPointer flowPointer = flow.getFlowVersion(version);
         try {
             return flowMetaData.getContent(flowPointer.getObjectId());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException(format("Failed to get content of Flow ID %s version %d in bucket %s:%s due to %s.",
                     flowId, version, bucket.getBucketDirName(), bucketId, e), e);
         }
@@ -212,7 +212,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
 
     // TODO: Need to add userId argument?
     @Override
-    public void deleteAllFlowContent(String bucketId, String flowId) throws FlowPersistenceException {
+    public void deleteAllFlowContent(final String bucketId, final String flowId) throws FlowPersistenceException {
         final Bucket bucket = getBucketOrFail(bucketId);
         final Optional<Flow> flowOpt = bucket.getFlow(flowId);
         if (!flowOpt.isPresent()) {
@@ -257,14 +257,14 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                     flowPointer.getFileName(), flowId, bucket.getBucketDirName(), bucketId);
             flowMetaData.commit(null, commitMessage, bucket, null);
 
-        } catch (IOException | GitAPIException e) {
+        } catch (final IOException | GitAPIException e) {
             throw new FlowPersistenceException(format("Failed to delete flow %s:%s in bucket %s:%s due to %s",
                     flowPointer.getFileName(), flowId, bucket.getBucketDirName(), bucketId, e), e);
         }
 
     }
 
-    private Bucket getBucketOrFail(String bucketId) throws FlowPersistenceException {
+    private Bucket getBucketOrFail(final String bucketId) throws FlowPersistenceException {
         final Optional<Bucket> bucketOpt = flowMetaData.getBucket(bucketId);
         if (!bucketOpt.isPresent()) {
             throw new FlowPersistenceException(format("Bucket ID %s was not found.", bucketId));
@@ -273,7 +273,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         return bucketOpt.get();
     }
 
-    private Flow getFlowOrFail(Bucket bucket, String flowId) throws FlowPersistenceException {
+    private Flow getFlowOrFail(final Bucket bucket, final String flowId) throws FlowPersistenceException {
         final Optional<Flow> flowOpt = bucket.getFlow(flowId);
         if (!flowOpt.isPresent()) {
             throw new FlowPersistenceException(format("Flow ID %s was not found in bucket %s:%s.",
@@ -284,7 +284,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
     }
 
     @Override
-    public void deleteFlowContent(String bucketId, String flowId, int version) throws FlowPersistenceException {
+    public void deleteFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
         // TODO: Do nothing? This signature is not used. Actually there's nothing to do to the old versions as those exist in old commits even if this method is called.
     }
 
@@ -296,7 +296,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         }
 
         final List<BucketMetadata> bucketMetadataList = new ArrayList<>();
-        for (Map.Entry<String, Bucket> bucketEntry : gitBuckets.entrySet()) {
+        for (final Map.Entry<String, Bucket> bucketEntry : gitBuckets.entrySet()) {
             final String bucketId = bucketEntry.getKey();
             final Bucket gitBucket = bucketEntry.getValue();
 
@@ -315,7 +315,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         }
 
         final List<FlowMetadata> flowMetadataList = new ArrayList<>();
-        for (Map.Entry<String, Flow> flowEntry : bucket.getFlows().entrySet()) {
+        for (final Map.Entry<String, Flow> flowEntry : bucket.getFlows().entrySet()) {
             final String flowId = flowEntry.getKey();
             final Flow flow = flowEntry.getValue();
 
@@ -346,7 +346,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
         final List<FlowSnapshotMetadata> flowSnapshotMetadataList = new ArrayList<>();
 
         final Map<Integer, Flow.FlowPointer> versions = flow.getVersions();
-        for (Map.Entry<Integer, Flow.FlowPointer> entry : versions.entrySet()) {
+        for (final Map.Entry<Integer, Flow.FlowPointer> entry : versions.entrySet()) {
             final Integer version = entry.getKey();
             final Flow.FlowPointer flowPointer = entry.getValue();
 

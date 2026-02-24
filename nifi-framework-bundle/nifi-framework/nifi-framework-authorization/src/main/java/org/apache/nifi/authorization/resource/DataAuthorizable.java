@@ -57,7 +57,7 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
     }
 
     @Override
-    public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+    public AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) {
         if (user == null) {
             return AuthorizationResult.denied("Unknown user.");
         }
@@ -91,7 +91,7 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
     }
 
     @Override
-    public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+    public void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) throws AccessDeniedException {
         if (user == null) {
             throw new AccessDeniedException("Unknown user.");
         }

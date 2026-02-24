@@ -74,7 +74,7 @@ class TestRestLookupServiceMarkReset {
         mockWebServer = new MockWebServer();
         mockWebServer.start();
 
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         restLookupService = new RestLookupService();
 
         when(recordReaderFactory.getIdentifier()).thenReturn(READER_ID);
@@ -96,7 +96,7 @@ class TestRestLookupServiceMarkReset {
     void testReaderUsesMarkResetBeyondBufferedStreamLimit() throws Exception {
         // Large JSON body to exceed the default BufferedInputStream buffer (8192 bytes)
         final int size = 20_000;
-        String sb = '{' + "\"data\":\"" +
+        final String sb = '{' + "\"data\":\"" +
                 "a".repeat(size) +
                 "\"}";
 

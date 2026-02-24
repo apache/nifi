@@ -85,7 +85,7 @@ public class NaiveRevisionManager implements RevisionManager {
         revisionList.sort(new RevisionComparator());
 
         // Verify the provided revisions.
-        String failedId = null;
+        final String failedId = null;
         for (final Revision revision : revisionList) {
             final Revision curRevision = getRevision(revision.getComponentId());
             if (!curRevision.equals(revision)) {

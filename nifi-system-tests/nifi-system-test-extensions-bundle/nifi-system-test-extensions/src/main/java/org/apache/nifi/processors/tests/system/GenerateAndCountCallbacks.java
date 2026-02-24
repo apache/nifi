@@ -65,7 +65,7 @@ public class GenerateAndCountCallbacks extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.create();
+        final FlowFile flowFile = session.create();
         session.transfer(flowFile, REL_SUCCESS);
 
         session.commitAsync(() -> {
@@ -93,7 +93,7 @@ public class GenerateAndCountCallbacks extends AbstractProcessor {
     }
 
     private void sleepUninterruptibly(final Duration duration) {
-        long endTime = System.currentTimeMillis() + duration.toMillis();
+        final long endTime = System.currentTimeMillis() + duration.toMillis();
         while (System.currentTimeMillis() < endTime) {
             try {
                 Thread.sleep(endTime - System.currentTimeMillis());

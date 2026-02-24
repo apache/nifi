@@ -51,7 +51,7 @@ public class TestVirtualFileSystem {
 
     private void setupVirtualDirectoryStructure() {
         fileSystem = new DefaultVirtualFileSystem();
-        for (VirtualPath directory : ORIGINAL_DIRECTORY_LIST) {
+        for (final VirtualPath directory : ORIGINAL_DIRECTORY_LIST) {
             if (!directory.equals(VirtualFileSystem.ROOT)) {
                 fileSystem.mkdir(directory);
             }
@@ -60,9 +60,9 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testTryToCreateDirectoryWithNonExistentParents() {
-        VirtualPath newDirectory = new VirtualPath("/Directory3/SubDirectory5/SubSubDirectory");
+        final VirtualPath newDirectory = new VirtualPath("/Directory3/SubDirectory5/SubSubDirectory");
 
-        boolean directoryCreated = fileSystem.mkdir(newDirectory);
+        final boolean directoryCreated = fileSystem.mkdir(newDirectory);
 
         assertFalse(directoryCreated);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
@@ -70,42 +70,42 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testListContentsOfDirectory() {
-        VirtualPath parent = new VirtualPath("/Directory1");
-        VirtualPath[] expectedSubDirectories = {
+        final VirtualPath parent = new VirtualPath("/Directory1");
+        final VirtualPath[] expectedSubDirectories = {
                 new VirtualPath("/Directory1/SubDirectory1"),
                 new VirtualPath("/Directory1/SubDirectory2")
         };
 
-        List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
+        final List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
         assertTrue(subDirectories.containsAll(Arrays.asList(expectedSubDirectories)));
     }
 
     @Test
     public void testListContentsOfRoot() {
-        VirtualPath parent = new VirtualPath("/");
-        VirtualPath[] expectedSubDirectories = {
+        final VirtualPath parent = new VirtualPath("/");
+        final VirtualPath[] expectedSubDirectories = {
                 new VirtualPath("/Directory1"),
                 new VirtualPath("/Directory2")
         };
 
-        List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
+        final List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
         assertTrue(subDirectories.containsAll(Arrays.asList(expectedSubDirectories)));
     }
 
     @Test
     public void testListContentsOfEmptyDirectory() {
-        VirtualPath parent = new VirtualPath("/Directory2/SubDirectory3");
+        final VirtualPath parent = new VirtualPath("/Directory2/SubDirectory3");
 
-        List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
+        final List<VirtualPath> subDirectories = fileSystem.listChildren(parent);
 
         assertEquals(0, subDirectories.size());
     }
 
     @Test
     public void testTryToDeleteNonEmptyDirectory() {
-        boolean success = fileSystem.delete(new VirtualPath("/Directory1"));
+        final boolean success = fileSystem.delete(new VirtualPath("/Directory1"));
 
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
@@ -113,7 +113,7 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testDeleteEmptyDirectory() {
-        List<VirtualPath> expectedRemainingDirectories = Arrays.asList(
+        final List<VirtualPath> expectedRemainingDirectories = Arrays.asList(
                 new VirtualPath("/"),
                 new VirtualPath("/Directory1"),
                 new VirtualPath("/Directory1/SubDirectory1"),
@@ -123,7 +123,7 @@ public class TestVirtualFileSystem {
                 new VirtualPath("/Directory2/SubDirectory4")
         );
 
-        boolean success = fileSystem.delete(new VirtualPath("/Directory2/SubDirectory3"));
+        final boolean success = fileSystem.delete(new VirtualPath("/Directory2/SubDirectory3"));
 
         assertTrue(success);
         assertAllDirectoriesAre(expectedRemainingDirectories);
@@ -131,7 +131,7 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testDeleteRoot() {
-        boolean success = fileSystem.delete(VirtualFileSystem.ROOT);
+        final boolean success = fileSystem.delete(VirtualFileSystem.ROOT);
 
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
@@ -139,17 +139,17 @@ public class TestVirtualFileSystem {
 
     @Test
     public void testDeleteNonExistentDirectory() {
-        boolean success = fileSystem.delete(new VirtualPath("/Directory3"));
+        final boolean success = fileSystem.delete(new VirtualPath("/Directory3"));
 
         assertFalse(success);
         assertAllDirectoriesAre(ORIGINAL_DIRECTORY_LIST);
     }
 
-    private void assertAllDirectoriesAre(List<VirtualPath> expectedDirectories) {
+    private void assertAllDirectoriesAre(final List<VirtualPath> expectedDirectories) {
         if (expectedDirectories.size() != fileSystem.getTotalNumberOfFiles()) {
             fail();
         } else {
-            for (VirtualPath path : expectedDirectories) {
+            for (final VirtualPath path : expectedDirectories) {
                 if (!fileSystem.exists(path)) {
                     fail();
                 }

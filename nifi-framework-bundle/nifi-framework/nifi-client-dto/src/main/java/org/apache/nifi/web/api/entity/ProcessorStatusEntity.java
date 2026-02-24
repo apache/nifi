@@ -38,7 +38,7 @@ public class ProcessorStatusEntity extends Entity implements ReadablePermission 
         return processorStatus;
     }
 
-    public void setProcessorStatus(ProcessorStatusDTO processorStatus) {
+    public void setProcessorStatus(final ProcessorStatusDTO processorStatus) {
         this.processorStatus = processorStatus;
     }
 
@@ -48,7 +48,7 @@ public class ProcessorStatusEntity extends Entity implements ReadablePermission 
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

@@ -215,10 +215,10 @@ class TestRestLookupService {
 
     @Test
     void testOAuth2AuthorizationHeader() throws Exception {
-        String accessToken = "access_token";
-        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+        final String accessToken = "access_token";
+        final String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
 
-        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
         when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
         when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
         runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
@@ -235,9 +235,9 @@ class TestRestLookupService {
         final Optional<Record> recordFound = restLookupService.lookup(Collections.emptyMap());
         assertTrue(recordFound.isPresent());
 
-        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest();
 
-        String actualAuthorizationHeader = recordedRequest.getHeaders().get("Authorization");
+        final String actualAuthorizationHeader = recordedRequest.getHeaders().get("Authorization");
         assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
 
     }

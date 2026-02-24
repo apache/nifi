@@ -34,7 +34,7 @@ public class VersionedFlowUpdateRequestEntity extends FlowUpdateRequestEntity<Ve
     }
 
     @Override
-    public void setRequest(VersionedFlowUpdateRequestDTO request) {
+    public void setRequest(final VersionedFlowUpdateRequestDTO request) {
         this.request = request;
     }
 

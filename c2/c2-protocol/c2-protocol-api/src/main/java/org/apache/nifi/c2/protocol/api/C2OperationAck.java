@@ -52,7 +52,7 @@ public class C2OperationAck implements Serializable {
         return operationState;
     }
 
-    public void setOperationId(String operationId) {
+    public void setOperationId(final String operationId) {
         this.operationId = operationId;
     }
 
@@ -88,19 +88,19 @@ public class C2OperationAck implements Serializable {
         return resourceInfo;
     }
 
-    public void setResourceInfo(ResourceInfo resourceInfo) {
+    public void setResourceInfo(final ResourceInfo resourceInfo) {
         this.resourceInfo = resourceInfo;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        C2OperationAck that = (C2OperationAck) o;
+        final C2OperationAck that = (C2OperationAck) o;
         return Objects.equals(operationId, that.operationId) && Objects.equals(operationState, that.operationState)
             && Objects.equals(deviceInfo, that.deviceInfo) && Objects.equals(agentInfo, that.agentInfo) && Objects.equals(flowInfo, that.flowInfo)
             && Objects.equals(resourceInfo, that.resourceInfo);

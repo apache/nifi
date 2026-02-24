@@ -39,15 +39,15 @@ public class StandardFlowAnalysisContext implements FlowAnalysisContext {
 
     @Override
     public VersionedControllerServiceLookup getVersionedControllerServiceLookup() {
-        VersionedControllerServiceLookup versionedControllerServiceLookup = id -> {
-            ControllerServiceProvider controllerServiceProvider = flowController.getControllerServiceProvider();
-            ExtensionManager extensionManager = flowController.getExtensionManager();
+        final VersionedControllerServiceLookup versionedControllerServiceLookup = id -> {
+            final ControllerServiceProvider controllerServiceProvider = flowController.getControllerServiceProvider();
+            final ExtensionManager extensionManager = flowController.getExtensionManager();
 
-            NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
+            final NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
-            ControllerServiceNode controllerServiceNode = controllerServiceProvider.getControllerServiceNode(id);
+            final ControllerServiceNode controllerServiceNode = controllerServiceProvider.getControllerServiceNode(id);
 
-            VersionedControllerService versionedControllerService = mapper.mapControllerService(
+            final VersionedControllerService versionedControllerService = mapper.mapControllerService(
                     controllerServiceNode,
                     controllerServiceProvider,
                     Collections.emptySet(),

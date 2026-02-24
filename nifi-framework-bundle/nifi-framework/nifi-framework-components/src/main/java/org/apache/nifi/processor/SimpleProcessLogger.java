@@ -214,7 +214,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void info(LogMessage logMessage) {
+    public void info(final LogMessage logMessage) {
         if (isInfoEnabled()) {
             log(LogLevel.INFO, logMessage);
             logRepository.addLogMessage(logMessage);

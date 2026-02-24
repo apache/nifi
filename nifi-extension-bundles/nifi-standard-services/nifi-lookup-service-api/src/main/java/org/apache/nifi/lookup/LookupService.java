@@ -44,7 +44,7 @@ public interface LookupService<T> extends ControllerService {
      * @return a value that corresponds to the given coordinates
      * @throws LookupFailureException if unable to lookup a value for the given coordinates
      */
-    default Optional<T> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    default Optional<T> lookup(final Map<String, Object> coordinates, final Map<String, String> context) throws LookupFailureException {
         return lookup(coordinates);
     }
 

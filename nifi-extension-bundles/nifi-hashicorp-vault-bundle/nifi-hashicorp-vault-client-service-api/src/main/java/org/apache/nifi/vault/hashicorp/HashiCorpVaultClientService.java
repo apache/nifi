@@ -113,7 +113,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
     HashiCorpVaultCommunicationService getHashiCorpVaultCommunicationService();
 
     @Override
-    default void migrateProperties(PropertyConfiguration config) {
+    default void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("configuration-strategy", CONFIGURATION_STRATEGY.getName());
     }
 }

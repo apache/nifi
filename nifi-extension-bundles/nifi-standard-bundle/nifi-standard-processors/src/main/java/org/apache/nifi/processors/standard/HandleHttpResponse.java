@@ -127,7 +127,7 @@ public class HandleHttpResponse extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -219,7 +219,7 @@ public class HandleHttpResponse extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Attributes to add to the HTTP Response (Regex)", ATTRIBUTES_AS_HEADERS_REGEX.getName());
     }
 

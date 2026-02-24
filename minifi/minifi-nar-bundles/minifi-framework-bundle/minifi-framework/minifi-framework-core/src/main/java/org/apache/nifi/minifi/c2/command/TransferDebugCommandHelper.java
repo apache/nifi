@@ -42,7 +42,7 @@ public class TransferDebugCommandHelper {
 
     private final NiFiProperties niFiProperties;
 
-    public TransferDebugCommandHelper(NiFiProperties niFiProperties) {
+    public TransferDebugCommandHelper(final NiFiProperties niFiProperties) {
         this.niFiProperties = niFiProperties;
     }
 
@@ -57,7 +57,7 @@ public class TransferDebugCommandHelper {
             .collect(toList());
     }
 
-    public boolean excludeSensitiveText(String text) {
+    public boolean excludeSensitiveText(final String text) {
         return ofNullable(text)
             .map(String::toLowerCase)
             .map(t -> SENSITIVE_PROPERTY_KEYWORDS.stream().noneMatch(keyword -> t.contains(keyword)))

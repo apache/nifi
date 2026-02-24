@@ -37,7 +37,7 @@ public class NetworkInfo implements Serializable {
         return deviceId;
     }
 
-    public void setDeviceId(String deviceId) {
+    public void setDeviceId(final String deviceId) {
         this.deviceId = deviceId;
     }
 
@@ -45,7 +45,7 @@ public class NetworkInfo implements Serializable {
         return hostname;
     }
 
-    public void setHostname(String hostname) {
+    public void setHostname(final String hostname) {
         this.hostname = hostname;
     }
 
@@ -53,7 +53,7 @@ public class NetworkInfo implements Serializable {
         return ipAddress;
     }
 
-    public void setIpAddress(String ipAddress) {
+    public void setIpAddress(final String ipAddress) {
         this.ipAddress = ipAddress;
     }
 }

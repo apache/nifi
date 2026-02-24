@@ -28,7 +28,7 @@ public class TableInfoCacheKey {
     private final long tableId;
     private final String uuidPrefix;
 
-    public TableInfoCacheKey(String uuidPrefix, String databaseName, String tableName, long tableId) {
+    public TableInfoCacheKey(final String uuidPrefix, final String databaseName, final String tableName, final long tableId) {
         this.uuidPrefix = uuidPrefix;
         this.databaseName = databaseName;
         this.tableName = tableName;
@@ -36,7 +36,7 @@ public class TableInfoCacheKey {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -44,7 +44,7 @@ public class TableInfoCacheKey {
             return false;
         }
 
-        TableInfoCacheKey that = (TableInfoCacheKey) o;
+        final TableInfoCacheKey that = (TableInfoCacheKey) o;
 
         return new EqualsBuilder()
                 .append(tableId, that.tableId)

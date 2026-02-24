@@ -74,7 +74,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public ProcessSessionFactory processSessionFactory;
 
     public static final Validator QOS_VALIDATOR = (subject, input, context) -> {
-        Integer inputInt = Integer.parseInt(input);
+        final Integer inputInt = Integer.parseInt(input);
         if (inputInt < 0 || inputInt > 2) {
             return new ValidationResult.Builder().subject(subject).valid(false).explanation("QoS must be an integer between 0 and 2.").build();
         }
@@ -261,7 +261,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
             boolean sameSchemeValidationErrorAdded = false;
             boolean sslValidationErrorAdded = false;
-            for (URI brokerUri : brokerUris) {
+            for (final URI brokerUri : brokerUris) {
                 final String scheme = brokerUri.getScheme();
                 if (!isValidEnumIgnoreCase(MqttProtocolScheme.class, scheme)) {
                     results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)
@@ -281,7 +281,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             results.add(new ValidationResult.Builder().subject(PROP_BROKER_URI.getName()).valid(false)
                     .explanation("it is not valid URI syntax.").build());
         }
@@ -314,14 +314,14 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             try {
                 logger.info("Disconnecting client");
                 mqttClient.disconnect();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Error disconnecting MQTT client", e);
             }
 
             try {
                 logger.info("Closing client");
                 mqttClient.close();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Error closing MQTT client", e);
             }
 
@@ -338,7 +338,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         if (processSessionFactory == null) {
             processSessionFactory = sessionFactory;
         }
-        ProcessSession session = sessionFactory.createSession();
+        final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
             session.commitAsync();
@@ -352,7 +352,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", BASE_RECORD_READER.getName());
         config.renameProperty("record-writer", BASE_RECORD_WRITER.getName());
         config.renameProperty("message-demarcator", BASE_MESSAGE_DEMARCATOR.getName());
@@ -410,17 +410,17 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         return clientProperties;
     }
 
-    private static List<URI> parseBrokerUris(String brokerUris) {
+    private static List<URI> parseBrokerUris(final String brokerUris) {
         final List<URI> uris = Pattern.compile(",").splitAsStream(brokerUris)
                 .map(AbstractMQTTProcessor::parseUri)
                 .collect(Collectors.toList());
         return uris;
     }
 
-    private static URI parseUri(String uri) {
+    private static URI parseUri(final String uri) {
         try {
             return new URI(uri);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Invalid Broker URI", e);
         }
     }

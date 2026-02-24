@@ -46,8 +46,8 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
 
     private Set<PeriodicStatusReporter> periodicStatusReporters = Collections.emptySet();
 
-    public PeriodicStatusReporterManager(BootstrapProperties bootstrapProperties, MiNiFiStatusProvider miNiFiStatusProvider, MiNiFiCommandSender miNiFiCommandSender,
-                                         MiNiFiParameters miNiFiParameters) {
+    public PeriodicStatusReporterManager(final BootstrapProperties bootstrapProperties, final MiNiFiStatusProvider miNiFiStatusProvider, final MiNiFiCommandSender miNiFiCommandSender,
+                                         final MiNiFiParameters miNiFiParameters) {
         this.bootstrapProperties = bootstrapProperties;
         this.miNiFiStatusProvider = miNiFiStatusProvider;
         this.miNiFiCommandSender = miNiFiCommandSender;
@@ -57,7 +57,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
     public void startPeriodicNotifiers() {
         periodicStatusReporters = initializePeriodicNotifiers();
 
-        for (PeriodicStatusReporter periodicStatusReporter : periodicStatusReporters) {
+        for (final PeriodicStatusReporter periodicStatusReporter : periodicStatusReporters) {
             periodicStatusReporter.start();
             LOGGER.debug("Started {} notifier", periodicStatusReporter.getClass().getCanonicalName());
         }
@@ -65,20 +65,20 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
 
     public void shutdownPeriodicStatusReporters() {
         LOGGER.debug("Initiating shutdown of bootstrap periodic status reporters...");
-        for (PeriodicStatusReporter periodicStatusReporter : periodicStatusReporters) {
+        for (final PeriodicStatusReporter periodicStatusReporter : periodicStatusReporters) {
             try {
                 periodicStatusReporter.stop();
-            } catch (Exception exception) {
+            } catch (final Exception exception) {
                 LOGGER.error("Could not successfully stop periodic status reporter {}", periodicStatusReporter.getClass(), exception);
             }
         }
     }
 
     @Override
-    public FlowStatusReport statusReport(String statusRequest) {
-        MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
+    public FlowStatusReport statusReport(final String statusRequest) {
+        final MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
 
-        List<String> problemsGeneratingReport = new LinkedList<>();
+        final List<String> problemsGeneratingReport = new LinkedList<>();
         if (!status.isProcessRunning()) {
             problemsGeneratingReport.add("MiNiFi process is not running");
         }
@@ -88,7 +88,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
         }
 
         if (!problemsGeneratingReport.isEmpty()) {
-            FlowStatusReport flowStatusReport = new FlowStatusReport();
+            final FlowStatusReport flowStatusReport = new FlowStatusReport();
             flowStatusReport.setErrorsGeneratingReport(problemsGeneratingReport);
             return flowStatusReport;
         }
@@ -98,19 +98,19 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
 
     private Set<PeriodicStatusReporter> initializePeriodicNotifiers() {
         LOGGER.debug("Initiating bootstrap periodic status reporters...");
-        Set<PeriodicStatusReporter> statusReporters = new HashSet<>();
+        final Set<PeriodicStatusReporter> statusReporters = new HashSet<>();
 
-        String reportersCsv = bootstrapProperties.getProperty(NIFI_MINIFI_STATUS_REPORTER_COMPONENTS.getKey());
+        final String reportersCsv = bootstrapProperties.getProperty(NIFI_MINIFI_STATUS_REPORTER_COMPONENTS.getKey());
 
         if (reportersCsv != null && !reportersCsv.isEmpty()) {
-            for (String reporterClassname : reportersCsv.split(",")) {
+            for (final String reporterClassname : reportersCsv.split(",")) {
                 try {
-                    Class<?> reporterClass = Class.forName(reporterClassname);
-                    PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.getDeclaredConstructor().newInstance();
+                    final Class<?> reporterClass = Class.forName(reporterClassname);
+                    final PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.getDeclaredConstructor().newInstance();
                     reporter.initialize(bootstrapProperties, this);
                     statusReporters.add(reporter);
                     LOGGER.debug("Initialized {} notifier", reporterClass.getCanonicalName());
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
+                } catch (final InstantiationException | IllegalAccessException | ClassNotFoundException | NoSuchMethodException | InvocationTargetException e) {
                     throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
                 }
             }
@@ -118,13 +118,13 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
         return statusReporters;
     }
 
-    private FlowStatusReport getFlowStatusReport(String statusRequest, int port) {
+    private FlowStatusReport getFlowStatusReport(final String statusRequest, final int port) {
         FlowStatusReport flowStatusReport;
         try {
             flowStatusReport = miNiFiCommandSender.sendCommandForObject(FLOW_STATUS_REPORT_CMD, port, FlowStatusReport.class, statusRequest);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             flowStatusReport = new FlowStatusReport();
-            String message = "Failed to get status report from MiNiFi due to:" + e.getMessage();
+            final String message = "Failed to get status report from MiNiFi due to:" + e.getMessage();
             flowStatusReport.setErrorsGeneratingReport(Collections.singletonList(message));
             LOGGER.error(message, e);
         }

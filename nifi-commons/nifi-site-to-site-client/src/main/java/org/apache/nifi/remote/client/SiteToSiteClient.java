@@ -676,7 +676,7 @@ public interface SiteToSiteClient extends Closeable {
          * @return the amount of time that a particular node will be ignored
          * after a communications error with that node occurs
          */
-        public long getPenalizationPeriod(TimeUnit timeUnit) {
+        public long getPenalizationPeriod(final TimeUnit timeUnit) {
             return timeUnit.convert(penalizationNanos, TimeUnit.NANOSECONDS);
         }
 

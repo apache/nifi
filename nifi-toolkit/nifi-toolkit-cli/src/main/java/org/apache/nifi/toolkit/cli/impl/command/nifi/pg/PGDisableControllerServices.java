@@ -57,7 +57,7 @@ public class PGDisableControllerServices extends AbstractNiFiCommand<VoidResult>
     }
 
     @Override
-    public VoidResult doExecute(NiFiClient client, Properties properties)
+    public VoidResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final FlowClient flowClient = client.getFlowClient();
@@ -160,10 +160,10 @@ public class PGDisableControllerServices extends AbstractNiFiCommand<VoidResult>
         }
     }
 
-    private void sleep(long millis) {
+    private void sleep(final long millis) {
         try {
             Thread.sleep(millis);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.interrupted();
         }
     }

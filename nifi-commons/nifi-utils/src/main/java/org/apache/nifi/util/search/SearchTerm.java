@@ -85,7 +85,7 @@ public class SearchTerm<T> {
      * @param windowLength The length of the window to consider
      * @return true if this term starts with the same bytes of the given window
      */
-    public boolean startsWith(byte[] window, int windowLength) {
+    public boolean startsWith(final byte[] window, final int windowLength) {
         if (windowLength > window.length) {
             throw new IndexOutOfBoundsException();
         }

@@ -67,7 +67,7 @@ public class TestApplicationResource {
     private MockApplicationResource resource;
 
     @BeforeEach
-    public void setUp(@Mock UriInfo uriInfo) throws Exception {
+    public void setUp(final @Mock UriInfo uriInfo) throws Exception {
         // this stubbing is lenient because it is unnecessary in some tests
         lenient().when(uriInfo.getBaseUriBuilder()).thenReturn(new JerseyUriBuilder().uri(new URI(BASE_URI + FORWARD_SLASH)));
 
@@ -162,17 +162,17 @@ public class TestApplicationResource {
         assertEquals(SCHEME + "://" + HOST + ":" + PORT + ALLOWED_PATH + CUSTOM_UI_PATH, resource.generateExternalUiUri(CUSTOM_UI_PATH));
     }
 
-    private void setNiFiProperties(Map<String, String> props) {
+    private void setNiFiProperties(final Map<String, String> props) {
         resource.properties = new NiFiProperties(props);
         when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS))).thenReturn(resource.properties.getAllowedContextPaths());
     }
 
     private static class MockApplicationResource extends ApplicationResource {
-        void setHttpServletRequest(HttpServletRequest request) {
+        void setHttpServletRequest(final HttpServletRequest request) {
             super.httpServletRequest = request;
         }
 
-        void setUriInfo(UriInfo uriInfo) {
+        void setUriInfo(final UriInfo uriInfo) {
             super.uriInfo = uriInfo;
         }
     }
@@ -184,17 +184,17 @@ public class TestApplicationResource {
             this(ProxyHeader.FORWARDED_PREFIX.getHeader(), ProxyHeader.FORWARDED_CONTEXT.getHeader(), ProxyHeader.PROXY_CONTEXT_PATH.getHeader());
         }
 
-        public RequestAnswer(String... proxyHeaders) {
+        public RequestAnswer(final String... proxyHeaders) {
             this(Arrays.asList(proxyHeaders));
         }
 
-        public RequestAnswer(List<String> proxyHeaders) {
+        public RequestAnswer(final List<String> proxyHeaders) {
             this.proxyHeaders = proxyHeaders;
         }
 
         @Override
-        public String answer(InvocationOnMock invocationOnMock) {
-            String argument = invocationOnMock.getArgument(0);
+        public String answer(final InvocationOnMock invocationOnMock) {
+            final String argument = invocationOnMock.getArgument(0);
             if (proxyHeaders.contains(argument)) {
                 return ALLOWED_PATH;
             } else if (Arrays.asList(ProxyHeader.FORWARDED_PORT.getHeader(), ProxyHeader.FORWARDED_PREFIX.getHeader()).contains(argument)) {

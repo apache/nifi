@@ -36,7 +36,7 @@ public class MapDataType extends DataType {
         this(elementType, DEFAULT_NULLABLE);
     }
 
-    public MapDataType(final DataType elementType, boolean valuesNullable) {
+    public MapDataType(final DataType elementType, final boolean valuesNullable) {
         super(RecordFieldType.MAP, null);
         this.valueType = elementType;
         this.valuesNullable = valuesNullable;
@@ -70,7 +70,7 @@ public class MapDataType extends DataType {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -80,7 +80,7 @@ public class MapDataType extends DataType {
         if (!super.equals(o)) {
             return false;
         }
-        MapDataType that = (MapDataType) o;
+        final MapDataType that = (MapDataType) o;
         return valuesNullable == that.valuesNullable
                 && Objects.equals(getValueType(), that.getValueType());
     }

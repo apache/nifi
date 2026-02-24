@@ -25,7 +25,7 @@ import java.util.Objects;
 public class ValidationException extends IllegalStateException {
     private List<ValidationResult> validationResults;
 
-    public ValidationException(String message, List<ValidationResult> details) {
+    public ValidationException(final String message, final List<ValidationResult> details) {
         super(message);
         this.validationResults = details;
     }
@@ -35,14 +35,14 @@ public class ValidationException extends IllegalStateException {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ValidationException that = (ValidationException) o;
+        final ValidationException that = (ValidationException) o;
         return Objects.equals(validationResults, that.validationResults);
     }
 

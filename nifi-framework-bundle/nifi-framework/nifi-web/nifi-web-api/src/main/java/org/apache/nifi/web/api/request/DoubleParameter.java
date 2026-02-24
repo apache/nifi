@@ -25,10 +25,10 @@ public class DoubleParameter {
 
     private Double doubleValue;
 
-    public DoubleParameter(String rawDoubleValue) {
+    public DoubleParameter(final String rawDoubleValue) {
         try {
             doubleValue = Double.parseDouble(rawDoubleValue);
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             throw new IllegalArgumentException(String.format(INVALID_DOUBLE_MESSAGE, rawDoubleValue));
         }
     }

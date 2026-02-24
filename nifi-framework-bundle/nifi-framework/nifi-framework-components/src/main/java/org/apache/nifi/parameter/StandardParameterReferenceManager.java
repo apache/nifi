@@ -67,7 +67,7 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(group -> group.referencesParameterContext(parameterContext));
 
         for (final ProcessGroup group : referencingGroups) {
-            for (ProcessorNode processor : group.getProcessors()) {
+            for (final ProcessorNode processor : group.getProcessors()) {
                 referencedControllerServiceData.addAll(getReferencedControllerServiceData(
                     processor,
                     parameterName,
@@ -75,7 +75,7 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
                 ));
             }
 
-            for (ControllerServiceNode controllerService : group.getControllerServices(false)) {
+            for (final ControllerServiceNode controllerService : group.getControllerServices(false)) {
                 referencedControllerServiceData.addAll(getReferencedControllerServiceData(
                     controllerService,
                     parameterName,
@@ -119,13 +119,13 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         final String parameterName,
         final String versionedServiceId
     ) {
-        Set<ParameterReferencedControllerServiceData> referencedControllerServiceTypes = new HashSet<>();
+        final Set<ParameterReferencedControllerServiceData> referencedControllerServiceTypes = new HashSet<>();
 
-        for (Map.Entry<PropertyDescriptor, PropertyConfiguration> propertyDescriptorAndPropertyConfiguration : componentNode.getProperties().entrySet()) {
-            PropertyDescriptor descriptor = propertyDescriptorAndPropertyConfiguration.getKey();
-            PropertyConfiguration configuration = propertyDescriptorAndPropertyConfiguration.getValue();
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> propertyDescriptorAndPropertyConfiguration : componentNode.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = propertyDescriptorAndPropertyConfiguration.getKey();
+            final PropertyConfiguration configuration = propertyDescriptorAndPropertyConfiguration.getValue();
 
-            Class<? extends ControllerService> referencedControllerServiceType = descriptor.getControllerServiceDefinition();
+            final Class<? extends ControllerService> referencedControllerServiceType = descriptor.getControllerServiceDefinition();
 
             if (referencedControllerServiceType == null || configuration == null) {
                 continue;

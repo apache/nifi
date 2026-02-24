@@ -75,7 +75,7 @@ public class SnippetResource extends ApplicationResource {
      * @param entity processors
      * @return dtos
      */
-    private SnippetEntity populateRemainingSnippetEntityContent(SnippetEntity entity) {
+    private SnippetEntity populateRemainingSnippetEntityContent(final SnippetEntity entity) {
         if (entity.getSnippet() != null) {
             populateRemainingSnippetContent(entity.getSnippet());
         }
@@ -85,8 +85,8 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Populates the uri for the specified snippet.
      */
-    private SnippetDTO populateRemainingSnippetContent(SnippetDTO snippet) {
-        String snippetGroupId = snippet.getParentGroupId();
+    private SnippetDTO populateRemainingSnippetContent(final SnippetDTO snippet) {
+        final String snippetGroupId = snippet.getParentGroupId();
 
         // populate the snippet href
         snippet.setUri(generateResourceUri("process-groups", snippetGroupId, "snippets", snippet.getId()));
@@ -232,7 +232,7 @@ public class SnippetResource extends ApplicationResource {
             }
     )
     public Response updateSnippet(
-            @Parameter(
+            final @Parameter(
                     description = "The snippet id.",
                     required = true
             )
@@ -364,12 +364,12 @@ public class SnippetResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

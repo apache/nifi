@@ -101,16 +101,16 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getContent();
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(JAVA_COMMAND, outputFlowFile.getAttribute("execution.command"));
         assertEquals(javaFile.toString(), outputFlowFile.getAttribute("execution.command.args"));
         outputFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
-        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
         assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
         assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.getAttribute("execution.command"));
         assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
@@ -122,7 +122,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue("");
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -132,15 +132,15 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getContent();
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(JAVA_COMMAND, outputFlowFile.getAttribute("execution.command"));
         assertEquals(javaFile.toString(), outputFlowFile.getAttribute("execution.command.args"));
 
-        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
         assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
         assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.getAttribute("execution.command"));
         assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
@@ -156,8 +156,8 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").contains("java.lang.ClassNotFoundException"));
         assertTrue(flowFile.isPenalized());
@@ -169,7 +169,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue("blah");
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -179,8 +179,8 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").contains("java.lang.ClassNotFoundException"));
         assertTrue(flowFile.isPenalized());
@@ -196,8 +196,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
         final String expectedOutput = "nifi-standard-processors:ModifiedResult\r?\n%s".formatted(content);
 
         assertTrue(Pattern.compile(expectedOutput).matcher(result).find());
@@ -210,7 +210,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue(content);
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -219,8 +219,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
         final String expectedOutput = "nifi-standard-processors:ModifiedResult\r?\n%s".formatted(content);
 
         assertTrue(Pattern.compile(expectedOutput).matcher(result).find());
@@ -228,7 +228,7 @@ public class TestExecuteStreamCommand {
 
     @Test
     public void testLoggingToStdErr() {
-        Path javaFile = JAVA_FILES_DIR.resolve(TEST_LOG_STDERR);
+        final Path javaFile = JAVA_FILES_DIR.resolve(TEST_LOG_STDERR);
         runner.setValidateExpressionUsage(false);
         runner.enqueue("");
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
@@ -236,8 +236,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").matches("^\\W{7}f+$"),
                 "Attribute 'execution.error' did not match regular expression ^\\W{7}f+$. Full value of 'execution.error' attribute is %s".formatted(flowFile.getAttribute("execution.error")));
@@ -245,12 +245,12 @@ public class TestExecuteStreamCommand {
 
     @Test
     public void testLoggingToStdErrDynamicProperties() {
-        Path javaFile = JAVA_FILES_DIR.resolve(TEST_LOG_STDERR);
+        final Path javaFile = JAVA_FILES_DIR.resolve(TEST_LOG_STDERR);
         runner.setValidateExpressionUsage(false);
         runner.enqueue("");
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -259,8 +259,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").matches("^\\W{7}f+$"),
                 "Attribute 'execution.error' did not match regular expression ^\\W{7}f+$. Full value of 'execution.error' attribute is %s".formatted(flowFile.getAttribute("execution.error")));
@@ -276,8 +276,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$snifi-standard-processors%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n%2$s".formatted(quotedSeparator, content);
@@ -292,7 +292,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -301,8 +301,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$snifi-standard-processors%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n%2$s".formatted(quotedSeparator, content);
@@ -321,8 +321,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "src%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
@@ -337,7 +337,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -347,8 +347,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "src%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
@@ -367,10 +367,10 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
-        Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
+        final Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
+        final Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
         assertTrue(dynamicEnvironmentVariables.containsAll(expectedEnvironmentVariables));
     }
 
@@ -382,7 +382,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -391,16 +391,16 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        String result = flowFiles.getFirst().getContent();
-        Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getContent();
+        final Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
+        final Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
         assertTrue(dynamicEnvironmentVariables.containsAll(expectedEnvironmentVariables));
     }
 
     @Test
     public void testSmallEchoPutToAttribute() {
-        File dummy = new File("src/test/resources/hello.txt");
+        final File dummy = new File("src/test/resources/hello.txt");
         assertTrue(dummy.exists());
         runner.setProperty(ExecuteStreamCommand.MIME_TYPE, "application/json");
         runner.enqueue("".getBytes());
@@ -420,11 +420,11 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("");
         outputFlowFile.assertAttributeNotExists(CoreAttributes.MIME_TYPE.key());
-        String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
         assertTrue(ouput.startsWith("Hello"));
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
@@ -432,20 +432,20 @@ public class TestExecuteStreamCommand {
 
     @Test
     public void testSmallEchoPutToAttributeDynamicProperties() {
-        File dummy = new File("src/test/resources/hello.txt");
+        final File dummy = new File("src/test/resources/hello.txt");
         assertTrue(dummy.exists());
         runner.enqueue("".getBytes());
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
 
         if (isWindows()) {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
-            PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.1")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
             runner.setProperty(dynamicProp1, "/c");
-            PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.2")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -454,7 +454,7 @@ public class TestExecuteStreamCommand {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "/c;echo Hello");
         } else {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
-            PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.1")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -468,10 +468,10 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("");
-        String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
         assertTrue(ouput.startsWith("Hello"));
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
@@ -479,8 +479,8 @@ public class TestExecuteStreamCommand {
 
     @Test
     public void testArgumentsWithQuotesFromAttributeDynamicProperties() {
-        Map<String, String> attrs = new HashMap<>();
-        String exStr = "Hello World with quotes";
+        final Map<String, String> attrs = new HashMap<>();
+        final String exStr = "Hello World with quotes";
         attrs.put("str.attribute", exStr);
         runner.enqueue("".getBytes(), attrs);
 
@@ -488,13 +488,13 @@ public class TestExecuteStreamCommand {
 
         if (isWindows()) {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
-            PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.1")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
             runner.setProperty(dynamicProp1, "/c");
-            PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.2")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -503,7 +503,7 @@ public class TestExecuteStreamCommand {
         } else {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
         }
-        PropertyDescriptor dynamicProp3 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp3 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.3")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -515,8 +515,8 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
         String output = outputFlowFile.getContent().trim();
         if (isWindows()) {
             output = StringUtils.unwrap(output, '"');
@@ -538,9 +538,9 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(content);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
@@ -555,7 +555,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue(content);
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -566,9 +566,9 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(content);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
@@ -590,10 +590,10 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("small test".getBytes());
-        String result = outputFlowFile.getAttribute("outputDest");
+        final String result = outputFlowFile.getAttribute("outputDest");
         assertTrue(Pattern.compile("Test was a").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(JAVA_COMMAND, outputFlowFile.getAttribute("execution.command"));
@@ -606,7 +606,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue("small test".getBytes());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -620,10 +620,10 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("small test");
-        String result = outputFlowFile.getAttribute("outputDest");
+        final String result = outputFlowFile.getAttribute("outputDest");
         assertTrue(Pattern.compile("Test was a").matcher(result).find());
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(JAVA_COMMAND, outputFlowFile.getAttribute("execution.command"));
@@ -640,8 +640,8 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("outputDest");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("outputDest");
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
     }
 
@@ -651,7 +651,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue("");
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -661,17 +661,17 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("outputDest");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("outputDest");
 
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
     }
 
     @Test
     public void testLargePutToAttribute() throws IOException {
-        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        File dummy10MBytes = new File(tempDir, "10MB.txt");
-        byte[] bytes = Files.readAllBytes(dummy.toPath());
+        final File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        final File dummy10MBytes = new File(tempDir, "10MB.txt");
+        final byte[] bytes = Files.readAllBytes(dummy.toPath());
         try (FileOutputStream fos = new FileOutputStream(dummy10MBytes)) {
             for (int i = 0; i < 10000; i++) {
                 fos.write(bytes, 0, 1000);
@@ -694,18 +694,18 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
 
         flowFiles.getFirst().assertAttributeEquals("execution.status", "0");
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("a{256}").matcher(result).matches());
     }
 
     @Test
     public void testLargePutToAttributeDynamicProperties() throws IOException {
-        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        File dummy10MBytes = new File(tempDir, "10MB.txt");
-        byte[] bytes = Files.readAllBytes(dummy.toPath());
+        final File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        final File dummy10MBytes = new File(tempDir, "10MB.txt");
+        final byte[] bytes = Files.readAllBytes(dummy.toPath());
         try (FileOutputStream fos = new FileOutputStream(dummy10MBytes)) {
             for (int i = 0; i < 10000; i++) {
                 fos.write(bytes, 0, 1000);
@@ -716,13 +716,13 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
         if (isWindows()) {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cmd.exe");
-            PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.1")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
             runner.setProperty(dynamicProp1, "/c");
-            PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp2 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.2")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -730,7 +730,7 @@ public class TestExecuteStreamCommand {
             runner.setProperty(dynamicProp2, "type " + dummy10MBytes.getAbsolutePath());
         } else {
             runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "cat");
-            PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+            final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
                 .dynamic(true)
                 .name("command.argument.1")
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -744,10 +744,10 @@ public class TestExecuteStreamCommand {
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         runner.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
 
         flowFiles.getFirst().assertAttributeEquals("execution.status", "0");
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("a{256}").matcher(result).matches());
     }
 
@@ -760,8 +760,8 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, TEST_INGEST_AND_UPDATE.toString());
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("streamOutput");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("streamOutput");
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$snifi-standard-processors%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
@@ -775,7 +775,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "streamOutput");
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -783,8 +783,8 @@ public class TestExecuteStreamCommand {
         runner.setProperty(dynamicProp1, TEST_INGEST_AND_UPDATE.toString());
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("streamOutput");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("streamOutput");
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$snifi-standard-processors%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
@@ -801,8 +801,8 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
 
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
@@ -817,7 +817,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -827,8 +827,8 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         final String quotedSeparator = Pattern.quote(File.separator);
         final String expectedOutput = "%1$ssrc%1$stest%1$sjava:ModifiedResult\r?\n".formatted(quotedSeparator);
 
@@ -847,10 +847,10 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
-        Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
+        final Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
         assertTrue(dynamicEnvironmentVariables.containsAll(expectedEnvironmentVariables));
     }
 
@@ -862,7 +862,7 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.WORKING_DIR, JAVA_FILES_DIR.toString());
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -871,10 +871,10 @@ public class TestExecuteStreamCommand {
         runner.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "executeStreamCommand.output");
         runner.run(1);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
-        Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
-        Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
+        final Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
+        final Set<String> expectedEnvironmentVariables = Set.of("NIFI_TEST_1=testvalue1", "NIFI_TEST_2=testvalue2");
         assertTrue(dynamicEnvironmentVariables.containsAll(expectedEnvironmentVariables));
     }
 
@@ -909,9 +909,9 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(content);
         assertTrue(result.isEmpty()); // java with bad path only prints to standard error not standard out
         assertEquals("1", outputFlowFile.getAttribute("execution.status")); // java -jar with bad path exits with code 1
@@ -926,7 +926,7 @@ public class TestExecuteStreamCommand {
         runner.enqueue(content);
         runner.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, JAVA_COMMAND);
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
-        PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
+        final PropertyDescriptor dynamicProp1 = new PropertyDescriptor.Builder()
             .dynamic(true)
             .name("command.argument.1")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -938,15 +938,15 @@ public class TestExecuteStreamCommand {
         runner.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
         runner.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String result = outputFlowFile.getAttribute("executeStreamCommand.output");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
+        final MockFlowFile outputFlowFile = flowFiles.getFirst();
+        final String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(content);
         assertTrue(result.isEmpty()); // java with bad path only prints to standard error not standard out
         assertEquals("1", outputFlowFile.getAttribute("execution.status")); // java -jar with bad path exits with code 1
         assertEquals(JAVA_COMMAND, outputFlowFile.getAttribute("execution.command"));
         assertEquals(javaFile.toString(), outputFlowFile.getAttribute("execution.command.args"));
-        String attribute = outputFlowFile.getAttribute("execution.command.args");
+        final String attribute = outputFlowFile.getAttribute("execution.command.args");
         assertEquals(javaFile.toString(), attribute);
     }
 

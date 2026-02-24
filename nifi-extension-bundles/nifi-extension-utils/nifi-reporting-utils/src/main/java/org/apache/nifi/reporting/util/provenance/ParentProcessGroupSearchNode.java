@@ -21,7 +21,7 @@ public class ParentProcessGroupSearchNode {
     private final String id;
     private final ParentProcessGroupSearchNode parent;
 
-    public ParentProcessGroupSearchNode(String id, ParentProcessGroupSearchNode parent) {
+    public ParentProcessGroupSearchNode(final String id, final ParentProcessGroupSearchNode parent) {
         this.id = id;
         this.parent = parent;
     }

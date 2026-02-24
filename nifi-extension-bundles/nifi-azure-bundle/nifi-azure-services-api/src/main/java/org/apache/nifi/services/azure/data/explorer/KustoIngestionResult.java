@@ -31,8 +31,8 @@ public enum KustoIngestionResult {
         this.status = status;
     }
 
-    public static KustoIngestionResult fromString(String status) {
-        for (KustoIngestionResult result : values()) {
+    public static KustoIngestionResult fromString(final String status) {
+        for (final KustoIngestionResult result : values()) {
             if (result.status.equalsIgnoreCase(status)) {
                 return result;
             }

@@ -36,11 +36,11 @@ public class AccessPolicy extends AccessPolicySummary {
         return users;
     }
 
-    public void setUsers(Set<Tenant> users) {
+    public void setUsers(final Set<Tenant> users) {
         this.users = users;
     }
 
-    public void addUsers(Collection<? extends Tenant> users) {
+    public void addUsers(final Collection<? extends Tenant> users) {
         if (users != null) {
             if (this.users == null) {
                 this.users = new HashSet<>();
@@ -54,11 +54,11 @@ public class AccessPolicy extends AccessPolicySummary {
         return userGroups;
     }
 
-    public void setUserGroups(Set<Tenant> userGroups) {
+    public void setUserGroups(final Set<Tenant> userGroups) {
         this.userGroups = userGroups;
     }
 
-    public void addUserGroups(Collection<? extends Tenant> userGroups) {
+    public void addUserGroups(final Collection<? extends Tenant> userGroups) {
         if (userGroups != null) {
             if (this.userGroups == null) {
                 this.userGroups = new HashSet<>();

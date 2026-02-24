@@ -66,7 +66,7 @@ class ProxyServiceMigrationTest {
 
         assertTrue(config.isPropertySet(PROXY_SERVICE));
 
-        PropertyMigrationResult result = config.toPropertyMigrationResult();
+        final PropertyMigrationResult result = config.toPropertyMigrationResult();
         assertEquals(1, result.getCreatedControllerServices().size());
 
         final CreatedControllerService createdService = result.getCreatedControllerServices().iterator().next();
@@ -105,7 +105,7 @@ class ProxyServiceMigrationTest {
 
         assertTrue(config.isPropertySet(PROXY_SERVICE));
 
-        PropertyMigrationResult result = config.toPropertyMigrationResult();
+        final PropertyMigrationResult result = config.toPropertyMigrationResult();
         assertEquals(1, result.getCreatedControllerServices().size());
 
         final CreatedControllerService createdService = result.getCreatedControllerServices().iterator().next();

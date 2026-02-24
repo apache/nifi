@@ -167,7 +167,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         logger.info("Synchronizing FlowController with proposed flow: Controller Already Synchronized = {}", flowAlreadySynchronized);
 
         final DataFlow existingDataFlow = getExistingDataFlow(controller);
-        boolean existingFlowEmpty = isFlowEmpty(existingDataFlow);
+        final boolean existingFlowEmpty = isFlowEmpty(existingDataFlow);
 
         // If bundle update strategy is configured to allow for compatible bundles, update any components to use compatible bundles if
         // the exact bundle does not exist.

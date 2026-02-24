@@ -33,7 +33,7 @@ public class LinkAdapter extends XmlAdapter<JaxbLink, Link> {
      * @return mapped instance of type {@link Link.JaxbLink}
      */
     @Override
-    public Link unmarshal(JaxbLink v) {
+    public Link unmarshal(final JaxbLink v) {
         if (v == null) {
             return null;
         }
@@ -42,9 +42,9 @@ public class LinkAdapter extends XmlAdapter<JaxbLink, Link> {
             return null;
         }
 
-        Link.Builder lb = Link.fromUri(v.getUri());
+        final Link.Builder lb = Link.fromUri(v.getUri());
         if (v.getParams() != null) {
-            for (Map.Entry<String, String> e : v.getParams().entrySet()) {
+            for (final Map.Entry<String, String> e : v.getParams().entrySet()) {
                 lb.param(e.getKey(), e.getValue());
             }
         }
@@ -58,14 +58,14 @@ public class LinkAdapter extends XmlAdapter<JaxbLink, Link> {
      * @return mapped instance of type {@link JaxbLink}.
      */
     @Override
-    public JaxbLink marshal(Link v) {
+    public JaxbLink marshal(final Link v) {
         if (v == null) {
             return null;
         }
 
         final JaxbLink jl = new JaxbLink(v.getUri());
         if (v.getParams() != null) {
-            for (Map.Entry<String, String> e : v.getParams().entrySet()) {
+            for (final Map.Entry<String, String> e : v.getParams().entrySet()) {
                 jl.getParams().put(e.getKey(), e.getValue());
             }
         }

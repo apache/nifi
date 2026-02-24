@@ -245,7 +245,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     }
 
     private void addOperation(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final String idAttribute,
-                              final ProcessContext context, final ProcessSession session, FlowFile input) {
+                              final ProcessContext context, final ProcessSession session, final FlowFile input) {
         final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
         final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
@@ -260,7 +260,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue();
 
-        try (final InputStream inStream = session.read(input)) {
+        try (InputStream inStream = session.read(input)) {
             final byte[] result = IOUtils.toByteArray(inStream);
             @SuppressWarnings("unchecked")
             final Map<String, Object> contentMap = mapper.readValue(new String(result, charset), Map.class);
@@ -271,14 +271,14 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             originals.add(input);
         } catch (final IOException ioe) {
             getLogger().error("Could not read FlowFile content valid JSON.", ioe);
-            input = session.putAttribute(input, "elasticsearch.put.error", ioe.getMessage());
-            session.penalize(input);
-            session.transfer(input, REL_FAILURE);
+            final FlowFile failedIo = session.putAttribute(input, "elasticsearch.put.error", ioe.getMessage());
+            session.penalize(failedIo);
+            session.transfer(failedIo, REL_FAILURE);
         } catch (final Exception ex) {
             getLogger().error("Could not index documents.", ex);
-            input = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
-            session.penalize(input);
-            session.transfer(input, REL_FAILURE);
+            final FlowFile failedEx = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
+            session.penalize(failedEx);
+            session.transfer(failedEx, REL_FAILURE);
         }
     }
 
@@ -303,7 +303,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             String errorMessage;
             try {
                 errorMessage = mapper.writeValueAsString(error);
-            } catch (JsonProcessingException e) {
+            } catch (final JsonProcessingException e) {
                 errorMessage = String.format(
                         "{\"error\": {\"type\": \"elasticsearch_response_parse_error\", \"reason\": \"%s\"}}",
                         e.getMessage().replace("\"", "\\\"")

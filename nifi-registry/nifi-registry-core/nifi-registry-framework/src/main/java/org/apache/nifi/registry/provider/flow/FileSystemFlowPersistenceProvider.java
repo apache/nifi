@@ -71,7 +71,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
             flowStorageDir = new File(flowStorageDirValue);
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(flowStorageDir);
             LOGGER.info("Configured FileSystemFlowPersistenceProvider with Flow Storage Directory {}", flowStorageDir.getAbsolutePath());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProviderCreationException(e);
         }
     }
@@ -81,14 +81,14 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         final File bucketDir = getChildLocation(flowStorageDir, getNormalizedIdPath(context.getBucketId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bucketDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error accessing bucket directory at " + bucketDir.getAbsolutePath(), e);
         }
 
         final File flowDir = getChildLocation(bucketDir, getNormalizedIdPath(context.getFlowId()));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(flowDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error accessing flow directory at " + flowDir.getAbsolutePath(), e);
         }
 
@@ -96,7 +96,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         final File versionDir = getChildLocation(flowDir, Paths.get(versionString));
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(versionDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error accessing version directory at " + versionDir.getAbsolutePath(), e);
         }
 
@@ -113,7 +113,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         try (final OutputStream out = new FileOutputStream(versionFile)) {
             out.write(content);
             out.flush();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new FlowPersistenceException("Unable to write snapshot to disk", e);
         }
     }
@@ -131,7 +131,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
 
         try (final InputStream in = new FileInputStream(snapshotFile)) {
             return IOUtils.toByteArray(in);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error reading snapshot file: " + snapshotFile.getAbsolutePath(), e);
         }
     }
@@ -150,7 +150,7 @@ public class FileSystemFlowPersistenceProvider implements FlowPersistenceProvide
         // delete everything under the flow directory
         try {
             org.apache.commons.io.FileUtils.cleanDirectory(flowDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error deleting snapshots at " + flowDir.getAbsolutePath(), e);
         }
 

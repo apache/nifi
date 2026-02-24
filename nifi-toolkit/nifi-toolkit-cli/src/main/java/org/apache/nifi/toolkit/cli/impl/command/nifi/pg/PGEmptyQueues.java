@@ -87,10 +87,10 @@ public class PGEmptyQueues extends AbstractNiFiCommand<VoidResult> {
         return isInteractive() || isVerbose(properties);
     }
 
-    private void sleep(long millis) {
+    private void sleep(final long millis) {
         try {
             Thread.sleep(millis);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.interrupted();
         }
     }

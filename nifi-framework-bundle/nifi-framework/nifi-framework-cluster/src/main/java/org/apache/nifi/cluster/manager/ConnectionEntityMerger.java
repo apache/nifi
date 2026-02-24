@@ -29,9 +29,9 @@ import java.util.TreeSet;
 public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionEntity>, ComponentEntityStatusMerger<ConnectionStatusDTO> {
 
     @Override
-    public void merge(ConnectionEntity clientEntity, Map<NodeIdentifier, ConnectionEntity> entityMap) {
+    public void merge(final ConnectionEntity clientEntity, final Map<NodeIdentifier, ConnectionEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, ConnectionEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ConnectionEntity> entry : entityMap.entrySet()) {
             final ConnectionEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -69,8 +69,8 @@ public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionE
     }
 
     @Override
-    public void mergeStatus(ConnectionStatusDTO clientStatus, boolean clientStatusReadablePermission, ConnectionStatusDTO status, boolean statusReadablePermission,
-                            NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final ConnectionStatusDTO clientStatus, final boolean clientStatusReadablePermission, final ConnectionStatusDTO status, final boolean statusReadablePermission,
+                            final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }

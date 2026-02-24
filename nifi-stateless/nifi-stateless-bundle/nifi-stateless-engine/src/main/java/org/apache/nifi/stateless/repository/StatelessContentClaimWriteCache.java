@@ -45,7 +45,7 @@ public class StatelessContentClaimWriteCache implements ContentClaimWriteCache {
         for (final OutputStream stream : writtenTo) {
             try {
                 stream.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Failed to close OutputStream", e);
             }
         }

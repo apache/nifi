@@ -106,7 +106,7 @@ public class TestIndexDirectoryManager {
             final IndexDirectoryManager mgr = new IndexDirectoryManager(config);
             mgr.initialize();
 
-            File indexDir = mgr.getWritableIndexingDirectory(System.currentTimeMillis(), "1");
+            final File indexDir = mgr.getWritableIndexingDirectory(System.currentTimeMillis(), "1");
             assertTrue(indexDir.mkdirs() || indexDir.exists());
 
             final File newFile = new File(indexDir, "1.bin");

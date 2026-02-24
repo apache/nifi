@@ -38,7 +38,7 @@ public class Postgres10DataSourceFactory extends TestDataSourceFactory {
 
     @Override
     protected DataSource createDataSource() {
-        PGSimpleDataSource dataSource = new PGSimpleDataSource();
+        final PGSimpleDataSource dataSource = new PGSimpleDataSource();
         dataSource.setUrl(POSTGRESQL_CONTAINER.getJdbcUrl());
         dataSource.setUser(POSTGRESQL_CONTAINER.getUsername());
         dataSource.setPassword(POSTGRESQL_CONTAINER.getPassword());
@@ -47,7 +47,7 @@ public class Postgres10DataSourceFactory extends TestDataSourceFactory {
 
     @PostConstruct
     public void initDatabase() {
-        DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(POSTGRESQL_CONTAINER, "");
+        final DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(POSTGRESQL_CONTAINER, "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }
 }

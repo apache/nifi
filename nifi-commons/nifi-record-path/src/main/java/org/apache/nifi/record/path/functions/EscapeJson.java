@@ -61,7 +61,7 @@ public class EscapeJson extends RecordPathSegment {
                             null, originalField.getAliases(), originalField.isNullable());
 
                         return new StandardFieldValue(objectMapper.writeValueAsString(value), escapedField, fieldValue.getParent().orElse(null));
-                    } catch (JsonProcessingException e) {
+                    } catch (final JsonProcessingException e) {
                         throw new RecordPathException("Unable to serialise Record Path value as JSON String", e);
                     }
                 }

@@ -43,7 +43,7 @@ public class UsersEntity extends Entity {
         return users;
     }
 
-    public void setUsers(Collection<UserEntity> users) {
+    public void setUsers(final Collection<UserEntity> users) {
         this.users = users;
     }
 
@@ -58,7 +58,7 @@ public class UsersEntity extends Entity {
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 }

@@ -72,7 +72,7 @@ class TestStandardJsonSchemaRegistry {
     void setUp() throws InitializationException {
         properties = new HashMap<>();
         delegate = new StandardJsonSchemaRegistry();
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("jsonSchemaRegistry", delegate);
     }
 
@@ -89,7 +89,7 @@ class TestStandardJsonSchemaRegistry {
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("dynamicProperties")
-    void testCustomValidateWithSchemaRegistrationFromDynamicProperties(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) {
+    void testCustomValidateWithSchemaRegistrationFromDynamicProperties(final PropertyDescriptor propertyDescriptor, final String schema, final int numValidationErrors) {
         when(validationContext.getProperty(JsonSchemaRegistryComponent.SCHEMA_VERSION)).thenReturn(propertyValue);
         when(propertyValue.getValue()).thenReturn(JsonSchemaRegistryComponent.SCHEMA_VERSION.getDefaultValue());
         when(validationContext.getProperties()).thenReturn(properties);
@@ -101,9 +101,9 @@ class TestStandardJsonSchemaRegistry {
 
     @ParameterizedTest(name = "{3}")
     @MethodSource("dynamicProperties")
-    void testSchemaRetrieval(PropertyDescriptor propertyDescriptor, String schema, int numValidationErrors) throws SchemaNotFoundException {
+    void testSchemaRetrieval(final PropertyDescriptor propertyDescriptor, final String schema, final int numValidationErrors) throws SchemaNotFoundException {
         delegate.onPropertyModified(propertyDescriptor, null, schema);
-        boolean validSchema = numValidationErrors == 0;
+        final boolean validSchema = numValidationErrors == 0;
 
         if (validSchema) {
             assertDoesNotThrow(() -> delegate.retrieveSchema(SCHEMA_NAME));

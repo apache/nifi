@@ -29,7 +29,7 @@ public class AgentRepositories implements Serializable {
         return flowFile;
     }
 
-    public void setFlowFile(AgentRepositoryStatus flowFile) {
+    public void setFlowFile(final AgentRepositoryStatus flowFile) {
         this.flowFile = flowFile;
     }
 
@@ -37,7 +37,7 @@ public class AgentRepositories implements Serializable {
         return provenance;
     }
 
-    public void setProvenance(AgentRepositoryStatus provenance) {
+    public void setProvenance(final AgentRepositoryStatus provenance) {
         this.provenance = provenance;
     }
 }

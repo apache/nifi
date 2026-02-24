@@ -72,7 +72,7 @@ class TestIdentifyMimeType {
 
     @ParameterizedTest
     @MethodSource("testFilesData")
-    void testFiles(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions, Map<String, String> expectedCharsets) throws IOException {
+    void testFiles(final File file, final Map<String, String> expectedMimeTypes, final Map<String, String> expectedExtensions, final Map<String, String> expectedCharsets) throws IOException {
         runner.enqueue(file.toPath());
         runner.run();
 
@@ -130,14 +130,14 @@ class TestIdentifyMimeType {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("mime.extension", ".txt");
         flowFile.assertAttributeEquals("mime.type", "text/plain");
     }
 
     @ParameterizedTest
     @MethodSource("replaceWithConfigBodyData")
-    void testReplaceWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
+    void testReplaceWithConfigBody(final File file, final Map<String, String> expectedMimeTypes, final Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_BODY);
         runner.enqueue(file.toPath());
@@ -212,7 +212,7 @@ class TestIdentifyMimeType {
 
     @ParameterizedTest
     @MethodSource("replaceWithConfigFileData")
-    void testReplaceWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
+    void testReplaceWithConfigFile(final File file, final Map<String, String> expectedMimeTypes, final Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.REPLACE);
         runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_FILE);
         runner.enqueue(file.toPath());
@@ -300,7 +300,7 @@ class TestIdentifyMimeType {
 
     @ParameterizedTest
     @MethodSource("mergeWithConfigBodyData")
-    void testMergeWithConfigBody(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
+    void testMergeWithConfigBody(final File file, final Map<String, String> expectedMimeTypes, final Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
         runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_BODY);
         runner.enqueue(file.toPath());
@@ -338,7 +338,7 @@ class TestIdentifyMimeType {
 
     @ParameterizedTest
     @MethodSource("mergeWithConfigFileData")
-    void testMergeWithConfigFile(File file, Map<String, String> expectedMimeTypes, Map<String, String> expectedExtensions) throws IOException {
+    void testMergeWithConfigFile(final File file, final Map<String, String> expectedMimeTypes, final Map<String, String> expectedExtensions) throws IOException {
         runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.MERGE);
         runner.setProperty(IdentifyMimeType.CUSTOM_MIME_CONFIGURATION, CONFIG_FILE);
         runner.enqueue(file.toPath());
@@ -399,7 +399,7 @@ class TestIdentifyMimeType {
     }
 
     private static Map<String, String> getCommonExpectedMimeTypes() {
-        Map<String, String> expectedMimeTypes = new HashMap<>();
+        final Map<String, String> expectedMimeTypes = new HashMap<>();
 
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
         expectedMimeTypes.put("1.accdb", "application/x-msaccess");
@@ -424,7 +424,7 @@ class TestIdentifyMimeType {
     }
 
     private static Map<String, String> getCommonExpectedExtensions() {
-        Map<String, String> expectedExtensions = new HashMap<>();
+        final Map<String, String> expectedExtensions = new HashMap<>();
 
         expectedExtensions.put("1.7z", ".7z");
         expectedExtensions.put("1.accdb", ".accdb");

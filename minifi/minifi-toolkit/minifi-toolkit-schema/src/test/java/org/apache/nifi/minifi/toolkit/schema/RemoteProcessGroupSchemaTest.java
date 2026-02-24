@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RemoteProcessGroupSchemaTest {
     @Test
     public void testNoPropertiesSet() {
-        RemoteProcessGroupSchema remoteProcessGroupSchema = new RemoteProcessGroupSchema(new HashMap<>());
+        final RemoteProcessGroupSchema remoteProcessGroupSchema = new RemoteProcessGroupSchema(new HashMap<>());
         validateIssuesNumMatches(3, remoteProcessGroupSchema);
         assertEquals(RemoteProcessGroupSchema.DEFAULT_PROXY_HOST, remoteProcessGroupSchema.getProxyHost());
         assertEquals(RemoteProcessGroupSchema.DEFAULT_PROXY_PORT, remoteProcessGroupSchema.getProxyPort());
@@ -45,7 +45,7 @@ public class RemoteProcessGroupSchemaTest {
 
     @Test
     public void testInputPortsRootGroup() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
         map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
@@ -54,7 +54,7 @@ public class RemoteProcessGroupSchemaTest {
 
     @Test
     public void testTransportProtocol() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
         map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
@@ -62,31 +62,31 @@ public class RemoteProcessGroupSchemaTest {
         validateIssuesNumMatches(1, new RemoteProcessGroupSchema(map));
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "RAW");
-        RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
+        final RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
         validateIssuesNumMatches(0, first);
         assertEquals(first.getTransportProtocol(), "RAW");
 
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "HTTP");
-        RemoteProcessGroupSchema second =  new RemoteProcessGroupSchema(map);
+        final RemoteProcessGroupSchema second =  new RemoteProcessGroupSchema(map);
         validateIssuesNumMatches(0, second);
         assertEquals(second.getTransportProtocol(), "HTTP");
     }
 
     @Test
     public void testLocalNetworkInterface() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
         map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
 
         map.put(RemoteProcessGroupSchema.LOCAL_NETWORK_INTERFACE_KEY, "eth1");
-        RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
+        final RemoteProcessGroupSchema first =  new RemoteProcessGroupSchema(map);
         validateIssuesNumMatches(0, first);
         assertEquals(first.getLocalNetworkInterface(), "eth1");
     }
     @Test
     public void testProxySettings() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(RemoteProcessGroupSchema.PROXY_PORT_KEY, 1234);
         map.put(RemoteProcessGroupSchema.PROXY_USER_KEY, "user");
         RemoteProcessGroupSchema remoteProcessGroupSchema = new RemoteProcessGroupSchema(map);
@@ -130,16 +130,16 @@ public class RemoteProcessGroupSchemaTest {
         assertEquals("password", remoteProcessGroupSchema.getProxyPassword());
     }
 
-    private PortSchema createPortSchema(String id, String name, String wrapperName) {
-        Map<String, Object> map = new HashMap<>();
+    private PortSchema createPortSchema(final String id, final String name, final String wrapperName) {
+        final Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.ID_KEY, id);
         map.put(CommonPropertyKeys.NAME_KEY, name);
         return new PortSchema(map, wrapperName);
     }
 
-    private void validateIssuesNumMatches(int expected, RemoteProcessGroupSchema remoteProcessGroupSchema) {
-        int actual = remoteProcessGroupSchema.getValidationIssues().size();
-        String issues = "[" + System.lineSeparator() + remoteProcessGroupSchema.getValidationIssues().stream().collect(Collectors.joining("," + System.lineSeparator())) + "]";
+    private void validateIssuesNumMatches(final int expected, final RemoteProcessGroupSchema remoteProcessGroupSchema) {
+        final int actual = remoteProcessGroupSchema.getValidationIssues().size();
+        final String issues = "[" + System.lineSeparator() + remoteProcessGroupSchema.getValidationIssues().stream().collect(Collectors.joining("," + System.lineSeparator())) + "]";
         assertEquals(expected, actual, "Expected " + expected + " issue(s), got " + actual + ": " + issues);
     }
 }

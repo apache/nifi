@@ -55,12 +55,13 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause, final Long limit, final Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause,
+            final String orderByClause, final Long limit, final Long offset, final String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
@@ -108,7 +109,7 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getUpsertStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         if (org.apache.nifi.util.StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
@@ -119,13 +120,13 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = String.join(", ", columnNames);
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedUpsertValues = columnNames.stream()
+        final String parameterizedUpsertValues = columnNames.stream()
                 .map(columnName -> "?")
                 .collect(Collectors.joining(", "));
 
-        StringBuilder statementStringBuilder = new StringBuilder("UPSERT INTO ")
+        final StringBuilder statementStringBuilder = new StringBuilder("UPSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
@@ -145,17 +146,17 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
 
     @Override
     public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder("ADD COLUMN ")
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder("ADD COLUMN ")
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
         }
 
-        StringBuilder alterTableStatement = new StringBuilder();
+        final StringBuilder alterTableStatement = new StringBuilder();
         return alterTableStatement.append("ALTER TABLE ")
                 .append(tableName)
                 .append(" ")
@@ -164,7 +165,7 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSQLForDataType(int sqlType) {
+    public String getSQLForDataType(final int sqlType) {
         return switch (sqlType) {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML -> "TEXT";

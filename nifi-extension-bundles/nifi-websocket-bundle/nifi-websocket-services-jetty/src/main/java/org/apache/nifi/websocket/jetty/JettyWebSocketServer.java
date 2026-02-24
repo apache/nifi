@@ -202,7 +202,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
 
         final List<ValidationResult> results = new ArrayList<>();
         if (validationContext.getProperty(BASIC_AUTH).asBoolean()) {
@@ -239,7 +239,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         }
 
         @Override
-        public Object createWebSocket(JettyServerUpgradeRequest servletUpgradeRequest, JettyServerUpgradeResponse servletUpgradeResponse) {
+        public Object createWebSocket(final JettyServerUpgradeRequest servletUpgradeRequest, final JettyServerUpgradeResponse servletUpgradeResponse) {
             final URI requestURI = servletUpgradeRequest.getRequestURI();
 
             final int port = getPort(servletUpgradeRequest);
@@ -253,7 +253,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             final WebSocketMessageRouter router;
             try {
                 router = service.routers.getRouterOrFail(path);
-            } catch (WebSocketConfigurationException e) {
+            } catch (final WebSocketConfigurationException e) {
                 throw new IllegalStateException("Failed to get router due to: "  + e, e);
             }
 
@@ -261,8 +261,8 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         }
     }
 
-    private static int getPort(JettyServerUpgradeRequest servletUpgradeRequest) {
-        Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
+    private static int getPort(final JettyServerUpgradeRequest servletUpgradeRequest) {
+        final Object localSocketAddress = servletUpgradeRequest.getLocalSocketAddress();
         if (localSocketAddress instanceof InetSocketAddress inetSocketAddress) {
             return inetSocketAddress.getPort();
         }
@@ -322,7 +322,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             securityHandler.setLoginService(loginService);
         }
 
-        ServletHandler servletHandler = new ServletHandler();
+        final ServletHandler servletHandler = new ServletHandler();
         JettyWebSocketServletContainerInitializer.configure(contextHandler, null);
         contextHandler.insertHandler(servletHandler);
 

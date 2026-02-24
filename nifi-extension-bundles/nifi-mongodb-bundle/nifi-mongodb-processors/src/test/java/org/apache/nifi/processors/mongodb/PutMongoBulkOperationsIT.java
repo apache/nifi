@@ -43,7 +43,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
     public void testBulkWriteInsert() throws Exception {
         final TestRunner runner = init(PutMongoBulkOperations.class);
 
-        StringBuffer doc = new StringBuffer();
+        final StringBuffer doc = new StringBuffer();
         doc.append("[");
         for (int i = 0; i < DOCUMENTS.size(); i++) {
             if (i > 0) {
@@ -60,7 +60,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
         assertEquals(3, collection.countDocuments());
-        Document doc1 = collection.find(new Document().append("_id", "doc_2")).first();
+        final Document doc1 = collection.find(new Document().append("_id", "doc_2")).first();
         assertNotNull(doc1);
         assertEquals(4, doc1.getInteger("c", 0));
     }
@@ -105,7 +105,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
 
         assertEquals(1, collection.countDocuments(new Document().append("z", 42)));
-        Document doc1 = collection.find(new Document().append("_id", "doc_1")).first();
+        final Document doc1 = collection.find(new Document().append("_id", "doc_1")).first();
         assertNotNull(doc1);
         assertEquals(42, doc1.getInteger("z", 0));
         assertNull(doc1.get("a"));
@@ -156,7 +156,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         final TestRunner runner = init(PutMongoBulkOperations.class);
         runner.setProperty(PutMongoBulkOperations.ORDERED, "true"); // default, still
 
-        StringBuffer doc = new StringBuffer();
+        final StringBuffer doc = new StringBuffer();
         doc.append("[");
         // inserting same ID twice fails w/in mongo, not before, so we can really test transactions and ordering
         doc.append("{\"insertOne\": {\"document\": {\"_id\": \"doc_1\"}}},{\"insertOne\": {\"document\": ");
@@ -175,7 +175,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         final TestRunner runner = init(PutMongoBulkOperations.class);
         runner.setProperty(PutMongoBulkOperations.ORDERED, "true"); // default, still
 
-        StringBuffer doc = new StringBuffer();
+        final StringBuffer doc = new StringBuffer();
         doc.append("[");
         doc.append("{\"insertOne\": {\"document\": ");
         doc.append(DOCUMENTS.get(0).toJson());
@@ -194,7 +194,7 @@ public class PutMongoBulkOperationsIT extends MongoWriteTestBase {
         final TestRunner runner = init(PutMongoBulkOperations.class);
         runner.setProperty(PutMongoBulkOperations.ORDERED, "false");
 
-        StringBuffer doc = new StringBuffer();
+        final StringBuffer doc = new StringBuffer();
         doc.append("[");
         // inserting same ID twice fails w/in mongo, not before, so we can really test transactions and ordering
         doc.append("{\"insertOne\": {\"document\": {\"_id\": \"doc_1\"}}},{\"insertOne\": {\"document\": ");

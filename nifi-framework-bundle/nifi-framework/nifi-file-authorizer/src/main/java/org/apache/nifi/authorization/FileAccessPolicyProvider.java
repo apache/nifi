@@ -90,12 +90,12 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private final AccessPolicyMapper fingerprintAccessPolicyMapper = new FingerprintAccessPolicyMapper();
 
     @Override
-    public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
         userGroupProviderLookup = initializationContext.getUserGroupProviderLookup();
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         try {
             final PropertyValue userGroupProviderIdentifier = configurationContext.getProperty(PROP_USER_GROUP_PROVIDER);
             if (!userGroupProviderIdentifier.isSet()) {
@@ -145,7 +145,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             }
 
             // extract the identity mappings from nifi.properties if any are provided
-            List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
+            final List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
 
             // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
@@ -157,8 +157,8 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
             // extract any node identities
             nodeIdentities = new HashSet<>();
-            for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-                Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
+            for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+                final Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                     final String mappedNodeIdentity = IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings);
                     nodeIdentities.add(mappedNodeIdentity);
@@ -167,8 +167,8 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             }
 
             // read node group name
-            PropertyValue nodeGroupNameProp = configurationContext.getProperty(PROP_NODE_GROUP_NAME);
-            String nodeGroupName = (nodeGroupNameProp != null && nodeGroupNameProp.isSet()) ? nodeGroupNameProp.getValue() : null;
+            final PropertyValue nodeGroupNameProp = configurationContext.getProperty(PROP_NODE_GROUP_NAME);
+            final String nodeGroupName = (nodeGroupNameProp != null && nodeGroupNameProp.isSet()) ? nodeGroupNameProp.getValue() : null;
 
             // look up node group identifier using node group name
             nodeGroupIdentifier = null;
@@ -176,7 +176,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             if (nodeGroupName != null) {
                 if (!StringUtils.isBlank(nodeGroupName)) {
                     logger.debug("Trying to load node group '{}' from the underlying userGroupProvider", nodeGroupName);
-                    for (Group group : userGroupProvider.getGroups()) {
+                    for (final Group group : userGroupProvider.getGroups()) {
                         if (group.getName().equals(nodeGroupName)) {
                             nodeGroupIdentifier = group.getIdentifier();
                             break;
@@ -201,7 +201,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             }
 
             logger.debug("Authorizations file loaded");
-        } catch (IOException | AuthorizerCreationException | IllegalStateException e) {
+        } catch (final IOException | AuthorizerCreationException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
         }
     }
@@ -267,7 +267,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
         return authorizationsHolder.get().getAccessPolicy(resourceIdentifier, action);
     }
 
@@ -464,7 +464,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      * <p>
      *  Either by creating the policies for the user itself or by making it a member of the initial admin group.
      */
-    private void populateInitialAdmin(final List<AccessPolicy> policies, boolean hasInitialAdminGroup) {
+    private void populateInitialAdmin(final List<AccessPolicy> policies, final boolean hasInitialAdminGroup) {
         final User initialAdmin = userGroupProvider.getUserByIdentity(initialAdminIdentity);
         if (initialAdmin == null) {
             throw new AuthorizerCreationException("Unable to locate initial admin " + initialAdminIdentity + " to seed policies");
@@ -558,7 +558,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      */
     private void populateNodes(final List<AccessPolicy> policies) {
         // authorize static nodes
-        for (String nodeIdentity : nodeIdentities) {
+        for (final String nodeIdentity : nodeIdentities) {
             final User node = userGroupProvider.getUserByIdentity(nodeIdentity);
             if (node == null) {
                 throw new AuthorizerCreationException("Unable to locate node " + nodeIdentity + " to seed policies.");

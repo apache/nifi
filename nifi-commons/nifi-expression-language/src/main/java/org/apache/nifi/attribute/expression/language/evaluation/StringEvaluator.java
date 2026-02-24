@@ -28,7 +28,7 @@ public abstract class StringEvaluator implements Evaluator<String> {
     }
 
     @Override
-    public int getEvaluationsRemaining(EvaluationContext context) {
+    public int getEvaluationsRemaining(final EvaluationContext context) {
         return 0;
     }
 

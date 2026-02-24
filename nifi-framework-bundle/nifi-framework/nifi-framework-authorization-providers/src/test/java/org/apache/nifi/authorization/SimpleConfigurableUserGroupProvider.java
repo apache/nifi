@@ -26,7 +26,7 @@ public class SimpleConfigurableUserGroupProvider extends SimpleUserGroupProvider
     private final Set<User> users;
     private final Set<Group> groups;
 
-    public SimpleConfigurableUserGroupProvider(Set<User> users, Set<Group> groups) {
+    public SimpleConfigurableUserGroupProvider(final Set<User> users, final Set<Group> groups) {
         super(users, groups);
 
         this.users = users;
@@ -34,39 +34,39 @@ public class SimpleConfigurableUserGroupProvider extends SimpleUserGroupProvider
     }
 
     @Override
-    public User addUser(User user) throws AuthorizationAccessException {
+    public User addUser(final User user) throws AuthorizationAccessException {
         users.add(user);
         return user;
     }
 
     @Override
-    public User updateUser(User user) throws AuthorizationAccessException {
+    public User updateUser(final User user) throws AuthorizationAccessException {
         users.remove(user);
         users.add(user);
         return user;
     }
 
     @Override
-    public User deleteUser(User user) throws AuthorizationAccessException {
+    public User deleteUser(final User user) throws AuthorizationAccessException {
         users.remove(user);
         return user;
     }
 
     @Override
-    public Group addGroup(Group group) throws AuthorizationAccessException {
+    public Group addGroup(final Group group) throws AuthorizationAccessException {
         groups.add(group);
         return group;
     }
 
     @Override
-    public Group updateGroup(Group group) throws AuthorizationAccessException {
+    public Group updateGroup(final Group group) throws AuthorizationAccessException {
         groups.remove(group);
         groups.add(group);
         return group;
     }
 
     @Override
-    public Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public Group deleteGroup(final Group group) throws AuthorizationAccessException {
         groups.remove(group);
         return group;
     }
@@ -77,7 +77,7 @@ public class SimpleConfigurableUserGroupProvider extends SimpleUserGroupProvider
     }
 
     @Override
-    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
 
     }
 
@@ -87,7 +87,7 @@ public class SimpleConfigurableUserGroupProvider extends SimpleUserGroupProvider
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
 
     }
 }

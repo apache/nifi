@@ -57,7 +57,7 @@ class StatusRunnerTest {
     void testRunCommandShouldReturnOkStatusIfMiNiFiIsRespondingToPing() {
         when(miNiFiStatusProvider.getStatus(MINIFI_PORT, MINIFI_PID)).thenReturn(new MiNiFiStatus(MINIFI_PORT, MINIFI_PID, true, false));
 
-        int status = statusRunner.runCommand(new String[0]);
+        final int status = statusRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), status);
     }
@@ -66,7 +66,7 @@ class StatusRunnerTest {
     void testRunCommandShouldReturnMiNiFiNotRespondingStatusIfMiNiFiIsNotRespondingToPing() {
         when(miNiFiStatusProvider.getStatus(MINIFI_PORT, MINIFI_PID)).thenReturn(new MiNiFiStatus(MINIFI_PORT, MINIFI_PID, false, true));
 
-        int status = statusRunner.runCommand(new String[0]);
+        final int status = statusRunner.runCommand(new String[0]);
 
         assertEquals(MINIFI_NOT_RESPONDING.getStatusCode(), status);
     }
@@ -75,7 +75,7 @@ class StatusRunnerTest {
     void testRunCommandShouldReturnMiNiFiNotRunningStatusIfMiNiFiIsNotRespondingToPingAndProcessIsNotRunning() {
         when(miNiFiStatusProvider.getStatus(MINIFI_PORT, MINIFI_PID)).thenReturn(new MiNiFiStatus(null, MINIFI_PID, false, false));
 
-        int status = statusRunner.runCommand(new String[0]);
+        final int status = statusRunner.runCommand(new String[0]);
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), status);
     }
@@ -84,7 +84,7 @@ class StatusRunnerTest {
     void testRunCommandShouldReturnMiNiFiNotRunningStatusIfMiNiFiIsNotRespondingToPingIfPortIsGivenButPidIsMissingAndNotRespondingToPing() {
         when(miNiFiStatusProvider.getStatus(MINIFI_PORT, MINIFI_PID)).thenReturn(new MiNiFiStatus(MINIFI_PORT, null, false, false));
 
-        int status = statusRunner.runCommand(new String[0]);
+        final int status = statusRunner.runCommand(new String[0]);
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), status);
     }
@@ -93,7 +93,7 @@ class StatusRunnerTest {
     void testRunCommandShouldReturnMiNiFiNotRunningStatusIfPortAndPidIsGivenButNotRespondingToPingAndProcessIsNotRunning() {
         when(miNiFiStatusProvider.getStatus(MINIFI_PORT, MINIFI_PID)).thenReturn(new MiNiFiStatus(MINIFI_PORT, MINIFI_PID, false, false));
 
-        int status = statusRunner.runCommand(new String[0]);
+        final int status = statusRunner.runCommand(new String[0]);
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), status);
     }

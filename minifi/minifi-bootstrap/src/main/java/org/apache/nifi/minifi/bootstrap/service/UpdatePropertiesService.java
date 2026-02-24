@@ -38,7 +38,7 @@ public class UpdatePropertiesService {
     private final BootstrapFileProvider bootstrapFileProvider;
     private final MiNiFiPropertiesGenerator miNiFiPropertiesGenerator;
 
-    public UpdatePropertiesService(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider) {
+    public UpdatePropertiesService(final RunMiNiFi runner, final Logger logger, final BootstrapFileProvider bootstrapFileProvider) {
         this.runner = runner;
         this.logger = logger;
         this.bootstrapFileProvider = bootstrapFileProvider;
@@ -48,9 +48,9 @@ public class UpdatePropertiesService {
     public Optional<MiNiFiCommandState> handleUpdate() {
         Optional<MiNiFiCommandState> commandState;
         try {
-            File bootstrapConfigFile = BootstrapFileProvider.getBootstrapConfFile();
+            final File bootstrapConfigFile = BootstrapFileProvider.getBootstrapConfFile();
 
-            File bootstrapSwapConfigFile = bootstrapFileProvider.getBootstrapConfSwapFile();
+            final File bootstrapSwapConfigFile = bootstrapFileProvider.getBootstrapConfSwapFile();
             logger.info("Persisting old bootstrap configuration to {}", bootstrapSwapConfigFile.getAbsolutePath());
 
             try (FileInputStream configFileInputStream = new FileInputStream(bootstrapConfigFile)) {
@@ -61,28 +61,29 @@ public class UpdatePropertiesService {
 
             // already from new
             commandState = generateConfigfilesBasedOnNewProperties(bootstrapConfigFile, bootstrapSwapConfigFile, bootstrapFileProvider.getProtectedBootstrapProperties());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             commandState = Optional.of(MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART);
             logger.error("Failed to load new bootstrap properties", e);
         }
         return commandState;
     }
 
-    private Optional<MiNiFiCommandState> generateConfigfilesBasedOnNewProperties(File bootstrapConfigFile, File bootstrapSwapConfigFile, BootstrapProperties bootstrapProperties)
+    private Optional<MiNiFiCommandState> generateConfigfilesBasedOnNewProperties(final File bootstrapConfigFile,
+            final File bootstrapSwapConfigFile, final BootstrapProperties bootstrapProperties)
         throws IOException, ConfigurationChangeException {
         Optional<MiNiFiCommandState> commandState = Optional.empty();
         try {
             miNiFiPropertiesGenerator.generateMinifiProperties(bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
             restartInstance();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             commandState = Optional.of(MiNiFiCommandState.NOT_APPLIED_WITHOUT_RESTART);
             // reverting config file
             try (FileInputStream swapConfigFileStream = new FileInputStream(bootstrapSwapConfigFile)) {
                 Files.copy(swapConfigFileStream, bootstrapConfigFile.toPath(), REPLACE_EXISTING);
             }
             // read reverted properties
-            bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
-            miNiFiPropertiesGenerator.generateMinifiProperties(bootstrapProperties.getProperty(CONF_DIR_KEY), bootstrapProperties);
+            final BootstrapProperties revertedProperties = bootstrapFileProvider.getBootstrapProperties();
+            miNiFiPropertiesGenerator.generateMinifiProperties(revertedProperties.getProperty(CONF_DIR_KEY), revertedProperties);
 
             logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
             if (!bootstrapSwapConfigFile.delete()) {
@@ -95,7 +96,7 @@ public class UpdatePropertiesService {
     private void restartInstance() throws IOException {
         try {
             runner.reload();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IOException("Unable to successfully restart MiNiFi instance after configuration change.", e);
         }
     }

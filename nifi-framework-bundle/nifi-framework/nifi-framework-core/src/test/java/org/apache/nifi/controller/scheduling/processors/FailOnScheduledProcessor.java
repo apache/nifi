@@ -84,6 +84,6 @@ public class FailOnScheduledProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(org.apache.nifi.processor.ProcessContext context, org.apache.nifi.processor.ProcessSession session) throws ProcessException {
+    public void onTrigger(final org.apache.nifi.processor.ProcessContext context, final org.apache.nifi.processor.ProcessSession session) throws ProcessException {
     }
 }

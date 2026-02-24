@@ -52,7 +52,7 @@ public class ActionDTO {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(final Integer id) {
         this.id = id;
     }
 
@@ -65,7 +65,7 @@ public class ActionDTO {
         return userIdentity;
     }
 
-    public void setUserIdentity(String userIdentity) {
+    public void setUserIdentity(final String userIdentity) {
         this.userIdentity = userIdentity;
     }
 
@@ -80,7 +80,7 @@ public class ActionDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -93,7 +93,7 @@ public class ActionDTO {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -106,7 +106,7 @@ public class ActionDTO {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -119,7 +119,7 @@ public class ActionDTO {
         return sourceType;
     }
 
-    public void setSourceType(String sourceType) {
+    public void setSourceType(final String sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -132,7 +132,7 @@ public class ActionDTO {
         return componentDetails;
     }
 
-    public void setComponentDetails(ComponentDetailsDTO componentDetails) {
+    public void setComponentDetails(final ComponentDetailsDTO componentDetails) {
         this.componentDetails = componentDetails;
     }
 
@@ -145,7 +145,7 @@ public class ActionDTO {
         return operation;
     }
 
-    public void setOperation(String operation) {
+    public void setOperation(final String operation) {
         this.operation = operation;
     }
 
@@ -158,7 +158,7 @@ public class ActionDTO {
         return actionDetails;
     }
 
-    public void setActionDetails(ActionDetailsDTO actionDetails) {
+    public void setActionDetails(final ActionDetailsDTO actionDetails) {
         this.actionDetails = actionDetails;
     }
 

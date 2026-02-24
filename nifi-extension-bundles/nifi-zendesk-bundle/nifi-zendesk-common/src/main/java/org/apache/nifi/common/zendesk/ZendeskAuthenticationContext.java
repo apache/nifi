@@ -23,7 +23,7 @@ public class ZendeskAuthenticationContext {
     private final ZendeskAuthenticationType authenticationType;
     private final String authenticationCredentials;
 
-    public ZendeskAuthenticationContext(String subdomain, String user, ZendeskAuthenticationType authenticationType, String authenticationCredentials) {
+    public ZendeskAuthenticationContext(final String subdomain, final String user, final ZendeskAuthenticationType authenticationType, final String authenticationCredentials) {
         this.subdomain = subdomain;
         this.user = user;
         this.authenticationType = authenticationType;

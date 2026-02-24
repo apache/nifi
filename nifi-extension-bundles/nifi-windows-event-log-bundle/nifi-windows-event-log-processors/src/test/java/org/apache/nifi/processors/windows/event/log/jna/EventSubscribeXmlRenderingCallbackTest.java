@@ -71,8 +71,8 @@ public class EventSubscribeXmlRenderingCallbackTest {
 
     @Test
     public void testErrorJustLogs() {
-        int errorCode = 111;
-        Pointer pointer = mock(Pointer.class);
+        final int errorCode = 111;
+        final Pointer pointer = mock(Pointer.class);
         when(handle.getPointer()).thenReturn(pointer);
         when(pointer.getInt(0)).thenReturn(errorCode);
 
@@ -82,7 +82,7 @@ public class EventSubscribeXmlRenderingCallbackTest {
 
     @Test
     public void testMissingRecordLog() {
-        Pointer pointer = mock(Pointer.class);
+        final Pointer pointer = mock(Pointer.class);
         when(handle.getPointer()).thenReturn(pointer);
         when(pointer.getInt(0)).thenReturn(WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE);
 
@@ -92,7 +92,7 @@ public class EventSubscribeXmlRenderingCallbackTest {
 
     @Test
     public void testSuccessfulRender() {
-        String small = "abc";
+        final String small = "abc";
         handle = ConsumeWindowsEventLogTest.mockEventHandles(wEvtApi, kernel32, Arrays.asList(small + "\u0000")).get(0);
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
         verify(consumer).accept(small);
@@ -100,7 +100,7 @@ public class EventSubscribeXmlRenderingCallbackTest {
 
     @Test
     public void testUnsuccessfulRender() {
-        String large = "abcde";
+        final String large = "abcde";
         handle = ConsumeWindowsEventLogTest.mockEventHandles(wEvtApi, kernel32, Arrays.asList(large)).get(0);
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
         verify(consumer, never()).accept(anyString());
@@ -113,12 +113,12 @@ public class EventSubscribeXmlRenderingCallbackTest {
         for (int i = 0; i < 10; i++) {
             testStringBuilder.append(i);
         }
-        String base = testStringBuilder.toString();
+        final String base = testStringBuilder.toString();
         testStringBuilder = new StringBuilder();
         for (int i = 0; i < 100; i++) {
             testStringBuilder.append(base);
         }
-        String veryLarge = testStringBuilder.toString();
+        final String veryLarge = testStringBuilder.toString();
 
         handle = ConsumeWindowsEventLogTest.mockEventHandles(wEvtApi, kernel32, Arrays.asList(veryLarge)).get(0);
         eventSubscribeXmlRenderingCallback = new EventSubscribeXmlRenderingCallback(logger, consumer, 2048, wEvtApi, kernel32, errorLookup);
@@ -128,8 +128,8 @@ public class EventSubscribeXmlRenderingCallbackTest {
 
     @Test
     public void testErrorRendering() {
-        int value = 225;
-        String code = "225code";
+        final int value = 225;
+        final String code = "225code";
         when(kernel32.GetLastError()).thenReturn(value);
         when(errorLookup.getLastError()).thenReturn(code);
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);

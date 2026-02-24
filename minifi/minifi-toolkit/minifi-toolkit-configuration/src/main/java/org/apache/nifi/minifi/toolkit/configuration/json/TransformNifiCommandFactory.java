@@ -44,8 +44,8 @@ public class TransformNifiCommandFactory {
     private final PathInputStreamFactory pathInputStreamFactory;
     private final PathOutputStreamFactory pathOutputStreamFactory;
 
-    public TransformNifiCommandFactory(PathInputStreamFactory pathInputStreamFactory,
-            PathOutputStreamFactory pathOutputStreamFactory) {
+    public TransformNifiCommandFactory(final PathInputStreamFactory pathInputStreamFactory,
+            final PathOutputStreamFactory pathOutputStreamFactory) {
         this.pathInputStreamFactory = pathInputStreamFactory;
         this.pathOutputStreamFactory = pathOutputStreamFactory;
     }
@@ -54,24 +54,24 @@ public class TransformNifiCommandFactory {
         return new ConfigMain.Command(this::transformNifiToJson, COMMAND_DESCRIPTION);
     }
 
-    private int transformNifiToJson(String[] args) {
+    private int transformNifiToJson(final String[] args) {
         if (args.length != 3) {
             printTransformUsage();
             return ConfigMain.ERR_INVALID_ARGS;
         }
 
-        String sourceNiFiJsonPath = args[1];
-        String targetMiNiFiJsonPath = args[2];
+        final String sourceNiFiJsonPath = args[1];
+        final String targetMiNiFiJsonPath = args[2];
 
         try {
-            RegisteredFlowSnapshot registeredFlowSnapshot = readNifiFlow(sourceNiFiJsonPath);
-            VersionedDataflow versionedDataflow = new VersionedDataflow();
+            final RegisteredFlowSnapshot registeredFlowSnapshot = readNifiFlow(sourceNiFiJsonPath);
+            final VersionedDataflow versionedDataflow = new VersionedDataflow();
             versionedDataflow.setRootGroup(registeredFlowSnapshot.getFlowContents());
             versionedDataflow.setParameterContexts(new ArrayList<>(registeredFlowSnapshot.getParameterContexts().values()));
             setDefaultValues(versionedDataflow);
 
             persistFlowJson(versionedDataflow, targetMiNiFiJsonPath);
-        } catch (ConfigTransformException e) {
+        } catch (final ConfigTransformException e) {
             System.out.println("Unable to convert NiFi JSON to MiNiFi flow JSON: " + e);
             return e.getErrorCode();
         }
@@ -85,41 +85,41 @@ public class TransformNifiCommandFactory {
         System.out.println();
     }
 
-    private RegisteredFlowSnapshot readNifiFlow(String sourceNiFiJsonPath) throws ConfigTransformException {
+    private RegisteredFlowSnapshot readNifiFlow(final String sourceNiFiJsonPath) throws ConfigTransformException {
         try (InputStream inputStream = pathInputStreamFactory.create(sourceNiFiJsonPath)) {
-            ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
+            final ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
             return objectMapper.readValue(inputStream, RegisteredFlowSnapshot.class);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when reading NiFi flow json file",
                     ConfigMain.ERR_UNABLE_TO_OPEN_INPUT, e);
         }
     }
 
-    private void persistFlowJson(VersionedDataflow flow, String flowJsonPath) throws ConfigTransformException {
+    private void persistFlowJson(final VersionedDataflow flow, final String flowJsonPath) throws ConfigTransformException {
         try (OutputStream outputStream = pathOutputStreamFactory.create(flowJsonPath)) {
-            ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
+            final ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
             objectMapper.writeValue(outputStream, flow);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when persisting flow JSON file: " + flowJsonPath,
                     ConfigMain.ERR_UNABLE_TO_SAVE_CONFIG, e);
         }
     }
 
-    private void setDefaultValues(VersionedDataflow versionedDataflow) {
+    private void setDefaultValues(final VersionedDataflow versionedDataflow) {
         versionedDataflow.setMaxTimerDrivenThreadCount(CorePropertiesSchema.DEFAULT_MAX_CONCURRENT_THREADS);
         setDefaultValues(versionedDataflow.getRootGroup());
     }
 
-    private void setDefaultValues(VersionedProcessGroup versionedProcessGroup) {
+    private void setDefaultValues(final VersionedProcessGroup versionedProcessGroup) {
         versionedProcessGroup.getRemoteProcessGroups().forEach(this::setDefaultValues);
         versionedProcessGroup.getProcessGroups().forEach(this::setDefaultValues);
     }
 
-    private void setDefaultValues(VersionedRemoteProcessGroup versionedRemoteProcessGroup) {
+    private void setDefaultValues(final VersionedRemoteProcessGroup versionedRemoteProcessGroup) {
         versionedRemoteProcessGroup.getInputPorts().forEach(this::setDefaultValues);
     }
 
-    private void setDefaultValues(VersionedRemoteGroupPort versionedRemoteGroupPort) {
+    private void setDefaultValues(final VersionedRemoteGroupPort versionedRemoteGroupPort) {
         versionedRemoteGroupPort.setScheduledState(ScheduledState.RUNNING);
     }
 

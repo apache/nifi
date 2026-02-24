@@ -223,7 +223,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                     }
                     return true;
                 } else if (value instanceof Record) {
-                    Record record = (Record) value;
+                    final Record record = (Record) value;
                     final MapDataType mapDataType = (MapDataType) dataType;
                     final DataType valueDataType = mapDataType.getValueType();
 
@@ -303,7 +303,7 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
         return fieldPrefix + "/" + field.getFieldName();
     }
 
-    private String classNameOrNull(Object value) {
+    private String classNameOrNull(final Object value) {
         return value == null ? "null" : value.getClass().getName();
     }
 }

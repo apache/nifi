@@ -142,7 +142,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     @Override
     public ScheduledState getScheduledState() {
-        ScheduledState sc = this.scheduledState.get();
+        final ScheduledState sc = this.scheduledState.get();
         if (sc == ScheduledState.STARTING) {
             final ValidationStatus validationStatus = getValidationStatus();
 

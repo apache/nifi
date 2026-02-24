@@ -47,7 +47,7 @@ public interface ExtensionManager {
      * @param additionalUrls additional URLs to add to the instance class loader
      * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
      */
-    default InstanceClassLoader createInstanceClassLoader(String classType, String instanceIdentifier, Bundle bundle, Set<URL> additionalUrls) {
+    default InstanceClassLoader createInstanceClassLoader(final String classType, final String instanceIdentifier, final Bundle bundle, final Set<URL> additionalUrls) {
         return createInstanceClassLoader(classType, instanceIdentifier, bundle, additionalUrls, true, null);
     }
 

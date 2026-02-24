@@ -64,11 +64,11 @@ public class TestCSVRecordReader {
         return fields;
     }
 
-    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format) throws IOException {
         return createReader(in, schema, format, true);
     }
 
-    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
     }
@@ -858,7 +858,7 @@ public class TestCSVRecordReader {
     @Test
     public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
-        char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
+        final char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
         final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setTrim(true).setQuote('"').setDelimiter(delimiter).get();
         final List<RecordField> fields = getDefaultFields();

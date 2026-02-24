@@ -131,7 +131,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
             return partitionKey;
         }
 
-        public void setPartitionKey(String partitionKey) {
+        public void setPartitionKey(final String partitionKey) {
             this.partitionKey = partitionKey;
         }
 
@@ -139,7 +139,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
             return sortKey;
         }
 
-        public void setSortKey(Long sortKey) {
+        public void setSortKey(final Long sortKey) {
             this.sortKey = sortKey;
         }
 
@@ -147,7 +147,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
             return testString;
         }
 
-        public void setTestString(String testString) {
+        public void setTestString(final String testString) {
             this.testString = testString;
         }
 
@@ -155,7 +155,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
             return testNumber;
         }
 
-        public void setTestNumber(Integer testNumber) {
+        public void setTestNumber(final Integer testNumber) {
             this.testNumber = testNumber;
         }
 
@@ -163,7 +163,7 @@ public class ITPutDynamoDBRecord extends AbstractDynamoDBIT {
             return testList;
         }
 
-        public void setTestList(List<String> testList) {
+        public void setTestList(final List<String> testList) {
             this.testList = testList;
         }
     }

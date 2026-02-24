@@ -167,7 +167,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .build();
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptionName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptionName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptionName)
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -312,7 +312,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("url", SCHEMA_REGISTRY_URLS.getName());
         config.renameProperty("ssl-context", SSL_CONTEXT.getName());
         config.renameProperty("cache-size", CACHE_SIZE.getName());

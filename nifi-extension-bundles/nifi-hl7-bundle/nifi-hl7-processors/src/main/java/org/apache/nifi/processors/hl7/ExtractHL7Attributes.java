@@ -198,7 +198,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("use-segment-names", USE_SEGMENT_NAMES.getName());
         config.renameProperty("parse-segment-fields", PARSE_SEGMENT_FIELDS.getName());
         config.renameProperty("skip-validation", SKIP_VALIDATION.getName());
@@ -283,7 +283,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                 //Some user defined segments (e.g. Z segments) will not have corresponding names returned
                 //from segment.getNames() above. If we encounter one of these, do the next best thing
                 //and return what we otherwise would if we were not in useNames mode.
-                String segmentName = segmentNames[i - 1];
+                final String segmentName = segmentNames[i - 1];
                 if (useNames && StringUtils.isNotBlank(segmentName)) {
                     fieldName = WordUtils.capitalize(segmentName).replaceAll("\\W+", "");
                 } else {
@@ -325,7 +325,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                             }
                         }
                     }
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new RuntimeException(e.getMessage(), e);
                 }
             } else {

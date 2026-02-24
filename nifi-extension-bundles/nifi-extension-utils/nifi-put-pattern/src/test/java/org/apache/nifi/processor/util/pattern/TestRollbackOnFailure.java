@@ -38,7 +38,7 @@ public class TestRollbackOnFailure {
      * @param logger used to log messages within functions
      * @return a composed ExceptionHandler
      */
-    private ExceptionHandler<RollbackOnFailure> getContextAwareExceptionHandler(ComponentLog logger) {
+    private ExceptionHandler<RollbackOnFailure> getContextAwareExceptionHandler(final ComponentLog logger) {
         final ExceptionHandler<RollbackOnFailure> handler = new ExceptionHandler<>();
         handler.mapException(exceptionMapping);
         handler.adjustError(RollbackOnFailure.createAdjustError(logger));
@@ -46,12 +46,12 @@ public class TestRollbackOnFailure {
         return handler;
     }
 
-    private void processInputs(RollbackOnFailure context, Integer[][] inputs, List<Integer> results) {
+    private void processInputs(final RollbackOnFailure context, final Integer[][] inputs, final List<Integer> results) {
         final ExternalProcedure p = new ExternalProcedure();
         final MockComponentLog componentLog = new MockComponentLog("processor-id", this);
         final ExceptionHandler<RollbackOnFailure> handler = getContextAwareExceptionHandler(componentLog);
 
-        for (Integer[] input : inputs) {
+        for (final Integer[] input : inputs) {
 
             if (!handler.execute(context, input, (in) -> {
                 results.add(p.divide(in[0], in[1]));
@@ -70,7 +70,7 @@ public class TestRollbackOnFailure {
         // Disabling rollbackOnFailure would route Failure or Retry as they are.
         final RollbackOnFailure context = new RollbackOnFailure(false, false);
 
-        Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
+        final Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
         assertDoesNotThrow(() -> processInputs(context, inputs, results),
@@ -84,7 +84,7 @@ public class TestRollbackOnFailure {
         final RollbackOnFailure context = new RollbackOnFailure(true, false);
 
         // If the first execution fails without any succeeded inputs, it should throw a ProcessException.
-        Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
+        final Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
         assertThrows(ProcessException.class, () -> processInputs(context, inputs, results));
@@ -98,7 +98,7 @@ public class TestRollbackOnFailure {
 
         // If an execution fails after succeeded inputs, it transfer the input to Failure instead of ProcessException,
         // and keep going. Because the external system does not support transaction.
-        Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
+        final Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
         assertDoesNotThrow(() -> processInputs(context, inputs, results),
@@ -113,7 +113,7 @@ public class TestRollbackOnFailure {
 
         // Even if an execution fails after succeeded inputs, it transfer the input to Failure,
         // because the external system supports transaction.
-        Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
+        final Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
         assertThrows(ProcessException.class, () -> processInputs(context, inputs, results));

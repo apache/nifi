@@ -38,7 +38,7 @@ public class DeprecationNotice {
         return reason;
     }
 
-    public void setReason(String reason) {
+    public void setReason(final String reason) {
         this.reason = reason;
     }
 
@@ -47,7 +47,7 @@ public class DeprecationNotice {
         return alternatives;
     }
 
-    public void setAlternatives(List<String> alternatives) {
+    public void setAlternatives(final List<String> alternatives) {
         this.alternatives = alternatives;
     }
 }

@@ -97,9 +97,9 @@ public class ProcessorAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(org.apache.nifi.controller.ProcessorNode createProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO))")
-    public ProcessorNode createProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public ProcessorNode createProcessorAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the processor state
-        ProcessorNode processor = (ProcessorNode) proceedingJoinPoint.proceed();
+        final ProcessorNode processor = (ProcessorNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the processor action...
         final Action action = generateAuditRecord(processor, Operation.Add);
@@ -125,7 +125,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.controller.ProcessorNode updateProcessor(org.apache.nifi.web.api.dto.ProcessorDTO)) && "
             + "args(processorDTO) && "
             + "target(processorDAO)")
-    public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
+    public ProcessorNode updateProcessorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ProcessorDTO processorDTO, final ProcessorDAO processorDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
@@ -141,18 +141,18 @@ public class ProcessorAuditor extends NiFiAuditor {
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processorDTO);
 
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
 
             // create the processor details
-            FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processor.getComponentType());
 
             // create a processor action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
+            for (final String property : updatedValues.keySet()) {
                 String newValue = updatedValues.get(property);
                 String oldValue = values.get(property);
                 Operation operation = null;
@@ -191,7 +191,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                                 nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpOld = new HashMap<>();
                                 getItemPaths(nList, "" + doc.getNodeName(), xmlDumpOld);
-                                Map<String, Object> xmlDumpSame = new HashMap<>();
+                                final Map<String, Object> xmlDumpSame = new HashMap<>();
                                 xmlDumpNew.forEach((k, v) -> {
                                     if (xmlDumpOld.containsKey(k)) {
                                         xmlDumpSame.put(k, v);
@@ -204,15 +204,15 @@ public class ProcessorAuditor extends NiFiAuditor {
                                 }
                                 );
 
-                                AtomicReference<String> oldReference = new AtomicReference<>("");
-                                AtomicReference<String> newReference = new AtomicReference<>("");
+                                final AtomicReference<String> oldReference = new AtomicReference<>("");
+                                final AtomicReference<String> newReference = new AtomicReference<>("");
 
                                 xmlDumpNew.forEach((k, v) -> newReference.set(newReference.get() + ":" + k + System.lineSeparator()));
                                 xmlDumpOld.forEach((k, v) -> oldReference.set(oldReference.get() + ":" + k + System.lineSeparator()));
                                 newValue = newReference.get();
                                 oldValue = oldReference.get();
 
-                            } catch (Exception ignored) { //Not valid XML, so treat as String, no change
+                            } catch (final Exception ignored) { //Not valid XML, so treat as String, no change
                             }
                         }
                     }
@@ -241,7 +241,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (scheduledState != updatedScheduledState) {
                 // create a processor action
-                FlowChangeAction processorAction = createFlowChangeAction();
+                final FlowChangeAction processorAction = createFlowChangeAction();
                 processorAction.setSourceId(processor.getIdentifier());
                 processorAction.setSourceName(processor.getName());
                 processorAction.setSourceType(Component.Processor);
@@ -287,9 +287,9 @@ public class ProcessorAuditor extends NiFiAuditor {
             + "execution(void deleteProcessor(java.lang.String)) && "
             + "args(processorId) && "
             + "target(processorDAO)")
-    public void removeProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String processorId, ProcessorDAO processorDAO) throws Throwable {
+    public void removeProcessorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String processorId, final ProcessorDAO processorDAO) throws Throwable {
         // get the processor before removing it
-        ProcessorNode processor = processorDAO.getProcessor(processorId);
+        final ProcessorNode processor = processorDAO.getProcessor(processorId);
 
         // remove the processor
         proceedingJoinPoint.proceed();
@@ -311,7 +311,7 @@ public class ProcessorAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(ProcessorNode processor, Operation operation) {
+    public Action generateAuditRecord(final ProcessorNode processor, final Operation operation) {
         return generateAuditRecord(processor, operation, null);
     }
 
@@ -323,12 +323,12 @@ public class ProcessorAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(ProcessorNode processor, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final ProcessorNode processor, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the processor details
-            FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
             processorDetails.setType(processor.getComponentType());
 
             // create the processor action for adding this processor
@@ -358,8 +358,8 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Extracts the values for the configured properties from the specified Processor.
      */
-    private Map<String, String> extractConfiguredPropertyValues(ProcessorNode processor, ProcessorDTO processorDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final ProcessorNode processor, final ProcessorDTO processorDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (processorDTO.getName() != null) {
             values.put(NAME, processor.getName());
@@ -369,7 +369,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             values.put(EXTENSION_VERSION, formatExtensionVersion(processor.getComponentType(), bundle));
         }
         if (processorDTO.getConfig() != null) {
-            ProcessorConfigDTO newConfig = processorDTO.getConfig();
+            final ProcessorConfigDTO newConfig = processorDTO.getConfig();
             if (newConfig.getConcurrentlySchedulableTaskCount() != null) {
                 values.put(CONCURRENTLY_SCHEDULABLE_TASKS, String.valueOf(processor.getMaxConcurrentTasks()));
             }
@@ -402,9 +402,9 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
             if (newConfig.getProperties() != null) {
                 // for each property specified, extract its configured value
-                Map<String, String> properties = newConfig.getProperties();
-                Map<PropertyDescriptor, String> configuredProperties = processor.getRawPropertyValues();
-                for (String propertyName : properties.keySet()) {
+                final Map<String, String> properties = newConfig.getProperties();
+                final Map<PropertyDescriptor, String> configuredProperties = processor.getRawPropertyValues();
+                for (final String propertyName : properties.keySet()) {
                     // build a descriptor for getting the configured value
                     PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();
                     String configuredPropertyValue = configuredProperties.get(propertyDescriptor);
@@ -456,8 +456,8 @@ public class ProcessorAuditor extends NiFiAuditor {
      * @param specDescriptor example property
      * @return property
      */
-    private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
-        for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+    private PropertyDescriptor locatePropertyDescriptor(final Set<PropertyDescriptor> propertyDescriptors, final PropertyDescriptor specDescriptor) {
+        for (final PropertyDescriptor propertyDescriptor : propertyDescriptors) {
             if (propertyDescriptor.equals(specDescriptor)) {
                 return propertyDescriptor;
             }
@@ -471,11 +471,11 @@ public class ProcessorAuditor extends NiFiAuditor {
      * @param path String path to ParentNode
      * @param map  Map of path to node, and node reference
      */
-    private void getItemPaths(NodeList nl, String path, Map<String, Node> map) {
+    private void getItemPaths(final NodeList nl, final String path, final Map<String, Node> map) {
         if (nl != null) {
             for (int i = 0; i < nl.getLength(); i++) {
-                final Node n = nl.item(i);
-                if (n != null) {
+                final Node n;
+                if ((n = nl.item(i)) != null) {
                     if (n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
                         if (n.hasChildNodes()) {
                             if (n.getNodeType() == Node.ELEMENT_NODE) {
@@ -486,7 +486,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                             map.put(path + ":" + n.getNodeName().trim() + ":" + n.getNodeValue(), n);
                         }
                         if (n.hasAttributes()) {
-                            NamedNodeMap na = n.getAttributes();
+                            final NamedNodeMap na = n.getAttributes();
                             for (int j = 0; j < na.getLength(); j++) {
                                 map.put(path + ":" + n.getNodeName() + ":" + na.item(j).getNodeName().trim() + ":" + na.item(j).getNodeValue(), n);
                             }

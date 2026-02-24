@@ -102,7 +102,7 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
 
     @Override
     protected void forEachFieldInRecord(final JsonNode rawRecord, final BiConsumer<String, JsonNode> fieldConsumer) {
-        for (Map.Entry<String, JsonNode> entry : rawRecord.properties()) {
+        for (final Map.Entry<String, JsonNode> entry : rawRecord.properties()) {
             final String fieldName = entry.getKey();
             final JsonNode value = entry.getValue();
 

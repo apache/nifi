@@ -54,7 +54,7 @@ public class HeaderMapExtractorTest {
         assertEquals(expected, actual);
 
         assertEquals(expected.size(), actual.size());
-        for (Map.Entry<String, List<String>> entry : actual.entrySet()) {
+        for (final Map.Entry<String, List<String>> entry : actual.entrySet()) {
             assertTrue(expected.containsKey(entry.getKey()));
             final List<String> actualHeaderValues = entry.getValue();
             final List<String> expectedHeaderValues = expected.get(entry.getKey());

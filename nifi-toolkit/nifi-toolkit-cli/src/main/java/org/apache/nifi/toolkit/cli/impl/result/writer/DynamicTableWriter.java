@@ -62,7 +62,7 @@ public class DynamicTableWriter implements TableWriter {
         // a little clunky way to dynamically create a nice header line, but at least no external dependency
         final Object[] headerLineValues = new Object[numColumns];
         for (int i = 0; i < numColumns; i++) {
-            int length = columnLengths[i];
+            final int length = columnLengths[i];
             headerLineValues[i] =  String.join("", Collections.nCopies(length, "-"));
         }
 
@@ -70,7 +70,7 @@ public class DynamicTableWriter implements TableWriter {
         output.println(headerLine);
 
         // format the rows and print them
-        for (String[] row : rows) {
+        for (final String[] row : rows) {
             // convert the row to an Object[] for the String.format and also abbreviate any values
             final Object[] rowValues = new Object[row.length];
             for (int i = 0; i < row.length; i++) {
@@ -99,7 +99,7 @@ public class DynamicTableWriter implements TableWriter {
             int maxLengthInColumn = -1;
 
             // find the max length of the values in the column
-            for (String[] row : rows) {
+            for (final String[] row : rows) {
                 final String colVal = row[i];
                 if (colVal != null && colVal.length() > maxLengthInColumn) {
                     maxLengthInColumn = colVal.length();

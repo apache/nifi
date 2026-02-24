@@ -163,8 +163,8 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         if (validationContext.getProperty(APP_CONFIG_FILE).isSet() && validationContext.getProperty(APP_CONFIG_JSON).isSet()) {
             validationResults.add(new ValidationResult.Builder()
@@ -196,19 +196,19 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         return boxAPIConnection;
     }
 
-    private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
+    private BoxAPIConnection createBoxApiConnection(final ConfigurationContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         final BoxConfig boxConfig;
         if (context.getProperty(APP_CONFIG_FILE).isSet()) {
-            String appConfigFile = context.getProperty(APP_CONFIG_FILE).evaluateAttributeExpressions().getValue();
+            final String appConfigFile = context.getProperty(APP_CONFIG_FILE).evaluateAttributeExpressions().getValue();
             try (
                 Reader reader = new FileReader(appConfigFile)
             ) {
                 boxConfig = BoxConfig.readFrom(reader);
-            } catch (FileNotFoundException e) {
+            } catch (final FileNotFoundException e) {
                 throw new ProcessException("Couldn't find Box config file", e);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Couldn't read Box config file", e);
             }
         } else {
@@ -251,7 +251,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("box-account-id", ACCOUNT_ID.getName());
         config.renameProperty("app-config-file", APP_CONFIG_FILE.getName());
         config.renameProperty("app-config-json", APP_CONFIG_JSON.getName());

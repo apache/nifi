@@ -42,7 +42,7 @@ public class OrderedProperties extends Properties {
     private final Set<Object> orderedKeys = new LinkedHashSet<>();
 
     @Override
-    public synchronized Object put(Object key, Object value) {
+    public synchronized Object put(final Object key, final Object value) {
         orderedKeys.add(key);
         return super.put(key, value);
     }
@@ -59,23 +59,23 @@ public class OrderedProperties extends Properties {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public synchronized Object setProperty(String key, String value, String textBefore) {
+    public synchronized Object setProperty(final String key, final String value, final String textBefore) {
         textBeforeMap.put(key, textBefore);
         return setProperty(key, value);
     }
 
     @Override
-    public synchronized void store(OutputStream out, String comments) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    public synchronized void store(final OutputStream out, final String comments) throws IOException {
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         super.store(byteArrayOutputStream, comments);
 
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), "8859_1"));
             BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(out, "8859_1"))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                int equalsIndex = line.indexOf('=');
+                final int equalsIndex = line.indexOf('=');
                 if (equalsIndex != -1) {
-                    String textBefore = textBeforeMap.get(line.substring(0, equalsIndex));
+                    final String textBefore = textBeforeMap.get(line.substring(0, equalsIndex));
                     if (StringUtils.isNotBlank(textBefore)) {
                         bufferedWriter.write(textBefore);
                         bufferedWriter.newLine();

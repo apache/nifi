@@ -37,7 +37,7 @@ public class QueueSizeDTO {
         return objectCount;
     }
 
-    public void setObjectCount(int objectCount) {
+    public void setObjectCount(final int objectCount) {
         this.objectCount = objectCount;
     }
 
@@ -50,7 +50,7 @@ public class QueueSizeDTO {
         return byteCount;
     }
 
-    public void setByteCount(long byteCount) {
+    public void setByteCount(final long byteCount) {
         this.byteCount = byteCount;
     }
 }

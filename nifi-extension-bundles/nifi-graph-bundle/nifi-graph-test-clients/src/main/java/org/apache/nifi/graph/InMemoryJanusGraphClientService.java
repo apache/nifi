@@ -38,7 +38,7 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
     private Graph graph;
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         graph = JanusGraphFactory.build().set("storage.backend", "inmemory").open();
     }
 
@@ -55,29 +55,29 @@ public class InMemoryJanusGraphClientService extends AbstractControllerService i
      * in particular.
      */
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback handler) {
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
+    public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback handler) {
+        final ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
         parameters.entrySet().forEach(entry -> engine.put(entry.getKey(), entry.getValue()));
 
         engine.put("graph", graph);
         engine.put("g", graph.traversal());
 
         try {
-            Object response = engine.eval(query);
+            final Object response = engine.eval(query);
 
             if (response instanceof Map) {
-                Map resp = (Map) response;
-                Map<String, Object> result = new HashMap<>();
+                final Map resp = (Map) response;
+                final Map<String, Object> result = new HashMap<>();
                 result.put("result", resp.entrySet().iterator().next());
                 handler.process(result, false);
             } else {
-                Map<String, Object> result = new HashMap<>();
+                final Map<String, Object> result = new HashMap<>();
                 result.put("result", response);
                 handler.process(result, false);
             }
 
             return new HashMap<>();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new ProcessException(ex);
         }
     }

@@ -25,15 +25,15 @@ public class InvalidHL7Exception extends IOException {
     public InvalidHL7Exception() {
     }
 
-    public InvalidHL7Exception(String message, Throwable cause) {
+    public InvalidHL7Exception(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public InvalidHL7Exception(String message) {
+    public InvalidHL7Exception(final String message) {
         super(message);
     }
 
-    public InvalidHL7Exception(Throwable cause) {
+    public InvalidHL7Exception(final Throwable cause) {
         super(cause);
     }
 

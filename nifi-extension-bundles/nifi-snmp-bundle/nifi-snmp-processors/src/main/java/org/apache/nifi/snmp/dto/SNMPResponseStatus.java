@@ -21,7 +21,7 @@ public class SNMPResponseStatus {
     private final String errorMessage;
     private final ErrorStatus errorStatus;
 
-    public SNMPResponseStatus(String errorMessage, ErrorStatus errorStatus) {
+    public SNMPResponseStatus(final String errorMessage, final ErrorStatus errorStatus) {
         this.errorMessage = errorMessage;
         this.errorStatus = errorStatus;
     }

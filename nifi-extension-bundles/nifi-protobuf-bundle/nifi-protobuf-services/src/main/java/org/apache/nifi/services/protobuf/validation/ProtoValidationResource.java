@@ -23,7 +23,7 @@ public class ProtoValidationResource {
     private final String protoDirectory;
     private final Schema protoSchema;
 
-    public ProtoValidationResource(String protoDirectory, Schema protoSchema) {
+    public ProtoValidationResource(final String protoDirectory, final Schema protoSchema) {
         this.protoDirectory = protoDirectory;
         this.protoSchema = protoSchema;
     }

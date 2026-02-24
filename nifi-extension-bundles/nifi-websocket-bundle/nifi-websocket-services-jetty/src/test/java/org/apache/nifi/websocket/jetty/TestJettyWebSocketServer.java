@@ -146,7 +146,7 @@ public class TestJettyWebSocketServer {
         }
 
         @Override
-        public void onWebSocketOpen(Session session) {
+        public void onWebSocketOpen(final Session session) {
             super.onWebSocketOpen(session);
             connected.set(true);
         }

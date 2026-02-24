@@ -76,7 +76,7 @@ class StandardPemCertificateReaderTest {
         secondCertificate = trustStore.getCertificate(secondAlias);
         final String secondCertificateFormatted = getCertificateFormatted(secondCertificate);
 
-        String certificatesCombined = firstCertificateFormatted + LINE_FEED + secondCertificateFormatted;
+        final String certificatesCombined = firstCertificateFormatted + LINE_FEED + secondCertificateFormatted;
         certificatesPem = certificatesCombined.getBytes(StandardCharsets.US_ASCII);
     }
 

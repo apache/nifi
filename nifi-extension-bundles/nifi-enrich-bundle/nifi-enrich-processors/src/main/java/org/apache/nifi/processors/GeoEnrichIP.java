@@ -75,12 +75,12 @@ public class GeoEnrichIP extends AbstractEnrichIP {
 
         try {
             if (isNeedsReload() || getWatcher().checkAndReset()) {
-                Lock dbWriteLock = getDbWriteLock();
+                final Lock dbWriteLock = getDbWriteLock();
                 dbWriteLock.lock();
                 try {
                     loadDatabaseFile();
                     setNeedsReload(false);
-                } catch (InternalError | InvalidDatabaseException ie) {
+                } catch (final InternalError | InvalidDatabaseException ie) {
                     // The database was likely changed out while being read, rollback and try again
                     setNeedsReload(true);
                     session.rollback();
@@ -93,7 +93,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             throw new ProcessException(e.getMessage(), e);
         }
 
-        DatabaseReader dbReader = databaseReaderRef.get();
+        final DatabaseReader dbReader = databaseReaderRef.get();
         final MessageLogLevel logLevel = MessageLogLevel.valueOf(context.getProperty(LOG_LEVEL).evaluateAttributeExpressions(flowFile).getValue().toUpperCase());
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
@@ -119,21 +119,21 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             return;
         }
 
-        StopWatch stopWatch = new StopWatch(true);
+        final StopWatch stopWatch = new StopWatch(true);
         try {
             getDbReadLock().lock();
             response = dbReader.city(inetAddress);
-        } catch (InternalError ie) {
+        } catch (final InternalError ie) {
             // The database was likely changed out while being read, rollback and try again
             setNeedsReload(true);
             session.rollback();
             return;
-        } catch (InvalidDatabaseException idbe) {
+        } catch (final InvalidDatabaseException idbe) {
             getLogger().warn("Failure while trying to load enrichment data for {} due to {}, rolling back session "
                     + "and will reload the database on the next run", flowFile, idbe.getMessage());
             session.rollback();
             return;
-        } catch (AddressNotFoundException anfe) {
+        } catch (final AddressNotFoundException anfe) {
             session.transfer(flowFile, REL_NOT_FOUND);
 
             switch (logLevel) {
@@ -152,7 +152,7 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             }
 
             return;
-        } catch (GeoIp2Exception | IOException ex) {
+        } catch (final GeoIp2Exception | IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
             // Most name or IP resolutions failure should have been triggered in the try loop above but
             // environmental conditions may trigger errors during the second resolution as well.

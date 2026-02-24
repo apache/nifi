@@ -99,7 +99,7 @@ class SalesforceToRecordSchemaConverterTest {
                 new RecordField("longitude", RecordFieldType.STRING.getDataType(), true)
         ));
 
-        RecordSchema expected = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expected = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("ExampleAddress", RecordFieldType.RECORD.getRecordDataType(addressSchema)),
                 new RecordField("ExampleLocation", RecordFieldType.RECORD.getRecordDataType(locationSchema))
         ));

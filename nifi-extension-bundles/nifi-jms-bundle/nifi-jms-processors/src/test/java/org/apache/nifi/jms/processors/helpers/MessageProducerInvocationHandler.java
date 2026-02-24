@@ -34,7 +34,7 @@ final class MessageProducerInvocationHandler implements InvocationHandler {
     private final AtomicInteger closeCalled = new AtomicInteger();
     private final MessageProducer messageProducer;
 
-    public MessageProducerInvocationHandler(MessageProducer messageProducer) {
+    public MessageProducerInvocationHandler(final MessageProducer messageProducer) {
         this.messageProducer = Objects.requireNonNull(messageProducer);
     }
 
@@ -43,7 +43,7 @@ final class MessageProducerInvocationHandler implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
         final Object o = messageProducer.getClass().getMethod(method.getName(), method.getParameterTypes()).invoke(messageProducer, args);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Method {} called on {}", method.getName(), messageProducer);

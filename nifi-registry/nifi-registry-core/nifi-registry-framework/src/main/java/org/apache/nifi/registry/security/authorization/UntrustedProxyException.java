@@ -18,11 +18,11 @@ package org.apache.nifi.registry.security.authorization;
 
 public class UntrustedProxyException extends RuntimeException {
 
-    public UntrustedProxyException(String message) {
+    public UntrustedProxyException(final String message) {
         super(message);
     }
 
-    public UntrustedProxyException(String message, Throwable cause) {
+    public UntrustedProxyException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

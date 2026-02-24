@@ -79,7 +79,7 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
     public void testDuplicateProviders() {
 
         // Mock UserGroupProviderLookup
-        UserGroupProvider configurableUserGroupProvider = getConfigurableUserGroupProvider();
+        final UserGroupProvider configurableUserGroupProvider = getConfigurableUserGroupProvider();
         final UserGroupProviderLookup ugpLookup = mock(UserGroupProviderLookup.class);
         when(ugpLookup.getUserGroupProvider(eq(CONFIGURABLE_USER_GROUP_PROVIDER))).thenReturn(configurableUserGroupProvider);
 
@@ -90,14 +90,14 @@ public class CompositeConfigurableUserGroupProviderTest extends CompositeUserGro
         // Mock AuthorizerConfigurationContext to introduce the duplicate provider ids
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER)).thenReturn(new StandardPropertyValue(CONFIGURABLE_USER_GROUP_PROVIDER, null, ParameterLookup.EMPTY));
-        Map<String, String> configurationContextProperties = new HashMap<>();
+        final Map<String, String> configurationContextProperties = new HashMap<>();
         configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "1", CONFIGURABLE_USER_GROUP_PROVIDER);
         configurationContextProperties.put(PROP_USER_GROUP_PROVIDER_PREFIX + "2", NOT_CONFIGURABLE_USER_GROUP_PROVIDER);
         when(configurationContext.getProperties()).thenReturn(configurationContextProperties);
 
         // configure (should throw exception)
         assertThrows(AuthorizerCreationException.class, () -> {
-            CompositeConfigurableUserGroupProvider provider = new CompositeConfigurableUserGroupProvider();
+            final CompositeConfigurableUserGroupProvider provider = new CompositeConfigurableUserGroupProvider();
             provider.initialize(initializationContext);
             provider.onConfigured(configurationContext);
         });

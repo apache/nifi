@@ -20,7 +20,7 @@ public class FtpCommandException extends Exception {
 
     private final int ftpReturnCode;
 
-    public FtpCommandException(int ftpReturnCode, String basicMessage) {
+    public FtpCommandException(final int ftpReturnCode, final String basicMessage) {
         super(basicMessage);
         this.ftpReturnCode = ftpReturnCode;
     }

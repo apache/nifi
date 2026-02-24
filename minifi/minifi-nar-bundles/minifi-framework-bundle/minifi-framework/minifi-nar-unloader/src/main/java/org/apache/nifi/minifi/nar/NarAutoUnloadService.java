@@ -33,15 +33,15 @@ public class NarAutoUnloadService {
     private final File extensionWorkDirectory;
     private final NarLoader narLoader;
 
-    public NarAutoUnloadService(ExtensionManager extensionManager, File extensionWorkDirectory, NarLoader narLoader) {
+    public NarAutoUnloadService(final ExtensionManager extensionManager, final File extensionWorkDirectory, final NarLoader narLoader) {
         this.extensionManager = extensionManager;
         this.extensionWorkDirectory = extensionWorkDirectory;
         this.narLoader = narLoader;
     }
 
-    public void unloadNarFile(String fileName) {
+    public void unloadNarFile(final String fileName) {
         if (isSupported(fileName)) {
-            File narWorkingDirectory = new File(extensionWorkDirectory, fileName + UNPACKED_POSTFIX);
+            final File narWorkingDirectory = new File(extensionWorkDirectory, fileName + UNPACKED_POSTFIX);
             extensionManager.getAllBundles().stream()
                     .filter(bundle -> bundle.getBundleDetails().getWorkingDirectory().getPath().equals(narWorkingDirectory.getPath()))
                     .findFirst()
@@ -49,7 +49,7 @@ public class NarAutoUnloadService {
         }
     }
 
-    private boolean isSupported(String fileName) {
+    private boolean isSupported(final String fileName) {
         if (!fileName.endsWith(".nar")) {
             LOGGER.info("Skipping non-nar file {}", fileName);
             return false;

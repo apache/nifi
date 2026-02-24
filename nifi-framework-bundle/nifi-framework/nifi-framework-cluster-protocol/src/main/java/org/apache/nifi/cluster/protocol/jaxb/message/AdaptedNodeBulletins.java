@@ -32,7 +32,7 @@ public class AdaptedNodeBulletins {
         return nodeIdentifier;
     }
 
-    public void setNodeIdentifier(NodeIdentifier nodeIdentifier) {
+    public void setNodeIdentifier(final NodeIdentifier nodeIdentifier) {
         this.nodeIdentifier = nodeIdentifier;
     }
 
@@ -40,7 +40,7 @@ public class AdaptedNodeBulletins {
         return payload;
     }
 
-    public void setPayload(byte[] payload) {
+    public void setPayload(final byte[] payload) {
         this.payload = payload;
     }
 

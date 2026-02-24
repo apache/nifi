@@ -42,7 +42,7 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
     }
 
     @Override
-    public void setComponent(LabelDTO component) {
+    public void setComponent(final LabelDTO component) {
         this.component = component;
     }
 
@@ -55,7 +55,7 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
         return dimensions;
     }
 
-    public void setDimensions(DimensionsDTO dimensions) {
+    public void setDimensions(final DimensionsDTO dimensions) {
         this.dimensions = dimensions;
     }
 
@@ -68,7 +68,7 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
         return zIndex;
     }
 
-    public void setzIndex(Long zIndex) {
+    public void setzIndex(final Long zIndex) {
         this.zIndex = zIndex;
     }
 }

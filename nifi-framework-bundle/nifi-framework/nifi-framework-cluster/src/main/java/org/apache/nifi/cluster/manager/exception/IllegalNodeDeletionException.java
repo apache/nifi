@@ -25,15 +25,15 @@ public class IllegalNodeDeletionException extends IllegalClusterStateException {
     public IllegalNodeDeletionException() {
     }
 
-    public IllegalNodeDeletionException(String msg) {
+    public IllegalNodeDeletionException(final String msg) {
         super(msg);
     }
 
-    public IllegalNodeDeletionException(Throwable cause) {
+    public IllegalNodeDeletionException(final Throwable cause) {
         super(cause);
     }
 
-    public IllegalNodeDeletionException(String msg, Throwable cause) {
+    public IllegalNodeDeletionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

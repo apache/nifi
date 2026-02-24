@@ -161,16 +161,16 @@ public class StandardContentViewerController extends HttpServlet {
                     break;
                 }
                 case "yaml": {
-                    Yaml yaml = new Yaml();
+                    final Yaml yaml = new Yaml();
                     // Parse the YAML file
                     final Object yamlObject = yaml.load(downloadableContent.getContent());
-                    DumperOptions options = new DumperOptions();
+                    final DumperOptions options = new DumperOptions();
                     options.setIndent(2);
                     options.setPrettyFlow(true);
 
                     // Fix below - additional configuration
                     options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-                    Yaml output = new Yaml(options);
+                    final Yaml output = new Yaml(options);
                     output.dump(yamlObject, response.getWriter());
                     break;
                 }
@@ -235,7 +235,7 @@ public class StandardContentViewerController extends HttpServlet {
         private boolean hasCharacters(final byte[] bytes) {
             boolean charactersFound = false;
 
-            for (byte currentByte : bytes) {
+            for (final byte currentByte : bytes) {
                 if (currentByte > SPACE) {
                     charactersFound = true;
                     break;

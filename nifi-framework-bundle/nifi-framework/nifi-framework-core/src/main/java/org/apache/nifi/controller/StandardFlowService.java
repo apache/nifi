@@ -409,7 +409,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     final Thread t = new Thread(() -> {
                         try {
                             handleOffloadRequest((OffloadMessage) request);
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             throw new ProtocolException("Could not complete offload request", e);
                         }
                     }, "Offload FlowFiles from Node");
@@ -504,7 +504,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     private void handleConnectionFailure(final Exception ex) {
-        DisconnectionCode disconnectionCode;
+        final DisconnectionCode disconnectionCode;
         if (ex instanceof UninheritableFlowException) {
             disconnectionCode = DisconnectionCode.MISMATCHED_FLOWS;
         } else if (ex instanceof MissingBundleException) {

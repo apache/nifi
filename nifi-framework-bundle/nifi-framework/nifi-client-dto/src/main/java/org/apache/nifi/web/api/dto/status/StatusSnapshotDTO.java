@@ -40,7 +40,7 @@ public class StatusSnapshotDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -53,7 +53,7 @@ public class StatusSnapshotDTO {
         return statusMetrics;
     }
 
-    public void setStatusMetrics(Map<String, Long> statusMetrics) {
+    public void setStatusMetrics(final Map<String, Long> statusMetrics) {
         this.statusMetrics = statusMetrics;
     }
 

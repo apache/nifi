@@ -44,31 +44,31 @@ public class FieldValueLogicalPathBuilder {
         private CharSequence indexLeft = DEFAULT_KEY_INDEX_WRAPPER_LEFT;
         private CharSequence indexRight = DEFAULT_KEY_INDEX_WRAPPER_RIGHT;
 
-        public Builder withPathDelimiter(CharSequence delimiter) {
+        public Builder withPathDelimiter(final CharSequence delimiter) {
             Objects.requireNonNull(delimiter, "delimiter cannot be null");
             this.pathDelimiter = delimiter;
             return this;
         }
 
-        public Builder withMapKeyWrapperLeft(CharSequence left) {
+        public Builder withMapKeyWrapperLeft(final CharSequence left) {
             Objects.requireNonNull(left, "left cannot be null");
             this.keyLeft = left;
             return this;
         }
 
-        public Builder withMapKeyWrapperRight(CharSequence right) {
+        public Builder withMapKeyWrapperRight(final CharSequence right) {
             Objects.requireNonNull(right, "right cannot be null");
             this.keyRight = right;
             return this;
         }
 
-        public Builder withArrayIndexWrapperLeft(CharSequence left) {
+        public Builder withArrayIndexWrapperLeft(final CharSequence left) {
             Objects.requireNonNull(left, "left cannot be null");
             this.indexLeft = left;
             return this;
         }
 
-        public Builder withArrayIndexWrapperRight(CharSequence right) {
+        public Builder withArrayIndexWrapperRight(final CharSequence right) {
             Objects.requireNonNull(right, "right cannot be null");
             this.indexRight = right;
             return this;
@@ -80,9 +80,9 @@ public class FieldValueLogicalPathBuilder {
         }
     }
 
-    private FieldValueLogicalPathBuilder(CharSequence pathDelimiter,
-        CharSequence leftMapKeyWrapper, CharSequence rightMapKeyMapper, CharSequence leftArrayIndexWrapper,
-        CharSequence rightArrayIndexWrapper) {
+    private FieldValueLogicalPathBuilder(final CharSequence pathDelimiter,
+        final CharSequence leftMapKeyWrapper, final CharSequence rightMapKeyMapper, final CharSequence leftArrayIndexWrapper,
+        final CharSequence rightArrayIndexWrapper) {
         this.keyLeft = leftMapKeyWrapper;
         this.keyRight = rightMapKeyMapper;
         this.indexLeft = leftArrayIndexWrapper;
@@ -97,7 +97,7 @@ public class FieldValueLogicalPathBuilder {
      * @param fieldValue the Field Value
      * @return a String with a path
      */
-    public String buildLogicalPath(FieldValue fieldValue) {
+    public String buildLogicalPath(final FieldValue fieldValue) {
         Objects.requireNonNull(fieldValue, "fieldValue cannot be null");
         final List<CharSequence> paths = new ArrayList<>();
         FieldValueWalker.walk(fieldValue, (thisFieldValue) -> {

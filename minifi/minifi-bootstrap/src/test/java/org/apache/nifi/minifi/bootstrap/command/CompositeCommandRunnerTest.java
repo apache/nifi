@@ -52,7 +52,7 @@ class CompositeCommandRunnerTest {
     void testRunCommandShouldExecuteCommandsTillFirstNonSuccessStatusCode() {
         when(startRunner.runCommand(any())).thenReturn(ERROR.getStatusCode());
 
-        int statusCode = compositeCommandRunner.runCommand(new String[0]);
+        final int statusCode = compositeCommandRunner.runCommand(new String[0]);
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verify(startRunner).runCommand(any());
@@ -64,7 +64,7 @@ class CompositeCommandRunnerTest {
         when(startRunner.runCommand(any())).thenReturn(OK.getStatusCode());
         when(stopRunner.runCommand(any())).thenReturn(OK.getStatusCode());
 
-        int statusCode = compositeCommandRunner.runCommand(new String[0]);
+        final int statusCode = compositeCommandRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verify(startRunner).runCommand(any());

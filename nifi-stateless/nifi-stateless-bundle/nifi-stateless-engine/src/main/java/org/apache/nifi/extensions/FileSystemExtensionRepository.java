@@ -83,7 +83,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
         loadExtensions(narFiles);
     }
 
-    private Collection<File> listNarFiles(File extensionDir) {
+    private Collection<File> listNarFiles(final File extensionDir) {
         final File[] narFiles = extensionDir.listFiles(file -> file.getName().endsWith(".nar"));
         if (narFiles == null) {
             logger.warn("Failed to perform listing of extensions directory {}. Will not preload extensions from this directory.", extensionDir.getAbsolutePath());

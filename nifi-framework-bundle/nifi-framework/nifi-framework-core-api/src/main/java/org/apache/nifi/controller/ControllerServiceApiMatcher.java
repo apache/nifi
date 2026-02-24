@@ -34,7 +34,7 @@ public class ControllerServiceApiMatcher {
      * @param serviceImplementation the controller service implementation class
      * @return true if all API methods exists in the implementation with the same name, parameters, and return type
      */
-    public boolean matches(Class<? extends ControllerService> serviceApi, Class<? extends ControllerService> serviceImplementation) {
+    public boolean matches(final Class<? extends ControllerService> serviceApi, final Class<? extends ControllerService> serviceImplementation) {
         for (final Method apiMethod : serviceApi.getMethods()) {
             boolean foundMatchingImplMethod = false;
             for (final Method implMethod : serviceImplementation.getMethods()) {

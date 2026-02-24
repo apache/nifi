@@ -77,10 +77,10 @@ public class TestExcelStartingRowSchemaInference {
     public static void cleanUpAfterAll() {
         final Path tempDir = Path.of(System.getProperty("java.io.tmpdir")).resolve("poifiles");
         try (DirectoryStream<Path> directoryStream = newDirectoryStream(tempDir, "tmp-[0-9]*.xlsx")) {
-            for (Path tmpFile : directoryStream) {
+            for (final Path tmpFile : directoryStream) {
                 Files.deleteIfExists(tmpFile);
             }
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
         }
     }
 
@@ -92,7 +92,7 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testWhereConfiguredStartRowIsEmpty(RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
+    void testWhereConfiguredStartRowIsEmpty(final RowEvaluationStrategy rowEvaluationStrategy) throws IOException {
         final Object[][] singleSheet = {{}, {1, "Manny"}, {2, "Moe"}, {3, "Jack"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
@@ -106,20 +106,20 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testWhereConfiguredStartRowHasEmptyCell(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+    void testWhereConfiguredStartRowHasEmptyCell(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final Object[][] singleSheet = {{"ID", "", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
             final InferSchemaAccessStrategy<?> inferSchemaAccessStrategy = getInferSchemaAccessStrategy(rowEvaluationStrategy);
-            RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
+            final RecordSchema schema = inferSchemaAccessStrategy.getSchema(null, inputStream, null);
             assertEquals(List.of("ID", "column_1", "Middle"), schema.getFieldNames());
         }
     }
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testWhereInferenceRowHasMoreCellsThanFieldNames(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+    void testWhereInferenceRowHasMoreCellsThanFieldNames(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "Manny", "M"}, {2, "Moe", "M", "Extra"}, {3, "Jack", "J"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
@@ -157,7 +157,7 @@ public class TestExcelStartingRowSchemaInference {
 
     @Test
     void testWhereTotalRowsGreaterThanConfiguredInferenceRows() throws Exception {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {1, "One", "O"}, {2, "Two", "T"}, {3, "Three", "T"},
                 {4, "Four", "F"}, {5, "Five", "F"}, {6, "Six", "S"}, {7, "Seven", "S"}, {8, "Eight", "E"},
                 {9, "Nine", "N"}, {10, "Ten", "T"}, {11, "Eleven", "E"}};
 
@@ -171,8 +171,8 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testWhereConfiguredInferenceRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
+    void testWhereConfiguredInferenceRowsAreAllBlank(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {11, "Eleven", "E"}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
@@ -191,8 +191,8 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testWhereRowsAreAllBlank(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
-        Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    void testWhereRowsAreAllBlank(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        final Object[][] singleSheet = {{"ID", "First", "Middle"}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
 
         try (final InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray())) {
@@ -206,12 +206,12 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testAlignedDateColumnsAcrossTwoSheets(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+    void testAlignedDateColumnsAcrossTwoSheets(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
         final String dateColumnName = "Date";
         final Object[] columnNames = {dateColumnName, "Something", "Name"};
         final Object[][] firstSheet =
             {columnNames, {LocalDate.of(2025, 2, 1), "test1", "Sheet1"}, {LocalDate.of(2024, 2, 12), "test2", "Sheet1"}};
-        Object[][] secondSheet =
+        final Object[][] secondSheet =
             {columnNames, {LocalDate.of(1976, 9, 11), "test1", "Sheet2"}, {LocalDate.of(1987, 2, 12), "test2", "Sheet2"}};
         final ByteArrayOutputStream outputStream = createWorkbook(firstSheet, secondSheet);
 
@@ -229,8 +229,8 @@ public class TestExcelStartingRowSchemaInference {
 
     @ParameterizedTest
     @EnumSource(RowEvaluationStrategy.class)
-    void testDuplicateColumnNames(RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
-        Object[][] singleSheet = {{"Frequency", "Intervals", "Frequency", "Name", "Frequency", "Intervals"},
+    void testDuplicateColumnNames(final RowEvaluationStrategy rowEvaluationStrategy) throws Exception {
+        final Object[][] singleSheet = {{"Frequency", "Intervals", "Frequency", "Name", "Frequency", "Intervals"},
                 {6, "0-9", 13, "John", 15, 2}, {4, "10-19", 15, "Sue", 13, 3}};
 
         final ByteArrayOutputStream outputStream = createWorkbook(singleSheet);
@@ -243,31 +243,31 @@ public class TestExcelStartingRowSchemaInference {
         }
     }
 
-    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(RowEvaluationStrategy rowEvaluationStrategy) {
+    private InferSchemaAccessStrategy<?> getInferSchemaAccessStrategy(final RowEvaluationStrategy rowEvaluationStrategy) {
         return new InferSchemaAccessStrategy<>(
                 (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                 new ExcelStartingRowSchemaInference(rowEvaluationStrategy, 1, TIME_VALUE_INFERENCE), logger);
     }
 
-    private static ByteArrayOutputStream createWorkbook(Object[][]... sheetData) throws IOException {
+    private static ByteArrayOutputStream createWorkbook(final Object[][]... sheetData) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            CreationHelper creationHelper = workbook.getCreationHelper();
-            CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
+            final CreationHelper creationHelper = workbook.getCreationHelper();
+            final CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
             dayMonthYearCellStyle.setDataFormat(creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
             int sheetCount = 1;
 
-            for (Object[][] singleSheet : sheetData) {
+            for (final Object[][] singleSheet : sheetData) {
                 final XSSFSheet sheet = workbook.createSheet("Sheet " + sheetCount);
                 int rowCount = 0;
 
-                for (Object[] singleRow : singleSheet) {
-                    Row row = sheet.createRow(rowCount++);
+                for (final Object[] singleRow : singleSheet) {
+                    final Row row = sheet.createRow(rowCount++);
                     int columnCount = 0;
 
-                    for (Object field : singleRow) {
-                        Cell cell = row.createCell(columnCount++);
+                    for (final Object field : singleRow) {
+                        final Cell cell = row.createCell(columnCount++);
                         switch (field) {
                             case String string -> cell.setCellValue(string);
                             case Number number -> cell.setCellValue(number.doubleValue());

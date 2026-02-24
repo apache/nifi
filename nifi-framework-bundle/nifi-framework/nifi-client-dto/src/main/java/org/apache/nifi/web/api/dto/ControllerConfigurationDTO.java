@@ -36,7 +36,7 @@ public class ControllerConfigurationDTO {
         return maxTimerDrivenThreadCount;
     }
 
-    public void setMaxTimerDrivenThreadCount(Integer maxTimerDrivenThreadCount) {
+    public void setMaxTimerDrivenThreadCount(final Integer maxTimerDrivenThreadCount) {
         this.maxTimerDrivenThreadCount = maxTimerDrivenThreadCount;
     }
 

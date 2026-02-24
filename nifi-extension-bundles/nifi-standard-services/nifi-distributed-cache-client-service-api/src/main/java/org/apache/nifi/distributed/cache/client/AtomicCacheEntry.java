@@ -51,7 +51,7 @@ public class AtomicCacheEntry<K, V, R> {
         return value;
     }
 
-    public void setValue(V value) {
+    public void setValue(final V value) {
         this.value = value;
     }
 

@@ -91,7 +91,7 @@ final class ValueLookup implements Map<String, String> {
     }
 
     @Override
-    public boolean containsKey(Object key) {
+    public boolean containsKey(final Object key) {
         if (key == null) {
             return false;
         }
@@ -102,7 +102,7 @@ final class ValueLookup implements Map<String, String> {
     }
 
     @Override
-    public boolean containsValue(Object value) {
+    public boolean containsValue(final Object value) {
         if (value == null) {
             return false;
         }
@@ -112,7 +112,7 @@ final class ValueLookup implements Map<String, String> {
     }
 
     @Override
-    public String get(Object key) {
+    public String get(final Object key) {
         if (key == null) {
             return null;
         }
@@ -127,17 +127,17 @@ final class ValueLookup implements Map<String, String> {
     }
 
     @Override
-    public String put(String key, String value) {
+    public String put(final String key, final String value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public String remove(Object key) {
+    public String remove(final Object key) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends String> m) {
+    public void putAll(final Map<? extends String, ? extends String> m) {
         throw new UnsupportedOperationException();
     }
 

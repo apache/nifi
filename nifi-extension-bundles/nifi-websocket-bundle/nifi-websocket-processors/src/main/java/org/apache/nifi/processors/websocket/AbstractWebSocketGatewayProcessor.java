@@ -118,21 +118,21 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     }
 
     @Override
-    public void connected(WebSocketSessionInfo sessionInfo) {
+    public void connected(final WebSocketSessionInfo sessionInfo) {
         final WebSocketMessage message = new WebSocketConnectedMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         enqueueMessage(message);
     }
 
     @Override
-    public void disconnected(WebSocketSessionInfo sessionInfo) {
+    public void disconnected(final WebSocketSessionInfo sessionInfo) {
         final WebSocketMessage message = new WebSocketDisconnectedMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         enqueueMessage(message);
     }
 
     @Override
-    public void consume(WebSocketSessionInfo sessionInfo, String messageStr) {
+    public void consume(final WebSocketSessionInfo sessionInfo, final String messageStr) {
         final WebSocketMessage message = new WebSocketMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         message.setPayload(messageStr);
@@ -140,7 +140,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
     }
 
     @Override
-    public void consume(WebSocketSessionInfo sessionInfo, byte[] payload, int offset, int length) {
+    public void consume(final WebSocketSessionInfo sessionInfo, final byte[] payload, final int offset, final int length) {
         final WebSocketMessage message = new WebSocketMessage(sessionInfo);
         sessionInfo.setTransitUri(getTransitUri(sessionInfo));
         message.setPayload(payload, offset, length);
@@ -160,7 +160,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                     webSocketClientService.connect(endpointId, flowFile.getAttributes());
                     session.transfer(flowFile, REL_SUCCESS);
                     session.commitAsync();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().error("Websocket connection failure", e);
                     session.transfer(flowFile, REL_FAILURE);
                     session.commitAsync();
@@ -204,7 +204,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             // Deregister processor, so that it won't receive messages anymore.
             webSocketService.deregisterProcessor(endpointId, this);
             webSocketService = null;
-        } catch (WebSocketConfigurationException e) {
+        } catch (final WebSocketConfigurationException e) {
             logger.warn("Failed to deregister processor {} due to: {}", this, e, e);
         }
     }
@@ -226,10 +226,10 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
         context.yield(); //nothing really to do here since handling WebSocket messages is done at ControllerService.
     }
 
-    private void register(ProcessContext context) {
+    private void register(final ProcessContext context) {
         try {
             registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService, context));
-        } catch (IOException | WebSocketConfigurationException e) {
+        } catch (final IOException | WebSocketConfigurationException e) {
             // Deregister processor if it failed so that it can retry next onTrigger.
             deregister();
             context.yield();
@@ -284,7 +284,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             }
             session.commitAsync();
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Unable to fully process input", e);
             session.rollback();
         }

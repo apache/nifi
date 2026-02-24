@@ -72,7 +72,7 @@ public class RecordBinThresholds {
         return fragmentCount;
     }
 
-    public void setFragmentCount(Integer fragmentCount) {
+    public void setFragmentCount(final Integer fragmentCount) {
         this.fragmentCount = fragmentCount;
     }
 }

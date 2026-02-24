@@ -109,7 +109,7 @@ public class CopyS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
 
         config.removeProperty(OBSOLETE_WRITE_USER_LIST);
@@ -126,7 +126,7 @@ public class CopyS3Object extends AbstractS3Processor {
         final S3Client client;
         try {
             client = getClient(context, flowFile.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -204,7 +204,7 @@ public class CopyS3Object extends AbstractS3Processor {
         int partNumber = 1;
         final List<UploadPartCopyResponse> copyResponses = new ArrayList<>();
         while (bytePosition < contentLength) {
-            long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
+            final long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
 
             final UploadPartCopyRequest copyRequest = UploadPartCopyRequest.builder()
                     .sourceBucket(sourceBucket)
@@ -239,7 +239,7 @@ public class CopyS3Object extends AbstractS3Processor {
         doRetryLoop(complete -> client.completeMultipartUpload(completeRequest), completeRequest);
     }
 
-    private void doRetryLoop(Consumer<SdkRequest> consumer, SdkRequest request) {
+    private void doRetryLoop(final Consumer<SdkRequest> consumer, final SdkRequest request) {
         boolean requestComplete = false;
         int retryIndex = 0;
 
@@ -247,7 +247,7 @@ public class CopyS3Object extends AbstractS3Processor {
             try {
                 consumer.accept(request);
                 requestComplete = true;
-            } catch (S3Exception e) {
+            } catch (final S3Exception e) {
                 if (e.statusCode() == 503 && retryIndex < 3) {
                     retryIndex++;
                 } else {

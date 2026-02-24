@@ -40,7 +40,7 @@ public class InterruptableInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(final byte[] b) throws IOException {
         if (interrupted) {
             throw new TransmissionDisabledException();
         }
@@ -49,7 +49,7 @@ public class InterruptableInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         if (interrupted) {
             throw new TransmissionDisabledException();
         }
@@ -76,7 +76,7 @@ public class InterruptableInputStream extends InputStream {
     }
 
     @Override
-    public synchronized void mark(int readlimit) {
+    public synchronized void mark(final int readlimit) {
         if (interrupted) {
             throw new TransmissionDisabledException();
         }
@@ -103,7 +103,7 @@ public class InterruptableInputStream extends InputStream {
     }
 
     @Override
-    public long skip(long n) throws IOException {
+    public long skip(final long n) throws IOException {
         if (interrupted) {
             throw new TransmissionDisabledException();
         }

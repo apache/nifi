@@ -32,7 +32,7 @@ public class OffloadMessage extends ProtocolMessage {
         return nodeId;
     }
 
-    public void setNodeId(NodeIdentifier nodeId) {
+    public void setNodeId(final NodeIdentifier nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -40,7 +40,7 @@ public class OffloadMessage extends ProtocolMessage {
         return explanation;
     }
 
-    public void setExplanation(String explanation) {
+    public void setExplanation(final String explanation) {
         this.explanation = explanation;
     }
 

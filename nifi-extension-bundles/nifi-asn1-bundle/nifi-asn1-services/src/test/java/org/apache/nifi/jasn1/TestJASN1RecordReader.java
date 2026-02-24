@@ -133,7 +133,7 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             final RecordSchema schema = reader.getSchema();
             assertEquals("BasicTypes", schema.getSchemaName().orElse(null));
 
-            Record record1 = reader.nextRecord(true, false);
+            final Record record1 = reader.nextRecord(true, false);
             assertNotNull(record1);
 
             assertEquals(true, record1.getAsBoolean("b"));
@@ -141,7 +141,7 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             assertEquals("0102030405", record1.getValue("octStr"));
             assertEquals("Some UTF-8 String. こんにちは世界。", record1.getValue("utf8Str"));
 
-            Record record2 = reader.nextRecord(true, false);
+            final Record record2 = reader.nextRecord(true, false);
             assertNotNull(record2);
 
             assertEquals(false, record2.getAsBoolean("b"));
@@ -149,7 +149,7 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
             assertEquals("060708090A", record2.getValue("octStr"));
             assertEquals("Another UTF-8 String. こんばんは世界。", record2.getValue("utf8Str"));
 
-            Record record3 = reader.nextRecord(true, false);
+            final Record record3 = reader.nextRecord(true, false);
             assertNull(record3);
         }
     }

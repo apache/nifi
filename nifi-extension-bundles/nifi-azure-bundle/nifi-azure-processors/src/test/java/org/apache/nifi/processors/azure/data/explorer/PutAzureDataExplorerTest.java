@@ -66,7 +66,7 @@ public class PutAzureDataExplorerTest {
         runner.addControllerService(SERVICE_ID, kustoIngestService);
         runner.enableControllerService(kustoIngestService);
         queryResult = new HashMap<>();
-        List<String> row = new ArrayList<>();
+        final List<String> row = new ArrayList<>();
         row.add("test1");
         row.add("test2");
         row.add("test3");

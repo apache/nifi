@@ -58,7 +58,7 @@ public abstract class PeriodicStatusReporter {
         try {
             scheduledExecutorService.shutdown();
             scheduledExecutorService.awaitTermination(termination_wait, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignored) {
+        } catch (final InterruptedException ignored) {
             // Shutting down anyway
         }
     }
@@ -67,7 +67,7 @@ public abstract class PeriodicStatusReporter {
         return period;
     }
 
-    public void setPeriod(int period) {
+    public void setPeriod(final int period) {
         this.period = period;
     }
 
@@ -75,7 +75,7 @@ public abstract class PeriodicStatusReporter {
         return termination_wait;
     }
 
-    public void setTermination_wait(int termination_wait) {
+    public void setTermination_wait(final int termination_wait) {
         this.termination_wait = termination_wait;
     }
 
@@ -84,7 +84,7 @@ public abstract class PeriodicStatusReporter {
      * before start() to ensure all methods are invoked on the same ScheduledExecutorService instance
      * @param scheduledExecutorService the ScheduledExecutorService to set
      */
-    public void setScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
+    public void setScheduledExecutorService(final ScheduledExecutorService scheduledExecutorService) {
         this.scheduledExecutorService = scheduledExecutorService;
     }
 

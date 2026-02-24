@@ -21,7 +21,7 @@ import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class StartsWith extends StringComparisonFilter {
 
-    public StartsWith(RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
+    public StartsWith(final RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
         super(recordPath, searchValuePath);
     }
 

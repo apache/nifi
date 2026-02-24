@@ -77,7 +77,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
     }
 
     @Override
-    protected void doInitialize(AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+    protected void doInitialize(final AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         super.doInitialize(initializationContext);
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
@@ -151,12 +151,12 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
     }
 
     @Override
-    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         throw new UnsupportedOperationException("Fingerprinting is not supported by this provider");
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         throw new UnsupportedOperationException("Fingerprinting is not supported by this provider");
     }
 
@@ -253,7 +253,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(final String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
         Validate.notBlank(resourceIdentifier);
         Objects.requireNonNull(action);
         return AccessPolicyProviderUtils.getAccessPolicy(resourceIdentifier, action, accessPoliciesHolder.get().getPoliciesByResource());

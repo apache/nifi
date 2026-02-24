@@ -43,7 +43,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     protected abstract Port locatePort(final String portId);
 
     @Override
-    public void verifyUpdate(PortDTO portDTO) {
+    public void verifyUpdate(final PortDTO portDTO) {
         final Port port = locatePort(portDTO.getId());
         verifyUpdate(port, portDTO);
     }
@@ -100,7 +100,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     }
 
     private List<String> validateProposedConfiguration(final Port port, final PortDTO portDTO) {
-        List<String> validationErrors = new ArrayList<>();
+        final List<String> validationErrors = new ArrayList<>();
 
         if (isNotNull(portDTO.getName()) && portDTO.getName().isBlank()) {
             validationErrors.add("The name of the port must be specified.");
@@ -125,7 +125,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
 
     @Override
     public void verifyPublicPortUniqueness(final String portId, final String portName) {
-        for (Port port : getPublicPorts()) {
+        for (final Port port : getPublicPorts()) {
             if (portId.equals(port.getIdentifier())) {
                 throw new IllegalStateException("Public port identifier must be unique throughout the flow.");
             } else if (portName.equals(port.getName())) {
@@ -139,7 +139,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     protected abstract void handleStateTransition(final Port port, final ScheduledState proposedScheduledState) throws IllegalStateException;
 
     @Override
-    public Port updatePort(PortDTO portDTO) {
+    public Port updatePort(final PortDTO portDTO) {
         final Port port = locatePort(portDTO.getId());
         final ProcessGroup processGroup = port.getProcessGroup();
 
@@ -154,7 +154,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
             if (!proposedScheduledState.equals(port.getScheduledState())) {
                 try {
                     handleStateTransition(port, proposedScheduledState);
-                } catch (IllegalStateException ise) {
+                } catch (final IllegalStateException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
                 }
             }
@@ -197,7 +197,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 

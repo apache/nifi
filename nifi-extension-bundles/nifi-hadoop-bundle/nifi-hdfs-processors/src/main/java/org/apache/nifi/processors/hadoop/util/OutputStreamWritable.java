@@ -37,24 +37,24 @@ public class OutputStreamWritable implements Writable {
     private final DataOutputStream dos;
     private final boolean writeLength;
 
-    public OutputStreamWritable(OutputStream out, boolean writeLength) {
+    public OutputStreamWritable(final OutputStream out, final boolean writeLength) {
         this.dos = new DataOutputStream(new BufferedOutputStream(out, BUFFER_SIZE));
         this.writeLength = writeLength;
     }
 
     @Override
-    public void write(DataOutput out) throws IOException {
+    public void write(final DataOutput out) throws IOException {
         throw new UnsupportedOperationException("OutputStreamWritable does not implement #write");
     }
 
     @Override
-    public void readFields(DataInput in) throws IOException {
+    public void readFields(final DataInput in) throws IOException {
 
         if (in instanceof DataInputBuffer) {
-            byte[] bytes = ((DataInputBuffer) in).getData();
-            int pos = ((DataInputBuffer) in).getPosition();
-            int length = ((DataInputBuffer) in).getLength();
-            int bytesRemaining = length - pos;
+            final byte[] bytes = ((DataInputBuffer) in).getData();
+            final int pos = ((DataInputBuffer) in).getPosition();
+            final int length = ((DataInputBuffer) in).getLength();
+            final int bytesRemaining = length - pos;
             if (writeLength) {
                 dos.write(bytes, pos, bytesRemaining);
             } else {
@@ -62,13 +62,13 @@ public class OutputStreamWritable implements Writable {
             }
             in.skipBytes(bytesRemaining);
         } else {
-            int length = in.readInt();
+            final int length = in.readInt();
             if (writeLength) {
                 dos.writeInt(length);
             }
             int numRead = 0;
             int toRead = Math.min(BUFFER_SIZE, length);
-            byte[] buffer = new byte[BUFFER_SIZE];
+            final byte[] buffer = new byte[BUFFER_SIZE];
             while (toRead > 0) {
                 in.readFully(buffer, 0, toRead);
                 dos.write(buffer, 0, toRead);

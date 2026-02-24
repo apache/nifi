@@ -38,7 +38,7 @@ public class PortStatusEntity extends Entity implements ReadablePermission {
         return portStatus;
     }
 
-    public void setPortStatus(PortStatusDTO portStatus) {
+    public void setPortStatus(final PortStatusDTO portStatus) {
         this.portStatus = portStatus;
     }
 
@@ -48,7 +48,7 @@ public class PortStatusEntity extends Entity implements ReadablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

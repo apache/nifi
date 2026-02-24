@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class GuidTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testGuidTypeNode() throws IOException {
-        String guid = "a1b2c3d4-e5f6-a7b8-c9da-ebf001121314";
+        final String guid = "a1b2c3d4-e5f6-a7b8-c9da-ebf001121314";
         assertEquals(guid, new GuidTypeNode(testBinaryReaderBuilder.putGuid(guid).build(), chunkHeader, parent, -1).getValue());
     }
 }

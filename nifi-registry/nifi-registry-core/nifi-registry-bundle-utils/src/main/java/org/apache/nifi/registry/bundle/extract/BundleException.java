@@ -21,11 +21,11 @@ package org.apache.nifi.registry.bundle.extract;
  */
 public class BundleException extends RuntimeException {
 
-    public BundleException(String message) {
+    public BundleException(final String message) {
         super(message);
     }
 
-    public BundleException(String message, Throwable cause) {
+    public BundleException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

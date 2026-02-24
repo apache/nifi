@@ -219,7 +219,8 @@ public class UpdateRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
+    protected Record process(final Record recordArg, final FlowFile flowFile, final ProcessContext context, final long count) {
+        Record record = recordArg;
         final boolean evaluateValueAsRecordPath = context.getProperty(REPLACEMENT_VALUE_STRATEGY).getValue().equals(RECORD_PATH_VALUES.getValue());
 
         for (final String recordPathText : recordPaths) {
@@ -276,7 +277,8 @@ public class UpdateRecord extends AbstractRecordProcessor {
         return destinationFields.size() == 1 && destinationFields.getFirst().getParentRecord().isEmpty();
     }
 
-    private Record processRelativePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, Record record) {
+    private Record processRelativePath(final RecordPath replacementRecordPath, final Stream<FieldValue> destinationFields, final Record recordArg) {
+        Record record = recordArg;
         final List<FieldValue> destinationFieldValues = destinationFields.collect(Collectors.toList());
 
         if (isReplacingRoot(destinationFieldValues)) {

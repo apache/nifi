@@ -35,7 +35,7 @@ public class RemoteProcessGroupStatusEndpointMerger extends AbstractSingleEntity
     public static final Pattern REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -45,8 +45,8 @@ public class RemoteProcessGroupStatusEndpointMerger extends AbstractSingleEntity
     }
 
     @Override
-    protected void mergeResponses(RemoteProcessGroupStatusEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupStatusEntity> entityMap, Set<NodeResponse> successfulResponses,
-                                  Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final RemoteProcessGroupStatusEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupStatusEntity> entityMap, final Set<NodeResponse> successfulResponses,
+                                  final Set<NodeResponse> problematicResponses) {
         final RemoteProcessGroupStatusDTO mergedRemoteProcessGroupStatus = clientEntity.getRemoteProcessGroupStatus();
         mergedRemoteProcessGroupStatus.setNodeSnapshots(new ArrayList<>());
 
@@ -78,8 +78,9 @@ public class RemoteProcessGroupStatusEndpointMerger extends AbstractSingleEntity
     }
 
     @Override
-    public void mergeStatus(RemoteProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, RemoteProcessGroupStatusDTO status, boolean statusReadablePermission,
-                            NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final RemoteProcessGroupStatusDTO clientStatus, final boolean clientStatusReadablePermission,
+            final RemoteProcessGroupStatusDTO status, final boolean statusReadablePermission,
+                            final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }

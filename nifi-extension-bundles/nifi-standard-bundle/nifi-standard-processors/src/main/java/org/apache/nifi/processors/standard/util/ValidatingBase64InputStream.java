@@ -28,13 +28,13 @@ import java.util.Arrays;
  */
 public class ValidatingBase64InputStream extends FilterInputStream {
 
-    public ValidatingBase64InputStream(InputStream in) {
+    public ValidatingBase64InputStream(final InputStream in) {
         super(in);
     }
 
     @Override
-    public int read(byte[] b, int offset, int len) throws IOException {
-        int numRead = super.read(b, offset, len);
+    public int read(final byte[] b, final int offset, final int len) throws IOException {
+        final int numRead = super.read(b, offset, len);
         if (numRead > 0) {
             byte[] copy = b;
             if (numRead < b.length) {
@@ -49,8 +49,8 @@ public class ValidatingBase64InputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        int numRead = super.read(b);
+    public int read(final byte[] b) throws IOException {
+        final int numRead = super.read(b);
         if (numRead > 0) {
             byte[] copy = b;
             if (numRead < b.length) {
@@ -66,7 +66,7 @@ public class ValidatingBase64InputStream extends FilterInputStream {
 
     @Override
     public int read() throws IOException {
-        int data = super.read();
+        final int data = super.read();
         if (!Base64.isBase64((byte) data)) {
             throw new IOException("Data is not base64 encoded.");
         }

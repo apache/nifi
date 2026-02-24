@@ -119,7 +119,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     @Override
     public ContentClaim create(final boolean lossTolerant) throws IOException {
         ResourceClaim resourceClaim = writableClaimQueue.poll();
-        long offset;
+        final long offset;
 
         if (resourceClaim == null) {
             resourceClaim = new StandardResourceClaim(resourceClaimManager, CONTAINER, SECTION, String.valueOf(resourceClaimIndex.getAndIncrement()), false);

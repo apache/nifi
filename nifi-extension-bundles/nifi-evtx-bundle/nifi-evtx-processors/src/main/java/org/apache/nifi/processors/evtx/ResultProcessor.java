@@ -29,13 +29,13 @@ public class ResultProcessor {
     private final Relationship failureRelationship;
     public static final String UNABLE_TO_PROCESS_DUE_TO = "Unable to process {} due to {}";
 
-    public ResultProcessor(Relationship successRelationship, Relationship failureRelationship) {
+    public ResultProcessor(final Relationship successRelationship, final Relationship failureRelationship) {
         this.successRelationship = successRelationship;
         this.failureRelationship = failureRelationship;
     }
 
-    public void process(ProcessSession session, ComponentLog logger, FlowFile updated, Exception exception, String name) {
-        updated = session.putAttribute(updated, CoreAttributes.FILENAME.key(), name);
+    public void process(final ProcessSession session, final ComponentLog logger, final FlowFile updatedArg, final Exception exception, final String name) {
+        FlowFile updated = session.putAttribute(updatedArg, CoreAttributes.FILENAME.key(), name);
         updated = session.putAttribute(updated, CoreAttributes.MIME_TYPE.key(), MediaType.APPLICATION_XML_UTF_8.toString());
         if (exception == null) {
             session.transfer(updated, successRelationship);

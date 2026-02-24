@@ -193,7 +193,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     @Override
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         transferType = context.getProperty(TRANSFER_TYPE).getValue();
         maxRetryCount = context.getProperty(RETRY_COUNT).asInteger();
@@ -208,7 +208,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session)  {
+    public void onTrigger(final ProcessContext context, final ProcessSession session)  {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -219,15 +219,15 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         final String dataTableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final TableName tableName = TableName.of(projectId, dataset, dataTableName);
 
-        WriteStream writeStream;
-        Descriptors.Descriptor protoDescriptor;
-        TableSchema tableSchema;
+        final WriteStream writeStream;
+        final Descriptors.Descriptor protoDescriptor;
+        final TableSchema tableSchema;
         try {
             writeStream = createWriteStream(tableName);
             tableSchema = writeStream.getTableSchema();
             protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(tableSchema);
             streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context), ProxyConfiguration.getConfiguration(context));
-        } catch (Descriptors.DescriptorValidationException | IOException e) {
+        } catch (final Descriptors.DescriptorValidationException | IOException e) {
             getLogger().error("Failed to create Big Query Stream Writer for writing", e);
             context.yield();
             session.rollback();
@@ -237,14 +237,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         final boolean skipInvalidRows = context.getProperty(SKIP_INVALID_ROWS).evaluateAttributeExpressions(flowFile).asBoolean();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
-        int recordNumWritten;
+        final int recordNumWritten;
         try {
             try (InputStream in = session.read(flowFile);
                     RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
                 recordNumWritten = writeRecordsToStream(reader, protoDescriptor, skipInvalidRows, tableSchema);
             }
             flowFile = session.putAttribute(flowFile, JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             error.set(e);
         } finally {
             finishProcessing(session, flowFile, streamWriter, writeStream.getName(), tableName.toString());
@@ -252,7 +252,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("bigquery-api-endpoint", BIGQUERY_API_ENDPOINT.getName());
         config.renameProperty("bq.transfer.type", TRANSFER_TYPE.getName());
@@ -261,13 +261,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         config.renameProperty("bq.skip.invalid.rows", SKIP_INVALID_ROWS.getName());
     }
 
-    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor, boolean skipInvalidRows, TableSchema tableSchema) throws Exception {
+    private int writeRecordsToStream(final RecordReader reader, final Descriptors.Descriptor descriptor, final boolean skipInvalidRows, final TableSchema tableSchema) throws Exception {
         Record currentRecord;
         int offset = 0;
         int recordNum = 0;
         ProtoRows.Builder rowsBuilder = ProtoRows.newBuilder();
         while ((currentRecord = reader.nextRecord()) != null) {
-            DynamicMessage message = recordToProtoMessage(currentRecord, descriptor, skipInvalidRows, tableSchema);
+            final DynamicMessage message = recordToProtoMessage(currentRecord, descriptor, skipInvalidRows, tableSchema);
 
             if (message == null) {
                 continue;
@@ -289,12 +289,12 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return recordNum;
     }
 
-    private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor, boolean skipInvalidRows, TableSchema tableSchema) {
-        Map<String, Object> valueMap = convertMapRecord(record.toMap(), tableSchema.getFieldsList());
+    private DynamicMessage recordToProtoMessage(final Record record, final Descriptors.Descriptor descriptor, final boolean skipInvalidRows, final TableSchema tableSchema) {
+        final Map<String, Object> valueMap = convertMapRecord(record.toMap(), tableSchema.getFieldsList());
         DynamicMessage message = null;
         try {
             message = ProtoUtils.createMessage(descriptor, valueMap, tableSchema);
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             getLogger().error("Cannot convert record to message", e);
             if (!skipInvalidRows) {
                 throw e;
@@ -304,18 +304,18 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return message;
     }
 
-    private void append(AppendContext appendContext) throws Exception {
+    private void append(final AppendContext appendContext) throws Exception {
         if (error.get() != null) {
             throw error.get();
         }
 
-        ApiFuture<AppendRowsResponse> future = streamWriter.append(appendContext.getData(), appendContext.getOffset());
+        final ApiFuture<AppendRowsResponse> future = streamWriter.append(appendContext.getData(), appendContext.getOffset());
         ApiFutures.addCallback(future, new AppendCompleteCallback(appendContext), Runnable::run);
 
         inflightRequestCount.register();
     }
 
-    private void finishProcessing(ProcessSession session, FlowFile flowFile, StreamWriter streamWriter, String streamName, String parentTable) {
+    private void finishProcessing(final ProcessSession session, final FlowFile flowFileArg, final StreamWriter streamWriter, final String streamName, final String parentTable) {
         // Wait for all in-flight requests to complete.
         inflightRequestCount.arriveAndAwaitAdvance();
 
@@ -328,36 +328,36 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         // Verify that no error occurred in the stream.
         if (error.get() != null) {
             getLogger().error("Stream processing failed", error.get());
-            flowFile = session.putAttribute(flowFile, JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
-            session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            final FlowFile failedFlowFile = session.putAttribute(flowFileArg, JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
+            session.penalize(failedFlowFile);
+            session.transfer(failedFlowFile, REL_FAILURE);
             error.set(null); // set error to null for next execution
         } else {
             if (isBatch()) {
 
-                BatchCommitWriteStreamsRequest commitRequest =
+                final BatchCommitWriteStreamsRequest commitRequest =
                     BatchCommitWriteStreamsRequest.newBuilder()
                         .setParent(parentTable)
                         .addWriteStreams(streamName)
                         .build();
 
-                BatchCommitWriteStreamsResponse commitResponse = writeClient.batchCommitWriteStreams(commitRequest);
+                final BatchCommitWriteStreamsResponse commitResponse = writeClient.batchCommitWriteStreams(commitRequest);
 
                 // If the response does not have a commit time, it means the commit operation failed.
                 if (!commitResponse.hasCommitTime()) {
-                    for (StorageError err : commitResponse.getStreamErrorsList()) {
+                    for (final StorageError err : commitResponse.getStreamErrorsList()) {
                         getLogger().error("Commit Storage Error Code: {} with message {}", err.getCode().name(), err.getErrorMessage());
                     }
-                    session.penalize(flowFile);
-                    session.transfer(flowFile, REL_FAILURE);
+                    session.penalize(flowFileArg);
+                    session.transfer(flowFileArg, REL_FAILURE);
 
                     return;
                 }
                 getLogger().info("Appended and committed all records successfully.");
             }
 
-            session.getProvenanceReporter().send(flowFile, "bigquery://%s".formatted(parentTable));
-            session.transfer(flowFile, REL_SUCCESS);
+            session.getProvenanceReporter().send(flowFileArg, "bigquery://%s".formatted(parentTable));
+            session.transfer(flowFileArg, REL_SUCCESS);
         }
     }
 
@@ -365,29 +365,29 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
         private final AppendContext appendContext;
 
-        public AppendCompleteCallback(AppendContext appendContext) {
+        public AppendCompleteCallback(final AppendContext appendContext) {
             this.appendContext = appendContext;
         }
 
         @Override
-        public void onSuccess(AppendRowsResponse response) {
+        public void onSuccess(final AppendRowsResponse response) {
             getLogger().info("Append success with offset: {}", appendContext.getOffset());
             appendSuccessCount.incrementAndGet();
             inflightRequestCount.arriveAndDeregister();
         }
 
         @Override
-        public void onFailure(Throwable throwable) {
+        public void onFailure(final Throwable throwable) {
             // If the state is INTERNAL, CANCELLED, or ABORTED, you can retry. For more information,
             // see: https://grpc.github.io/grpc-java/javadoc/io/grpc/StatusRuntimeException.html
-            Status status = Status.fromThrowable(throwable);
+            final Status status = Status.fromThrowable(throwable);
             if (appendContext.getRetryCount() < maxRetryCount && RETRYABLE_ERROR_CODES.contains(status.getCode())) {
                 appendContext.incrementRetryCount();
                 try {
                     append(appendContext);
                     inflightRequestCount.arriveAndDeregister();
                     return;
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().error("Failed to retry append", e);
                 }
             }
@@ -405,7 +405,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                         final String firstError = rowErrors.values().iterator().next();
                         getLogger().error("Failure during appending data. First error: %s".formatted(firstError), throwable);
                     }
-                } catch (Throwable logError) {
+                } catch (final Throwable logError) {
                     getLogger().error("Failure during appending data", throwable);
                 }
             } else {
@@ -416,9 +416,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private WriteStream createWriteStream(TableName tableName) {
-        WriteStream.Type type = isBatch() ? WriteStream.Type.PENDING : WriteStream.Type.COMMITTED;
-        CreateWriteStreamRequest createWriteStreamRequest = CreateWriteStreamRequest.newBuilder()
+    private WriteStream createWriteStream(final TableName tableName) {
+        final WriteStream.Type type = isBatch() ? WriteStream.Type.PENDING : WriteStream.Type.COMMITTED;
+        final CreateWriteStreamRequest createWriteStreamRequest = CreateWriteStreamRequest.newBuilder()
             .setParent(tableName.toString())
             .setWriteStream(WriteStream.newBuilder().setType(type).build())
             .build();
@@ -426,26 +426,27 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return writeClient.createWriteStream(createWriteStreamRequest);
     }
 
-    protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
-        BigQueryWriteClient client;
+    protected BigQueryWriteClient createWriteClient(final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) {
+        final BigQueryWriteClient client;
         try {
-            BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
+            final BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
             builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
             builder.setEndpoint(endpoint);
             builder.setTransportChannelProvider(createTransportChannelProvider(proxyConfiguration));
 
             client = BigQueryWriteClient.create(builder.build());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("Failed to create Big Query Write Client for writing", e);
         }
 
         return client;
     }
 
-    protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) throws IOException {
-        ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
+    protected StreamWriter createStreamWriter(final String streamName, final Descriptors.Descriptor descriptor,
+            final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) throws IOException {
+        final ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
 
-        StreamWriter.Builder builder = StreamWriter.newBuilder(streamName);
+        final StreamWriter.Builder builder = StreamWriter.newBuilder(streamName);
         builder.setWriterSchema(protoSchema);
         builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
         builder.setEndpoint(endpoint);
@@ -454,8 +455,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return builder.build();
     }
 
-    private TransportChannelProvider createTransportChannelProvider(ProxyConfiguration proxyConfiguration) {
-        InstantiatingGrpcChannelProvider.Builder builder = InstantiatingGrpcChannelProvider.newBuilder();
+    private TransportChannelProvider createTransportChannelProvider(final ProxyConfiguration proxyConfiguration) {
+        final InstantiatingGrpcChannelProvider.Builder builder = InstantiatingGrpcChannelProvider.newBuilder();
 
         if (proxyConfiguration != null) {
             if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
@@ -484,7 +485,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         private final long offset;
         private int retryCount;
 
-        AppendContext(ProtoRows data, long offset) {
+        AppendContext(final ProtoRows data, final long offset) {
             this.data = data;
             this.offset = offset;
             this.retryCount = 0;
@@ -507,21 +508,21 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private static Map<String, Object> convertMapRecord(Map<String, Object> map, List<TableFieldSchema> tableFields) {
-        Map<String, Object> result = new HashMap<>();
-        for (String rawKey : map.keySet()) {
-            String key = rawKey.toLowerCase();
-            Object obj = map.get(rawKey);
+    private static Map<String, Object> convertMapRecord(final Map<String, Object> map, final List<TableFieldSchema> tableFields) {
+        final Map<String, Object> result = new HashMap<>();
+        for (final String rawKey : map.keySet()) {
+            final String key = rawKey.toLowerCase();
+            final Object obj = map.get(rawKey);
 
-            TableFieldSchema fieldSchema = findFieldSchema(tableFields, key);
+            final TableFieldSchema fieldSchema = findFieldSchema(tableFields, key);
             if (fieldSchema != null && fieldSchema.getType() == TableFieldSchema.Type.STRUCT) {
                 // Nested RECORD type
                 if (obj instanceof MapRecord) {
                     result.put(key, convertMapRecord(((MapRecord) obj).toMap(), fieldSchema.getFieldsList()));
                     continue;
                 } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
-                    List<Map<String, Object>> list = new ArrayList<>();
-                    for (Object item : (Object[]) obj) {
+                    final List<Map<String, Object>> list = new ArrayList<>();
+                    for (final Object item : (Object[]) obj) {
                         list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema.getFieldsList()));
                     }
                     result.put(key, list);
@@ -529,8 +530,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 }
             } else if (obj instanceof Object[] && ((Object[]) obj).length > 0 && ((Object[]) obj)[0] instanceof MapRecord) {
                 // Repeated RECORDs without proper schema match; best effort
-                List<Map<String, Object>> list = new ArrayList<>();
-                for (Object item : (Object[]) obj) {
+                final List<Map<String, Object>> list = new ArrayList<>();
+                for (final Object item : (Object[]) obj) {
                     list.add(convertMapRecord(((MapRecord) item).toMap(), fieldSchema != null ? fieldSchema.getFieldsList() : List.of()));
                 }
                 result.put(key, list);
@@ -548,8 +549,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                         // fall through to default if not Timestamp
                     case TIME:
                         if (obj instanceof Time) {
-                            LocalTime time = ((Time) obj).toLocalTime();
-                            org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
+                            final LocalTime time = ((Time) obj).toLocalTime();
+                            final org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
                                 time.getHour(),
                                 time.getMinute(),
                                 time.getSecond());
@@ -565,8 +566,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                         // fall through
                     case DATETIME:
                         if (obj instanceof Timestamp) {
-                            LocalDateTime ldt = ((Timestamp) obj).toLocalDateTime();
-                            org.threeten.bp.LocalDateTime civil = org.threeten.bp.LocalDateTime.of(
+                            final LocalDateTime ldt = ((Timestamp) obj).toLocalDateTime();
+                            final org.threeten.bp.LocalDateTime civil = org.threeten.bp.LocalDateTime.of(
                                     ldt.getYear(),
                                     ldt.getMonthValue(),
                                     ldt.getDayOfMonth(),
@@ -587,8 +588,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
                 if (obj instanceof Timestamp) {
                     result.put(key, ((Timestamp) obj).getTime() * 1000);
                 } else if (obj instanceof Time) {
-                    LocalTime time = ((Time) obj).toLocalTime();
-                    org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
+                    final LocalTime time = ((Time) obj).toLocalTime();
+                    final org.threeten.bp.LocalTime localTime = org.threeten.bp.LocalTime.of(
                             time.getHour(),
                             time.getMinute(),
                             time.getSecond());
@@ -604,8 +605,8 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return result;
     }
 
-    private static TableFieldSchema findFieldSchema(List<TableFieldSchema> fields, String keyLower) {
-        for (TableFieldSchema f : fields) {
+    private static TableFieldSchema findFieldSchema(final List<TableFieldSchema> fields, final String keyLower) {
+        for (final TableFieldSchema f : fields) {
             if (f.getName().equalsIgnoreCase(keyLower)) {
                 return f;
             }

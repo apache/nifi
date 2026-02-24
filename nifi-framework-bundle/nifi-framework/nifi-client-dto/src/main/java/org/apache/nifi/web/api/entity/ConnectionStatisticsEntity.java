@@ -38,7 +38,7 @@ public class ConnectionStatisticsEntity extends Entity implements ReadablePermis
         return connectionStatistics;
     }
 
-    public void setConnectionStatistics(ConnectionStatisticsDTO connectionStatistics) {
+    public void setConnectionStatistics(final ConnectionStatisticsDTO connectionStatistics) {
         this.connectionStatistics = connectionStatistics;
     }
 
@@ -48,7 +48,7 @@ public class ConnectionStatisticsEntity extends Entity implements ReadablePermis
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

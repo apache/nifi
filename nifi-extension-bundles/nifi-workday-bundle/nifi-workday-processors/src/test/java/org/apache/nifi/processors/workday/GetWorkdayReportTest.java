@@ -200,10 +200,10 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
         runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
 
-        String urlAttributeKey = "request.url";
+        final String urlAttributeKey = "request.url";
         runner.setProperty(GetWorkdayReport.REPORT_URL, String.format("${%s}", urlAttributeKey));
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(urlAttributeKey, INVALID_URL_PARAM);
 
         runner.enqueue("", attributes);
@@ -212,7 +212,7 @@ class GetWorkdayReportTest {
         runner.assertAllFlowFilesTransferred(FAILURE);
         runner.assertPenalizeCount(1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetWorkdayReport.FAILURE).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetWorkdayReport.FAILURE).getFirst();
         flowFile.assertAttributeEquals(GET_WORKDAY_REPORT_JAVA_EXCEPTION_CLASS, URISyntaxException.class.getSimpleName());
         flowFile.assertAttributeExists(GET_WORKDAY_REPORT_JAVA_EXCEPTION_MESSAGE);
     }
@@ -267,7 +267,7 @@ class GetWorkdayReportTest {
         runner.setProperty(GetWorkdayReport.WORKDAY_USERNAME, USER_NAME);
         runner.setProperty(GetWorkdayReport.WORKDAY_PASSWORD, PASSWORD);
         withWebClientService();
-        String urlAttributeKey = "request.url";
+        final String urlAttributeKey = "request.url";
         runner.setProperty(GetWorkdayReport.REPORT_URL, String.format("${%s}", urlAttributeKey));
 
         runner.run();
@@ -286,7 +286,7 @@ class GetWorkdayReportTest {
         runner.setIncomingConnection(false);
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        String content = "id,name\n1,2";
+        final String content = "id,name\n1,2";
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(200)
                 .body(content)
@@ -300,7 +300,7 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         flowFile.assertAttributeNotExists(RECORD_COUNT);
@@ -315,7 +315,7 @@ class GetWorkdayReportTest {
         runner.setIncomingConnection(true);
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        String content = "id,name\n1,2";
+        final String content = "id,name\n1,2";
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(200)
                 .body(content)
@@ -330,8 +330,8 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ORIGINAL).getFirst();
-        MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ORIGINAL).getFirst();
+        final MockFlowFile responseFlowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         originalFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         originalFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
         responseFlowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
@@ -350,8 +350,8 @@ class GetWorkdayReportTest {
         runner.setIncomingConnection(false);
         runner.setProperty(GetWorkdayReport.REPORT_URL, getMockWebServerUrl());
 
-        String jsonContent = "{\"id\": 1, \"name\": \"test\"}";
-        String csvContent = "id,name\n1,test\n";
+        final String jsonContent = "{\"id\": 1, \"name\": \"test\"}";
+        final String csvContent = "id,name\n1,test\n";
         mockWebServer.enqueue(new MockResponse.Builder()
                 .code(200)
                 .body(jsonContent)
@@ -365,7 +365,7 @@ class GetWorkdayReportTest {
         runner.assertTransferCount(SUCCESS, 1);
         runner.assertTransferCount(FAILURE, 0);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SUCCESS).getFirst();
         flowFile.assertAttributeEquals(STATUS_CODE, OK_STATUS_CODE);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_CSV);
 
@@ -388,11 +388,11 @@ class GetWorkdayReportTest {
 
         runner.run();
 
-        RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
-        String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
+        final String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
         assertNotNull(authorization, "Authorization Header not found");
 
-        Pattern bearerPattern = Pattern.compile("^Bearer \\S+$");
+        final Pattern bearerPattern = Pattern.compile("^Bearer \\S+$");
         assertTrue(bearerPattern.matcher(authorization).matches(), "OAuth bearer not matched");
     }
 
@@ -411,11 +411,11 @@ class GetWorkdayReportTest {
 
         runner.run();
 
-        RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
-        String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
+        final RecordedRequest recordedRequest = mockWebServer.takeRequest(1, TimeUnit.SECONDS);
+        final String authorization = recordedRequest.getHeaders().get(HEADER_AUTHORIZATION);
         assertNotNull(authorization, "Authorization Header not found");
 
-        Pattern basicAuthPattern = Pattern.compile("^Basic \\S+$");
+        final Pattern basicAuthPattern = Pattern.compile("^Basic \\S+$");
         assertTrue(basicAuthPattern.matcher(authorization).matches(), "Basic Authentication not matched");
     }
 
@@ -435,10 +435,10 @@ class GetWorkdayReportTest {
     }
 
     private void withAccessTokenProvider() throws InitializationException {
-        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
-        String accessToken = "access_token";
+        final String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+        final String accessToken = "access_token";
 
-        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
         when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
         when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
 
@@ -448,8 +448,8 @@ class GetWorkdayReportTest {
     }
 
     private void withWebClientService() throws InitializationException {
-        String serviceIdentifier = StandardWebClientServiceProvider.class.getName();
-        WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
+        final String serviceIdentifier = StandardWebClientServiceProvider.class.getName();
+        final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
 
         runner.addControllerService(serviceIdentifier, webClientServiceProvider);
         runner.enableControllerService(webClientServiceProvider);
@@ -457,9 +457,9 @@ class GetWorkdayReportTest {
     }
 
     private void withJsonRecordReader() throws InitializationException {
-        String serviceIdentifier = JsonTreeReader.class.getName();
+        final String serviceIdentifier = JsonTreeReader.class.getName();
 
-        RecordReaderFactory recordReaderFactory = new JsonTreeReader();
+        final RecordReaderFactory recordReaderFactory = new JsonTreeReader();
 
         runner.addControllerService(serviceIdentifier, recordReaderFactory);
 
@@ -468,9 +468,9 @@ class GetWorkdayReportTest {
     }
 
     private void withCsvRecordSetWriter() throws InitializationException {
-        String serviceIdentifier = RecordSetWriterFactory.class.getName();
+        final String serviceIdentifier = RecordSetWriterFactory.class.getName();
 
-        RecordSetWriterFactory recordSetWriterFactory = new CSVRecordSetWriter();
+        final RecordSetWriterFactory recordSetWriterFactory = new CSVRecordSetWriter();
 
         runner.addControllerService(serviceIdentifier, recordSetWriterFactory);
 

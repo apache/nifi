@@ -359,12 +359,12 @@ public class TestGetSplunk {
         int count;
         Service mockService;
 
-        public TestableGetSplunk(Service mockService) {
+        public TestableGetSplunk(final Service mockService) {
             this.mockService = mockService;
         }
 
         @Override
-        protected Service createSplunkService(ProcessContext context) {
+        protected Service createSplunkService(final ProcessContext context) {
             count++;
             return mockService;
         }
@@ -378,12 +378,12 @@ public class TestGetSplunk {
 
         private JobExportArgs expected;
 
-        public JobExportArgsMatcher(JobExportArgs expected) {
+        public JobExportArgsMatcher(final JobExportArgs expected) {
             this.expected = expected;
         }
 
         @Override
-        public boolean matches(JobExportArgs argument) {
+        public boolean matches(final JobExportArgs argument) {
             if (argument == null) {
                 return false;
             }

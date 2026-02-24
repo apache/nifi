@@ -35,7 +35,7 @@ public class ActionDTO implements Comparable<ActionDTO> {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -43,7 +43,7 @@ public class ActionDTO implements Comparable<ActionDTO> {
         return attribute;
     }
 
-    public void setAttribute(String attribute) {
+    public void setAttribute(final String attribute) {
         this.attribute = attribute;
     }
 
@@ -51,12 +51,12 @@ public class ActionDTO implements Comparable<ActionDTO> {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
     @Override
-    public int compareTo(ActionDTO that) {
+    public int compareTo(final ActionDTO that) {
         // including the id in the comparison so that the TreeSet that this
         // is stored in does not discard any entries just because their attributes
         // or values are equal

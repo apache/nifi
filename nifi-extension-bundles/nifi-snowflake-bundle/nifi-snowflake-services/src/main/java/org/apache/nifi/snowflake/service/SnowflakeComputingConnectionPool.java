@@ -200,7 +200,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     );
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("connection-url-format", CONNECTION_URL_FORMAT.getName());
         config.renameProperty("warehouse", SNOWFLAKE_WAREHOUSE.getName());
         config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_LOCATOR_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_LOCATOR.getName());
@@ -302,7 +302,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         try {
             Class.forName(driverName);
             return DriverManager.getDriver(url);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("Snowflake driver unavailable or incompatible connection URL", e);
         }
     }
@@ -374,7 +374,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         return new SnowflakeConnectionWrapper(getConnection());
     }
 
-    private ConnectionUrlFormatParameters getConnectionUrlFormatParameters(ConfigurationContext context) {
+    private ConnectionUrlFormatParameters getConnectionUrlFormatParameters(final ConfigurationContext context) {
         return new ConnectionUrlFormatParameters(
                 context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue(),
                 context.getProperty(SNOWFLAKE_ORGANIZATION_NAME).evaluateAttributeExpressions().getValue(),

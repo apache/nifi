@@ -42,15 +42,15 @@ public class AsnPreprocessorEngine {
     );
 
     public String preprocess(
-            ComponentLog componentLog,
-            String asnFilesString,
-            String outputDirectory
+            final ComponentLog componentLog,
+            final String asnFilesString,
+            final String outputDirectory
     ) {
         final String[] inputFiles = asnFilesString.split(COMMA);
 
         final StringJoiner preprocessedInputFiles = new StringJoiner(",");
 
-        for (String inputFile : inputFiles) {
+        for (final String inputFile : inputFiles) {
             final Path inputFilePath = Paths.get(inputFile);
             final Path fileName = inputFilePath.getFileName();
 
@@ -71,30 +71,30 @@ public class AsnPreprocessorEngine {
         return preprocessedInputFiles.toString();
     }
 
-    List<String> preprocessAsn(List<String> lines) {
+    List<String> preprocessAsn(final List<String> lines) {
         List<String> preprocessedAsn = lines;
 
-        for (AsnPreprocessor preprocessor : getPreprocessors()) {
+        for (final AsnPreprocessor preprocessor : getPreprocessors()) {
             preprocessedAsn = preprocessor.preprocessAsn(preprocessedAsn);
         }
 
         return preprocessedAsn;
     }
 
-    List<String> readAsnLines(ComponentLog componentLog, String inputFile, Path inputFilePath) {
-        List<String> lines;
+    List<String> readAsnLines(final ComponentLog componentLog, final String inputFile, final Path inputFilePath) {
+        final List<String> lines;
         try {
             lines = Files.readAllLines(inputFilePath);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(String.format("Read ASN.1 Schema failed [%s]", inputFile), e);
         }
         return lines;
     }
 
-    void writePreprocessedAsn(ComponentLog componentLog, String preprocessedAsn, Path preprocessedAsnPath) {
+    void writePreprocessedAsn(final ComponentLog componentLog, final String preprocessedAsn, final Path preprocessedAsnPath) {
         try {
             Files.write(preprocessedAsnPath, preprocessedAsn.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(String.format("Write ASN.1 Schema failed [%s]", preprocessedAsnPath), e);
         }
     }

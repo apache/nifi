@@ -43,7 +43,7 @@ public interface ProxyConfigurationService extends ControllerService {
     ProxyConfiguration getConfiguration();
 
     @Override
-    default void migrateProperties(PropertyConfiguration config) {
+    default void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
     }
 }

@@ -30,7 +30,7 @@ public class LogGenerator {
     private final int numLogs;
     private final String delimiter;
 
-    public LogGenerator(int numLogs, String delimiter) {
+    public LogGenerator(final int numLogs, final String delimiter) {
         this.numLogs = numLogs;
         this.delimiter = delimiter;
     }
@@ -53,7 +53,7 @@ public class LogGenerator {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         if (args == null || args.length != 3) {
             System.err.println("USAGE: LogGenerator <num_logs> <delimiter> <file>");
             System.exit(1);

@@ -248,7 +248,7 @@ public class PythonProcess {
             commands.add("-S");
         }
 
-        StringBuilder pythonPath = new StringBuilder(pythonApiDirectory.getAbsolutePath());
+        final StringBuilder pythonPath = new StringBuilder(pythonApiDirectory.getAbsolutePath());
         final String absolutePath = virtualEnvHome.getAbsolutePath();
         pythonPath.append(File.pathSeparator).append(absolutePath);
 

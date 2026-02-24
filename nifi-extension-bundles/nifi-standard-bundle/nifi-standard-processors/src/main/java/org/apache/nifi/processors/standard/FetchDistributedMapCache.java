@@ -160,14 +160,14 @@ public class FetchDistributedMapCache extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        PropertyValue cacheEntryIdentifier = validationContext.getProperty(CACHE_ENTRY_IDENTIFIER);
+        final PropertyValue cacheEntryIdentifier = validationContext.getProperty(CACHE_ENTRY_IDENTIFIER);
         boolean elPresent = false;
         try {
             elPresent = cacheEntryIdentifier.isExpressionLanguagePresent();
-        } catch (NullPointerException ignored) {
+        } catch (final NullPointerException ignored) {
             // Unfortunate workaround to a mock framework bug (NIFI-4590)
         }
 
@@ -178,7 +178,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             results.add(new ValidationResult.Builder().valid(true).explanation("Contains Expression Language").build());
         } else {
             if (!validationContext.getProperty(FetchDistributedMapCache.PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet()) {
-                String identifierString = cacheEntryIdentifier.getValue();
+                final String identifierString = cacheEntryIdentifier.getValue();
                 if (identifierString.contains(",")) {
                     results.add(new ValidationResult.Builder().valid(false)
                             .explanation("Multiple Cache Entry Identifiers specified without Put Cache Value In Attribute set").build());
@@ -204,7 +204,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-        List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).toList();
+        final List<String> cacheKeys = Arrays.stream(cacheKey.split(",")).filter(path -> !StringUtils.isEmpty(path)).map(String::trim).toList();
         for (int i = 0; i < cacheKeys.size(); i++) {
             if (StringUtils.isBlank(cacheKeys.get(i))) {
                 // Log first missing identifier, route to failure, and return
@@ -227,7 +227,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                 cacheValues = cache.subMap(new HashSet<>(cacheKeys), keySerializer, valueDeserializer);
             }
             boolean notFound = false;
-            for (Map.Entry<String, byte[]> cacheValueEntry : cacheValues.entrySet()) {
+            for (final Map.Entry<String, byte[]> cacheValueEntry : cacheValues.entrySet()) {
                 final byte[] cacheValue = cacheValueEntry.getValue();
 
                 if (cacheValue == null) {
@@ -235,7 +235,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                     notFound = true;
                     break;
                 } else {
-                    boolean putInAttribute = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet();
+                    final boolean putInAttribute = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).isSet();
                     if (putInAttribute) {
                         String attributeName = context.getProperty(PUT_CACHE_VALUE_IN_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
                         if (!singleKey) {
@@ -244,7 +244,7 @@ public class FetchDistributedMapCache extends AbstractProcessor {
                         }
                         String attributeValue = new String(cacheValue, context.getProperty(CHARACTER_SET).getValue());
 
-                        int maxLength = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
+                        final int maxLength = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
                         if (maxLength < attributeValue.length()) {
                             attributeValue = attributeValue.substring(0, maxLength);
                         }

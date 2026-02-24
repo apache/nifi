@@ -35,8 +35,8 @@ import org.springframework.jms.core.MessageCreator;
 public class ConsumeJMSManualTest {
     @Test
     public void testTextMessage() {
-        MessageCreator messageCreator = session -> {
-            TextMessage message = session.createTextMessage("textMessageContent");
+        final MessageCreator messageCreator = session -> {
+            final TextMessage message = session.createTextMessage("textMessageContent");
 
             return message;
         };
@@ -46,8 +46,8 @@ public class ConsumeJMSManualTest {
 
     @Test
     public void testBytesMessage() {
-        MessageCreator messageCreator = session -> {
-            BytesMessage message = session.createBytesMessage();
+        final MessageCreator messageCreator = session -> {
+            final BytesMessage message = session.createBytesMessage();
 
             message.writeBytes("bytesMessageContent".getBytes());
 
@@ -59,8 +59,8 @@ public class ConsumeJMSManualTest {
 
     @Test
     public void testObjectMessage() {
-        MessageCreator messageCreator = session -> {
-            ObjectMessage message = session.createObjectMessage();
+        final MessageCreator messageCreator = session -> {
+            final ObjectMessage message = session.createObjectMessage();
 
             message.setObject("stringAsObject");
 
@@ -72,8 +72,8 @@ public class ConsumeJMSManualTest {
 
     @Test
     public void testStreamMessage() {
-        MessageCreator messageCreator = session -> {
-            StreamMessage message = session.createStreamMessage();
+        final MessageCreator messageCreator = session -> {
+            final StreamMessage message = session.createStreamMessage();
 
             message.writeBoolean(true);
             message.writeByte(Integer.valueOf(1).byteValue());
@@ -95,8 +95,8 @@ public class ConsumeJMSManualTest {
 
     @Test
     public void testMapMessage() {
-        MessageCreator messageCreator = session -> {
-            MapMessage message = session.createMapMessage();
+        final MessageCreator messageCreator = session -> {
+            final MapMessage message = session.createMapMessage();
 
             message.setBoolean("boolean", true);
             message.setByte("byte", Integer.valueOf(1).byteValue());
@@ -118,18 +118,18 @@ public class ConsumeJMSManualTest {
 
     @Test
     public void testUnsupportedMessage() {
-        MessageCreator messageCreator = session -> new ActiveMQMessage();
+        final MessageCreator messageCreator = session -> new ActiveMQMessage();
 
         send(messageCreator);
     }
 
-    private void send(MessageCreator messageCreator) {
+    private void send(final MessageCreator messageCreator) {
         final String destinationName = "TEST";
 
-        ConnectionFactory activeMqConnectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        final ConnectionFactory activeMqConnectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
         final ConnectionFactory connectionFactory = new CachingConnectionFactory(activeMqConnectionFactory);
 
-        JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+        final JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
         jmsTemplate.setPubSubDomain(false);
         jmsTemplate.setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
         jmsTemplate.setReceiveTimeout(10L);

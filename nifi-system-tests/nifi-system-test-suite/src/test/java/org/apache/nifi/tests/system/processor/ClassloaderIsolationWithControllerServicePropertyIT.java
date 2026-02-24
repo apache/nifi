@@ -92,12 +92,12 @@ public class ClassloaderIsolationWithControllerServicePropertyIT extends NiFiSys
         assertNotEquals(classloaderInstance1, classloaderInstance3);
     }
 
-    private void stopProcessorAndEmptyQueue(ProcessorEntity processor, ConnectionEntity connection) throws NiFiClientException, IOException, InterruptedException {
+    private void stopProcessorAndEmptyQueue(final ProcessorEntity processor, final ConnectionEntity connection) throws NiFiClientException, IOException, InterruptedException {
         getClientUtil().stopProcessor(processor);
         getClientUtil().emptyQueue(connection.getId());
     }
 
-    private void startProcessor(ProcessorEntity processor, ConnectionEntity connection) throws InterruptedException, IOException, NiFiClientException {
+    private void startProcessor(final ProcessorEntity processor, final ConnectionEntity connection) throws InterruptedException, IOException, NiFiClientException {
         getClientUtil().waitForValidProcessor(processor.getId());
         getClientUtil().startProcessor(processor);
         waitForQueueCount(connection.getId(), 1);

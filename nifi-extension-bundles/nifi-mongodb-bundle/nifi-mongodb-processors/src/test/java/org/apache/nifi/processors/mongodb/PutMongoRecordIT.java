@@ -72,7 +72,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     }
 
     private TestRunner init() throws Exception {
-        TestRunner runner = init(PutMongoRecord.class);
+        final TestRunner runner = init(PutMongoRecord.class);
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
@@ -81,11 +81,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testValidators() throws Exception {
-        TestRunner runner = init(PutMongoRecord.class);
+        final TestRunner runner = init(PutMongoRecord.class);
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         Collection<ValidationResult> results;
-        ProcessContext pc;
+        final ProcessContext pc;
 
         runner.removeProperty(PutMongoRecord.DATABASE_NAME);
         runner.removeProperty(PutMongoRecord.COLLECTION_NAME);
@@ -98,7 +98,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(3, results.size());
-        Iterator<ValidationResult> it = results.iterator();
+        final Iterator<ValidationResult> it = results.iterator();
         assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
@@ -106,7 +106,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertFlatRecords() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
@@ -131,7 +131,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         /*
          * Test it with the client service.
          */
-        MongoDBClientService clientService = new MongoDBControllerService();
+        final MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(PutMongoRecord.CLIENT_SERVICE, "clientService");
@@ -147,7 +147,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testInsertNestedRecords() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
         recordReader.addSchemaField("id", RecordFieldType.INT);
         final List<RecordField> personFields = new ArrayList<>();
         final RecordField nameField = new RecordField("name", RecordFieldType.STRING.getDataType());
@@ -164,7 +164,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
                 47, "sport", "Tennis")));
         recordReader.addRecord(3, new MapRecord(personSchema, Map.of("name", "Sally Doe",
                 "age", 47, "sport", "Curling")));
-        Map<String, Object> mapWithNullValue = new HashMap<>();
+        final Map<String, Object> mapWithNullValue = new HashMap<>();
         mapWithNullValue.put("name", "Jimmy Doe");
         mapWithNullValue.put("age", 14);
         mapWithNullValue.put("sport", null);
@@ -180,13 +180,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testArrayConversion() throws Exception {
-        TestRunner runner = init(PutMongoRecord.class);
-        MockSchemaRegistry registry = new MockSchemaRegistry();
-        String rawSchema = "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}," +
+        final TestRunner runner = init(PutMongoRecord.class);
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        final String rawSchema = "{\"type\":\"record\",\"name\":\"Test\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}," +
                 "{\"name\":\"arrayTest\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}";
-        RecordSchema schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(rawSchema));
+        final RecordSchema schema = AvroTypeUtil.createSchema(new Schema.Parser().parse(rawSchema));
         registry.addSchema("test", schema);
-        JsonTreeReader reader = new JsonTreeReader();
+        final JsonTreeReader reader = new JsonTreeReader();
         runner.addControllerService("registry", registry);
         runner.addControllerService("reader", reader);
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
@@ -195,7 +195,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.enableControllerService(reader);
         runner.assertValid();
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "test");
 
         runner.enqueue("{\"name\":\"John Smith\",\"arrayTest\":[\"a\",\"b\",\"c\"]}", attrs);
@@ -207,7 +207,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpsertAsInsert() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
 
@@ -219,14 +219,14 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 List.of(
                         new Object[]{1, new MapRecord(personSchema, Map.of("name", "name1", "age", 21))},
                         new Object[]{2, new MapRecord(personSchema, Map.of("name", "name2", "age", 22))}
                 )
         );
 
-        Set<Map<String, Object>> expected = Set.of(
+        final Set<Map<String, Object>> expected = Set.of(
             Map.of("id", 1, "person", new Document(Map.of("name", "name1", "age", 21))),
             Map.of("id", 2, "person", new Document(Map.of("name", "name2", "age", 22))));
 
@@ -235,7 +235,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpsertAsUpdate() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
 
@@ -247,7 +247,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = Arrays.asList(
+        final List<List<Object[]>> inputs = Arrays.asList(
             Arrays.asList(
                 new Object[]{1, new MapRecord(personSchema, Map.of("name", "updating_name1", "age", "age1".length()))},
                 new Object[]{2, new MapRecord(personSchema, Map.of("name", "name2", "age", "updating_age2".length()))}
@@ -258,7 +258,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
+        final Set<Map<String, Object>> expected = new HashSet<>(Arrays.asList(
             Map.of("id", 1, "person", new Document(Map.of("name", "updated_name1", "age", "age1".length()))),
             Map.of("id", 2, "person", new Document(Map.of("name", "name2", "age", "updated_age2".length())))));
 
@@ -267,7 +267,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpsertAsInsertAndUpdate() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
 
@@ -279,7 +279,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = Arrays.asList(
+        final List<List<Object[]>> inputs = Arrays.asList(
             Collections.singletonList(
                 new Object[]{1, new MapRecord(personSchema, Map.of("name", "updating_name1", "age", "updating_age1".length()))}
             ),
@@ -289,7 +289,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        Set<Map<String, Object>> expected = Set.of(
+        final Set<Map<String, Object>> expected = Set.of(
             Map.of("id", 1, "person", new Document(Map.of("name", "updated_name1", "age", "updated_age1".length()))),
             Map.of("id", 2, "person", new Document(Map.of("name", "inserted_name2", "age", "inserted_age2".length()))));
 
@@ -298,7 +298,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testRouteToFailureWhenKeyFieldDoesNotExist() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,non_existent_field");
 
@@ -310,7 +310,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 Collections.singletonList(
                         new Object[]{1, new MapRecord(personSchema, Map.of("name", "unimportant", "age", "unimportant".length()))}
                 )
@@ -321,13 +321,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpdateMany() throws Exception {
-        TestRunner initRunner = init();
+        final TestRunner initRunner = init();
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<Object[]> init = Arrays.asList(
+        final List<Object[]> init = Arrays.asList(
             new Object[]{"Joe", "A", "green"},
             new Object[]{"Jane", "A", "green"},
             new Object[]{"Jeff", "B", "blue"},
@@ -341,7 +341,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         // Update Mongo data
         setup();
-        TestRunner updateRunner = init();
+        final TestRunner updateRunner = init();
 
         updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
         updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_MANY.getValue());
@@ -349,14 +349,14 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 Arrays.asList(
                         new Object[]{"A", "yellow"},
                         new Object[]{"B", "red"}
                 )
         );
 
-        Set<Map<String, Object>> expected = Set.of(
+        final Set<Map<String, Object>> expected = Set.of(
             Map.of("name", "Joe", "team", "A", "color", "yellow"),
             Map.of("name", "Jane", "team", "A", "color", "yellow"),
             Map.of("name", "Jeff", "team", "B", "color", "red"),
@@ -367,13 +367,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpdateModeFFAttributeSetToMany() throws Exception {
-        TestRunner initRunner = init();
+        final TestRunner initRunner = init();
 
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<Object[]> init = Arrays.asList(
+        final List<Object[]> init = Arrays.asList(
             new Object[]{"Joe", "A", "green"},
             new Object[]{"Jane", "A", "green"},
             new Object[]{"Jeff", "B", "blue"},
@@ -387,7 +387,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         // Update Mongo data
         setup();
-        TestRunner updateRunner = init();
+        final TestRunner updateRunner = init();
 
         updateRunner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
         updateRunner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_FF_ATTRIBUTE.getValue());
@@ -395,14 +395,14 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 Arrays.asList(
                         new Object[]{"A", "yellow"},
                         new Object[]{"B", "red"}
                 )
         );
 
-        Set<Map<String, Object>> expected = Set.of(
+        final Set<Map<String, Object>> expected = Set.of(
             Map.of("name", "Joe", "team", "A", "color", "yellow"),
             Map.of("name", "Jane", "team", "A", "color", "yellow"),
             Map.of("name", "Jeff", "team", "B", "color", "red"),
@@ -411,7 +411,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
-            MockFlowFile flowFile = new MockFlowFile(1);
+            final MockFlowFile flowFile = new MockFlowFile(1);
             flowFile.putAttributes(Map.of(AbstractMongoProcessor.ATTRIBUTE_MONGODB_UPDATE_MODE, "many"));
             updateRunner.enqueue(flowFile);
             updateRunner.run();
@@ -421,8 +421,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         updateRunner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
 
-        Set<Map<String, Object>> actual = new HashSet<>();
-        for (Document document : collection.find()) {
+        final Set<Map<String, Object>> actual = new HashSet<>();
+        for (final Document document : collection.find()) {
             actual.add(document.entrySet().stream()
                 .filter(key__value -> !key__value.getKey().equals("_id"))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
@@ -433,7 +433,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testRouteToFailureWhenUpdateModeFFAttributeSetToInvalid() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "team");
         runner.setProperty(PutMongoRecord.UPDATE_MODE, UpdateMethod.UPDATE_FF_ATTRIBUTE.getValue());
@@ -441,7 +441,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 Arrays.asList(
                         new Object[]{"A", "yellow"},
                         new Object[]{"B", "red"}
@@ -453,7 +453,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testRouteToFailureWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
-        TestRunner runner = init();
+        final TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,id.is_not_an_embedded_document");
 
@@ -465,14 +465,14 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             new RecordField("age", RecordFieldType.INT.getDataType())
         ));
 
-        List<List<Object[]>> inputs = List.of(
+        final List<List<Object[]>> inputs = List.of(
                 Collections.singletonList(
                         new Object[]{1, new MapRecord(personSchema, Map.of("name", "unimportant", "age", "unimportant".length()))}));
 
         testUpsertFailure(runner, inputs);
     }
 
-    private void testUpsertSuccess(TestRunner runner, List<List<Object[]>> inputs, Set<Map<String, Object>> expected) {
+    private void testUpsertSuccess(final TestRunner runner, final List<List<Object[]>> inputs, final Set<Map<String, Object>> expected) {
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
@@ -484,8 +484,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
 
-        Set<Map<String, Object>> actual = new HashSet<>();
-        for (Document document : collection.find()) {
+        final Set<Map<String, Object>> actual = new HashSet<>();
+        for (final Document document : collection.find()) {
             actual.add(document.entrySet().stream()
                 .filter(key__value -> !key__value.getKey().equals("_id"))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
@@ -494,8 +494,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         assertEquals(expected, actual);
     }
 
-    private void testUpsertFailure(TestRunner runner, List<List<Object[]>> inputs) {
-        Set<Object> expected = Collections.emptySet();
+    private void testUpsertFailure(final TestRunner runner, final List<List<Object[]>> inputs) {
+        final Set<Object> expected = Collections.emptySet();
 
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
@@ -508,8 +508,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_FAILURE, inputs.size());
 
-        Set<Map<String, Object>> actual = new HashSet<>();
-        for (Document document : collection.find()) {
+        final Set<Map<String, Object>> actual = new HashSet<>();
+        for (final Document document : collection.find()) {
             actual.add(document.entrySet().stream()
                 .filter(key__value -> !key__value.getKey().equals("_id"))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));

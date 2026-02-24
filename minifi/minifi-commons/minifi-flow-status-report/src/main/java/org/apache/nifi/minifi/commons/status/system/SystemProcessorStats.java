@@ -26,7 +26,7 @@ public class SystemProcessorStats implements java.io.Serializable {
         return loadAverage;
     }
 
-    public void setLoadAverage(double loadAverage) {
+    public void setLoadAverage(final double loadAverage) {
         this.loadAverage = loadAverage;
     }
 
@@ -34,12 +34,12 @@ public class SystemProcessorStats implements java.io.Serializable {
         return availableProcessors;
     }
 
-    public void setAvailableProcessors(int availableProcessors) {
+    public void setAvailableProcessors(final int availableProcessors) {
         this.availableProcessors = availableProcessors;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -47,7 +47,7 @@ public class SystemProcessorStats implements java.io.Serializable {
             return false;
         }
 
-        SystemProcessorStats that = (SystemProcessorStats) o;
+        final SystemProcessorStats that = (SystemProcessorStats) o;
 
         if (Double.compare(that.getLoadAverage(), getLoadAverage()) != 0) {
             return false;
@@ -59,7 +59,7 @@ public class SystemProcessorStats implements java.io.Serializable {
     @Override
     public int hashCode() {
         int result;
-        long temp;
+        final long temp;
         temp = Double.doubleToLongBits(getLoadAverage());
         result = (int) (temp ^ (temp >>> 32));
         result = 31 * result + getAvailableProcessors();

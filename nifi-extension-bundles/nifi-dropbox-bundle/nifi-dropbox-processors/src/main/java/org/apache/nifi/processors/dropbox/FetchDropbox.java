@@ -131,7 +131,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -143,28 +143,28 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         FlowFile outFlowFile = flowFile;
         final long startNanos = System.nanoTime();
         try {
-            FileMetadata fileMetadata = fetchFile(fileIdentifier, session, outFlowFile);
+            final FileMetadata fileMetadata = fetchFile(fileIdentifier, session, outFlowFile);
 
             final Map<String, String> attributes = createAttributeMap(fileMetadata);
             outFlowFile = session.putAllAttributes(outFlowFile, attributes);
-            String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
+            final String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
 
             session.transfer(outFlowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             handleError(session, flowFile, fileIdentifier, e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
         config.renameProperty("file", FILE.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
-    private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
+    private FileMetadata fetchFile(final String fileId, final ProcessSession session, final FlowFile outFlowFile) throws DbxException {
         try (DbxDownloader<FileMetadata> downloader = dropboxApiClient.files().download(fileId)) {
             final InputStream dropboxInputStream = downloader.getInputStream();
             session.importFrom(dropboxInputStream, outFlowFile);
@@ -172,14 +172,14 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private void handleError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
+    private void handleError(final ProcessSession session, final FlowFile flowFile, final String fileId, final Exception e) {
         getLogger().error("Error while fetching and processing file with id '{}'", fileId, e);
         final FlowFile outFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         session.penalize(outFlowFile);
         session.transfer(outFlowFile, REL_FAILURE);
     }
 
-    private String correctFilePath(String folderName) {
+    private String correctFilePath(final String folderName) {
         return folderName.startsWith("//") ? folderName.replaceFirst("//", "/") : folderName;
     }
 }

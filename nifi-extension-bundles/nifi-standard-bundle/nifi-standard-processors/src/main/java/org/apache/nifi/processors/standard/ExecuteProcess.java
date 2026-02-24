@@ -297,7 +297,7 @@ public class ExecuteProcess extends AbstractProcessor {
             getLogger().error("Failed to read data from Process, so will not generate FlowFile");
         } else {
             // add command, arguments, and MIME type as attributes
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(ATTRIBUTE_COMMAND, command);
             if (arguments != null) {
                 attributes.put(ATTRIBUTE_COMMAND_ARGS, arguments);
@@ -315,7 +315,7 @@ public class ExecuteProcess extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Output MIME type", MIME_TYPE.getName());
     }
 
@@ -415,10 +415,10 @@ public class ExecuteProcess extends AbstractProcessor {
                 try {
                     // Since we are going to exit anyway, one sec gives it an extra chance to exit gracefully.
                     // In the future consider exposing it via configuration.
-                    boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
-                    int exitCode = terminated ? externalProcess.exitValue() : -9999;
+                    final boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
+                    final int exitCode = terminated ? externalProcess.exitValue() : -9999;
                     getLogger().info("Process finished with exit code {} ", exitCode);
-                } catch (InterruptedException e1) {
+                } catch (final InterruptedException e1) {
                     Thread.currentThread().interrupt();
                 }
             }

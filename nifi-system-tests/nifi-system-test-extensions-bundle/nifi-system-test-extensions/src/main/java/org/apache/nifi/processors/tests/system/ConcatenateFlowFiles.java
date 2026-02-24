@@ -86,7 +86,7 @@ public class ConcatenateFlowFiles extends AbstractSessionFactoryProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession pollSession = sessionFactory.createSession();
-        FlowFile flowFile = pollSession.get();
+        final FlowFile flowFile = pollSession.get();
         if (flowFile == null) {
             return;
         }
@@ -99,7 +99,7 @@ public class ConcatenateFlowFiles extends AbstractSessionFactoryProcessor {
         flowFiles.add(flowFile);
 
         if (flowFiles.size() == flowFileCount) {
-            FlowFile merged = mergeSession.create(flowFiles);
+            final FlowFile merged = mergeSession.create(flowFiles);
             try (final OutputStream out = mergeSession.write(merged)) {
                 for (final FlowFile input : flowFiles) {
                     try (final InputStream in = mergeSession.read(input)) {

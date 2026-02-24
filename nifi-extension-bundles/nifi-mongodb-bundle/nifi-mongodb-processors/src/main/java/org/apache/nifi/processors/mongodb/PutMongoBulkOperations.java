@@ -132,8 +132,8 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
                 updateItems = arrayCodec.decode(new JsonReader(reader), decoderContext);
             }
 
-            List<WriteModel<Document>> updateModels = new ArrayList<>();
-            for (Object item : updateItems) {
+            final List<WriteModel<Document>> updateModels = new ArrayList<>();
+            for (final Object item : updateItems) {
                 final BsonDocument updateItem = (BsonDocument) item;
                 if (updateItem.keySet().size() != 1) {
                     getLogger().error("Invalid bulk-update in {}: more than one type given {}", flowFile, String.join(", ", updateItem.keySet()));
@@ -156,7 +156,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
 
             session.getProvenanceReporter().send(flowFile, getURI(context));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to bulk-update {} into MongoDB", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
@@ -191,18 +191,18 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         return writeModel;
     }
 
-    private static String getUpdateType(BsonDocument updateItem) {
+    private static String getUpdateType(final BsonDocument updateItem) {
         return updateItem.keySet().iterator().next();
     }
 
-    private static Document toBsonDocument(BsonDocument doc) {
+    private static Document toBsonDocument(final BsonDocument doc) {
         if (null == doc) {
             return null;
         }
         return new Document(doc);
     }
 
-    protected UpdateOptions parseUpdateOptions(BsonDocument updateSpec) {
+    protected UpdateOptions parseUpdateOptions(final BsonDocument updateSpec) {
         final UpdateOptions options = new UpdateOptions();
         if (updateSpec.containsKey("upsert")) {
             options.upsert(updateSpec.getBoolean("upsert").getValue());
@@ -216,7 +216,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         return options;
     }
 
-    protected ReplaceOptions parseReplaceOptions(BsonDocument updateSpec) {
+    protected ReplaceOptions parseReplaceOptions(final BsonDocument updateSpec) {
         final ReplaceOptions options = new ReplaceOptions();
         if (updateSpec.containsKey("upsert")) {
             options.upsert(updateSpec.getBoolean("upsert").getValue());
@@ -227,7 +227,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         return options;
     }
 
-    protected DeleteOptions parseDeleteOptions(BsonDocument updateSpec) {
+    protected DeleteOptions parseDeleteOptions(final BsonDocument updateSpec) {
         final DeleteOptions options = new DeleteOptions();
         if (updateSpec.containsKey("collation")) {
             options.collation(parseCollation((BsonDocument) updateSpec.get("collation")));
@@ -235,7 +235,7 @@ public class PutMongoBulkOperations extends AbstractMongoProcessor {
         return options;
     }
 
-    protected Collation parseCollation(BsonDocument collationSpec) {
+    protected Collation parseCollation(final BsonDocument collationSpec) {
         final Collation.Builder builder = Collation.builder();
         if (collationSpec.containsKey("locale")) {
             builder.locale(collationSpec.getString("locale").getValue());

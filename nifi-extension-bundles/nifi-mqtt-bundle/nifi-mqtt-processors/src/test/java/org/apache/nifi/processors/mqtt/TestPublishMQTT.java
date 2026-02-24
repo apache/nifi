@@ -253,7 +253,7 @@ public class TestPublishMQTT {
         verifyPublishedMessage(testInput.get(0).toString().getBytes(), 2, false);
         verifyNoMorePublished();
 
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile failedFlowFile = flowFiles.getFirst();
@@ -394,7 +394,7 @@ public class TestPublishMQTT {
         verifyPublishedMessage(testInput.getFirst().getBytes(), 2, false);
         verifyNoMorePublished();
 
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile failedFlowFile = flowFiles.getFirst();
@@ -476,7 +476,7 @@ public class TestPublishMQTT {
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
     }
 
-    private void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {
+    private void verifyPublishedMessage(final byte[] payload, final int qos, final boolean retain) {
         final Pair<String, StandardMqttMessage> lastPublished = mqttTestClient.getLastPublished();
         final String lastPublishedTopic = lastPublished.getLeft();
         final StandardMqttMessage lastPublishedMessage = lastPublished.getRight();
@@ -501,7 +501,7 @@ public class TestPublishMQTT {
         return event;
     }
 
-    private void assertProvenanceEvent(String expectedDetails) {
+    private void assertProvenanceEvent(final String expectedDetails) {
         final ProvenanceEventRecord event = assertProvenanceEvent();
         assertEquals(expectedDetails, event.getDetails());
     }
@@ -529,7 +529,7 @@ public class TestPublishMQTT {
         return Arrays.asList("message1", "message2", "message3");
     }
 
-    private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {
+    private TestRunner initializeTestRunner(final MqttTestClient mqttTestClient) {
         final TestRunner testRunner = TestRunners.newTestRunner(new PublishMQTT() {
             @Override
             protected MqttClient createMqttClient() {

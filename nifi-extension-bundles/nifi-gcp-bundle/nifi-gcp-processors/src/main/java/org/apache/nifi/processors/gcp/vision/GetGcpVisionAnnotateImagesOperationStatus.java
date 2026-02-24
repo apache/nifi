@@ -35,7 +35,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 })
 public class GetGcpVisionAnnotateImagesOperationStatus extends AbstractGetGcpVisionAnnotateOperationStatus {
     @Override
-    protected Message deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException {
+    protected Message deserializeResponse(final ByteString responseValue) throws InvalidProtocolBufferException {
         return AsyncBatchAnnotateImagesResponse.parseFrom(responseValue);
     }
 }

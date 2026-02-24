@@ -35,7 +35,7 @@ public class ProcessorsEntity extends Entity {
         return processors;
     }
 
-    public void setProcessors(Set<ProcessorEntity> processors) {
+    public void setProcessors(final Set<ProcessorEntity> processors) {
         this.processors = processors;
     }
 

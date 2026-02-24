@@ -60,7 +60,7 @@ public class RecordPathFunction {
             } else if (record instanceof Map) {
                 return eval((Map<?, ?>) record, recordPath, transform);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);
         }
 

@@ -60,7 +60,7 @@ public class DummyScheduledReportingTask extends AbstractReportingTask {
     }
 
     @Override
-    public void onTrigger(ReportingContext context) {
+    public void onTrigger(final ReportingContext context) {
 
     }
 }

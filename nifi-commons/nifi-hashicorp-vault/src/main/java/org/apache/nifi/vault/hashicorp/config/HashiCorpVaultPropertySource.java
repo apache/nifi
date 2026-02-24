@@ -48,7 +48,7 @@ public class HashiCorpVaultPropertySource extends PropertySource<HashiCorpVaultP
      * @param springPropertyKey A Spring Vault property key
      * @return Property Key
      */
-    private String getPropertyKey(String springPropertyKey) {
+    private String getPropertyKey(final String springPropertyKey) {
         final Matcher m = DASH_LETTER_PATTERN.matcher(springPropertyKey);
         final StringBuffer result = new StringBuffer();
         while (m.find()) {

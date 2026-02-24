@@ -98,7 +98,7 @@ public class WriteFlowFileCountToFile extends AbstractProcessor implements Class
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -120,7 +120,7 @@ public class WriteFlowFileCountToFile extends AbstractProcessor implements Class
         final File file = new File(context.getProperty(FILE_TO_WRITE).getValue());
         try (final OutputStream fos = new FileOutputStream(file)) {
             fos.write(fileContents);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 

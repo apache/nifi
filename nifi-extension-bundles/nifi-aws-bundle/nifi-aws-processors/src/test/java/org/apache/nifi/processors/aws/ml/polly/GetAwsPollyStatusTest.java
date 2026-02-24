@@ -73,7 +73,7 @@ public class GetAwsPollyStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        GetAwsPollyJobStatus processor = new GetAwsPollyJobStatus() {
+        final GetAwsPollyJobStatus processor = new GetAwsPollyJobStatus() {
             @Override
             public PollyClient getClient(final ProcessContext context) {
                 return mockPollyClient;
@@ -84,7 +84,7 @@ public class GetAwsPollyStatusTest {
 
     @Test
     public void testPollyTaskInProgress() {
-        GetSpeechSynthesisTaskResponse response = GetSpeechSynthesisTaskResponse.builder()
+        final GetSpeechSynthesisTaskResponse response = GetSpeechSynthesisTaskResponse.builder()
                 .synthesisTask(SynthesisTask.builder().taskId(TEST_TASK_ID).taskStatus(TaskStatus.IN_PROGRESS).build())
                 .build();
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(response);

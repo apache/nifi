@@ -26,11 +26,11 @@ public class ColumnDefinition {
     private int type;
     private String name = "";
 
-    public ColumnDefinition(int type) {
+    public ColumnDefinition(final int type) {
         this.type = type;
     }
 
-    public ColumnDefinition(int type, String name) {
+    public ColumnDefinition(final int type, final String name) {
         this(type);
         this.name = name;
     }
@@ -39,7 +39,7 @@ public class ColumnDefinition {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(final int type) {
         this.type = type;
     }
 
@@ -47,12 +47,12 @@ public class ColumnDefinition {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -60,7 +60,7 @@ public class ColumnDefinition {
             return false;
         }
 
-        ColumnDefinition that = (ColumnDefinition) o;
+        final ColumnDefinition that = (ColumnDefinition) o;
 
         return new EqualsBuilder()
                 .append(type, that.type)

@@ -30,7 +30,7 @@ public class VersionedFlowEntity extends Entity {
         return versionedFlow;
     }
 
-    public void setVersionedFlow(VersionedFlowDTO versionedFlow) {
+    public void setVersionedFlow(final VersionedFlowDTO versionedFlow) {
         this.versionedFlow = versionedFlow;
     }
 }

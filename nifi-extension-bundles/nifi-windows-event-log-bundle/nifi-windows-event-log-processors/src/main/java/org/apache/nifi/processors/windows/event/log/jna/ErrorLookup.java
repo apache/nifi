@@ -29,19 +29,19 @@ import java.util.Arrays;
 public class ErrorLookup {
     private final Kernel32 kernel32;
 
-    public ErrorLookup(Kernel32 kernel32) {
+    public ErrorLookup(final Kernel32 kernel32) {
         this.kernel32 = kernel32;
     }
 
     public String getLastError() {
-        int lastError = kernel32.GetLastError();
+        final int lastError = kernel32.GetLastError();
         return Arrays.stream(WinError.class.getDeclaredFields()).filter(field -> {
             try {
                 return Modifier.isStatic(field.getModifiers())
                         && field.getType() == int.class
                         && field.getName().startsWith("ERROR")
                         && (int) field.get(null) == lastError;
-            } catch (IllegalAccessException e) {
+            } catch (final IllegalAccessException e) {
                 return false;
             }
         }).map(field -> field.getName() + "(" + lastError + ")")

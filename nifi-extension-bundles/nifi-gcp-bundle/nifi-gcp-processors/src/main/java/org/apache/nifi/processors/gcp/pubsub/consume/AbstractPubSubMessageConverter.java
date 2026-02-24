@@ -70,10 +70,10 @@ public abstract class AbstractPubSubMessageConverter implements PubSubMessageCon
             final Map<RecordSchema, RecordGroup> recordGroups = new HashMap<>();
             final Map<String, String> attributes = new HashMap<>();
 
-            for (ReceivedMessage message : messages) {
+            for (final ReceivedMessage message : messages) {
 
                 if (message.hasMessage()) {
-                    byte[] payload = message.getMessage().getData().toByteArray();
+                    final byte[] payload = message.getMessage().getData().toByteArray();
                     try (final InputStream in = new ByteArrayInputStream(payload);
                             final RecordReader valueRecordReader = readerFactory.createRecordReader(attributes, in, payload.length, logger)) {
 
@@ -91,7 +91,7 @@ public abstract class AbstractPubSubMessageConverter implements PubSubMessageCon
                                     final RecordSetWriter writer = writerFactory.createWriter(logger, writeSchema, out, attributes);
                                     writer.beginRecordSet();
                                     return new RecordGroup(flowFile, writer);
-                                } catch (Exception e) {
+                                } catch (final Exception e) {
                                     session.remove(flowFile);
                                     throw new ProcessException("Failed to create RecordSetWriter", e);
                                 }
@@ -143,7 +143,7 @@ public abstract class AbstractPubSubMessageConverter implements PubSubMessageCon
         ackIds.add(message.getAckId());
     }
 
-    private void finishRecordGroups(ProcessSession session, Map<RecordSchema, RecordGroup> recordGroups, String subscriptionName) {
+    private void finishRecordGroups(final ProcessSession session, final Map<RecordSchema, RecordGroup> recordGroups, final String subscriptionName) {
         for (final RecordGroup recordGroup : recordGroups.values()) {
             final Map<String, String> newAttributes;
             final int recordCount;
@@ -154,7 +154,7 @@ public abstract class AbstractPubSubMessageConverter implements PubSubMessageCon
                 newAttributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                 newAttributes.put(SUBSCRIPTION_NAME_ATTRIBUTE, subscriptionName);
                 recordCount = writeResult.getRecordCount();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Failed to finish writing records", e);
             }
 

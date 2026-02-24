@@ -31,17 +31,17 @@ import java.util.Set;
 public class MockProcessContext implements ProcessContext {
 
     @Override
-    public PropertyValue getProperty(PropertyDescriptor descriptor) {
+    public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return null;
     }
 
     @Override
-    public PropertyValue getProperty(String propertyName) {
+    public PropertyValue getProperty(final String propertyName) {
         return null;
     }
 
     @Override
-    public PropertyValue newPropertyValue(String rawValue) {
+    public PropertyValue newPropertyValue(final String rawValue) {
         return null;
     }
 
@@ -101,12 +101,12 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
-    public boolean hasConnection(Relationship relationship) {
+    public boolean hasConnection(final Relationship relationship) {
         return false;
     }
 
     @Override
-    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+    public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
         return false;
     }
 
@@ -126,7 +126,7 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
-    public boolean isRelationshipRetried(Relationship relationshipName) {
+    public boolean isRelationshipRetried(final Relationship relationshipName) {
         return false;
     }
 

@@ -398,15 +398,15 @@ public class TestListenHTTP {
 
     @Test
     public void testMaxThreadPoolSizeSpecifiedInThePropertyIsSetInTheServerInstance() {
-        int maxThreadPoolSize = 201;
+        final int maxThreadPoolSize = 201;
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, Integer.toString(maxThreadPoolSize));
 
         startWebServer();
 
-        Server server = proc.getServer();
-        ThreadPool threadPool = server.getThreadPool();
-        ThreadPool.SizedThreadPool sizedThreadPool = (ThreadPool.SizedThreadPool) threadPool;
+        final Server server = proc.getServer();
+        final ThreadPool threadPool = server.getThreadPool();
+        final ThreadPool.SizedThreadPool sizedThreadPool = (ThreadPool.SizedThreadPool) threadPool;
         assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
     }
 
@@ -435,7 +435,7 @@ public class TestListenHTTP {
                         """;
 
         startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false, HTTP_POST);
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
         runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
         mockFlowFiles.getFirst().assertContentEquals(expectedMessage);
@@ -570,7 +570,7 @@ public class TestListenHTTP {
         return startWebServer();
     }
 
-    private int sendMessage(final String message, final boolean secure, final int port, final String basePath, boolean clientAuthRequired, final String httpMethod) throws IOException {
+    private int sendMessage(final String message, final boolean secure, final int port, final String basePath, final boolean clientAuthRequired, final String httpMethod) throws IOException {
         final byte[] bytes = message == null ? new byte[]{} : message.getBytes(StandardCharsets.UTF_8);
         final RequestBody requestBody = RequestBody.create(bytes, APPLICATION_OCTET_STREAM);
         final String url = buildUrl(secure, port, basePath);
@@ -600,11 +600,11 @@ public class TestListenHTTP {
         return builder.build();
     }
 
-    private String buildUrl(final boolean secure, final int port, String basePath) {
+    private String buildUrl(final boolean secure, final int port, final String basePath) {
         return String.format("%s://localhost:%s/%s", secure ? "https" : "http", port, basePath);
     }
 
-    private void testPOSTRequestsReceived(int returnCode, boolean secure, boolean twoWaySsl) throws Exception {
+    private void testPOSTRequestsReceived(final int returnCode, final boolean secure, final boolean twoWaySsl) throws Exception {
         final List<String> messages = new ArrayList<>();
         messages.add("payload 1");
         messages.add("");
@@ -613,7 +613,7 @@ public class TestListenHTTP {
 
         startWebServerAndSendMessages(messages, returnCode, secure, twoWaySsl, HTTP_POST);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
         if (returnCode < 400) { // Only if we actually expect success
             runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
@@ -724,7 +724,7 @@ public class TestListenHTTP {
         }
 
         runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
-        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
         // Part fragments are not processed in the order we submitted them.
         // We cannot rely on the order we sent them in.
         MockFlowFile mff = findFlowFile(flowFilesForRelationship, "p1");
@@ -780,18 +780,18 @@ public class TestListenHTTP {
     public void testLargeHTTPRequestHeader() throws Exception {
         runner.setProperty(ListenHTTP.REQUEST_HEADER_MAX_SIZE, "16 KB");
 
-        String largeHeaderValue = "A".repeat(9 * 1024);
+        final String largeHeaderValue = "A".repeat(9 * 1024);
 
         final int port = startWebServer();
-        OkHttpClient client = getOkHttpClient(false, false);
+        final OkHttpClient client = getOkHttpClient(false, false);
         final String url = buildUrl(false, port, HTTP_BASE_PATH);
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Large-Header", largeHeaderValue)
                 .method("HEAD", null)
                 .build();
         try (Response response = client.newCall(request).execute()) {
-            int responseCode = response.code();
+            final int responseCode = response.code();
             assertEquals(200, responseCode, "Expected 200 response code with large header.");
         }
     }
@@ -815,9 +815,9 @@ public class TestListenHTTP {
 
         IntStream.rangeClosed(0, 1).forEach(i -> {
             try (ByteArrayInputStream content = new ByteArrayInputStream(data)) {
-                Map<String, String> attributes = Map.of(CoreAttributes.FILENAME.key(), "file" + i);
+                final Map<String, String> attributes = Map.of(CoreAttributes.FILENAME.key(), "file" + i);
                 packager.packageFlowFile(content, baos, attributes, data.length);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 fail();
             }
         });
@@ -847,12 +847,12 @@ public class TestListenHTTP {
     }
 
     private byte[] generateRandomBinaryData() {
-        byte[] bytes = new byte[100];
+        final byte[] bytes = new byte[100];
         new Random().nextBytes(bytes);
         return bytes;
     }
 
-    private File createTextFile(String... lines) throws IOException {
+    private File createTextFile(final String... lines) throws IOException {
         final File textFile = Files.createTempFile(TestListenHTTP.class.getSimpleName(), ".txt").toFile();
         textFile.deleteOnExit();
 

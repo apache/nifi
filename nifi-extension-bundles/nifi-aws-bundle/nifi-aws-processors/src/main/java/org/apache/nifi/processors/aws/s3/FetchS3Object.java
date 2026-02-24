@@ -292,12 +292,12 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
 
-        AmazonS3EncryptionService encryptionService = validationContext.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+        final AmazonS3EncryptionService encryptionService = validationContext.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         if (encryptionService != null) {
-            String strategyName = encryptionService.getStrategyName();
+            final String strategyName = encryptionService.getStrategyName();
             if (strategyName.equals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3) || strategyName.equals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS)) {
                 problems.add(new ValidationResult.Builder()
                         .subject(ENCRYPTION_SERVICE.getDisplayName())
@@ -313,7 +313,7 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, verificationLogger, attributes));
 
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
@@ -352,7 +352,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final S3Client client;
         try {
             client = getClient(context, flowFile.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -466,7 +466,7 @@ public class FetchS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("requester-pays", REQUESTER_PAYS.getName());
         config.renameProperty("range-start", RANGE_START.getName());
@@ -530,7 +530,7 @@ public class FetchS3Object extends AbstractS3Processor {
         return requestBuilder.build();
     }
 
-    protected void setFilePathAttributes(Map<String, String> attributes, String filePathName) {
+    protected void setFilePathAttributes(final Map<String, String> attributes, final String filePathName) {
         final int lastSlash = filePathName.lastIndexOf("/");
         if (lastSlash > -1 && lastSlash < filePathName.length() - 1) {
             attributes.put(CoreAttributes.PATH.key(), filePathName.substring(0, lastSlash));

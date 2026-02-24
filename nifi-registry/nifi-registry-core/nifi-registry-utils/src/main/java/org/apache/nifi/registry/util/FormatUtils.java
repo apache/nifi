@@ -201,12 +201,12 @@ public class FormatUtils {
         }
 
         // The units are now guaranteed to be in DAYS or smaller
-        long durationLong;
+        final long durationLong;
         if (durationVal == Math.rint(durationVal)) {
             durationLong = Math.round(durationVal);
         } else {
             // Try reducing the size of the units to make the input a long
-            List wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
+            final List wholeResults = makeWholeNumberTime(durationVal, specifiedTimeUnit);
             durationLong = (long) wholeResults.get(0);
             specifiedTimeUnit = (TimeUnit) wholeResults.get(1);
         }
@@ -233,22 +233,17 @@ public class FormatUtils {
      * @param timeUnit the current time unit
      * @return the time duration as a whole number ({@code long}) and the smaller time unit used
      */
-    protected static List<Object> makeWholeNumberTime(double decimal, TimeUnit timeUnit) {
+    protected static List<Object> makeWholeNumberTime(final double decimal, final TimeUnit timeUnit) {
         // If the value is already a whole number, return it and the current time unit
         if (decimal == Math.rint(decimal)) {
             return Arrays.asList((long) decimal, timeUnit);
         } else if (TimeUnit.NANOSECONDS == timeUnit) {
-            // The time unit is as small as possible
-            if (decimal < 1.0) {
-                decimal = 1;
-            } else {
-                decimal = Math.rint(decimal);
-            }
-            return Arrays.asList((long) decimal, timeUnit);
+            final long rounded = (decimal < 1.0) ? 1L : (long) Math.rint(decimal);
+            return Arrays.asList(rounded, timeUnit);
         } else {
             // Determine the next time unit and the respective multiplier
-            TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);
-            long multiplier = calculateMultiplier(timeUnit, smallerTimeUnit);
+            final TimeUnit smallerTimeUnit = getSmallerTimeUnit(timeUnit);
+            final long multiplier = calculateMultiplier(timeUnit, smallerTimeUnit);
 
             // Recurse with the original number converted to the smaller unit
             return makeWholeNumberTime(decimal * multiplier, smallerTimeUnit);
@@ -266,16 +261,16 @@ public class FormatUtils {
      * @param newTimeUnit      the destination time unit
      * @return the numerical multiplier between the units
      */
-    protected static long calculateMultiplier(TimeUnit originalTimeUnit, TimeUnit newTimeUnit) {
+    protected static long calculateMultiplier(final TimeUnit originalTimeUnit, final TimeUnit newTimeUnit) {
         if (originalTimeUnit == newTimeUnit) {
             return 1;
         } else if (originalTimeUnit.ordinal() < newTimeUnit.ordinal()) {
             throw new IllegalArgumentException("The original time unit '" + originalTimeUnit + "' must be larger than the new time unit '" + newTimeUnit + "'");
         } else {
-            int originalOrd = originalTimeUnit.ordinal();
-            int newOrd = newTimeUnit.ordinal();
+            final int originalOrd = originalTimeUnit.ordinal();
+            final int newOrd = newTimeUnit.ordinal();
 
-            List<Long> unitMultipliers = TIME_UNIT_MULTIPLIERS.subList(newOrd, originalOrd);
+            final List<Long> unitMultipliers = TIME_UNIT_MULTIPLIERS.subList(newOrd, originalOrd);
             return unitMultipliers.stream().reduce(1L, (a, b) -> (long) a * b);
         }
     }
@@ -288,7 +283,7 @@ public class FormatUtils {
      * @param originalUnit the TimeUnit
      * @return the next smaller TimeUnit
      */
-    protected static TimeUnit getSmallerTimeUnit(TimeUnit originalUnit) {
+    protected static TimeUnit getSmallerTimeUnit(final TimeUnit originalUnit) {
         if (originalUnit == null || TimeUnit.NANOSECONDS == originalUnit) {
             throw new IllegalArgumentException("Cannot determine a smaller time unit than '" + originalUnit + "'");
         } else {
@@ -317,7 +312,7 @@ public class FormatUtils {
      * @param rawUnit the String to parse
      * @return the TimeUnit
      */
-    protected static TimeUnit determineTimeUnit(String rawUnit) {
+    protected static TimeUnit determineTimeUnit(final String rawUnit) {
         return switch (rawUnit.toLowerCase()) {
             case "ns", "nano", "nanos", "nanoseconds" -> TimeUnit.NANOSECONDS;
             case "µs", "micro", "micros", "microseconds" -> TimeUnit.MICROSECONDS;

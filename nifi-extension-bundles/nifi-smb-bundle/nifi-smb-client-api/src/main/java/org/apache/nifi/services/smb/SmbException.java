@@ -20,7 +20,7 @@ public class SmbException extends RuntimeException {
 
     private long errorCode;
 
-    public SmbException(String message, long errorCode, Exception cause) {
+    public SmbException(final String message, final long errorCode, final Exception cause) {
         super(message, cause);
         this.errorCode = errorCode;
     }

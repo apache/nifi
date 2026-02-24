@@ -94,7 +94,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
     volatile String lookupKeyColumn;
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("dbrecord-lookup-dbcp-service", DBCP_SERVICE.getName());
         config.renameProperty("dbrecord-lookup-table-name", TABLE_NAME.getName());
         config.renameProperty("dbrecord-lookup-key-column", LOOKUP_KEY_COLUMN.getName());

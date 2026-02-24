@@ -165,8 +165,8 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     @SuppressWarnings("unchecked")
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
-            throws ProcessException {
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes,
+            final AttributeValueDecorator decorator, final Map<String, String> stateValues) throws ProcessException {
         if (rawValue == null || preparedQuery == null) {
             return this;
         }
@@ -234,12 +234,12 @@ public class StandardPropertyValue implements PropertyValue {
     }
 
     @Override
-    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
+    public <E extends Enum<E>> E asAllowableValue(final Class<E> enumType) throws IllegalArgumentException {
         if (rawValue == null) {
             return null;
         }
 
-        for (E enumConstant : enumType.getEnumConstants()) {
+        for (final E enumConstant : enumType.getEnumConstants()) {
             if (enumConstant instanceof DescribedValue describedValue) {
                 if (describedValue.getValue().equals(rawValue)) {
                     return enumConstant;

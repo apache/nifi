@@ -26,15 +26,15 @@ public class ConfigurationChangeException extends Exception {
     public ConfigurationChangeException() {
     }
 
-    public ConfigurationChangeException(String message) {
+    public ConfigurationChangeException(final String message) {
         super(message);
     }
 
-    public ConfigurationChangeException(String message, Throwable cause) {
+    public ConfigurationChangeException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public ConfigurationChangeException(Throwable cause) {
+    public ConfigurationChangeException(final Throwable cause) {
         super(cause);
     }
 

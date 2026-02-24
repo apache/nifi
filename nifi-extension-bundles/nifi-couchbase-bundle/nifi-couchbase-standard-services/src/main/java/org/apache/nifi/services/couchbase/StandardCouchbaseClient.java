@@ -104,7 +104,7 @@ class StandardCouchbaseClient implements CouchbaseClient {
             entry(ValueTooLargeException.class, FAILURE)
     );
 
-    StandardCouchbaseClient(Collection collection, DocumentType documentType, PersistTo persistTo, ReplicateTo replicateTo) {
+    StandardCouchbaseClient(final Collection collection, final DocumentType documentType, final PersistTo persistTo, final ReplicateTo replicateTo) {
         this.collection = collection;
         this.documentType = documentType;
         this.persistTo = persistTo;
@@ -112,18 +112,18 @@ class StandardCouchbaseClient implements CouchbaseClient {
     }
 
     @Override
-    public CouchbaseGetResult getDocument(String documentId) throws CouchbaseException {
+    public CouchbaseGetResult getDocument(final String documentId) throws CouchbaseException {
         try {
             final GetResult result = collection.get(documentId, GetOptions.getOptions().transcoder(getTranscoder(documentType)));
 
             return new CouchbaseGetResult(result.contentAsBytes(), result.cas());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CouchbaseException("Failed to get document [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException {
+    public CouchbaseUpsertResult upsertDocument(final String documentId, final byte[] content) throws CouchbaseException {
         try {
             if (!getInputValidator(documentType).test(content)) {
                 throw new CouchbaseException("The provided input is invalid");
@@ -136,24 +136,24 @@ class StandardCouchbaseClient implements CouchbaseClient {
                             .clientContext(new HashMap<>()));
 
             return new CouchbaseUpsertResult(result.cas());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CouchbaseException("Failed to upsert document [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public ExceptionCategory getExceptionCategory(Throwable throwable) {
+    public ExceptionCategory getExceptionCategory(final Throwable throwable) {
         return exceptionMapping.getOrDefault(throwable.getClass(), FAILURE);
     }
 
-    private Transcoder getTranscoder(DocumentType documentType) {
+    private Transcoder getTranscoder(final DocumentType documentType) {
         return switch (documentType) {
             case JSON -> RawJsonTranscoder.INSTANCE;
             case BINARY -> RawBinaryTranscoder.INSTANCE;
         };
     }
 
-    private Predicate<byte[]> getInputValidator(DocumentType documentType) {
+    private Predicate<byte[]> getInputValidator(final DocumentType documentType) {
         return switch (documentType) {
             case JSON -> new JsonValidator();
             case BINARY -> v -> true;

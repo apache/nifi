@@ -189,13 +189,13 @@ public class SplitXml extends AbstractProcessor {
         private int depth = 0;
         private final Map<String, String> prefixMap = new TreeMap<>();
 
-        public XmlSplitterSaxParser(XmlElementNotifier notifier, int splitDepth) {
+        public XmlSplitterSaxParser(final XmlElementNotifier notifier, final int splitDepth) {
             this.notifier = notifier;
             this.splitDepth = splitDepth;
         }
 
         @Override
-        public void characters(char[] ch, int start, int length) throws SAXException {
+        public void characters(final char[] ch, final int start, final int length) throws SAXException {
             // if we're not at a level where we care about capturing text, then return
             if (depth <= splitDepth) {
                 return;
@@ -203,7 +203,7 @@ public class SplitXml extends AbstractProcessor {
 
             // capture text
             for (int i = start; i < start + length; i++) {
-                char c = ch[i];
+                final char c = ch[i];
                 switch (c) {
                     case '<':
                         sb.append("&lt;");
@@ -232,9 +232,9 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void endElement(String uri, String localName, String qName) {
+        public void endElement(final String uri, final String localName, final String qName) {
             // We have finished processing this element. Decrement the depth.
-            int newDepth = --depth;
+            final int newDepth = --depth;
 
             // if we're at a level where we care about capturing text, then add the closing element
             if (newDepth >= splitDepth) {
@@ -247,7 +247,7 @@ public class SplitXml extends AbstractProcessor {
             // erase the String Builder so that we can start
             // processing a new 2nd-level element.
             if (newDepth == splitDepth) {
-                String elementTree = sb.toString();
+                final String elementTree = sb.toString();
                 notifier.onXmlElementFound(elementTree);
                 // Reset the StringBuilder to just the XML prolog.
                 sb.setLength(XML_PROLOGUE.length());
@@ -255,24 +255,24 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void endPrefixMapping(String prefix) {
+        public void endPrefixMapping(final String prefix) {
             prefixMap.remove(prefixToNamespace(prefix));
         }
 
         @Override
-        public void ignorableWhitespace(char[] ch, int start, int length) {
+        public void ignorableWhitespace(final char[] ch, final int start, final int length) {
         }
 
         @Override
-        public void processingInstruction(String target, String data) {
+        public void processingInstruction(final String target, final String data) {
         }
 
         @Override
-        public void setDocumentLocator(Locator locator) {
+        public void setDocumentLocator(final Locator locator) {
         }
 
         @Override
-        public void skippedEntity(String name) {
+        public void skippedEntity(final String name) {
         }
 
         @Override
@@ -282,7 +282,7 @@ public class SplitXml extends AbstractProcessor {
         @Override
         public void startElement(final String uri, final String localName, final String qName, final Attributes atts) {
             // Increment the current depth because start a new XML element.
-            int newDepth = ++depth;
+            final int newDepth = ++depth;
             // Output the element and its attributes if it is
             // not the root element.
             if (newDepth > splitDepth) {
@@ -290,18 +290,18 @@ public class SplitXml extends AbstractProcessor {
                 sb.append(qName);
 
                 final Set<String> attributeNames = new HashSet<>();
-                int attCount = atts.getLength();
+                final int attCount = atts.getLength();
                 for (int i = 0; i < attCount; i++) {
-                    String attName = atts.getQName(i);
+                    final String attName = atts.getQName(i);
                     attributeNames.add(attName);
-                    String attValue = StringEscapeUtils.escapeXml10(atts.getValue(i));
+                    final String attValue = StringEscapeUtils.escapeXml10(atts.getValue(i));
                     sb.append(" ").append(attName).append("=").append("\"").append(attValue).append("\"");
                 }
 
                 // If this is the first node we're outputting write out
                 // any additional namespace declarations that are required
                 if (splitDepth == newDepth - 1) {
-                    for (Entry<String, String> entry : prefixMap.entrySet()) {
+                    for (final Entry<String, String> entry : prefixMap.entrySet()) {
                         // If we've already added this namespace as an attribute then continue
                         if (attributeNames.contains(entry.getKey())) {
                             continue;
@@ -319,12 +319,12 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void startPrefixMapping(String prefix, String uri) {
+        public void startPrefixMapping(final String prefix, final String uri) {
             final String ns = prefixToNamespace(prefix);
             prefixMap.put(ns, uri);
         }
 
-        private String prefixToNamespace(String prefix) {
+        private String prefixToNamespace(final String prefix) {
             final String ns;
             if (prefix.isEmpty()) {
                 ns = "xmlns";

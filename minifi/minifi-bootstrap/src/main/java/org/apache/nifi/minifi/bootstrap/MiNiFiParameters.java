@@ -24,7 +24,7 @@ public class MiNiFiParameters {
     private volatile long minifiPid;
     private volatile String secretKey;
 
-    public MiNiFiParameters(int ccPort, long minifiPid, String secretKey) {
+    public MiNiFiParameters(final int ccPort, final long minifiPid, final String secretKey) {
         this.ccPort = ccPort;
         this.minifiPid = minifiPid;
         this.secretKey = secretKey;
@@ -34,7 +34,7 @@ public class MiNiFiParameters {
         return ccPort;
     }
 
-    public void setMiNiFiPort(int ccPort) {
+    public void setMiNiFiPort(final int ccPort) {
         this.ccPort = ccPort;
     }
 
@@ -42,7 +42,7 @@ public class MiNiFiParameters {
         return minifiPid;
     }
 
-    public void setMinifiPid(long minifiPid) {
+    public void setMinifiPid(final long minifiPid) {
         this.minifiPid = minifiPid;
     }
 
@@ -50,19 +50,19 @@ public class MiNiFiParameters {
         return secretKey;
     }
 
-    public void setSecretKey(String secretKey) {
+    public void setSecretKey(final String secretKey) {
         this.secretKey = secretKey;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MiNiFiParameters that = (MiNiFiParameters) o;
+        final MiNiFiParameters that = (MiNiFiParameters) o;
         return ccPort == that.ccPort && minifiPid == that.minifiPid && Objects.equals(secretKey, that.secretKey);
     }
 

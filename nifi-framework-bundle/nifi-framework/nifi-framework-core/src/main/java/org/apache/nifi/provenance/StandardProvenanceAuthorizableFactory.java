@@ -67,7 +67,7 @@ public class StandardProvenanceAuthorizableFactory implements ProvenanceAuthoriz
     }
 
     @Override
-    public Authorizable createRemoteDataAuthorizable(String remoteGroupPortId) {
+    public Authorizable createRemoteDataAuthorizable(final String remoteGroupPortId) {
         final DataAuthorizable authorizable;
 
         final RemoteGroupPort remoteGroupPort = flowController.getFlowManager().getRootGroup().findRemoteGroupPort(remoteGroupPortId);
@@ -82,7 +82,7 @@ public class StandardProvenanceAuthorizableFactory implements ProvenanceAuthoriz
     }
 
     @Override
-    public Authorizable createProvenanceDataAuthorizable(String componentId) {
+    public Authorizable createProvenanceDataAuthorizable(final String componentId) {
         final FlowManager flowManager = flowController.getFlowManager();
         final String rootGroupId = flowManager.getRootGroupId();
 

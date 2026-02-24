@@ -25,15 +25,15 @@ public class AuthorizerCreationException extends RuntimeException {
     public AuthorizerCreationException() {
     }
 
-    public AuthorizerCreationException(String msg) {
+    public AuthorizerCreationException(final String msg) {
         super(msg);
     }
 
-    public AuthorizerCreationException(Throwable cause) {
+    public AuthorizerCreationException(final Throwable cause) {
         super(cause);
     }
 
-    public AuthorizerCreationException(String msg, Throwable cause) {
+    public AuthorizerCreationException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

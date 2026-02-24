@@ -250,7 +250,7 @@ public class DataTypeUtils {
         return null;
     }
 
-    public static UUID toUUID(Object value) {
+    public static UUID toUUID(final Object value) {
         switch (value) {
             case null -> {
                 return null;
@@ -261,7 +261,7 @@ public class DataTypeUtils {
             case String string -> {
                 try {
                     return UUID.fromString(string.trim());
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     throw new IllegalTypeConversionException(String.format("Could not parse %s into a UUID", value), ex);
                 }
             }
@@ -269,7 +269,7 @@ public class DataTypeUtils {
                 return uuidFromBytes(bytes);
             }
             case Byte[] array -> {
-                byte[] converted = new byte[array.length];
+                final byte[] converted = new byte[array.length];
                 for (int x = 0; x < array.length; x++) {
                     converted[x] = array[x];
                 }
@@ -279,11 +279,11 @@ public class DataTypeUtils {
         }
     }
 
-    private static UUID uuidFromBytes(byte[] bytes) {
+    private static UUID uuidFromBytes(final byte[] bytes) {
         try {
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+            final ByteBuffer buffer = ByteBuffer.wrap(bytes);
             return new UUID(buffer.getLong(), buffer.getLong());
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new IllegalTypeConversionException("Could not convert bytes to UUID");
         }
     }
@@ -324,8 +324,8 @@ public class DataTypeUtils {
     }
 
     public static DataType chooseDataType(final Object value, final ChoiceDataType choiceType) {
-        Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
-        List<DataType> compatibleSimpleSubTypes = new ArrayList<>();
+        final Queue<DataType> possibleSubTypes = new LinkedList<>(choiceType.getPossibleSubTypes());
+        final List<DataType> compatibleSimpleSubTypes = new ArrayList<>();
 
         DataType subType;
         while ((subType = possibleSubTypes.poll()) != null) {
@@ -338,7 +338,7 @@ public class DataTypeUtils {
             }
         }
 
-        int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
+        final int nrOfCompatibleSimpleSubTypes = compatibleSimpleSubTypes.size();
 
         final DataType chosenSimpleType;
         if (nrOfCompatibleSimpleSubTypes == 0) {
@@ -353,20 +353,20 @@ public class DataTypeUtils {
         return chosenSimpleType;
     }
 
-    public static <T> Optional<T> findMostSuitableType(Object value, List<T> types, Function<T, DataType> dataTypeMapper) {
+    public static <T> Optional<T> findMostSuitableType(final Object value, final List<T> types, final Function<T, DataType> dataTypeMapper) {
         if (value instanceof String) {
             return findMostSuitableTypeByStringValue((String) value, types, dataTypeMapper);
         } else {
-            DataType inferredDataType = inferDataType(value, null);
+            final DataType inferredDataType = inferDataType(value, null);
 
             if (inferredDataType != null && !inferredDataType.getFieldType().equals(RecordFieldType.STRING)) {
-                for (T type : types) {
+                for (final T type : types) {
                     if (inferredDataType.equals(dataTypeMapper.apply(type))) {
                         return Optional.of(type);
                     }
                 }
 
-                for (T type : types) {
+                for (final T type : types) {
                     if (getWiderType(dataTypeMapper.apply(type), inferredDataType).isPresent()) {
                         return Optional.of(type);
                     }
@@ -377,17 +377,17 @@ public class DataTypeUtils {
         return Optional.empty();
     }
 
-    public static <T> Optional<T> findMostSuitableTypeByStringValue(String valueAsString, List<T> types, Function<T, DataType> dataTypeMapper) {
+    public static <T> Optional<T> findMostSuitableTypeByStringValue(final String valueAsString, final List<T> types, final Function<T, DataType> dataTypeMapper) {
         // Sorting based on the RecordFieldType enum ordering looks appropriate here as we want simpler types
         //  first and the enum's ordering seems to reflect that
         types.sort(Comparator.comparing(type -> dataTypeMapper.apply(type).getFieldType()));
 
-        for (T type : types) {
+        for (final T type : types) {
             try {
                 if (isCompatibleDataType(valueAsString, dataTypeMapper.apply(type))) {
                     return Optional.of(type);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Exception thrown while checking if '{}' is compatible with '{}'", valueAsString, type, e);
             }
         }
@@ -633,7 +633,7 @@ public class DataTypeUtils {
         if (value.getClass().isArray()) {
             DataType mergedDataType = null;
 
-            int length = Array.getLength(value);
+            final int length = Array.getLength(value);
             for (int index = 0; index < length; index++) {
                 final DataType inferredDataType = inferDataType(Array.get(value, index), RecordFieldType.STRING.getDataType());
                 mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
@@ -686,7 +686,7 @@ public class DataTypeUtils {
      * @param strict check for a strict match, i.e. all fields in the record should have a corresponding entry in the schema
      * @return True if the object is compatible with the schema
      */
-    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value, boolean strict) {
+    private static boolean isRecordTypeCompatible(final RecordSchema schema, final Object value, final boolean strict) {
 
         if (value == null) {
             return false;
@@ -744,26 +744,26 @@ public class DataTypeUtils {
                 return objects;
             }
             case String s when RecordFieldType.BYTE.getDataType().equals(elementDataType) -> {
-                byte[] src = s.getBytes(charset);
-                Byte[] dest = new Byte[src.length];
+                final byte[] src = s.getBytes(charset);
+                final Byte[] dest = new Byte[src.length];
                 for (int i = 0; i < src.length; i++) {
                     dest[i] = src[i];
                 }
                 return dest;
             }
             case byte[] src -> {
-                Byte[] dest = new Byte[src.length];
+                final Byte[] dest = new Byte[src.length];
                 for (int i = 0; i < src.length; i++) {
                     dest[i] = src[i];
                 }
                 return dest;
             }
             case UUID uuid -> {
-                ByteBuffer buffer = ByteBuffer.allocate(16);
+                final ByteBuffer buffer = ByteBuffer.allocate(16);
                 buffer.putLong(uuid.getMostSignificantBits());
                 buffer.putLong(uuid.getLeastSignificantBits());
-                Byte[] result = new Byte[16];
-                byte[] array = buffer.array();
+                final Byte[] result = new Byte[16];
+                final byte[] array = buffer.array();
                 for (int index = 0; index < array.length; index++) {
                     result[index] = array[index];
                 }
@@ -779,13 +779,13 @@ public class DataTypeUtils {
 
         try {
             if (value instanceof Blob blob) {
-                long rawBlobLength = blob.length();
+                final long rawBlobLength = blob.length();
                 if (rawBlobLength > Integer.MAX_VALUE) {
                     throw new IllegalTypeConversionException("Value of type " + value.getClass() + " too large to convert to Object Array for field " + fieldName);
                 }
-                int blobLength = (int) rawBlobLength;
-                byte[] src = blob.getBytes(1, blobLength);
-                Byte[] dest = new Byte[blobLength];
+                final int blobLength = (int) rawBlobLength;
+                final byte[] src = blob.getBytes(1, blobLength);
+                final Byte[] dest = new Byte[blobLength];
                 for (int i = 0; i < src.length; i++) {
                     dest[i] = src[i];
                 }
@@ -793,9 +793,9 @@ public class DataTypeUtils {
             } else {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName);
             }
-        } catch (IllegalTypeConversionException itce) {
+        } catch (final IllegalTypeConversionException itce) {
             throw itce;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Object Array for field " + fieldName, e);
         }
     }
@@ -918,7 +918,7 @@ public class DataTypeUtils {
                 } else if (isScalarValue(chosenDataType, fieldValue)) {
                     recordMap.put(fieldName, fieldValue);
                 } else if (chosenDataType instanceof RecordDataType) {
-                    Record nestedRecord = (Record) fieldValue;
+                    final Record nestedRecord = (Record) fieldValue;
                     recordMap.put(fieldName, convertRecordFieldtoObject(nestedRecord, chosenDataType));
                 } else if (chosenDataType instanceof MapDataType) {
                     recordMap.put(fieldName, convertRecordMapToJavaMap((Map) fieldValue, ((MapDataType) chosenDataType).getValueType()));
@@ -995,7 +995,7 @@ public class DataTypeUtils {
                 return new String(bytes, charset);
             }
             case Byte[] src -> {
-                byte[] dest = new byte[src.length];
+                final byte[] dest = new byte[src.length];
                 for (int i = 0; i < src.length; i++) {
                     dest[i] = src[i];
                 }
@@ -1004,7 +1004,7 @@ public class DataTypeUtils {
             case Object[] o -> {
                 if (o.length > 0) {
 
-                    byte[] dest = new byte[o.length];
+                    final byte[] dest = new byte[o.length];
                     for (int i = 0; i < o.length; i++) {
                         dest[i] = (byte) o[i];
                     }
@@ -1014,8 +1014,8 @@ public class DataTypeUtils {
                 }
             }
             case Clob clob -> {
-                StringBuilder sb = new StringBuilder();
-                char[] buffer = new char[32 * 1024]; // 32K default buffer
+                final StringBuilder sb = new StringBuilder();
+                final char[] buffer = new char[32 * 1024]; // 32K default buffer
 
                 try (Reader reader = clob.getCharacterStream()) {
                     int charsRead;
@@ -1023,7 +1023,7 @@ public class DataTypeUtils {
                         sb.append(buffer, 0, charsRead);
                     }
                     return sb.toString();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
                 }
             }
@@ -1076,8 +1076,8 @@ public class DataTypeUtils {
                 return fieldConverter.convertField(value, Optional.of(format), null);
             }
             case Blob blob -> {
-                StringBuilder sb = new StringBuilder();
-                byte[] buffer = new byte[32 * 1024]; // 32K default buffer
+                final StringBuilder sb = new StringBuilder();
+                final byte[] buffer = new byte[32 * 1024]; // 32K default buffer
 
                 try (InputStream inStream = blob.getBinaryStream()) {
                     int bytesRead;
@@ -1085,13 +1085,13 @@ public class DataTypeUtils {
                         sb.append(new String(buffer, charset), 0, bytesRead);
                     }
                     return sb.toString();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
                 }
             }
             case Clob clob -> {
-                StringBuilder sb = new StringBuilder();
-                char[] buffer = new char[32 * 1024]; // 32K default buffer
+                final StringBuilder sb = new StringBuilder();
+                final char[] buffer = new char[32 * 1024]; // 32K default buffer
 
                 try (Reader reader = clob.getCharacterStream()) {
                     int charsRead;
@@ -1099,7 +1099,7 @@ public class DataTypeUtils {
                         sb.append(buffer, 0, charsRead);
                     }
                     return sb.toString();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
                 }
             }
@@ -1123,7 +1123,7 @@ public class DataTypeUtils {
         return enumType.getEnums() != null && enumType.getEnums().contains(value);
     }
 
-    public static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+    public static Object toEnum(final Object value, final EnumDataType dataType, final String fieldName) {
         if (dataType.getEnums() != null && dataType.getEnums().contains(value)) {
             return value.toString();
         }
@@ -1137,9 +1137,9 @@ public class DataTypeUtils {
      * @param dateLocalTZ java.sql.Date in local time zone
      * @return java.sql.Date in UTC normalized form
      */
-    public static Date convertDateToUTC(Date dateLocalTZ) {
-        ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
-        ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
+    public static Date convertDateToUTC(final Date dateLocalTZ) {
+        final ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
+        final ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
         return new Date(zdtUTC.toInstant().toEpochMilli());
     }
 
@@ -1238,7 +1238,7 @@ public class DataTypeUtils {
             case String string -> {
                 try {
                     return string.isBlank() ? null : new BigInteger(string);
-                } catch (NumberFormatException nfe) {
+                } catch (final NumberFormatException nfe) {
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigInteger for field " + fieldName
                             + ", value is not a valid representation of BigInteger", nfe);
                 }
@@ -1327,7 +1327,7 @@ public class DataTypeUtils {
         if (value instanceof String string) {
             try {
                 return string.isBlank() ? null : new BigDecimal(string);
-            } catch (NumberFormatException nfe) {
+            } catch (final NumberFormatException nfe) {
                 throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
                         + ", value is not a valid representation of BigDecimal", nfe);
             }
@@ -1498,7 +1498,7 @@ public class DataTypeUtils {
             case Number number -> {
                 try {
                     return Math.toIntExact(number.longValue());
-                } catch (ArithmeticException ae) {
+                } catch (final ArithmeticException ae) {
                     throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer for field " + fieldName
                             + " as it causes an arithmetic overflow (the value is too large, e.g.)", ae);
                 }
@@ -1518,7 +1518,7 @@ public class DataTypeUtils {
             try {
                 Math.toIntExact(number.longValue());
                 return true;
-            } catch (ArithmeticException ae) {
+            } catch (final ArithmeticException ae) {
                 return false;
             }
         }
@@ -1722,8 +1722,8 @@ public class DataTypeUtils {
         if (thisFieldType == RecordFieldType.ARRAY && otherFieldType == RecordFieldType.ARRAY) {
             // Check for array<null> and return the other (or empty if they are both array<null>). This happens if at some point we inferred an element type of null which
             // indicates an empty array, and then we inferred a non-null type for the same field in a different record. The non-null type should be used in that case.
-            ArrayDataType thisArrayType = (ArrayDataType) thisDataType;
-            ArrayDataType otherArrayType = (ArrayDataType) otherDataType;
+            final ArrayDataType thisArrayType = (ArrayDataType) thisDataType;
+            final ArrayDataType otherArrayType = (ArrayDataType) otherDataType;
             if (thisArrayType.getElementType() == null) {
                 if (otherArrayType.getElementType() == null) {
                     return Optional.empty();
@@ -1909,7 +1909,7 @@ public class DataTypeUtils {
         if (dataType == null) {
             return Types.NULL;
         }
-        RecordFieldType fieldType = dataType.getFieldType();
+        final RecordFieldType fieldType = dataType.getFieldType();
         return switch (fieldType) {
             case BIGINT, LONG -> Types.BIGINT;
             case BOOLEAN -> Types.BOOLEAN;
@@ -1981,7 +1981,7 @@ public class DataTypeUtils {
         };
     }
 
-    public static Charset getCharset(String charsetName) {
+    public static Charset getCharset(final String charsetName) {
         if (charsetName == null) {
             return StandardCharsets.UTF_8;
         } else {

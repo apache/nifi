@@ -446,7 +446,7 @@ public class NiFiProperties extends ApplicationProperties {
     public File getFlowConfigurationFile() {
         try {
             return new File(getProperty(FLOW_CONFIGURATION_FILE));
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             return null;
         }
     }
@@ -454,7 +454,7 @@ public class NiFiProperties extends ApplicationProperties {
     public File getFlowConfigurationFileDir() {
         try {
             return getFlowConfigurationFile().getParentFile();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             return null;
         }
     }
@@ -652,7 +652,7 @@ public class NiFiProperties extends ApplicationProperties {
         Integer port = null;
         try {
             port = Integer.parseInt(getProperty(WEB_HTTP_PORT));
-        } catch (NumberFormatException ignored) {
+        } catch (final NumberFormatException ignored) {
         }
         return port;
     }
@@ -661,7 +661,7 @@ public class NiFiProperties extends ApplicationProperties {
         Integer sslPort = null;
         try {
             sslPort = Integer.parseInt(getProperty(WEB_HTTPS_PORT));
-        } catch (NumberFormatException ignored) {
+        } catch (final NumberFormatException ignored) {
         }
         return sslPort;
     }
@@ -769,16 +769,16 @@ public class NiFiProperties extends ApplicationProperties {
 
     public List<Path> getNarLibraryDirectories() {
 
-        List<Path> narLibraryPaths = new ArrayList<>();
+        final List<Path> narLibraryPaths = new ArrayList<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a nar library path
             if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX)
                     || NAR_LIBRARY_DIRECTORY.equals(propertyName)
                     || NAR_LIBRARY_AUTOLOAD_DIRECTORY.equals(propertyName)) {
                 // attempt to resolve the path specified
-                String narLib = getProperty(propertyName);
+                final String narLib = getProperty(propertyName);
                 if (!StringUtils.isBlank(narLib)) {
                     narLibraryPaths.add(Paths.get(narLib));
                 }
@@ -863,12 +863,12 @@ public class NiFiProperties extends ApplicationProperties {
             if (StringUtils.isBlank(socketAddress)) {
                 socketAddress = "localhost";
             }
-            int socketPort = getClusterNodeProtocolPort();
+            final int socketPort = getClusterNodeProtocolPort();
             if (socketPort == 0) {
                 throw new RuntimeException("Cluster Node Protocol port cannot be 0. Port must be inclusively in the range [1, 65535].");
             }
             return InetSocketAddress.createUnresolved(socketAddress, socketPort);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException("Invalid node protocol address/port due to: " + ex, ex);
         }
     }
@@ -893,7 +893,7 @@ public class NiFiProperties extends ApplicationProperties {
     public Integer getClusterNodeProtocolPort() {
         try {
             return Integer.parseInt(getProperty(CLUSTER_NODE_PROTOCOL_PORT));
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             return null;
         }
     }
@@ -901,7 +901,7 @@ public class NiFiProperties extends ApplicationProperties {
     public int getClusterNodeProtocolMaxPoolSize() {
         try {
             return Integer.parseInt(getProperty(CLUSTER_NODE_PROTOCOL_MAX_THREADS));
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             return DEFAULT_CLUSTER_NODE_PROTOCOL_MAX_THREADS;
         }
     }
@@ -1043,11 +1043,11 @@ public class NiFiProperties extends ApplicationProperties {
      * @return List of additional scopes to be sent
      */
     public List<String> getOidcAdditionalScopes() {
-        String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
+        final String rawProperty = getProperty(SECURITY_USER_OIDC_ADDITIONAL_SCOPES, "");
         if (rawProperty.isEmpty()) {
             return new ArrayList<>();
         }
-        List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
+        final List<String> additionalScopes = Arrays.asList(rawProperty.split(","));
         return additionalScopes.stream().map(String::trim).collect(Collectors.toList());
     }
 
@@ -1079,11 +1079,11 @@ public class NiFiProperties extends ApplicationProperties {
      * @return The list of fallback claims to be used to identify the user
      */
     public List<String> getOidcFallbackClaimsIdentifyingUser() {
-        String rawProperty = getProperty(SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER, "").trim();
+        final String rawProperty = getProperty(SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER, "").trim();
         if (StringUtils.isBlank(rawProperty)) {
             return Collections.emptyList();
         } else {
-            List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
+            final List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
             return fallbackClaims.stream().map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
         }
     }
@@ -1117,7 +1117,7 @@ public class NiFiProperties extends ApplicationProperties {
     public int getDiagnosticsOnShutdownMaxFileCount() {
         try {
             return Integer.parseInt(getProperty(DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT));
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
             return DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT;
         }
     }
@@ -1366,7 +1366,7 @@ public class NiFiProperties extends ApplicationProperties {
         final Map<String, Path> contentRepositoryPaths = new HashMap<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, REPOSITORY_CONTENT_PREFIX)) {
                 // get the repository key
@@ -1392,7 +1392,7 @@ public class NiFiProperties extends ApplicationProperties {
         final Map<String, Path> provenanceRepositoryPaths = new HashMap<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, PROVENANCE_REPO_DIRECTORY_PREFIX)) {
                 // get the repository key
@@ -1499,7 +1499,7 @@ public class NiFiProperties extends ApplicationProperties {
         final Map<String, String> networkInterfaces = new HashMap<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a network interface name
             if (StringUtils.startsWith(propertyName, WEB_HTTP_NETWORK_INTERFACE_PREFIX)) {
                 // get the network interface property key
@@ -1521,7 +1521,7 @@ public class NiFiProperties extends ApplicationProperties {
         final Map<String, String> networkInterfaces = new HashMap<>();
 
         // go through each property
-        for (String propertyName : getPropertyKeys()) {
+        for (final String propertyName : getPropertyKeys()) {
             // determine if the property is a network interface name
             if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
                 // get the network interface property key
@@ -1579,13 +1579,13 @@ public class NiFiProperties extends ApplicationProperties {
      * @return the hostname(s)
      */
     public List<String> getAllowedHostsAsList() {
-        String rawProperty = getProperty(WEB_PROXY_HOST, "");
-        List<String> hosts = Arrays.asList(rawProperty.split(","));
+        final String rawProperty = getProperty(WEB_PROXY_HOST, "");
+        final List<String> hosts = Arrays.asList(rawProperty.split(","));
         return hosts.stream()
                 .map(this::normalizeHost).filter(host -> !StringUtils.isBlank(host)).collect(Collectors.toList());
     }
 
-    String normalizeHost(String host) {
+    String normalizeHost(final String host) {
         if (host == null || host.equalsIgnoreCase("")) {
             return "";
         } else {
@@ -1610,13 +1610,13 @@ public class NiFiProperties extends ApplicationProperties {
      * @return the path(s)
      */
     public List<String> getAllowedContextPathsAsList() {
-        String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
-        List<String> contextPaths = Arrays.asList(rawProperty.split(","));
+        final String rawProperty = getProperty(WEB_PROXY_CONTEXT_PATH, "");
+        final List<String> contextPaths = Arrays.asList(rawProperty.split(","));
         return contextPaths.stream()
                 .map(this::normalizeContextPath).collect(Collectors.toList());
     }
 
-    private String normalizeContextPath(String cp) {
+    private String normalizeContextPath(final String cp) {
         if (cp == null || cp.equalsIgnoreCase("")) {
             return "";
         } else {
@@ -1632,13 +1632,13 @@ public class NiFiProperties extends ApplicationProperties {
     public Long getDefaultBackPressureObjectThreshold() {
         long backPressureCount;
         try {
-            String backPressureCountStr = getProperty(BACKPRESSURE_COUNT);
+            final String backPressureCountStr = getProperty(BACKPRESSURE_COUNT);
             if (backPressureCountStr == null || backPressureCountStr.isBlank()) {
                 backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
             } else {
                 backPressureCount = Long.parseLong(backPressureCountStr);
             }
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             backPressureCount = DEFAULT_BACKPRESSURE_COUNT;
         }
         return backPressureCount;
@@ -1811,7 +1811,7 @@ public class NiFiProperties extends ApplicationProperties {
         }
         return new NiFiProperties() {
             @Override
-            public String getProperty(String key) {
+            public String getProperty(final String key) {
                 return properties.getProperty(key);
             }
 
@@ -1827,7 +1827,7 @@ public class NiFiProperties extends ApplicationProperties {
         };
     }
 
-    private static void readFromPropertiesFile(String propertiesFilePath, Properties properties) {
+    private static void readFromPropertiesFile(final String propertiesFilePath, final Properties properties) {
         final String nfPropertiesFilePath = (propertiesFilePath == null)
                 ? System.getProperty(PROPERTIES_FILE_PATH)
                 : propertiesFilePath;
@@ -1866,7 +1866,7 @@ public class NiFiProperties extends ApplicationProperties {
      */
     public void validate() {
         // REMOTE_INPUT_HOST should be a valid hostname
-        String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
+        final String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
         if (!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
             throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
         }

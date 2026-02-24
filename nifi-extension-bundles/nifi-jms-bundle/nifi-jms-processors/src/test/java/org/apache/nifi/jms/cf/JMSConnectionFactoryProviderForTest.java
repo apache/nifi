@@ -28,7 +28,7 @@ public class JMSConnectionFactoryProviderForTest extends JMSConnectionFactoryPro
 
     @OnEnabled
     @Override
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         delegate = new JMSConnectionFactoryHandlerForTest(context, getLogger());
     }
 

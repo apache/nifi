@@ -39,24 +39,24 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class LogUtil {
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
 
-    public static void verifyLogEntries(String expectedJsonFilename, Container container) throws Exception {
-        List<ExpectedLogEntry> expectedLogEntries;
+    public static void verifyLogEntries(final String expectedJsonFilename, final Container container) throws Exception {
+        final List<ExpectedLogEntry> expectedLogEntries;
         try (InputStream inputStream = LogUtil.class.getClassLoader().getResourceAsStream(expectedJsonFilename)) {
-            List<Map<String, Object>> expected = new ObjectMapper().readValue(inputStream, List.class);
+            final List<Map<String, Object>> expected = new ObjectMapper().readValue(inputStream, List.class);
             expectedLogEntries = expected
                     .stream()
                     .map(map -> new ExpectedLogEntry(Pattern.compile((String) map.get("pattern")), (int) map.getOrDefault("occurrences", 1)))
                     .collect(Collectors.toList());
         }
-        DockerPort dockerPort = container.port(8000);
+        final DockerPort dockerPort = container.port(8000);
         logger.info("Connecting to external port {} for docker internal port of {}", dockerPort.getExternalPort(), dockerPort.getInternalPort());
-        URL url = URI.create("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()).toURL();
-        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+        final URL url = URI.create("http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()).toURL();
+        final HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try (InputStream inputStream = urlConnection.getInputStream();
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
              BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
             String line;
-            for (ExpectedLogEntry expectedLogEntry : expectedLogEntries) {
+            for (final ExpectedLogEntry expectedLogEntry : expectedLogEntries) {
                 boolean satisfied = false;
                 int occurrences = 0;
                 while ((line = bufferedReader.readLine()) != null) {
@@ -82,7 +82,7 @@ public class LogUtil {
         private final Pattern pattern;
         private final int numOccurrences;
 
-        private ExpectedLogEntry(Pattern pattern, int numOccurrences) {
+        private ExpectedLogEntry(final Pattern pattern, final int numOccurrences) {
             this.pattern = pattern;
             this.numOccurrences = numOccurrences;
         }

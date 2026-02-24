@@ -72,9 +72,9 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.FlowAnalysisRuleDAO+) && "
             + "execution(org.apache.nifi.controller.FlowAnalysisRuleNode createFlowAnalysisRule(org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO))")
-    public FlowAnalysisRuleNode createFlowAnalysisRuleAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public FlowAnalysisRuleNode createFlowAnalysisRuleAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the flow analysis rule state
-        FlowAnalysisRuleNode flowAnalysisRule = (FlowAnalysisRuleNode) proceedingJoinPoint.proceed();
+        final FlowAnalysisRuleNode flowAnalysisRule = (FlowAnalysisRuleNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the flow analysis rule action...
         final Action action = generateAuditRecord(flowAnalysisRule, Operation.Add);
@@ -100,7 +100,8 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.controller.FlowAnalysisRuleNode updateFlowAnalysisRule(org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO)) && "
             + "args(flowAnalysisRuleDTO) && "
             + "target(flowAnalysisRuleDAO)")
-    public Object updateFlowAnalysisRuleAdvice(ProceedingJoinPoint proceedingJoinPoint, FlowAnalysisRuleDTO flowAnalysisRuleDTO, FlowAnalysisRuleDAO flowAnalysisRuleDAO) throws Throwable {
+    public Object updateFlowAnalysisRuleAdvice(final ProceedingJoinPoint proceedingJoinPoint,
+            final FlowAnalysisRuleDTO flowAnalysisRuleDTO, final FlowAnalysisRuleDAO flowAnalysisRuleDAO) throws Throwable {
         // determine the initial values for each property/setting thats changing
         FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(flowAnalysisRule, flowAnalysisRuleDTO);
@@ -118,18 +119,18 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
                     ? Collections.emptySet() : flowAnalysisRuleDTO.getSensitiveDynamicPropertyNames();
 
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(flowAnalysisRule, flowAnalysisRuleDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(flowAnalysisRule, flowAnalysisRuleDTO);
 
             // create the flow analysis rule details
-            FlowChangeExtensionDetails ruleDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails ruleDetails = new FlowChangeExtensionDetails();
             ruleDetails.setType(flowAnalysisRule.getComponentType());
 
             // create a flow analysis rule action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
+            for (final String property : updatedValues.keySet()) {
                 String newValue = updatedValues.get(property);
                 String oldValue = values.get(property);
                 Operation operation = null;
@@ -239,9 +240,9 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
             + "execution(void deleteFlowAnalysisRule(java.lang.String)) && "
             + "args(flowAnalysisRuleId) && "
             + "target(flowAnalysisRuleDAO)")
-    public void removeFlowAnalysisRuleAdvice(ProceedingJoinPoint proceedingJoinPoint, String flowAnalysisRuleId, FlowAnalysisRuleDAO flowAnalysisRuleDAO) throws Throwable {
+    public void removeFlowAnalysisRuleAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String flowAnalysisRuleId, final FlowAnalysisRuleDAO flowAnalysisRuleDAO) throws Throwable {
         // get the flow analysis rule before removing it
-        FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
+        final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
 
         // remove the flow analysis rule
         proceedingJoinPoint.proceed();
@@ -263,7 +264,7 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(FlowAnalysisRuleNode flowAnalysisRule, Operation operation) {
+    public Action generateAuditRecord(final FlowAnalysisRuleNode flowAnalysisRule, final Operation operation) {
         return generateAuditRecord(flowAnalysisRule, operation, null);
     }
 
@@ -275,12 +276,12 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(FlowAnalysisRuleNode flowAnalysisRule, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final FlowAnalysisRuleNode flowAnalysisRule, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the flow analysis rule details
-            FlowChangeExtensionDetails ruleDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails ruleDetails = new FlowChangeExtensionDetails();
             ruleDetails.setType(flowAnalysisRule.getComponentType());
 
             // create the flow analysis rule action for adding this flow analysis rule
@@ -306,8 +307,8 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
      * @param flowAnalysisRuleDTO dto
      * @return properties of rule
      */
-    private Map<String, String> extractConfiguredPropertyValues(FlowAnalysisRuleNode flowAnalysisRule, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final FlowAnalysisRuleNode flowAnalysisRule, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (flowAnalysisRuleDTO.getName() != null) {
             values.put(NAME, flowAnalysisRule.getName());
@@ -318,9 +319,9 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
         }
         if (flowAnalysisRuleDTO.getProperties() != null) {
             // for each property specified, extract its configured value
-            Map<String, String> properties = flowAnalysisRuleDTO.getProperties();
-            Map<PropertyDescriptor, String> configuredProperties = flowAnalysisRule.getRawPropertyValues();
-            for (String propertyName : properties.keySet()) {
+            final Map<String, String> properties = flowAnalysisRuleDTO.getProperties();
+            final Map<PropertyDescriptor, String> configuredProperties = flowAnalysisRule.getRawPropertyValues();
+            for (final String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();
                 String configuredPropertyValue = configuredProperties.get(propertyDescriptor);
@@ -347,8 +348,8 @@ public class FlowAnalysisRuleAuditor extends NiFiAuditor {
      * @param specDescriptor example property
      * @return property
      */
-    private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
-        for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+    private PropertyDescriptor locatePropertyDescriptor(final Set<PropertyDescriptor> propertyDescriptors, final PropertyDescriptor specDescriptor) {
+        for (final PropertyDescriptor propertyDescriptor : propertyDescriptors) {
             if (propertyDescriptor.equals(specDescriptor)) {
                 return propertyDescriptor;
             }

@@ -582,7 +582,7 @@ class TestYamlTreeRowRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
+        final MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> {
             try (final InputStream in = Files.newInputStream(Paths.get("src/test/resources/yaml/single-bank-account-wrong-field-type.yaml"));
                  final YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
@@ -599,9 +599,9 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testMergeOfSimilarRecords() throws Exception {
-        String yamlPath = "src/test/resources/yaml/similar-records.yaml";
+        final String yamlPath = "src/test/resources/yaml/similar-records.yaml";
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()),
             new RecordField("booleanOrString", RecordFieldType.CHOICE.getChoiceDataType(
@@ -611,7 +611,7 @@ class TestYamlTreeRowRecordReader {
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedSchema, Map.of(
                     "integer", 1,
                     "boolean", true,
@@ -633,7 +633,7 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testChoiceOfEmbeddedSimilarRecords() throws Exception {
-        String yamlPath = "src/test/resources/yaml/choice-of-embedded-similar-records.yaml";
+        final String yamlPath = "src/test/resources/yaml/choice-of-embedded-similar-records.yaml";
 
         final SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
@@ -643,14 +643,14 @@ class TestYamlTreeRowRecordReader {
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
                         RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)
                 ))
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedRecordChoiceSchema, Map.of(
                     "record", new MapRecord(expectedRecordSchema1, Map.of(
                             "integer", 1,
@@ -668,39 +668,39 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
-        String yamlPath = "src/test/resources/yaml/choice-of-different-arrays-with-extra-fields.yaml";
+        final String yamlPath = "src/test/resources/yaml/choice-of-different-arrays-with-extra-fields.yaml";
 
-        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
         ));
-        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
 
-        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema1)),
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema2))
                 ))
         ));
 
-        RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
                         RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
                 )
                 )));
 
-        SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
         ));
-        SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
             new RecordField("integer", RecordFieldType.INT.getDataType()),
             new RecordField("string", RecordFieldType.STRING.getDataType())
         ));
-        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema1)),
                         RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema2))
@@ -710,7 +710,7 @@ class TestYamlTreeRowRecordReader {
         // Since the actual arrays have records with either (INT, BOOLEAN, STRING) or (INT, STRING, STRING)
         //  while the explicit schema defines only (INT, BOOLEAN) and (INT, STRING) we can't tell which record schema to chose
         //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
             new MapRecord(expectedRecordChoiceSchema, Map.of("record", new Object[]{
                 new MapRecord(expectedChildSchema1, Map.of(
                         "integer", 11,
@@ -742,14 +742,14 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromNestedArray() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested-array.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested-array.yaml";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
                 new MapRecord(expectedRecordSchema, Map.of(
                         "id", 42,
                         "balance", 4750.89
@@ -765,14 +765,14 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromNestedObject() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Collections.singletonList(
+        final List<Object> expected = Collections.singletonList(
                 new MapRecord(expectedRecordSchema, Map.of(
                         "id", 42,
                         "balance", 4750.89
@@ -784,14 +784,14 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromMultipleNestedField() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/multiple-nested-field.yaml";
+        final String yamlPath = "src/test/resources/yaml/multiple-nested-field.yaml";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.STRING.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
                     new MapRecord(expectedRecordSchema, Map.of(
                             "id", "n312kj3",
                             "type", "employee"
@@ -807,31 +807,31 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
 
         testNestedReadRecords(yamlPath, Collections.emptyList(), "name");
     }
 
     @Test
     void testStartFromNonExistentFieldWithDefinedSchema() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
-        List<Object> expected = Collections.emptyList();
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
+        final List<Object> expected = Collections.emptyList();
 
         testNestedReadRecords(yamlPath, expectedRecordSchema, expected, "notfound", SchemaApplicationStrategy.SELECTED_PART);
     }
 
     @Test
     void testStartFromNestedFieldThenStartObject() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/nested-array-then-start-object.yaml";
+        final String yamlPath = "src/test/resources/yaml/nested-array-then-start-object.yaml";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
                 new MapRecord(expectedRecordSchema, Map.of(
                         "id", 42,
                         "balance", 4750.89
@@ -847,18 +847,18 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromNestedObjectWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested.yaml";
 
-        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("account", RecordFieldType.RECORD.getRecordDataType(accountSchema))
         ));
 
-        List<Object> expected = Collections.singletonList(
+        final List<Object> expected = Collections.singletonList(
                 new MapRecord(accountSchema, Map.of(
                         "id", 42,
                         "balance", 4750.89
@@ -870,18 +870,18 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromNestedArrayWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-nested-array.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-nested-array.yaml";
 
-        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountSchema)))
         ));
 
-        List<Object> expected = Arrays.asList(
+        final List<Object> expected = Arrays.asList(
                 new MapRecord(accountSchema, Map.of(
                         "id", 42,
                         "balance", 4750.89
@@ -897,9 +897,9 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testStartFromDeepNestedObject() throws IOException, MalformedRecordException {
-        String yamlPath = "src/test/resources/yaml/single-element-deep-nested.yaml";
+        final String yamlPath = "src/test/resources/yaml/single-element-deep-nested.yaml";
 
-        RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("rootInt", RecordFieldType.INT.getDataType()),
                 new RecordField("rootString", RecordFieldType.STRING.getDataType()),
                 new RecordField("nestedLevel1Record", RecordFieldType.RECORD.getRecordDataType(
@@ -916,12 +916,12 @@ class TestYamlTreeRowRecordReader {
                 ))
         ));
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
                 new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
         ));
 
-        List<Object> expected = Collections.singletonList(
+        final List<Object> expected = Collections.singletonList(
                 new MapRecord(expectedRecordSchema, Map.of(
                         "nestedLevel2Int", 111,
                         "nestedLevel2String", "root.level1.level2:string"
@@ -933,26 +933,26 @@ class TestYamlTreeRowRecordReader {
 
     @Test
     void testCaptureFields() throws IOException, MalformedRecordException {
-        Map<String, String> expectedCapturedFields = new HashMap<>();
+        final Map<String, String> expectedCapturedFields = new HashMap<>();
         expectedCapturedFields.put("id", "1");
         expectedCapturedFields.put("zipCode", "11111");
         expectedCapturedFields.put("country", "USA");
         expectedCapturedFields.put("job", null);
-        Set<String> fieldsToCapture = expectedCapturedFields.keySet();
-        BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
-        String startingFieldName = "accounts";
+        final Set<String> fieldsToCapture = expectedCapturedFields.keySet();
+        final BiPredicate<String, String> capturePredicate = (fieldName, fieldValue) -> fieldsToCapture.contains(fieldName);
+        final String startingFieldName = "accounts";
 
-        SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema accountRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
         ));
 
-        SimpleRecordSchema jobRecordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema jobRecordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("salary", RecordFieldType.INT.getDataType()),
                 new RecordField("position", RecordFieldType.STRING.getDataType())
         ));
 
-        SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountRecordSchema))),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
@@ -965,7 +965,7 @@ class TestYamlTreeRowRecordReader {
         ));
 
         try (InputStream in = Files.newInputStream(Paths.get("src/test/resources/yaml/capture-fields.yaml"))) {
-            YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(
+            final YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(
                     in, mock(ComponentLog.class), recordSchema,
                     dateFormat, timeFormat, timestampFormat,
                     StartingFieldStrategy.NESTED_FIELD, startingFieldName,
@@ -977,43 +977,43 @@ class TestYamlTreeRowRecordReader {
             }
             assertNotEquals(0, records);
 
-            Map<String, String> capturedFields = reader.getCapturedFields();
+            final Map<String, String> capturedFields = reader.getCapturedFields();
 
             assertEquals(expectedCapturedFields, capturedFields);
         }
     }
 
-    private void testReadRecords(String yamlPath, List<Object> expected) throws IOException, MalformedRecordException {
+    private void testReadRecords(final String yamlPath, final List<Object> expected) throws IOException, MalformedRecordException {
         final File jsonFile = new File(yamlPath);
         try (
             InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
         ) {
-            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
+            final RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
             testReadRecords(jsonStream, schema, expected);
         }
     }
 
-    private void testNestedReadRecords(String yamlPath, List<Object> expected, String startingFieldName) throws IOException, MalformedRecordException {
+    private void testNestedReadRecords(final String yamlPath, final List<Object> expected, final String startingFieldName) throws IOException, MalformedRecordException {
 
         final File jsonFile = new File(yamlPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.NESTED_FIELD, startingFieldName);
+            final RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.NESTED_FIELD, startingFieldName);
             testNestedReadRecords(jsonStream, schema, expected, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 
-    private void testReadRecords(String yamlPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+    private void testReadRecords(final String yamlPath, final RecordSchema schema, final List<Object> expected) throws IOException, MalformedRecordException {
         final File jsonFile = new File(yamlPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected);
         }
     }
 
-    private void testNestedReadRecords(String yamlPath,
-                                 RecordSchema schema,
-                                 List<Object> expected,
-                                 String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy
+    private void testNestedReadRecords(final String yamlPath,
+                                 final RecordSchema schema,
+                                 final List<Object> expected,
+                                 final String startingFieldName,
+                                 final SchemaApplicationStrategy schemaApplicationStrategy
     ) throws IOException, MalformedRecordException {
 
         final File yamlFile = new File(yamlPath);
@@ -1022,16 +1022,16 @@ class TestYamlTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(InputStream yamlStream, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+    private void testReadRecords(final InputStream yamlStream, final RecordSchema schema, final List<Object> expected) throws IOException, MalformedRecordException {
         try (YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(yamlStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
-            List<Object> actual = new ArrayList<>();
+            final List<Object> actual = new ArrayList<>();
             Record record;
             while ((record = reader.nextRecord()) != null) {
-                List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
+                final List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
                 actual.addAll(dataCollection);
             }
 
-            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+            final List<Function<Object, Object>> propertyProviders = Arrays.asList(
                 _object -> ((Record) _object).getSchema(),
                 _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                     if (value != null && value.getClass().isArray()) {
@@ -1042,30 +1042,30 @@ class TestYamlTreeRowRecordReader {
                 }).collect(Collectors.toList())
             );
 
-            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
-            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
 
             assertEquals(wrappedExpected, wrappedActual);
         }
     }
 
-    private void testNestedReadRecords(InputStream yamlStream,
-                                 RecordSchema schema,
-                                 List<Object> expected,
-                                 String startingFieldName,
-                                 SchemaApplicationStrategy schemaApplicationStrategy)
+    private void testNestedReadRecords(final InputStream yamlStream,
+                                 final RecordSchema schema,
+                                 final List<Object> expected,
+                                 final String startingFieldName,
+                                 final SchemaApplicationStrategy schemaApplicationStrategy)
             throws IOException, MalformedRecordException {
 
         try (YamlTreeRowRecordReader reader = new YamlTreeRowRecordReader(yamlStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
                 StartingFieldStrategy.NESTED_FIELD, startingFieldName, schemaApplicationStrategy, null)) {
-            List<Object> actual = new ArrayList<>();
+            final List<Object> actual = new ArrayList<>();
             Record record;
 
             while ((record = reader.nextRecord()) != null) {
                 actual.add(record);
             }
 
-            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+            final List<Function<Object, Object>> propertyProviders = Arrays.asList(
                     _object -> ((Record) _object).getSchema(),
                     _object -> Arrays.stream(((Record) _object).getValues()).map(value -> {
                         if (value != null && value.getClass().isArray()) {
@@ -1076,15 +1076,15 @@ class TestYamlTreeRowRecordReader {
                     }).collect(Collectors.toList())
             );
 
-            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
-            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            final List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
 
             assertEquals(wrappedExpected, wrappedActual);
         }
     }
 
-    private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
-        RecordSchema schema = new InferSchemaAccessStrategy<>(
+    private RecordSchema inferSchema(final InputStream jsonStream, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
+        final RecordSchema schema = new InferSchemaAccessStrategy<>(
             (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName, new YamlParserFactory()),
             new JsonSchemaInference(new TimeValueInference(null, null, null)),
             mock(ComponentLog.class)

@@ -65,18 +65,18 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
      * @param attributes Map containing the lookup attribute based on which ControllerService is chosen
      * @return the chosen ControllerService
      */
-    public S lookupService(Map<String, String> attributes) {
+    public S lookupService(final Map<String, String> attributes) {
         if (attributes == null) {
             throw new ProcessException("Attributes map is null");
         } else if (!attributes.containsKey(getLookupAttribute())) {
             throw new ProcessException("Attributes must contain an attribute name '" + getLookupAttribute() + "'");
         }
 
-        Object lookupKey = Optional.of(getLookupAttribute())
+        final Object lookupKey = Optional.of(getLookupAttribute())
                 .map(attributes::get)
                 .orElseThrow(() -> new ProcessException(getLookupAttribute() + " cannot be null or blank"));
 
-        S service = serviceMap.get(lookupKey);
+        final S service = serviceMap.get(lookupKey);
 
         if (service == null) {
             throw new ProcessException("No " + getServiceName() + " found for " + getLookupAttribute());
@@ -87,12 +87,12 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        Map<String, S> serviceMap = new HashMap<>();
+        final Map<String, S> serviceMap = new HashMap<>();
 
         context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .forEach(propertyDescriptor -> {
-                    S service = context.getProperty(propertyDescriptor).asControllerService(getServiceType());
+                    final S service = context.getProperty(propertyDescriptor).asControllerService(getServiceType());
 
                     serviceMap.put(propertyDescriptor.getName(), service);
                 });
@@ -111,11 +111,11 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         return validateForAtLeastOneService(context);
     }
 
-    protected PropertyDescriptor lookupKeyPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor lookupKeyPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .description("The " + getServiceName() + " to return when " + getLookupAttribute() + " = '" + propertyDescriptorName + "'")
@@ -124,7 +124,7 @@ public abstract class AbstractSingleAttributeBasedControllerServiceLookup<S exte
                 .build();
     }
 
-    private Collection<ValidationResult> validateForAtLeastOneService(ValidationContext context) {
+    private Collection<ValidationResult> validateForAtLeastOneService(final ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>();
 
         int numDefinedServices = 0;

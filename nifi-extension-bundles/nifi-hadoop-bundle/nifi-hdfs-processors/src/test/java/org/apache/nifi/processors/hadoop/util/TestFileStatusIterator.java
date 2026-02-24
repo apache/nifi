@@ -108,17 +108,19 @@ class TestFileStatusIterator {
 
         assertEquals(0, fileStatusIterable.getTotalFileCount());
 
-        fileStatusIterable.forEach(status -> { });
+        for (final FileStatus ignored : fileStatusIterable) {
+            // count files
+        }
 
         assertEquals(3, fileStatusIterable.getTotalFileCount());
     }
 
-    private void setupFileStatusMocks(FileStatus[] fileStatuses) throws IOException, InterruptedException {
+    private void setupFileStatusMocks(final FileStatus[] fileStatuses) throws IOException, InterruptedException {
         when(mockHdfs.listStatusIterator(any(Path.class))).thenReturn(new MockRemoteIterator(fileStatuses));
 
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {
             // Get the provided lambda expression
-            PrivilegedExceptionAction action = invocation.getArgument(0);
+            final PrivilegedExceptionAction action = invocation.getArgument(0);
 
             // Invoke the lambda expression and return the result
             return action.run();
@@ -129,7 +131,7 @@ class TestFileStatusIterator {
 
         final Deque<FileStatus> deque;
 
-        public MockRemoteIterator(FileStatus... fileStatuses) {
+        public MockRemoteIterator(final FileStatus... fileStatuses) {
             deque = new ArrayDeque<>();
             Collections.addAll(deque, fileStatuses);
         }

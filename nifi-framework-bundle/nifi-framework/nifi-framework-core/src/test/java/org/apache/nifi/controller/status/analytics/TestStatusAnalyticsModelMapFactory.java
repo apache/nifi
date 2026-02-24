@@ -44,19 +44,19 @@ public class TestStatusAnalyticsModelMapFactory {
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
 
         // use the system bundle
-        Bundle systemBundle = SystemBundle.create(nifiProperties);
+        final Bundle systemBundle = SystemBundle.create(nifiProperties);
         extensionManager = new StandardExtensionDiscoveringManager();
         ((StandardExtensionDiscoveringManager) extensionManager).discoverExtensions(systemBundle, Collections.emptySet());
     }
 
     @Test
     public void getConnectionStatusModelMap() {
-        StatusAnalyticsModelMapFactory factory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = factory.getConnectionStatusModelMap();
+        final StatusAnalyticsModelMapFactory factory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
+        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = factory.getConnectionStatusModelMap();
         assertNotNull(modelMap.get("queuedCount"));
         assertNotNull(modelMap.get("queuedBytes"));
-        StatusAnalyticsModel countModel = modelMap.get("queuedCount").getKey();
-        StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
+        final StatusAnalyticsModel countModel = modelMap.get("queuedCount").getKey();
+        final StatusAnalyticsModel bytesModel = modelMap.get("queuedBytes").getKey();
         assertNotNull(countModel);
         assertNotNull(bytesModel);
         assertEquals(countModel.getClass().getName(), "org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares");

@@ -82,7 +82,7 @@ public class GrokRecordReader implements RecordReader {
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         Map<String, Object> valueMap = nextMap;
         nextMap = null;
-        StringBuilder raw = new StringBuilder();
+        final StringBuilder raw = new StringBuilder();
 
         int iterations = 0;
         while (valueMap == null || valueMap.isEmpty()) {
@@ -143,7 +143,7 @@ public class GrokRecordReader implements RecordReader {
                 final Object normalizedValue;
                 if (rawValue instanceof List) {
                     final List<?> list = (List<?>) rawValue;
-                    List<?> nonNullElements = list.stream().filter(Objects::nonNull).collect(Collectors.toList());
+                    final List<?> nonNullElements = list.stream().filter(Objects::nonNull).collect(Collectors.toList());
                     if (nonNullElements.isEmpty()) {
                         normalizedValue = null;
                     } else if (nonNullElements.size() == 1) {

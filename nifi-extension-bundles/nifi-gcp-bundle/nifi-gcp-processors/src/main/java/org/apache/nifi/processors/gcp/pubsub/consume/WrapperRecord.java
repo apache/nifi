@@ -56,7 +56,7 @@ public class WrapperRecord extends MapRecord {
         return new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_ATTRIBUTES, fieldValue));
     }
 
-    private static Map<String, Object> toValues(final Record record, ReceivedMessage message) {
+    private static Map<String, Object> toValues(final Record record, final ReceivedMessage message) {
         final Map<String, Object> valuesMetadata = new HashMap<>();
         valuesMetadata.put(ACK_ID_ATTRIBUTE, message.getAckId());
         valuesMetadata.put(SERIALIZED_SIZE_ATTRIBUTE, message.getSerializedSize());
@@ -72,7 +72,7 @@ public class WrapperRecord extends MapRecord {
         return valuesWrapper;
     }
 
-    public WrapperRecord(final Record record, ReceivedMessage message) {
+    public WrapperRecord(final Record record, final ReceivedMessage message) {
         super(toRecordSchema(record), toValues(record, message));
     }
 

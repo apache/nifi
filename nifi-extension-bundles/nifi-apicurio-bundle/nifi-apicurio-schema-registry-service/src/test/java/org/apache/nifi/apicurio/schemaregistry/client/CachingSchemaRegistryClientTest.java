@@ -65,8 +65,8 @@ class CachingSchemaRegistryClientTest {
 
         when(mockClient.getSchema(SCHEMA_NAME, version)).thenReturn(TEST_SCHEMA);
 
-        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
-        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
+        final RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
+        final RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
 
         assertEquals(TEST_SCHEMA, actualSchema1);
         assertEquals(TEST_SCHEMA, actualSchema2);
@@ -79,8 +79,8 @@ class CachingSchemaRegistryClientTest {
 
         when(mockClient.getSchema(SCHEMA_NAME, version)).thenReturn(TEST_SCHEMA);
 
-        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
-        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
+        final RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version);
+        final RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version);
 
         assertEquals(TEST_SCHEMA, actualSchema1);
         assertEquals(TEST_SCHEMA, actualSchema2);
@@ -91,14 +91,14 @@ class CachingSchemaRegistryClientTest {
     void testGetSchemaWithNameAndVersionDoesNotCacheDifferentVersions() throws IOException, SchemaNotFoundException {
         final OptionalInt version1 = OptionalInt.of(1);
         final OptionalInt version2 = OptionalInt.of(2);
-        RecordSchema expectedSchema1 = TEST_SCHEMA;
-        RecordSchema expectedSchema2 = TEST_SCHEMA_2;
+        final RecordSchema expectedSchema1 = TEST_SCHEMA;
+        final RecordSchema expectedSchema2 = TEST_SCHEMA_2;
 
         when(mockClient.getSchema(SCHEMA_NAME, version1)).thenReturn(expectedSchema1);
         when(mockClient.getSchema(SCHEMA_NAME, version2)).thenReturn(expectedSchema2);
 
-        RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version1);
-        RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version2);
+        final RecordSchema actualSchema1 = cachingClient.getSchema(SCHEMA_NAME, version1);
+        final RecordSchema actualSchema2 = cachingClient.getSchema(SCHEMA_NAME, version2);
 
         assertEquals(expectedSchema1, actualSchema1);
         assertEquals(expectedSchema2, actualSchema2);

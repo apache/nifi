@@ -42,7 +42,7 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
     public static final Pattern PROVENANCE_QUERY_URI = Pattern.compile("/nifi-api/provenance/[a-f0-9\\-]{36}");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if ("POST".equalsIgnoreCase(method) && PROVENANCE_URI.equals(uri.getPath())) {
             return true;
         } else if ("GET".equalsIgnoreCase(method) && PROVENANCE_QUERY_URI.matcher(uri.getPath()).matches()) {
@@ -52,7 +52,7 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
     }
 
     @Override
-    public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
+    public NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         if (!canHandle(uri, method)) {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
@@ -71,7 +71,8 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         return new NodeResponse(clientResponse, responseEntity);
     }
 
-    protected void mergeResponses(ProvenanceDTO clientDto, Map<NodeIdentifier, ProvenanceDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ProvenanceDTO clientDto, final Map<NodeIdentifier, ProvenanceDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         final ProvenanceResultsDTO results = clientDto.getResults();
         final ProvenanceRequestDTO request = clientDto.getRequest();
         final List<ProvenanceEventDTO> allResults = new ArrayList<>(1024);

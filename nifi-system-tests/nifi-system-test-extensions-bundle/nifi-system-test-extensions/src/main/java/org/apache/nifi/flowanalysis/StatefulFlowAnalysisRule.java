@@ -34,7 +34,7 @@ public class StatefulFlowAnalysisRule extends AbstractFlowAnalysisRule {
     private final String LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP = "last.analyze.component.timestamp";
 
     @Override
-    public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {
+    public Collection<ComponentAnalysisResult> analyzeComponent(final VersionedComponent component, final FlowAnalysisRuleContext context) {
         final String lastAnalyizeTimestampKey = LAST_ANALYIZE_COMPONENT_TIMESTAMP;
 
         updateState(context, lastAnalyizeTimestampKey);
@@ -43,13 +43,13 @@ public class StatefulFlowAnalysisRule extends AbstractFlowAnalysisRule {
     }
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup processGroup, FlowAnalysisRuleContext context) {
+    public Collection<GroupAnalysisResult> analyzeProcessGroup(final VersionedProcessGroup processGroup, final FlowAnalysisRuleContext context) {
         updateState(context, LAST_ANALYIZE_PROCESS_GROUP_TIMESTAMP);
 
         return super.analyzeProcessGroup(processGroup, context);
     }
 
-    private void updateState(FlowAnalysisRuleContext context, String lastAnalyizeTimestampKey) {
+    private void updateState(final FlowAnalysisRuleContext context, final String lastAnalyizeTimestampKey) {
         final StateManager stateManager = context.getStateManager();
 
         final Map<String, String> state = new HashMap<>();
@@ -57,7 +57,7 @@ public class StatefulFlowAnalysisRule extends AbstractFlowAnalysisRule {
 
         try {
             stateManager.setState(state, Scope.LOCAL);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Couldn't set state");
         }
     }

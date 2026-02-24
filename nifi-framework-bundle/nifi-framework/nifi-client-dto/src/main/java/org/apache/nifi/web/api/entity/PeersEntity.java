@@ -39,7 +39,7 @@ public class PeersEntity extends Entity {
         return peers;
     }
 
-    public void setPeers(Collection<PeerDTO> peers) {
+    public void setPeers(final Collection<PeerDTO> peers) {
         this.peers = peers;
     }
 

@@ -134,7 +134,7 @@ public interface IdentityProvider {
      * @param authenticationRequestClazz the class the caller wants to check
      * @return a boolean value indicating if this IdentityProvider supports authenticationRequestClazz
      */
-    default boolean supports(Class<? extends AuthenticationRequest> authenticationRequestClazz) {
+    default boolean supports(final Class<? extends AuthenticationRequest> authenticationRequestClazz) {
         return AuthenticationRequest.class.equals(authenticationRequestClazz);
     }
 

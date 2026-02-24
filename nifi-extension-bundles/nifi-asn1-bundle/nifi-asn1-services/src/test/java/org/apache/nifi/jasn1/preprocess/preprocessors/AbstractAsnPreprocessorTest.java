@@ -31,17 +31,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public abstract class AbstractAsnPreprocessorTest {
     protected AsnPreprocessor testSubject;
 
-    protected void testPreprocess(String input) throws IOException, URISyntaxException {
+    protected void testPreprocess(final String input) throws IOException, URISyntaxException {
         // GIVEN
-        List<String> lines = Files.readAllLines(Paths.get(getClass().getClassLoader().getResource(input).toURI()));
+        final List<String> lines = Files.readAllLines(Paths.get(getClass().getClassLoader().getResource(input).toURI()));
 
         // WHEN
-        String actual = testSubject.preprocessAsn(lines)
+        final String actual = testSubject.preprocessAsn(lines)
                 .stream()
                 .collect(Collectors.joining(System.lineSeparator()));
 
         // THEN
-        String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
+        final String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
                 .replace("\n", System.lineSeparator());
 
         assertEquals(expected, actual);

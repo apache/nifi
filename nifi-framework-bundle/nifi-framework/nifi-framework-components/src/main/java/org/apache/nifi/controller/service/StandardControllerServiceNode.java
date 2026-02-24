@@ -695,7 +695,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, controllerService, configContext);
                     }
 
-                    boolean shouldEnable;
+                    final boolean shouldEnable;
                     synchronized (active) {
                         shouldEnable = active.get() && stateTransition.enable(getReferences()); // Transitioning the state to ENABLED will complete our future.
                     }
@@ -798,12 +798,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return future;
     }
 
-    private void invokeDisable(ConfigurationContext configContext) {
+    private void invokeDisable(final ConfigurationContext configContext) {
         final ControllerService controllerService = getControllerServiceImplementation();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), controllerService.getClass(), getIdentifier())) {
             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, controllerService, configContext);
             LOG.debug("Successfully disabled {}", this);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
             final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService, new StandardLoggingContext(StandardControllerServiceNode.this));
             componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
@@ -860,15 +860,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public synchronized void setBulletinLevel(LogLevel level) {
+    public synchronized void setBulletinLevel(final LogLevel level) {
         // handling backward compatibility with nifi 1.16 and earlier when bulletinLevel did not exist in flow.xml/flow.json
         // and bulletins were always logged at WARN level
-        if (level == null) {
-            level = LogLevel.WARN;
-        }
+        final LogLevel resolvedLevel = level == null ? LogLevel.WARN : level;
 
-        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(level);
-        this.bulletinLevel = level;
+        LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(resolvedLevel);
+        this.bulletinLevel = resolvedLevel;
     }
 
     @Override

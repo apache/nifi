@@ -74,7 +74,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
     protected abstract void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException;
 
     @Override
-    public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+    public final AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
         final UsersAndAccessPolicies usersAndAccessPolicies = getUsersAndAccessPolicies();
         final String resourceIdentifier = request.getResource().getIdentifier();
 
@@ -108,7 +108,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             return false;
         }
 
-        for (Group userGroup : userGroups) {
+        for (final Group userGroup : userGroups) {
             if (policy.getGroups().contains(userGroup.getIdentifier())) {
                 return true;
             }
@@ -125,7 +125,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      * @throws IllegalStateException if a group with the same name already exists
      */
-    public final synchronized Group addGroup(Group group) throws AuthorizationAccessException {
+    public final synchronized Group addGroup(final Group group) throws AuthorizationAccessException {
         return doAddGroup(group);
     }
 
@@ -155,7 +155,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      * @throws IllegalStateException if there is already a group with the same name
      */
-    public final synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
+    public final synchronized Group updateGroup(final Group group) throws AuthorizationAccessException {
         return doUpdateGroup(group);
     }
 
@@ -193,7 +193,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      * @throws IllegalStateException if there is already a user with the same identity
      */
-    public final synchronized User addUser(User user) throws AuthorizationAccessException {
+    public final synchronized User addUser(final User user) throws AuthorizationAccessException {
         return doAddUser(user);
     }
 
@@ -269,7 +269,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @return the policy that was added
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public final synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    public final synchronized AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         return doAddAccessPolicy(accessPolicy);
     }
 
@@ -333,7 +333,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws UninheritableAuthorizationsException if the proposed fingerprint was uninheritable
      */
     @Override
-    public final void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public final void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         try {
             // ensure we understand the proposed fingerprint
             parsePoliciesUsersAndGroups(proposedFingerprint);
@@ -380,23 +380,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             final Element rootElement = document.getDocumentElement();
 
             // parse all the users and add them to the current authorizer
-            NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
+            final NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
             for (int i = 0; i < userNodes.getLength(); i++) {
-                Node userNode = userNodes.item(i);
+                final Node userNode = userNodes.item(i);
                 users.add(parseUser((Element) userNode));
             }
 
             // parse all the groups and add them to the current authorizer
-            NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
+            final NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
             for (int i = 0; i < groupNodes.getLength(); i++) {
-                Node groupNode = groupNodes.item(i);
+                final Node groupNode = groupNodes.item(i);
                 groups.add(parseGroup((Element) groupNode));
             }
 
             // parse all the policies and add them to the current authorizer
-            NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
+            final NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
             for (int i = 0; i < policyNodes.getLength(); i++) {
-                Node policyNode = policyNodes.item(i);
+                final Node policyNode = policyNodes.item(i);
                 accessPolicies.add(parsePolicy((Element) policyNode));
             }
         } catch (final ProcessingException | IOException e) {
@@ -419,9 +419,9 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                 .identifier(element.getAttribute(IDENTIFIER_ATTR))
                 .name(element.getAttribute(NAME_ATTR));
 
-        NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
+        final NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
         for (int i = 0; i < groupUsers.getLength(); i++) {
-            Element groupUserNode = (Element) groupUsers.item(i);
+            final Element groupUserNode = (Element) groupUsers.item(i);
             builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
@@ -444,15 +444,15 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             throw new IllegalStateException("Unknown Policy Action: " + actions);
         }
 
-        NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
+        final NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
         for (int i = 0; i < policyUsers.getLength(); i++) {
-            Element policyUserNode = (Element) policyUsers.item(i);
+            final Element policyUserNode = (Element) policyUsers.item(i);
             builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
-        NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
+        final NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
         for (int i = 0; i < policyGroups.getLength(); i++) {
-            Element policyGroupNode = (Element) policyGroups.item(i);
+            final Element policyGroupNode = (Element) policyGroups.item(i);
             builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
         }
 
@@ -468,27 +468,27 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             }
 
             @Override
-            public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+            public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
                 return AbstractPolicyBasedAuthorizer.this.getAccessPolicy(identifier);
             }
 
             @Override
-            public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+            public AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                 return AbstractPolicyBasedAuthorizer.this.addAccessPolicy(accessPolicy);
             }
 
             @Override
-            public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+            public AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                 return AbstractPolicyBasedAuthorizer.this.updateAccessPolicy(accessPolicy);
             }
 
             @Override
-            public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+            public AccessPolicy deleteAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                 return AbstractPolicyBasedAuthorizer.this.deleteAccessPolicy(accessPolicy);
             }
 
             @Override
-            public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+            public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
                 final UsersAndAccessPolicies usersAndAccessPolicies = AbstractPolicyBasedAuthorizer.this.getUsersAndAccessPolicies();
                 return usersAndAccessPolicies.getAccessPolicy(resourceIdentifier, action);
             }
@@ -500,13 +500,13 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             }
 
             @Override
-            public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+            public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
                 // fingerprint is managed by the encapsulating class
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+            public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
                 // fingerprint is managed by the encapsulating class
                 throw new UnsupportedOperationException();
             }
@@ -515,32 +515,32 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             public UserGroupProvider getUserGroupProvider() {
                 return new ConfigurableUserGroupProvider() {
                     @Override
-                    public User addUser(User user) throws AuthorizationAccessException {
+                    public User addUser(final User user) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.addUser(user);
                     }
 
                     @Override
-                    public User updateUser(User user) throws AuthorizationAccessException {
+                    public User updateUser(final User user) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.updateUser(user);
                     }
 
                     @Override
-                    public User deleteUser(User user) throws AuthorizationAccessException {
+                    public User deleteUser(final User user) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.deleteUser(user);
                     }
 
                     @Override
-                    public Group addGroup(Group group) throws AuthorizationAccessException {
+                    public Group addGroup(final Group group) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.addGroup(group);
                     }
 
                     @Override
-                    public Group updateGroup(Group group) throws AuthorizationAccessException {
+                    public Group updateGroup(final Group group) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.updateGroup(group);
                     }
 
                     @Override
-                    public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                    public Group deleteGroup(final Group group) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.deleteGroup(group);
                     }
 
@@ -550,12 +550,12 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                     }
 
                     @Override
-                    public User getUser(String identifier) throws AuthorizationAccessException {
+                    public User getUser(final String identifier) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.getUser(identifier);
                     }
 
                     @Override
-                    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.getUserByIdentity(identity);
                     }
 
@@ -565,12 +565,12 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                     }
 
                     @Override
-                    public Group getGroup(String identifier) throws AuthorizationAccessException {
+                    public Group getGroup(final String identifier) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.getGroup(identifier);
                     }
 
                     @Override
-                    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+                    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
                         final UsersAndAccessPolicies usersAndAccessPolicies = AbstractPolicyBasedAuthorizer.this.getUsersAndAccessPolicies();
                         final User user = usersAndAccessPolicies.getUser(identity);
                         final Set<Group> groups = usersAndAccessPolicies.getGroups(identity);
@@ -595,23 +595,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                     }
 
                     @Override
-                    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+                    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
                         // fingerprint is managed by the encapsulating class
                         throw new UnsupportedOperationException();
                     }
 
                     @Override
-                    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+                    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
                         // fingerprint is managed by the encapsulating class
                         throw new UnsupportedOperationException();
                     }
 
                     @Override
-                    public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+                    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
                     }
 
                     @Override
-                    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+                    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
                     }
 
                     @Override
@@ -621,11 +621,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             }
 
             @Override
-            public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+            public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
             }
 
             @Override
-            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+            public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
             }
 
             @Override
@@ -654,26 +654,26 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
             writer.writeStartDocument();
             writer.writeStartElement("authorizations");
 
-            for (User user : users) {
+            for (final User user : users) {
                 writeUser(writer, user);
             }
-            for (Group group : groups) {
+            for (final Group group : groups) {
                 writeGroup(writer, group);
             }
-            for (AccessPolicy policy : policies) {
+            for (final AccessPolicy policy : policies) {
                 writePolicy(writer, policy);
             }
 
             writer.writeEndElement();
             writer.writeEndDocument();
             writer.flush();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         } finally {
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException ignored) {
+                } catch (final XMLStreamException ignored) {
                     // nothing to do here
                 }
             }
@@ -690,14 +690,14 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
     }
 
     private void writeGroup(final XMLStreamWriter writer, final Group group) throws XMLStreamException {
-        List<String> users = new ArrayList<>(group.getUsers());
+        final List<String> users = new ArrayList<>(group.getUsers());
         Collections.sort(users);
 
         writer.writeStartElement(GROUP_ELEMENT);
         writer.writeAttribute(IDENTIFIER_ATTR, group.getIdentifier());
         writer.writeAttribute(NAME_ATTR, group.getName());
 
-        for (String user : users) {
+        for (final String user : users) {
             writer.writeStartElement(GROUP_USER_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, user);
             writer.writeEndElement();
@@ -708,11 +708,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
     private void writePolicy(final XMLStreamWriter writer, final AccessPolicy policy) throws XMLStreamException {
         // sort the users for the policy
-        List<String> policyUsers = new ArrayList<>(policy.getUsers());
+        final List<String> policyUsers = new ArrayList<>(policy.getUsers());
         Collections.sort(policyUsers);
 
         // sort the groups for this policy
-        List<String> policyGroups = new ArrayList<>(policy.getGroups());
+        final List<String> policyGroups = new ArrayList<>(policy.getGroups());
         Collections.sort(policyGroups);
 
         writer.writeStartElement(POLICY_ELEMENT);
@@ -720,13 +720,13 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
         writer.writeAttribute(RESOURCE_ATTR, policy.getResource());
         writer.writeAttribute(ACTIONS_ATTR, policy.getAction().name());
 
-        for (String policyUser : policyUsers) {
+        for (final String policyUser : policyUsers) {
             writer.writeStartElement(POLICY_USER_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, policyUser);
             writer.writeEndElement();
         }
 
-        for (String policyGroup : policyGroups) {
+        for (final String policyGroup : policyGroups) {
             writer.writeStartElement(POLICY_GROUP_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, policyGroup);
             writer.writeEndElement();
@@ -758,7 +758,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
         final List<User> users;
         final List<Group> groups;
 
-        public PoliciesUsersAndGroups(List<AccessPolicy> accessPolicies, List<User> users, List<Group> groups) {
+        public PoliciesUsersAndGroups(final List<AccessPolicy> accessPolicies, final List<User> users, final List<Group> groups) {
             this.accessPolicies = accessPolicies;
             this.users = users;
             this.groups = groups;

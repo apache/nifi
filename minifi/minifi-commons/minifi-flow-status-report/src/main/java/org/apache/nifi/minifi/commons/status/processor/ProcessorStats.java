@@ -31,7 +31,7 @@ public class ProcessorStats implements java.io.Serializable {
         return activeThreads;
     }
 
-    public void setActiveThreads(int activeThreads) {
+    public void setActiveThreads(final int activeThreads) {
         this.activeThreads = activeThreads;
     }
 
@@ -39,7 +39,7 @@ public class ProcessorStats implements java.io.Serializable {
         return flowfilesReceived;
     }
 
-    public void setFlowfilesReceived(int flowfilesReceived) {
+    public void setFlowfilesReceived(final int flowfilesReceived) {
         this.flowfilesReceived = flowfilesReceived;
     }
 
@@ -47,7 +47,7 @@ public class ProcessorStats implements java.io.Serializable {
         return bytesRead;
     }
 
-    public void setBytesRead(long bytesRead) {
+    public void setBytesRead(final long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -55,7 +55,7 @@ public class ProcessorStats implements java.io.Serializable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(long bytesWritten) {
+    public void setBytesWritten(final long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -63,7 +63,7 @@ public class ProcessorStats implements java.io.Serializable {
         return flowfilesSent;
     }
 
-    public void setFlowfilesSent(int flowfilesSent) {
+    public void setFlowfilesSent(final int flowfilesSent) {
         this.flowfilesSent = flowfilesSent;
     }
 
@@ -71,7 +71,7 @@ public class ProcessorStats implements java.io.Serializable {
         return invocations;
     }
 
-    public void setInvocations(int invocations) {
+    public void setInvocations(final int invocations) {
         this.invocations = invocations;
     }
 
@@ -79,12 +79,12 @@ public class ProcessorStats implements java.io.Serializable {
         return processingNanos;
     }
 
-    public void setProcessingNanos(long processingNanos) {
+    public void setProcessingNanos(final long processingNanos) {
         this.processingNanos = processingNanos;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -92,7 +92,7 @@ public class ProcessorStats implements java.io.Serializable {
             return false;
         }
 
-        ProcessorStats that = (ProcessorStats) o;
+        final ProcessorStats that = (ProcessorStats) o;
 
         if (getActiveThreads() != that.getActiveThreads()) {
             return false;

@@ -32,7 +32,7 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
+    public S3EncryptionClient.Builder createEncryptionClientBuilder(final S3EncryptionKeySpec keySpec) {
         final ValidationResult keyValidationResult = validateKeySpec(keySpec);
         if (!keyValidationResult.isValid()) {
             throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
@@ -47,7 +47,7 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
     }
 
     @Override
-    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+    public ValidationResult validateKeySpec(final S3EncryptionKeySpec keySpec) {
         if (StringUtils.isBlank(keySpec.material())) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
@@ -56,14 +56,14 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
                     .build();
         }
 
-        byte[] keyMaterial;
+        final byte[] keyMaterial;
 
         try {
             if (!Base64.isBase64(keySpec.material())) {
                 throw new Exception();
             }
             keyMaterial = Base64.decodeBase64(keySpec.material());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
                     .valid(false)

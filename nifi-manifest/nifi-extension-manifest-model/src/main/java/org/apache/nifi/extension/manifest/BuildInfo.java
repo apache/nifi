@@ -35,7 +35,7 @@ public class BuildInfo {
         return tag;
     }
 
-    public void setTag(String tag) {
+    public void setTag(final String tag) {
         this.tag = tag;
     }
 
@@ -44,7 +44,7 @@ public class BuildInfo {
         return branch;
     }
 
-    public void setBranch(String branch) {
+    public void setBranch(final String branch) {
         this.branch = branch;
     }
 
@@ -53,7 +53,7 @@ public class BuildInfo {
         return revision;
     }
 
-    public void setRevision(String revision) {
+    public void setRevision(final String revision) {
         this.revision = revision;
     }
 
@@ -62,7 +62,7 @@ public class BuildInfo {
         return jdk;
     }
 
-    public void setJdk(String jdk) {
+    public void setJdk(final String jdk) {
         this.jdk = jdk;
     }
 
@@ -71,7 +71,7 @@ public class BuildInfo {
         return builtBy;
     }
 
-    public void setBuiltBy(String builtBy) {
+    public void setBuiltBy(final String builtBy) {
         this.builtBy = builtBy;
     }
 
@@ -80,7 +80,7 @@ public class BuildInfo {
         return timestamp;
     }
 
-    public void setTimestamp(String timestamp) {
+    public void setTimestamp(final String timestamp) {
         this.timestamp = timestamp;
     }
 }

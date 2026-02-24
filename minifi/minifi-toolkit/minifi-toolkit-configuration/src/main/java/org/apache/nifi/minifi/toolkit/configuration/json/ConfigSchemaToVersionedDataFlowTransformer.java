@@ -107,18 +107,18 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
     private final ConfigSchema configSchema;
     private final ComponentPropertyProvider componentPropertyProvider;
 
-    public ConfigSchemaToVersionedDataFlowTransformer(ConfigSchema configSchema) {
+    public ConfigSchemaToVersionedDataFlowTransformer(final ConfigSchema configSchema) {
         this.configSchema = configSchema;
         this.componentPropertyProvider = new ComponentPropertyProvider(configSchema);
     }
 
     public Map<String, String> extractProperties() {
-        CorePropertiesSchema coreProperties = configSchema.getCoreProperties();
-        FlowFileRepositorySchema flowFileRepositoryProperties = configSchema.getFlowfileRepositoryProperties();
-        ContentRepositorySchema contentRepositoryProperties = configSchema.getContentRepositoryProperties();
-        ProvenanceRepositorySchema provenanceRepositoryProperties = configSchema.getProvenanceRepositorySchema();
-        ComponentStatusRepositorySchema componentStatusRepositoryProperties = configSchema.getComponentStatusRepositoryProperties();
-        SwapSchema swapProperties = configSchema.getFlowfileRepositoryProperties().getSwapProperties();
+        final CorePropertiesSchema coreProperties = configSchema.getCoreProperties();
+        final FlowFileRepositorySchema flowFileRepositoryProperties = configSchema.getFlowfileRepositoryProperties();
+        final ContentRepositorySchema contentRepositoryProperties = configSchema.getContentRepositoryProperties();
+        final ProvenanceRepositorySchema provenanceRepositoryProperties = configSchema.getProvenanceRepositorySchema();
+        final ComponentStatusRepositorySchema componentStatusRepositoryProperties = configSchema.getComponentStatusRepositoryProperties();
+        final SwapSchema swapProperties = configSchema.getFlowfileRepositoryProperties().getSwapProperties();
 
         return Stream.concat(
                 Stream.of(
@@ -149,7 +149,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
     }
 
     public VersionedDataflow convert() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
         versionedDataflow.setEncodingVersion(new VersionedFlowEncodingVersion(2, 0));
         versionedDataflow.setMaxTimerDrivenThreadCount(configSchema.getCoreProperties().getMaxConcurrentThreads().intValue());
 
@@ -160,7 +160,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         versionedDataflow.setReportingTasks(
             convertComponents(configSchema::getReportingTasksSchema, this::toVersionedReportingTask, toList()));
 
-        VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
         versionedProcessGroup.setDefaultFlowFileExpiration(DEFAULT_FLOW_FILE_EXPIRATION);
         versionedProcessGroup.setDefaultBackPressureObjectThreshold(DEFAULT_BACK_PRESSURE_OBJECT_THRESHOLD);
         versionedProcessGroup.setDefaultBackPressureDataSizeThreshold(DEFAULT_BACK_PRESSURE_DATA_SIZE_THRESHOLD);
@@ -170,7 +170,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         convertProcessGroup(configSchema.getProcessGroupSchema(), versionedProcessGroup);
 
         // we need to set the instance ids of the components in the end, as at the time of creating the connection the instance id is not available
-        Map<String, String> idToInstanceIdMapOfConnectableComponents = getIdToInstanceIdMapOfConnectableComponents(versionedProcessGroup);
+        final Map<String, String> idToInstanceIdMapOfConnectableComponents = getIdToInstanceIdMapOfConnectableComponents(versionedProcessGroup);
         setConnectableComponentsInstanceId(versionedProcessGroup, idToInstanceIdMapOfConnectableComponents);
 
         versionedDataflow.setRootGroup(versionedProcessGroup);
@@ -178,8 +178,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return versionedDataflow;
     }
 
-    private Map<String, String> getIdToInstanceIdMapOfConnectableComponents(VersionedProcessGroup versionedProcessGroup) {
-        Map<String, String> thisProcessGroupIdToInstanceIdMaps = Stream.of(
+    private Map<String, String> getIdToInstanceIdMapOfConnectableComponents(final VersionedProcessGroup versionedProcessGroup) {
+        final Map<String, String> thisProcessGroupIdToInstanceIdMaps = Stream.of(
                 ofNullable(versionedProcessGroup.getProcessors()).orElse(Set.of()),
                 ofNullable(versionedProcessGroup.getInputPorts()).orElse(Set.of()),
                 ofNullable(versionedProcessGroup.getOutputPorts()).orElse(Set.of()),
@@ -198,7 +198,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
             .flatMap(Set::stream)
             .collect(toMap(VersionedComponent::getIdentifier, VersionedComponent::getInstanceIdentifier));
 
-        Stream<Map<String, String>> childProcessGroupsIdToInstanceIdMaps = ofNullable(versionedProcessGroup.getProcessGroups()).orElse(Set.of())
+        final Stream<Map<String, String>> childProcessGroupsIdToInstanceIdMaps = ofNullable(versionedProcessGroup.getProcessGroups()).orElse(Set.of())
             .stream()
             .map(this::getIdToInstanceIdMapOfConnectableComponents);
 
@@ -210,12 +210,12 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
             .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private void setConnectableComponentsInstanceId(VersionedProcessGroup versionedProcessGroup, Map<String, String> idToInstanceIdMapOfConnectableComponents) {
+    private void setConnectableComponentsInstanceId(final VersionedProcessGroup versionedProcessGroup, final Map<String, String> idToInstanceIdMapOfConnectableComponents) {
         ofNullable(versionedProcessGroup.getConnections()).orElse(Set.of())
             .forEach(connection -> {
-                ConnectableComponent source = connection.getSource();
+                final ConnectableComponent source = connection.getSource();
                 source.setInstanceIdentifier(idToInstanceIdMapOfConnectableComponents.get(source.getId()));
-                ConnectableComponent destination = connection.getDestination();
+                final ConnectableComponent destination = connection.getDestination();
                 System.err.println(destination.getType() + " - " + destination.getId() + " - " + idToInstanceIdMapOfConnectableComponents.get(destination.getId()));
                 destination.setInstanceIdentifier(idToInstanceIdMapOfConnectableComponents.get(destination.getId()));
             });
@@ -223,7 +223,7 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
             .forEach(childProcessGroup -> setConnectableComponentsInstanceId(childProcessGroup, idToInstanceIdMapOfConnectableComponents));
     }
 
-    private void convertProcessGroup(ProcessGroupSchema processGroupSchema, VersionedProcessGroup processGroup) {
+    private void convertProcessGroup(final ProcessGroupSchema processGroupSchema, final VersionedProcessGroup processGroup) {
         processGroup.setIdentifier(processGroupSchema.getId());
         processGroup.setInstanceIdentifier(processGroupSchema.getId());
         processGroup.setName(getNameOrId(processGroupSchema));
@@ -247,15 +247,15 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
             convertComponents(processGroupSchema::getProcessGroupSchemas, this::toVersionedProcessGroup, toSet()));
     }
 
-    private <T, U, V> V convertComponents(Supplier<List<U>> convertibles, Function<U, T> converter, Collector<T, ?, V> collector) {
+    private <T, U, V> V convertComponents(final Supplier<List<U>> convertibles, final Function<U, T> converter, final Collector<T, ?, V> collector) {
         return ofNullable(convertibles.get()).orElse(List.of())
             .stream()
             .map(converter)
             .collect(collector);
     }
 
-    private VersionedReportingTask toVersionedReportingTask(ReportingSchema reportingSchema) {
-        VersionedReportingTask reportingTask = new VersionedReportingTask();
+    private VersionedReportingTask toVersionedReportingTask(final ReportingSchema reportingSchema) {
+        final VersionedReportingTask reportingTask = new VersionedReportingTask();
         reportingTask.setIdentifier(reportingSchema.getId());
         reportingTask.setInstanceIdentifier(randomUUID().toString());
         reportingTask.setName(getNameOrId(reportingSchema));
@@ -272,8 +272,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return reportingTask;
     }
 
-    private VersionedProcessor toVersionedProcessor(ProcessorSchema processorSchema) {
-        VersionedProcessor processor = new VersionedProcessor();
+    private VersionedProcessor toVersionedProcessor(final ProcessorSchema processorSchema) {
+        final VersionedProcessor processor = new VersionedProcessor();
         processor.setIdentifier(processorSchema.getId());
         processor.setInstanceIdentifier(randomUUID().toString());
         processor.setGroupIdentifier(componentPropertyProvider.parentId(processorSchema.getId()));
@@ -298,8 +298,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return processor;
     }
 
-    private VersionedControllerService toVersionedControllerService(ControllerServiceSchema controllerServiceSchema) {
-        VersionedControllerService controllerService = new VersionedControllerService();
+    private VersionedControllerService toVersionedControllerService(final ControllerServiceSchema controllerServiceSchema) {
+        final VersionedControllerService controllerService = new VersionedControllerService();
         controllerService.setIdentifier(controllerServiceSchema.getId());
         controllerService.setInstanceIdentifier(randomUUID().toString());
         controllerService.setGroupIdentifier(componentPropertyProvider.parentId(controllerServiceSchema.getId()));
@@ -315,8 +315,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return controllerService;
     }
 
-    private VersionedConnection toVersionedConnection(ConnectionSchema connectionSchema) {
-        VersionedConnection connection = new VersionedConnection();
+    private VersionedConnection toVersionedConnection(final ConnectionSchema connectionSchema) {
+        final VersionedConnection connection = new VersionedConnection();
         connection.setIdentifier(connectionSchema.getId());
         connection.setInstanceIdentifier(randomUUID().toString());
         connection.setName(getNameOrId(connectionSchema));
@@ -334,16 +334,16 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return connection;
     }
 
-    private ConnectableComponent connectableComponent(String componentId) {
-        ConnectableComponent component = new ConnectableComponent();
+    private ConnectableComponent connectableComponent(final String componentId) {
+        final ConnectableComponent component = new ConnectableComponent();
         component.setId(componentId);
         component.setGroupId(componentPropertyProvider.parentId(componentId));
         component.setType(componentPropertyProvider.connectableComponentType(componentId));
         return component;
     }
 
-    private VersionedFunnel toVersionedFunnel(FunnelSchema funnelSchema) {
-        VersionedFunnel funnel = new VersionedFunnel();
+    private VersionedFunnel toVersionedFunnel(final FunnelSchema funnelSchema) {
+        final VersionedFunnel funnel = new VersionedFunnel();
         funnel.setIdentifier(funnelSchema.getId());
         funnel.setInstanceIdentifier(randomUUID().toString());
         funnel.setGroupIdentifier(componentPropertyProvider.parentId(funnelSchema.getId()));
@@ -353,8 +353,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return funnel;
     }
 
-    private VersionedRemoteProcessGroup toRemoteProcessGroup(RemoteProcessGroupSchema remoteProcessGroupSchema) {
-        VersionedRemoteProcessGroup remoteProcessGroup = new VersionedRemoteProcessGroup();
+    private VersionedRemoteProcessGroup toRemoteProcessGroup(final RemoteProcessGroupSchema remoteProcessGroupSchema) {
+        final VersionedRemoteProcessGroup remoteProcessGroup = new VersionedRemoteProcessGroup();
         remoteProcessGroup.setIdentifier(remoteProcessGroupSchema.getId());
         remoteProcessGroup.setInstanceIdentifier(randomUUID().toString());
         remoteProcessGroup.setGroupIdentifier(componentPropertyProvider.parentId(remoteProcessGroupSchema.getId()));
@@ -390,16 +390,16 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return remoteProcessGroup;
     }
 
-    private VersionedRemoteGroupPort toRemoteInputPort(RemotePortSchema portSchema) {
+    private VersionedRemoteGroupPort toRemoteInputPort(final RemotePortSchema portSchema) {
         return toVersionedRemoteGroupPort(portSchema, ComponentType.REMOTE_INPUT_PORT);
     }
 
-    private VersionedRemoteGroupPort toRemoteOutputPort(RemotePortSchema portSchema) {
+    private VersionedRemoteGroupPort toRemoteOutputPort(final RemotePortSchema portSchema) {
         return toVersionedRemoteGroupPort(portSchema, ComponentType.REMOTE_OUTPUT_PORT);
     }
 
-    private VersionedRemoteGroupPort toVersionedRemoteGroupPort(RemotePortSchema portSchema, ComponentType portType) {
-        VersionedRemoteGroupPort port = new VersionedRemoteGroupPort();
+    private VersionedRemoteGroupPort toVersionedRemoteGroupPort(final RemotePortSchema portSchema, final ComponentType portType) {
+        final VersionedRemoteGroupPort port = new VersionedRemoteGroupPort();
         port.setIdentifier(randomUUID().toString());
         port.setInstanceIdentifier(portSchema.getId());
         port.setTargetId(portSchema.getId());
@@ -414,16 +414,16 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return port;
     }
 
-    private VersionedPort toInputPort(PortSchema portSchema) {
+    private VersionedPort toInputPort(final PortSchema portSchema) {
         return toVersionedPort(portSchema, PortType.INPUT_PORT);
     }
 
-    private VersionedPort toOutputPort(PortSchema portSchema) {
+    private VersionedPort toOutputPort(final PortSchema portSchema) {
         return toVersionedPort(portSchema, PortType.OUTPUT_PORT);
     }
 
-    private VersionedPort toVersionedPort(PortSchema portSchema, PortType portType) {
-        VersionedPort port = new VersionedPort();
+    private VersionedPort toVersionedPort(final PortSchema portSchema, final PortType portType) {
+        final VersionedPort port = new VersionedPort();
         port.setIdentifier(portSchema.getId());
         port.setInstanceIdentifier(randomUUID().toString());
         port.setGroupIdentifier(componentPropertyProvider.parentId(portSchema.getId()));
@@ -436,8 +436,8 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return port;
     }
 
-    private VersionedProcessGroup toVersionedProcessGroup(ProcessGroupSchema childProcessGroupSchema) {
-        VersionedProcessGroup childProcessGroup = new VersionedProcessGroup();
+    private VersionedProcessGroup toVersionedProcessGroup(final ProcessGroupSchema childProcessGroupSchema) {
+        final VersionedProcessGroup childProcessGroup = new VersionedProcessGroup();
         childProcessGroup.setGroupIdentifier(componentPropertyProvider.parentId(childProcessGroupSchema.getId()));
 
         convertProcessGroup(childProcessGroupSchema, childProcessGroup);
@@ -445,21 +445,21 @@ public class ConfigSchemaToVersionedDataFlowTransformer {
         return childProcessGroup;
     }
 
-    private Map<String, String> toStringStringProperties(Map<String, Object> stringObjectProperties) {
+    private Map<String, String> toStringStringProperties(final Map<String, Object> stringObjectProperties) {
         return stringObjectProperties.entrySet()
             .stream()
             .collect(toMap(Map.Entry::getKey, entry -> ofNullable(entry.getValue()).map(Object::toString).orElse(EMPTY)));
     }
 
-    private Bundle bundleFor(String type) {
-        Bundle bundle = new Bundle();
+    private Bundle bundleFor(final String type) {
+        final Bundle bundle = new Bundle();
         bundle.setGroup(EMPTY);
         bundle.setArtifact(type);
         bundle.setVersion(EMPTY);
         return bundle;
     }
 
-    private String getNameOrId(BaseSchemaWithIdAndName schema) {
+    private String getNameOrId(final BaseSchemaWithIdAndName schema) {
         return ofNullable(schema.getName()).filter(StringUtils::isNotBlank).orElse(schema.getId());
     }
 }

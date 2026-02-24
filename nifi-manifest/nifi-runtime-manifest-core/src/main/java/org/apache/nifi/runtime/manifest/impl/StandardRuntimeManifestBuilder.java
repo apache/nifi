@@ -169,7 +169,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     @Override
-    public RuntimeManifestBuilder addBundle(Bundle bundle) {
+    public RuntimeManifestBuilder addBundle(final Bundle bundle) {
         if (bundle == null) {
             throw new IllegalArgumentException("Bundle is required");
         }

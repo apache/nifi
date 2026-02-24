@@ -56,15 +56,15 @@ public class Hash extends RecordPathSegment {
 
                 final MessageDigest digest = getDigest(algorithmValue);
                 final String value = DataTypeUtils.toString(fv.getValue(), (String) null);
-                String encoded = new DigestUtils(digest).digestAsHex(value);
+                final String encoded = new DigestUtils(digest).digestAsHex(value);
                 return new StandardFieldValue(encoded, fv.getField(), fv.getParent().orElse(null));
             });
     }
 
-    private MessageDigest getDigest(String algorithm) {
+    private MessageDigest getDigest(final String algorithm) {
         try {
             return MessageDigest.getInstance(algorithm);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new RecordPathException("Invalid hash algorithm: " + algorithm + "not in set [" + SUPPORTED_ALGORITHMS + "]", e);
         }
     }

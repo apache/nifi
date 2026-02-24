@@ -32,7 +32,7 @@ public class DifferenceDTO {
         return differenceType;
     }
 
-    public void setDifferenceType(String differenceType) {
+    public void setDifferenceType(final String differenceType) {
         this.differenceType = differenceType;
     }
 
@@ -41,7 +41,7 @@ public class DifferenceDTO {
         return difference;
     }
 
-    public void setDifference(String difference) {
+    public void setDifference(final String difference) {
         this.difference = difference;
     }
 

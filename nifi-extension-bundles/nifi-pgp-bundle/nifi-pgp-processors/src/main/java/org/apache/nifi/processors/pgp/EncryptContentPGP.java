@@ -210,7 +210,7 @@ public class EncryptContentPGP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("symmetric-key-algorithm", SYMMETRIC_KEY_ALGORITHM.getName());
         config.renameProperty("file-encoding", FILE_ENCODING.getName());
         config.renameProperty("passphrase", PASSPHRASE.getName());

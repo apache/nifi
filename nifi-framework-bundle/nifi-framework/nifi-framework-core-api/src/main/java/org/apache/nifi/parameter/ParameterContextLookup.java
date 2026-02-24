@@ -36,7 +36,7 @@ public interface ParameterContextLookup {
 
     ParameterContextLookup EMPTY = new ParameterContextLookup() {
         @Override
-        public boolean hasParameterContext(String id) {
+        public boolean hasParameterContext(final String id) {
             return false;
         }
 

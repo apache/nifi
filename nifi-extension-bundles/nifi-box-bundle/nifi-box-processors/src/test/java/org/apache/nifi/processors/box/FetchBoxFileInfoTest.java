@@ -70,7 +70,7 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final FetchBoxFileInfo testSubject = new FetchBoxFileInfo() {
             @Override
-            protected BoxFile getBoxFile(String fileId) {
+            protected BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };
@@ -122,12 +122,12 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     void testApiErrorHandling() {
         testRunner.setProperty(FetchBoxFileInfo.FILE_ID, TEST_FILE_ID);
 
-        BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
+        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
         doThrow(mockException).when(mockBoxFile).getInfo(anyString(), anyString(), anyString(), anyString(), anyString(),
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
                 anyString(), anyString(), anyString(), anyString(), anyString());
 
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -142,12 +142,12 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     void testBoxApiExceptionHandling() {
         testRunner.setProperty(FetchBoxFileInfo.FILE_ID, TEST_FILE_ID);
 
-        BoxAPIException mockException = new BoxAPIException("General API Error:", 500, "Unexpected Error");
+        final BoxAPIException mockException = new BoxAPIException("General API Error:", 500, "Unexpected Error");
         doThrow(mockException).when(mockBoxFile).getInfo(anyString(), anyString(), anyString(), anyString(), anyString(),
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
                 anyString(), anyString(), anyString(), anyString(), anyString());
 
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -188,7 +188,7 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
                 "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link");
     }
 
-    private void verifyExtendedAttributes(MockFlowFile flowFile) {
+    private void verifyExtendedAttributes(final MockFlowFile flowFile) {
         flowFile.assertAttributeEquals("box.description", TEST_DESCRIPTION);
         flowFile.assertAttributeEquals("box.etag", TEST_ETAG);
         flowFile.assertAttributeEquals("box.sha1", TEST_SHA1);

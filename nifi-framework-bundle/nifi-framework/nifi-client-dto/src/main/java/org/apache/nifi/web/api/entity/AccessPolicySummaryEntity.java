@@ -37,7 +37,7 @@ public class AccessPolicySummaryEntity extends ComponentEntity {
         return component;
     }
 
-    public void setComponent(AccessPolicySummaryDTO component) {
+    public void setComponent(final AccessPolicySummaryDTO component) {
         this.component = component;
     }
 

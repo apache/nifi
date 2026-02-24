@@ -33,7 +33,7 @@ public class ComponentMapHolder {
     private final Map<String, String> sourceToConnectionParentGroupMap = new HashMap<>();
     private final Map<String, String> destinationToConnectionParentGroupMap = new HashMap<>();
 
-    private ComponentMapHolder putAll(ComponentMapHolder holder) {
+    private ComponentMapHolder putAll(final ComponentMapHolder holder) {
         this.componentNameMap.putAll(holder.componentNameMap);
         this.componentToParentGroupMap.putAll(holder.componentToParentGroupMap);
         this.sourceToConnectionParentGroupMap.putAll(holder.sourceToConnectionParentGroupMap);
@@ -52,7 +52,7 @@ public class ComponentMapHolder {
         } else if (REMOTE_OUTPUT_PORT.equals(componentType)) {
             return sourceToConnectionParentGroupMap.get(componentId);
         }
-        ParentProcessGroupSearchNode parentNode = componentToParentGroupMap.get(componentId);
+        final ParentProcessGroupSearchNode parentNode = componentToParentGroupMap.get(componentId);
         return parentNode == null ? null : parentNode.getId();
     }
 
@@ -106,7 +106,7 @@ public class ComponentMapHolder {
 
             for (final ProcessGroupStatus childGroup : status.getProcessGroupStatus()) {
                 componentNameMap.put(childGroup.getId(), childGroup.getName());
-                ParentProcessGroupSearchNode childProcessGroupNode = new ParentProcessGroupSearchNode(childGroup.getId(), thisProcessGroupNode);
+                final ParentProcessGroupSearchNode childProcessGroupNode = new ParentProcessGroupSearchNode(childGroup.getId(), thisProcessGroupNode);
                 componentToParentGroupMap.put(childGroup.getId(), thisProcessGroupNode);
                 holder.putAll(createComponentMap(childGroup, childProcessGroupNode));
             }

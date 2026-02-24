@@ -43,16 +43,16 @@ public class RuleViolation {
     private boolean available;
 
     public RuleViolation(
-            EnforcementPolicy enforcementPolicy,
-            String scope,
-            String subjectId,
-            String subjectDisplayName,
-            ComponentType subjectComponentType,
-            String groupId,
-            String ruleId,
-            String issueId,
-            String violationMessage,
-            String violationExplanation
+            final EnforcementPolicy enforcementPolicy,
+            final String scope,
+            final String subjectId,
+            final String subjectDisplayName,
+            final ComponentType subjectComponentType,
+            final String groupId,
+            final String ruleId,
+            final String issueId,
+            final String violationMessage,
+            final String violationExplanation
     ) {
         this.enforcementPolicy = enforcementPolicy;
         this.scope = scope;
@@ -146,7 +146,7 @@ public class RuleViolation {
         return available;
     }
 
-    public void setAvailable(boolean available) {
+    public void setAvailable(final boolean available) {
         this.available = available;
     }
 
@@ -168,7 +168,7 @@ public class RuleViolation {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -177,7 +177,7 @@ public class RuleViolation {
             return false;
         }
 
-        RuleViolation that = (RuleViolation) o;
+        final RuleViolation that = (RuleViolation) o;
 
         return new EqualsBuilder()
             .append(enforcementPolicy, that.enforcementPolicy)

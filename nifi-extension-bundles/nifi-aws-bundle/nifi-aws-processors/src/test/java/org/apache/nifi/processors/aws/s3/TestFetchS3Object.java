@@ -98,10 +98,10 @@ public class TestFetchS3Object {
         attrs.put("s3.region", "us-west-2");
         runner.enqueue(new byte[0], attrs);
 
-        Instant expirationTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        String expirationTimeRfc1123 = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(expirationTime, ZoneOffset.UTC));
+        final Instant expirationTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        final String expirationTimeRfc1123 = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(expirationTime, ZoneOffset.UTC));
 
-        GetObjectResponse response = GetObjectResponse.builder()
+        final GetObjectResponse response = GetObjectResponse.builder()
                 .eTag("test-etag")
                 .contentLength(12L)
                 .contentDisposition("key/path/to/file.txt")
@@ -112,10 +112,10 @@ public class TestFetchS3Object {
                 .metadata(Map.of("userKey1", "userValue1", "userKey2", "userValue2"))
                 .build();
 
-        ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
+        final ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
         when(mockS3Client.getObject(Mockito.any(GetObjectRequest.class))).thenReturn(responseStream);
 
-        HeadObjectResponse headResponse = HeadObjectResponse.builder().contentLength(12L).build();
+        final HeadObjectResponse headResponse = HeadObjectResponse.builder().contentLength(12L).build();
         when(mockS3Client.headObject(Mockito.any(HeadObjectRequest.class))).thenReturn(headResponse);
 
         runner.run(1);
@@ -124,9 +124,9 @@ public class TestFetchS3Object {
         assertEquals(2, results.size());
         results.forEach(result -> assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, result.getOutcome()));
 
-        ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
+        final ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
-        GetObjectRequest request = captureRequest.getValue();
+        final GetObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("test-key", request.key());
         assertNull(request.requestPayer());
@@ -134,7 +134,7 @@ public class TestFetchS3Object {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        final MockFlowFile ff = ffs.get(0);
         ff.assertAttributeEquals("s3.bucket", "test-bucket");
         ff.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
         ff.assertAttributeEquals(CoreAttributes.PATH.key(), "key/path/to");
@@ -160,10 +160,10 @@ public class TestFetchS3Object {
         attrs.put("filename", "test-key");
         runner.enqueue(new byte[0], attrs);
 
-        Instant expirationTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        String expirationTimeRfc1123 = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(expirationTime, ZoneOffset.UTC));
+        final Instant expirationTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        final String expirationTimeRfc1123 = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(expirationTime, ZoneOffset.UTC));
 
-        GetObjectResponse response = GetObjectResponse.builder()
+        final GetObjectResponse response = GetObjectResponse.builder()
                 .eTag("test-etag")
                 .contentLength(12L)
                 .contentDisposition("key/path/to/file.txt")
@@ -174,14 +174,14 @@ public class TestFetchS3Object {
                 .metadata(Map.of("userKey1", "userValue1", "userKey2", "userValue2"))
                 .build();
 
-        ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
+        final ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
         when(mockS3Client.getObject(Mockito.any(GetObjectRequest.class))).thenReturn(responseStream);
 
         runner.run(1);
 
-        ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
+        final ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
-        GetObjectRequest request = captureRequest.getValue();
+        final GetObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("test-key", request.key());
         assertEquals(RequestPayer.REQUESTER, request.requestPayer());
@@ -189,7 +189,7 @@ public class TestFetchS3Object {
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        final MockFlowFile ff = ffs.get(0);
         ff.assertAttributeEquals("s3.bucket", "test-bucket");
         ff.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
         ff.assertAttributeEquals(CoreAttributes.PATH.key(), "key/path/to");
@@ -216,28 +216,28 @@ public class TestFetchS3Object {
         attrs.put("s3.version", "test-version");
         runner.enqueue(new byte[0], attrs);
 
-        GetObjectResponse response = GetObjectResponse.builder()
+        final GetObjectResponse response = GetObjectResponse.builder()
                 .versionId("test-version")
                 .eTag("test-etag")
                 .contentLength(12L)
                 .contentDisposition("key/path/to/file.txt")
                 .build();
 
-        ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
+        final ResponseInputStream<GetObjectResponse> responseStream = new ResponseInputStream<>(response, AbortableInputStream.create(new StringInputStream("Some Content")));
         when(mockS3Client.getObject(Mockito.any(GetObjectRequest.class))).thenReturn(responseStream);
 
         runner.run(1);
 
-        ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
+        final ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
-        GetObjectRequest request = captureRequest.getValue();
+        final GetObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("test-key", request.key());
         assertEquals("test-version", request.versionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        final MockFlowFile ff = ffs.get(0);
         ff.assertAttributeEquals("s3.bucket", "test-bucket");
         ff.assertAttributeEquals(CoreAttributes.FILENAME.key(), "file.txt");
         ff.assertAttributeEquals(CoreAttributes.PATH.key(), "key/path/to");
@@ -344,7 +344,7 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        AwsServiceException amazonException = S3Exception.builder().message("testing").build();
+        final AwsServiceException amazonException = S3Exception.builder().message("testing").build();
         Mockito.doThrow(new FlowFileAccessException("testing nested", amazonException)).when(mockS3Client).getObject(Mockito.any(GetObjectRequest.class));
 
         runner.run(1);
@@ -364,7 +364,7 @@ public class TestFetchS3Object {
         expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
-    private AwsServiceException buildS3Exception(int statusCode, String errorCode, String errorMessage, Map<String, List<String>> headers) {
+    private AwsServiceException buildS3Exception(final int statusCode, final String errorCode, final String errorMessage, final Map<String, List<String>> headers) {
         return S3Exception.builder()
                 .statusCode(statusCode)
                 .awsErrorDetails(AwsErrorDetails.builder()

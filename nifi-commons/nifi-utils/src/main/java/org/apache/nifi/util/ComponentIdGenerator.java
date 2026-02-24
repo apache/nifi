@@ -70,39 +70,37 @@ public class ComponentIdGenerator {
     /**
      *
      */
-    public static final UUID generateId(long currentTime) {
+    public static final UUID generateId(final long currentTime) {
         return generateId(currentTime, randomGenerator.nextLong(), true);
     }
 
     /**
      *
      */
-    public static final UUID generateId(long msb, long lsb, boolean ensureUnique) {
-        long time;
+    public static final UUID generateId(final long msb, final long lsb, final boolean ensureUnique) {
+        long effectiveMsb = msb;
 
         synchronized (lock) {
-            if (ensureUnique && msb <= lastTime) {
-                msb = ++lastTime;
+            if (ensureUnique && effectiveMsb <= lastTime) {
+                effectiveMsb = ++lastTime;
             }
-            lastTime = msb;
+            lastTime = effectiveMsb;
         }
 
-        time = msb;
-
         // low Time
-        time = msb << 32;
+        long time = effectiveMsb << 32;
 
         // mid Time
-        time |= ((msb & 0xFFFF00000000L) >> 16);
+        time |= ((effectiveMsb & 0xFFFF00000000L) >> 16);
 
         // hi Time
-        time |= 0x1000 | ((msb >> 48) & 0x0FFF);
+        time |= 0x1000 | ((effectiveMsb >> 48) & 0x0FFF);
 
         long clockSequenceHi = clockSequence;
         clockSequenceHi <<= 48;
-        lsb = clockSequenceHi | lsb;
-        final UUID uuid = new UUID(time, lsb);
-        logger.debug("Generating UUID {} for msb={}, lsb={}, ensureUnique={}", uuid, msb, lsb, ensureUnique);
+        final long effectiveLsb = clockSequenceHi | lsb;
+        final UUID uuid = new UUID(time, effectiveLsb);
+        logger.debug("Generating UUID {} for msb={}, lsb={}, ensureUnique={}", uuid, effectiveMsb, effectiveLsb, ensureUnique);
         return uuid;
     }
 }

@@ -79,7 +79,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         try {
             final VersionedFlowSnapshotMetadata latestMetadata = snapshotClient.getLatestMetadata(flowId);
             version = latestMetadata.getVersion() + 1;
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             // when there are no versions it produces a 404 not found
             version = 1;
         }

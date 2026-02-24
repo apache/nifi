@@ -66,8 +66,8 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void validateAllowableValuesForCompressionType() {
-        PropertyDescriptor pd = CreateHadoopSequenceFile.COMPRESSION_TYPE;
-        List<AllowableValue> allowableValues = pd.getAllowableValues();
+        final PropertyDescriptor pd = CreateHadoopSequenceFile.COMPRESSION_TYPE;
+        final List<AllowableValue> allowableValues = pd.getAllowableValues();
         assertEquals("NONE", allowableValues.get(0).getValue());
         assertEquals("RECORD", allowableValues.get(1).getValue());
         assertEquals("BLOCK", allowableValues.get(2).getValue());
@@ -75,15 +75,15 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void testSimpleCase() throws IOException {
-        for (File inFile : inFiles) {
+        for (final File inFile : inFiles) {
             try (FileInputStream fin = new FileInputStream(inFile)) {
                 controller.enqueue(fin);
             }
         }
         controller.run(3);
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(3, successSeqFiles.size());
@@ -92,15 +92,15 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void testSequenceFileSaysValueIsBytesWritable() throws IOException {
-        for (File inFile : inFiles) {
+        for (final File inFile : inFiles) {
             try (FileInputStream fin = new FileInputStream(inFile)) {
                 controller.enqueue(fin);
             }
         }
         controller.run(3);
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(3, successSeqFiles.size());
@@ -122,12 +122,12 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void testMergedTarData() throws IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/tar");
         try (final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545312236534130.tar")) {
             controller.enqueue(fin, attributes);
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -140,12 +140,12 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void testMergedZipData() throws IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/zip");
         try (FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545423550275052.zip")) {
             controller.enqueue(fin, attributes);
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -158,13 +158,13 @@ public class TestCreateHadoopSequenceFile {
 
     @Test
     public void testMergedFlowfilePackagedData() throws IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), StandardFlowFileMediaType.VERSION_3.getMediaType());
         try (final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545479542069498.pkg")) {
             controller.enqueue(fin, attributes);
 
             controller.run();
-            List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+            final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
             final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
@@ -181,20 +181,20 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.BZIP.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
-        File inFile = inFiles[0];
+        final File inFile = inFiles[0];
         try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.getFirst();
-        byte[] data = ff.toByteArray();
+        final MockFlowFile ff = successSeqFiles.getFirst();
+        final byte[] data = ff.toByteArray();
 
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
@@ -227,20 +227,20 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.DEFAULT.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
-        File inFile = inFiles[0];
+        final File inFile = inFiles[0];
         try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.getFirst();
-        byte[] data = ff.toByteArray();
+        final MockFlowFile ff = successSeqFiles.getFirst();
+        final byte[] data = ff.toByteArray();
 
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
@@ -273,20 +273,20 @@ public class TestCreateHadoopSequenceFile {
         controller.setProperty(AbstractHadoopProcessor.COMPRESSION_CODEC, CompressionType.NONE.name());
         controller.setProperty(CreateHadoopSequenceFile.COMPRESSION_TYPE, SequenceFile.CompressionType.BLOCK.name());
 
-        File inFile = inFiles[0];
+        final File inFile = inFiles[0];
         try (FileInputStream fin = new FileInputStream(inFile)) {
             controller.enqueue(fin);
         }
         controller.run();
 
-        List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
-        List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
+        final List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
+        final List<MockFlowFile> failedFlowFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_FAILURE);
 
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.getFirst();
-        byte[] data = ff.toByteArray();
+        final MockFlowFile ff = successSeqFiles.getFirst();
+        final byte[] data = ff.toByteArray();
 
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);

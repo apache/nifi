@@ -79,7 +79,7 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             final boolean writeDemarcator = (i > 0);
             try {
                 final byte[] rawMessage = event.getMessage();
-                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
+                final FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
                     if (writeDemarcator) {
                         out.write(messageDemarcatorBytes);
                     }
@@ -140,7 +140,7 @@ public abstract class EventBatcher<E extends ByteArrayMessage> {
             } else {
                 event = events.poll();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         }

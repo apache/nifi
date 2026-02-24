@@ -33,7 +33,7 @@ public abstract class ProcessGroupDescriptorEntity extends Entity {
         return processGroupRevision;
     }
 
-    public void setProcessGroupRevision(RevisionDTO revision) {
+    public void setProcessGroupRevision(final RevisionDTO revision) {
         this.processGroupRevision = revision;
     }
 
@@ -43,7 +43,7 @@ public abstract class ProcessGroupDescriptorEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

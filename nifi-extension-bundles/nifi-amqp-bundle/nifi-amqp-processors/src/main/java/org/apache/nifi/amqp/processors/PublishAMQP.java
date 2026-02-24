@@ -160,8 +160,8 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      * otherwise this attribute will be ignored.
      */
     @Override
-    protected void processResource(final Connection connection, final AMQPPublisher publisher, ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    protected void processResource(final Connection connection, final AMQPPublisher publisher, final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -172,7 +172,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                 + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
         }
 
-        InputHeaderSource selectedHeaderSource = context.getProperty(HEADERS_SOURCE).asAllowableValue(InputHeaderSource.class);
+        final InputHeaderSource selectedHeaderSource = context.getProperty(HEADERS_SOURCE).asAllowableValue(InputHeaderSource.class);
         final Pattern pattern = getPattern(context, selectedHeaderSource);
         final Character headerSeparator = getHeaderSeparator(context, selectedHeaderSource);
 
@@ -183,10 +183,10 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
 
         try {
             publisher.publish(messageContent, amqpProperties, routingKey, exchange);
-        } catch (AMQPRollbackException e) {
+        } catch (final AMQPRollbackException e) {
             session.rollback();
             throw e;
-        } catch (AMQPException e) {
+        } catch (final AMQPException e) {
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             throw e;
         }
@@ -219,7 +219,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     /**
      * Extracts contents of the {@link FlowFile} as byte array.
      */
-    private byte[] extractMessage(final FlowFile flowFile, ProcessSession session) {
+    private byte[] extractMessage(final FlowFile flowFile, final ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
@@ -267,7 +267,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         readAmqpAttribute(flowFile, AMQP_APPID_ATTRIBUTE, builder::appId);
         readAmqpAttribute(flowFile, AMQP_CLUSTER_ID_ATTRIBUTE, builder::clusterId);
 
-        Map<String, Object> headers = prepareAMQPHeaders(flowFile, selectedHeaderSource, separator, pattern);
+        final Map<String, Object> headers = prepareAMQPHeaders(flowFile, selectedHeaderSource, separator, pattern);
         builder.headers(headers);
 
         return builder.build();
@@ -296,7 +296,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      */
     private Map<String, String> getMatchedAttributes(final Map<String, String> attributes, final Pattern pattern) {
         final Map<String, String> headers = new HashMap<>();
-        for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+        for (final Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
             if (pattern.matcher(attributeEntry.getKey()).matches()) {
                 headers.put(attributeEntry.getKey(), attributeEntry.getValue());
             }
@@ -314,7 +314,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     private Map<String, Object> validateAMQPHeaderProperty(final String amqpPropValue, final Character splitValue) {
         final String[] strEntries = amqpPropValue.split(Pattern.quote(String.valueOf(splitValue)));
         final Map<String, Object> headers = new HashMap<>();
-        for (String strEntry : strEntries) {
+        for (final String strEntry : strEntries) {
             final String[] kv = strEntry.split("=", -1); // without using limit, trailing delimiter would be ignored
             if (kv.length == 2) {
                 headers.put(kv[0].trim(), kv[1].trim());
@@ -327,14 +327,14 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         return headers;
     }
 
-    protected Pattern getPattern(ProcessContext context, InputHeaderSource selectedHeaderSource) {
+    protected Pattern getPattern(final ProcessContext context, final InputHeaderSource selectedHeaderSource) {
         return switch (selectedHeaderSource) {
             case FLOWFILE_ATTRIBUTES -> Pattern.compile(context.getProperty(HEADERS_PATTERN).evaluateAttributeExpressions().getValue());
             case AMQP_HEADERS_ATTRIBUTE -> null;
         };
     }
 
-    protected Character getHeaderSeparator(ProcessContext context, InputHeaderSource selectedHeaderSource) {
+    protected Character getHeaderSeparator(final ProcessContext context, final InputHeaderSource selectedHeaderSource) {
         return switch (selectedHeaderSource) {
             case FLOWFILE_ATTRIBUTES -> null;
             case AMQP_HEADERS_ATTRIBUTE -> {
@@ -353,7 +353,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         private final String name;
         private final String description;
 
-        InputHeaderSource(String displayName, String description) {
+        InputHeaderSource(final String displayName, final String description) {
             this.name = displayName;
             this.description = description;
         }

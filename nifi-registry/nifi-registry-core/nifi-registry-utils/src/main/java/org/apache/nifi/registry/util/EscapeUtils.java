@@ -24,18 +24,16 @@ public class EscapeUtils {
      * @param html to escape
      * @return escaped html
      */
-    public static String escapeHtml(String html) {
+    public static String escapeHtml(final String html) {
         if (html == null) {
             return null;
         }
 
-        html = html.replace("&", "&amp;");
-        html = html.replace("<", "&lt;");
-        html = html.replace(">", "&gt;");
-        html = html.replace("\"", "&quot;");
-        html = html.replace("'", "&#39;");
-        html = html.replace("/", "&#x2f;");
-
-        return html;
+        return html.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;")
+                .replace("/", "&#x2f;");
     }
 }

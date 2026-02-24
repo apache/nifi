@@ -41,7 +41,7 @@ public class ProcessorDiagnosticsDTO {
         return processor;
     }
 
-    public void setProcessor(ProcessorDTO processor) {
+    public void setProcessor(final ProcessorDTO processor) {
         this.processor = processor;
     }
 
@@ -50,7 +50,7 @@ public class ProcessorDiagnosticsDTO {
         return processorStatus;
     }
 
-    public void setProcessorStatus(ProcessorStatusDTO processorStatus) {
+    public void setProcessorStatus(final ProcessorStatusDTO processorStatus) {
         this.processorStatus = processorStatus;
     }
 
@@ -59,7 +59,7 @@ public class ProcessorDiagnosticsDTO {
         return referencedControllerServices;
     }
 
-    public void setReferencedControllerServices(Set<ControllerServiceDiagnosticsDTO> referencedControllerServices) {
+    public void setReferencedControllerServices(final Set<ControllerServiceDiagnosticsDTO> referencedControllerServices) {
         this.referencedControllerServices = referencedControllerServices;
     }
 
@@ -68,7 +68,7 @@ public class ProcessorDiagnosticsDTO {
         return incomingConnections;
     }
 
-    public void setIncomingConnections(Set<ConnectionDiagnosticsDTO> incomingConnections) {
+    public void setIncomingConnections(final Set<ConnectionDiagnosticsDTO> incomingConnections) {
         this.incomingConnections = incomingConnections;
     }
 
@@ -77,7 +77,7 @@ public class ProcessorDiagnosticsDTO {
         return outgoingConnections;
     }
 
-    public void setOutgoingConnections(Set<ConnectionDiagnosticsDTO> outgoingConnections) {
+    public void setOutgoingConnections(final Set<ConnectionDiagnosticsDTO> outgoingConnections) {
         this.outgoingConnections = outgoingConnections;
     }
 
@@ -86,7 +86,7 @@ public class ProcessorDiagnosticsDTO {
         return jvmDiagnostics;
     }
 
-    public void setJvmDiagnostics(JVMDiagnosticsDTO jvmDiagnostics) {
+    public void setJvmDiagnostics(final JVMDiagnosticsDTO jvmDiagnostics) {
         this.jvmDiagnostics = jvmDiagnostics;
     }
 
@@ -95,7 +95,7 @@ public class ProcessorDiagnosticsDTO {
         return threadDumps;
     }
 
-    public void setThreadDumps(List<ThreadDumpDTO> threadDumps) {
+    public void setThreadDumps(final List<ThreadDumpDTO> threadDumps) {
         this.threadDumps = threadDumps;
     }
 
@@ -104,7 +104,7 @@ public class ProcessorDiagnosticsDTO {
         return classLoaderDiagnostics;
     }
 
-    public void setClassLoaderDiagnostics(ClassLoaderDiagnosticsDTO classLoaderDiagnostics) {
+    public void setClassLoaderDiagnostics(final ClassLoaderDiagnosticsDTO classLoaderDiagnostics) {
         this.classLoaderDiagnostics = classLoaderDiagnostics;
     }
 }

@@ -30,7 +30,7 @@ import java.util.stream.Stream;
  */
 public class MultiSourceMinifiProperties extends NiFiProperties {
 
-    public MultiSourceMinifiProperties(Properties props) {
+    public MultiSourceMinifiProperties(final Properties props) {
         super(props);
     }
 
@@ -47,7 +47,7 @@ public class MultiSourceMinifiProperties extends NiFiProperties {
     }
 
     @Override
-    public String getProperty(String key) {
+    public String getProperty(final String key) {
         return PropertyUtil.resolvePropertyValue(key, System.getProperties())
             .or(() -> PropertyUtil.resolvePropertyValue(key, System.getenv()))
             .orElseGet(() -> super.getProperty(key));

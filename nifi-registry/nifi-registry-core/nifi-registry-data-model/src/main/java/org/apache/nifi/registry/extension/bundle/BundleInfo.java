@@ -37,7 +37,7 @@ public class BundleInfo {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -46,7 +46,7 @@ public class BundleInfo {
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -55,7 +55,7 @@ public class BundleInfo {
         return bundleId;
     }
 
-    public void setBundleId(String bundleId) {
+    public void setBundleId(final String bundleId) {
         this.bundleId = bundleId;
     }
 
@@ -64,7 +64,7 @@ public class BundleInfo {
         return bundleType;
     }
 
-    public void setBundleType(BundleType bundleType) {
+    public void setBundleType(final BundleType bundleType) {
         this.bundleType = bundleType;
     }
 
@@ -73,7 +73,7 @@ public class BundleInfo {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -82,7 +82,7 @@ public class BundleInfo {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -91,7 +91,7 @@ public class BundleInfo {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -100,7 +100,7 @@ public class BundleInfo {
         return systemApiVersion;
     }
 
-    public void setSystemApiVersion(String systemApiVersion) {
+    public void setSystemApiVersion(final String systemApiVersion) {
         this.systemApiVersion = systemApiVersion;
     }
 }

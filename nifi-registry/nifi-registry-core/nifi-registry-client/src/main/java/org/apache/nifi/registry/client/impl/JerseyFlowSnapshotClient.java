@@ -56,7 +56,7 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
     }
 
     @Override
-    public VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean preserveSourceProperties) throws NiFiRegistryException, IOException {
+    public VersionedFlowSnapshot create(final VersionedFlowSnapshot snapshot, final boolean preserveSourceProperties) throws NiFiRegistryException, IOException {
         if (snapshot.getSnapshotMetadata() == null) {
             throw new IllegalArgumentException("Snapshot Metadata cannot be null");
         }

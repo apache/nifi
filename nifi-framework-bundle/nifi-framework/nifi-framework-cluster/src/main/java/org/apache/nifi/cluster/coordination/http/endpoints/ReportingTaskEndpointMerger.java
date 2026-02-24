@@ -35,7 +35,7 @@ public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<R
     private final ReportingTaskEntityMerger reportingTaskEntityMerger = new ReportingTaskEntityMerger();
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && REPORTING_TASK_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("PUT".equalsIgnoreCase(method) && REPORTING_TASK_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
@@ -53,7 +53,8 @@ public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<R
     }
 
     @Override
-    protected void mergeResponses(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ReportingTaskEntity clientEntity, final Map<NodeIdentifier, ReportingTaskEntity> entityMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         reportingTaskEntityMerger.merge(clientEntity, entityMap);
     }
 }

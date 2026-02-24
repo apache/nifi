@@ -67,7 +67,7 @@ public abstract class AbstractConsumeKafkaIT extends AbstractKafkaBaseIT {
             assertEquals(records.size(), futures.size());
             assertEquals(futures.size(), metadatas.size());
         }
-        for (RecordMetadata metadata : metadatas) {
+        for (final RecordMetadata metadata : metadatas) {
             assertEquals(topic, metadata.topic());
             assertTrue(metadata.hasOffset());
         }

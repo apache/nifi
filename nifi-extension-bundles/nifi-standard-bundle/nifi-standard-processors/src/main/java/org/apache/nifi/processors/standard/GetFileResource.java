@@ -144,7 +144,7 @@ public class GetFileResource extends AbstractProcessor {
 
         try (final InputStream inputStream = context.getProperty(FILE_RESOURCE).asResource().read()) {
             flowFile = session.write(flowFile, out -> StreamUtils.copy(inputStream, out));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Could not create FlowFile from Resource [{}]", context.getProperty(FILE_RESOURCE).getValue(), e);
         }
 

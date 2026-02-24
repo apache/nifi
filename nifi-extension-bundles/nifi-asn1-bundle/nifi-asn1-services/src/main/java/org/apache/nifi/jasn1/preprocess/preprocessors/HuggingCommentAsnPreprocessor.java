@@ -27,7 +27,7 @@ public class HuggingCommentAsnPreprocessor implements AsnPreprocessor {
     public static final Pattern HUGGING_COMMENT_PATTERN = Pattern.compile("^(.*[^\\s])(--.*)$");
 
     @Override
-    public List<String> preprocessAsn(List<String> lines) {
+    public List<String> preprocessAsn(final List<String> lines) {
         final List<String> preprocessedLines = new ArrayList<>();
 
         lines.forEach(line -> {

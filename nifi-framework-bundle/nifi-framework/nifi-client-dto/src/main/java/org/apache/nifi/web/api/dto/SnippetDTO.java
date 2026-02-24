@@ -51,7 +51,7 @@ public class SnippetDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -64,7 +64,7 @@ public class SnippetDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -77,7 +77,7 @@ public class SnippetDTO {
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -92,7 +92,7 @@ public class SnippetDTO {
         return connections;
     }
 
-    public void setConnections(Map<String, RevisionDTO> connections) {
+    public void setConnections(final Map<String, RevisionDTO> connections) {
         this.connections = connections;
     }
 
@@ -107,7 +107,7 @@ public class SnippetDTO {
         return funnels;
     }
 
-    public void setFunnels(Map<String, RevisionDTO> funnels) {
+    public void setFunnels(final Map<String, RevisionDTO> funnels) {
         this.funnels = funnels;
     }
 
@@ -122,7 +122,7 @@ public class SnippetDTO {
         return inputPorts;
     }
 
-    public void setInputPorts(Map<String, RevisionDTO> inputPorts) {
+    public void setInputPorts(final Map<String, RevisionDTO> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -137,7 +137,7 @@ public class SnippetDTO {
         return labels;
     }
 
-    public void setLabels(Map<String, RevisionDTO> labels) {
+    public void setLabels(final Map<String, RevisionDTO> labels) {
         this.labels = labels;
     }
 
@@ -152,7 +152,7 @@ public class SnippetDTO {
         return outputPorts;
     }
 
-    public void setOutputPorts(Map<String, RevisionDTO> outputPorts) {
+    public void setOutputPorts(final Map<String, RevisionDTO> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -167,7 +167,7 @@ public class SnippetDTO {
         return processGroups;
     }
 
-    public void setProcessGroups(Map<String, RevisionDTO> processGroups) {
+    public void setProcessGroups(final Map<String, RevisionDTO> processGroups) {
         this.processGroups = processGroups;
     }
 
@@ -182,7 +182,7 @@ public class SnippetDTO {
         return processors;
     }
 
-    public void setProcessors(Map<String, RevisionDTO> processors) {
+    public void setProcessors(final Map<String, RevisionDTO> processors) {
         this.processors = processors;
     }
 
@@ -201,7 +201,7 @@ public class SnippetDTO {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Map<String, RevisionDTO> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Map<String, RevisionDTO> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

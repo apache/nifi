@@ -85,7 +85,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
 
     @Test
     public void testCreateTable() throws Exception {
-        MockRecordParser readerFactory = new MockRecordParser();
+        final MockRecordParser readerFactory = new MockRecordParser();
 
         readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
         readerFactory.addSchemaField(new RecordField("fractional", RecordFieldType.DOUBLE.getDataType(), true));
@@ -104,7 +104,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(UpdateDatabaseTable.DB_TYPE, TEST_DB_TYPE);
 
         final String tableName = "NEWTABLE";
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
         attrs.put("table.name", tableName);
         runner.enqueue(new byte[0], attrs);
@@ -132,7 +132,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
                 stmt.executeUpdate(createPersons);
             }
 
-            MockRecordParser readerFactory = new MockRecordParser();
+            final MockRecordParser readerFactory = new MockRecordParser();
 
             readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
             readerFactory.addSchemaField(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
@@ -151,7 +151,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, TEST_DB_TYPE);
 
             final String tableName = "persons";
-            Map<String, String> attrs = new HashMap<>();
+            final Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", tableName);
             runner.enqueue(new byte[0], attrs);
@@ -181,7 +181,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
                 stmt.executeUpdate(createPersons);
             }
 
-            MockRecordParser readerFactory = new MockRecordParser();
+            final MockRecordParser readerFactory = new MockRecordParser();
 
             readerFactory.addSchemaField(new RecordField("ID", RecordFieldType.INT.getDataType(), false));
             readerFactory.addSchemaField(new RecordField("NAME", RecordFieldType.STRING.getDataType(), true));
@@ -199,7 +199,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
 
             final String tableName = "persons";
-            Map<String, String> attrs = new HashMap<>();
+            final Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", tableName);
             runner.enqueue(new byte[0], attrs);
@@ -229,7 +229,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
                 stmt.execute("ALTER TABLE \"persons\" ADD COLUMN \"ID\" DOUBLE");
             }
 
-            MockRecordParser readerFactory = new MockRecordParser();
+            final MockRecordParser readerFactory = new MockRecordParser();
 
             readerFactory.addSchemaField(new RecordField("ID", RecordFieldType.INT.getDataType(), false));
             readerFactory.addSchemaField(new RecordField("FRACTIONAL", RecordFieldType.DOUBLE.getDataType(), true));
@@ -248,7 +248,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, TEST_DB_TYPE);
 
             final String tableName = "persons";
-            Map<String, String> attrs = new HashMap<>();
+            final Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", tableName);
             runner.enqueue(new byte[0], attrs);
@@ -279,7 +279,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
                 stmt.executeUpdate(createPersons);
             }
 
-            MockRecordParser readerFactory = new MockRecordParser();
+            final MockRecordParser readerFactory = new MockRecordParser();
 
             readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
             readerFactory.addSchemaField(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
@@ -298,12 +298,12 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             runner.setProperty(UpdateDatabaseTable.UPDATE_FIELD_NAMES, "true");
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, TEST_DB_TYPE);
 
-            MockRecordWriter writerFactory = new MockRecordWriter();
+            final MockRecordWriter writerFactory = new MockRecordWriter();
             runner.addControllerService("mock-writer-factory", writerFactory);
             runner.enableControllerService(writerFactory);
             runner.setProperty(UpdateDatabaseTable.RECORD_WRITER_FACTORY, "mock-writer-factory");
 
-            Map<String, String> attrs = new HashMap<>();
+            final Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", "persons");
             runner.enqueue(new byte[0], attrs);
@@ -323,7 +323,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
                 stmt.executeUpdate(createSchema);
             }
         }
-        MockRecordParser readerFactory = new MockRecordParser();
+        final MockRecordParser readerFactory = new MockRecordParser();
 
         readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
         readerFactory.addSchemaField(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
@@ -342,7 +342,7 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
 
         final String tableName = "otherSchemaTable";
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
         attrs.put("table.name", tableName);
         runner.enqueue(new byte[0], attrs);

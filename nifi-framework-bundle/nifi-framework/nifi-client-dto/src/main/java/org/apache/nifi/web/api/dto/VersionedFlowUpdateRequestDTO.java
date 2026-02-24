@@ -30,7 +30,7 @@ public class VersionedFlowUpdateRequestDTO extends FlowUpdateRequestDTO {
         return versionControlInformation;
     }
 
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlInformation) {
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlInformation) {
         this.versionControlInformation = versionControlInformation;
     }
 }

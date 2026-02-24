@@ -124,7 +124,7 @@ public class SiteToSiteResource extends ApplicationResource {
                     @SecurityRequirement(name = "Read - /site-to-site")
             }
     )
-    public Response getSiteToSiteDetails(@Context HttpServletRequest req) {
+    public Response getSiteToSiteDetails(final @Context HttpServletRequest req) {
 
         authorizeSiteToSite();
 
@@ -175,11 +175,11 @@ public class SiteToSiteResource extends ApplicationResource {
         return noCache(Response.ok(entity)).build();
     }
 
-    private PeerDescription getSourcePeerDescription(@Context HttpServletRequest req) {
+    private PeerDescription getSourcePeerDescription(final @Context HttpServletRequest req) {
         return new PeerDescription(req.getRemoteHost(), req.getRemotePort(), req.isSecure());
     }
 
-    private Map<String, String> getHttpHeaders(@Context HttpServletRequest req) {
+    private Map<String, String> getHttpHeaders(final @Context HttpServletRequest req) {
         final Map<String, String> headers = new HashMap<>();
         final Enumeration<String> headerNames = req.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -211,7 +211,7 @@ public class SiteToSiteResource extends ApplicationResource {
                     @SecurityRequirement(name = "Read - /site-to-site")
             }
     )
-    public Response getPeers(@Context HttpServletRequest req) {
+    public Response getPeers(final @Context HttpServletRequest req) {
 
         authorizeSiteToSite();
 
@@ -222,7 +222,7 @@ public class SiteToSiteResource extends ApplicationResource {
         final Integer transportProtocolVersion;
         try {
             transportProtocolVersion = negotiateTransportProtocolVersion(req, transportProtocolVersionNegotiator);
-        } catch (BadRequestException e) {
+        } catch (final BadRequestException e) {
             return responseCreator.badRequestResponse(e);
         }
 
@@ -252,7 +252,7 @@ public class SiteToSiteResource extends ApplicationResource {
                     peer.setFlowFileCount(workload.getFlowFileCount());
                     peers.add(peer);
                 });
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException("Failed to retrieve cluster workload due to " + e, e);
             }
 
@@ -291,7 +291,7 @@ public class SiteToSiteResource extends ApplicationResource {
         try {
             // Get local host name using InetAddress if available, same as RAW socket does.
             localName = InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Failed to get local host name using InetAddress.", e);
             }
@@ -307,7 +307,7 @@ public class SiteToSiteResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 

@@ -26,15 +26,15 @@ public class MutableRequestException extends IllegalClusterStateException {
     public MutableRequestException() {
     }
 
-    public MutableRequestException(String msg) {
+    public MutableRequestException(final String msg) {
         super(msg);
     }
 
-    public MutableRequestException(Throwable cause) {
+    public MutableRequestException(final Throwable cause) {
         super(cause);
     }
 
-    public MutableRequestException(String msg, Throwable cause) {
+    public MutableRequestException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

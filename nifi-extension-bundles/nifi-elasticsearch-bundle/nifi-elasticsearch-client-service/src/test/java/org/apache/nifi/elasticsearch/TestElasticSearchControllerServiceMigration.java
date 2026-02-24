@@ -38,10 +38,10 @@ public class TestElasticSearchControllerServiceMigration {
     void testElasticSearchClientServiceImplMigration() {
         final Map<String, String> propertyValues = Map.of();
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
-        ElasticSearchClientServiceImpl elasticSearchClientService = new ElasticSearchClientServiceImpl();
+        final ElasticSearchClientServiceImpl elasticSearchClientService = new ElasticSearchClientServiceImpl();
         elasticSearchClientService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("el-cs-http-hosts", ElasticSearchClientService.HTTP_HOSTS.getName()),
                 Map.entry("el-cs-ssl-context-service", ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getName()),
                 Map.entry("authorization-scheme", ElasticSearchClientService.AUTHORIZATION_SCHEME.getName()),
@@ -80,10 +80,10 @@ public class TestElasticSearchControllerServiceMigration {
     void testElasticSearchLookupServiceMigration() {
         final Map<String, String> propertyValues = Map.of();
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
-        ElasticSearchLookupService elasticSearchLookupService = new ElasticSearchLookupService();
+        final ElasticSearchLookupService elasticSearchLookupService = new ElasticSearchLookupService();
         elasticSearchLookupService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("el-rest-client-service", ElasticSearchLookupService.CLIENT_SERVICE.getName()),
                 Map.entry("el-lookup-index", ElasticSearchLookupService.INDEX.getName()),
                 Map.entry("el-lookup-type", ElasticSearchLookupService.TYPE.getName()),
@@ -106,10 +106,10 @@ public class TestElasticSearchControllerServiceMigration {
     void testElasticSearchStringLookupServiceMigration() {
         final Map<String, String> propertyValues = Map.of();
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
-        ElasticSearchStringLookupService elasticSearchLookupService = new ElasticSearchStringLookupService();
+        final ElasticSearchStringLookupService elasticSearchLookupService = new ElasticSearchStringLookupService();
         elasticSearchLookupService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("el-rest-client-service", ElasticSearchStringLookupService.CLIENT_SERVICE.getName()),
                 Map.entry("el-lookup-index", ElasticSearchStringLookupService.INDEX.getName()),
                 Map.entry("el-lookup-type", ElasticSearchStringLookupService.TYPE.getName())

@@ -24,7 +24,7 @@ public abstract class AbstractParameterParser implements ParameterParser {
     protected static final char CLOSE_BRACE = '}';
 
     protected ParameterToken parseParameterToken(final String input, final int startIndex, final int sequentialStartTags, final List<ParameterToken> tokens) {
-        int startCharIndex = startIndex - sequentialStartTags;
+        final int startCharIndex = startIndex - sequentialStartTags;
         final int endCharIndex = input.indexOf(CLOSE_BRACE, startIndex);
         if (endCharIndex < 0) {
             return null;

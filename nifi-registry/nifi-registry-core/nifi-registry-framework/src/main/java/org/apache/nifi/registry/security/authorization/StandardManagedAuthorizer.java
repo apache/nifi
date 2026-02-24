@@ -56,18 +56,18 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     public StandardManagedAuthorizer() { }
 
     // exposed for testing to inject mocks
-    public StandardManagedAuthorizer(AccessPolicyProvider accessPolicyProvider, UserGroupProvider userGroupProvider) {
+    public StandardManagedAuthorizer(final AccessPolicyProvider accessPolicyProvider, final UserGroupProvider userGroupProvider) {
         this.accessPolicyProvider = accessPolicyProvider;
         this.userGroupProvider = userGroupProvider;
     }
 
     @Override
-    public void initialize(AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
+    public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
         accessPolicyProviderLookup = initializationContext.getAccessPolicyProviderLookup();
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
         final PropertyValue accessPolicyProviderKey = configurationContext.getProperty("Access Policy Provider");
         if (!accessPolicyProviderKey.isSet()) {
             throw new SecurityProviderCreationException("The Access Policy Provider must be set.");
@@ -89,7 +89,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     }
 
     @Override
-    public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+    public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
         final String resourceIdentifier = request.getResource().getIdentifier();
         final AccessPolicy policy = accessPolicyProvider.getAccessPolicy(resourceIdentifier, request.getAction());
         if (policy == null) {
@@ -133,7 +133,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             return false;
         }
 
-        for (Group userGroup : userGroups) {
+        for (final Group userGroup : userGroups) {
             if (policy.getGroups().contains(userGroup.getIdentifier())) {
                 return true;
             }
@@ -180,13 +180,13 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
             writer.writeEndElement();
             writer.writeEndDocument();
             writer.flush();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         } finally {
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException ignored) {
+                } catch (final XMLStreamException ignored) {
                     // nothing to do here
                 }
             }
@@ -196,7 +196,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     }
 
     @Override
-    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         if (StringUtils.isBlank(fingerprint)) {
             return;
         }
@@ -213,7 +213,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         final FingerprintHolder fingerprintHolder = parseFingerprint(proposedFingerprint);
 
         if (StringUtils.isNotBlank(fingerprintHolder.getPolicyFingerprint())) {
@@ -273,7 +273,7 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         private final String policyFingerprint;
         private final String userGroupFingerprint;
 
-        public FingerprintHolder(String policyFingerprint, String userGroupFingerprint) {
+        public FingerprintHolder(final String policyFingerprint, final String userGroupFingerprint) {
             this.policyFingerprint = policyFingerprint;
             this.userGroupFingerprint = userGroupFingerprint;
         }

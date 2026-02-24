@@ -52,14 +52,14 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause,
-            Long limit, Long offset) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause,
+            final Long limit, final Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause,
-            Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause,
+            final Long limit, final Long offset, final String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
@@ -110,7 +110,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getTableAliasClause(String tableName) {
+    public String getTableAliasClause(final String tableName) {
         return tableName;
     }
 
@@ -120,7 +120,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames)
+    public String getUpsertStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames)
             throws IllegalArgumentException {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
@@ -132,26 +132,26 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String newValuesAlias = "n";
+        final String newValuesAlias = "n";
 
         String columns = columnNames.stream().collect(Collectors.joining(", ? "));
 
         columns = "? " + columns;
 
-        List<String> columnsAssignment = getColumnsAssignment(columnNames, newValuesAlias, table);
+        final List<String> columnsAssignment = getColumnsAssignment(columnNames, newValuesAlias, table);
 
-        List<String> conflictColumnsClause = getConflictColumnsClause(uniqueKeyColumnNames, columnsAssignment, table,
+        final List<String> conflictColumnsClause = getConflictColumnsClause(uniqueKeyColumnNames, columnsAssignment, table,
                 newValuesAlias);
-        String conflictClause = "(" + conflictColumnsClause.stream().collect(Collectors.joining(" AND ")) + ")";
+        final String conflictClause = "(" + conflictColumnsClause.stream().collect(Collectors.joining(" AND ")) + ")";
 
-        String insertStatement = columnNames.stream().collect(Collectors.joining(", "));
-        String insertValues = newValuesAlias + "."
+        final String insertStatement = columnNames.stream().collect(Collectors.joining(", "));
+        final String insertValues = newValuesAlias + "."
                 + columnNames.stream().collect(Collectors.joining(", " + newValuesAlias + "."));
 
         columnsAssignment.removeAll(conflictColumnsClause);
-        String updateStatement = columnsAssignment.stream().collect(Collectors.joining(", "));
+        final String updateStatement = columnsAssignment.stream().collect(Collectors.joining(", "));
 
-        StringBuilder statementStringBuilder = new StringBuilder("MERGE INTO ").append(table).append(" USING (SELECT ")
+        final StringBuilder statementStringBuilder = new StringBuilder("MERGE INTO ").append(table).append(" USING (SELECT ")
                 .append(columns).append(" FROM DUAL) ").append(newValuesAlias).append(" ON ").append(conflictClause)
                 .append(" WHEN NOT MATCHED THEN INSERT (").append(insertStatement).append(") VALUES (")
                 .append(insertValues).append(")").append(" WHEN MATCHED THEN UPDATE SET ").append(updateStatement);
@@ -159,8 +159,8 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         return statementStringBuilder.toString();
     }
 
-    private List<String> getConflictColumnsClause(Collection<String> uniqueKeyColumnNames, List<String> conflictColumns,
-            String table, String newTableAlias) {
+    private List<String> getConflictColumnsClause(final Collection<String> uniqueKeyColumnNames, final List<String> conflictColumns,
+            final String table, final String newTableAlias) {
         List<String> conflictColumnsClause = conflictColumns.stream()
                 .filter(column -> uniqueKeyColumnNames.stream().anyMatch(
                         uniqueKey -> column.equalsIgnoreCase(getColumnAssignment(table, uniqueKey, newTableAlias))))
@@ -185,28 +185,28 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
         return colName == null ? null : colName.toUpperCase().replace("_", "");
     }
 
-    private List<String> getColumnsAssignment(Collection<String> columnsNames, String newTableAlias, String table) {
-        List<String> conflictClause = new ArrayList<>();
+    private List<String> getColumnsAssignment(final Collection<String> columnsNames, final String newTableAlias, final String table) {
+        final List<String> conflictClause = new ArrayList<>();
 
-        for (String columnName : columnsNames) {
+        for (final String columnName : columnsNames) {
             conflictClause.add(getColumnAssignment(table, columnName, newTableAlias));
         }
 
         return conflictClause;
     }
 
-    private String getColumnAssignment(String table, String columnName, String newTableAlias) {
+    private String getColumnAssignment(final String table, final String columnName, final String newTableAlias) {
         return table + "." + columnName + " = " + newTableAlias + "." + columnName;
     }
 
     @Override
-    public String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd) {
-        StringBuilder createTableStatement = new StringBuilder();
+    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
+        final StringBuilder createTableStatement = new StringBuilder();
 
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder()
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder()
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
@@ -223,7 +223,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSQLForDataType(int sqlType) {
+    public String getSQLForDataType(final int sqlType) {
         return switch (sqlType) {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML ->
@@ -244,16 +244,16 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
      * @return A String containing DDL to create the specified table
      */
     @Override
-    public String getCreateTableStatement(TableSchema tableSchema) {
-        StringBuilder createTableStatement = new StringBuilder()
+    public String getCreateTableStatement(final TableSchema tableSchema) {
+        final StringBuilder createTableStatement = new StringBuilder()
                 .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
                 .append(generateTableName(tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (");
 
-        List<ColumnDescription> columns = tableSchema.getColumnsAsList();
-        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        final List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+        final Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         for (int i = 0; i < columns.size(); i++) {
-            ColumnDescription column = columns.get(i);
+            final ColumnDescription column = columns.get(i);
             createTableStatement
                     .append((i != 0) ? ", " : "")
                     .append(column.getColumnName())

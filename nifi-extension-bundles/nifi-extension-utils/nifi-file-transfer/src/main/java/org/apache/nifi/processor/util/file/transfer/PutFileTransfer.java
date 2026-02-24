@@ -222,7 +222,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             case FileTransfer.CONFLICT_RESOLUTION_RENAME:
                 boolean uniqueNameGenerated = false;
                 for (int i = 1; i < 100 && !uniqueNameGenerated; i++) {
-                    String possibleFileName = i + "." + fileName;
+                    final String possibleFileName = i + "." + fileName;
 
                     final FileInfo renamedFileInfo = transfer.getRemoteFileInfo(flowFile, path, possibleFileName);
                     uniqueNameGenerated = (renamedFileInfo == null);

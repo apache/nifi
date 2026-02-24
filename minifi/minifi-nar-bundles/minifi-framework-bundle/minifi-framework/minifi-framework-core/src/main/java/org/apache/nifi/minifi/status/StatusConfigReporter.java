@@ -57,7 +57,7 @@ public final class StatusConfigReporter {
     private StatusConfigReporter() {
     }
 
-    public static FlowStatusReport getStatus(FlowController flowController, String statusRequest, Logger logger) throws StatusRequestException {
+    public static FlowStatusReport getStatus(final FlowController flowController, final String statusRequest, final Logger logger) throws StatusRequestException {
         if (statusRequest == null) {
             logger.error("Received a status request which was null");
             throw new StatusRequestException("Cannot complete status request because the statusRequest is null");
@@ -67,67 +67,67 @@ public final class StatusConfigReporter {
             logger.error("Received a status but the Flow Controller is null");
             throw new StatusRequestException("Cannot complete status request because the Flow Controller is null");
         }
-        FlowStatusReport flowStatusReport = new FlowStatusReport();
-        List<String> errorsGeneratingReport = new LinkedList<>();
+        final FlowStatusReport flowStatusReport = new FlowStatusReport();
+        final List<String> errorsGeneratingReport = new LinkedList<>();
         flowStatusReport.setErrorsGeneratingReport(errorsGeneratingReport);
 
-        String[] itemsToReport = statusRequest.split(";");
+        final String[] itemsToReport = statusRequest.split(";");
 
-        ProcessGroupStatus rootGroupStatus = flowController.getEventAccess().getControllerStatus();
+        final ProcessGroupStatus rootGroupStatus = flowController.getEventAccess().getControllerStatus();
 
-        Map<String, ProcessorStatus> processorStatusMap = null;
-        Map<String, ConnectionStatus> connectionStatusMap = null;
-        Map<String, RemoteProcessGroupStatus> remoteProcessGroupStatusMap = null;
+        final Map<String, ProcessorStatus> processorStatusMap = null;
+        final Map<String, ConnectionStatus> connectionStatusMap = null;
+        final Map<String, RemoteProcessGroupStatus> remoteProcessGroupStatusMap = null;
 
-        for (String item : itemsToReport) {
+        for (final String item : itemsToReport) {
             try {
                 final RequestItem requestItem = new RequestItem(item);
                 switch (requestItem.queryType.toLowerCase().trim()) {
                     case "systemdiagnostics":
-                        SystemDiagnosticsStatus systemDiagnosticsStatus = parseSystemDiagnosticsRequest(flowController.getSystemDiagnostics(), requestItem.options);
+                        final SystemDiagnosticsStatus systemDiagnosticsStatus = parseSystemDiagnosticsRequest(flowController.getSystemDiagnostics(), requestItem.options);
                         flowStatusReport.setSystemDiagnosticsStatus(systemDiagnosticsStatus);
                         break;
                     case "instance":
-                        InstanceStatus instanceStatus = parseInstanceRequest(requestItem.options, flowController, rootGroupStatus);
+                        final InstanceStatus instanceStatus = parseInstanceRequest(requestItem.options, flowController, rootGroupStatus);
                         flowStatusReport.setInstanceStatus(instanceStatus);
                         break;
                     case "remoteprocessgroup":
                         if (flowStatusReport.getRemoteProcessGroupStatusList() == null) {
-                            List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList = new LinkedList<>();
+                            final List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList = new LinkedList<>();
                             flowStatusReport.setRemoteProcessGroupStatusList(remoteProcessGroupStatusList);
                         }
                         handleRemoteProcessGroupRequest(requestItem, rootGroupStatus, flowController, flowStatusReport.getRemoteProcessGroupStatusList(), remoteProcessGroupStatusMap, logger);
                         break;
                     case "processor":
                         if (flowStatusReport.getProcessorStatusList() == null) {
-                            List<ProcessorStatusBean> processorStatusList = new LinkedList<>();
+                            final List<ProcessorStatusBean> processorStatusList = new LinkedList<>();
                             flowStatusReport.setProcessorStatusList(processorStatusList);
                         }
                         handleProcessorRequest(requestItem, rootGroupStatus, flowController, flowStatusReport.getProcessorStatusList(), processorStatusMap, logger);
                         break;
                     case "connection":
                         if (flowStatusReport.getConnectionStatusList() == null) {
-                            List<ConnectionStatusBean> connectionStatusList = new LinkedList<>();
+                            final List<ConnectionStatusBean> connectionStatusList = new LinkedList<>();
                             flowStatusReport.setConnectionStatusList(connectionStatusList);
                         }
                         handleConnectionRequest(requestItem, rootGroupStatus, flowStatusReport.getConnectionStatusList(), connectionStatusMap, logger);
                         break;
                     case "provenancereporting":
                         if (flowStatusReport.getRemoteProcessGroupStatusList() == null) {
-                            List<ReportingTaskStatus> reportingTaskStatusList = new LinkedList<>();
+                            final List<ReportingTaskStatus> reportingTaskStatusList = new LinkedList<>();
                             flowStatusReport.setReportingTaskStatusList(reportingTaskStatusList);
                         }
                         handleReportingTaskRequest(requestItem, flowController, flowStatusReport.getReportingTaskStatusList(), logger);
                         break;
                     case "controllerservices":
                         if (flowStatusReport.getControllerServiceStatusList() == null) {
-                            List<ControllerServiceStatus> controllerServiceStatusList = new LinkedList<>();
+                            final List<ControllerServiceStatus> controllerServiceStatusList = new LinkedList<>();
                             flowStatusReport.setControllerServiceStatusList(controllerServiceStatusList);
                         }
                         handleControllerServices(requestItem, flowController, flowStatusReport.getControllerServiceStatusList(), logger);
                         break;
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Hit exception while requesting status for item '{}'", item, e);
                 errorsGeneratingReport.add("Unable to get status for request '" + item + "' due to:" + e);
             }
@@ -135,36 +135,37 @@ public final class StatusConfigReporter {
         return flowStatusReport;
     }
 
-    private static void handleControllerServices(RequestItem requestItem, FlowController flowController, List<ControllerServiceStatus> controllerServiceStatusList, Logger logger) {
+    private static void handleControllerServices(final RequestItem requestItem, final FlowController flowController,
+            final List<ControllerServiceStatus> controllerServiceStatusList, final Logger logger) {
 
-        Collection<ControllerServiceNode> controllerServiceNodeSet = flowController.getFlowManager().getAllControllerServices();
+        final Collection<ControllerServiceNode> controllerServiceNodeSet = flowController.getFlowManager().getAllControllerServices();
 
         if (!controllerServiceNodeSet.isEmpty()) {
-            for (ControllerServiceNode controllerServiceNode : controllerServiceNodeSet) {
+            for (final ControllerServiceNode controllerServiceNode : controllerServiceNodeSet) {
                 controllerServiceStatusList.add(parseControllerServiceStatusRequest(controllerServiceNode, requestItem.options, flowController, logger));
             }
         }
     }
 
-    private static void handleProcessorRequest(final RequestItem requestItem, ProcessGroupStatus rootGroupStatus, FlowController flowController, List<ProcessorStatusBean> processorStatusBeanList,
-                                               Map<String, ProcessorStatus> processorStatusMap, Logger logger) throws StatusRequestException {
-        if (processorStatusMap == null) {
-            processorStatusMap = transformStatusCollection(rootGroupStatus.getProcessorStatus());
-        }
+    private static void handleProcessorRequest(final RequestItem requestItem, final ProcessGroupStatus rootGroupStatus,
+            final FlowController flowController, final List<ProcessorStatusBean> processorStatusBeanList,
+            final Map<String, ProcessorStatus> processorStatusMapArg, final Logger logger) throws StatusRequestException {
+        final Map<String, ProcessorStatus> processorStatusMap = processorStatusMapArg != null
+                ? processorStatusMapArg : transformStatusCollection(rootGroupStatus.getProcessorStatus());
 
-        String rootGroupId = flowController.getFlowManager().getRootGroupId();
+        final String rootGroupId = flowController.getFlowManager().getRootGroupId();
         if (requestItem.identifier.equalsIgnoreCase("all")) {
             if (!processorStatusMap.isEmpty()) {
-                for (ProcessorStatus processorStatus : new HashSet<>(processorStatusMap.values())) {
-                    Collection<ValidationResult> validationResults = flowController.getFlowManager().getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
+                for (final ProcessorStatus processorStatus : new HashSet<>(processorStatusMap.values())) {
+                    final Collection<ValidationResult> validationResults = flowController.getFlowManager().getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
                     processorStatusBeanList.add(parseProcessorStatusRequest(processorStatus, requestItem.options, flowController, validationResults));
                 }
             }
         } else {
 
             if (processorStatusMap.containsKey(requestItem.identifier)) {
-                ProcessorStatus processorStatus = processorStatusMap.get(requestItem.identifier);
-                Collection<ValidationResult> validationResults = flowController.getFlowManager().getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
+                final ProcessorStatus processorStatus = processorStatusMap.get(requestItem.identifier);
+                final Collection<ValidationResult> validationResults = flowController.getFlowManager().getGroup(rootGroupId).getProcessor(processorStatus.getId()).getValidationErrors();
                 processorStatusBeanList.add(parseProcessorStatusRequest(processorStatus, requestItem.options, flowController, validationResults));
             } else {
                 logger.warn("Status for processor with key {} was requested but one does not exist", requestItem.identifier);
@@ -173,15 +174,15 @@ public final class StatusConfigReporter {
         }
     }
 
-    private static void handleConnectionRequest(RequestItem requestItem, ProcessGroupStatus rootGroupStatus, List<ConnectionStatusBean> connectionStatusList,
-                                                Map<String, ConnectionStatus> connectionStatusMap, Logger logger) throws StatusRequestException {
-        if (connectionStatusMap == null) {
-            connectionStatusMap = transformStatusCollection(rootGroupStatus.getConnectionStatus());
-        }
+    private static void handleConnectionRequest(final RequestItem requestItem, final ProcessGroupStatus rootGroupStatus,
+            final List<ConnectionStatusBean> connectionStatusList, final Map<String, ConnectionStatus> connectionStatusMapArg,
+            final Logger logger) throws StatusRequestException {
+        final Map<String, ConnectionStatus> connectionStatusMap = connectionStatusMapArg != null
+                ? connectionStatusMapArg : transformStatusCollection(rootGroupStatus.getConnectionStatus());
 
         if (requestItem.identifier.equalsIgnoreCase("all")) {
             if (!connectionStatusMap.isEmpty()) {
-                for (ConnectionStatus connectionStatus : new HashSet<>(connectionStatusMap.values())) {
+                for (final ConnectionStatus connectionStatus : new HashSet<>(connectionStatusMap.values())) {
                     connectionStatusList.add(parseConnectionStatusRequest(connectionStatus, requestItem.options, logger));
                 }
             }
@@ -196,23 +197,22 @@ public final class StatusConfigReporter {
 
     }
 
-    private static void handleRemoteProcessGroupRequest(RequestItem requestItem, ProcessGroupStatus rootGroupStatus, FlowController flowController,
-                                                        List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList, Map<String, RemoteProcessGroupStatus> remoteProcessGroupStatusMap,
-                                                        Logger logger) throws StatusRequestException {
-        if (remoteProcessGroupStatusMap == null) {
-            remoteProcessGroupStatusMap = transformStatusCollection(rootGroupStatus.getRemoteProcessGroupStatus());
-        }
+    private static void handleRemoteProcessGroupRequest(final RequestItem requestItem, final ProcessGroupStatus rootGroupStatus,
+            final FlowController flowController, final List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList,
+            final Map<String, RemoteProcessGroupStatus> remoteProcessGroupStatusMapArg, final Logger logger) throws StatusRequestException {
+        final Map<String, RemoteProcessGroupStatus> remoteProcessGroupStatusMap = remoteProcessGroupStatusMapArg != null
+                ? remoteProcessGroupStatusMapArg : transformStatusCollection(rootGroupStatus.getRemoteProcessGroupStatus());
 
         if (requestItem.identifier.equalsIgnoreCase("all")) {
             if (!remoteProcessGroupStatusMap.isEmpty()) {
-                for (RemoteProcessGroupStatus remoteProcessGroupStatus : new HashSet<>(remoteProcessGroupStatusMap.values())) {
+                for (final RemoteProcessGroupStatus remoteProcessGroupStatus : new HashSet<>(remoteProcessGroupStatusMap.values())) {
                     remoteProcessGroupStatusList.add(parseRemoteProcessGroupStatusRequest(remoteProcessGroupStatus, requestItem.options, flowController));
                 }
             }
         } else {
 
             if (remoteProcessGroupStatusMap.containsKey(requestItem.identifier)) {
-                RemoteProcessGroupStatus remoteProcessGroupStatus = remoteProcessGroupStatusMap.get(requestItem.identifier);
+                final RemoteProcessGroupStatus remoteProcessGroupStatus = remoteProcessGroupStatusMap.get(requestItem.identifier);
                 remoteProcessGroupStatusList.add(parseRemoteProcessGroupStatusRequest(remoteProcessGroupStatus, requestItem.options, flowController));
             } else {
                 logger.warn("Status for Remote Process Group with key {} was requested but one does not exist", requestItem.identifier);
@@ -221,19 +221,19 @@ public final class StatusConfigReporter {
         }
     }
 
-    private static void handleReportingTaskRequest(RequestItem requestItem, FlowController flowController, List<ReportingTaskStatus> reportingTaskStatusList, Logger logger) {
-        Set<ReportingTaskNode> reportingTaskNodes = flowController.getAllReportingTasks();
+    private static void handleReportingTaskRequest(final RequestItem requestItem, final FlowController flowController, final List<ReportingTaskStatus> reportingTaskStatusList, final Logger logger) {
+        final Set<ReportingTaskNode> reportingTaskNodes = flowController.getAllReportingTasks();
 
         if (!reportingTaskNodes.isEmpty()) {
-            for (ReportingTaskNode reportingTaskNode : reportingTaskNodes) {
+            for (final ReportingTaskNode reportingTaskNode : reportingTaskNodes) {
                 reportingTaskStatusList.add(parseReportingTaskStatusRequest(reportingTaskNode.getIdentifier(), reportingTaskNode, requestItem.options, flowController, logger));
             }
         }
     }
 
-    private static <E> Map<String, E> transformStatusCollection(Collection<E> statusCollection) {
-        Map<String, E> statusMap = new HashMap<>();
-        for (E status : statusCollection) {
+    private static <E> Map<String, E> transformStatusCollection(final Collection<E> statusCollection) {
+        final Map<String, E> statusMap = new HashMap<>();
+        for (final E status : statusCollection) {
             if (status instanceof ProcessorStatus) {
                 statusMap.put(((ProcessorStatus) status).getId(), status);
                 if (((ProcessorStatus) status).getName() != null) {

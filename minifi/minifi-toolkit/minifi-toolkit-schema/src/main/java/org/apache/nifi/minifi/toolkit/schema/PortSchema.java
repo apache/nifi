@@ -25,7 +25,7 @@ import java.util.Map;
 
 public class PortSchema extends BaseSchemaWithIdAndName {
 
-    public PortSchema(Map map, String wrapperName) {
+    public PortSchema(final Map map, final String wrapperName) {
         super(map, wrapperName);
     }
 }

@@ -114,7 +114,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Proxy.Type proxyType = Proxy.Type.valueOf(validationContext.getProperty(PROXY_TYPE).getValue());
         if (Proxy.Type.DIRECT.equals(proxyType)) {
             return Collections.emptyList();
@@ -138,7 +138,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ProxyConfigurationService.super.migrateProperties(config);
         config.renameProperty("proxy-type", PROXY_TYPE.getName());
         config.renameProperty("socks-version", SOCKS_VERSION.getName());

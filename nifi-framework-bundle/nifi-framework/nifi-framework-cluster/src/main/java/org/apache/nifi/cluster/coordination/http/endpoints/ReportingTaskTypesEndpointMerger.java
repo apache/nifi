@@ -30,7 +30,7 @@ public class ReportingTaskTypesEndpointMerger extends AbstractNodeStatusEndpoint
     public static final String REPORTING_TASK_TYPES_URI_PATTERN = "/nifi-api/flow/reporting-task-types";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && REPORTING_TASK_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class ReportingTaskTypesEndpointMerger extends AbstractNodeStatusEndpoint
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(ReportingTaskTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final ReportingTaskTypesEntity entity) {
         return entity.getReportingTaskTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

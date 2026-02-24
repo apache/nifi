@@ -138,7 +138,7 @@ public class ConnectableProcessContext implements ProcessContext {
             }
 
             @Override
-            public <T extends ControllerService> T asControllerService(Class<T> serviceType) throws IllegalArgumentException {
+            public <T extends ControllerService> T asControllerService(final Class<T> serviceType) throws IllegalArgumentException {
                 return null;
             }
 
@@ -153,7 +153,7 @@ public class ConnectableProcessContext implements ProcessContext {
             }
 
             @Override
-            public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
+            public <E extends Enum<E>> E asAllowableValue(final Class<E> enumType) throws IllegalArgumentException {
                 return null;
             }
 
@@ -163,28 +163,29 @@ public class ConnectableProcessContext implements ProcessContext {
             }
 
             @Override
-            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException {
+            public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes) throws ProcessException {
                 return null;
             }
 
             @Override
-            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException {
+            public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes) throws ProcessException {
                 return null;
             }
 
             @Override
-            public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException {
+            public PropertyValue evaluateAttributeExpressions(final Map<String, String> attributes, final AttributeValueDecorator decorator) throws ProcessException {
                 return null;
             }
 
             @Override
-            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
+            public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes,
+                    final AttributeValueDecorator decorator) throws ProcessException {
                 return null;
             }
 
             @Override
-            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
-                    throws ProcessException {
+            public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes,
+                    final AttributeValueDecorator decorator, final Map<String, String> stateValues) throws ProcessException {
                 return null;
             }
 
@@ -196,7 +197,7 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
-    public PropertyValue newPropertyValue(String rawValue) {
+    public PropertyValue newPropertyValue(final String rawValue) {
         throw new UnsupportedOperationException();
     }
 
@@ -266,13 +267,13 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
-    public boolean hasConnection(Relationship relationship) {
-        Set<Connection> connections = connectable.getConnections(relationship);
+    public boolean hasConnection(final Relationship relationship) {
+        final Set<Connection> connections = connectable.getConnections(relationship);
         return connections != null && !connections.isEmpty();
     }
 
     @Override
-    public boolean isExpressionLanguagePresent(PropertyDescriptor property) {
+    public boolean isExpressionLanguagePresent(final PropertyDescriptor property) {
         return false;
     }
 
@@ -292,7 +293,7 @@ public class ConnectableProcessContext implements ProcessContext {
     }
 
     @Override
-    public boolean isRelationshipRetried(Relationship relationship) {
+    public boolean isRelationshipRetried(final Relationship relationship) {
         return false;
     }
 

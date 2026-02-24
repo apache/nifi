@@ -43,12 +43,12 @@ public class DeleteNode extends AbstractNiFiCommand<OkResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.NIFI_NODE_ID.createOption());
     }
 
     @Override
-    public OkResult doExecute(NiFiClient client, Properties properties) throws NiFiClientException, IOException, MissingOptionException {
+    public OkResult doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException, MissingOptionException {
         final String nodeId = getRequiredArg(properties, CommandOption.NIFI_NODE_ID);
         final ControllerClient controllerClient = client.getControllerClient();
 

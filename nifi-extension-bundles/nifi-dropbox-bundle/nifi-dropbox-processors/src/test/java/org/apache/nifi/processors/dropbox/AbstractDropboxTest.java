@@ -59,9 +59,9 @@ public class AbstractDropboxTest {
         mockStandardDropboxCredentialService();
     }
 
-    protected void assertProvenanceEvent(ProvenanceEventType eventType) {
-        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
-        Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
+    protected void assertProvenanceEvent(final ProvenanceEventType eventType) {
+        final Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
+        final Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
@@ -72,7 +72,7 @@ public class AbstractDropboxTest {
     }
 
     protected void mockStandardDropboxCredentialService() throws InitializationException {
-        String credentialServiceId = "dropbox_credentials";
+        final String credentialServiceId = "dropbox_credentials";
         when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
         testRunner.addControllerService(credentialServiceId, mockCredentialService);
         testRunner.enableControllerService(mockCredentialService);
@@ -90,10 +90,10 @@ public class AbstractDropboxTest {
     }
 
     protected FileMetadata createFileMetadata(
-            String id, String filename,
-            String parent,
-            long createdTime,
-            boolean isDownloadable) {
+            final String id, final String filename,
+            final String parent,
+            final long createdTime,
+            final boolean isDownloadable) {
         return FileMetadata.newBuilder(filename, id,
                         new Date(createdTime),
                         new Date(createdTime),
@@ -103,18 +103,18 @@ public class AbstractDropboxTest {
                 .build();
     }
 
-    protected FileMetadata createFileMetadata(String id,
-            String filename,
-            String parent,
-            long createdTime) {
+    protected FileMetadata createFileMetadata(final String id,
+            final String filename,
+            final String parent,
+            final long createdTime) {
         return createFileMetadata(id, filename, parent, createdTime, true);
     }
 
-    protected void assertOutFlowFileAttributes(MockFlowFile flowFile) {
+    protected void assertOutFlowFileAttributes(final MockFlowFile flowFile) {
         assertOutFlowFileAttributes(flowFile, TEST_FOLDER);
     }
 
-    protected void assertOutFlowFileAttributes(MockFlowFile flowFile, String folderName) {
+    protected void assertOutFlowFileAttributes(final MockFlowFile flowFile, final String folderName) {
         flowFile.assertAttributeEquals(DropboxAttributes.ID, FILE_ID_1);
         flowFile.assertAttributeEquals(DropboxAttributes.FILENAME, FILENAME_1);
         flowFile.assertAttributeEquals(DropboxAttributes.PATH, folderName);
@@ -123,7 +123,7 @@ public class AbstractDropboxTest {
         flowFile.assertAttributeEquals(DropboxAttributes.REVISION, REVISION);
     }
 
-    protected String getPath(String folder, String filename) {
+    protected String getPath(final String folder, final String filename) {
         return "/".equals(folder) ? folder + filename : folder + "/" + filename;
     }
 }

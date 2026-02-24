@@ -48,7 +48,7 @@ public class RestrictBackpressureSettingsTest extends AbstractFlowAnalaysisRuleT
     public void testWrongCountConfiguration() {
         setProperty(RestrictBackpressureSettings.COUNT_MIN, "100");
         setProperty(RestrictBackpressureSettings.COUNT_MAX, "10");
-        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        final Collection<ValidationResult> results = rule.customValidate(validationContext);
         assertEquals(1, results.size());
         results.forEach(result -> {
             assertFalse(result.isValid());
@@ -61,7 +61,7 @@ public class RestrictBackpressureSettingsTest extends AbstractFlowAnalaysisRuleT
     public void testWrongSizeConfiguration() {
         setProperty(RestrictBackpressureSettings.SIZE_MIN, "1GB");
         setProperty(RestrictBackpressureSettings.SIZE_MAX, "1MB");
-        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        final Collection<ValidationResult> results = rule.customValidate(validationContext);
         assertEquals(1, results.size());
         results.forEach(result -> {
             assertFalse(result.isValid());

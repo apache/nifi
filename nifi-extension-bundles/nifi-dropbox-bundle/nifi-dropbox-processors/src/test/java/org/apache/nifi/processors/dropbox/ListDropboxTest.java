@@ -81,15 +81,15 @@ public class ListDropboxTest extends AbstractDropboxTest {
     @Override
     @BeforeEach
     protected void setUp() throws Exception {
-        ListDropbox testSubject = new ListDropbox() {
+        final ListDropbox testSubject = new ListDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
+            public DbxClientV2 getDropboxApiClient(final ProcessContext context, final String id) {
                 return mockDropboxClient;
             }
 
             @Override
             protected List<DropboxFileInfo> performListing(
-                    ProcessContext context, Long minTimestamp, ListingMode ignoredListingMode) throws IOException {
+                    final ProcessContext context, final Long minTimestamp, final ListingMode ignoredListingMode) throws IOException {
                 return super.performListing(context, MIN_TIMESTAMP, ListingMode.EXECUTION);
             }
         };
@@ -125,7 +125,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
     void testRootIsListed() throws Exception {
         mockFileListing();
 
-        String folderName = "/";
+        final String folderName = "/";
         testRunner.setProperty(ListDropbox.FOLDER, folderName);
 
         //root is listed when "" is used in Dropbox API
@@ -137,8 +137,8 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0, folderName);
     }
 
@@ -158,8 +158,8 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
     }
 
@@ -178,8 +178,8 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
     }
 
@@ -199,10 +199,10 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.getFirst();
-        List<String> expectedFileNames = Arrays.asList(FILENAME_1, FILENAME_2);
-        List<String> actualFileNames = getFilenames(ff0.getContent());
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.getFirst();
+        final List<String> expectedFileNames = Arrays.asList(FILENAME_1, FILENAME_2);
+        final List<String> actualFileNames = getFilenames(ff0.getContent());
 
         assertEquals(expectedFileNames, actualFileNames);
     }
@@ -240,7 +240,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
     }
 
     private void mockRecordWriter() throws InitializationException {
-        RecordSetWriterFactory recordWriter = new JsonRecordSetWriter();
+        final RecordSetWriterFactory recordWriter = new JsonRecordSetWriter();
         testRunner.addControllerService("record_writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
         testRunner.setProperty(ListDropbox.RECORD_WRITER, "record_writer");
@@ -253,13 +253,13 @@ public class ListDropboxTest extends AbstractDropboxTest {
         when(mockListFolderResult.getHasMore()).thenReturn(false);
     }
 
-    private List<String> getFilenames(String flowFileContent) {
+    private List<String> getFilenames(final String flowFileContent) {
         try {
-            JsonNode jsonNode = new ObjectMapper().readTree(flowFileContent);
+            final JsonNode jsonNode = new ObjectMapper().readTree(flowFileContent);
             return StreamSupport.stream(spliteratorUnknownSize(jsonNode.iterator(), Spliterator.ORDERED), false)
                     .map(node -> node.get("filename").asText())
                     .collect(toList());
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             return Collections.emptyList();
         }
     }

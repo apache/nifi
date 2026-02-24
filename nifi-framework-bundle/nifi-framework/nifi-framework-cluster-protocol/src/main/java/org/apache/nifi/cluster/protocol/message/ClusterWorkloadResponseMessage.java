@@ -37,7 +37,7 @@ public class ClusterWorkloadResponseMessage extends ProtocolMessage {
         return nodeWorkloads;
     }
 
-    public void setNodeWorkloads(Map<NodeIdentifier, NodeWorkload> nodeWorkloads) {
+    public void setNodeWorkloads(final Map<NodeIdentifier, NodeWorkload> nodeWorkloads) {
         this.nodeWorkloads = nodeWorkloads;
     }
 }

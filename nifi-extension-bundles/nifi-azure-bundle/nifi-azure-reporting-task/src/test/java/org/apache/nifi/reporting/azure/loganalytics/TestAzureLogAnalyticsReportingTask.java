@@ -99,14 +99,14 @@ public class TestAzureLogAnalyticsReportingTask {
         procStatus.setActiveThreadCount(6);
         procStatus.setBytesSent(1256);
         procStatus.setName("sampleProcessor");
-        Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
+        final Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
         processorStatuses.add(procStatus);
         rootGroupStatus.setProcessorStatus(processorStatuses);
 
-        ProcessGroupStatus groupStatus = new ProcessGroupStatus();
+        final ProcessGroupStatus groupStatus = new ProcessGroupStatus();
         groupStatus.setProcessorStatus(processorStatuses);
 
-        Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
+        final Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
         groupStatuses.add(groupStatus);
         rootGroupStatus.setProcessGroupStatus(groupStatuses);
     }
@@ -157,7 +157,7 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
-        List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
+        final List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
         TestVerification.assertDatatFlowMetrics(collectedMetrics);
     }
     @Test
@@ -169,7 +169,7 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP1_ID, testGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
-        List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
+        final List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
         TestVerification.assertDatatFlowMetrics(collectedMetrics);
     }
     @Test
@@ -184,7 +184,7 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(TEST_GROUP2_ID, testGroupStatus2);
         testedReportingTask.onTrigger(reportingContextStub);
 
-        List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
+        final List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
         TestVerification.assertDatatFlowMetrics(collectedMetrics);
     }
 
@@ -196,7 +196,7 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
-        List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
+        final List<Metric> collectedMetrics = testedReportingTask.getMetricsCollected();
         TestVerification.assertJVMMetrics(collectedMetrics);
     }
 
@@ -208,10 +208,10 @@ public class TestAzureLogAnalyticsReportingTask {
         reportingContextStub.getEventAccess().setProcessGroupStatus(rootGroupStatus);
         testedReportingTask.onTrigger(reportingContextStub);
 
-        HttpPost postRequest = testedReportingTask.getPostRequest();
-        ArgumentCaptor<String> captorAuthorization = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> captorXMsDate = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> captorTimeGeneratedField = ArgumentCaptor.forClass(String.class);
+        final HttpPost postRequest = testedReportingTask.getPostRequest();
+        final ArgumentCaptor<String> captorAuthorization = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> captorXMsDate = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> captorTimeGeneratedField = ArgumentCaptor.forClass(String.class);
         verify(postRequest, atLeast(1)).addHeader(eq("Authorization"), captorAuthorization.capture());
         verify(postRequest, atLeast(1)).addHeader(eq("x-ms-date"), captorXMsDate.capture());
         verify(postRequest, atLeast(1)).addHeader(eq("time-generated-field"), captorTimeGeneratedField.capture());
@@ -247,7 +247,7 @@ public class TestAzureLogAnalyticsReportingTask {
         protected void postRequest(final CloseableHttpClient httpClient, final HttpPost request)
             throws IOException, RuntimeException {
             // replace with mock httpclient and call base postRequest
-            CloseableHttpClient mockClient = Mockito.mock(CloseableHttpClient.class);
+            final CloseableHttpClient mockClient = Mockito.mock(CloseableHttpClient.class);
             super.postRequest(mockClient, request);
         }
     }

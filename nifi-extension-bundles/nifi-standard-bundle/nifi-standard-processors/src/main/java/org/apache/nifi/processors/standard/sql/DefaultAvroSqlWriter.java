@@ -36,15 +36,15 @@ public class DefaultAvroSqlWriter implements SqlWriter {
 
     private final Map<String, String> attributesToAdd = Map.of(CoreAttributes.MIME_TYPE.key(), JdbcCommon.MIME_TYPE_AVRO_BINARY);
 
-    public DefaultAvroSqlWriter(AvroConversionOptions options) {
+    public DefaultAvroSqlWriter(final AvroConversionOptions options) {
         this.options = options;
     }
 
     @Override
-    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception {
+    public long writeResultSet(final ResultSet resultSet, final OutputStream outputStream, final ComponentLog logger, final ResultSetRowCallback callback) throws Exception {
         try {
             return JdbcCommon.convertToAvroStream(resultSet, outputStream, options, callback);
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             throw new ProcessException(e);
         }
     }
@@ -55,7 +55,7 @@ public class DefaultAvroSqlWriter implements SqlWriter {
     }
 
     @Override
-    public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
+    public void writeEmptyResultSet(final OutputStream outputStream, final ComponentLog logger) throws IOException {
         JdbcCommon.createEmptyAvroStream(outputStream);
     }
 

@@ -46,7 +46,7 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
     }
 
     @Override
-    public NodeResponse merge(URI uri, String method, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses, NodeResponse clientResponse) {
+    public NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         if (!canHandle(uri, method)) {
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
@@ -65,7 +65,7 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
 
                 if (nodeRpgEntities != null) {
                     for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
-                        Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.computeIfAbsent(nodeRpgEntity.getId(), k -> new HashMap<>());
+                        final Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.computeIfAbsent(nodeRpgEntity.getId(), k -> new HashMap<>());
                         innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity);
                     }
                 }

@@ -46,7 +46,7 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+    public void scheduleOnce(final Connectable connectable, final LifecycleState scheduleState, final Callable<Future<Void>> stopCallback) {
     }
 
     @Override

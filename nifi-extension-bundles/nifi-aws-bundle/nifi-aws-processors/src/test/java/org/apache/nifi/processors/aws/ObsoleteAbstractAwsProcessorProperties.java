@@ -25,7 +25,7 @@ public enum ObsoleteAbstractAwsProcessorProperties {
     OBSOLETE_PROXY_USERNAME("proxy-user-name"),
     OBSOLETE_PROXY_PASSWORD("proxy-user-password");
 
-    ObsoleteAbstractAwsProcessorProperties(String value) {
+    ObsoleteAbstractAwsProcessorProperties(final String value) {
         this.value = value;
     }
 

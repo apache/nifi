@@ -64,7 +64,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -76,7 +76,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -88,7 +88,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -102,7 +102,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return runStatus;
     }
 
-    public void setRunStatus(String runStatus) {
+    public void setRunStatus(final String runStatus) {
         this.runStatus = runStatus;
     }
 
@@ -113,7 +113,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return executionNode;
     }
 
-    public void setExecutionNode(String executionNode) {
+    public void setExecutionNode(final String executionNode) {
         this.executionNode = executionNode;
     }
 
@@ -125,7 +125,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return input;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
@@ -137,7 +137,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return read;
     }
 
-    public void setRead(String read) {
+    public void setRead(final String read) {
         this.read = read;
     }
 
@@ -149,7 +149,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return written;
     }
 
-    public void setWritten(String written) {
+    public void setWritten(final String written) {
         this.written = written;
     }
 
@@ -173,7 +173,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return output;
     }
 
-    public void setOutput(String output) {
+    public void setOutput(final String output) {
         this.output = output;
     }
 
@@ -185,7 +185,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer threadCount) {
+    public void setActiveThreadCount(final Integer threadCount) {
         this.activeThreadCount = threadCount;
     }
 
@@ -197,7 +197,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return terminatedThreadCount;
     }
 
-    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+    public void setTerminatedThreadCount(final Integer terminatedThreadCount) {
         this.terminatedThreadCount = terminatedThreadCount;
     }
 
@@ -209,7 +209,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return tasks;
     }
 
-    public void setTasks(String tasks) {
+    public void setTasks(final String tasks) {
         this.tasks = tasks;
     }
 
@@ -221,7 +221,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return tasksDuration;
     }
 
-    public void setTasksDuration(String tasksDuration) {
+    public void setTasksDuration(final String tasksDuration) {
         this.tasksDuration = tasksDuration;
     }
 
@@ -230,7 +230,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return bytesRead;
     }
 
-    public void setBytesRead(Long bytesRead) {
+    public void setBytesRead(final Long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -239,7 +239,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(Long bytesWritten) {
+    public void setBytesWritten(final Long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -248,7 +248,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(Integer flowFilesIn) {
+    public void setFlowFilesIn(final Integer flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -257,7 +257,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return bytesIn;
     }
 
-    public void setBytesIn(Long bytesIn) {
+    public void setBytesIn(final Long bytesIn) {
         this.bytesIn = bytesIn;
     }
 
@@ -266,7 +266,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(Integer flowFilesOut) {
+    public void setFlowFilesOut(final Integer flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -275,7 +275,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return bytesOut;
     }
 
-    public void setBytesOut(Long bytesOut) {
+    public void setBytesOut(final Long bytesOut) {
         this.bytesOut = bytesOut;
     }
 
@@ -284,7 +284,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return taskCount;
     }
 
-    public void setTaskCount(Integer taskCount) {
+    public void setTaskCount(final Integer taskCount) {
         this.taskCount = taskCount;
     }
 
@@ -293,7 +293,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return tasksDurationNanos;
     }
 
-    public void setTasksDurationNanos(Long taskNanos) {
+    public void setTasksDurationNanos(final Long taskNanos) {
         this.tasksDurationNanos = taskNanos;
     }
 
@@ -301,7 +301,7 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
         return processingPerformanceStatus;
     }
 
-    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+    public void setProcessingPerformanceStatus(final ProcessingPerformanceStatusDTO processingPerformanceStatus) {
         this.processingPerformanceStatus = processingPerformanceStatus;
     }
 

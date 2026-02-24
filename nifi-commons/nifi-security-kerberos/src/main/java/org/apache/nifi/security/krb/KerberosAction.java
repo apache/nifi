@@ -83,7 +83,7 @@ public class KerberosAction<T> {
                 kerberosUser.logout();
                 kerberosUser.login();
                 result = kerberosUser.doAs(action);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new ProcessException("Retrying privileged action failed due to: " + e.getMessage(), e);
             }
         } catch (final PrivilegedActionException pae) {

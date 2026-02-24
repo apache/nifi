@@ -18,15 +18,15 @@ package org.apache.nifi.registry.security.authorization;
 
 public class AuthorizerFactoryException extends RuntimeException {
 
-    public AuthorizerFactoryException(String message) {
+    public AuthorizerFactoryException(final String message) {
         super(message);
     }
 
-    public AuthorizerFactoryException(String message, Throwable cause) {
+    public AuthorizerFactoryException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public AuthorizerFactoryException(Throwable cause) {
+    public AuthorizerFactoryException(final Throwable cause) {
         super(cause);
     }
 

@@ -242,7 +242,7 @@ class TestValidateJson {
         runner.setProperty(ValidateJson.SCHEMA_ACCESS_STRATEGY, ValidateJson.JsonSchemaStrategy.SCHEMA_NAME_PROPERTY);
         runner.setProperty(ValidateJson.SCHEMA_REGISTRY, registryIdentifier);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("schema.name", schemaName);
         runner.enqueue(JSON, attributes);
         runner.run();
@@ -252,7 +252,7 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 1);
     }
 
-    private void assertValidationErrors(Relationship relationship, boolean expected) {
+    private void assertValidationErrors(final Relationship relationship, final boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).getFirst().getAttributes();
 
         if (expected) {
@@ -294,7 +294,7 @@ class TestValidateJson {
         private final String identifier;
         private final String schemaName;
 
-        public SampleJsonSchemaRegistry(String identifier, String schemaName) {
+        public SampleJsonSchemaRegistry(final String identifier, final String schemaName) {
             this.identifier = identifier;
             this.schemaName = schemaName;
         }
@@ -305,7 +305,7 @@ class TestValidateJson {
         }
 
         @Override
-        public JsonSchema retrieveSchema(String schemaName) throws SchemaNotFoundException {
+        public JsonSchema retrieveSchema(final String schemaName) throws SchemaNotFoundException {
             if (this.schemaName.equals(schemaName)) {
                 return new JsonSchema(SchemaVersion.DRAFT_2020_12, "{}");
             } else {

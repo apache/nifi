@@ -109,7 +109,7 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .defaultValue(WRITE_CONCERN_ACKNOWLEDGED_VALUE.getValue())
             .build();
 
-    default Document convertJson(String query) {
+    default Document convertJson(final String query) {
         return Document.parse(query);
     }
     MongoDatabase getDatabase(String name);

@@ -82,8 +82,8 @@ public class PGConnect extends AbstractNiFiCommand<StringResult> {
 
         // retrieving the ID of the output port based on its name in source process
         // group
-        Set<PortEntity> outputPorts = sourcePgEntity.getProcessGroupFlow().getFlow().getOutputPorts();
-        for (PortEntity outputPort : outputPorts) {
+        final Set<PortEntity> outputPorts = sourcePgEntity.getProcessGroupFlow().getFlow().getOutputPorts();
+        for (final PortEntity outputPort : outputPorts) {
             if (outputPort.getComponent().getName().equals(sourceOutputPort)) {
                 source = outputPort;
                 break;
@@ -95,8 +95,8 @@ public class PGConnect extends AbstractNiFiCommand<StringResult> {
 
         // retrieving the ID of the output port based on its name in source process
         // group
-        Set<PortEntity> inputPorts = destinationPgEntity.getProcessGroupFlow().getFlow().getInputPorts();
-        for (PortEntity inputPort : inputPorts) {
+        final Set<PortEntity> inputPorts = destinationPgEntity.getProcessGroupFlow().getFlow().getInputPorts();
+        for (final PortEntity inputPort : inputPorts) {
             if (inputPort.getComponent().getName().equals(destinationInputPort)) {
                 destination = inputPort;
                 break;

@@ -35,7 +35,7 @@ public class AuthenticationCredentialsNotFoundExceptionMapper implements Excepti
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationCredentialsNotFoundExceptionMapper.class);
 
     @Override
-    public Response toResponse(AuthenticationCredentialsNotFoundException exception) {
+    public Response toResponse(final AuthenticationCredentialsNotFoundException exception) {
         // log the error
         logger.info("No valid credentials were found in the request: {}. Returning {} response.", exception, Response.Status.FORBIDDEN);
 

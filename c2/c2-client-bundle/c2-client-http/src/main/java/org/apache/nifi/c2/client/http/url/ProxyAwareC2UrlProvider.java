@@ -37,7 +37,7 @@ public class ProxyAwareC2UrlProvider implements C2UrlProvider {
     private final String c2RestPathHeartbeat;
     private final String c2RestPathAcknowledge;
 
-    ProxyAwareC2UrlProvider(String c2RestPathBase, String c2RestPathHeartbeat, String c2RestPathAcknowledge) {
+    ProxyAwareC2UrlProvider(final String c2RestPathBase, final String c2RestPathHeartbeat, final String c2RestPathAcknowledge) {
         this.c2RestPathBase = Optional.ofNullable(c2RestPathBase)
             .filter(StringUtils::isNotBlank)
             .map(apiBase -> Strings.CS.appendIfMissing(apiBase, SLASH)) // trailing slash needs to be added for proper URL creation
@@ -60,7 +60,7 @@ public class ProxyAwareC2UrlProvider implements C2UrlProvider {
     }
 
     @Override
-    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
+    public String getCallbackUrl(final String absoluteUrl, final String relativeUrl) {
         return Optional.ofNullable(relativeUrl)
             .map(this::toAbsoluteUrl)
             .filter(Optional::isPresent)
@@ -68,14 +68,14 @@ public class ProxyAwareC2UrlProvider implements C2UrlProvider {
             .orElseThrow(() -> new IllegalArgumentException("Unable to return non empty c2 url."));
     }
 
-    private Optional<String> toAbsoluteUrl(String path) {
+    private Optional<String> toAbsoluteUrl(final String path) {
         if (isBlank(path)) {
             LOG.error("Unable to convert to absolute url, provided path was null or empty");
             return Optional.empty();
         }
         try {
             return Optional.of(c2RestPathBase.resolve(stripStart(path, SLASH)).toString()); // leading slash needs to be removed for proper URL creation
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Unable to convert restBase={} and restPath={} to absolute url", c2RestPathBase, path, e);
             return Optional.empty();
         }

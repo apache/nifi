@@ -29,7 +29,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario() throws Exception {
         // GIVEN
-        List<Action> actions = Arrays.asList(
+        final List<Action> actions = Arrays.asList(
             Action.WRITE_WORD, Action.WRITE_NEW_LINE,
             Action.TRIGGER,
             Action.ROLLOVER,
@@ -50,7 +50,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     @Test
     public void testSimpleScenario2() throws Exception {
         // GIVEN
-        List<Action> actions = Arrays.asList(
+        final List<Action> actions = Arrays.asList(
             Action.WRITE_WORD, Action.WRITE_NEW_LINE,
             Action.WRITE_WORD,
             Action.WRITE_NUL,
@@ -67,7 +67,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     @Test
     public void testSimpleScenario3() throws Exception {
         // GIVEN
-        List<Action> actions = Arrays.asList(
+        final List<Action> actions = Arrays.asList(
             Action.WRITE_WORD,
             Action.WRITE_NUL,
             Action.TRIGGER,
@@ -84,7 +84,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario4() throws Exception {
         // GIVEN
-        List<Action> actions = Arrays.asList(
+        final List<Action> actions = Arrays.asList(
             Action.WRITE_WORD, Action.WRITE_NEW_LINE,
             Action.ROLLOVER,
             Action.TRIGGER,
@@ -102,7 +102,7 @@ public class TestTailFileSimpleScenarios extends AbstractTestTailFileScenario {
     @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testSimpleScenario5() throws Exception {
         // GIVEN
-        List<Action> actions = Arrays.asList(
+        final List<Action> actions = Arrays.asList(
             Action.WRITE_WORD, Action.WRITE_NEW_LINE,
             Action.TRIGGER,
             Action.WRITE_WORD, Action.WRITE_NEW_LINE,

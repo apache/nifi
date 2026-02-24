@@ -24,11 +24,11 @@ import org.springframework.jms.core.JmsTemplate;
 
 public class CommonTest {
 
-    static JmsTemplate buildJmsTemplateForDestination(boolean pubSub) {
-        ConnectionFactory activeMqConnectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+    static JmsTemplate buildJmsTemplateForDestination(final boolean pubSub) {
+        final ConnectionFactory activeMqConnectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
         final ConnectionFactory connectionFactory = new CachingConnectionFactory(activeMqConnectionFactory);
 
-        JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
+        final JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
         jmsTemplate.setPubSubDomain(pubSub);
         jmsTemplate.setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
         jmsTemplate.setReceiveTimeout(10L);

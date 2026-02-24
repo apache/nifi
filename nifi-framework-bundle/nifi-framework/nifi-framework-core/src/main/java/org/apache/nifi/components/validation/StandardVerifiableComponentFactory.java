@@ -55,7 +55,7 @@ public class StandardVerifiableComponentFactory implements VerifiableComponentFa
             if (verifiableProcessor instanceof Processor processor) {
                 processor.initialize(tempInitializationContext);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessorInstantiationException("Failed to instantiate Verifiable Processor Class [%s]".formatted(processorClassName), e);
         }
         return verifiableProcessor;
@@ -78,7 +78,7 @@ public class StandardVerifiableComponentFactory implements VerifiableComponentFa
             if (verifiableControllerService instanceof ControllerService controllerService) {
                 controllerService.initialize(tempInitializationContext);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ControllerServiceInstantiationException("Failed to instantiate Verifiable Controller Service Class [%s]".formatted(controllerServiceClassName), e);
         }
         return verifiableControllerService;

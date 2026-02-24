@@ -38,7 +38,7 @@ class QueuePrioritizerTest {
     private static final String SORT_ATTRIBUTE = "my-sort-attribute";
 
     private final FlowFilePrioritizer flowFilePrioritizer = (o1, o2) -> {
-        Comparator<FlowFile> comparing = Comparator.comparing(
+        final Comparator<FlowFile> comparing = Comparator.comparing(
                 (flowFile) -> flowFile.getAttribute(SORT_ATTRIBUTE),
                 Comparator.nullsFirst(Comparator.naturalOrder())
         );
@@ -50,12 +50,12 @@ class QueuePrioritizerTest {
 
     @Test
     void deprioritizesFlowFilesWithPenalty() {
-        MockFlowFileRecord nonPenalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "no", SORT_ATTRIBUTE, "later"), 0);
-        MockFlowFileRecord expiredPenaltyFlowFile = new MockFlowFileRecord(Map.of("penalized", "no longer"), 0);
+        final MockFlowFileRecord nonPenalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "no", SORT_ATTRIBUTE, "later"), 0);
+        final MockFlowFileRecord expiredPenaltyFlowFile = new MockFlowFileRecord(Map.of("penalized", "no longer"), 0);
         expiredPenaltyFlowFile.setPenaltyExpiration(System.currentTimeMillis() - 9_001);
-        MockFlowFileRecord penalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "short"), 0);
+        final MockFlowFileRecord penalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "short"), 0);
         penalizedFlowFile.setPenaltyExpiration(System.currentTimeMillis() + 123_456);
-        MockFlowFileRecord longerPenalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "long"), 0);
+        final MockFlowFileRecord longerPenalizedFlowFile = new MockFlowFileRecord(Map.of("penalized", "long"), 0);
         longerPenalizedFlowFile.setPenaltyExpiration(System.currentTimeMillis() + 456_789);
 
         assertEquals(0, prioritizer.compare(nonPenalizedFlowFile, nonPenalizedFlowFile));
@@ -79,9 +79,9 @@ class QueuePrioritizerTest {
 
     @Test
     void prioritizesNonPenalizedFlowFilesByProvidedPrioritizers() {
-        MockFlowFileRecord flowFileC = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "C"), 0);
-        MockFlowFileRecord flowFileA = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "A"), 0);
-        MockFlowFileRecord flowFileB = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "B"), 0);
+        final MockFlowFileRecord flowFileC = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "C"), 0);
+        final MockFlowFileRecord flowFileA = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "A"), 0);
+        final MockFlowFileRecord flowFileB = new MockFlowFileRecord(Map.of(SORT_ATTRIBUTE, "B"), 0);
 
         assertEquals(0, prioritizer.compare(flowFileC, flowFileC));
         assertTrue(prioritizer.compare(flowFileC, flowFileA) >= 1);
@@ -99,11 +99,11 @@ class QueuePrioritizerTest {
         final ResourceClaim resourceClaim = claimManager
                 .newResourceClaim("container", "section", "rc-id", false, false);
         claimManager.incrementClaimantCount(resourceClaim);
-        MockFlowFileRecord flowFileWithClaimAndClaimOffset =
+        final MockFlowFileRecord flowFileWithClaimAndClaimOffset =
                 new MockFlowFileRecord(Map.of(), 0, new StandardContentClaim(resourceClaim, 9L));
-        MockFlowFileRecord flowFileWithClaimButNoOffset =
+        final MockFlowFileRecord flowFileWithClaimButNoOffset =
                 new MockFlowFileRecord(Map.of(), 0, new StandardContentClaim(resourceClaim, 0L));
-        MockFlowFileRecord flowFileWithoutClaim =
+        final MockFlowFileRecord flowFileWithoutClaim =
                 new MockFlowFileRecord(Map.of(), 0, null);
 
         assertEquals(0, prioritizer.compare(flowFileWithClaimAndClaimOffset, flowFileWithClaimAndClaimOffset));
@@ -119,9 +119,9 @@ class QueuePrioritizerTest {
 
     @Test
     void prioritizesByIdAsLastMeans() {
-        MockFlowFileRecord flowFileFirstId = new MockFlowFileRecord();
-        MockFlowFileRecord flowFileSecondId = new MockFlowFileRecord();
-        MockFlowFileRecord flowFileThirdId = new MockFlowFileRecord();
+        final MockFlowFileRecord flowFileFirstId = new MockFlowFileRecord();
+        final MockFlowFileRecord flowFileSecondId = new MockFlowFileRecord();
+        final MockFlowFileRecord flowFileThirdId = new MockFlowFileRecord();
 
         assertEquals(0, prioritizer.compare(flowFileThirdId, flowFileThirdId));
         assertTrue(prioritizer.compare(flowFileThirdId, flowFileFirstId) >= 1);

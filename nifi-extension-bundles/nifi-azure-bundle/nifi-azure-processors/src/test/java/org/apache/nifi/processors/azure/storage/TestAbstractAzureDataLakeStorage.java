@@ -38,7 +38,7 @@ public class TestAbstractAzureDataLakeStorage {
         // test the property validation in the abstract class via the put processor
         runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
 
-        ADLSCredentialsService credentialsService = mock(ADLSCredentialsService.class);
+        final ADLSCredentialsService credentialsService = mock(ADLSCredentialsService.class);
         when(credentialsService.getIdentifier()).thenReturn("credentials_service");
         runner.addControllerService("credentials_service", credentialsService);
         runner.enableControllerService(credentialsService);

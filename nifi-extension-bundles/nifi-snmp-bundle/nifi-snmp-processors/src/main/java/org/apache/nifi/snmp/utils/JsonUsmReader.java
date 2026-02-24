@@ -26,7 +26,7 @@ public class JsonUsmReader implements UsmReader {
 
     private final String usmUsersJson;
 
-    public JsonUsmReader(String usmUsersJson) {
+    public JsonUsmReader(final String usmUsersJson) {
         this.usmUsersJson = usmUsersJson;
     }
 
@@ -34,7 +34,7 @@ public class JsonUsmReader implements UsmReader {
     public List<UsmUser> readUsm() {
         try {
             return UsmJsonParser.parse(usmUsersJson);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             throw new ProcessException("Could not parse USM user file, please check the processor details for examples.", e);
         }
     }

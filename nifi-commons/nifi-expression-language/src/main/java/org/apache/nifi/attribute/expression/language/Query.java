@@ -218,7 +218,7 @@ public class Query {
     static String evaluateExpression(final Tree tree, final Evaluator<?> rootEvaluator, final String queryText, final EvaluationContext evaluationContext, final AttributeValueDecorator decorator)
                 throws ProcessException {
 
-        Query query = new Query(queryText, tree, rootEvaluator);
+        final Query query = new Query(queryText, tree, rootEvaluator);
         final Object evaluated = query.evaluate(evaluationContext).getValue();
         if (evaluated == null) {
             return null;
@@ -228,7 +228,7 @@ public class Query {
         return decorator == null ? value : decorator.decorate(value);
     }
 
-    static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables,
+    static String evaluateExpressions(final String rawValue, final Map<String, String> expressionMap, final AttributeValueDecorator decorator, final Map<String, String> stateVariables,
                                       final ParameterLookup parameterLookup) throws ProcessException {
         return prepare(rawValue).evaluateExpressions(new StandardEvaluationContext(expressionMap, stateVariables, parameterLookup), decorator);
     }
@@ -326,7 +326,7 @@ public class Query {
                 final String treeText = unescapeLeadingDollarSigns(query.substring(range.getStart(), range.getEnd() + 1));
 
                 if (range.getStart() > lastIndex) {
-                    String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
+                    final String substring = unescapeLeadingDollarSigns(query.substring(lastIndex, range.getStart()));
                     addLiteralsAndParameters(parameterParser, substring, expressions, true);
                 }
 

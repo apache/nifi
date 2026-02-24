@@ -159,7 +159,7 @@ public class StandardUploadRequestReplicator implements UploadRequestReplicator 
                     .header(ProxiedEntitiesUtils.PROXY_ENTITY_GROUPS, ProxiedEntitiesUtils.buildProxiedEntityGroupsString(user.getIdentityProviderGroups()));
 
             final Map<String, String> additionalHeaders = uploadRequest.getHeaders();
-            for (Map.Entry<String, String> headerEntry : additionalHeaders.entrySet()) {
+            for (final Map.Entry<String, String> headerEntry : additionalHeaders.entrySet()) {
                 request.header(headerEntry.getKey(), headerEntry.getValue());
             }
 

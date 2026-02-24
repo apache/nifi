@@ -42,7 +42,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return attributes;
     }
 
-    public void setAttributes(Map<String, String> attributes) {
+    public void setAttributes(final Map<String, String> attributes) {
         this.attributes = attributes;
     }
 
@@ -55,7 +55,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimSection;
     }
 
-    public void setContentClaimSection(String contentClaimSection) {
+    public void setContentClaimSection(final String contentClaimSection) {
         this.contentClaimSection = contentClaimSection;
     }
 
@@ -68,7 +68,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimContainer;
     }
 
-    public void setContentClaimContainer(String contentClaimContainer) {
+    public void setContentClaimContainer(final String contentClaimContainer) {
         this.contentClaimContainer = contentClaimContainer;
     }
 
@@ -81,7 +81,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimIdentifier;
     }
 
-    public void setContentClaimIdentifier(String contentClaimIdentifier) {
+    public void setContentClaimIdentifier(final String contentClaimIdentifier) {
         this.contentClaimIdentifier = contentClaimIdentifier;
     }
 
@@ -94,7 +94,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimOffset;
     }
 
-    public void setContentClaimOffset(Long contentClaimOffset) {
+    public void setContentClaimOffset(final Long contentClaimOffset) {
         this.contentClaimOffset = contentClaimOffset;
     }
 
@@ -107,7 +107,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimFileSize;
     }
 
-    public void setContentClaimFileSize(String contentClaimFileSize) {
+    public void setContentClaimFileSize(final String contentClaimFileSize) {
         this.contentClaimFileSize = contentClaimFileSize;
     }
 
@@ -120,7 +120,7 @@ public class FlowFileDTO extends FlowFileSummaryDTO {
         return contentClaimFileSizeBytes;
     }
 
-    public void setContentClaimFileSizeBytes(Long contentClaimFileSizeBytes) {
+    public void setContentClaimFileSizeBytes(final Long contentClaimFileSizeBytes) {
         this.contentClaimFileSizeBytes = contentClaimFileSizeBytes;
     }
 }

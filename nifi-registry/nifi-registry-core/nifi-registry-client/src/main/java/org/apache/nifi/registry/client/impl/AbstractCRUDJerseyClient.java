@@ -36,10 +36,10 @@ public class AbstractCRUDJerseyClient extends AbstractJerseyClient {
     }
 
     protected <T> T get(
-            String id,
-            Class<T> entityType,
-            String entityTypeName,
-            String entityPath
+            final String id,
+            final Class<T> entityType,
+            final String entityTypeName,
+            final String entityPath
     ) throws NiFiRegistryException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException(entityTypeName + " id cannot be blank");
@@ -52,10 +52,10 @@ public class AbstractCRUDJerseyClient extends AbstractJerseyClient {
     }
 
     protected <T> T create(
-            T entity,
-            Class<T> entityType,
-            String entityTypeName,
-            String entityPath
+            final T entity,
+            final Class<T> entityType,
+            final String entityTypeName,
+            final String entityPath
     ) throws NiFiRegistryException, IOException {
         if (entity == null) {
             throw new IllegalArgumentException(entityTypeName + " cannot be null");
@@ -71,11 +71,11 @@ public class AbstractCRUDJerseyClient extends AbstractJerseyClient {
     }
 
     protected <T> T update(
-            T entity,
-            String id,
-            Class<T> entityType,
-            String entityTypeName,
-            String entityPath
+            final T entity,
+            final String id,
+            final Class<T> entityType,
+            final String entityTypeName,
+            final String entityPath
     ) throws NiFiRegistryException, IOException {
         if (entity == null) {
             throw new IllegalArgumentException(entityTypeName + " cannot be null");
@@ -91,11 +91,11 @@ public class AbstractCRUDJerseyClient extends AbstractJerseyClient {
     }
 
     protected <T> T delete(
-            String id,
-            RevisionInfo revisionInfo,
-            Class<T> entityType,
-            String entityTypeName,
-            String entityPath
+            final String id,
+            final RevisionInfo revisionInfo,
+            final Class<T> entityType,
+            final String entityTypeName,
+            final String entityPath
     ) throws NiFiRegistryException, IOException {
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException(entityTypeName + " id cannot be blank");

@@ -35,12 +35,12 @@ public class MockUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         return null;
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         return null;
     }
 
@@ -50,22 +50,22 @@ public class MockUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         return null;
     }
 
     @Override
-    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
         return null;
     }
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
 
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
     }
 

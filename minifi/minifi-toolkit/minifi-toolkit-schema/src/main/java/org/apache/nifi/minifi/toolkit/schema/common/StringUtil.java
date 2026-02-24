@@ -26,7 +26,7 @@ public class StringUtil {
      * @param string the string
      * @return true if the string is null or empty
      */
-    public static boolean isNullOrEmpty(String string) {
+    public static boolean isNullOrEmpty(final String string) {
         return string == null || string.isEmpty();
     }
 
@@ -36,7 +36,7 @@ public class StringUtil {
      * @param string   the input
      * @param consumer the action to perform
      */
-    public static void doIfNotNullOrEmpty(String string, Consumer<String> consumer) {
+    public static void doIfNotNullOrEmpty(final String string, final Consumer<String> consumer) {
         if (!isNullOrEmpty(string)) {
             consumer.accept(string);
         }
@@ -48,7 +48,7 @@ public class StringUtil {
      * @param string   the input
      * @param consumer the action to perform
      */
-    public static void doIfNullOrEmpty(String string, Consumer<String> consumer) {
+    public static void doIfNullOrEmpty(final String string, final Consumer<String> consumer) {
         if (isNullOrEmpty(string)) {
             consumer.accept(string);
         }

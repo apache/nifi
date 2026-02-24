@@ -252,7 +252,7 @@ public class PublishAMQPTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private void setConnectionProperties(TestRunner runner) {
+    private void setConnectionProperties(final TestRunner runner) {
         runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.USER, "user");
         runner.setProperty(PublishAMQP.PASSWORD, "password");
@@ -271,7 +271,7 @@ public class PublishAMQPTest {
         }
 
         @Override
-        protected Connection createConnection(ProcessContext context, ExecutorService executor) {
+        protected Connection createConnection(final ProcessContext context, final ExecutorService executor) {
             return connection;
         }
 

@@ -76,7 +76,7 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
     }
 
     @Override
-    protected void addRequiredPropertiesToRunner(TestRunner runner) {
+    protected void addRequiredPropertiesToRunner(final TestRunner runner) {
         runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.setProperty(DeleteGCSObject.GENERATION, String.valueOf(GENERATION));
         runner.setProperty(DeleteGCSObject.KEY, KEY);
@@ -172,7 +172,7 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(DeleteGCSObject.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(DeleteGCSObject.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("gcs-bucket", DeleteGCSObject.BUCKET.getName()),
                 Map.entry("gcs-key", DeleteGCSObject.KEY.getName()),

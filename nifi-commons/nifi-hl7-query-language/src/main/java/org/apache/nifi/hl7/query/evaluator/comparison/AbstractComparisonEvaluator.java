@@ -48,29 +48,24 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
         return compareRaw(lhsValue, rhsValue);
     }
 
-    private Boolean compareRaw(Object lhsValue, Object rhsValue) {
+    private Boolean compareRaw(final Object lhsValue, final Object rhsValue) {
         if (lhsValue == null || rhsValue == null) {
             return false;
         }
 
-        if (lhsValue instanceof HL7Field) {
-            lhsValue = ((HL7Field) lhsValue).getValue();
-        }
+        final Object resolvedLhs = (lhsValue instanceof HL7Field) ? ((HL7Field) lhsValue).getValue() : lhsValue;
+        final Object resolvedRhs = (rhsValue instanceof HL7Field) ? ((HL7Field) rhsValue).getValue() : rhsValue;
 
-        if (rhsValue instanceof HL7Field) {
-            rhsValue = ((HL7Field) rhsValue).getValue();
-        }
-
-        if (lhsValue == null || rhsValue == null) {
+        if (resolvedLhs == null || resolvedRhs == null) {
             return false;
         }
 
         /*
-         * both are collections, and compare(lhsValue, rhsValue) is false.
+         * both are collections, and compare(resolvedLhs, resolvedRhs) is false.
          * this would be the case, for instance, if we compared field 1 of one segment to
          * a field in another segment, and both fields had components.
          */
-        if (lhsValue instanceof Collection && rhsValue instanceof Collection) {
+        if (resolvedLhs instanceof Collection && resolvedRhs instanceof Collection) {
             return false;
         }
 
@@ -80,9 +75,9 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
          * this would happen, for instance, if we check Segment1.Field5 = 'X' and field 5 repeats
          * with a value "A~B~C~X~Y~Z"; in this case we do want to consider Field 5 = X as true.
          */
-        if (lhsValue instanceof Collection) {
-            for (final Object lhsObject : (Collection<?>) lhsValue) {
-                if (compareRaw(lhsObject, rhsValue)) {
+        if (resolvedLhs instanceof Collection) {
+            for (final Object lhsObject : (Collection<?>) resolvedLhs) {
+                if (compareRaw(lhsObject, resolvedRhs)) {
                     return true;
                 }
             }
@@ -90,9 +85,9 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
             return false;
         }
 
-        if (rhsValue instanceof Collection) {
-            for (final Object rhsObject : (Collection<?>) rhsValue) {
-                if (compareRaw(rhsObject, lhsValue)) {
+        if (resolvedRhs instanceof Collection) {
+            for (final Object rhsObject : (Collection<?>) resolvedRhs) {
+                if (compareRaw(rhsObject, resolvedLhs)) {
                     return true;
                 }
             }
@@ -100,7 +95,7 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
             return false;
         }
 
-        if (lhsValue != null && rhsValue != null && compare(lhsValue, rhsValue)) {
+        if (resolvedLhs != null && resolvedRhs != null && compare(resolvedLhs, resolvedRhs)) {
             return true;
         }
 

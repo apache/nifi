@@ -47,37 +47,37 @@ public class C2OperationHandlerProviderTest {
 
     @Test
     void testGetHandlerForReturnsEmptyForUnrecognisedOperationType() {
-        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.emptyList());
+        final C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.emptyList());
 
-        C2Operation operation = new C2Operation();
+        final C2Operation operation = new C2Operation();
         operation.setOperation(DESCRIBE);
         operation.setOperand(MANIFEST);
-        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
+        final Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
 
         assertFalse(handler.isPresent());
     }
 
     @Test
     void testGetHandlerForOperationReturnsEmptyForOperandMismatch() {
-        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(new TestInvalidOperationHandler()));
+        final C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(new TestInvalidOperationHandler()));
 
-        C2Operation operation = new C2Operation();
+        final C2Operation operation = new C2Operation();
         operation.setOperation(DESCRIBE);
         operation.setOperand(MANIFEST);
-        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
+        final Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
 
         assertFalse(handler.isPresent());
     }
 
     @Test
     void testHandleOperation() {
-        TestDescribeOperationHandler describeOperationHandler = new TestDescribeOperationHandler();
-        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(describeOperationHandler));
+        final TestDescribeOperationHandler describeOperationHandler = new TestDescribeOperationHandler();
+        final C2OperationHandlerProvider service = new C2OperationHandlerProvider(Collections.singletonList(describeOperationHandler));
 
-        C2Operation operation = new C2Operation();
+        final C2Operation operation = new C2Operation();
         operation.setOperation(DESCRIBE);
         operation.setOperand(MANIFEST);
-        Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
+        final Optional<C2OperationHandler> handler = service.getHandlerForOperation(operation);
 
         assertTrue(handler.isPresent());
         assertEquals(describeOperationHandler, handler.get());
@@ -85,13 +85,13 @@ public class C2OperationHandlerProviderTest {
 
     @Test
     void testHandlersAreReturned() {
-        C2OperationHandlerProvider service = new C2OperationHandlerProvider(Arrays.asList(new TestDescribeOperationHandler(), new TestInvalidOperationHandler()));
+        final C2OperationHandlerProvider service = new C2OperationHandlerProvider(Arrays.asList(new TestDescribeOperationHandler(), new TestInvalidOperationHandler()));
 
-        Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = service.getHandlers();
+        final Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = service.getHandlers();
 
         assertEquals(1, handlers.keySet().size());
         assertTrue(handlers.keySet().contains(DESCRIBE));
-        Map<OperandType, C2OperationHandler> operands = handlers.values().stream().findFirst().get();
+        final Map<OperandType, C2OperationHandler> operands = handlers.values().stream().findFirst().get();
         assertEquals(2, operands.size());
         assertTrue(operands.keySet().containsAll(Arrays.asList(MANIFEST, CONFIGURATION)));
     }
@@ -114,7 +114,7 @@ public class C2OperationHandlerProviderTest {
         }
 
         @Override
-        public C2OperationAck handle(C2Operation operation) {
+        public C2OperationAck handle(final C2Operation operation) {
             return operationAck;
         }
     }
@@ -137,7 +137,7 @@ public class C2OperationHandlerProviderTest {
         }
 
         @Override
-        public C2OperationAck handle(C2Operation operation) {
+        public C2OperationAck handle(final C2Operation operation) {
             return null;
         }
     }

@@ -115,7 +115,7 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
                 handleParseFailure(session, consumerRecord, attributes, value);
                 offsetTracker.update(consumerRecord);
                 continue;
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new RuntimeException("Failed to process Kafka message", e);
             }
 

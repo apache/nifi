@@ -39,8 +39,8 @@ public interface SalesforceConfigAware {
     String CLIENT_ID = "???";
     String CLIENT_SECRET = "???";
 
-    default StandardOauth2AccessTokenProvider initOAuth2AccessTokenProvider(TestRunner runner) throws InitializationException {
-        StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = new StandardOauth2AccessTokenProvider();
+    default StandardOauth2AccessTokenProvider initOAuth2AccessTokenProvider(final TestRunner runner) throws InitializationException {
+        final StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = new StandardOauth2AccessTokenProvider();
 
         runner.addControllerService("oauth2AccessTokenProvider", oauth2AccessTokenProvider);
 

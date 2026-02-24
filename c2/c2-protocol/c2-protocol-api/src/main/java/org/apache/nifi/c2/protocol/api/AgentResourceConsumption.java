@@ -35,7 +35,7 @@ public class AgentResourceConsumption implements Serializable {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(Long memoryUsage) {
+    public void setMemoryUsage(final Long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
@@ -44,7 +44,7 @@ public class AgentResourceConsumption implements Serializable {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(Double cpuUtilization) {
+    public void setCpuUtilization(final Double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 }

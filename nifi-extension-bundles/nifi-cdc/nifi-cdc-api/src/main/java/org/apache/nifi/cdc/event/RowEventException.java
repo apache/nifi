@@ -26,15 +26,15 @@ public class RowEventException extends IOException {
     public RowEventException() {
     }
 
-    public RowEventException(String message) {
+    public RowEventException(final String message) {
         super(message);
     }
 
-    public RowEventException(String message, Throwable cause) {
+    public RowEventException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public RowEventException(Throwable cause) {
+    public RowEventException(final Throwable cause) {
         super(cause);
     }
 }

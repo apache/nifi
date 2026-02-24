@@ -44,9 +44,9 @@ public class TestWindowsEventLogRecordReader {
 
     @Test
     public void testSingleEvent() throws IOException, MalformedRecordException {
-        InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/single_event.xml"));
-        WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
-        Record r = reader.nextRecord();
+        final InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/single_event.xml"));
+        final WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
+        final Record r = reader.nextRecord();
         assertNotNull(r);
         assertEquals(2, r.getValues().length);
 
@@ -76,9 +76,9 @@ public class TestWindowsEventLogRecordReader {
 
     @Test
     public void testSingleEventNoParent() throws IOException, MalformedRecordException {
-        InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/single_event_no_parent.xml"));
-        WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
-        Record r = reader.nextRecord();
+        final InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/single_event_no_parent.xml"));
+        final WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
+        final Record r = reader.nextRecord();
         assertNotNull(r);
         assertEquals(2, r.getValues().length);
 
@@ -108,8 +108,8 @@ public class TestWindowsEventLogRecordReader {
 
     @Test
     public void testMultipleEvents() throws IOException, MalformedRecordException {
-        InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/multiple_events.xml"));
-        WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
+        final InputStream is = new BufferedInputStream(new FileInputStream("src/test/resources/windowseventlog/multiple_events.xml"));
+        final WindowsEventLogRecordReader reader = new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class));
         Record r = reader.nextRecord(true, true);
         assertNotNull(r);
         assertEquals(2, r.getValues().length);
@@ -192,7 +192,7 @@ public class TestWindowsEventLogRecordReader {
 
     @Test
     public void testNotXmlInput() {
-        InputStream is = new ByteArrayInputStream("I am not XML" .getBytes(StandardCharsets.UTF_8));
+        final InputStream is = new ByteArrayInputStream("I am not XML" .getBytes(StandardCharsets.UTF_8));
         assertThrows(MalformedRecordException.class,
                 () -> new WindowsEventLogRecordReader(is, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, Mockito.mock(ComponentLog.class)));
     }

@@ -145,7 +145,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         final InetSocketAddress serviceAddress;
         try {
             serviceAddress = getServiceAddress();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProtocolException("Failed to getServiceAddress due to " + e, e);
         }
 
@@ -162,7 +162,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         final InetSocketAddress serviceAddress;
         try {
             serviceAddress = getServiceAddress();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProtocolException("Failed to get Service Address", e);
         }
 
@@ -235,7 +235,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
             timingDetails.setReceiveFullResponseMillis(receiveEnd - receiveStart);
 
             return response;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProtocolException("Failed to send message to Cluster Coordinator", e);
         }
     }

@@ -34,8 +34,8 @@ public class RuntimeInfoWrapper {
     final List<ProcessorStatus> processorStatus;
     final RunStatus runStatus;
 
-    public RuntimeInfoWrapper(AgentRepositories repos, RuntimeManifest manifest, Map<String, FlowQueueStatus> queueStatus, List<ProcessorBulletin> processorBulletins,
-                              List<ProcessorStatus> processorStatus, RunStatus runStatus) {
+    public RuntimeInfoWrapper(final AgentRepositories repos, final RuntimeManifest manifest, final Map<String, FlowQueueStatus> queueStatus, final List<ProcessorBulletin> processorBulletins,
+                              final List<ProcessorStatus> processorStatus, final RunStatus runStatus) {
         this.repos = repos;
         this.manifest = manifest;
         this.queueStatus = queueStatus;

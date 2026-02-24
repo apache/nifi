@@ -36,7 +36,7 @@ public class HistoryEntity extends Entity {
         return history;
     }
 
-    public void setHistory(HistoryDTO history) {
+    public void setHistory(final HistoryDTO history) {
         this.history = history;
     }
 

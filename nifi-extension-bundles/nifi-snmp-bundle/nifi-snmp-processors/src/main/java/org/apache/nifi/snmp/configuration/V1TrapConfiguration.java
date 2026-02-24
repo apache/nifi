@@ -69,22 +69,22 @@ public class V1TrapConfiguration {
         String genericTrapType;
         String specificTrapType;
 
-        public Builder enterpriseOid(String enterpriseOid) {
+        public Builder enterpriseOid(final String enterpriseOid) {
             this.enterpriseOid = enterpriseOid;
             return this;
         }
 
-        public Builder agentAddress(String agentAddress) {
+        public Builder agentAddress(final String agentAddress) {
             this.agentAddress = agentAddress;
             return this;
         }
 
-        public Builder genericTrapType(String genericTrapType) {
+        public Builder genericTrapType(final String genericTrapType) {
             this.genericTrapType = genericTrapType;
             return this;
         }
 
-        public Builder specificTrapType(String specificTrapType) {
+        public Builder specificTrapType(final String specificTrapType) {
             this.specificTrapType = specificTrapType;
             return this;
         }
@@ -103,7 +103,7 @@ public class V1TrapConfiguration {
                 if (parsedGenericTrapType < 0 || parsedGenericTrapType > 6) {
                     throw new IllegalArgumentException(GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6);
                 }
-            } catch (NumberFormatException e) {
+            } catch (final NumberFormatException e) {
                 throw new IllegalArgumentException(GENERIC_TRAP_TYPE_IS_NOT_A_NUMBER);
             }
 
@@ -113,7 +113,7 @@ public class V1TrapConfiguration {
                     if (parsedSpecificTrapType < 0) {
                         throw new IllegalArgumentException(SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647);
                     }
-                } catch (NumberFormatException e) {
+                } catch (final NumberFormatException e) {
                     throw new IllegalArgumentException(GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED);
                 }
             }

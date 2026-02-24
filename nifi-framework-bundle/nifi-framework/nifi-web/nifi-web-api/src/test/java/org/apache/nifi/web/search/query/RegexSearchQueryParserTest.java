@@ -36,7 +36,7 @@ public class RegexSearchQueryParserTest {
 
     @ParameterizedTest
     @MethodSource("data")
-    public void testParsing(String input, String expectedTerm, String[] expectedFilterNames, String[] expectedFilterValues) {
+    public void testParsing(final String input, final String expectedTerm, final String[] expectedFilterNames, final String[] expectedFilterValues) {
         // given
         final RegexSearchQueryParser testSubject = new RegexSearchQueryParser();
 

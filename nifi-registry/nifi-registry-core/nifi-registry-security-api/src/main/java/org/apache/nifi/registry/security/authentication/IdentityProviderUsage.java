@@ -96,7 +96,7 @@ public interface IdentityProviderUsage {
         private final int code;
         private String httpAuthScheme;
 
-        AuthType(int statusCode, String httpAuthScheme) {
+        AuthType(final int statusCode, final String httpAuthScheme) {
             this.code = statusCode;
             this.httpAuthScheme = httpAuthScheme;
         }
@@ -109,7 +109,7 @@ public interface IdentityProviderUsage {
             return this.toString();
         }
 
-        public AuthType httpAuthScheme(String httpAuthScheme) {
+        public AuthType httpAuthScheme(final String httpAuthScheme) {
             if (httpAuthScheme != null) {
                 this.httpAuthScheme = httpAuthScheme;
             }
@@ -121,9 +121,9 @@ public interface IdentityProviderUsage {
             return this.httpAuthScheme;
         }
 
-        public static AuthType fromCode(int code) {
-            AuthType[] enumTypes = values();
-            for (AuthType s : enumTypes) {
+        public static AuthType fromCode(final int code) {
+            final AuthType[] enumTypes = values();
+            for (final AuthType s : enumTypes) {
                 if (s.code == code) {
                     return s;
                 }

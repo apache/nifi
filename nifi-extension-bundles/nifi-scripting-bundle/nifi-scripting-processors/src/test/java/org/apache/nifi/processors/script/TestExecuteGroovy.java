@@ -173,7 +173,7 @@ public class TestExecuteGroovy extends BaseScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("selected.columns", "first,last");
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }

@@ -33,7 +33,7 @@ public class FlowSnapshotMetadata {
         return version;
     }
 
-    public void setVersion(Integer version) {
+    public void setVersion(final Integer version) {
         this.version = version;
     }
 
@@ -41,7 +41,7 @@ public class FlowSnapshotMetadata {
         return author;
     }
 
-    public void setAuthor(String author) {
+    public void setAuthor(final String author) {
         this.author = author;
     }
 
@@ -49,7 +49,7 @@ public class FlowSnapshotMetadata {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -57,7 +57,7 @@ public class FlowSnapshotMetadata {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(final Long created) {
         this.created = created;
     }
 }

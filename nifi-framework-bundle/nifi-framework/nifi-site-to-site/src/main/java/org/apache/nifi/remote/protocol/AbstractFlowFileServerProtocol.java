@@ -84,7 +84,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         return handshakeCompleted;
     }
 
-    protected void validateHandshakeRequest(HandshakeProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
+    protected void validateHandshakeRequest(final HandshakeProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
         Boolean useGzip = null;
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String propertyName = entry.getKey();
@@ -132,7 +132,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     }
 
-    protected void checkPortStatus(final Peer peer, String portId) throws HandshakeException {
+    protected void checkPortStatus(final Peer peer, final String portId) throws HandshakeException {
         Port receivedPort = rootGroup.findInputPort(portId);
         if (receivedPort == null) {
             receivedPort = rootGroup.findOutputPort(portId);
@@ -242,7 +242,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         boolean continueTransaction = true;
         final long startNanos = System.nanoTime();
         String calculatedCRC = "";
-        OutputStream os = new DataOutputStream(commsSession.getOutput().getOutputStream());
+        final OutputStream os = new DataOutputStream(commsSession.getOutput().getOutputStream());
         while (continueTransaction) {
             final boolean useGzip = handshakeProperties.isUseGzip();
             final OutputStream flowFileOutputStream = useGzip ? new CompressionOutputStream(os) : os;
@@ -277,15 +277,15 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             // determine if we should check for more data on queue.
             final long sendingNanos = System.nanoTime() - startNanos;
             boolean poll = true;
-            double batchDurationNanos = handshakeProperties.getBatchDurationNanos();
+            final double batchDurationNanos = handshakeProperties.getBatchDurationNanos();
             if (sendingNanos >= batchDurationNanos && batchDurationNanos > 0L) {
                 poll = false;
             }
-            double batchBytes = handshakeProperties.getBatchBytes();
+            final double batchBytes = handshakeProperties.getBatchBytes();
             if (bytesSent >= batchBytes && batchBytes > 0L) {
                 poll = false;
             }
-            double batchCount = handshakeProperties.getBatchCount();
+            final double batchCount = handshakeProperties.getBatchCount();
             if (flowFilesSent.size() >= batchCount && batchCount > 0) {
                 poll = false;
             }
@@ -312,21 +312,21 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             }
         }
 
-        FlowFileTransaction transaction = new FlowFileTransaction(session, context, stopWatch, bytesSent, flowFilesSent, calculatedCRC);
+        final FlowFileTransaction transaction = new FlowFileTransaction(session, context, stopWatch, bytesSent, flowFilesSent, calculatedCRC);
         return commitTransferTransaction(peer, transaction);
 
     }
 
-    protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
+    protected String createTransitUri(final Peer peer, final String sourceFlowFileIdentifier) {
         return peer.createTransitUri(sourceFlowFileIdentifier);
     }
 
-    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
-        ProcessSession session = transaction.getSession();
-        Set<FlowFile> flowFilesSent = transaction.getFlowFilesSent();
+    protected int commitTransferTransaction(final Peer peer, final FlowFileTransaction transaction) throws IOException {
+        final ProcessSession session = transaction.getSession();
+        final Set<FlowFile> flowFilesSent = transaction.getFlowFilesSent();
 
         // we've sent a FINISH_TRANSACTION. Now we'll wait for the peer to send a 'Confirm Transaction' response
-        CommunicationsSession commsSession = peer.getCommunicationsSession();
+        final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final Response transactionConfirmationResponse = readTransactionResponse(true, commsSession);
         if (transactionConfirmationResponse.getCode() == ResponseCode.CONFIRM_TRANSACTION) {
             // Confirm Checksum and echo back the confirmation.
@@ -334,7 +334,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final String receivedCRC = transactionConfirmationResponse.getMessage();
 
             if (getVersionNegotiator().getVersion() > 3) {
-                String calculatedCRC = transaction.getCalculatedCRC();
+                final String calculatedCRC = transaction.getCalculatedCRC();
                 if (!receivedCRC.equals(calculatedCRC)) {
                     writeTransactionResponse(true, ResponseCode.BAD_CHECKSUM, commsSession);
                     session.rollback();
@@ -373,8 +373,8 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
         session.commitAsync();
 
-        StopWatch stopWatch = transaction.getStopWatch();
-        long bytesSent = transaction.getBytesSent();
+        final StopWatch stopWatch = transaction.getStopWatch();
+        final long bytesSent = transaction.getBytesSent();
         stopWatch.stop();
         final String uploadDataRate = stopWatch.calculateDataRate(bytesSent);
         final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
@@ -384,16 +384,16 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         return flowFilesSent.size();
     }
 
-    protected Response readTransactionResponse(boolean isTransfer, CommunicationsSession commsSession) throws IOException {
+    protected Response readTransactionResponse(final boolean isTransfer, final CommunicationsSession commsSession) throws IOException {
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         return Response.read(dis);
     }
 
-    protected final void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession) throws IOException {
+    protected final void writeTransactionResponse(final boolean isTransfer, final ResponseCode response, final CommunicationsSession commsSession) throws IOException {
         writeTransactionResponse(isTransfer, response, commsSession, null);
     }
 
-    protected void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession, String explanation) throws IOException {
+    protected void writeTransactionResponse(final boolean isTransfer, final ResponseCode response, final CommunicationsSession commsSession, final String explanation) throws IOException {
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
         if (explanation == null) {
             response.writeResponse(dos);
@@ -500,16 +500,16 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         // Critical Section involved in this transaction so that rather than the Critical Section being the
         // time window involved in the entire transaction, it is reduced to a simple round-trip conversation.
         logger.debug("{} Sending CONFIRM_TRANSACTION Response Code to {}", this, peer);
-        String calculatedCRC = String.valueOf(crc.getValue());
+        final String calculatedCRC = String.valueOf(crc.getValue());
         writeTransactionResponse(false, ResponseCode.CONFIRM_TRANSACTION, commsSession, calculatedCRC);
 
-        FlowFileTransaction transaction = new FlowFileTransaction(session, context, stopWatch, bytesReceived, flowFilesReceived, calculatedCRC);
+        final FlowFileTransaction transaction = new FlowFileTransaction(session, context, stopWatch, bytesReceived, flowFilesReceived, calculatedCRC);
         return commitReceiveTransaction(peer, transaction);
     }
 
-    protected int commitReceiveTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
-        CommunicationsSession commsSession = peer.getCommunicationsSession();
-        ProcessSession session = transaction.getSession();
+    protected int commitReceiveTransaction(final Peer peer, final FlowFileTransaction transaction) throws IOException {
+        final CommunicationsSession commsSession = peer.getCommunicationsSession();
+        final ProcessSession session = transaction.getSession();
         final Response confirmTransactionResponse = readTransactionResponse(false, commsSession);
         logger.debug("{} Received {} from {}", this, confirmTransactionResponse, peer);
 
@@ -537,9 +537,9 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             writeTransactionResponse(false, ResponseCode.TRANSACTION_FINISHED, commsSession);
         }
 
-        Set<FlowFile> flowFilesReceived = transaction.getFlowFilesSent();
-        long bytesReceived = transaction.getBytesSent();
-        StopWatch stopWatch = transaction.getStopWatch();
+        final Set<FlowFile> flowFilesReceived = transaction.getFlowFilesSent();
+        final long bytesReceived = transaction.getBytesSent();
+        final StopWatch stopWatch = transaction.getStopWatch();
         stopWatch.stop();
         final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
         final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
@@ -572,7 +572,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     @Override
     public String toString() {
-        String commid = handshakeProperties != null ? handshakeProperties.getCommsIdentifier() : null;
+        final String commid = handshakeProperties != null ? handshakeProperties.getCommsIdentifier() : null;
         return getClass().getSimpleName() + "[CommsID=" + commid + "]";
     }
 }

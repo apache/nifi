@@ -33,12 +33,12 @@ import java.util.List;
 public class ConsumePOP3 extends AbstractEmailProcessor<Pop3MailReceiver> {
 
     @Override
-    protected String getProtocol(ProcessContext processContext) {
+    protected String getProtocol(final ProcessContext processContext) {
         return "pop3";
     }
 
     @Override
-    protected Pop3MailReceiver buildMessageReceiver(ProcessContext context) {
+    protected Pop3MailReceiver buildMessageReceiver(final ProcessContext context) {
         final Pop3MailReceiver receiver = new Pop3MailReceiver(this.buildUrl(context));
         receiver.setShouldDeleteMessages(context.getProperty(AbstractEmailProcessor.SHOULD_DELETE_MESSAGES).asBoolean());
         return receiver;

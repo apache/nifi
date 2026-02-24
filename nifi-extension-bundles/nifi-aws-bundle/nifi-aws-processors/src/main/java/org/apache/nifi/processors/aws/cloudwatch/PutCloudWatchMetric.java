@@ -98,7 +98,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
             try {
                 Double.parseDouble(input);
-            } catch (NumberFormatException e) {
+            } catch (final NumberFormatException e) {
                 reason = "not a valid Double";
             }
 
@@ -237,7 +237,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("MetricName", METRIC_NAME.getName());
         config.renameProperty("maximum", MAXIMUM.getName());
@@ -248,7 +248,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean valueSet = validationContext.getProperty(VALUE).isSet();
         final boolean maxSet = validationContext.getProperty(MAXIMUM).isSet();

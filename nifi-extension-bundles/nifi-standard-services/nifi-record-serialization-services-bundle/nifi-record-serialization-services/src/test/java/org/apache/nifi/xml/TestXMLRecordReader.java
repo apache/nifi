@@ -62,8 +62,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSingleRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
         assertArrayEquals(new Object[]{"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
         assertNull(reader.nextRecord());
@@ -71,20 +71,20 @@ public class TestXMLRecordReader {
 
     @Test
     public void testMap() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_map.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_map.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord();
+        final Record first = reader.nextRecord();
         assertEquals("P1", first.getValue("ID"));
-        Map firstMap = (Map) first.getValue("MAP");
+        final Map firstMap = (Map) first.getValue("MAP");
         assertEquals("Cleve Butler", firstMap.get("NAME"));
         assertEquals("42", firstMap.get("AGE"));
         assertEquals("USA", firstMap.get("COUNTRY"));
 
-        Record second = reader.nextRecord();
+        final Record second = reader.nextRecord();
         assertEquals("P2", second.getValue("ID"));
-        Map secondMap = (Map) second.getValue("MAP");
+        final Map secondMap = (Map) second.getValue("MAP");
         assertEquals("Ainslie Fletcher", secondMap.get("NAME"));
         assertEquals("33", secondMap.get("AGE"));
         assertEquals("UK", secondMap.get("COUNTRY"));
@@ -92,27 +92,27 @@ public class TestXMLRecordReader {
 
     @Test
     public void testMapWithRecords() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_map2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_map2.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord();
+        final Record first = reader.nextRecord();
         assertEquals("P1", first.getValue("ID"));
-        Map firstMap = (Map) first.getValue("MAP");
+        final Map firstMap = (Map) first.getValue("MAP");
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, ((Record) firstMap.get("ENTRY")).getValues());
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, ((Record) firstMap.get("ENTRY2")).getValues());
 
-        Record second = reader.nextRecord();
+        final Record second = reader.nextRecord();
         assertEquals("P2", second.getValue("ID"));
-        Map secondMap = (Map) second.getValue("MAP");
+        final Map secondMap = (Map) second.getValue("MAP");
         assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, ((Record) secondMap.get("ENTRY")).getValues());
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, ((Record) secondMap.get("ENTRY2")).getValues());
     }
 
     @Test
     public void testTagInCharactersSimpleField() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, null}, reader.nextRecord().getValues());
@@ -123,41 +123,41 @@ public class TestXMLRecordReader {
 
     @Test
     public void testTagInCharactersRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, true);
+        final Record first = reader.nextRecord(true, true);
         assertEquals(42, first.getValue("AGE"));
-        Record firstNested = (Record) first.getValue("NAME");
+        final Record firstNested = (Record) first.getValue("NAME");
         assertEquals("Cleve Butler", firstNested.getValue("CONTENT"));
         assertEquals("attr content", firstNested.getValue("ATTR"));
         assertEquals("inner content", firstNested.getValue("INNER"));
 
-        Record second = reader.nextRecord(true, true);
+        final Record second = reader.nextRecord(true, true);
         assertEquals(33, second.getValue("AGE"));
-        Record secondNested = (Record) second.getValue("NAME");
+        final Record secondNested = (Record) second.getValue("NAME");
         assertEquals("Ainslie Fletcher", secondNested.getValue("CONTENT"));
         assertEquals("attr content", secondNested.getValue("ATTR"));
         assertEquals("inner content", secondNested.getValue("INNER"));
 
-        Record third = reader.nextRecord(true, true);
+        final Record third = reader.nextRecord(true, true);
         assertEquals(74, third.getValue("AGE"));
-        Record thirdNested = (Record) third.getValue("NAME");
+        final Record thirdNested = (Record) third.getValue("NAME");
         assertEquals("Amélie Bonfils", thirdNested.getValue("CONTENT"));
         assertEquals("attr content", thirdNested.getValue("ATTR"));
         assertEquals("inner content", thirdNested.getValue("INNER"));
 
-        Record fourth = reader.nextRecord(true, true);
+        final Record fourth = reader.nextRecord(true, true);
         assertEquals(16, fourth.getValue("AGE"));
-        Record fourthNested = (Record) fourth.getValue("NAME");
+        final Record fourthNested = (Record) fourth.getValue("NAME");
         assertEquals("Elenora Scrivens", fourthNested.getValue("CONTENT"));
         assertEquals("attr content", fourthNested.getValue("ATTR"));
         assertEquals("inner content", fourthNested.getValue("INNER"));
 
-        Record fifth = reader.nextRecord(true, true);
+        final Record fifth = reader.nextRecord(true, true);
         assertNull(fifth.getValue("AGE"));
-        Record fifthNested = (Record) fifth.getValue("NAME");
+        final Record fifthNested = (Record) fifth.getValue("NAME");
         assertNull(fifthNested.getValue("CONTENT"));
         assertNull(fifthNested.getValue("ATTR"));
         assertEquals("inner content", fifthNested.getValue("INNER"));
@@ -165,46 +165,46 @@ public class TestXMLRecordReader {
 
     @Test
     public void testTagInCharactersCoerceTrueDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, false);
+        final Record first = reader.nextRecord(true, false);
         assertEquals("P1", first.getValue("ID"));
         assertEquals(42, first.getValue("AGE"));
-        Record firstNested = (Record) first.getValue("NAME");
+        final Record firstNested = (Record) first.getValue("NAME");
         assertEquals("Cleve Butler", firstNested.getValue("CONTENT"));
         assertEquals("attr content", firstNested.getValue("ATTR"));
         assertEquals("inner content", firstNested.getValue("INNER"));
 
-        Record second = reader.nextRecord(true, false);
+        final Record second = reader.nextRecord(true, false);
         assertEquals("P2", second.getValue("ID"));
         assertEquals(33, second.getValue("AGE"));
-        Record secondNested = (Record) second.getValue("NAME");
+        final Record secondNested = (Record) second.getValue("NAME");
         assertEquals("Ainslie Fletcher", secondNested.getValue("CONTENT"));
         assertEquals("attr content", secondNested.getValue("ATTR"));
         assertEquals("inner content", secondNested.getValue("INNER"));
 
-        Record third = reader.nextRecord(true, false);
+        final Record third = reader.nextRecord(true, false);
         assertEquals("P3", third.getValue("ID"));
         assertEquals(74, third.getValue("AGE"));
-        Record thirdNested = (Record) third.getValue("NAME");
+        final Record thirdNested = (Record) third.getValue("NAME");
         assertEquals("Amélie Bonfils", thirdNested.getValue("CONTENT"));
         assertEquals("attr content", thirdNested.getValue("ATTR"));
         assertEquals("inner content", thirdNested.getValue("INNER"));
 
-        Record fourth = reader.nextRecord(true, false);
+        final Record fourth = reader.nextRecord(true, false);
         assertEquals("P4", fourth.getValue("ID"));
         assertEquals(16, fourth.getValue("AGE"));
-        Record fourthNested = (Record) fourth.getValue("NAME");
+        final Record fourthNested = (Record) fourth.getValue("NAME");
         assertEquals("Elenora Scrivens", fourthNested.getValue("CONTENT"));
         assertEquals("attr content", fourthNested.getValue("ATTR"));
         assertEquals("inner content", fourthNested.getValue("INNER"));
 
-        Record fifth = reader.nextRecord(true, false);
+        final Record fifth = reader.nextRecord(true, false);
         assertEquals("P5", fifth.getValue("ID"));
         assertNull(fifth.getValue("AGE"));
-        Record fifthNested = (Record) fifth.getValue("NAME");
+        final Record fifthNested = (Record) fifth.getValue("NAME");
         assertNull(fifthNested.getValue("CONTENT"));
         assertNull(fifthNested.getValue("ATTR"));
         assertEquals("inner content", fifthNested.getValue("INNER"));
@@ -212,46 +212,46 @@ public class TestXMLRecordReader {
 
     @Test
     public void testTagInCharactersCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
+        final Record first = reader.nextRecord(false, false);
         assertEquals("P1", first.getValue("ID"));
         assertEquals("42", first.getValue("AGE"));
-        Record firstNested = (Record) first.getValue("NAME");
+        final Record firstNested = (Record) first.getValue("NAME");
         assertEquals("Cleve Butler", firstNested.getValue("CONTENT"));
         assertEquals("attr content", firstNested.getValue("ATTR"));
         assertEquals("inner content", firstNested.getValue("INNER"));
 
-        Record second = reader.nextRecord(false, false);
+        final Record second = reader.nextRecord(false, false);
         assertEquals("P2", second.getValue("ID"));
         assertEquals("33", second.getValue("AGE"));
-        Record secondNested = (Record) second.getValue("NAME");
+        final Record secondNested = (Record) second.getValue("NAME");
         assertEquals("Ainslie Fletcher", secondNested.getValue("CONTENT"));
         assertEquals("attr content", secondNested.getValue("ATTR"));
         assertEquals("inner content", secondNested.getValue("INNER"));
 
-        Record third = reader.nextRecord(false, false);
+        final Record third = reader.nextRecord(false, false);
         assertEquals("P3", third.getValue("ID"));
         assertEquals("74", third.getValue("AGE"));
-        Record thirdNested = (Record) third.getValue("NAME");
+        final Record thirdNested = (Record) third.getValue("NAME");
         assertEquals("Amélie Bonfils", thirdNested.getValue("CONTENT"));
         assertEquals("attr content", thirdNested.getValue("ATTR"));
         assertEquals("inner content", thirdNested.getValue("INNER"));
 
-        Record fourth = reader.nextRecord(false, false);
+        final Record fourth = reader.nextRecord(false, false);
         assertEquals("P4", fourth.getValue("ID"));
         assertEquals("16", fourth.getValue("AGE"));
-        Record fourthNested = (Record) fourth.getValue("NAME");
+        final Record fourthNested = (Record) fourth.getValue("NAME");
         assertEquals("Elenora Scrivens", fourthNested.getValue("CONTENT"));
         assertEquals("attr content", fourthNested.getValue("ATTR"));
         assertEquals("inner content", fourthNested.getValue("INNER"));
 
-        Record fifth = reader.nextRecord(false, false);
+        final Record fifth = reader.nextRecord(false, false);
         assertEquals("P5", fifth.getValue("ID"));
         assertNull(fifth.getValue("AGE"));
-        Record fifthNested = (Record) fifth.getValue("NAME");
+        final Record fifthNested = (Record) fifth.getValue("NAME");
         assertNull(fifthNested.getValue("CONTENT"));
         assertNull(fifthNested.getValue("ATTR"));
         assertEquals("inner content", fifthNested.getValue("INNER"));
@@ -259,8 +259,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -271,8 +271,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecord2() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertNull(reader.nextRecord(true, true).getValue("AGE"));
@@ -283,8 +283,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecord3() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("AGE").getClass());
@@ -293,10 +293,10 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecord4() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.remove(2);
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("AGE").getClass());
@@ -305,8 +305,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_no_attributes.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_no_attributes.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, reader.nextRecord(false, false).getValues());
@@ -317,80 +317,80 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithAttribute() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord();
+        final Record first = reader.nextRecord();
         assertTrue(Arrays.asList(first.getValues()).containsAll(Arrays.asList("Cleve Butler", 42, "USA", "P1")));
         assertEquals("P1", first.getAsString("ID"));
 
-        Record second = reader.nextRecord();
+        final Record second = reader.nextRecord();
         assertTrue(Arrays.asList(second.getValues()).containsAll(Arrays.asList("Ainslie Fletcher", 33, "UK", "P2")));
         assertEquals("P2", second.getAsString("ID"));
 
-        Record third = reader.nextRecord();
+        final Record third = reader.nextRecord();
         assertTrue(Arrays.asList(third.getValues()).containsAll(Arrays.asList("Amélie Bonfils", 74, "FR", "P3")));
         assertEquals("P3", third.getAsString("ID"));
 
-        Record fourth = reader.nextRecord();
+        final Record fourth = reader.nextRecord();
         assertTrue(Arrays.asList(fourth.getValues()).containsAll(Arrays.asList("Elenora Scrivens", 16, "USA", "P4")));
         assertEquals("P4", fourth.getAsString("ID"));
     }
 
     @Test
     public void testSimpleRecordWithAttribute2() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 "ATTR_", "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord();
+        final Record first = reader.nextRecord();
         assertTrue(Arrays.asList(first.getValues()).containsAll(Arrays.asList("Cleve Butler", 42, "USA")));
         assertEquals("P1", first.getAsString("ATTR_ID"));
 
-        Record second = reader.nextRecord();
+        final Record second = reader.nextRecord();
         assertTrue(Arrays.asList(second.getValues()).containsAll(Arrays.asList("Ainslie Fletcher", 33, "UK")));
         assertEquals("P2", second.getAsString("ATTR_ID"));
 
-        Record third = reader.nextRecord();
+        final Record third = reader.nextRecord();
         assertTrue(Arrays.asList(third.getValues()).containsAll(Arrays.asList("Amélie Bonfils", 74, "FR")));
         assertEquals("P3", third.getAsString("ATTR_ID"));
 
-        Record fourth = reader.nextRecord();
+        final Record fourth = reader.nextRecord();
         assertTrue(Arrays.asList(fourth.getValues()).containsAll(Arrays.asList("Elenora Scrivens", 16, "USA")));
         assertEquals("P4", fourth.getAsString("ATTR_ID"));
     }
 
     @Test
     public void testSimpleRecordWithAttribute3() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, true);
+        final Record first = reader.nextRecord(true, true);
         assertNull(first.getAsString("ID"));
 
-        Record second = reader.nextRecord(false, false);
+        final Record second = reader.nextRecord(false, false);
         assertEquals("P2", second.getAsString("ID"));
 
-        Record third = reader.nextRecord(true, false);
+        final Record third = reader.nextRecord(true, false);
         assertEquals("P3", third.getAsString("ID"));
 
-        Record fourth = reader.nextRecord(false, true);
+        final Record fourth = reader.nextRecord(false, true);
         assertNull(fourth.getAsString("ID"));
     }
 
     @Test
     public void testSimpleRecordWithAttribute4() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("ID").getClass());
@@ -399,11 +399,11 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithAttribute5() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("ID").getClass());
@@ -425,32 +425,32 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithAttributeCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
+        final Record first = reader.nextRecord(false, false);
         assertTrue(List.of("Cleve Butler", "42", "USA", "P1").containsAll(Arrays.asList(first.getValues())));
         assertEquals("P1", first.getAsString("ID"));
 
-        Record second = reader.nextRecord(false, false);
+        final Record second = reader.nextRecord(false, false);
         assertTrue(List.of("Ainslie Fletcher", "33", "UK", "P2").containsAll(Arrays.asList(second.getValues())));
         assertEquals("P2", second.getAsString("ID"));
 
-        Record third = reader.nextRecord(false, false);
+        final Record third = reader.nextRecord(false, false);
         assertTrue(List.of("Amélie Bonfils", "74", "FR", "P3").containsAll(Arrays.asList(third.getValues())));
         assertEquals("P3", third.getAsString("ID"));
 
-        Record fourth = reader.nextRecord(false, false);
+        final Record fourth = reader.nextRecord(false, false);
         assertTrue(List.of("Elenora Scrivens", "16", "USA", "P4").containsAll(Arrays.asList(fourth.getValues())));
         assertEquals("P4", fourth.getAsString("ID"));
     }
 
     @Test
     public void testSimpleTypeWithAttributeAsRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
+        final InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
         final List<RecordField> fields = new ArrayList<>();
 
         final List<RecordField> nestedFields1 = new ArrayList<>();
@@ -467,24 +467,24 @@ public class TestXMLRecordReader {
         final DataType recordType2 = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(nestedFields2));
         fields.add(new RecordField("AGE", recordType2));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, true);
+        final Record first = reader.nextRecord(true, true);
         assertInstanceOf(Record.class, first.getValue("NAME"));
-        Record first_nested1 = (Record) first.getValue("NAME");
+        final Record first_nested1 = (Record) first.getValue("NAME");
         assertInstanceOf(Record.class, first.getValue("AGE"));
-        Record first_nested2 = (Record) first.getValue("AGE");
+        final Record first_nested2 = (Record) first.getValue("AGE");
         assertEquals("name1", first_nested1.getValue("ID"));
         assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
         assertEquals("age1", first_nested2.getValue("ID"));
         assertEquals(42, first_nested2.getValue("CONTENT"));
 
-        Record second = reader.nextRecord(true, true);
+        final Record second = reader.nextRecord(true, true);
         assertInstanceOf(Record.class, second.getValue("NAME"));
-        Record second_nested1 = (Record) second.getValue("NAME");
+        final Record second_nested1 = (Record) second.getValue("NAME");
         assertInstanceOf(Record.class, second.getValue("AGE"));
-        Record second_nested2 = (Record) second.getValue("AGE");
+        final Record second_nested2 = (Record) second.getValue("AGE");
         assertEquals("name2", second_nested1.getValue("ID"));
         assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
         assertEquals("age2", second_nested2.getValue("ID"));
@@ -508,37 +508,37 @@ public class TestXMLRecordReader {
         final DataType recordType = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(nestedFields));
         fields.add(new RecordField("data", recordType));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), false,  true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), false,  true,
                 null, null, dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, true);
+        final Record first = reader.nextRecord(true, true);
         assertInstanceOf(Record.class, first.getValue("data"));
-        Record firstNested = (Record) first.getValue("data");
+        final Record firstNested = (Record) first.getValue("data");
         assertEquals("some attribute value", firstNested.getValue("id"));
     }
 
     @Test
     public void testSimpleTypeWithAttributeAsRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
+        final Record first = reader.nextRecord(false, false);
         assertInstanceOf(Record.class, first.getValue("NAME"));
-        Record first_nested1 = (Record) first.getValue("NAME");
+        final Record first_nested1 = (Record) first.getValue("NAME");
         assertInstanceOf(Record.class, first.getValue("AGE"));
-        Record first_nested2 = (Record) first.getValue("AGE");
+        final Record first_nested2 = (Record) first.getValue("AGE");
         assertEquals("name1", first_nested1.getValue("ID"));
         assertEquals("Cleve Butler", first_nested1.getValue("CONTENT"));
         assertEquals("age1", first_nested2.getValue("ID"));
         assertEquals("42", first_nested2.getValue("CONTENT"));
         assertEquals("USA", first.getValue("COUNTRY"));
 
-        Record second = reader.nextRecord(false, false);
+        final Record second = reader.nextRecord(false, false);
         assertInstanceOf(Record.class, second.getValue("NAME"));
-        Record second_nested1 = (Record) second.getValue("NAME");
+        final Record second_nested1 = (Record) second.getValue("NAME");
         assertInstanceOf(Record.class, second.getValue("AGE"));
-        Record second_nested2 = (Record) second.getValue("AGE");
+        final Record second_nested2 = (Record) second.getValue("AGE");
         assertEquals("name2", second_nested1.getValue("ID"));
         assertEquals("Ainslie Fletcher", second_nested1.getValue("CONTENT"));
         assertEquals("age2", second_nested2.getValue("ID"));
@@ -548,8 +548,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithHeader() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, null, dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -560,8 +560,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithHeaderNoValidation() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
                 null, null, dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -572,8 +572,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testInvalidXml() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_invalid.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_invalid.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
         int count = 0;
 
@@ -587,7 +587,7 @@ public class TestXMLRecordReader {
             while ((reader.nextRecord()) != null) {
                 count++;
             }
-        } catch (MalformedRecordException e) {
+        } catch (final MalformedRecordException e) {
             assertEquals("Could not parse XML", e.getMessage());
             assertEquals(4, count);
         }
@@ -596,37 +596,37 @@ public class TestXMLRecordReader {
 
     @Test
     public void testChoiceForSimpleField() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields2();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields2();
         fields.add(new RecordField("AGE", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record record = reader.nextRecord();
+        final Record record = reader.nextRecord();
         assertInstanceOf(String.class, record.getValue("AGE"));
         assertEquals("42", record.getValue("AGE"));
     }
 
     @Test
     public void testChoiceForRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record record = reader.nextRecord();
+        final Record record = reader.nextRecord();
         assertInstanceOf(Record.class, record.getValue("ADDRESS"));
 
-        Record nested = (Record) record.getValue("ADDRESS");
+        final Record nested = (Record) record.getValue("ADDRESS");
         assertEquals("292 West Street", nested.getValue("STREET"));
         assertEquals("Jersey City", nested.getValue("CITY"));
     }
 
     @Test
     public void testNameSpaces() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_namespace.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_namespace.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -637,8 +637,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testCData() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_cdata.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_cdata.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -649,11 +649,11 @@ public class TestXMLRecordReader {
 
     @Test
     public void testRecordExpectedSimpleFieldFoundAndNoContentFieldConfigured() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        List<RecordField> fields = getSimpleRecordFields2();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
+        final List<RecordField> fields = getSimpleRecordFields2();
         final DataType recordType = RecordFieldType.RECORD.getRecordDataType(getNestedSchema());
         fields.add(new RecordField("AGE", recordType));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {"Cleve Butler", "USA", null}, reader.nextRecord().getValues());
@@ -664,10 +664,10 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleFieldExpectedButRecordFound() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
-        List<RecordField> fields = getSimpleRecordFields();
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertNull(reader.nextRecord().getValue("ADDRESS"));
@@ -678,8 +678,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testParseEmptyFields() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
@@ -688,8 +688,8 @@ public class TestXMLRecordReader {
 
     @Test
     public void testParseEmptyFieldsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
@@ -698,7 +698,7 @@ public class TestXMLRecordReader {
 
     @Test
     public void testEmptyStreamAsSingleRecord() {
-        InputStream is = new ByteArrayInputStream(new byte[0]);
+        final InputStream is = new ByteArrayInputStream(new byte[0]);
         assertThrows(MalformedRecordException.class,
                 () -> new XMLRecordReader(is, getSimpleSchema(), false,  true,
                         null, "CONTENT", dateFormat, timeFormat, timestampFormat, log));
@@ -706,7 +706,7 @@ public class TestXMLRecordReader {
 
     @Test
     public void testEmptyStreamAsArray() {
-        InputStream is = new ByteArrayInputStream(new byte[0]);
+        final InputStream is = new ByteArrayInputStream(new byte[0]);
         assertThrows(MalformedRecordException.class,
                 () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
                         null, "CONTENT", dateFormat, timeFormat, timestampFormat, log));
@@ -714,15 +714,15 @@ public class TestXMLRecordReader {
 
     @Test
     public void testEmptyStreamWIthXmlHeader() {
-        InputStream is = new ByteArrayInputStream(("<?xml version=\"1.0\" encoding=\"utf-8\"?>").getBytes());
+        final InputStream is = new ByteArrayInputStream(("<?xml version=\"1.0\" encoding=\"utf-8\"?>").getBytes());
         assertThrows(MalformedRecordException.class, () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log));
     }
 
     @Test
     public void testParseEmptyArray() throws IOException, MalformedRecordException {
-        InputStream is = new ByteArrayInputStream("<root></root>".getBytes());
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+        final InputStream is = new ByteArrayInputStream("<root></root>".getBytes());
+        final XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
         assertNull(reader.nextRecord());
@@ -730,109 +730,109 @@ public class TestXMLRecordReader {
 
     @Test
     public void testNestedRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
-        RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final RecordSchema schema = getSchemaWithNestedRecord();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Object[] valuesFirstRecord = reader.nextRecord().getValues();
+        final Object[] valuesFirstRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         assertArrayEquals(new Object[] {"292 West Street", "Jersey City"}, ((Record) valuesFirstRecord[valuesFirstRecord.length - 1]).getValues());
 
-        Object[] valuesSecondRecord = reader.nextRecord().getValues();
+        final Object[] valuesSecondRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         assertArrayEquals(new Object[] {"123 6th St.", "Seattle"}, ((Record) valuesSecondRecord[valuesSecondRecord.length - 1]).getValues());
 
-        Object[] valuesThirdRecord = reader.nextRecord().getValues();
+        final Object[] valuesThirdRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         assertArrayEquals(new Object[] {"44 Shirley Ave.", "Los Angeles"}, ((Record) valuesThirdRecord[valuesThirdRecord.length - 1]).getValues());
 
-        Object[] valuesFourthRecord = reader.nextRecord().getValues();
+        final Object[] valuesFourthRecord = reader.nextRecord().getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         assertArrayEquals(new Object[] {"70 Bowman St.", "Columbus"}, ((Record) valuesFourthRecord[valuesFourthRecord.length - 1]).getValues());
     }
 
     @Test
     public void testNestedRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
-        RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final RecordSchema schema = getSchemaWithNestedRecord();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
-        Object[] valuesFirstRecord = first.getValues();
+        final Record first = reader.nextRecord(false, false);
+        final Object[] valuesFirstRecord = first.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
         assertEquals("P1", first.getAsString("ID"));
 
-        Record nestedFirstRecord = (Record) first.getValue("ADDRESS");
+        final Record nestedFirstRecord = (Record) first.getValue("ADDRESS");
         assertEquals("Jersey City", nestedFirstRecord.getAsString("CITY"));
         assertEquals("292 West Street", nestedFirstRecord.getAsString("STREET"));
 
-        Record second = reader.nextRecord(false, false);
-        Object[] valuesSecondRecord = second.getValues();
+        final Record second = reader.nextRecord(false, false);
+        final Object[] valuesSecondRecord = second.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
         assertEquals("P2", second.getAsString("ID"));
 
-        Record nestedSecondRecord = (Record) second.getValue("ADDRESS");
+        final Record nestedSecondRecord = (Record) second.getValue("ADDRESS");
         assertEquals("Seattle", nestedSecondRecord.getAsString("CITY"));
         assertEquals("123 6th St.", nestedSecondRecord.getAsString("STREET"));
 
-        Record third = reader.nextRecord(false, false);
-        Object[] valuesThirdRecord = third.getValues();
+        final Record third = reader.nextRecord(false, false);
+        final Object[] valuesThirdRecord = third.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
         assertEquals("P3", third.getAsString("ID"));
 
-        Record nestedThirdRecord = (Record) third.getValue("ADDRESS");
+        final Record nestedThirdRecord = (Record) third.getValue("ADDRESS");
         assertEquals("Los Angeles", nestedThirdRecord.getAsString("CITY"));
         assertEquals("44 Shirley Ave.", nestedThirdRecord.getAsString("STREET"));
 
-        Record fourth = reader.nextRecord(false, false);
-        Object[] valuesFourthRecord = fourth.getValues();
+        final Record fourth = reader.nextRecord(false, false);
+        final Object[] valuesFourthRecord = fourth.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
         assertEquals("P4", fourth.getAsString("ID"));
 
-        Record nestedFourthRecord = (Record) fourth.getValue("ADDRESS");
+        final Record nestedFourthRecord = (Record) fourth.getValue("ADDRESS");
         assertEquals("Columbus", nestedFourthRecord.getAsString("CITY"));
         assertEquals("70 Bowman St.", nestedFourthRecord.getAsString("STREET"));
     }
 
     @Test
     public void testNestedRecordFieldsToIgnoreCoerceTrueDropTrue() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
-        RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final RecordSchema schema = getSchemaWithNestedRecord2();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord(true, true);
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord(true, true);
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
+        final Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
         assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
         assertNull(firstRecord.getValue("AGE"));
         assertNull(firstRecordNested.getValue("CITY"));
 
-        Record secondRecord = reader.nextRecord(true, true);
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord(true, true);
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
+        final Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
         assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
         assertNull(secondRecord.getValue("AGE"));
         assertNull(secondRecordNested.getValue("CITY"));
 
-        Record thirdRecord = reader.nextRecord(true, true);
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord(true, true);
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
+        final Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
         assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
         assertNull(thirdRecord.getValue("AGE"));
         assertNull(thirdRecordNested.getValue("CITY"));
 
-        Record fourthRecord = reader.nextRecord(true, true);
-        Object[] valuesFourthRecord = fourthRecord.getValues();
+        final Record fourthRecord = reader.nextRecord(true, true);
+        final Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
+        final Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
         assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
         assertNull(fourthRecord.getValue("AGE"));
         assertNull(fourthRecordNested.getValue("CITY"));
@@ -840,41 +840,41 @@ public class TestXMLRecordReader {
 
     @Test
     public void testNestedRecordFieldsToIgnoreCoerceFalseDropTrue() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
-        RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final RecordSchema schema = getSchemaWithNestedRecord2();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord(false, true);
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord(false, true);
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
+        final Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
         assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
         assertNull(firstRecord.getValue("AGE"));
         assertNull(firstRecordNested.getValue("CITY"));
 
-        Record secondRecord = reader.nextRecord(false, true);
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord(false, true);
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
+        final Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
         assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
         assertNull(secondRecord.getValue("AGE"));
         assertNull(secondRecordNested.getValue("CITY"));
 
-        Record thirdRecord = reader.nextRecord(false, true);
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord(false, true);
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
+        final Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
         assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
         assertNull(thirdRecord.getValue("AGE"));
         assertNull(thirdRecordNested.getValue("CITY"));
 
-        Record fourthRecord = reader.nextRecord(false, true);
-        Object[] valuesFourthRecord = fourthRecord.getValues();
+        final Record fourthRecord = reader.nextRecord(false, true);
+        final Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
+        final Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
         assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
         assertNull(fourthRecord.getValue("AGE"));
         assertNull(fourthRecordNested.getValue("CITY"));
@@ -882,47 +882,47 @@ public class TestXMLRecordReader {
 
     @Test
     public void testNestedRecordFieldsToIgnoreCoerceTrueDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
-        RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final RecordSchema schema = getSchemaWithNestedRecord2();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord(true, false);
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord(true, false);
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
+        final Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
         assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
         assertNotNull(firstRecord.getValue("AGE"));
         assertEquals("42", firstRecord.getValue("AGE"));
         assertNotNull(firstRecordNested.getValue("CITY"));
         assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
 
-        Record secondRecord = reader.nextRecord(true, false);
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord(true, false);
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
+        final Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
         assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
         assertNotNull(secondRecord.getValue("AGE"));
         assertEquals("33", secondRecord.getValue("AGE"));
         assertNotNull(secondRecordNested.getValue("CITY"));
         assertEquals("Seattle", secondRecordNested.getValue("CITY"));
 
-        Record thirdRecord = reader.nextRecord(true, false);
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord(true, false);
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
+        final Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
         assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
         assertNotNull(thirdRecord.getValue("AGE"));
         assertEquals("74", thirdRecord.getValue("AGE"));
         assertNotNull(thirdRecordNested.getValue("CITY"));
         assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
 
-        Record fourthRecord = reader.nextRecord(true, false);
-        Object[] valuesFourthRecord = fourthRecord.getValues();
+        final Record fourthRecord = reader.nextRecord(true, false);
+        final Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
+        final Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
         assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
         assertNotNull(fourthRecord.getValue("AGE"));
         assertEquals("16", fourthRecord.getValue("AGE"));
@@ -932,47 +932,47 @@ public class TestXMLRecordReader {
 
     @Test
     public void testNestedRecordFieldsToIgnoreCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
-        RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final RecordSchema schema = getSchemaWithNestedRecord2();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord(false, false);
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord(false, false);
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
+        final Record firstRecordNested = (Record) firstRecord.getValue("ADDRESS");
         assertEquals("292 West Street", firstRecordNested.getValue("STREET"));
         assertNotNull(firstRecord.getValue("AGE"));
         assertEquals("42", firstRecord.getValue("AGE"));
         assertNotNull(firstRecordNested.getValue("CITY"));
         assertEquals("Jersey City", firstRecordNested.getValue("CITY"));
 
-        Record secondRecord = reader.nextRecord(false, false);
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord(false, false);
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
+        final Record secondRecordNested = (Record) secondRecord.getValue("ADDRESS");
         assertEquals("123 6th St.", secondRecordNested.getValue("STREET"));
         assertNotNull(secondRecord.getValue("AGE"));
         assertEquals("33", secondRecord.getValue("AGE"));
         assertNotNull(secondRecordNested.getValue("CITY"));
         assertEquals("Seattle", secondRecordNested.getValue("CITY"));
 
-        Record thirdRecord = reader.nextRecord(false, false);
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord(false, false);
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
+        final Record thirdRecordNested = (Record) thirdRecord.getValue("ADDRESS");
         assertEquals("44 Shirley Ave.", thirdRecordNested.getValue("STREET"));
         assertNotNull(thirdRecord.getValue("AGE"));
         assertEquals("74", thirdRecord.getValue("AGE"));
         assertNotNull(thirdRecordNested.getValue("CITY"));
         assertEquals("Los Angeles", thirdRecordNested.getValue("CITY"));
 
-        Record fourthRecord = reader.nextRecord(false, false);
-        Object[] valuesFourthRecord = fourthRecord.getValues();
+        final Record fourthRecord = reader.nextRecord(false, false);
+        final Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
-        Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
+        final Record fourthRecordNested = (Record) fourthRecord.getValue("ADDRESS");
         assertEquals("70 Bowman St.", fourthRecordNested.getValue("STREET"));
         assertNotNull(fourthRecord.getValue("AGE"));
         assertEquals("16", fourthRecord.getValue("AGE"));
@@ -982,108 +982,108 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleArray() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
-        RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
+        final RecordSchema schema = getSchemaWithSimpleArray();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord();
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord();
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
+        final Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
         assertNotEquals(null, firstRecord.getValue("CHILD"));
 
-        Record secondRecord = reader.nextRecord();
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord();
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        Object[] nestedArraySecondRecord = (Object[]) valuesSecondRecord[valuesSecondRecord.length - 1];
+        final Object[] nestedArraySecondRecord = (Object[]) valuesSecondRecord[valuesSecondRecord.length - 1];
         assertEquals(1, nestedArraySecondRecord.length);
         assertArrayEquals(new Object[] {"child1"}, nestedArraySecondRecord);
         assertNotEquals(null, secondRecord.getValue("CHILD"));
 
-        Record thirdRecord = reader.nextRecord();
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord();
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
+        final Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
         assertNotEquals(null, thirdRecord.getValue("CHILD"));
 
-        Record valuesFourthRecord = reader.nextRecord();
+        final Record valuesFourthRecord = reader.nextRecord();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord.getValues(), 0, valuesFourthRecord.getValues().length - 1));
         assertNull(valuesFourthRecord.getValue("CHILD"));
     }
 
     @Test
     public void testSimpleArrayCoerceFalseDropFalse() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
-        RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
+        final RecordSchema schema = getSchemaWithSimpleArray();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
-        Object[] valuesFirstRecord = first.getValues();
+        final Record first = reader.nextRecord(false, false);
+        final Object[] valuesFirstRecord = first.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
-        Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
+        final Object[] nestedArrayFirstRecord = (Object[]) valuesFirstRecord[valuesFirstRecord.length - 1];
         assertEquals(2, nestedArrayFirstRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2"}, nestedArrayFirstRecord);
         assertNotEquals(null, first.getValue("CHILD"));
 
-        Record second = reader.nextRecord(false, false);
-        Object[] valuesSecondRecord = second.getValues();
+        final Record second = reader.nextRecord(false, false);
+        final Object[] valuesSecondRecord = second.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
-        String nestedArraySecondRecord = (String) valuesSecondRecord[valuesSecondRecord.length - 1];
+        final String nestedArraySecondRecord = (String) valuesSecondRecord[valuesSecondRecord.length - 1];
         assertEquals("child1", nestedArraySecondRecord);
         assertNotEquals(null, second.getValue("CHILD"));
 
-        Record third = reader.nextRecord(false, false);
-        Object[] valuesThirdRecord = third.getValues();
+        final Record third = reader.nextRecord(false, false);
+        final Object[] valuesThirdRecord = third.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", "74", "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
-        Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
+        final Object[] nestedArrayThirdRecord = (Object[]) valuesThirdRecord[valuesThirdRecord.length - 1];
         assertEquals(3, nestedArrayThirdRecord.length);
         assertArrayEquals(new Object[] {"child1", "child2", "child3"}, nestedArrayThirdRecord);
         assertNotEquals(null, third.getValue("CHILD"));
 
-        Record fourth = reader.nextRecord(false, false);
+        final Record fourth = reader.nextRecord(false, false);
         assertArrayEquals(new Object[] {"Elenora Scrivens", "16", "USA"}, Arrays.copyOfRange(fourth.getValues(), 0, fourth.getValues().length - 1));
         assertNull(fourth.getValue("CHILD"));
     }
 
     @Test
     public void testNestedArrayInNestedRecord() throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people_array.xml");
-        RecordSchema schema = getSchemaWithNestedArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_array.xml");
+        final RecordSchema schema = getSchemaWithNestedArray();
+        final XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record firstRecord = reader.nextRecord();
-        Object[] valuesFirstRecord = firstRecord.getValues();
+        final Record firstRecord = reader.nextRecord();
+        final Object[] valuesFirstRecord = firstRecord.getValues();
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, Arrays.copyOfRange(valuesFirstRecord, 0, valuesFirstRecord.length - 1));
 
-        Record nestedArrayFirstRecord = (Record) firstRecord.getValue("CHILDREN");
+        final Record nestedArrayFirstRecord = (Record) firstRecord.getValue("CHILDREN");
         assertEquals(2, ((Object[]) nestedArrayFirstRecord.getValue("CHILD")).length);
         assertArrayEquals(new Object[] {"child1", "child2"}, ((Object[]) nestedArrayFirstRecord.getValue("CHILD")));
 
-        Record secondRecord = reader.nextRecord();
-        Object[] valuesSecondRecord = secondRecord.getValues();
+        final Record secondRecord = reader.nextRecord();
+        final Object[] valuesSecondRecord = secondRecord.getValues();
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, Arrays.copyOfRange(valuesSecondRecord, 0, valuesSecondRecord.length - 1));
 
-        Record nestedArraySecondRecord = (Record) secondRecord.getValue("CHILDREN");
+        final Record nestedArraySecondRecord = (Record) secondRecord.getValue("CHILDREN");
         assertEquals(1, ((Object[]) nestedArraySecondRecord.getValue("CHILD")).length);
         assertArrayEquals(new Object[] {"child1"}, ((Object[]) nestedArraySecondRecord.getValue("CHILD")));
 
-        Record thirdRecord = reader.nextRecord();
-        Object[] valuesThirdRecord = thirdRecord.getValues();
+        final Record thirdRecord = reader.nextRecord();
+        final Object[] valuesThirdRecord = thirdRecord.getValues();
         assertArrayEquals(new Object[] {"Amélie Bonfils", 74, "FR"}, Arrays.copyOfRange(valuesThirdRecord, 0, valuesThirdRecord.length - 1));
 
-        Record nestedArrayThirdRecord = (Record) thirdRecord.getValue("CHILDREN");
+        final Record nestedArrayThirdRecord = (Record) thirdRecord.getValue("CHILDREN");
         assertEquals(3, ((Object[]) nestedArrayThirdRecord.getValue("CHILD")).length);
         assertArrayEquals(new Object[] {"child1", "child2", "child3"}, ((Object[]) nestedArrayThirdRecord.getValue("CHILD")));
 
-        Record fourthRecord = reader.nextRecord();
-        Object[] valuesFourthRecord = fourthRecord.getValues();
+        final Record fourthRecord = reader.nextRecord();
+        final Object[] valuesFourthRecord = fourthRecord.getValues();
         assertArrayEquals(new Object[] {"Elenora Scrivens", 16, "USA"}, Arrays.copyOfRange(valuesFourthRecord, 0, valuesFourthRecord.length - 1));
 
         assertNull(fourthRecord.getValue("CHILDREN"));
@@ -1092,37 +1092,37 @@ public class TestXMLRecordReader {
     @Test
     public void testDeeplyNestedArraysAndRecords() throws IOException, MalformedRecordException {
         // test records in nested arrays
-        InputStream is = new FileInputStream("src/test/resources/xml/people_complex1.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_complex1.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(true, true);
-        Object[] grandchildren_arr = (Object[]) first.getValue("CHILDREN");
+        final Record first = reader.nextRecord(true, true);
+        final Object[] grandchildren_arr = (Object[]) first.getValue("CHILDREN");
 
-        Record first_1_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[0]);
+        final Record first_1_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[0]);
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
         assertEquals("1-1-1", first_1_1_1.getValue("ID"));
         assertEquals("Selina", first_1_1_1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[1]);
+        final Record first_1_1_2 = (Record) (((Object[]) ((Record) grandchildren_arr[0]).getValue("CHILD"))[1]);
         assertEquals("son", first_1_1_2.getValue("ROLE"));
         assertEquals("1-1-2", first_1_1_2.getValue("ID"));
         assertEquals("Hans", first_1_1_2.getValue("NAME"));
 
-        Record first_1_1_3 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[0]);
+        final Record first_1_1_3 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[0]);
         assertEquals("daughter", first_1_1_3.getValue("ROLE"));
         assertEquals("1-2-1", first_1_1_3.getValue("ID"));
         assertEquals("Selina2", first_1_1_3.getValue("NAME"));
 
-        Record first_1_1_4 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[1]);
+        final Record first_1_1_4 = (Record) (((Object[]) ((Record) grandchildren_arr[1]).getValue("CHILD"))[1]);
         assertEquals("son", first_1_1_4.getValue("ROLE"));
         assertEquals("1-2-2", first_1_1_4.getValue("ID"));
         assertEquals("Hans2", first_1_1_4.getValue("NAME"));
 
-        Record second = reader.nextRecord(true, true);
-        Object[] grandchildren_arr2 = (Object[]) second.getValue("CHILDREN");
+        final Record second = reader.nextRecord(true, true);
+        final Object[] grandchildren_arr2 = (Object[]) second.getValue("CHILDREN");
 
-        Record second_2_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr2[0]).getValue("CHILD"))[0]);
+        final Record second_2_1_1 = (Record) (((Object[]) ((Record) grandchildren_arr2[0]).getValue("CHILD"))[0]);
         assertEquals("daughter", second_2_1_1.getValue("ROLE"));
         assertEquals("2-1-1", second_2_1_1.getValue("ID"));
         assertEquals("Selina3", second_2_1_1.getValue("NAME"));
@@ -1131,50 +1131,50 @@ public class TestXMLRecordReader {
     @Test
     public void testDeeplyNestedArraysAndRecords2() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
-        InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord();
+        final Record first = reader.nextRecord();
         assertEquals("grandmother", first.getValue("ROLE"));
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
 
-        Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
+        final Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
         assertEquals(2, gm_spouses.length);
 
-        Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
+        final Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
         assertEquals(2, gm_spouse1_parents.length);
 
-        Record first_1_1 = (Record) gm_spouse1_parents[0];
+        final Record first_1_1 = (Record) gm_spouse1_parents[0];
         assertEquals("mother", first_1_1.getValue("ROLE"));
         assertEquals("1-1", first_1_1.getValue("ID"));
         assertEquals("Anna", first_1_1.getValue("NAME"));
 
-        Object[] gm_spouse1_parent1_first_husband = (Object[]) first_1_1.getValue("CHILDREN");
+        final Object[] gm_spouse1_parent1_first_husband = (Object[]) first_1_1.getValue("CHILDREN");
         assertEquals(1, gm_spouse1_parent1_first_husband.length);
-        Object[] gm_spouse1_parent1_children = (Object[]) ((Record) gm_spouse1_parent1_first_husband[0]).getValue("CHILD");
+        final Object[] gm_spouse1_parent1_children = (Object[]) ((Record) gm_spouse1_parent1_first_husband[0]).getValue("CHILD");
 
-        Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
+        final Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
         assertEquals("1-1-1", first_1_1_1.getValue("ID"));
         assertEquals("Selina", first_1_1_1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
+        final Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
         assertEquals("son", first_1_1_2.getValue("ROLE"));
         assertEquals("1-1-2", first_1_1_2.getValue("ID"));
         assertEquals("Hans", first_1_1_2.getValue("NAME"));
 
-        Record first_1_2 = (Record) gm_spouse1_parents[1];
+        final Record first_1_2 = (Record) gm_spouse1_parents[1];
         assertEquals("mother", first_1_2.getValue("ROLE"));
         assertEquals("1-2", first_1_2.getValue("ID"));
         assertEquals("Catrina", first_1_2.getValue("NAME"));
 
-        Object[] gm_spouse2_parents = (Object[]) ((Record) gm_spouses[1]).getValue("CHILD");
+        final Object[] gm_spouse2_parents = (Object[]) ((Record) gm_spouses[1]).getValue("CHILD");
         assertEquals(1, gm_spouse2_parents.length);
 
-        Record second = reader.nextRecord();
-        Record second_2_1_1 = (Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) second
+        final Record second = reader.nextRecord();
+        final Record second_2_1_1 = (Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) ((Record) ((Object[]) second
                 .getValue("CHILDREN"))[0])
                 .getValue("CHILD"))[0])
                 .getValue("CHILDREN"))[0])
@@ -1187,50 +1187,50 @@ public class TestXMLRecordReader {
     @Test
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropTrue() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
-        InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, true);
+        final Record first = reader.nextRecord(false, true);
 
         assertEquals("grandmother", first.getValue("ROLE"));
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
 
-        Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
+        final Object[] gm_spouses = (Object[]) first.getValue("CHILDREN");
         assertEquals(2, gm_spouses.length);
 
-        Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
+        final Object[] gm_spouse1_parents = (Object[]) ((Record) gm_spouses[0]).getValue("CHILD");
         assertEquals(2, gm_spouse1_parents.length);
 
-        Record first_1_1 = (Record) gm_spouse1_parents[0];
+        final Record first_1_1 = (Record) gm_spouse1_parents[0];
         assertEquals("mother", first_1_1.getValue("ROLE"));
         assertEquals("1-1", first_1_1.getValue("ID"));
         assertEquals("Anna", first_1_1.getValue("NAME"));
 
-        Record gm_spouse1_parent1_first_husband = (Record) first_1_1.getValue("CHILDREN");
-        Object[] gm_spouse1_parent1_children = (Object[]) gm_spouse1_parent1_first_husband.getValue("CHILD");
+        final Record gm_spouse1_parent1_first_husband = (Record) first_1_1.getValue("CHILDREN");
+        final Object[] gm_spouse1_parent1_children = (Object[]) gm_spouse1_parent1_first_husband.getValue("CHILD");
 
-        Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
+        final Record first_1_1_1 = (Record) gm_spouse1_parent1_children[0];
         assertEquals("daughter", first_1_1_1.getValue("ROLE"));
         assertEquals("1-1-1", first_1_1_1.getValue("ID"));
         assertEquals("Selina", first_1_1_1.getValue("NAME"));
 
-        Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
+        final Record first_1_1_2 = (Record) gm_spouse1_parent1_children[1];
         assertEquals("son", first_1_1_2.getValue("ROLE"));
         assertEquals("1-1-2", first_1_1_2.getValue("ID"));
         assertEquals("Hans", first_1_1_2.getValue("NAME"));
 
-        Record first_1_2 = (Record) gm_spouse1_parents[1];
+        final Record first_1_2 = (Record) gm_spouse1_parents[1];
         assertEquals("mother", first_1_2.getValue("ROLE"));
         assertEquals("1-2", first_1_2.getValue("ID"));
         assertEquals("Catrina", first_1_2.getValue("NAME"));
 
-        Record gm_spouse2_parents = (Record) ((Record) gm_spouses[1]).getValue("CHILD");
+        final Record gm_spouse2_parents = (Record) ((Record) gm_spouses[1]).getValue("CHILD");
         assertEquals("1-3", gm_spouse2_parents.getValue("ID"));
 
-        Record second = reader.nextRecord(false, true);
-        Record second_2_1_1 = (Record) ((Record) ((Record) ((Record) second
+        final Record second = reader.nextRecord(false, true);
+        final Record second_2_1_1 = (Record) ((Record) ((Record) ((Record) second
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("CHILDREN"))
@@ -1243,57 +1243,57 @@ public class TestXMLRecordReader {
     @Test
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
-        InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+        final InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        Record first = reader.nextRecord(false, false);
+        final Record first = reader.nextRecord(false, false);
         assertEquals("1", first.getValue("ID"));
         assertEquals("Lisa", first.getValue("NAME"));
         assertEquals("grandmother", first.getValue("ROLE"));
-        Object[] gm_arr = (Object[]) first.getValue("CHILDREN");
+        final Object[] gm_arr = (Object[]) first.getValue("CHILDREN");
         assertEquals(2, gm_arr.length);
 
-        Record gm_hus1_arr_rec = (Record) gm_arr[0];
+        final Record gm_hus1_arr_rec = (Record) gm_arr[0];
         assertEquals("husband1", gm_hus1_arr_rec.getValue("SPOUSE"));
-        Object[] gm_hus1_arr_rec_arr = (Object[]) gm_hus1_arr_rec.getValue("CHILD");
+        final Object[] gm_hus1_arr_rec_arr = (Object[]) gm_hus1_arr_rec.getValue("CHILD");
         assertEquals(2, gm_hus1_arr_rec_arr.length);
 
-        Record child1_1 = (Record) gm_hus1_arr_rec_arr[0];
+        final Record child1_1 = (Record) gm_hus1_arr_rec_arr[0];
         assertEquals("1-1", child1_1.getValue("ID"));
         assertEquals("Anna", child1_1.getValue("NAME"));
         assertEquals("mother", child1_1.getValue("ROLE"));
 
-        Record child1_1_rec = (Record) child1_1.getValue("CHILDREN");
+        final Record child1_1_rec = (Record) child1_1.getValue("CHILDREN");
         assertEquals("first husband", child1_1_rec.getValue("ID"));
-        Object[] child1_1_rec_arr = (Object[]) child1_1_rec.getValue("CHILD");
+        final Object[] child1_1_rec_arr = (Object[]) child1_1_rec.getValue("CHILD");
         assertEquals(2, child1_1_rec_arr.length);
 
-        Record child1_1_1 = (Record) child1_1_rec_arr[0];
+        final Record child1_1_1 = (Record) child1_1_rec_arr[0];
         assertEquals("1-1-1", child1_1_1.getValue("ID"));
         assertEquals("Selina", child1_1_1.getValue("NAME"));
         assertEquals("daughter", child1_1_1.getValue("ROLE"));
 
-        Record child1_1_2 = (Record) child1_1_rec_arr[1];
+        final Record child1_1_2 = (Record) child1_1_rec_arr[1];
         assertEquals("1-1-2", child1_1_2.getValue("ID"));
         assertEquals("Hans", child1_1_2.getValue("NAME"));
         assertEquals("son", child1_1_2.getValue("ROLE"));
 
-        Record child1_2 = (Record) gm_hus1_arr_rec_arr[1];
+        final Record child1_2 = (Record) gm_hus1_arr_rec_arr[1];
         assertEquals("1-2", child1_2.getValue("ID"));
         assertEquals("Catrina", child1_2.getValue("NAME"));
         assertEquals("mother", child1_2.getValue("ROLE"));
 
-        Record gm_hus2_arr_rec = (Record) gm_arr[1];
+        final Record gm_hus2_arr_rec = (Record) gm_arr[1];
         assertEquals("husband2", gm_hus2_arr_rec.getValue("SPOUSE"));
 
-        Record child1_3 = (Record) gm_hus2_arr_rec.getValue("CHILD");
+        final Record child1_3 = (Record) gm_hus2_arr_rec.getValue("CHILD");
         assertEquals("1-3", child1_3.getValue("ID"));
         assertEquals("Anna2", child1_3.getValue("NAME"));
         assertEquals("mother", child1_3.getValue("ROLE"));
         assertEquals(2, ((Object[]) ((Record) child1_3.getValue("CHILDREN")).getValue("CHILD")).length);
 
-        Record second = reader.nextRecord(false, false);
+        final Record second = reader.nextRecord(false, false);
         assertEquals("2-1-1", ((Record) ((Record) ((Record) ((Record) second.getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("CHILDREN"))
@@ -1303,14 +1303,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleTypeWithAttributesIgnored1() throws IOException, MalformedRecordException {
-        boolean parseXMLAttributes = false;
-        boolean coerceTypes = true;
-        boolean dropUnknownFields = true;
+        final boolean parseXMLAttributes = false;
+        final boolean coerceTypes = true;
+        final boolean dropUnknownFields = true;
 
-        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+        final List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
 
-        Record first = records.get(0);
-        Record second = records.get(1);
+        final Record first = records.get(0);
+        final Record second = records.get(1);
 
         assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
@@ -1327,14 +1327,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleTypeWithAttributesIgnored2() throws IOException, MalformedRecordException {
-        boolean parseXMLAttributes = false;
-        boolean coerceTypes = false;
-        boolean dropUnknownFields = true;
+        final boolean parseXMLAttributes = false;
+        final boolean coerceTypes = false;
+        final boolean dropUnknownFields = true;
 
-        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+        final List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
 
-        Record first = records.get(0);
-        Record second = records.get(1);
+        final Record first = records.get(0);
+        final Record second = records.get(1);
 
         assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
@@ -1351,14 +1351,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleTypeWithAttributesIgnored3() throws IOException, MalformedRecordException {
-        boolean parseXMLAttributes = false;
-        boolean coerceTypes = true;
-        boolean dropUnknownFields = false;
+        final boolean parseXMLAttributes = false;
+        final boolean coerceTypes = true;
+        final boolean dropUnknownFields = false;
 
-        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+        final List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
 
-        Record first = records.get(0);
-        Record second = records.get(1);
+        final Record first = records.get(0);
+        final Record second = records.get(1);
 
         assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
@@ -1379,14 +1379,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleTypeWithAttributesIgnored4() throws IOException, MalformedRecordException {
-        boolean parseXMLAttributes = false;
-        boolean coerceTypes = false;
-        boolean dropUnknownFields = false;
+        final boolean parseXMLAttributes = false;
+        final boolean coerceTypes = false;
+        final boolean dropUnknownFields = false;
 
-        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+        final List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
 
-        Record first = records.get(0);
-        Record second = records.get(1);
+        final Record first = records.get(0);
+        final Record second = records.get(1);
 
         assertInstanceOf(String.class, first.getValue("NAME"));
         assertEquals("Cleve Butler", first.getValue("NAME"));
@@ -1580,17 +1580,17 @@ public class TestXMLRecordReader {
         return new SimpleRecordSchema(fields);
     }
 
-    private List<Record> simpleTypeWithAttributesIgnored(boolean parseXMLAttributes, boolean coerceTypes, boolean dropunknownFields) throws IOException, MalformedRecordException {
-        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
+    private List<Record> simpleTypeWithAttributesIgnored(final boolean parseXMLAttributes, final boolean coerceTypes, final boolean dropunknownFields) throws IOException, MalformedRecordException {
+        final InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("NAME", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("AGE", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  parseXMLAttributes,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  parseXMLAttributes,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, log);
 
-        List<Record> records = new ArrayList<>(2);
+        final List<Record> records = new ArrayList<>(2);
         records.add(reader.nextRecord(coerceTypes, dropunknownFields));
         records.add(reader.nextRecord(coerceTypes, dropunknownFields));
         return records;

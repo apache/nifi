@@ -27,15 +27,15 @@ public class UnknownNodeException extends ClusterException {
     public UnknownNodeException() {
     }
 
-    public UnknownNodeException(String msg) {
+    public UnknownNodeException(final String msg) {
         super(msg);
     }
 
-    public UnknownNodeException(Throwable cause) {
+    public UnknownNodeException(final Throwable cause) {
         super(cause);
     }
 
-    public UnknownNodeException(String msg, Throwable cause) {
+    public UnknownNodeException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

@@ -44,7 +44,7 @@ public class PGExport extends AbstractNiFiCommand<VoidResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.OUTPUT_FILE.createOption());
         addOption(CommandOption.INCLUDE_REFERENCED_SERVICES.createOption());

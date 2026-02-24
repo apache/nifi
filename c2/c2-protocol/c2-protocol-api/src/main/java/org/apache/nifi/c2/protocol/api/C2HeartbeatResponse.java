@@ -29,7 +29,7 @@ public class C2HeartbeatResponse implements Serializable {
         return requestedOperations;
     }
 
-    public void setRequestedOperations(List<C2Operation> requestedOperations) {
+    public void setRequestedOperations(final List<C2Operation> requestedOperations) {
         this.requestedOperations = requestedOperations;
     }
 }

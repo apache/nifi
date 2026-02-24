@@ -24,7 +24,7 @@ import org.apache.nifi.authorization.Resource;
 public class DataTransferAuthorizable extends DataAuthorizable implements EnforcePolicyPermissionsThroughBaseResource {
     final Authorizable authorizable;
 
-    public DataTransferAuthorizable(Authorizable authorizable) {
+    public DataTransferAuthorizable(final Authorizable authorizable) {
         super(authorizable);
         this.authorizable = authorizable;
     }

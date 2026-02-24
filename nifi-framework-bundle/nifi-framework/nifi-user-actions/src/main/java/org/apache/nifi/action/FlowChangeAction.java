@@ -44,7 +44,7 @@ public class FlowChangeAction implements RequestAction {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(final Integer id) {
         this.id = id;
     }
 
@@ -53,7 +53,7 @@ public class FlowChangeAction implements RequestAction {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -62,7 +62,7 @@ public class FlowChangeAction implements RequestAction {
         return userIdentity;
     }
 
-    public void setUserIdentity(String userIdentity) {
+    public void setUserIdentity(final String userIdentity) {
         this.userIdentity = userIdentity;
     }
 
@@ -71,7 +71,7 @@ public class FlowChangeAction implements RequestAction {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -80,7 +80,7 @@ public class FlowChangeAction implements RequestAction {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -89,7 +89,7 @@ public class FlowChangeAction implements RequestAction {
         return sourceType;
     }
 
-    public void setSourceType(Component sourceType) {
+    public void setSourceType(final Component sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -98,7 +98,7 @@ public class FlowChangeAction implements RequestAction {
         return componentDetails;
     }
 
-    public void setComponentDetails(ComponentDetails componentDetails) {
+    public void setComponentDetails(final ComponentDetails componentDetails) {
         this.componentDetails = componentDetails;
     }
 
@@ -107,7 +107,7 @@ public class FlowChangeAction implements RequestAction {
         return operation;
     }
 
-    public void setOperation(Operation operation) {
+    public void setOperation(final Operation operation) {
         this.operation = operation;
     }
 
@@ -116,7 +116,7 @@ public class FlowChangeAction implements RequestAction {
         return actionDetails;
     }
 
-    public void setActionDetails(ActionDetails actionDetails) {
+    public void setActionDetails(final ActionDetails actionDetails) {
         this.actionDetails = actionDetails;
     }
 

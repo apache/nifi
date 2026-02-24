@@ -33,15 +33,15 @@ import java.sql.Types;
  */
 
 public class OSql extends Sql {
-    public OSql(Connection connection) {
+    public OSql(final Connection connection) {
         super(connection);
     }
 
     @Override
-    protected void setObject(PreparedStatement statement, int i, Object value) throws SQLException {
+    protected void setObject(final PreparedStatement statement, final int i, final Object value) throws SQLException {
         try {
             if (value instanceof InParameter) {
-                InParameter p = (InParameter) value;
+                final InParameter p = (InParameter) value;
                 if (p.getType() == Types.BLOB && p.getValue() instanceof InputStream) {
                     statement.setBlob(i, (InputStream) p.getValue());
                     return;
@@ -59,11 +59,9 @@ public class OSql extends Sql {
                     return;
                 }
             }
-            if (value instanceof GString) {
-                value = value.toString();
-            }
-            super.setObject(statement, i, value);
-        } catch (Exception e) {
+            final Object resolvedValue = value instanceof GString ? value.toString() : value;
+            super.setObject(statement, i, resolvedValue);
+        } catch (final Exception e) {
             throw new SQLException("Can't set a parameter #" + i + " to value type " + (value == null ? "null" : value.getClass().getName()) + ": " + e.getMessage(), e);
         }
     }

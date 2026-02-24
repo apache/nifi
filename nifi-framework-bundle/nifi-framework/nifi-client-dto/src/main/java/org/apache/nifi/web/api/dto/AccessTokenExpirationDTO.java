@@ -37,7 +37,7 @@ public class AccessTokenExpirationDTO {
         return expiration;
     }
 
-    public void setExpiration(Instant expiration) {
+    public void setExpiration(final Instant expiration) {
         this.expiration = expiration;
     }
 }

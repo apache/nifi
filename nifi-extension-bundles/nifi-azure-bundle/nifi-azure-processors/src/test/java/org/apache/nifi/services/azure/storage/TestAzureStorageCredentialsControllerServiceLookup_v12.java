@@ -135,12 +135,12 @@ public class TestAzureStorageCredentialsControllerServiceLookup_v12 {
 
         private final AzureStorageCredentialsDetails_v12 storageCredentialsDetails;
 
-        MockAzureStorageCredentialsService(AzureStorageCredentialsDetails_v12 storageCredentialsDetails) {
+        MockAzureStorageCredentialsService(final AzureStorageCredentialsDetails_v12 storageCredentialsDetails) {
             this.storageCredentialsDetails = storageCredentialsDetails;
         }
 
         @Override
-        public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
+        public AzureStorageCredentialsDetails_v12 getCredentialsDetails(final Map<String, String> attributes) {
             return storageCredentialsDetails;
         }
     }

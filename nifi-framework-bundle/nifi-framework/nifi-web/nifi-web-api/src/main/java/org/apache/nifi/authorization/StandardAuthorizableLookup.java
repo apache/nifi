@@ -204,7 +204,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ComponentAuthorizable getConfigurableComponent(ConfigurableComponent configurableComponent) {
+    public ComponentAuthorizable getConfigurableComponent(final ConfigurableComponent configurableComponent) {
         try {
             return new ConfigurableComponentAuthorizable(configurableComponent, controllerFacade.getExtensionManager());
         } catch (final Exception e) {
@@ -219,7 +219,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public PublicPortAuthorizable getPublicInputPort(String id) {
+    public PublicPortAuthorizable getPublicInputPort(final String id) {
         final Port inputPort = inputPortDAO.getPort(id);
 
         if (!(inputPort instanceof PublicPort)) {
@@ -234,7 +234,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             }
 
             @Override
-            public AuthorizationResult checkAuthorization(NiFiUser user) {
+            public AuthorizationResult checkAuthorization(final NiFiUser user) {
                 // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
                 final PortAuthorizationResult authorizationResult = ((PublicPort) inputPort).checkUserAuthorization(user);
                 if (authorizationResult.isAuthorized()) {
@@ -247,7 +247,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public PublicPortAuthorizable getPublicOutputPort(String id) {
+    public PublicPortAuthorizable getPublicOutputPort(final String id) {
         final Port outputPort = outputPortDAO.getPort(id);
 
         if (!(outputPort instanceof PublicPort)) {
@@ -262,7 +262,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
             }
 
             @Override
-            public AuthorizationResult checkAuthorization(NiFiUser user) {
+            public AuthorizationResult checkAuthorization(final NiFiUser user) {
                 // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
                 final PortAuthorizationResult authorizationResult = ((PublicPort) outputPort).checkUserAuthorization(user);
                 if (authorizationResult.isAuthorized()) {
@@ -406,7 +406,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id) {
+    public Authorizable getControllerServiceReferencingComponent(final String controllerServiceId, final String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
         final ComponentNode reference = findControllerServiceReferencingComponent(referencingComponents, id);
@@ -634,7 +634,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     private Authorizable getAccessPolicyByResource(final ResourceType resourceType, final String componentId) {
-        Authorizable authorizable = switch (resourceType) {
+        final Authorizable authorizable = switch (resourceType) {
             case ControllerService -> getControllerService(componentId).getAuthorizable();
             case Funnel -> getFunnel(componentId);
             case InputPort -> getInputPort(componentId);
@@ -787,7 +787,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getLocalConnectable(String id) {
+    public Authorizable getLocalConnectable(final String id) {
         final Connectable connectable = controllerFacade.findLocalConnectable(id);
         if (connectable == null) {
             throw new ResourceNotFoundException("Unable to find component with id " + id);
@@ -855,7 +855,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return null;
         }
 
@@ -865,7 +865,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return configurableComponent.getPropertyDescriptor(propertyName);
         }
 
@@ -918,7 +918,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return processorNode.getEffectivePropertyValue(propertyDescriptor);
         }
 
@@ -928,7 +928,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return processorNode.getPropertyDescriptor(propertyName);
         }
 
@@ -977,7 +977,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return controllerServiceNode.getEffectivePropertyValue(propertyDescriptor);
         }
 
@@ -987,7 +987,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return controllerServiceNode.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
         }
 
@@ -1035,7 +1035,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return reportingTaskNode.getEffectivePropertyValue(propertyDescriptor);
         }
 
@@ -1045,7 +1045,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return reportingTaskNode.getReportingTask().getPropertyDescriptor(propertyName);
         }
 
@@ -1093,7 +1093,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return flowAnalysisRuleNode.getEffectivePropertyValue(propertyDescriptor);
         }
 
@@ -1103,7 +1103,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptor(propertyName);
         }
 
@@ -1161,7 +1161,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return parameterProviderNode.getParameterProvider().getPropertyDescriptor(propertyName);
         }
 
@@ -1209,7 +1209,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public String getValue(PropertyDescriptor propertyDescriptor) {
+        public String getValue(final PropertyDescriptor propertyDescriptor) {
             return flowRegistryClientNode.getEffectivePropertyValue(propertyDescriptor);
         }
 
@@ -1219,7 +1219,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+        public PropertyDescriptor getPropertyDescriptor(final String propertyName) {
             return flowRegistryClientNode.getComponent().getPropertyDescriptor(propertyName);
         }
 
@@ -1265,7 +1265,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Set<ComponentAuthorizable> getEncapsulatedProcessors(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> processorFilter) {
+        public Set<ComponentAuthorizable> getEncapsulatedProcessors(final Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> processorFilter) {
             return processGroup.findAllProcessors().stream()
                     .filter(processorFilter)
                     .map(processorNode -> new ProcessorComponentAuthorizable(processorNode, extensionManager)).collect(Collectors.toSet());
@@ -1315,7 +1315,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Set<ComponentAuthorizable> getEncapsulatedControllerServices(Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> serviceFilter) {
+        public Set<ComponentAuthorizable> getEncapsulatedControllerServices(final Predicate<org.apache.nifi.authorization.resource.ComponentAuthorizable> serviceFilter) {
             return processGroup.findAllControllerServices().stream()
                     .filter(serviceFilter)
                     .map(controllerServiceNode -> new ControllerServiceComponentAuthorizable(controllerServiceNode, extensionManager)).collect(Collectors.toSet());
@@ -1325,7 +1325,7 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     private static class StandardConnectionAuthorizable implements ConnectionAuthorizable {
         private final Connection connection;
 
-        public StandardConnectionAuthorizable(Connection connection) {
+        public StandardConnectionAuthorizable(final Connection connection) {
             this.connection = connection;
         }
 
@@ -1361,64 +1361,64 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Autowired
-    public void setProcessorDAO(ProcessorDAO processorDAO) {
+    public void setProcessorDAO(final ProcessorDAO processorDAO) {
         this.processorDAO = processorDAO;
     }
 
     @Autowired
-    public void setProcessGroupDAO(ProcessGroupDAO processGroupDAO) {
+    public void setProcessGroupDAO(final ProcessGroupDAO processGroupDAO) {
         this.processGroupDAO = processGroupDAO;
     }
 
     @Autowired
-    public void setRemoteProcessGroupDAO(RemoteProcessGroupDAO remoteProcessGroupDAO) {
+    public void setRemoteProcessGroupDAO(final RemoteProcessGroupDAO remoteProcessGroupDAO) {
         this.remoteProcessGroupDAO = remoteProcessGroupDAO;
     }
 
     @Autowired
-    public void setLabelDAO(LabelDAO labelDAO) {
+    public void setLabelDAO(final LabelDAO labelDAO) {
         this.labelDAO = labelDAO;
     }
 
     @Autowired
-    public void setFunnelDAO(FunnelDAO funnelDAO) {
+    public void setFunnelDAO(final FunnelDAO funnelDAO) {
         this.funnelDAO = funnelDAO;
     }
 
     @Autowired
-    public void setSnippetDAO(SnippetDAO snippetDAO) {
+    public void setSnippetDAO(final SnippetDAO snippetDAO) {
         this.snippetDAO = snippetDAO;
     }
 
     @Qualifier("standardInputPortDAO")
     @Autowired
-    public void setInputPortDAO(PortDAO inputPortDAO) {
+    public void setInputPortDAO(final PortDAO inputPortDAO) {
         this.inputPortDAO = inputPortDAO;
     }
 
     @Qualifier("standardOutputPortDAO")
     @Autowired
-    public void setOutputPortDAO(PortDAO outputPortDAO) {
+    public void setOutputPortDAO(final PortDAO outputPortDAO) {
         this.outputPortDAO = outputPortDAO;
     }
 
     @Autowired
-    public void setConnectionDAO(ConnectionDAO connectionDAO) {
+    public void setConnectionDAO(final ConnectionDAO connectionDAO) {
         this.connectionDAO = connectionDAO;
     }
 
     @Autowired
-    public void setControllerServiceDAO(ControllerServiceDAO controllerServiceDAO) {
+    public void setControllerServiceDAO(final ControllerServiceDAO controllerServiceDAO) {
         this.controllerServiceDAO = controllerServiceDAO;
     }
 
     @Autowired
-    public void setReportingTaskDAO(ReportingTaskDAO reportingTaskDAO) {
+    public void setReportingTaskDAO(final ReportingTaskDAO reportingTaskDAO) {
         this.reportingTaskDAO = reportingTaskDAO;
     }
 
     @Autowired
-    public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
+    public void setFlowAnalysisRuleDAO(final FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
         this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
 
@@ -1428,22 +1428,22 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Autowired
-    public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDAO) {
+    public void setFlowRegistryDAO(final FlowRegistryDAO flowRegistryDAO) {
         this.flowRegistryDAO = flowRegistryDAO;
     }
 
     @Autowired
-    public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
+    public void setAccessPolicyDAO(final AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
     }
 
     @Autowired
-    public void setParameterContextDAO(ParameterContextDAO parameterContextDAO) {
+    public void setParameterContextDAO(final ParameterContextDAO parameterContextDAO) {
         this.parameterContextDAO = parameterContextDAO;
     }
 
     @Autowired
-    public void setControllerFacade(ControllerFacade controllerFacade) {
+    public void setControllerFacade(final ControllerFacade controllerFacade) {
         this.controllerFacade = controllerFacade;
     }
 }

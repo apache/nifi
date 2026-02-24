@@ -41,7 +41,7 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
     }
 
     @Override
-    public void setComponent(ReportingTaskDTO component) {
+    public void setComponent(final ReportingTaskDTO component) {
         this.component = component;
     }
 
@@ -56,7 +56,7 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 
@@ -70,7 +70,7 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
         return status;
     }
 
-    public void setStatus(ReportingTaskStatusDTO status) {
+    public void setStatus(final ReportingTaskStatusDTO status) {
         this.status = status;
     }
 }

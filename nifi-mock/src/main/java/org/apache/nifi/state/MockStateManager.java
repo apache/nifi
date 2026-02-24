@@ -90,7 +90,7 @@ public class MockStateManager implements StateManager {
         localStateMap = new MockStateMap(null, -1L);
     }
 
-    public void setExecutionMode(ExecutionMode executionMode) {
+    public void setExecutionMode(final ExecutionMode executionMode) {
         this.executionMode = executionMode;
     }
 

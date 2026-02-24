@@ -42,7 +42,7 @@ public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
         final ConsumeBoxEvents testSubject = new ConsumeBoxEvents() {
             @Override
-            public void onScheduled(ProcessContext context) {
+            public void onScheduled(final ProcessContext context) {
                 // do nothing
             }
         };

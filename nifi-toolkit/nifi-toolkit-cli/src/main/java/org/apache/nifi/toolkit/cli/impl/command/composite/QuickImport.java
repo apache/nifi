@@ -83,7 +83,7 @@ public class QuickImport extends AbstractCompositeCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         // add additional options
         addOption(CommandOption.INPUT_SOURCE.createOption());
 
@@ -226,7 +226,7 @@ public class QuickImport extends AbstractCompositeCommand<StringResult> {
                 println();
                 println("Found existing registry client '" + registryClientResult.getResult().getName() + "'...");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             registryClientId = null;
         }
 

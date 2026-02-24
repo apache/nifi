@@ -191,7 +191,7 @@ public class SystemDiagnostics implements Cloneable {
         return garbageCollection;
     }
 
-    public void setGarbageCollection(Map<String, GarbageCollection> garbageCollection) {
+    public void setGarbageCollection(final Map<String, GarbageCollection> garbageCollection) {
         this.garbageCollection = garbageCollection;
     }
 
@@ -199,7 +199,7 @@ public class SystemDiagnostics implements Cloneable {
         return creationTimestamp;
     }
 
-    public void setCreationTimestamp(long creationTimestamp) {
+    public void setCreationTimestamp(final long creationTimestamp) {
         this.creationTimestamp = creationTimestamp;
     }
 
@@ -207,7 +207,7 @@ public class SystemDiagnostics implements Cloneable {
         return uptime;
     }
 
-    public void setUptime(long uptime) {
+    public void setUptime(final long uptime) {
         this.uptime = uptime;
     }
 
@@ -215,7 +215,7 @@ public class SystemDiagnostics implements Cloneable {
         return totalPhysicalMemory;
     }
 
-    public void setTotalPhysicalMemory(long totalPhysicalMemory) {
+    public void setTotalPhysicalMemory(final long totalPhysicalMemory) {
         this.totalPhysicalMemory = totalPhysicalMemory;
     }
 
@@ -223,7 +223,7 @@ public class SystemDiagnostics implements Cloneable {
         return maxOpenFileHandles;
     }
 
-    public void setMaxOpenFileHandles(long maxOpenFileHandles) {
+    public void setMaxOpenFileHandles(final long maxOpenFileHandles) {
         this.maxOpenFileHandles = maxOpenFileHandles;
     }
 
@@ -231,7 +231,7 @@ public class SystemDiagnostics implements Cloneable {
         return openFileHandles;
     }
 
-    public void setOpenFileHandles(long openFileHandles) {
+    public void setOpenFileHandles(final long openFileHandles) {
         this.openFileHandles = openFileHandles;
     }
 

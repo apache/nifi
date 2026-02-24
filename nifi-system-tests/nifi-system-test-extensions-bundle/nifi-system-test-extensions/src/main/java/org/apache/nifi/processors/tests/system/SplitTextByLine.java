@@ -53,8 +53,8 @@ public class SplitTextByLine extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
 
         if (flowFile == null) {
             return;
@@ -70,12 +70,12 @@ public class SplitTextByLine extends AbstractProcessor {
             while ((line = reader.readLine()) != null) {
                 splits.add(line);
             }
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             session.transfer(flowFile, FAILURE);
         }
 
         long offset = 0;
-        for (String splitText : splits) {
+        for (final String splitText : splits) {
             FlowFile splitFlowFile = session.clone(flowFile, offset, splitText.getBytes(StandardCharsets.UTF_8).length);
             offset = offset + splitText.getBytes(StandardCharsets.UTF_8).length;
             splitFlowFile = session.write(splitFlowFile, out -> out.write(splitText.getBytes(StandardCharsets.UTF_8)));

@@ -151,7 +151,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void receive(FlowFile flowFile, String transitUri, String sourceSystemFlowFileIdentifier) {
+    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier) {
         receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, null, -1L);
     }
 
@@ -308,7 +308,7 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void invokeRemoteProcess(FlowFile flowFile, String transitUri, String details) {
+    public void invokeRemoteProcess(final FlowFile flowFile, final String transitUri, final String details) {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.REMOTE_INVOCATION)
                     .setTransitUri(transitUri).setDetails(details).build();

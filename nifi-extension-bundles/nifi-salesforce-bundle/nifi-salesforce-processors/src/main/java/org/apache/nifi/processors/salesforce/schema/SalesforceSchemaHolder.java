@@ -25,7 +25,7 @@ public class SalesforceSchemaHolder {
     RecordSchema recordSchema;
     SObjectDescription salesforceObject;
 
-    public SalesforceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
+    public SalesforceSchemaHolder(final RecordSchema querySObjectResultSchema, final RecordSchema recordSchema, final SObjectDescription salesforceObject) {
         this.querySObjectResultSchema = querySObjectResultSchema;
         this.recordSchema = recordSchema;
         this.salesforceObject = salesforceObject;

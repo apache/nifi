@@ -214,7 +214,7 @@ abstract class SplunkAPICall extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Port", PORT.getName());
         config.renameProperty("Token", TOKEN.getName());
         config.renameProperty("request-channel", REQUEST_CHANNEL.getName());

@@ -166,7 +166,7 @@ public abstract class AbstractGCPProcessor<
      * @param context Context to get properties
      * @return Transport options object with proxy configuration
      */
-    protected TransportOptions getTransportOptions(ProcessContext context) {
+    protected TransportOptions getTransportOptions(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         final ProxyAwareTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);

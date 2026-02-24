@@ -146,52 +146,52 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         private String containerName;
         private String blobName;
 
-        public Builder primaryUri(String primaryUri) {
+        public Builder primaryUri(final String primaryUri) {
             this.primaryUri = primaryUri;
             return this;
         }
 
-        public Builder secondaryUri(String secondaryUri) {
+        public Builder secondaryUri(final String secondaryUri) {
             this.secondaryUri = secondaryUri;
             return this;
         }
 
-        public Builder contentType(String contentType) {
+        public Builder contentType(final String contentType) {
             this.contentType = contentType;
             return this;
         }
 
-        public Builder contentLanguage(String contentLanguage) {
+        public Builder contentLanguage(final String contentLanguage) {
             this.contentLanguage = contentLanguage;
             return this;
         }
 
-        public Builder containerName(String containerName) {
+        public Builder containerName(final String containerName) {
             this.containerName = containerName;
             return this;
         }
 
-        public Builder etag(String etag) {
+        public Builder etag(final String etag) {
             this.etag = etag;
             return this;
         }
 
-        public Builder lastModifiedTime(long lastModifiedTime) {
+        public Builder lastModifiedTime(final long lastModifiedTime) {
             this.lastModifiedTime = lastModifiedTime;
             return this;
         }
 
-        public Builder length(long length) {
+        public Builder length(final long length) {
             this.length = length;
             return this;
         }
 
-        public Builder blobType(String blobType) {
+        public Builder blobType(final String blobType) {
             this.blobType = blobType;
             return this;
         }
 
-        public Builder blobName(String blobName) {
+        public Builder blobName(final String blobName) {
             this.blobName = blobName;
             return this;
         }
@@ -211,7 +211,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -221,7 +221,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
         if (getClass() != obj.getClass()) {
             return false;
         }
-        BlobInfo other = (BlobInfo) obj;
+        final BlobInfo other = (BlobInfo) obj;
         if (etag == null) {
             if (other.etag != null) {
                 return false;
@@ -233,7 +233,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
     }
 
     @Override
-    public int compareTo(BlobInfo o) {
+    public int compareTo(final BlobInfo o) {
         return etag.compareTo(o.etag);
     }
 
@@ -252,7 +252,7 @@ public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEnt
 
     @Override
     public String getName() {
-        String primaryUri = getPrimaryUri();
+        final String primaryUri = getPrimaryUri();
         return primaryUri.substring(primaryUri.lastIndexOf('/') + 1);
     }
 

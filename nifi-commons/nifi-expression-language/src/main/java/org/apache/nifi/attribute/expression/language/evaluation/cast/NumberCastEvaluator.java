@@ -52,14 +52,14 @@ public class NumberCastEvaluator extends NumberEvaluator {
             case NUMBER:
                 return (NumberQueryResult) result;
             case WHOLE_NUMBER:
-                Long longValue = ((WholeNumberQueryResult) result).getValue();
+                final Long longValue = ((WholeNumberQueryResult) result).getValue();
                 return new NumberQueryResult(longValue);
             case DECIMAL:
-                Double doubleValue = ((DecimalQueryResult) result).getValue();
+                final Double doubleValue = ((DecimalQueryResult) result).getValue();
                 return new NumberQueryResult(doubleValue);
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
-                NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
+                final NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
                 switch (parseType) {
                     case DECIMAL:
                         return new NumberQueryResult(Double.valueOf(trimmed));
@@ -67,7 +67,7 @@ public class NumberCastEvaluator extends NumberEvaluator {
                         Long resultValue;
                         try {
                             resultValue = Long.valueOf(trimmed);
-                        } catch (NumberFormatException e) {
+                        } catch (final NumberFormatException e) {
                             // Will only occur if trimmed is a hex number
                             resultValue = Long.decode(trimmed);
                         }

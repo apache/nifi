@@ -52,7 +52,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return bulletin;
     }
 
-    public void setBulletin(BulletinDTO bulletin) {
+    public void setBulletin(final BulletinDTO bulletin) {
         this.bulletin = bulletin;
     }
 
@@ -63,7 +63,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -74,7 +74,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -85,7 +85,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -100,7 +100,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -115,7 +115,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return timestampIso;
     }
 
-    public void setTimestampIso(Instant timestampIso) {
+    public void setTimestampIso(final Instant timestampIso) {
         this.timestampIso = timestampIso;
     }
 
@@ -126,7 +126,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
         return nodeAddress;
     }
 
-    public void setNodeAddress(String nodeAddress) {
+    public void setNodeAddress(final String nodeAddress) {
         this.nodeAddress = nodeAddress;
     }
 
@@ -136,7 +136,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

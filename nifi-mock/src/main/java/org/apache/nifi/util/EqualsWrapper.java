@@ -96,7 +96,7 @@ public class EqualsWrapper<T> {
      * @param item The item to be wrapped
      * @param propertyProviders List of functions with which to extract properties to use for equality checks
      */
-    public EqualsWrapper(T item, List<Function<T, Object>> propertyProviders) {
+    public EqualsWrapper(final T item, final List<Function<T, Object>> propertyProviders) {
         this.item = item;
         this.propertyProviders = propertyProviders;
     }
@@ -109,8 +109,8 @@ public class EqualsWrapper<T> {
      * @param <T> The type of the objects to be wrapped
      * @return A list of wrapped objects
      */
-    public static <T> List<EqualsWrapper<T>> wrapList(Collection<T> items, List<Function<T, Object>> propertyProviders) {
-        List wrappers = items.stream().map(item -> new EqualsWrapper(item, propertyProviders)).collect(Collectors.toList());
+    public static <T> List<EqualsWrapper<T>> wrapList(final Collection<T> items, final List<Function<T, Object>> propertyProviders) {
+        final List wrappers = items.stream().map(item -> new EqualsWrapper(item, propertyProviders)).collect(Collectors.toList());
 
         return wrappers;
     }
@@ -131,7 +131,7 @@ public class EqualsWrapper<T> {
         final EqualsWrapper<T> that = (EqualsWrapper<T>) o;
         final EqualsBuilder equalsBuilder = new EqualsBuilder();
 
-        for (Function<T, Object> propertyProvider : propertyProviders) {
+        for (final Function<T, Object> propertyProvider : propertyProviders) {
             equalsBuilder.append(propertyProvider.apply(item), propertyProvider.apply(that.item));
         }
 
@@ -142,7 +142,7 @@ public class EqualsWrapper<T> {
     public int hashCode() {
         final HashCodeBuilder hashCodeBuilder = new HashCodeBuilder(17, 37);
 
-        for (Function<T, Object> propertyProvider : propertyProviders) {
+        for (final Function<T, Object> propertyProvider : propertyProviders) {
             hashCodeBuilder.append(propertyProvider.apply(item));
         }
 
@@ -153,7 +153,7 @@ public class EqualsWrapper<T> {
     public String toString() {
         final StringJoiner stringJoiner = new StringJoiner(",\n\t", "{\n\t", "\n}");
 
-        for (Function<T, Object> propertySupplier : propertyProviders) {
+        for (final Function<T, Object> propertySupplier : propertyProviders) {
             stringJoiner.add(Optional.ofNullable(propertySupplier.apply(item)).orElse("N/A").toString());
         }
 

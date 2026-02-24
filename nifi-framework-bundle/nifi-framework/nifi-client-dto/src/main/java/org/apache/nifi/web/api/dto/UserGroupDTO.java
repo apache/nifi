@@ -40,7 +40,7 @@ public class UserGroupDTO extends TenantDTO {
         return users;
     }
 
-    public void setUsers(Set<TenantEntity> users) {
+    public void setUsers(final Set<TenantEntity> users) {
         this.users = users;
     }
 
@@ -56,7 +56,7 @@ public class UserGroupDTO extends TenantDTO {
         return accessPolicies;
     }
 
-    public void setAccessPolicies(Set<AccessPolicyEntity> accessPolicies) {
+    public void setAccessPolicies(final Set<AccessPolicyEntity> accessPolicies) {
         this.accessPolicies = accessPolicies;
     }
 }

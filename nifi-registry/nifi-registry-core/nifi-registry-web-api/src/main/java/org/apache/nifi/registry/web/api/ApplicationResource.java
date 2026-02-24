@@ -75,7 +75,7 @@ public class ApplicationResource {
     protected void publish(final Event event) {
         try {
             eventService.publish(event);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             logger.error("Unable to publish event", t);
         }
     }

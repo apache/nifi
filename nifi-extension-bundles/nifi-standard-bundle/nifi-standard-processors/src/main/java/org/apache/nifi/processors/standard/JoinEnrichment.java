@@ -224,7 +224,7 @@ public class JoinEnrichment extends BinFiles {
     private final SqlJoinCache sqlJoinCache = new SqlJoinCache(getLogger());
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
@@ -370,7 +370,7 @@ public class JoinEnrichment extends BinFiles {
         // Create a RecordSet that will be used to produce the Records we need.
         final WriteResult writeResult;
         final String mimeType;
-        FlowFile output;
+        final FlowFile output;
         try (final RecordJoinResult result = joinStrategy.join(originalInput, enrichmentInput, combinedAttributes, session, writerSchema)) {
             // Create output FlowFile
             output = session.create(flowFiles);
@@ -494,7 +494,7 @@ public class JoinEnrichment extends BinFiles {
                 binBytes += flowFile.getSize();
             }
 
-            BinProcessingResult binProcessingResult;
+            final BinProcessingResult binProcessingResult;
             try {
                 binProcessingResult = this.processBin(bin, context);
             } catch (final ProcessException e) {

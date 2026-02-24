@@ -128,7 +128,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -138,7 +138,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
         if (getClass() != obj.getClass()) {
             return false;
         }
-        FileInfo other = (FileInfo) obj;
+        final FileInfo other = (FileInfo) obj;
         if (fullPathFileName == null) {
             if (other.fullPathFileName != null) {
                 return false;
@@ -150,7 +150,7 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
     }
 
     @Override
-    public int compareTo(FileInfo o) {
+    public int compareTo(final FileInfo o) {
         return fullPathFileName.compareTo(o.fullPathFileName);
     }
 
@@ -180,52 +180,53 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
             return new FileInfo(this);
         }
 
-        public Builder directory(boolean directory) {
+        public Builder directory(final boolean directory) {
             this.directory = directory;
             return this;
         }
 
-        public Builder size(long size) {
+        public Builder size(final long size) {
             this.size = size;
             return this;
         }
 
-        public Builder lastModifiedTime(long lastModifiedTime) {
+        public Builder lastModifiedTime(final long lastModifiedTime) {
             this.lastModifiedTime = lastModifiedTime;
             return this;
         }
 
-        public Builder filename(String fileName) {
+        public Builder filename(final String fileName) {
             this.fileName = fileName;
             return this;
         }
 
-        public Builder fullPathFileName(String pathFileName) {
+        public Builder fullPathFileName(final String pathFileName) {
             this.fullPathFileName = pathFileName;
             return this;
         }
 
-        public Builder permissions(String permissions) {
+        public Builder permissions(final String permissions) {
             this.permissions = permissions;
             return this;
         }
 
-        public Builder owner(String owner) {
+        public Builder owner(final String owner) {
             this.owner = owner;
             return this;
         }
 
-        public Builder group(String group) {
+        public Builder group(final String group) {
             this.group = group;
             return this;
         }
     }
 
-    public static String permissionToString(int fileModeOctal) {
-        StringBuilder sb = new StringBuilder();
-        for (char p : PERMISSION_MODIFIER_CHARS) {
-            sb.append((fileModeOctal & 1) == 1 ? p : '-');
-            fileModeOctal >>= 1;
+    public static String permissionToString(final int fileModeOctal) {
+        final StringBuilder sb = new StringBuilder();
+        int remaining = fileModeOctal;
+        for (final char p : PERMISSION_MODIFIER_CHARS) {
+            sb.append((remaining & 1) == 1 ? p : '-');
+            remaining >>= 1;
         }
         return sb.reverse().toString();
     }

@@ -98,7 +98,7 @@ public class ModifyBytes extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile ff = session.get();
         if (null == ff) {
             return;

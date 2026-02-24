@@ -18,7 +18,7 @@
 package org.apache.nifi.processors.windows.event.log;
 
 public class AlreadySubscribedException extends Exception {
-    public AlreadySubscribedException(String message) {
+    public AlreadySubscribedException(final String message) {
         super(message);
     }
 }

@@ -246,7 +246,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 logger.debug("Received request from {}, createHold={}, content-type={}, gzip={}", request.getRemoteHost(), createHold, contentType, contentGzipped);
             }
 
-            Set<FlowFile> flowFileSet;
+            final Set<FlowFile> flowFileSet;
             if (StringUtils.isNotBlank(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
                 try {
                     flowFileSet = handleMultipartRequest(request, session, foundSubject, foundIssuer);
@@ -284,10 +284,10 @@ public class ListenHTTPServlet extends HttpServlet {
         }
     }
 
-    private Set<FlowFile> handleMultipartRequest(HttpServletRequest request, ProcessSession session, String foundSubject, String foundIssuer)
+    private Set<FlowFile> handleMultipartRequest(final HttpServletRequest request, final ProcessSession session, final String foundSubject, final String foundIssuer)
             throws IOException, IllegalStateException, ServletException {
-        Set<FlowFile> flowFileSet = new HashSet<>();
-        String tempDir = System.getProperty("java.io.tmpdir");
+        final Set<FlowFile> flowFileSet = new HashSet<>();
+        final String tempDir = System.getProperty("java.io.tmpdir");
         request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
         int i = 0;
         final Collection<Part> requestParts = request.getParts();
@@ -309,7 +309,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
     private FlowFile savePartDetailsAsAttributes(final ProcessSession session, final Part part, final FlowFile flowFile, final int sequenceNumber, final int allPartsCount) {
         final Map<String, String> attributes = new HashMap<>();
-        for (String headerName : part.getHeaderNames()) {
+        for (final String headerName : part.getHeaderNames()) {
             final String headerValue = part.getHeader(headerName);
             putAttribute(attributes, "http.headers.multipart." + headerName, headerValue);
         }
@@ -322,7 +322,7 @@ public class ListenHTTPServlet extends HttpServlet {
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private Set<FlowFile> handleRequest(final HttpServletRequest request, final ProcessSession session, String foundSubject, String foundIssuer,
+    private Set<FlowFile> handleRequest(final HttpServletRequest request, final ProcessSession session, final String foundSubject, final String foundIssuer,
                                         final boolean destinationIsLegacyNiFi, final String contentType, final InputStream in) throws IOException {
         FlowFile flowFile;
         final AtomicBoolean hasMoreData = new AtomicBoolean(false);
@@ -426,31 +426,31 @@ public class ListenHTTPServlet extends HttpServlet {
     }
 
     protected FlowFile saveRequestDetailsAsAttributes(final HttpServletRequest request, final ProcessSession session,
-                                                      final String foundSubject, final String foundIssuer, FlowFile flowFile) {
-        Map<String, String> attributes = new HashMap<>();
+                                                      final String foundSubject, final String foundIssuer, final FlowFile flowFile) {
+        final Map<String, String> attributes = new HashMap<>();
         addMatchingRequestHeaders(request, attributes);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
-        flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.issuer.dn", foundIssuer);
-        return flowFile;
+        FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+        updatedFlowFile = session.putAttribute(updatedFlowFile, "restlistener.remote.source.host", request.getRemoteHost());
+        updatedFlowFile = session.putAttribute(updatedFlowFile, "restlistener.request.uri", request.getRequestURI());
+        updatedFlowFile = session.putAttribute(updatedFlowFile, "restlistener.remote.user.dn", foundSubject);
+        updatedFlowFile = session.putAttribute(updatedFlowFile, "restlistener.remote.issuer.dn", foundIssuer);
+        return updatedFlowFile;
     }
 
-    private void processRecord(InputStream in, FlowFile flowFile, OutputStream out) {
+    private void processRecord(final InputStream in, final FlowFile flowFile, final OutputStream out) {
         try (final RecordReader reader = readerFactory.createRecordReader(flowFile, new BufferedInputStream(in), logger)) {
             final RecordSet recordSet = reader.createRecordSet();
             try (final RecordSetWriter writer = writerFactory.createWriter(logger, reader.getSchema(), out, flowFile)) {
                 writer.write(recordSet);
             }
-        } catch (IOException | MalformedRecordException e) {
+        } catch (final IOException | MalformedRecordException e) {
             throw new ListenHttpException("Could not process record.", e, HttpServletResponse.SC_BAD_REQUEST);
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             throw new ListenHttpException("Could not find schema.", e, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    private FlowFileUnpackager getFlowFileUnpackager(String contentType) {
+    private FlowFileUnpackager getFlowFileUnpackager(final String contentType) {
         final FlowFileUnpackager unpackager;
         if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {
             unpackager = new FlowFileUnpackagerV3();
@@ -468,9 +468,9 @@ public class ListenHTTPServlet extends HttpServlet {
         // put arbitrary headers on flow file
         for (Enumeration<String> headerEnum = request.getHeaderNames();
              headerEnum.hasMoreElements();) {
-            String headerName = headerEnum.nextElement();
+            final String headerName = headerEnum.nextElement();
             if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
-                String headerValue = request.getHeader(headerName);
+                final String headerValue = request.getHeader(headerName);
                 attributes.put(headerName, headerValue);
             }
         }

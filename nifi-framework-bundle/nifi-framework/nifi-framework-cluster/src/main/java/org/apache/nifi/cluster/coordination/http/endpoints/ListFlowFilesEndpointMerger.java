@@ -40,7 +40,7 @@ public class ListFlowFilesEndpointMerger extends AbstractSingleDTOEndpoint<Listi
     public static final Pattern LISTING_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/listing-requests/[a-f0-9\\-]{36}");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && LISTING_REQUEST_URI.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && LISTING_REQUESTS_URI.matcher(uri.getPath()).matches()) {
@@ -56,14 +56,15 @@ public class ListFlowFilesEndpointMerger extends AbstractSingleDTOEndpoint<Listi
     }
 
     @Override
-    protected ListingRequestDTO getDto(ListingRequestEntity entity) {
+    protected ListingRequestDTO getDto(final ListingRequestEntity entity) {
         return entity.getListingRequest();
     }
 
     @Override
-    protected void mergeResponses(ListingRequestDTO clientDto, Map<NodeIdentifier, ListingRequestDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ListingRequestDTO clientDto, final Map<NodeIdentifier, ListingRequestDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         final Comparator<FlowFileSummaryDTO> comparator = (dto1, dto2) -> {
-            int positionCompare = dto1.getPosition().compareTo(dto2.getPosition());
+            final int positionCompare = dto1.getPosition().compareTo(dto2.getPosition());
             if (positionCompare != 0) {
                 return positionCompare;
             }

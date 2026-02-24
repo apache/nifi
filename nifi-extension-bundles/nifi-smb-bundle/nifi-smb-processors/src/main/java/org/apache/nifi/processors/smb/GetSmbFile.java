@@ -306,7 +306,7 @@ public class GetSmbFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_ENABLE_DFS_PROPERTY_NAME, ENABLE_DFS.getName());
         config.renameProperty(OLD_SMB_DIALECT_PROPERTY_NAME, SMB_DIALECT.getName());
         config.renameProperty(OLD_TIMEOUT_PROPERTY_NAME, TIMEOUT.getName());
@@ -314,8 +314,8 @@ public class GetSmbFile extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> set = new ArrayList<>();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> set = new ArrayList<>();
         if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
             set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
         }
@@ -363,7 +363,7 @@ public class GetSmbFile extends AbstractProcessor {
             if (filename.equals(".") || filename.equals("..")) {
                 continue;
             }
-            String fullPath;
+            final String fullPath;
             if (directory.isEmpty()) {
                 fullPath = filename;
             } else {
@@ -505,7 +505,7 @@ public class GetSmbFile extends AbstractProcessor {
                         session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
 
                         session.transfer(flowFile, REL_SUCCESS);
-                    } catch (SMBApiException e) {
+                    } catch (final SMBApiException e) {
                         // do not fail whole batch if a single file cannot be accessed
                         if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
                             logger.info("Could not acquire sharing access for file {}", file);
@@ -522,7 +522,7 @@ public class GetSmbFile extends AbstractProcessor {
                         if (!keepingSourceFile) {
                             share.rm(file);
                         }
-                    } catch (SMBApiException e) {
+                    } catch (final SMBApiException e) {
                         logger.error("Could not remove file {}", file);
                     }
 
@@ -557,7 +557,7 @@ public class GetSmbFile extends AbstractProcessor {
                     queueLock.unlock();
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Could not establish smb connection", e);
             context.yield();
             smbClient.getServerList().unregister(hostname);

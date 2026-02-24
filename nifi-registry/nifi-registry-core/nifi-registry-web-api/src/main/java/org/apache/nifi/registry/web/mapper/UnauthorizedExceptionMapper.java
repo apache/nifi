@@ -38,7 +38,7 @@ public class UnauthorizedExceptionMapper implements ExceptionMapper<Unauthorized
     private static final String AUTHENTICATION_CHALLENGE_HEADER_NAME = "WWW-Authenticate";
 
     @Override
-    public Response toResponse(UnauthorizedException exception) {
+    public Response toResponse(final UnauthorizedException exception) {
 
         logger.info("{}. Returning {} response.", exception, Response.Status.UNAUTHORIZED);
         logger.debug(StringUtils.EMPTY, exception);

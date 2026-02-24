@@ -45,7 +45,7 @@ public class PGGetParamContext extends AbstractNiFiCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PG_ID.createOption());
     }

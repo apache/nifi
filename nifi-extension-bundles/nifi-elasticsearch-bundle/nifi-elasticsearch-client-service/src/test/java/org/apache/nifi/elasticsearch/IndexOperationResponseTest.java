@@ -31,7 +31,7 @@ class IndexOperationResponseTest {
 
     @Test
     void testTook() {
-        long took = 100;
+        final long took = 100;
         final IndexOperationResponse response = new IndexOperationResponse(took);
         assertEquals(took, response.getTook());
     }

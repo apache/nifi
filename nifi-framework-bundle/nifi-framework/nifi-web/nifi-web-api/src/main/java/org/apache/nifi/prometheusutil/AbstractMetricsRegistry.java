@@ -33,8 +33,8 @@ public class AbstractMetricsRegistry {
         return registry;
     }
 
-    public void setDataPoint(double val, String gaugeName, String... labels) {
-        Gauge gauge = nameToGaugeMap.get(gaugeName);
+    public void setDataPoint(final double val, final String gaugeName, final String... labels) {
+        final Gauge gauge = nameToGaugeMap.get(gaugeName);
         if (gauge == null) {
             throw new IllegalArgumentException("Gauge '" + gaugeName + "' does not exist in this registry");
         }
@@ -42,8 +42,8 @@ public class AbstractMetricsRegistry {
         gauge.labels(labels).set(val);
     }
 
-    public void incrementCounter(double val, String counterName, String... labels) {
-        Counter counter = nameToCounterMap.get(counterName);
+    public void incrementCounter(final double val, final String counterName, final String... labels) {
+        final Counter counter = nameToCounterMap.get(counterName);
         if (counter == null) {
             throw new IllegalArgumentException("Counter '" + counterName + "' does not exist in this registry");
         }
@@ -52,10 +52,10 @@ public class AbstractMetricsRegistry {
     }
 
     public void clear() {
-        for (Gauge gauge : nameToGaugeMap.values()) {
+        for (final Gauge gauge : nameToGaugeMap.values()) {
             gauge.clear();
         }
-        for (Counter counter : nameToCounterMap.values()) {
+        for (final Counter counter : nameToCounterMap.values()) {
             counter.clear();
         }
     }

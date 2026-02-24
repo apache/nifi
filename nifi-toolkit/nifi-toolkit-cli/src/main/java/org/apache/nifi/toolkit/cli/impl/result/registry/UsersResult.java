@@ -33,7 +33,7 @@ import java.util.Objects;
 public class UsersResult extends AbstractWritableResult<List<User>> {
     private final List<User> users;
 
-    public UsersResult(ResultType resultType, List<User> users) {
+    public UsersResult(final ResultType resultType, final List<User> users) {
         super(resultType);
         this.users = Objects.requireNonNull(users);
     }

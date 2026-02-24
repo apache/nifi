@@ -27,12 +27,12 @@ public class NotSupportedCommand extends AbstractCommand {
 
     private String message;
 
-    public NotSupportedCommand(String message) {
+    public NotSupportedCommand(final String message) {
         this.message = message;
     }
 
     @Override
-    public void execute(FtpIoSession session, FtpServerContext context, FtpRequest request) {
+    public void execute(final FtpIoSession session, final FtpServerContext context, final FtpRequest request) {
         // reset state variables
         session.resetState();
 

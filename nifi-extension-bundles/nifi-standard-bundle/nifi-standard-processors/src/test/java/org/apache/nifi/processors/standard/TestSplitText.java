@@ -662,7 +662,7 @@ public class TestSplitText {
         mergeRunner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
-        MockFlowFile flowFile = packed.get(0);
+        final MockFlowFile flowFile = packed.get(0);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), originalFilename);
         assertEquals(Files.size(dataPath.resolve(originalFilename)), flowFile.getSize());
         flowFile.assertContentEquals(file);
@@ -770,7 +770,7 @@ public class TestSplitText {
         splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
 
         final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
-        MockFlowFile split0 = splits.get(0);
+        final MockFlowFile split0 = splits.get(0);
         split0.assertContentEquals("1\n2");
         split0.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "1");
         split0.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "1");
@@ -792,12 +792,12 @@ public class TestSplitText {
         splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
 
         final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
-        MockFlowFile split0 = splits.get(0);
+        final MockFlowFile split0 = splits.get(0);
         split0.assertContentEquals("1");
         split0.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "1");
         split0.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");
         split0.assertAttributeEquals(SplitText.SPLIT_LINE_COUNT, "1");
-        MockFlowFile split1 = splits.get(1);
+        final MockFlowFile split1 = splits.get(1);
         split1.assertContentEquals("2");
         split1.assertAttributeEquals(SplitText.FRAGMENT_INDEX, "2");
         split1.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "2");

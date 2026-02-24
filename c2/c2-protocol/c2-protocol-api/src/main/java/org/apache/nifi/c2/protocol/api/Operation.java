@@ -35,7 +35,7 @@ public class Operation extends C2Operation {
         return targetAgentId;
     }
 
-    public void setTargetAgentId(String targetAgentId) {
+    public void setTargetAgentId(final String targetAgentId) {
         this.targetAgentId = targetAgentId;
     }
 
@@ -44,7 +44,7 @@ public class Operation extends C2Operation {
         return state;
     }
 
-    public void setState(OperationState state) {
+    public void setState(final OperationState state) {
         this.state = state;
     }
 
@@ -53,7 +53,7 @@ public class Operation extends C2Operation {
         return bulkOperationId;
     }
 
-    public void setBulkOperationId(String bulkOperationId) {
+    public void setBulkOperationId(final String bulkOperationId) {
         this.bulkOperationId = bulkOperationId;
     }
 
@@ -63,7 +63,7 @@ public class Operation extends C2Operation {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(final String createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -72,7 +72,7 @@ public class Operation extends C2Operation {
         return created;
     }
 
-    public void setCreated(Long created) {
+    public void setCreated(final Long created) {
         this.created = created;
     }
 
@@ -81,7 +81,7 @@ public class Operation extends C2Operation {
         return updated;
     }
 
-    public void setUpdated(Long updated) {
+    public void setUpdated(final Long updated) {
         this.updated = updated;
     }
 

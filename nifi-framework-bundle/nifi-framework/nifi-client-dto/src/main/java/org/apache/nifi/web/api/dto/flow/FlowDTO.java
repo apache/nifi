@@ -53,7 +53,7 @@ public class FlowDTO {
         return connections;
     }
 
-    public void setConnections(Set<ConnectionEntity> connections) {
+    public void setConnections(final Set<ConnectionEntity> connections) {
         this.connections = connections;
     }
 
@@ -66,7 +66,7 @@ public class FlowDTO {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<PortEntity> inputPorts) {
+    public void setInputPorts(final Set<PortEntity> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -79,7 +79,7 @@ public class FlowDTO {
         return labels;
     }
 
-    public void setLabels(Set<LabelEntity> labels) {
+    public void setLabels(final Set<LabelEntity> labels) {
         this.labels = labels;
     }
 
@@ -92,7 +92,7 @@ public class FlowDTO {
         return funnels;
     }
 
-    public void setFunnels(Set<FunnelEntity> funnels) {
+    public void setFunnels(final Set<FunnelEntity> funnels) {
         this.funnels = funnels;
     }
 
@@ -105,7 +105,7 @@ public class FlowDTO {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<PortEntity> outputPorts) {
+    public void setOutputPorts(final Set<PortEntity> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -118,7 +118,7 @@ public class FlowDTO {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<ProcessGroupEntity> processGroups) {
+    public void setProcessGroups(final Set<ProcessGroupEntity> processGroups) {
         this.processGroups = processGroups;
     }
 
@@ -131,7 +131,7 @@ public class FlowDTO {
         return processors;
     }
 
-    public void setProcessors(Set<ProcessorEntity> processors) {
+    public void setProcessors(final Set<ProcessorEntity> processors) {
         this.processors = processors;
     }
 
@@ -144,7 +144,7 @@ public class FlowDTO {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<RemoteProcessGroupEntity> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Set<RemoteProcessGroupEntity> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

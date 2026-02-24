@@ -38,7 +38,7 @@ public class ListBranches extends AbstractNiFiCommand<RegistryBranchesResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
     }

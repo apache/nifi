@@ -85,7 +85,7 @@ public final class RegionUtil {
     }
 
     public static boolean isDynamicRegion(final PropertyContext context) {
-        String regionValue = context.getProperty(REGION).getValue();
+        final String regionValue = context.getProperty(REGION).getValue();
         return USE_CUSTOM_REGION.getValue().equals(regionValue)
                 && context.getProperty(CUSTOM_REGION).isExpressionLanguagePresent();
     }

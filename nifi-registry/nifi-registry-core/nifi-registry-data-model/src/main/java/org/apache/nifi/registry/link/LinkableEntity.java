@@ -36,7 +36,7 @@ public abstract class LinkableEntity {
         return link;
     }
 
-    public void setLink(Link link) {
+    public void setLink(final Link link) {
         this.link = link;
     }
 

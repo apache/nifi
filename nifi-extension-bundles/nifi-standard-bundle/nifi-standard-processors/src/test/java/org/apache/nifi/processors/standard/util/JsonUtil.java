@@ -24,13 +24,13 @@ public class JsonUtil {
     private JsonUtil() {
     }
 
-    public static String getExpectedContent(Path path) throws IOException {
-        String fileContent = Files.readString(path);
+    public static String getExpectedContent(final Path path) throws IOException {
+        final String fileContent = Files.readString(path);
 
         return getExpectedContent(fileContent);
     }
 
-    public static String getExpectedContent(String string) {
+    public static String getExpectedContent(final String string) {
         final boolean windows = System.getProperty("os.name").startsWith("Windows");
         String expectedContent = string;
 

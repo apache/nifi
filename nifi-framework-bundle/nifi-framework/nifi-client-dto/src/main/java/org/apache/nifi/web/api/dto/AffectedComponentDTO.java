@@ -76,7 +76,7 @@ public class AffectedComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -89,7 +89,7 @@ public class AffectedComponentDTO {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -102,7 +102,7 @@ public class AffectedComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -112,7 +112,7 @@ public class AffectedComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 

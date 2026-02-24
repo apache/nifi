@@ -46,7 +46,7 @@ public class FlowFileSummaryDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -59,7 +59,7 @@ public class FlowFileSummaryDTO {
         return uuid;
     }
 
-    public void setUuid(String uuid) {
+    public void setUuid(final String uuid) {
         this.uuid = uuid;
     }
 
@@ -72,7 +72,7 @@ public class FlowFileSummaryDTO {
         return filename;
     }
 
-    public void setFilename(String filename) {
+    public void setFilename(final String filename) {
         this.filename = filename;
     }
 
@@ -85,7 +85,7 @@ public class FlowFileSummaryDTO {
         return mimeType;
     }
 
-    public void setMimeType(String mimeType) {
+    public void setMimeType(final String mimeType) {
         this.mimeType = mimeType;
     }
 
@@ -98,7 +98,7 @@ public class FlowFileSummaryDTO {
         return position;
     }
 
-    public void setPosition(Integer position) {
+    public void setPosition(final Integer position) {
         this.position = position;
     }
 
@@ -111,7 +111,7 @@ public class FlowFileSummaryDTO {
         return size;
     }
 
-    public void setSize(Long size) {
+    public void setSize(final Long size) {
         this.size = size;
     }
 
@@ -124,7 +124,7 @@ public class FlowFileSummaryDTO {
         return queuedDuration;
     }
 
-    public void setQueuedDuration(Long queuedDuration) {
+    public void setQueuedDuration(final Long queuedDuration) {
         this.queuedDuration = queuedDuration;
     }
 
@@ -137,7 +137,7 @@ public class FlowFileSummaryDTO {
         return lineageDuration;
     }
 
-    public void setLineageDuration(Long lineageDuration) {
+    public void setLineageDuration(final Long lineageDuration) {
         this.lineageDuration = lineageDuration;
     }
 
@@ -150,7 +150,7 @@ public class FlowFileSummaryDTO {
         return penaltyExpiresIn;
     }
 
-    public void setPenaltyExpiresIn(Long penaltyExpiration) {
+    public void setPenaltyExpiresIn(final Long penaltyExpiration) {
         penaltyExpiresIn = penaltyExpiration;
     }
 
@@ -163,7 +163,7 @@ public class FlowFileSummaryDTO {
         return isPenalized;
     }
 
-    public void setPenalized(Boolean penalized) {
+    public void setPenalized(final Boolean penalized) {
         isPenalized = penalized;
     }
 
@@ -176,7 +176,7 @@ public class FlowFileSummaryDTO {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 
@@ -189,7 +189,7 @@ public class FlowFileSummaryDTO {
         return clusterNodeAddress;
     }
 
-    public void setClusterNodeAddress(String clusterNodeAddress) {
+    public void setClusterNodeAddress(final String clusterNodeAddress) {
         this.clusterNodeAddress = clusterNodeAddress;
     }
 }

@@ -35,7 +35,7 @@ public class ClearBulletinsEndpointMerger extends AbstractSingleEntityEndpoint<C
             Pattern.compile("/nifi-api/(?:processors|controller-services|reporting-tasks|parameter-providers|registry-clients|flow-analysis-rules|remote-process-groups)/[a-f0-9\\-]{36}/bulletins");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "POST".equalsIgnoreCase(method) && CLEAR_BULLETINS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -45,8 +45,8 @@ public class ClearBulletinsEndpointMerger extends AbstractSingleEntityEndpoint<C
     }
 
     @Override
-    protected void mergeResponses(ClearBulletinsResultEntity clientEntity, Map<NodeIdentifier, ClearBulletinsResultEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ClearBulletinsResultEntity clientEntity, final Map<NodeIdentifier, ClearBulletinsResultEntity> entityMap,
+                                  final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         // Sum up the total bulletins cleared across all nodes
         int totalBulletinsCleared = 0;

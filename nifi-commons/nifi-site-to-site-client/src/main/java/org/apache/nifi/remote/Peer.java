@@ -147,7 +147,7 @@ public class Peer implements Communicant {
     }
 
     @Override
-    public String createTransitUri(String sourceFlowFileIdentifier) {
+    public String createTransitUri(final String sourceFlowFileIdentifier) {
         return commsSession.createTransitUri(url, sourceFlowFileIdentifier);
     }
 }

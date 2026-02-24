@@ -92,7 +92,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
             try {
                 final PropertySource<?> authPropertiesSource = createPropertiesFileSource(authPropertiesFilename);
                 env.getPropertySources().addFirst(authPropertiesSource);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new HashiCorpVaultConfigurationException("Could not load HashiCorp Vault authentication properties " + authPropertiesFilename, e);
             }
         }
@@ -101,7 +101,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         if (env.containsProperty(VaultConfigurationKey.KV_VERSION.key)) {
             final String kvVersion = env.getProperty(VaultConfigurationKey.KV_VERSION.key);
             try {
-                int kvVersionNumber = Integer.parseInt(kvVersion);
+                final int kvVersionNumber = Integer.parseInt(kvVersion);
                 if (kvVersionNumber == KV_V2) {
                     keyValueBackend = KeyValueBackend.KV_2;
                 } else if (kvVersionNumber != KV_V1) {

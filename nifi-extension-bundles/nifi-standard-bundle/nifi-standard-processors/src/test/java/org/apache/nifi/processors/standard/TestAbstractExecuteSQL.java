@@ -36,7 +36,7 @@ public class TestAbstractExecuteSQL {
     public void setUp() throws Exception {
         testSubject = new AbstractExecuteSQL() {
             @Override
-            protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
+            protected SqlWriter configureSqlWriter(final ProcessSession session, final ProcessContext context, final FlowFile fileToProcess) {
                 return null;
             }
         };
@@ -45,16 +45,16 @@ public class TestAbstractExecuteSQL {
     @Test
     public void testGetQueries() {
         // GIVEN
-        String queriesString = "SOME kind of PRE-QUERY statement;\n" +
+        final String queriesString = "SOME kind of PRE-QUERY statement;\n" +
             "AND another PRE-QUERY statment;";
 
-        List<String> expected = Arrays.asList(
+        final List<String> expected = Arrays.asList(
             "SOME kind of PRE-QUERY statement",
             "AND another PRE-QUERY statment"
         );
 
         // WHEN
-        List<String> actual = testSubject.getQueries(queriesString);
+        final List<String> actual = testSubject.getQueries(queriesString);
 
         // THEN
         assertEquals(expected, actual);
@@ -63,18 +63,18 @@ public class TestAbstractExecuteSQL {
     @Test
     public void testGetQueriesWithEscapedSemicolon() {
         // GIVEN
-        String queriesString = "SET COMPLEX_KEY = 'KEYPART_1=value1\\;KEYPART_2=<valuePart2>\\;’ FOR SESSION;\n" +
+        final String queriesString = "SET COMPLEX_KEY = 'KEYPART_1=value1\\;KEYPART_2=<valuePart2>\\;’ FOR SESSION;\n" +
             "SOME other PRE-QUERY statement;\n" +
             "AND another PRE-QUERY statment;";
 
-        List<String> expected = Arrays.asList(
+        final List<String> expected = Arrays.asList(
             "SET COMPLEX_KEY = 'KEYPART_1=value1;KEYPART_2=<valuePart2>;’ FOR SESSION",
             "SOME other PRE-QUERY statement",
             "AND another PRE-QUERY statment"
         );
 
         // WHEN
-        List<String> actual = testSubject.getQueries(queriesString);
+        final List<String> actual = testSubject.getQueries(queriesString);
 
         // THEN
         assertEquals(expected, actual);

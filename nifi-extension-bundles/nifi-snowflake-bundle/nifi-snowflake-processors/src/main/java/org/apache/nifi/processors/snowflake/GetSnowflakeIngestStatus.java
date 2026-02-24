@@ -100,7 +100,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -120,9 +120,9 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
         try {
             final SimpleIngestManager snowflakeIngestManager = ingestManagerProviderService.getIngestManager();
             historyResponse = snowflakeIngestManager.getHistory(null, null, null);
-        } catch (URISyntaxException | IOException e) {
+        } catch (final URISyntaxException | IOException e) {
             throw new ProcessException("Failed to get Snowflake ingest history for staged file [" + stagedFilePath + "]", e);
-        } catch (IngestResponseException e) {
+        } catch (final IngestResponseException e) {
             getLogger().error("Failed to get Snowflake ingest history for staged file [{}]", stagedFilePath, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
@@ -147,7 +147,7 @@ public class GetSnowflakeIngestStatus extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("ingest-manager-provider", INGEST_MANAGER_PROVIDER.getName());
     }
 }

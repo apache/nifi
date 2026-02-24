@@ -47,7 +47,7 @@ public class HeartbeatResponseMessage extends ProtocolMessage {
         return flowElectionMessage;
     }
 
-    public void setFlowElectionMessage(String flowElectionMessage) {
+    public void setFlowElectionMessage(final String flowElectionMessage) {
         this.flowElectionMessage = flowElectionMessage;
     }
 

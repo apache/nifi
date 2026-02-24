@@ -93,10 +93,10 @@ class AzureBlobStorageFileResourceServiceTest {
 
     @Test
     void testValidBlobWithEL() throws InitializationException {
-        String customContainer = "custom-container";
-        String customBlobName = "custom-blob-name";
-        String blobKey = "blob.name";
-        String containerKey = "container.name";
+        final String customContainer = "custom-container";
+        final String customBlobName = "custom-blob-name";
+        final String blobKey = "blob.name";
+        final String containerKey = "container.name";
         setupService(String.format("${%s}", blobKey), String.format("${%s}", containerKey));
         setupMocking(customContainer, customBlobName);
         runner.setValidateExpressionUsage(false);
@@ -136,7 +136,7 @@ class AzureBlobStorageFileResourceServiceTest {
         setupService(BLOB_NAME, CONTAINER);
     }
 
-    private void setupService(String blobName, String container) throws InitializationException {
+    private void setupService(final String blobName, final String container) throws InitializationException {
         final AzureCredentialsService credentialsService = new StandardAzureCredentialsControllerService();
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsService);
@@ -149,7 +149,7 @@ class AzureBlobStorageFileResourceServiceTest {
         runner.enableControllerService(service);
     }
 
-    private void setupMocking(String container, String blobName) {
+    private void setupMocking(final String container, final String blobName) {
         when(client.getBlobContainerClient(container)).thenReturn(containerClient);
         when(containerClient.getBlobClient(blobName)).thenReturn(blobClient);
         when(blobClient.exists()).thenReturn(true);
@@ -158,13 +158,13 @@ class AzureBlobStorageFileResourceServiceTest {
         when(blobClient.openInputStream()).thenReturn(blobInputStream);
     }
 
-    private void assertFileResource(FileResource fileResource) {
+    private void assertFileResource(final FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), blobInputStream);
         assertEquals(fileResource.getSize(), CONTENT_LENGTH);
     }
 
-    private void verifyMockInvocations(String customContainer, String customBlobName) {
+    private void verifyMockInvocations(final String customContainer, final String customBlobName) {
         verify(client).getBlobContainerClient(customContainer);
         verify(containerClient).getBlobClient(customBlobName);
         verify(blobClient).exists();
@@ -178,12 +178,12 @@ class AzureBlobStorageFileResourceServiceTest {
 
         private final BlobServiceClient client;
 
-        public TestAzureBlobStorageFileResourceService(BlobServiceClient client) {
+        public TestAzureBlobStorageFileResourceService(final BlobServiceClient client) {
             this.client = client;
         }
 
         @Override
-        protected BlobServiceClient getStorageClient(Map<String, String> attributes) {
+        protected BlobServiceClient getStorageClient(final Map<String, String> attributes) {
             return client;
         }
     }

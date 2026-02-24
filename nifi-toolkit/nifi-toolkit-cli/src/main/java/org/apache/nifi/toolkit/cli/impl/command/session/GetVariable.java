@@ -54,7 +54,7 @@ public class GetVariable extends AbstractCommand<StringResult> {
             } else {
                 return new StringResult(value, getContext().isInteractive());
             }
-        } catch (SessionException se) {
+        } catch (final SessionException se) {
             throw new CommandException(se.getMessage(), se);
         }
     }

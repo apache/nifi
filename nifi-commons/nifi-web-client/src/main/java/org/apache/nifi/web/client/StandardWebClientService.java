@@ -420,7 +420,7 @@ public class StandardWebClientService implements WebClientService, Closeable {
                     }
 
                     @Override
-                    public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+                    public void subscribe(final Flow.Subscriber<? super ByteBuffer> subscriber) {
                         inputStreamPublisher.subscribe(subscriber);
                     }
                 };

@@ -123,7 +123,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
     }
 
@@ -148,7 +148,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     }
 
     @Override
-    public long getTotalQueuedDuration(long fromTimestamp) {
+    public long getTotalQueuedDuration(final long fromTimestamp) {
         return queue.getTotalQueuedDuration(fromTimestamp);
     }
 

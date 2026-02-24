@@ -63,7 +63,7 @@ public interface RecordSinkService extends ControllerService {
     default void reset() { }
 
     @Override
-    default void migrateProperties(PropertyConfiguration config) {
+    default void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-sink-record-writer", RECORD_WRITER_FACTORY.getName());
     }
 }

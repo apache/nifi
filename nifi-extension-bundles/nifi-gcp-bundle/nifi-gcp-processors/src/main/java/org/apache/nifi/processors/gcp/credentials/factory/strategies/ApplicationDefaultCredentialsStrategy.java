@@ -36,7 +36,7 @@ public class ApplicationDefaultCredentialsStrategy extends AbstractCredentialsSt
     }
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+    public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties, final HttpTransportFactory transportFactory) throws IOException {
         return GoogleCredentials.getApplicationDefault(transportFactory);
     }
 

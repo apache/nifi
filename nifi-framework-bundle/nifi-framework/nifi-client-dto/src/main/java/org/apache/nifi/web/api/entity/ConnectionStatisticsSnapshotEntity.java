@@ -37,7 +37,7 @@ public class ConnectionStatisticsSnapshotEntity extends Entity implements Readab
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class ConnectionStatisticsSnapshotEntity extends Entity implements Readab
         return connectionStatisticsSnapshot;
     }
 
-    public void setConnectionStatisticsSnapshot(ConnectionStatisticsSnapshotDTO connectionStatusSnapshot) {
+    public void setConnectionStatisticsSnapshot(final ConnectionStatisticsSnapshotDTO connectionStatusSnapshot) {
         this.connectionStatisticsSnapshot = connectionStatusSnapshot;
     }
 
@@ -60,7 +60,7 @@ public class ConnectionStatisticsSnapshotEntity extends Entity implements Readab
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

@@ -54,7 +54,7 @@ public abstract class AbstractNiFiRegistryCommand<R extends Result> extends Abst
         final ClientFactory<NiFiRegistryClient> clientFactory = getContext().getNiFiRegistryClientFactory();
         try (final NiFiRegistryClient client = clientFactory.createClient(properties)) {
             return doExecute(client, properties);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CommandException("Error executing command '" + getName() + "' : " + e.getMessage(), e);
         }
     }

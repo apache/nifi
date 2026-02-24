@@ -35,7 +35,7 @@ public class KerberosTicketValidatorFactory {
     private KerberosTicketValidator kerberosTicketValidator;
 
     @Autowired
-    public KerberosTicketValidatorFactory(NiFiRegistryProperties properties) {
+    public KerberosTicketValidatorFactory(final NiFiRegistryProperties properties) {
         this.properties = properties;
     }
 
@@ -53,7 +53,7 @@ public class KerberosTicketValidatorFactory {
             }
 
             // Create ticket validator to inject into KerberosServiceAuthenticationProvider
-            SunJaasKerberosTicketValidator ticketValidator = new SunJaasKerberosTicketValidator();
+            final SunJaasKerberosTicketValidator ticketValidator = new SunJaasKerberosTicketValidator();
             ticketValidator.setServicePrincipal(properties.getKerberosSpnegoPrincipal());
             ticketValidator.setKeyTabLocation(new FileSystemResource(properties.getKerberosSpnegoKeytabLocation()));
             ticketValidator.afterPropertiesSet();

@@ -92,7 +92,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         assertFalse(consumerService.hasRevokedPartitions());
 
@@ -120,7 +121,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         consumerService.onPartitionsRevoked(List.of(partition0, partition1));
         consumerService.commitOffsetsForRevokedPartitions();
@@ -158,7 +160,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
         consumerService.commitOffsetsForRevokedPartitions();
@@ -186,7 +189,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
         consumerService.commitOffsetsForRevokedPartitions();
@@ -213,7 +217,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.committed(any())).thenReturn(Collections.singletonMap(partition0, new OffsetAndMetadata(0L)));
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
         assertTrue(consumerService.hasRevokedPartitions());
@@ -238,7 +243,8 @@ class Kafka3ConsumerServiceTest {
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        polledRecords.forEach(record -> { });
+        for (final ByteRecord ignored : polledRecords) {
+        }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
         assertTrue(consumerService.hasRevokedPartitions());
@@ -269,8 +275,8 @@ class Kafka3ConsumerServiceTest {
             final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap) {
         // Calculate next offsets from the records (max offset + 1 for each partition)
         final Map<TopicPartition, OffsetAndMetadata> nextOffsets = new HashMap<>();
-        for (Map.Entry<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> entry : recordsMap.entrySet()) {
-            long maxOffset = entry.getValue().stream()
+        for (final Map.Entry<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> entry : recordsMap.entrySet()) {
+            final long maxOffset = entry.getValue().stream()
                     .mapToLong(ConsumerRecord::offset)
                     .max()
                     .orElse(-1L);

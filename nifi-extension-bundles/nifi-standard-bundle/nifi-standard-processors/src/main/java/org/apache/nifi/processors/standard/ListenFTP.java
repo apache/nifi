@@ -160,14 +160,14 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
     }
 
     @OnScheduled
-    public void startFtpServer(ProcessContext context) {
+    public void startFtpServer(final ProcessContext context) {
         if (ftpServer == null) {
             sessionFactory.set(null);
 
-            String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-            String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
-            String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
-            int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+            final String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
+            final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
             final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
 
             try {
@@ -183,7 +183,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
                         .sslContextProvider(sslContextProvider)
                         .build();
                 ftpServer.start();
-            } catch (ProcessException processException) {
+            } catch (final ProcessException processException) {
                 getLogger().error(processException.getMessage(), processException);
                 stopFtpServer();
                 throw processException;
@@ -221,7 +221,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         if (this.sessionFactory.compareAndSet(null, sessionFactory)) {
             sessionFactorySetSignal.countDown();
         }
@@ -229,8 +229,8 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> results = new ArrayList<>(3);
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>(3);
 
         validateUsernameAndPassword(context, results);
         validateBindAddress(context, results);
@@ -238,9 +238,9 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
         return results;
     }
 
-    private void validateUsernameAndPassword(ValidationContext context, Collection<ValidationResult> validationResults) {
-        String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+    private void validateUsernameAndPassword(final ValidationContext context, final Collection<ValidationResult> validationResults) {
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         if ((username == null) && (password != null)) {
             validationResults.add(usernameOrPasswordIsNull(USERNAME));
@@ -249,22 +249,22 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
         }
     }
 
-    private void validateBindAddress(ValidationContext context, Collection<ValidationResult> validationResults) {
-        String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
+    private void validateBindAddress(final ValidationContext context, final Collection<ValidationResult> validationResults) {
+        final String bindAddress = context.getProperty(ADDRESS).evaluateAttributeExpressions().getValue();
         try {
             InetAddress.getByName(bindAddress);
-        } catch (UnknownHostException e) {
-            String explanation = String.format("'%s' is unknown", ADDRESS.getDisplayName());
+        } catch (final UnknownHostException e) {
+            final String explanation = String.format("'%s' is unknown", ADDRESS.getDisplayName());
             validationResults.add(createValidationResult(ADDRESS.getDisplayName(), explanation));
         }
     }
 
-    private ValidationResult usernameOrPasswordIsNull(PropertyDescriptor nullProperty) {
-        String explanation = String.format("'%s' and '%s' should either both be provided or none of them", USERNAME.getDisplayName(), PASSWORD.getDisplayName());
+    private ValidationResult usernameOrPasswordIsNull(final PropertyDescriptor nullProperty) {
+        final String explanation = String.format("'%s' and '%s' should either both be provided or none of them", USERNAME.getDisplayName(), PASSWORD.getDisplayName());
         return createValidationResult(nullProperty.getDisplayName(), explanation);
     }
 
-    private ValidationResult createValidationResult(String subject, String explanation) {
+    private ValidationResult createValidationResult(final String subject, final String explanation) {
         return new ValidationResult.Builder().subject(subject).valid(false).explanation(explanation).build();
     }
 

@@ -459,7 +459,7 @@ class TestWriteJsonResult {
 
         baos.reset();
         try (
-                final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
                         NullSuppression.ALWAYS_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)) {
             writer.beginRecordSet();
             writer.write(recordWithMissingName);
@@ -495,7 +495,7 @@ class TestWriteJsonResult {
 
         baos.reset();
         try (
-                final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
                         NullSuppression.ALWAYS_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)) {
             writer.beginRecordSet();
             writer.write(recordWithNullValue);
@@ -565,7 +565,7 @@ class TestWriteJsonResult {
         fields.add(new RecordField("path", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()))));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        Object[] paths = new Object[1];
+        final Object[] paths = new Object[1];
         paths[0] = "10.2.1.3";
 
         final Map<String, Object> values = new HashMap<>();
@@ -616,7 +616,7 @@ class TestWriteJsonResult {
 
         final Map<String, Object> values = new HashMap<>();
         values.put("items", itemDataArray);
-        Record topLevelRecord = new MapRecord(schema, values);
+        final Record topLevelRecord = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,

@@ -59,7 +59,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
 
-    public HiveMqV5ClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+    public HiveMqV5ClientAdapter(final URI brokerUri, final MqttClientProperties clientProperties, final ComponentLog logger) throws TlsException {
         this.mqtt5BlockingClient = createClient(brokerUri, clientProperties, logger);
         this.clientProperties = clientProperties;
         this.logger = logger;
@@ -119,7 +119,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void publish(String topic, StandardMqttMessage message) {
+    public void publish(final String topic, final StandardMqttMessage message) {
         logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
 
         mqtt5BlockingClient.publishWith()
@@ -131,10 +131,10 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(final String topicFilter, final int qos, final ReceivedMqttMessageHandler handler) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
-        CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
+        final CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
                 .topicFilter(topicFilter)
                 .qos(Objects.requireNonNull(MqttQos.fromCode(qos)))
                 .callback(mqtt5Publish -> {
@@ -152,12 +152,12 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         try {
             final Mqtt5SubAck ack = futureAck.get(clientProperties.getConnectionTimeout(), TimeUnit.SECONDS);
             logger.debug("Received mqtt5 subscribe ack: {}", ack);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
         }
     }
 
-    private static Mqtt5BlockingClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
+    private static Mqtt5BlockingClient createClient(final URI brokerUri, final MqttClientProperties clientProperties, final ComponentLog logger) throws TlsException {
         logger.debug("Creating Mqtt v5 client");
 
         final Mqtt5ClientBuilder mqtt5ClientBuilder = Mqtt5Client.builder()

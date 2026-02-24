@@ -70,10 +70,10 @@ class TestIncrementalTimers {
 
     @Test
     void testEndTimeIsTruncatedToSeconds() {
-        TemporalAccessor temporalAccessor = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault()).parse("2022-08-11T12:34:23.728");
+        final TemporalAccessor temporalAccessor = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault()).parse("2022-08-11T12:34:23.728");
         final Instant currentExecutionTime = Instant.from(temporalAccessor);
         final String expectedEndTime = currentExecutionTime.truncatedTo(ChronoUnit.SECONDS).toString();
-        IncrementalTimers timers = IncrementalTimers.ofState(Collections.emptyMap(), null, 0L, currentExecutionTime);
+        final IncrementalTimers timers = IncrementalTimers.ofState(Collections.emptyMap(), null, 0L, currentExecutionTime);
         assertEquals(expectedEndTime, timers.getEndTime());
     }
 

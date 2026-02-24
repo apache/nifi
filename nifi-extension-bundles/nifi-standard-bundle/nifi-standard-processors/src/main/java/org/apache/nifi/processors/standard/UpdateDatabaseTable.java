@@ -347,10 +347,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 // handle this separately from the other IOExceptions which normally route to retry
                 try {
                     reader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new ProcessException("Unable to create RecordReader", e);
                 }
-            } catch (ProcessException rrfe) {
+            } catch (final ProcessException rrfe) {
                 log.error(
                         "Failed to create {} for {} - routing to failure",
                         RecordReader.class.getSimpleName(), flowFile,
@@ -359,7 +359,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 // Since we are wrapping the exceptions above there should always be a cause
                 // but it's possible it might not have a message. This handles that by logging
                 // the name of the class thrown.
-                Throwable c = rrfe.getCause();
+                final Throwable c = rrfe.getCause();
                 if (c != null) {
                     session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
                 } else {
@@ -423,7 +423,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                             try {
                                 recordReader = recordReaderFactory.createRecordReader(inputFlowFile, in, getLogger());
                                 recordSetWriter = recordWriterFactory.createWriter(getLogger(), outputMetadataHolder.getOutputSchema(), out, attributes);
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 if (e instanceof IOException) {
                                     throw (IOException) e;
                                 }
@@ -458,21 +458,21 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, getJdbcUrl(connection));
                 session.transfer(flowFile, REL_SUCCESS);
             }
-        } catch (IOException | SQLException e) {
+        } catch (final IOException | SQLException e) {
             flowFile = session.putAttribute(flowFile, ATTR_OUTPUT_TABLE, tableName);
             log.error("Exception while processing {} - routing to failure", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
-        } catch (DiscontinuedException e) {
+        } catch (final DiscontinuedException e) {
             // The input FlowFile processing is discontinued. Keep it in the input queue.
             getLogger().warn("Discontinued processing for {} due to {}", flowFile, e, e);
             session.transfer(flowFile, Relationship.SELF);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("db-type", DB_TYPE.getName());
         config.renameProperty("updatedatabasetable-dbcp-service", DBCP_SERVICE.getName());
@@ -514,7 +514,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             TableSchema tableSchema = null;
             try {
                 tableSchema = TableSchema.from(conn, catalogName, schemaName, tableName, translateFieldNames, normalizer, null, getLogger());
-            } catch (TableNotFoundException ignored) {
+            } catch (final TableNotFoundException ignored) {
                 // Do nothing, the value will be populated if necessary
             }
 
@@ -524,8 +524,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 if (createIfNotExists) {
 
                     // Create a TableSchema from the record, adding all columns
-                    for (RecordField recordField : schema.getFields()) {
-                        String recordFieldName = recordField.getFieldName();
+                    for (final RecordField recordField : schema.getFields()) {
+                        final String recordFieldName = recordField.getFieldName();
                         // Assume a column to be created is required if there is a default value in the schema
                         final boolean required = (recordField.getDefaultValue() != null);
 
@@ -574,12 +574,12 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             // If the table wasn't newly created, alter it accordingly
             if (!tableCreated) {
                 // Handle new columns
-                for (RecordField recordField : schema.getFields()) {
+                for (final RecordField recordField : schema.getFields()) {
                     final String recordFieldName = recordField.getFieldName();
                     final String normalizedFieldName = TableSchema.normalizedName(recordFieldName, translateFieldNames, normalizer);
                     if (!dbColumns.contains(normalizedFieldName)) {
                         // The field does not exist in the table, add it
-                        ColumnDescription columnToAdd = new ColumnDescription(normalizedFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()),
+                        final ColumnDescription columnToAdd = new ColumnDescription(normalizedFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()),
                                 recordField.getDefaultValue() != null, null, recordField.isNullable());
                         columnsToAdd.add(columnToAdd);
                         dbColumns.add(recordFieldName);
@@ -617,7 +617,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 final Map<String, String> fieldMap = new HashMap<>();
                 boolean needsUpdating = false;
 
-                for (RecordField inputRecordField : inputRecordFields) {
+                for (final RecordField inputRecordField : inputRecordFields) {
                     final String inputRecordFieldName = inputRecordField.getFieldName();
                     boolean found = false;
                     for (final String columnName : dbColumns) {
@@ -644,7 +644,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 outputMetadataHolder = null;
             }
             return outputMetadataHolder;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException(e);
         }
     }
@@ -655,10 +655,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             writer.beginRecordSet();
             Record inputRecord;
             while ((inputRecord = reader.nextRecord()) != null) {
-                List<RecordField> inputRecordFields = inputRecordSchema.getFields();
-                Map<String, Object> outputRecordFields = new HashMap<>(inputRecordFields.size());
+                final List<RecordField> inputRecordFields = inputRecordSchema.getFields();
+                final Map<String, Object> outputRecordFields = new HashMap<>(inputRecordFields.size());
                 // Copy values from input field name to output field name
-                for (Map.Entry<String, String> mapping : outputMetadataHolder.getFieldMap().entrySet()) {
+                for (final Map.Entry<String, String> mapping : outputMetadataHolder.getFieldMap().entrySet()) {
                     outputRecordFields.put(mapping.getValue(), inputRecord.getValue(mapping.getKey()));
                 }
                 final Record outputRecord = new MapRecord(outputMetadataHolder.getOutputSchema(), outputRecordFields);
@@ -666,7 +666,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             }
             return writer.finishRecordSet();
 
-        } catch (MalformedRecordException mre) {
+        } catch (final MalformedRecordException mre) {
             throw new IOException("Error reading records: " + mre.getMessage(), mre);
         }
     }

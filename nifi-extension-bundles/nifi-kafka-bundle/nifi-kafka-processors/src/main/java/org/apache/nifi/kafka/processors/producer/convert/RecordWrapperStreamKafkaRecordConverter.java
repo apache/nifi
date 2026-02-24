@@ -83,7 +83,7 @@ public class RecordWrapperStreamKafkaRecordConverter implements KafkaRecordConve
             final RecordSet recordSet = reader.createRecordSet();
             final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
             return toKafkaRecordIterator(pushBackRecordSet);
-        } catch (MalformedRecordException | SchemaNotFoundException e) {
+        } catch (final MalformedRecordException | SchemaNotFoundException e) {
             throw new IOException("Stream to Record conversion failed", e);
         }
     }

@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
 
 public class TestStandardPublicPort {
 
-    private PublicPort createPublicPort(NiFiProperties nifiProperties) {
+    private PublicPort createPublicPort(final NiFiProperties nifiProperties) {
         final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
         final ProcessScheduler processScheduler = null;
 
@@ -84,7 +84,7 @@ public class TestStandardPublicPort {
 
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         final String mapKey = ".dn";
-        Set<String> propertyKeys = new LinkedHashSet<>();
+        final Set<String> propertyKeys = new LinkedHashSet<>();
         propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey);
         propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey);
         doReturn(propertyKeys).when(nifiProperties).getPropertyKeys();
@@ -109,7 +109,7 @@ public class TestStandardPublicPort {
 
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         final String mapKey = ".dn";
-        Set<String> propertyKeys = new LinkedHashSet<>();
+        final Set<String> propertyKeys = new LinkedHashSet<>();
         propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX + mapKey);
         propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX + mapKey);
         propertyKeys.add(NiFiProperties.SECURITY_IDENTITY_MAPPING_TRANSFORM_PREFIX + mapKey);

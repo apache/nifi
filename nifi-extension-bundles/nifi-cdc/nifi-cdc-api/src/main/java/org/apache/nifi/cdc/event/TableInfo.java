@@ -30,7 +30,7 @@ public class TableInfo {
     private Long tableId;
     private List<ColumnDefinition> columns;
 
-    public TableInfo(String databaseName, String tableName, Long tableId, List<ColumnDefinition> columns) {
+    public TableInfo(final String databaseName, final String tableName, final Long tableId, final List<ColumnDefinition> columns) {
         this.databaseName = databaseName;
         this.tableName = tableName;
         this.tableId = tableId;
@@ -45,7 +45,7 @@ public class TableInfo {
         return tableName;
     }
 
-    public void setTableName(String tableName) {
+    public void setTableName(final String tableName) {
         this.tableName = tableName;
     }
 
@@ -57,12 +57,12 @@ public class TableInfo {
         return columns;
     }
 
-    public void setColumns(List<ColumnDefinition> columns) {
+    public void setColumns(final List<ColumnDefinition> columns) {
         this.columns = columns;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -70,7 +70,7 @@ public class TableInfo {
             return false;
         }
 
-        TableInfo that = (TableInfo) o;
+        final TableInfo that = (TableInfo) o;
 
         return new EqualsBuilder()
                 .append(databaseName, that.databaseName)

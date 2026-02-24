@@ -104,7 +104,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         runner.addControllerService("oauthTokenProvider", provider);
 
         // Mock PropertyValue for WEB_CLIENT_SERVICE
-        PropertyValue webClientServicePropertyValue = mock(PropertyValue.class);
+        final PropertyValue webClientServicePropertyValue = mock(PropertyValue.class);
         when(mockContext.getProperty(JWTBearerOAuth2AccessTokenProvider.WEB_CLIENT_SERVICE))
                 .thenReturn(webClientServicePropertyValue);
 
@@ -145,7 +145,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         assertEquals(0, configVerifResults.stream().filter(result -> !result.getOutcome().equals(Outcome.SUCCESSFUL)).count());
 
         // Validate the claims are properly set
-        JWTClaimsSet claimsSet = provider.getJwtClaimsSet();
+        final JWTClaimsSet claimsSet = provider.getJwtClaimsSet();
         assertEquals("TestIssuer", claimsSet.getIssuer());
         assertEquals("TestSubject", claimsSet.getSubject());
         assertEquals("TestAudience1", claimsSet.getAudience().get(0));
@@ -159,12 +159,12 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         assertEquals("customClaimValue2", claimsSet.getStringClaim("customClaim2"));
 
         // validate the header
-        JWSHeader jwsHeader = provider.getJwsHeader();
+        final JWSHeader jwsHeader = provider.getJwsHeader();
         assertEquals(JWSAlgorithm.RS256, jwsHeader.getAlgorithm());
         assertEquals("{\"typ\":\"JWT\",\"alg\":\"RS256\"}", jwsHeader.toString());
 
         // validate the form parameters
-        Map<String, String> formParams = provider.getFormParams();
+        final Map<String, String> formParams = provider.getFormParams();
         assertEquals("test-assertion", formParams.get("customAssertionField"));
         assertEquals("clientId", formParams.get("clientId"));
         assertEquals("clientSecret", formParams.get("clientSecret"));
@@ -182,9 +182,9 @@ class JWTBearerOAuth2AccessTokenProviderTest {
 
         // generate 2 JWTs using getAccessDetails() method and then access the claims via the test controller service
         provider.getAccessDetails();
-        JWTClaimsSet claimsSet1 = provider.getJwtClaimsSet();
+        final JWTClaimsSet claimsSet1 = provider.getJwtClaimsSet();
         provider.getAccessDetails();
-        JWTClaimsSet claimsSet2 = provider.getJwtClaimsSet();
+        final JWTClaimsSet claimsSet2 = provider.getJwtClaimsSet();
 
         // assert that the 'jti' claims are different in the 2 JWTs
         assertNotEquals(claimsSet1.getJWTID(), claimsSet2.getJWTID());
@@ -241,7 +241,7 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.SIGNING_ALGORITHM, JWSAlgorithm.RS512.getName());
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.HEADER_X5T, Boolean.TRUE.toString());
 
-        PropertyValue sslServicePropertyValue = mock(PropertyValue.class);
+        final PropertyValue sslServicePropertyValue = mock(PropertyValue.class);
         when(mockContext.getProperty(JWTBearerOAuth2AccessTokenProvider.SSL_CONTEXT_PROVIDER))
                 .thenReturn(sslServicePropertyValue);
 
@@ -287,14 +287,14 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         runner.setProperty(provider, JWTBearerOAuth2AccessTokenProvider.REFRESH_WINDOW, "5 minutes");
     }
 
-    private void setPrivateKeyMock(Class<? extends PrivateKey> pkClass) throws InitializationException {
+    private void setPrivateKeyMock(final Class<? extends PrivateKey> pkClass) throws InitializationException {
         // Mock the PrivateKeyService directly
-        PrivateKey mockPrivateKey = mock(pkClass);
-        PrivateKeyService keyService = mock(PrivateKeyService.class);
+        final PrivateKey mockPrivateKey = mock(pkClass);
+        final PrivateKeyService keyService = mock(PrivateKeyService.class);
         lenient().when(keyService.getPrivateKey()).thenReturn(mockPrivateKey);
 
         // Mock PropertyValue for PRIVATE_KEY_SERVICE
-        PropertyValue privateKeyServicePropertyValue = mock(PropertyValue.class);
+        final PropertyValue privateKeyServicePropertyValue = mock(PropertyValue.class);
         lenient().when(mockContext.getProperty(JWTBearerOAuth2AccessTokenProvider.PRIVATE_KEY_SERVICE))
                 .thenReturn(privateKeyServicePropertyValue);
         lenient().when(mockValidationContext.getProperty(JWTBearerOAuth2AccessTokenProvider.PRIVATE_KEY_SERVICE))
@@ -321,14 +321,14 @@ class JWTBearerOAuth2AccessTokenProviderTest {
         }
 
         @Override
-        protected String getAssertion(JWSHeader jwsHeader, JWTClaimsSet jwtClaimsSet) throws JOSEException {
+        protected String getAssertion(final JWSHeader jwsHeader, final JWTClaimsSet jwtClaimsSet) throws JOSEException {
             this.jwsHeader = jwsHeader;
             this.jwtClaimsSet = jwtClaimsSet;
             return "test-assertion";
         }
 
         @Override
-        protected void requestTokenEndpoint(Map<String, String> formParams) throws URISyntaxException {
+        protected void requestTokenEndpoint(final Map<String, String> formParams) throws URISyntaxException {
             this.formParams = formParams;
         }
 

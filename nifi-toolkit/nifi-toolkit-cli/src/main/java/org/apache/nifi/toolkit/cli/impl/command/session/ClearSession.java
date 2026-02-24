@@ -38,7 +38,7 @@ public class ClearSession extends AbstractCommand<VoidResult> {
         try {
             getContext().getSession().clear();
             return VoidResult.getInstance();
-        } catch (SessionException se) {
+        } catch (final SessionException se) {
             throw new CommandException(se.getMessage(), se);
         }
     }

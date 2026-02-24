@@ -59,7 +59,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return inputRequirement;
     }
 
-    public void setInputRequirement(InputRequirement.Requirement inputRequirement) {
+    public void setInputRequirement(final InputRequirement.Requirement inputRequirement) {
         this.inputRequirement = inputRequirement;
     }
 
@@ -68,7 +68,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return (supportedRelationships == null ? Collections.emptyList() : Collections.unmodifiableList(supportedRelationships));
     }
 
-    public void setSupportedRelationships(List<Relationship> supportedRelationships) {
+    public void setSupportedRelationships(final List<Relationship> supportedRelationships) {
         this.supportedRelationships = supportedRelationships;
     }
 
@@ -77,7 +77,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return supportsDynamicRelationships;
     }
 
-    public void setSupportsDynamicRelationships(boolean supportsDynamicRelationships) {
+    public void setSupportsDynamicRelationships(final boolean supportsDynamicRelationships) {
         this.supportsDynamicRelationships = supportsDynamicRelationships;
     }
 
@@ -86,7 +86,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return dynamicRelationship;
     }
 
-    public void setDynamicRelationship(DynamicRelationship dynamicRelationship) {
+    public void setDynamicRelationship(final DynamicRelationship dynamicRelationship) {
         this.dynamicRelationship = dynamicRelationship;
     }
 
@@ -95,7 +95,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return triggerSerially;
     }
 
-    public void setTriggerSerially(boolean triggerSerially) {
+    public void setTriggerSerially(final boolean triggerSerially) {
         this.triggerSerially = triggerSerially;
     }
 
@@ -104,7 +104,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return triggerWhenEmpty;
     }
 
-    public void setTriggerWhenEmpty(boolean triggerWhenEmpty) {
+    public void setTriggerWhenEmpty(final boolean triggerWhenEmpty) {
         this.triggerWhenEmpty = triggerWhenEmpty;
     }
 
@@ -113,7 +113,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return triggerWhenAnyDestinationAvailable;
     }
 
-    public void setTriggerWhenAnyDestinationAvailable(boolean triggerWhenAnyDestinationAvailable) {
+    public void setTriggerWhenAnyDestinationAvailable(final boolean triggerWhenAnyDestinationAvailable) {
         this.triggerWhenAnyDestinationAvailable = triggerWhenAnyDestinationAvailable;
     }
 
@@ -124,7 +124,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return supportsBatching;
     }
 
-    public void setSupportsBatching(boolean supportsBatching) {
+    public void setSupportsBatching(final boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
     }
 
@@ -133,7 +133,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return primaryNodeOnly;
     }
 
-    public void setPrimaryNodeOnly(boolean primaryNodeOnly) {
+    public void setPrimaryNodeOnly(final boolean primaryNodeOnly) {
         this.primaryNodeOnly = primaryNodeOnly;
     }
 
@@ -143,7 +143,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return sideEffectFree;
     }
 
-    public void setSideEffectFree(boolean sideEffectFree) {
+    public void setSideEffectFree(final boolean sideEffectFree) {
         this.sideEffectFree = sideEffectFree;
     }
 
@@ -152,7 +152,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return supportedSchedulingStrategies;
     }
 
-    public void setSupportedSchedulingStrategies(List<String> supportedSchedulingStrategies) {
+    public void setSupportedSchedulingStrategies(final List<String> supportedSchedulingStrategies) {
         this.supportedSchedulingStrategies = supportedSchedulingStrategies;
     }
 
@@ -161,7 +161,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultSchedulingStrategy;
     }
 
-    public void setDefaultSchedulingStrategy(String defaultSchedulingStrategy) {
+    public void setDefaultSchedulingStrategy(final String defaultSchedulingStrategy) {
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
@@ -170,7 +170,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultConcurrentTasksBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultConcurrentTasksBySchedulingStrategy) : null;
     }
 
-    public void setDefaultConcurrentTasksBySchedulingStrategy(Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
+    public void setDefaultConcurrentTasksBySchedulingStrategy(final Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
         this.defaultConcurrentTasksBySchedulingStrategy = defaultConcurrentTasksBySchedulingStrategy;
     }
 
@@ -180,7 +180,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultSchedulingPeriodBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodBySchedulingStrategy) : null;
     }
 
-    public void setDefaultSchedulingPeriodBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
+    public void setDefaultSchedulingPeriodBySchedulingStrategy(final Map<String, String> defaultSchedulingPeriodBySchedulingStrategy) {
         this.defaultSchedulingPeriodBySchedulingStrategy = defaultSchedulingPeriodBySchedulingStrategy;
     }
 
@@ -189,7 +189,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultPenaltyDuration;
     }
 
-    public void setDefaultPenaltyDuration(String defaultPenaltyDuration) {
+    public void setDefaultPenaltyDuration(final String defaultPenaltyDuration) {
         this.defaultPenaltyDuration = defaultPenaltyDuration;
     }
 
@@ -198,7 +198,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultYieldDuration;
     }
 
-    public void setDefaultYieldDuration(String defaultYieldDuration) {
+    public void setDefaultYieldDuration(final String defaultYieldDuration) {
         this.defaultYieldDuration = defaultYieldDuration;
     }
 
@@ -207,7 +207,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return defaultBulletinLevel;
     }
 
-    public void setDefaultBulletinLevel(String defaultBulletinLevel) {
+    public void setDefaultBulletinLevel(final String defaultBulletinLevel) {
         this.defaultBulletinLevel = defaultBulletinLevel;
     }
 
@@ -216,7 +216,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return readsAttributes;
     }
 
-    public void setReadsAttributes(List<Attribute> readsAttributes) {
+    public void setReadsAttributes(final List<Attribute> readsAttributes) {
         this.readsAttributes = readsAttributes;
     }
 
@@ -225,7 +225,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
         return writesAttributes;
     }
 
-    public void setWritesAttributes(List<Attribute> writesAttributes) {
+    public void setWritesAttributes(final List<Attribute> writesAttributes) {
         this.writesAttributes = writesAttributes;
     }
 

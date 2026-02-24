@@ -41,8 +41,8 @@ public class C2HeartbeatManager implements Runnable {
     private final Supplier<RuntimeInfoWrapper> runtimeInfoSupplier;
     private final C2OperationManager c2OperationManager;
 
-    public C2HeartbeatManager(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, ReentrantLock heartbeatLock, Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
-                              C2OperationManager c2OperationManager) {
+    public C2HeartbeatManager(final C2Client client, final C2HeartbeatFactory c2HeartbeatFactory, final ReentrantLock heartbeatLock, final Supplier<RuntimeInfoWrapper> runtimeInfoSupplier,
+                              final C2OperationManager c2OperationManager) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
         this.heartbeatLock = heartbeatLock;
@@ -58,9 +58,9 @@ public class C2HeartbeatManager implements Runnable {
         }
         try {
             LOGGER.debug("Heartbeat lock is acquired, sending heartbeat");
-            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoSupplier.get());
+            final C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoSupplier.get());
             client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to send/process heartbeat", e);
         } finally {
             heartbeatLock.unlock();
@@ -68,7 +68,7 @@ public class C2HeartbeatManager implements Runnable {
         }
     }
 
-    private void processResponse(C2HeartbeatResponse response) {
+    private void processResponse(final C2HeartbeatResponse response) {
         ofNullable(response.getRequestedOperations())
             .filter(not(List::isEmpty))
             .ifPresentOrElse(operations -> {

@@ -46,7 +46,7 @@ public class AuthorizeParameterReference {
         boolean referencesParameter = false;
         for (final String proposedPropertyValue : proposedProperties.values()) {
             // Check if any Parameter is referenced. If so, user must have READ policy on the Parameter Context
-            ParameterTokenList tokenList = parameterParser.parseTokens(proposedPropertyValue);
+            final ParameterTokenList tokenList = parameterParser.parseTokens(proposedPropertyValue);
             if (!tokenList.toReferenceList().isEmpty()) {
                 referencesParameter = true;
                 break;
@@ -68,7 +68,7 @@ public class AuthorizeParameterReference {
         boolean referencesParameter = false;
 
         // Check if any Parameter is referenced. If so, user must have READ policy on the Parameter Context
-        ParameterTokenList tokenList = parameterParser.parseTokens(annotationData);
+        final ParameterTokenList tokenList = parameterParser.parseTokens(annotationData);
         if (!tokenList.toReferenceList().isEmpty()) {
             referencesParameter = true;
         }

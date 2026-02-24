@@ -212,7 +212,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     }
 
     @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> results) {
     }
 
     @Override
@@ -227,13 +227,13 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     public void onScheduled(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
-        HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
+        final HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
         driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA_READONLY);
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
@@ -291,12 +291,12 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        StringBuilder queryTemplateBuilder = new StringBuilder();
+        final StringBuilder queryTemplateBuilder = new StringBuilder();
         queryTemplateBuilder.append("('%s' in parents)");
         queryTemplateBuilder.append(" and (mimeType != '").append(DRIVE_SHORTCUT_MIME_TYPE).append("')");
         queryTemplateBuilder.append(" and trashed = false");
         if (minTimestamp != null && minTimestamp > 0) {
-            String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
+            final String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
 
             queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
             queryTemplateBuilder.append(" or modifiedTime >= '").append(formattedMinTimestamp).append("'");
@@ -304,8 +304,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             queryTemplateBuilder.append(")");
         }
         if (minAge != null && minAge > 0) {
-            long maxTimestamp = System.currentTimeMillis() - minAge;
-            String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
+            final long maxTimestamp = System.currentTimeMillis() - minAge;
+            final String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
 
             queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
             queryTemplateBuilder.append(" or (modifiedTime < '").append(formattedMaxTimestamp).append("'");

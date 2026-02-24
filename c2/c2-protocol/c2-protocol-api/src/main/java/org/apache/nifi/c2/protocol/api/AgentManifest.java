@@ -32,7 +32,7 @@ public class AgentManifest extends RuntimeManifest {
     public AgentManifest() {
     }
 
-    public AgentManifest(RuntimeManifest manifest) {
+    public AgentManifest(final RuntimeManifest manifest) {
         setAgentType(manifest.getAgentType());
         setIdentifier(manifest.getIdentifier());
         setBundles(manifest.getBundles());
@@ -45,12 +45,12 @@ public class AgentManifest extends RuntimeManifest {
         return supportedOperations;
     }
 
-    public void setSupportedOperations(Set<SupportedOperation> supportedOperations) {
+    public void setSupportedOperations(final Set<SupportedOperation> supportedOperations) {
         this.supportedOperations = supportedOperations;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -60,7 +60,7 @@ public class AgentManifest extends RuntimeManifest {
         if (!super.equals(o)) {
             return false;
         }
-        AgentManifest that = (AgentManifest) o;
+        final AgentManifest that = (AgentManifest) o;
         return Objects.equals(supportedOperations, that.supportedOperations);
     }
 

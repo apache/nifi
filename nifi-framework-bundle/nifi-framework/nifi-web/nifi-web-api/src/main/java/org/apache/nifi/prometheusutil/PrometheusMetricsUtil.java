@@ -45,8 +45,8 @@ public class PrometheusMetricsUtil {
     private static final double UNDEFINED_BACKPRESSURE = -1.0;
     private static final double NANOS_PER_MILLI = 1000000.0;
 
-    public static CollectorRegistry createNifiMetrics(NiFiMetricsRegistry nifiMetricsRegistry, ProcessGroupStatus status,
-                                                      String instId, String parentProcessGroupId, String compType, FlowMetricsReportingStrategy metricsStrategy) {
+    public static CollectorRegistry createNifiMetrics(final NiFiMetricsRegistry nifiMetricsRegistry, final ProcessGroupStatus status,
+                                                      final String instId, final String parentProcessGroupId, final String compType, final FlowMetricsReportingStrategy metricsStrategy) {
 
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         final String parentPGId = StringUtils.isEmpty(parentProcessGroupId) ? DEFAULT_LABEL_STRING : parentProcessGroupId;
@@ -94,8 +94,8 @@ public class PrometheusMetricsUtil {
 
         if (ALL_COMPONENTS == metricsStrategy) {
             // Report metrics for all components
-            for (ProcessorStatus processorStatus : status.getProcessorStatus()) {
-                Map<String, Long> counters = processorStatus.getCounters();
+            for (final ProcessorStatus processorStatus : status.getProcessorStatus()) {
+                final Map<String, Long> counters = processorStatus.getCounters();
 
                 if (counters != null) {
                     counters.entrySet().stream().forEach(entry -> nifiMetricsRegistry.setDataPoint(entry.getValue(), "PROCESSOR_COUNTERS",
@@ -141,7 +141,7 @@ public class PrometheusMetricsUtil {
 
             }
 
-            for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
+            for (final ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = StringUtils.isEmpty(connectionStatus.getId()) ? DEFAULT_LABEL_STRING : connectionStatus.getId();
                 final String connComponentName = StringUtils.isEmpty(connectionStatus.getName()) ? DEFAULT_LABEL_STRING : connectionStatus.getName();
                 final String sourceId = StringUtils.isEmpty(connectionStatus.getSourceId()) ? DEFAULT_LABEL_STRING : connectionStatus.getSourceId();
@@ -174,13 +174,13 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold()),
                         "PERCENT_USED_COUNT", instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
 
-                boolean isBackpressureEnabled = (connectionStatus.getBackPressureObjectThreshold() > 0 && connectionStatus.getBackPressureObjectThreshold() <= connectionStatus.getQueuedCount())
+                final boolean isBackpressureEnabled = (connectionStatus.getBackPressureObjectThreshold() > 0 && connectionStatus.getBackPressureObjectThreshold() <= connectionStatus.getQueuedCount())
                         || (connectionStatus.getBackPressureBytesThreshold() > 0 && connectionStatus.getBackPressureBytesThreshold() <= connectionStatus.getQueuedBytes());
                 nifiMetricsRegistry.setDataPoint(isBackpressureEnabled ? 1 : 0, "IS_BACKPRESSURE_ENABLED",
                         instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
             }
 
-            for (PortStatus portStatus : status.getInputPortStatus()) {
+            for (final PortStatus portStatus : status.getInputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentName = StringUtils.isEmpty(portStatus.getName()) ? DEFAULT_LABEL_STRING : portStatus.getName();
                 final String parentId = StringUtils.isEmpty(portStatus.getGroupId()) ? DEFAULT_LABEL_STRING : portStatus.getGroupId();
@@ -204,7 +204,7 @@ public class PrometheusMetricsUtil {
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
             }
-            for (PortStatus portStatus : status.getOutputPortStatus()) {
+            for (final PortStatus portStatus : status.getOutputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
                 final String portComponentName = StringUtils.isEmpty(portStatus.getName()) ? DEFAULT_LABEL_STRING : portStatus.getName();
                 final String parentId = StringUtils.isEmpty(portStatus.getGroupId()) ? DEFAULT_LABEL_STRING : portStatus.getGroupId();
@@ -228,7 +228,7 @@ public class PrometheusMetricsUtil {
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
             }
-            for (RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
+            for (final RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
                 final String rpgComponentId = StringUtils.isEmpty(remoteProcessGroupStatus.getId()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getId();
                 final String rpgComponentName = StringUtils.isEmpty(remoteProcessGroupStatus.getName()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getName();
                 final String parentId = StringUtils.isEmpty(remoteProcessGroupStatus.getGroupId()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getGroupId();
@@ -261,7 +261,7 @@ public class PrometheusMetricsUtil {
         return nifiMetricsRegistry.getRegistry();
     }
 
-    public static CollectorRegistry createJvmMetrics(JvmMetricsRegistry jvmMetricsRegistry, JvmMetrics jvmMetrics, String instId) {
+    public static CollectorRegistry createJvmMetrics(final JvmMetricsRegistry jvmMetricsRegistry, final JvmMetrics jvmMetrics, final String instId) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsed(DataUnit.B), "JVM_HEAP_USED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsage(), "JVM_HEAP_USAGE", instanceId);
@@ -297,7 +297,7 @@ public class PrometheusMetricsUtil {
             final String destinationName = StringUtils.isEmpty(destName) ? DEFAULT_LABEL_STRING : destName;
             final String parentId = StringUtils.isEmpty(pgId) ? DEFAULT_LABEL_STRING : pgId;
 
-            Map<String, Long> predictions = statusAnalytics.getPredictions();
+            final Map<String, Long> predictions = statusAnalytics.getPredictions();
             connectionAnalyticsMetricsRegistry.setDataPoint(predictions.get("timeToBytesBackpressureMillis"),
                     "TIME_TO_BYTES_BACKPRESSURE_PREDICTION",
                     instanceId, connComponentType, connComponentName, connComponentId, parentId, sourceId, sourceName, destinationId, destinationName);
@@ -319,8 +319,8 @@ public class PrometheusMetricsUtil {
         return (used / total) * 100;
     }
 
-    public static CollectorRegistry createBulletinMetrics(BulletinMetricsRegistry bulletinMetricsRegistry, String instId, String compType, String compId, String pgId, String nodeAddr,
-                                                          String cat, String srcName, String srcId, String lvl) {
+    public static CollectorRegistry createBulletinMetrics(final BulletinMetricsRegistry bulletinMetricsRegistry, final String instId, final String compType,
+            final String compId, final String pgId, final String nodeAddr, final String cat, final String srcName, final String srcId, final String lvl) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         final String componentType = StringUtils.isEmpty(compType) ? DEFAULT_LABEL_STRING : compType;
         final String componentId = StringUtils.isEmpty(compId) ? DEFAULT_LABEL_STRING : compId;
@@ -337,7 +337,7 @@ public class PrometheusMetricsUtil {
     public static void aggregatePercentUsed(final ProcessGroupStatus status, final Map<String, Double> aggregatedMetrics) {
         status.getProcessGroupStatus().forEach((childGroupStatus) -> aggregatePercentUsed(childGroupStatus, aggregatedMetrics));
 
-        for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
+        for (final ConnectionStatus connectionStatus : status.getConnectionStatus()) {
             final double percentUsedBytes = getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold());
             final double percentUsedCount = getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold());
 

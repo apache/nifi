@@ -74,7 +74,7 @@ public class SNMPTrapReceiverHandler {
             addUsmUsers();
         }
 
-        SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, configuration, logger);
+        final SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, configuration, logger);
         snmpManager.addCommandResponder(trapReceiver);
         isStarted = true;
     }
@@ -91,7 +91,7 @@ public class SNMPTrapReceiverHandler {
             }
             snmpManager.close();
             isStarted = false;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             final String errorMessage = "Could not close SNMP manager.";
             logger.error(errorMessage, e);
             throw new ProcessException(errorMessage);
@@ -99,7 +99,7 @@ public class SNMPTrapReceiverHandler {
     }
 
     private void addUsmUsers() {
-        USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
+        final USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
         SecurityModels.getInstance().addSecurityModel(usm);
         usmUsers.forEach(user -> snmpManager.getUSM().addUser(user));
     }

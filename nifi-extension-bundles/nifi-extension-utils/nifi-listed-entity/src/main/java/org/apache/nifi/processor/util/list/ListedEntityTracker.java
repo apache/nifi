@@ -174,7 +174,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         this.recordSchema = recordSchema;
     }
 
-    static void validateProperties(ValidationContext context, Collection<ValidationResult> results, Scope scope) {
+    static void validateProperties(final ValidationContext context, final Collection<ValidationResult> results, final Scope scope) {
         validateRequiredProperty(context, results, TRACKING_STATE_CACHE);
         validateRequiredProperty(context, results, TRACKING_TIME_WINDOW);
 
@@ -188,7 +188,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }
     }
 
-    private static void validateRequiredProperty(ValidationContext context, Collection<ValidationResult> results, PropertyDescriptor property) {
+    private static void validateRequiredProperty(final ValidationContext context, final Collection<ValidationResult> results, final PropertyDescriptor property) {
         if (!context.getProperty(property).isSet()) {
             final String displayName = property.getDisplayName();
             results.add(new ValidationResult.Builder()
@@ -207,7 +207,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
         };
     }
 
-    private void persistListedEntities(Map<String, ListedEntity> listedEntities) throws IOException {
+    private void persistListedEntities(final Map<String, ListedEntity> listedEntities) throws IOException {
         final String cacheKey = getCacheKey();
         logger.debug("Persisting listed entities: {}={}", cacheKey, listedEntities);
         mapCacheClient.put(cacheKey, listedEntities, stringSerializer, listedEntitiesSerializer);
@@ -229,11 +229,11 @@ public class ListedEntityTracker<T extends ListableEntity> {
         }
     }
 
-    public void trackEntities(ProcessContext context, ProcessSession session,
-                              boolean justElectedPrimaryNode,
-                              Scope scope,
-                              Function<Long, Collection<T>> listEntities,
-                              Function<T, Map<String, String>> createAttributes) throws ProcessException {
+    public void trackEntities(final ProcessContext context, final ProcessSession session,
+                              final boolean justElectedPrimaryNode,
+                              final Scope scope,
+                              final Function<Long, Collection<T>> listEntities,
+                              final Function<T, Map<String, String>> createAttributes) throws ProcessException {
 
         boolean initialListing = false;
         mapCacheClient = context.getProperty(TRACKING_STATE_CACHE).asControllerService(DistributedMapCacheClient.class);
@@ -336,7 +336,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
                 logger.trace("Removed old entities: {}, Updated entities: {}", oldEntityIds, updatedEntities);
 
                 persistListedEntities(alreadyListedEntities);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
             }
         });
@@ -356,7 +356,7 @@ public class ListedEntityTracker<T extends ListableEntity> {
              final RecordSetWriter recordSetWriter = writerFactory.createWriter(logger, recordSchema, out, Collections.emptyMap())) {
 
             recordSetWriter.beginRecordSet();
-            for (T updatedEntity : updatedEntities) {
+            for (final T updatedEntity : updatedEntities) {
                 recordSetWriter.write(updatedEntity.toRecord());
 
                 // In order to reduce object size, discard meta data captured at the sub-classes.
@@ -374,8 +374,8 @@ public class ListedEntityTracker<T extends ListableEntity> {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    protected void createFlowFilesForEntities(ProcessContext context, final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
-        for (T updatedEntity : updatedEntities) {
+    protected void createFlowFilesForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities, final Function<T, Map<String, String>> createAttributes) {
+        for (final T updatedEntity : updatedEntities) {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, createAttributes.apply(updatedEntity));
             session.transfer(flowFile, REL_SUCCESS);

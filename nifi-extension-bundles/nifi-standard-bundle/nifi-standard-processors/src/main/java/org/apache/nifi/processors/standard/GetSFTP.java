@@ -93,7 +93,7 @@ public class GetSFTP extends GetFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         SFTPTransfer.migrateAlgorithmProperties(config);

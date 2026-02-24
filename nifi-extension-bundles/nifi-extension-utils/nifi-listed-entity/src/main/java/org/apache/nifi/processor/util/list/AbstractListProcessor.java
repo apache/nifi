@@ -271,7 +271,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     static final String IDENTIFIER_PREFIX = "id";
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("Distributed Cache Service");
         config.renameProperty("target-system-timestamp-precision", TARGET_SYSTEM_TIMESTAMP_PRECISION.getName());
         config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
@@ -314,7 +314,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * @param validationContext the validation context
      * @param validationResults add custom validation result to this collection
      */
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> validationResults) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> validationResults) {
 
     }
 
@@ -472,7 +472,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         final Map<Long, List<T>> orderedEntries = new TreeMap<>();
         for (final T entity : entityList) {
-            List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
+            final List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
             entitiesForTimestamp.add(entity);
         }
 
@@ -506,14 +506,14 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             }
         }
 
-        long lowerBoundInclusiveTimestamp = Optional.ofNullable(lastListedLatestEntryTimestampMillis).orElse(IGNORE_MIN_TIMESTAMP_VALUE);
-        long upperBoundExclusiveTimestamp;
+        final long lowerBoundInclusiveTimestamp = Optional.ofNullable(lastListedLatestEntryTimestampMillis).orElse(IGNORE_MIN_TIMESTAMP_VALUE);
+        final long upperBoundExclusiveTimestamp;
 
-        long currentTime = getCurrentTime();
+        final long currentTime = getCurrentTime();
 
         final Map<Long, List<T>> orderedEntries = new TreeMap<>();
         try {
-            List<T> entityList = performListing(context, lowerBoundInclusiveTimestamp, ListingMode.EXECUTION);
+            final List<T> entityList = performListing(context, lowerBoundInclusiveTimestamp, ListingMode.EXECUTION);
 
             boolean targetSystemHasMilliseconds = false;
             boolean targetSystemHasSeconds = false;
@@ -679,7 +679,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             final boolean newEntry = minTimestampToListMillis == null || entityTimestampMillis >= minTimestampToListMillis && entityTimestampMillis >= lastProcessedLatestEntryTimestampMillis;
 
             if (newEntry) {
-                List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
+                final List<T> entitiesForTimestamp = orderedEntries.computeIfAbsent(entity.getTimestamp(), k -> new ArrayList<>());
                 entitiesForTimestamp.add(entity);
             }
         }
@@ -967,12 +967,12 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     protected abstract String getListingContainerName(final ProcessContext context);
 
     @OnScheduled
-    public void initListedEntityTracker(ProcessContext context) {
+    public void initListedEntityTracker(final ProcessContext context) {
         final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(context.getProperty(LISTING_STRATEGY).getValue());
         if (listedEntityTracker != null && (resetEntityTrackingState || !isTrackingEntityStrategy)) {
             try {
                 listedEntityTracker.clearListedEntities();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities due to " + e, e);
             }
         }
@@ -991,7 +991,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         return new ListedEntityTracker<>(getIdentifier(), getLogger(), this::getCurrentTime, getRecordSchema());
     }
 
-    private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {
+    private void listByTrackingEntities(final ProcessContext context, final ProcessSession session) throws ProcessException {
         listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, getStateScope(context), minTimestampToList -> {
             try {
                 return performListing(context, minTimestampToList, ListingMode.EXECUTION);

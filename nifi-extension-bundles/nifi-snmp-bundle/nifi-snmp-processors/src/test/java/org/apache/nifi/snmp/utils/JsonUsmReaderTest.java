@@ -55,8 +55,8 @@ class JsonUsmReaderTest extends JsonUsmReaderTestBase {
         assertThrows(ProcessException.class, jsonUsmReader::readUsm);
     }
 
-    static String readFile(String path) throws IOException {
-        byte[] encoded = Files.readAllBytes(Paths.get(path));
+    static String readFile(final String path) throws IOException {
+        final byte[] encoded = Files.readAllBytes(Paths.get(path));
         return new String(encoded, StandardCharsets.UTF_8);
     }
 

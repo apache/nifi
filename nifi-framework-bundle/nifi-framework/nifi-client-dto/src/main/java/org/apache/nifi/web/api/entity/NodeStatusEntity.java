@@ -36,7 +36,7 @@ public class NodeStatusEntity extends Entity {
         return nodeStatus;
     }
 
-    public void setNodeStatus(NodeStatusDTO nodeStatus) {
+    public void setNodeStatus(final NodeStatusDTO nodeStatus) {
         this.nodeStatus = nodeStatus;
     }
 

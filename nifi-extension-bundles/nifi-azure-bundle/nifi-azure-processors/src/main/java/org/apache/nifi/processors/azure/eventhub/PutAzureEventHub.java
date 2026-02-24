@@ -174,7 +174,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
     }
 
@@ -197,7 +197,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("partitioning-key-attribute-name", PARTITIONING_KEY_ATTRIBUTE_NAME.getName());
         config.renameProperty("max-batch-size", MAX_BATCH_SIZE.getName());
         config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
@@ -308,7 +308,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         }
     }
 
-    private FlowFileResultCarrier<Relationship> handleFlowFile(FlowFile flowFile, final String partitioningKeyAttributeName, final ProcessSession session) {
+    private FlowFileResultCarrier<Relationship> handleFlowFile(final FlowFile flowFile, final String partitioningKeyAttributeName, final ProcessSession session) {
         final byte[] buffer = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
 
@@ -330,7 +330,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         }
     }
 
-    private void sendMessage(final byte[] buffer, String partitioningKey, Map<String, ?> userProperties) {
+    private void sendMessage(final byte[] buffer, final String partitioningKey, final Map<String, ?> userProperties) {
         final EventData eventData = new EventData(buffer);
         eventData.getProperties().putAll(userProperties);
         final SendOptions sendOptions = new SendOptions();

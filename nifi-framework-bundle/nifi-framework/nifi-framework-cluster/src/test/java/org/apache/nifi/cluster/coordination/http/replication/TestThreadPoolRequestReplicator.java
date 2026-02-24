@@ -384,7 +384,7 @@ public class TestThreadPoolRequestReplicator {
                             preNotifyLatch.countDown();
                             monitor.wait();
                             break;
-                        } catch (InterruptedException ignored) {
+                        } catch (final InterruptedException ignored) {
                         }
                     }
 
@@ -430,7 +430,7 @@ public class TestThreadPoolRequestReplicator {
                             preNotifyLatch.countDown();
                             monitor.wait();
                             break;
-                        } catch (InterruptedException ignored) {
+                        } catch (final InterruptedException ignored) {
                         }
                     }
 
@@ -479,7 +479,7 @@ public class TestThreadPoolRequestReplicator {
                             preNotifyLatch.countDown();
                             monitor.wait();
                             break;
-                        } catch (InterruptedException ignored) {
+                        } catch (final InterruptedException ignored) {
                         }
                     }
 

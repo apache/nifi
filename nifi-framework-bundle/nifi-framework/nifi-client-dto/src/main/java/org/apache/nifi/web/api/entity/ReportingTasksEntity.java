@@ -40,7 +40,7 @@ public class ReportingTasksEntity extends Entity {
         return reportingTasks;
     }
 
-    public void setReportingTasks(Set<ReportingTaskEntity> reportingTasks) {
+    public void setReportingTasks(final Set<ReportingTaskEntity> reportingTasks) {
         this.reportingTasks = reportingTasks;
     }
 
@@ -55,7 +55,7 @@ public class ReportingTasksEntity extends Entity {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 

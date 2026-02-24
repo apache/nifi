@@ -38,7 +38,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    public void setPropertyDescriptors(Map<String, PropertyDescriptor> propertyDescriptors) {
+    public void setPropertyDescriptors(final Map<String, PropertyDescriptor> propertyDescriptors) {
         this.propertyDescriptors = propertyDescriptors;
     }
 
@@ -49,7 +49,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    public void setSupportsDynamicProperties(boolean supportsDynamicProperties) {
+    public void setSupportsDynamicProperties(final boolean supportsDynamicProperties) {
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
@@ -60,7 +60,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    public void setSupportsSensitiveDynamicProperties(boolean supportsSensitiveDynamicProperties) {
+    public void setSupportsSensitiveDynamicProperties(final boolean supportsSensitiveDynamicProperties) {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
@@ -71,7 +71,7 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     }
 
     @Override
-    public void setDynamicProperties(List<DynamicProperty> dynamicProperties) {
+    public void setDynamicProperties(final List<DynamicProperty> dynamicProperties) {
         this.dynamicProperties = dynamicProperties;
     }
 }

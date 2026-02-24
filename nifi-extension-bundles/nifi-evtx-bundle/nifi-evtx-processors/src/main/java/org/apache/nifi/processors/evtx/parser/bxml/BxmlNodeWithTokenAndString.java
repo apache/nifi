@@ -31,13 +31,13 @@ public abstract class BxmlNodeWithTokenAndString extends BxmlNodeWithToken {
     private final String value;
     private final int tagLength;
 
-    public BxmlNodeWithTokenAndString(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public BxmlNodeWithTokenAndString(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         stringOffset = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid string offset.");
         int tagLength = getBaseTagLength();
         if (stringOffset > getOffset() - chunkHeader.getOffset()) {
-            int initialPosition = binaryReader.getPosition();
-            NameStringNode nameStringNode = chunkHeader.addNameStringNode(stringOffset, binaryReader);
+            final int initialPosition = binaryReader.getPosition();
+            final NameStringNode nameStringNode = chunkHeader.addNameStringNode(stringOffset, binaryReader);
             tagLength += binaryReader.getPosition() - initialPosition;
             value = nameStringNode.getString();
         } else {

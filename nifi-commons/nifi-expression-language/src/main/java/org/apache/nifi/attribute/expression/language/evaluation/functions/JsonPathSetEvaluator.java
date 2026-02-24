@@ -30,7 +30,7 @@ public class JsonPathSetEvaluator extends JsonPathUpdateEvaluator {
     }
 
     @Override
-    public DocumentContext updateAttribute(DocumentContext documentContext, JsonPath jsonPath, Object value) {
+    public DocumentContext updateAttribute(final DocumentContext documentContext, final JsonPath jsonPath, final Object value) {
         return documentContext.set(jsonPath, value);
     }
 }

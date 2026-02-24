@@ -35,7 +35,7 @@ public class ProcessorStatusEndpointMerger extends AbstractSingleEntityEndpoint<
     public static final Pattern PROCESSOR_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/processors/[a-f0-9\\-]{36}/status");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PROCESSOR_STATUS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -45,8 +45,8 @@ public class ProcessorStatusEndpointMerger extends AbstractSingleEntityEndpoint<
     }
 
     @Override
-    protected void mergeResponses(ProcessorStatusEntity clientEntity, Map<NodeIdentifier, ProcessorStatusEntity> entityMap, Set<NodeResponse> successfulResponses,
-                                  Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ProcessorStatusEntity clientEntity, final Map<NodeIdentifier, ProcessorStatusEntity> entityMap, final Set<NodeResponse> successfulResponses,
+                                  final Set<NodeResponse> problematicResponses) {
         final ProcessorStatusDTO mergedProcessorStatus = clientEntity.getProcessorStatus();
         mergedProcessorStatus.setNodeSnapshots(new ArrayList<>());
 
@@ -78,7 +78,8 @@ public class ProcessorStatusEndpointMerger extends AbstractSingleEntityEndpoint<
     }
 
     @Override
-    public void mergeStatus(ProcessorStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessorStatusDTO status, boolean statusReadablePermission, NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final ProcessorStatusDTO clientStatus, final boolean clientStatusReadablePermission, final ProcessorStatusDTO status,
+            final boolean statusReadablePermission, final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }

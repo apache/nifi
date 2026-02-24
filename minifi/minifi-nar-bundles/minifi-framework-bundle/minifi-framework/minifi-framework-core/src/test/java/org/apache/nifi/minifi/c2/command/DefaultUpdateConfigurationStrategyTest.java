@@ -105,7 +105,7 @@ public class DefaultUpdateConfigurationStrategyTest {
     public void setup() throws IOException {
         flowConfigurationFile = Path.of(tempDir.getAbsolutePath(), FLOW_CONFIG_FILE_NAME).toAbsolutePath();
         backupFlowConfigurationFile = Path.of(flowConfigurationFile + BACKUP_EXTENSION);
-        String flowConfigurationFileBaseName = FilenameUtils.getBaseName(flowConfigurationFile.toString());
+        final String flowConfigurationFileBaseName = FilenameUtils.getBaseName(flowConfigurationFile.toString());
         rawFlowConfigurationFile = flowConfigurationFile.getParent().resolve(flowConfigurationFileBaseName + RAW_EXTENSION);
         backupRawFlowConfigurationFile = flowConfigurationFile.getParent().resolve(flowConfigurationFileBaseName + BACKUP_EXTENSION + RAW_EXTENSION);
 
@@ -160,7 +160,7 @@ public class DefaultUpdateConfigurationStrategyTest {
         // when
         try {
             testUpdateConfigurationStrategy.update(NEW_RAW_FLOW_CONFIG_CONTENT);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             //then
             assertTrue(exists(flowConfigurationFile));
             assertTrue(exists(rawFlowConfigurationFile));
@@ -177,14 +177,14 @@ public class DefaultUpdateConfigurationStrategyTest {
         }
     }
 
-    private void writeGzipFile(Path path, byte[] content) throws IOException {
+    private void writeGzipFile(final Path path, final byte[] content) throws IOException {
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
              OutputStream outputStream = new GZIPOutputStream(newOutputStream(path, WRITE, CREATE, TRUNCATE_EXISTING))) {
             inputStream.transferTo(outputStream);
         }
     }
 
-    private byte[] readGzipFile(Path path) throws IOException {
+    private byte[] readGzipFile(final Path path) throws IOException {
         try (InputStream inputStream = new GZIPInputStream(Files.newInputStream(path));
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             inputStream.transferTo(outputStream);
@@ -193,11 +193,11 @@ public class DefaultUpdateConfigurationStrategyTest {
         }
     }
 
-    private void writePlainTextFile(Path path, byte[] content) throws IOException {
+    private void writePlainTextFile(final Path path, final byte[] content) throws IOException {
         Files.write(path, content, WRITE, CREATE, TRUNCATE_EXISTING);
     }
 
-    private byte[] readPlainTextFile(Path path) throws IOException {
+    private byte[] readPlainTextFile(final Path path) throws IOException {
         return Files.readAllBytes(path);
     }
 }

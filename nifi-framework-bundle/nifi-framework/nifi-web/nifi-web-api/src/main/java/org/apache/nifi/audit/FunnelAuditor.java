@@ -45,9 +45,9 @@ public class FunnelAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.FunnelDAO+) && "
             + "execution(org.apache.nifi.connectable.Funnel createFunnel(java.lang.String, org.apache.nifi.web.api.dto.FunnelDTO))")
-    public Funnel createFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Funnel createFunnelAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
-        Funnel funnel = (Funnel) proceedingJoinPoint.proceed();
+        final Funnel funnel = (Funnel) proceedingJoinPoint.proceed();
 
         // perform the audit
         final Action action = generateAuditRecord(funnel, Operation.Add);
@@ -72,9 +72,9 @@ public class FunnelAuditor extends NiFiAuditor {
             + "execution(void deleteFunnel(java.lang.String)) && "
             + "args(funnelId) && "
             + "target(funnelDAO)")
-    public void removeFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint, String funnelId, FunnelDAO funnelDAO) throws Throwable {
+    public void removeFunnelAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String funnelId, final FunnelDAO funnelDAO) throws Throwable {
         // get the funnel before removing it
-        Funnel funnel = funnelDAO.getFunnel(funnelId);
+        final Funnel funnel = funnelDAO.getFunnel(funnelId);
 
         // remove the funnel
         proceedingJoinPoint.proceed();
@@ -95,7 +95,7 @@ public class FunnelAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(Funnel funnel, Operation operation) {
+    public Action generateAuditRecord(final Funnel funnel, final Operation operation) {
         return generateAuditRecord(funnel, operation, null);
     }
 
@@ -107,7 +107,7 @@ public class FunnelAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final Funnel funnel, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {

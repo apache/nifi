@@ -40,7 +40,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -49,7 +49,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -58,7 +58,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -67,7 +67,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -76,7 +76,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return author;
     }
 
-    public void setAuthor(String author) {
+    public void setAuthor(final String author) {
         this.author = author;
     }
 
@@ -85,12 +85,12 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(final long timestamp) {
         this.timestamp = timestamp;
     }
 
     @Override
-    public int compareTo(ExtensionRepoVersionSummary o) {
+    public int compareTo(final ExtensionRepoVersionSummary o) {
         return Comparator.comparing(ExtensionRepoVersionSummary::getVersion)
                 .thenComparing(ExtensionRepoVersionSummary::getArtifactId)
                 .thenComparing(ExtensionRepoVersionSummary::getGroupId)
@@ -104,7 +104,7 @@ public class ExtensionRepoVersionSummary extends LinkableEntity implements Compa
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

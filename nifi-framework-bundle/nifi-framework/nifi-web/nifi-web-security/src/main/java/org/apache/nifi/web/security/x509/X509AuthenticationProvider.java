@@ -80,7 +80,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
     }
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
         final X509AuthenticationRequestToken request = (X509AuthenticationRequestToken) authentication;
 
         final X509Certificate[] certificates = request.getCertificates();
@@ -127,7 +127,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 final Set<String> idpGroups = chainIter.hasPrevious() ? Collections.emptySet() : endUserIdpGroups;
 
                 // Only set the client address for client making the request because we don't know the clientAddress of the proxied entities
-                String clientAddress = (proxy == null) ? request.getClientAddress() : null;
+                final String clientAddress = (proxy == null) ? request.getClientAddress() : null;
                 proxy = createUser(identity, groups, idpGroups, proxy, clientAddress, isAnonymous);
 
                 if (chainIter.hasPrevious()) {
@@ -170,7 +170,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
      * @param isAnonymous   if true, an anonymous user will be returned (identity will be ignored)
      * @return the populated user
      */
-    protected static NiFiUser createUser(String identity, Set<String> groups, Set<String> idpGroups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
+    protected static NiFiUser createUser(final String identity, final Set<String> groups, final Set<String> idpGroups, final NiFiUser chain, final String clientAddress, final boolean isAnonymous) {
         if (isAnonymous) {
             return StandardNiFiUser.populateAnonymousUser(chain, clientAddress);
         } else {
@@ -179,7 +179,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
     }
 
     @Override
-    public boolean supports(Class<?> authentication) {
+    public boolean supports(final Class<?> authentication) {
         return X509AuthenticationRequestToken.class.isAssignableFrom(authentication);
     }
 }

@@ -57,7 +57,7 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
     void setUp() {
         testSubject = new ListBoxFile() {
             @Override
-            BoxFolder getFolder(String folderId) {
+            BoxFolder getFolder(final String folderId) {
                 return mockBoxFolder;
             }
         };
@@ -72,18 +72,18 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
     @Test
     void testCreatedListableEntityContainsCorrectData() {
 
-        Long minTimestamp = 0L;
+        final Long minTimestamp = 0L;
 
-        String id = "id_1";
-        String filename = "file_name_1";
-        List<String> pathParts = Arrays.asList("path", "to", "file");
-        long size = 125L;
-        long createdTime = 123456L;
-        long modifiedTime = 234567L;
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final List<String> pathParts = Arrays.asList("path", "to", "file");
+        final long size = 125L;
+        final long createdTime = 123456L;
+        final long modifiedTime = 234567L;
 
         mockFetchedFileList(id, filename, pathParts, size, createdTime, modifiedTime);
 
-        List<BoxFileInfo> expected = singletonList(
+        final List<BoxFileInfo> expected = singletonList(
             new BoxFileInfo.Builder()
                 .id(id)
                 .fileName(filename)
@@ -94,9 +94,9 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
                 .build()
         );
 
-        List<BoxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
+        final List<BoxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
-        List<Function<BoxFileInfo, Object>> propertyProviders = Arrays.asList(
+        final List<Function<BoxFileInfo, Object>> propertyProviders = Arrays.asList(
             BoxFileInfo::getId,
             BoxFileInfo::getIdentifier,
             BoxFileInfo::getName,
@@ -107,8 +107,8 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
             BoxFileInfo::getModifiedTime
         );
 
-        List<EqualsWrapper<BoxFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
-        List<EqualsWrapper<BoxFileInfo>> actualWrapper = wrapList(actual, propertyProviders);
+        final List<EqualsWrapper<BoxFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
+        final List<EqualsWrapper<BoxFileInfo>> actualWrapper = wrapList(actual, propertyProviders);
 
         assertEquals(expectedWrapper, actualWrapper);
     }

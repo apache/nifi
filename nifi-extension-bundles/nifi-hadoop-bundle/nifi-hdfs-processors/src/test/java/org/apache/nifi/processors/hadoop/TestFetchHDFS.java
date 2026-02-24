@@ -45,7 +45,7 @@ public class TestFetchHDFS {
 
     @BeforeEach
     public void setup() {
-        FetchHDFS proc = new TestableFetchHDFS();
+        final FetchHDFS proc = new TestableFetchHDFS();
         runner = TestRunners.newTestRunner(proc);
     }
 
@@ -64,7 +64,7 @@ public class TestFetchHDFS {
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(fetchEvent.getTransitUri().endsWith(file));
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(file));
     }
 
@@ -134,64 +134,64 @@ public class TestFetchHDFS {
 
     @Test
     public void testAutomaticDecompression() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final FetchHDFS proc = new TestableFetchHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
         runner.enqueue("trigger flow file");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
         flowFile.assertContentEquals(expected);
     }
 
     @Test
     public void testInferCompressionCodecDisabled() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final FetchHDFS proc = new TestableFetchHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
         runner.enqueue("trigger flow file");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1.gz");
         flowFile.assertContentEquals(expected);
     }
 
     @Test
     public void testFileExtensionNotACompressionCodec() throws IOException {
-        FetchHDFS proc = new TestableFetchHDFS();
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final FetchHDFS proc = new TestableFetchHDFS();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/13545423550275052.zip");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "AUTOMATIC");
         runner.enqueue("trigger flow file");
         runner.run();
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FetchHDFS.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
 
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         assertEquals("13545423550275052.zip", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
+        final InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
     }
 
     @Test
     public void testGSSException() {
-        MockFileSystem fileSystem = new MockFileSystem();
+        final MockFileSystem fileSystem = new MockFileSystem();
         fileSystem.setFailOnOpen(true);
-        FetchHDFS proc = new TestableFetchHDFS(fileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final FetchHDFS proc = new TestableFetchHDFS(fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
         runner.enqueue("trigger flow file");
@@ -207,10 +207,10 @@ public class TestFetchHDFS {
 
     @Test
     public void testRuntimeException() {
-        MockFileSystem fileSystem = new MockFileSystem();
+        final MockFileSystem fileSystem = new MockFileSystem();
         fileSystem.setRuntimeFailOnOpen(true);
-        FetchHDFS proc = new TestableFetchHDFS(fileSystem);
-        TestRunner runner = TestRunners.newTestRunner(proc);
+        final FetchHDFS proc = new TestableFetchHDFS(fileSystem);
+        final TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(FetchHDFS.FILENAME, "src/test/resources/testdata/randombytes-1.gz");
         runner.setProperty(FetchHDFS.COMPRESSION_CODEC, "NONE");
         runner.enqueue("trigger flow file");

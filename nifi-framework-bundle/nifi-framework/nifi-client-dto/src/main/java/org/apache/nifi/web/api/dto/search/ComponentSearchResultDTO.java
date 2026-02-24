@@ -43,7 +43,7 @@ public class ComponentSearchResultDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -56,7 +56,7 @@ public class ComponentSearchResultDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -95,7 +95,7 @@ public class ComponentSearchResultDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -108,7 +108,7 @@ public class ComponentSearchResultDTO {
         return matches;
     }
 
-    public void setMatches(List<String> matches) {
+    public void setMatches(final List<String> matches) {
         this.matches = matches;
     }
 

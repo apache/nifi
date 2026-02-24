@@ -18,11 +18,11 @@ package org.apache.nifi.toolkit.cli.api;
 
 public class CommandException extends Exception {
 
-    public CommandException(String message) {
+    public CommandException(final String message) {
         super(message);
     }
 
-    public CommandException(String message, Throwable cause) {
+    public CommandException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

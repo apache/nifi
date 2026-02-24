@@ -79,7 +79,7 @@ public abstract class SocketListener {
 
         try {
             serverSocket = SocketUtils.createServerSocket(port, configuration);
-        } catch (TlsException e) {
+        } catch (final TlsException e) {
             throw new IOException(e);
         }
 

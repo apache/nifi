@@ -51,7 +51,7 @@ public class ChunkHeader extends Block {
     private final int chunkNumber;
     private UnsignedLong recordNumber;
 
-    public ChunkHeader(BinaryReader binaryReader, ComponentLog log, long headerOffset, int chunkNumber) throws IOException {
+    public ChunkHeader(final BinaryReader binaryReader, final ComponentLog log, final long headerOffset, final int chunkNumber) throws IOException {
         super(binaryReader, headerOffset);
         this.chunkNumber = chunkNumber;
         CRC32 crc32 = new CRC32();
@@ -88,7 +88,7 @@ public class ChunkHeader extends Block {
         for (int i = 0; i < 64; i++) {
             int offset = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid offset.");
             while (offset > 0) {
-                NameStringNode nameStringNode = new NameStringNode(new BinaryReader(binaryReader, offset), this);
+                final NameStringNode nameStringNode = new NameStringNode(new BinaryReader(binaryReader, offset), this);
                 nameStrings.put(offset, nameStringNode);
                 offset = NumberUtil.intValueMax(nameStringNode.getNextOffset(), Integer.MAX_VALUE, "Invalid offset.");
             }
@@ -98,18 +98,18 @@ public class ChunkHeader extends Block {
         for (int i = 0; i < 32; i++) {
             int offset = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid offset.");
             while (offset > 0) {
-                int token = new BinaryReader(binaryReader, offset - 10).read();
+                final int token = new BinaryReader(binaryReader, offset - 10).read();
                 if (token != 0x0c) {
                     log.warn("Unexpected token when parsing template at offset {}", offset);
                     break;
                 }
-                BinaryReader templateReader = new BinaryReader(binaryReader, offset - 4);
-                int pointer = NumberUtil.intValueMax(templateReader.readDWord(), Integer.MAX_VALUE, "Invalid pointer.");
+                final BinaryReader templateReader = new BinaryReader(binaryReader, offset - 4);
+                final int pointer = NumberUtil.intValueMax(templateReader.readDWord(), Integer.MAX_VALUE, "Invalid pointer.");
                 if (offset != pointer) {
                     log.warn("Invalid pointer when parsing template at offset {}", offset);
                     break;
                 }
-                TemplateNode templateNode = new TemplateNode(templateReader, this);
+                final TemplateNode templateNode = new TemplateNode(templateReader, this);
                 templateNodes.put(offset, templateNode);
                 offset = templateNode.getNextOffset();
             }
@@ -122,19 +122,19 @@ public class ChunkHeader extends Block {
         recordNumber = fileFirstRecordNumber.minus(UnsignedLong.ONE);
     }
 
-    public NameStringNode addNameStringNode(int offset, BinaryReader binaryReader) throws IOException {
-        NameStringNode nameStringNode = new NameStringNode(binaryReader, this);
+    public NameStringNode addNameStringNode(final int offset, final BinaryReader binaryReader) throws IOException {
+        final NameStringNode nameStringNode = new NameStringNode(binaryReader, this);
         nameStrings.put(offset, nameStringNode);
         return nameStringNode;
     }
 
-    public TemplateNode addTemplateNode(int offset, BinaryReader binaryReader) throws IOException {
-        TemplateNode templateNode = new TemplateNode(binaryReader, this);
+    public TemplateNode addTemplateNode(final int offset, final BinaryReader binaryReader) throws IOException {
+        final TemplateNode templateNode = new TemplateNode(binaryReader, this);
         templateNodes.put(offset, templateNode);
         return templateNode;
     }
 
-    public TemplateNode getTemplateNode(int offset) {
+    public TemplateNode getTemplateNode(final int offset) {
         return templateNodes.get(offset);
     }
 
@@ -159,8 +159,8 @@ public class ChunkHeader extends Block {
         return logLastRecordNumber.compareTo(recordNumber) > 0;
     }
 
-    public String getString(int offset) {
-        NameStringNode nameStringNode = nameStrings.get(offset);
+    public String getString(final int offset) {
+        final NameStringNode nameStringNode = nameStrings.get(offset);
         if (nameStringNode == null) {
             return null;
         }
@@ -186,10 +186,10 @@ public class ChunkHeader extends Block {
             return null;
         }
         try {
-            Record record = new Record(getBinaryReader(), this);
+            final Record record = new Record(getBinaryReader(), this);
             recordNumber = record.getRecordNum();
             return record;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             recordNumber = fileLastRecordNumber;
             throw e;
         }

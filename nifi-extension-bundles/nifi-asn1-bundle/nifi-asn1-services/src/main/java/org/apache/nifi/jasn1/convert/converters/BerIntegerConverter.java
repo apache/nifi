@@ -25,22 +25,22 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class BerIntegerConverter implements JASN1TypeAndValueConverter {
     @Override
-    public boolean supportsType(Class<?> berType) {
+    public boolean supportsType(final Class<?> berType) {
         return BerInteger.class.isAssignableFrom(berType);
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
         return RecordFieldType.BIGINT.getDataType();
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
+    public boolean supportsValue(final BerType value, final DataType dataType) {
         return value instanceof BerInteger;
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType value, final DataType dataType, final JASN1Converter converter) {
         final BerInteger berValue = (BerInteger) value;
 
         if (RecordFieldType.INT.equals(dataType.getFieldType())) {

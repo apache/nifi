@@ -42,15 +42,15 @@ public class UpdatePropertiesPropertyProvider implements OperandPropertiesProvid
 
     private final String bootstrapConfigFileLocation;
 
-    public UpdatePropertiesPropertyProvider(String bootstrapConfigFileLocation) {
+    public UpdatePropertiesPropertyProvider(final String bootstrapConfigFileLocation) {
         this.bootstrapConfigFileLocation = bootstrapConfigFileLocation;
     }
 
     @Override
     public Map<String, Object> getProperties() {
-        Map<String, String> bootstrapProperties = getBootstrapProperties();
+        final Map<String, String> bootstrapProperties = getBootstrapProperties();
 
-        Set<UpdatableProperty> updatableProperties = sortedPropertiesByKey().values()
+        final Set<UpdatableProperty> updatableProperties = sortedPropertiesByKey().values()
             .stream()
             .filter(property -> !property.isSensitive())
             .filter(MiNiFiProperties::isModifiable)
@@ -61,14 +61,14 @@ public class UpdatePropertiesPropertyProvider implements OperandPropertiesProvid
     }
 
     private Map<String, String> getBootstrapProperties() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
 
-        File bootstrapFile = new File(bootstrapConfigFileLocation);
+        final File bootstrapFile = new File(bootstrapConfigFileLocation);
         try (FileInputStream fis = new FileInputStream(bootstrapFile)) {
             props.load(fis);
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             LOGGER.error("The bootstrap configuration file {} doesn't exist", bootstrapConfigFileLocation, e);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Failed to load properties from {}", bootstrapConfigFileLocation, e);
         }
         return props.entrySet().stream()

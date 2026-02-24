@@ -235,9 +235,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .addValidator((subject, input, context) -> {
                 ValidationResult result = new ValidationResult.Builder()
                         .subject(subject).valid(true).input(input).build();
-                List<String> args = ArgumentUtils.splitArgs(input, context.getProperty(ExecuteStreamCommand.ARG_DELIMITER).getValue().charAt(0));
-                for (String arg : args) {
-                    ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
+                final List<String> args = ArgumentUtils.splitArgs(input, context.getProperty(ExecuteStreamCommand.ARG_DELIMITER).getValue().charAt(0));
+                for (final String arg : args) {
+                    final ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
                     if (!valResult.isValid()) {
                         result = valResult;
                         break;
@@ -308,7 +308,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
-    protected void init(ProcessorInitializationContext context) {
+    protected void init(final ProcessorInitializationContext context) {
         logger = getLogger();
 
         relationships.set(OUTPUT_STREAM_RELATIONSHIP_SET);
@@ -353,7 +353,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile inputFlowFile = session.get();
         if (null == inputFlowFile) {
             return;
@@ -378,9 +378,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                         .splitArgs(commandArguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0)));
             }
         } else {
-            List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+            final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
             for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                Matcher matcher = COMMAND_ARGUMENT_PATTERN.matcher(entry.getKey().getName());
+                final Matcher matcher = COMMAND_ARGUMENT_PATTERN.matcher(entry.getKey().getName());
                 if (matcher.matches()) {
                     propertyDescriptors.add(entry.getKey());
                 }
@@ -407,7 +407,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             });
 
             for (final PropertyDescriptor descriptor : propertyDescriptors) {
-                String argValue = context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue();
+                final String argValue = context.getProperty(descriptor.getName()).evaluateAttributeExpressions(inputFlowFile).getValue();
                 if (descriptor.isSensitive()) {
                     argumentAttributeValue.add(MASKED_ARGUMENT);
                 } else {
@@ -418,7 +418,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             }
             if (!argumentAttributeValue.isEmpty()) {
                 final StringBuilder builder = new StringBuilder();
-                for (String s : argumentAttributeValue) {
+                for (final String s : argumentAttributeValue) {
                     builder.append(s).append("\t");
                 }
                 commandArguments = builder.toString().trim();
@@ -454,7 +454,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         try {
             errorOut = File.createTempFile("out", null);
             builder.redirectError(errorOut);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("Could not create temporary file for error logging", e);
             throw new ProcessException(e);
         }
@@ -462,12 +462,12 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final Process process;
         try {
             process = builder.start();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             try {
                 if (!errorOut.delete()) {
                     logger.warn("Unable to delete file: {}", errorOut.getAbsolutePath());
                 }
-            } catch (SecurityException se) {
+            } catch (final SecurityException se) {
                 logger.warn("Unable to delete file: '{}'", errorOut.getAbsolutePath(), se);
             }
             logger.error("Could not create external process to run command", e);
@@ -479,7 +479,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
 
-            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger,
+            final ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger,
                     attributeName, session, outputFlowFile, process, putToAttribute, attributeSize);
             session.read(inputFlowFile, callback);
 
@@ -488,10 +488,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 outputFlowFile = session.putAttribute(outputFlowFile, attributeName, new String(callback.outputBuffer, 0, callback.size));
             }
 
-            int exitCode = callback.exitCode;
+            final int exitCode = callback.exitCode;
             logger.debug("Execution complete for command: {}.  Exited with code: {}", executeCommand, exitCode);
 
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
 
             String stdErr = "";
             try (final InputStream in = new BufferedInputStream(new LimitingInputStream(new FileInputStream(errorOut), 4000))) {
@@ -540,7 +540,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("argumentsStrategy", ARGUMENTS_STRATEGY.getName());
     }
 
@@ -560,8 +560,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         byte[] outputBuffer;
         int size;
 
-        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable, ComponentLog logger, String attributeName,
-                                           ProcessSession session, FlowFile outputFlowFile, Process process, boolean putToAttribute, int attributeSize) {
+        public ProcessStreamWriterCallback(final boolean ignoreStdin, final OutputStream stdinWritable, final InputStream stdoutReadable, final ComponentLog logger, final String attributeName,
+                                           final ProcessSession session, final FlowFile outputFlowFile, final Process process, final boolean putToAttribute, final int attributeSize) {
             this.ignoreStdin = ignoreStdin;
             this.stdinWritable = stdinWritable;
             this.stdoutReadable = stdoutReadable;
@@ -593,7 +593,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
                     try {
                         exitCode = process.waitFor();
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         logger.warn("Command Execution Process was interrupted", e);
                     }
                 }
@@ -603,7 +603,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     StreamUtils.copy(stdoutReadable, out);
                     try {
                         exitCode = process.waitFor();
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         logger.warn("Command Execution Process was interrupted", e);
                     }
                 });
@@ -613,11 +613,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     private static void readStdoutReadable(final boolean ignoreStdin, final OutputStream stdinWritable,
                                            final ComponentLog logger, final InputStream incomingFlowFileIS) {
-        Thread writerThread = new Thread(() -> {
+        final Thread writerThread = new Thread(() -> {
             if (!ignoreStdin) {
                 try {
                     StreamUtils.copy(incomingFlowFileIS, stdinWritable);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     // This is unlikely to occur, and isn't handled at the moment
                     // Bug captured in NIFI-1194
                     logger.error("Failed to write FlowFile to Standard Input Stream", e);

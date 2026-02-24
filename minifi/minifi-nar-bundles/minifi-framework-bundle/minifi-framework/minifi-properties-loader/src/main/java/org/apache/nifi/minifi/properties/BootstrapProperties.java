@@ -37,22 +37,22 @@ public class BootstrapProperties extends ApplicationProperties {
         super(Collections.emptyMap());
     }
 
-    public BootstrapProperties(Properties properties) {
+    public BootstrapProperties(final Properties properties) {
         super(properties);
     }
-    public BootstrapProperties(Map<String, String> properties) {
+    public BootstrapProperties(final Map<String, String> properties) {
         super(properties);
     }
 
     @Override
-    public String getProperty(String key) {
+    public String getProperty(final String key) {
         return resolvePropertyValue(key, System.getProperties())
             .or(() -> resolvePropertyValue(key, System.getenv()))
             .orElseGet(() -> super.getProperty(key));
     }
 
     @Override
-    public String getProperty(String key, String defaultValue) {
+    public String getProperty(final String key, final String defaultValue) {
         return resolvePropertyValue(key, System.getProperties())
             .or(() -> resolvePropertyValue(key, System.getenv()))
             .orElseGet(() -> super.getProperty(key, defaultValue));
@@ -60,13 +60,13 @@ public class BootstrapProperties extends ApplicationProperties {
 
     @Override
     public Set<String> getPropertyKeys() {
-        Set<String> systemKeys = System.getProperties().keySet().stream().map(String::valueOf).collect(Collectors.toSet());
+        final Set<String> systemKeys = System.getProperties().keySet().stream().map(String::valueOf).collect(Collectors.toSet());
         return Stream.of(systemKeys, System.getenv().keySet(), super.getPropertyKeys())
             .flatMap(Set::stream)
             .collect(Collectors.toSet());
     }
 
-    public boolean containsKey(String key) {
+    public boolean containsKey(final String key) {
         return getPropertyKeys().contains(key);
     }
 }

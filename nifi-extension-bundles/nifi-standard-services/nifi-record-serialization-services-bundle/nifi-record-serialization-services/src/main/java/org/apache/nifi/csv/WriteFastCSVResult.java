@@ -76,11 +76,11 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
 
         final OutputStreamWriter streamWriter = new OutputStreamWriter(out, charSet);
 
-        CsvWriter.CsvWriterBuilder builder = CsvWriter.builder()
+        final CsvWriter.CsvWriterBuilder builder = CsvWriter.builder()
                 .fieldSeparator(csvFormat.getDelimiterString().charAt(0))
                 .quoteCharacter(csvFormat.getQuoteCharacter());
 
-        QuoteMode quoteMode = (csvFormat.getQuoteMode() == null) ? MINIMAL : csvFormat.getQuoteMode();
+        final QuoteMode quoteMode = (csvFormat.getQuoteMode() == null) ? MINIMAL : csvFormat.getQuoteMode();
         switch (quoteMode) {
             case ALL:
                 builder.quoteStrategy(QuoteStrategies.ALWAYS);
@@ -95,9 +95,9 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         }
 
         try {
-            LineDelimiter lineDelimiter = LineDelimiter.of(csvFormat.getRecordSeparator());
+            final LineDelimiter lineDelimiter = LineDelimiter.of(csvFormat.getRecordSeparator());
             builder.lineDelimiter(lineDelimiter);
-        } catch (IllegalArgumentException iae) {
+        } catch (final IllegalArgumentException iae) {
             throw new IOException("Line delimiter is not supported, must use LF, CR, or CRLF", iae);
         }
 
@@ -144,7 +144,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         if (fieldNames != null) {
             return fieldNames;
         }
-        Set<String> allFields = new LinkedHashSet<>();
+        final Set<String> allFields = new LinkedHashSet<>();
         allFields.addAll(recordSchema.getFieldNames());
         allFields.addAll(record.getRawFieldNames());
         fieldNames = allFields.toArray(new String[0]);
@@ -155,7 +155,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         if (headerWritten || !includeHeaderLine) {
             return;
         }
-        String[] names = schemaOnly
+        final String[] names = schemaOnly
                 ? recordSchema.getFieldNames().toArray(new String[0])
                 : getFieldNames(record);
 
@@ -171,7 +171,7 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         includeHeaderIfNecessary(record, true);
 
         int i = 0;
-        for (RecordField field : recordSchema.getFields()) {
+        for (final RecordField field : recordSchema.getFields()) {
             fieldValues[i++] = record.getAsString(field, getFormat(field));
         }
 
@@ -186,14 +186,14 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
         }
         includeHeaderIfNecessary(record, false);
 
-        String[] names = getFieldNames(record);
-        String[] values = (names.length == fieldValues.length)
+        final String[] names = getFieldNames(record);
+        final String[] values = (names.length == fieldValues.length)
                 ? fieldValues
                 : new String[names.length];
 
         int i = 0;
-        for (String name : names) {
-            Optional<RecordField> rf = recordSchema.getField(name);
+        for (final String name : names) {
+            final Optional<RecordField> rf = recordSchema.getField(name);
             values[i++] = rf
                     .map(f -> record.getAsString(f, getFormat(f)))
                     .orElseGet(() -> record.getAsString(name));

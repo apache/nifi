@@ -202,7 +202,7 @@ public class TestProcessGroupAuditor {
         assertEquals("ProcessGroup", pgAction.getSourceType().name());
         assertEquals(Operation.Start, pgAction.getOperation());
 
-        List<Action> componentActions = actionsIterator.next();
+        final List<Action> componentActions = actionsIterator.next();
         assertEquals(6, componentActions.size());
 
         componentActions.sort(Comparator.comparing(Action::getSourceName));
@@ -309,7 +309,7 @@ public class TestProcessGroupAuditor {
         assertEquals("ProcessGroup", pgAction.getSourceType().name());
         assertEquals(Operation.Enable, pgAction.getOperation());
 
-        List<Action> componentActions = actionsIterator.next();
+        final List<Action> componentActions = actionsIterator.next();
         assertEquals(4, componentActions.size());
         componentActions.sort(Comparator.comparing(Action::getSourceName));
 

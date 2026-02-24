@@ -124,14 +124,14 @@ public class DropboxFileInfo implements ListableEntity {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DropboxFileInfo that = (DropboxFileInfo) o;
+        final DropboxFileInfo that = (DropboxFileInfo) o;
         return id.equals(that.id) && size == that.size && timestamp == that.timestamp && path.equals(that.path) && filename.equals(that.filename)
                 && revision.equals(that.revision);
     }
@@ -150,32 +150,32 @@ public class DropboxFileInfo implements ListableEntity {
         private long timestamp;
         private String revision;
 
-        public Builder id(String id) {
+        public Builder id(final String id) {
             this.id = id;
             return this;
         }
 
-        public Builder path(String path) {
+        public Builder path(final String path) {
             this.path = path;
             return this;
         }
 
-        public Builder name(String filename) {
+        public Builder name(final String filename) {
             this.filename = filename;
             return this;
         }
 
-        public Builder size(long size) {
+        public Builder size(final long size) {
             this.size = size;
             return this;
         }
 
-        public Builder timestamp(long createdTime) {
+        public Builder timestamp(final long createdTime) {
             this.timestamp = createdTime;
             return this;
         }
 
-        public Builder revision(String revision) {
+        public Builder revision(final String revision) {
             this.revision = revision;
             return this;
         }

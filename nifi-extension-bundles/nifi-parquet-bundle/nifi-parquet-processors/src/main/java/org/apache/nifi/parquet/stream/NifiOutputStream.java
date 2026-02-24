@@ -27,7 +27,7 @@ public class NifiOutputStream extends PositionOutputStream {
     private long position = 0;
     private OutputStream outputStream;
 
-    public NifiOutputStream(OutputStream outputStream) {
+    public NifiOutputStream(final OutputStream outputStream) {
         this.outputStream = outputStream;
     }
 
@@ -37,18 +37,18 @@ public class NifiOutputStream extends PositionOutputStream {
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         position++;
         outputStream.write(b);
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public void write(final byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         outputStream.write(b, off, len);
         position += len;
     }

@@ -65,7 +65,7 @@ public class AbstractTestTailFileScenario {
     public void setUp() throws IOException {
         clean();
 
-        File directory = new File("target/" + TEST_DIRECTORY);
+        final File directory = new File("target/" + TEST_DIRECTORY);
         if (!directory.exists()) {
             assertTrue(directory.mkdirs());
         }
@@ -110,7 +110,7 @@ public class AbstractTestTailFileScenario {
         processor.cleanup(new MockProcessContext(processor));
     }
 
-    public void testScenario(List<Action> actions) throws Exception {
+    public void testScenario(final List<Action> actions) throws Exception {
         testScenario(actions, false);
 
         tearDown();
@@ -119,12 +119,12 @@ public class AbstractTestTailFileScenario {
         testScenario(actions, true);
     }
 
-    public void testScenario(List<Action> actions, boolean stopAfterEachTrigger) throws Exception {
+    public void testScenario(final List<Action> actions, final boolean stopAfterEachTrigger) throws Exception {
         // GIVEN
         this.stopAfterEachTrigger.set(stopAfterEachTrigger);
 
         // WHEN
-        for (Action action : actions) {
+        for (final Action action : actions) {
             action.run(this);
         }
         overwriteRemainingNuls();
@@ -135,8 +135,8 @@ public class AbstractTestTailFileScenario {
         Action.TRIGGER.run(this);
 
         // THEN
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
-        List<String> actual = flowFiles.stream()
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        final List<String> actual = flowFiles.stream()
             .map(MockFlowFile::toByteArray)
             .map(String::new)
             .collect(Collectors.toList());
@@ -152,7 +152,7 @@ public class AbstractTestTailFileScenario {
         cleanFiles("target/" + TEST_DIRECTORY);
     }
 
-    private void cleanFiles(String directory) {
+    private void cleanFiles(final String directory) {
         final File targetDir = new File(directory);
 
         if (targetDir.exists()) {
@@ -175,7 +175,7 @@ public class AbstractTestTailFileScenario {
     }
 
     private void writeWord() throws IOException {
-        String word = "-word_" + wordIndex.getAndIncrement() + "-";
+        final String word = "-word_" + wordIndex.getAndIncrement() + "-";
 
         randomAccessFile.write(word.getBytes());
 
@@ -198,9 +198,9 @@ public class AbstractTestTailFileScenario {
 
     private void overwriteNul() throws IOException {
         if (!nulPositions.isEmpty()) {
-            Long nulPosition = nulPositions.remove(random.nextInt(nulPositions.size()));
+            final Long nulPosition = nulPositions.remove(random.nextInt(nulPositions.size()));
 
-            long currentPosition = randomAccessFile.getFilePointer();
+            final long currentPosition = randomAccessFile.getFilePointer();
             randomAccessFile.seek(nulPosition);
             randomAccessFile.write(NUL_SUBSTITUTE.getBytes());
             randomAccessFile.seek(currentPosition);
@@ -212,7 +212,7 @@ public class AbstractTestTailFileScenario {
     }
 
     private void rollover() throws IOException {
-        File rolledOverFile = new File(file.getParentFile(), file.getName() + "." + rolloverIndex.getAndIncrement());
+        final File rolledOverFile = new File(file.getParentFile(), file.getName() + "." + rolloverIndex.getAndIncrement());
         file.renameTo(rolledOverFile);
 
         createTargetFile();
@@ -232,7 +232,7 @@ public class AbstractTestTailFileScenario {
     }
 
     private void expireRolloverWaitPeriod() throws Exception {
-        long waitPeriod = POST_ROLLOVER_WAIT_PERSIOD_SECONDS * 1000 + 100;
+        final long waitPeriod = POST_ROLLOVER_WAIT_PERSIOD_SECONDS * 1000 + 100;
         timeAdjustment.set(timeAdjustment.get() + waitPeriod);
     }
 
@@ -248,11 +248,11 @@ public class AbstractTestTailFileScenario {
 
         private final ActionRunner actionRunner;
 
-        Action(ActionRunner actionRunner) {
+        Action(final ActionRunner actionRunner) {
             this.actionRunner = actionRunner;
         }
 
-        void run(AbstractTestTailFileScenario currentTest) throws Exception {
+        void run(final AbstractTestTailFileScenario currentTest) throws Exception {
             actionRunner.runAction(currentTest);
         }
     }

@@ -26,19 +26,19 @@ public class UninheritableFlowException extends ConnectionException {
 
     private static final long serialVersionUID = 198234798234794L;
 
-    public UninheritableFlowException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public UninheritableFlowException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public UninheritableFlowException(Throwable cause) {
+    public UninheritableFlowException(final Throwable cause) {
         super(cause);
     }
 
-    public UninheritableFlowException(String message, Throwable cause) {
+    public UninheritableFlowException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public UninheritableFlowException(String message) {
+    public UninheritableFlowException(final String message) {
         super(message);
     }
 

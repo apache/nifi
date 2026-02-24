@@ -76,7 +76,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
     public void teardown() {
         try {
             client.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn(e.getMessage(), e);
         }
     }
@@ -157,7 +157,7 @@ public class DBFlowStorageIT extends IntegrationTestBase {
         try {
             client.getFlowSnapshotClient().get(createdF1.getIdentifier(), 1);
             fail("Should have thrown exception");
-        } catch (NiFiRegistryException ignored) {
+        } catch (final NiFiRegistryException ignored) {
         }
 
         // Versions of f2 should still exist...

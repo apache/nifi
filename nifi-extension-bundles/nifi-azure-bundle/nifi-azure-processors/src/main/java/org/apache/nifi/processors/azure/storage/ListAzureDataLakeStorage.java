@@ -195,7 +195,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName());
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
@@ -330,7 +330,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     }
 
     private Pattern getPattern(final ProcessContext context, final PropertyDescriptor filterDescriptor) {
-        String value = context.getProperty(filterDescriptor).evaluateAttributeExpressions().getValue();
+        final String value = context.getProperty(filterDescriptor).evaluateAttributeExpressions().getValue();
         return value != null ? Pattern.compile(value) : null;
     }
 }

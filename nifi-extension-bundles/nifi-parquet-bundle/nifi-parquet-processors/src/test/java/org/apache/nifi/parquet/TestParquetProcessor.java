@@ -52,7 +52,7 @@ public class TestParquetProcessor extends AbstractProcessor {
             .build();
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         final RecordReaderFactory readerFactory = context.getProperty(READER).asControllerService(RecordReaderFactory.class);
 
@@ -64,7 +64,7 @@ public class TestParquetProcessor extends AbstractProcessor {
             while ((record = reader.nextRecord()) != null) {
                 records.add(serializeRecord(record));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 
@@ -82,20 +82,20 @@ public class TestParquetProcessor extends AbstractProcessor {
         return new HashSet<>(singletonList(SUCCESS));
     }
 
-    private String serializeRecord(Record record) {
+    private String serializeRecord(final Record record) {
         final List<String> result = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : record.toMap().entrySet()) {
+        for (final Map.Entry<String, Object> entry : record.toMap().entrySet()) {
             result.add(entry.getKey() + "=" + serializeField(record.getValue(entry.getKey())));
         }
 
         return "MapRecord[{" + String.join(", ", result) + "}]";
     }
 
-    private String serializeField(Object value) {
+    private String serializeField(final Object value) {
         final StringBuilder result = new StringBuilder();
         if (value instanceof Object[]) {
             final List<String> array = new ArrayList<>();
-            for (Object arrayValue : (Object[]) value) {
+            for (final Object arrayValue : (Object[]) value) {
                 array.add(serializeField(arrayValue));
             }
             result.append("[").append(String.join(", ", array)).append("]");

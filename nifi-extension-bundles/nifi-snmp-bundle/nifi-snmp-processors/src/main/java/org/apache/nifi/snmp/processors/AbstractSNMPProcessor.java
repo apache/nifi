@@ -143,7 +143,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
                 SecurityModels.getInstance().removeSecurityModel(new Integer32(snmpManager.getUSM().getID()));
             }
             snmpManager.close();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             final String errorMessage = "Could not close SNMP manager.";
             logger.error(errorMessage, e);
             throw new ProcessException(errorMessage);
@@ -186,7 +186,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
         }
     }
 
-    private SNMPResponseStatus checkV2cV3VariableBindings(SNMPSingleResponse response) {
+    private SNMPResponseStatus checkV2cV3VariableBindings(final SNMPSingleResponse response) {
         if (response.getVersion() == SnmpConstants.version2c || response.getVersion() == SnmpConstants.version3) {
             final Optional<SNMPValue> firstVariableBinding = response.getVariableBindings().stream().findFirst();
             if (firstVariableBinding.isPresent()) {
@@ -241,7 +241,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("snmp-hostname", AGENT_HOST.getName());
         config.renameProperty("snmp-port", AGENT_PORT.getName());
     }

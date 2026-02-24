@@ -64,7 +64,7 @@ public class ComponentDTO {
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -89,7 +89,7 @@ public class ComponentDTO {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

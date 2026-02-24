@@ -94,12 +94,12 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         final String destinationName = "validateSuccessfulPublishAndTransferToSuccess";
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -109,7 +109,7 @@ public class PublishJMSIT {
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
         runner.setProperty(PublishJMS.DESTINATION, destinationName);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         attributes.put("test-attribute.type", "allowed1");
@@ -122,10 +122,10 @@ public class PublishJMSIT {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        JmsTemplate jmst = new JmsTemplate(cf);
-        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+        final JmsTemplate jmst = new JmsTemplate(cf);
+        final BytesMessage message = (BytesMessage) jmst.receive(destinationName);
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
@@ -140,13 +140,13 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateSuccessfulPublishAndTransferToSuccessWithEL() throws Exception {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         final String destinationNameExpression = "${foo}Queue";
         final String destinationName = "fooQueue";
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -156,7 +156,7 @@ public class PublishJMSIT {
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
         runner.setProperty(PublishJMS.DESTINATION, destinationNameExpression);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
@@ -165,10 +165,10 @@ public class PublishJMSIT {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        JmsTemplate jmst = new JmsTemplate(cf);
-        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+        final JmsTemplate jmst = new JmsTemplate(cf);
+        final BytesMessage message = (BytesMessage) jmst.receive(destinationName);
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
@@ -178,11 +178,11 @@ public class PublishJMSIT {
 
     @Test
     public void validateFailedPublishAndTransferToFailure() throws Exception {
-        ConnectionFactory cf = mock(ConnectionFactory.class);
+        final ConnectionFactory cf = mock(ConnectionFactory.class);
 
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -204,12 +204,12 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validatePublishTextMessage() throws Exception {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         final String destinationName = "validatePublishTextMessage";
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -220,7 +220,7 @@ public class PublishJMSIT {
         runner.setProperty(PublishJMS.DESTINATION, destinationName);
         runner.setProperty(PublishJMS.MESSAGE_BODY, "text");
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
         runner.enqueue("Hey dude!".getBytes(), attributes);
@@ -229,12 +229,12 @@ public class PublishJMSIT {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        JmsTemplate jmst = new JmsTemplate(cf);
-        Message message = jmst.receive(destinationName);
+        final JmsTemplate jmst = new JmsTemplate(cf);
+        final Message message = jmst.receive(destinationName);
         assertInstanceOf(TextMessage.class, message);
-        TextMessage textMessage = (TextMessage) message;
+        final TextMessage textMessage = (TextMessage) message;
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(textMessage);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(textMessage);
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
@@ -245,12 +245,12 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validatePublishPropertyTypes() throws Exception {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         final String destinationName = "validatePublishPropertyTypes";
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -260,7 +260,7 @@ public class PublishJMSIT {
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
         runner.setProperty(PublishJMS.DESTINATION, destinationName);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put("myboolean", "true");
         attributes.put("myboolean.type", "boolean");
@@ -287,10 +287,10 @@ public class PublishJMSIT {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        JmsTemplate jmst = new JmsTemplate(cf);
-        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+        final JmsTemplate jmst = new JmsTemplate(cf);
+        final BytesMessage message = (BytesMessage) jmst.receive(destinationName);
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
         assertEquals("Hey dude!", new String(messageBytes));
         assertInstanceOf(String.class, message.getObjectProperty("foo"));
         assertEquals("foo", message.getStringProperty("foo"));
@@ -318,12 +318,12 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateRegexAndIllegalHeaders() throws Exception {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         final String destinationName = "validatePublishTextMessage";
-        PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final PublishJMS pubProc = new PublishJMS();
+        final TestRunner runner = TestRunners.newTestRunner(pubProc);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
@@ -336,7 +336,7 @@ public class PublishJMSIT {
         runner.setProperty(PublishJMS.ATTRIBUTES_AS_HEADERS_REGEX, "^((?!bar).)*$");
         runner.setProperty(PublishJMS.ALLOW_ILLEGAL_HEADER_CHARS, "true");
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
         attributes.put("bar", "bar");
         attributes.put("test-header-with-hyphen", "value");
@@ -347,12 +347,12 @@ public class PublishJMSIT {
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
-        JmsTemplate jmst = new JmsTemplate(cf);
-        Message message = jmst.receive(destinationName);
+        final JmsTemplate jmst = new JmsTemplate(cf);
+        final Message message = jmst.receive(destinationName);
         assertInstanceOf(TextMessage.class, message);
-        TextMessage textMessage = (TextMessage) message;
+        final TextMessage textMessage = (TextMessage) message;
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(textMessage);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(textMessage);
         assertEquals("Hey dude!", new String(messageBytes));
         assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
         assertEquals("foo", message.getStringProperty("foo"));
@@ -377,33 +377,33 @@ public class PublishJMSIT {
     public void validateNIFI7034() throws Exception {
         class PublishJmsForNifi7034 extends PublishJMS {
             @Override
-            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
+            protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher) throws ProcessException {
                 super.rendezvousWithJms(context, processSession, publisher);
                 publisher.setValid(false);
             }
         }
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
             broker.setBrokerName("nifi7034publisher");
-            TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
-            int port = connector.getServer().getSocketAddress().getPort();
+            final TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
+            final int port = connector.getServer().getSocketAddress().getPort();
             broker.start();
 
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("validateNIFI7034://127.0.0.1:" + port);
+            final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("validateNIFI7034://127.0.0.1:" + port);
             final String destinationName = "nifi7034";
             final AtomicReference<TcpTransport> tcpTransport = new AtomicReference<>();
             TcpTransportFactory.registerTransportFactory("validateNIFI7034", new TcpTransportFactory() {
                 @Override
-                protected TcpTransport createTcpTransport(WireFormat wf, SocketFactory socketFactory, URI location, URI localLocation) throws IOException {
-                    TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
+                protected TcpTransport createTcpTransport(final WireFormat wf, final SocketFactory socketFactory, final URI location, final URI localLocation) throws IOException {
+                    final TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
                     tcpTransport.set(transport);
                     return transport;
                 }
             });
 
-            TestRunner runner = TestRunners.newTestRunner(new PublishJmsForNifi7034());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new PublishJmsForNifi7034());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
             runner.addControllerService("cfProvider", cs);
@@ -435,21 +435,21 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7563UsingOneThread() throws Exception {
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
-            TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
-            int port = connector.getServer().getSocketAddress().getPort();
+            final TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
+            final int port = connector.getServer().getSocketAddress().getPort();
             broker.start();
 
             final ActiveMQConnectionFactory innerCf = new ActiveMQConnectionFactory("tcp://127.0.0.1:" + port);
-            ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
+            final ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
 
             // Create a connection Factory proxy to catch metrics and usage.
-            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
+            final ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
-            TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
             runner.addControllerService("cfProvider", cs);
@@ -457,16 +457,16 @@ public class PublishJMSIT {
 
             runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
 
-            String destinationName = "myDestinationName";
+            final String destinationName = "myDestinationName";
             // The destination option according current implementation should contain topic or queue to infer the destination type
             // from the name. Check https://issues.apache.org/jira/browse/NIFI-7561. Once that is fixed, the name can be
             // randomly created.
-            String topicNameInHeader = "topic-foo";
+            final String topicNameInHeader = "topic-foo";
             runner.setProperty(PublishJMS.DESTINATION, destinationName);
             runner.setProperty(PublishJMS.DESTINATION_TYPE, PublishJMS.QUEUE);
 
-            int threads = 1;
-            Map<String, String> flowFileAttributes = new HashMap<>();
+            final int threads = 1;
+            final Map<String, String> flowFileAttributes = new HashMap<>();
             // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
             flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
             flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
@@ -497,21 +497,21 @@ public class PublishJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNIFI7563UsingMultipleThreads() throws Exception {
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
-            TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
-            int port = connector.getServer().getSocketAddress().getPort();
+            final TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
+            final int port = connector.getServer().getSocketAddress().getPort();
             broker.start();
 
             final ActiveMQConnectionFactory innerCf = new ActiveMQConnectionFactory("tcp://127.0.0.1:" + port);
-            ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
+            final ConnectionFactoryInvocationHandler connectionFactoryProxy = new ConnectionFactoryInvocationHandler(innerCf);
 
             // Create a connection Factory proxy to catch metrics and usage.
-            ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
+            final ConnectionFactory cf = (ConnectionFactory) Proxy.newProxyInstance(ConnectionFactory.class.getClassLoader(), new Class[] {ConnectionFactory.class}, connectionFactoryProxy);
 
-            TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new PublishJMS());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
             runner.addControllerService("cfProvider", cs);
@@ -519,22 +519,22 @@ public class PublishJMSIT {
 
             runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
 
-            String destinationName = "myDestinationName";
+            final String destinationName = "myDestinationName";
             // The destination option according current implementation should contain topic or queue to infer the destination type
             // from the name. Check https://issues.apache.org/jira/browse/NIFI-7561. Once that is fixed, the name can be
             // randomly created.
-            String topicNameInHeader = "topic-foo";
+            final String topicNameInHeader = "topic-foo";
             runner.setProperty(PublishJMS.DESTINATION, destinationName);
             runner.setProperty(PublishJMS.DESTINATION_TYPE, PublishJMS.QUEUE);
 
-            int messagesToGenerate = 1000;
-            int threads = 10;
+            final int messagesToGenerate = 1000;
+            final int threads = 10;
             runner.setThreadCount(threads);
-            Map<String, String> flowFileAttributes = new HashMap<>();
+            final Map<String, String> flowFileAttributes = new HashMap<>();
             // This method will be removed once https://issues.apache.org/jira/browse/NIFI-7564 is fixed.
             flowFileAttributes.put(JmsHeaders.DESTINATION, topicNameInHeader);
             flowFileAttributes.put(JmsHeaders.REPLY_TO, topicNameInHeader);
-            byte[] messageContent = "hi".getBytes();
+            final byte[] messageContent = "hi".getBytes();
             for (int i = 0; i < messagesToGenerate; i++) {
                 runner.enqueue(messageContent, flowFileAttributes);
             }
@@ -554,7 +554,7 @@ public class PublishJMSIT {
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() {
         final String nonExistentClassName = "DummyInitialContextFactoryClass";
 
-        TestRunner runner = TestRunners.newTestRunner(PublishJMS.class);
+        final TestRunner runner = TestRunners.newTestRunner(PublishJMS.class);
 
         // using JNDI JMS Connection Factory configured locally on the processor
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, nonExistentClassName);
@@ -573,8 +573,8 @@ public class PublishJMSIT {
 
     @Test
     public void testPublishRecords() throws InitializationException {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
-        String destination = "testPublishRecords";
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final String destination = "testPublishRecords";
         testRunner = initializeTestRunner(cf, destination);
         testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
@@ -604,10 +604,10 @@ public class PublishJMSIT {
 
     @Test
     public void testPublishRecordsFailed() throws InitializationException {
-        PublishJMS processor = new PublishJMS() {
+        final PublishJMS processor = new PublishJMS() {
             @Override
-            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
-                JMSPublisher spiedPublisher = Mockito.spy(publisher);
+            protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher) throws ProcessException {
+                final JMSPublisher spiedPublisher = Mockito.spy(publisher);
                 Mockito.doCallRealMethod()
                         .doThrow(new RuntimeException("Second publish failed."))
                         .when(spiedPublisher).publish(any(), any(byte[].class), any());
@@ -615,8 +615,8 @@ public class PublishJMSIT {
             }
         };
 
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
-        String destination = "testPublishRecords";
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final String destination = "testPublishRecords";
         testRunner = initializeTestRunner(processor, cf, destination);
         testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
@@ -633,7 +633,7 @@ public class PublishJMSIT {
 
         verifyPublishedMessage(cf, destination, testInput.get(0).toString());
 
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile failedFlowFile = flowFiles.get(0);
@@ -643,10 +643,10 @@ public class PublishJMSIT {
 
     @Test
     public void testContinuePublishRecordsAndFailAgainWhenPreviousPublishFailed() throws InitializationException {
-        PublishJMS processor = new PublishJMS() {
+        final PublishJMS processor = new PublishJMS() {
             @Override
-            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
-                JMSPublisher spiedPublisher = Mockito.spy(publisher);
+            protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher) throws ProcessException {
+                final JMSPublisher spiedPublisher = Mockito.spy(publisher);
                 Mockito.doCallRealMethod()
                         .doThrow(new RuntimeException("Second publish failed."))
                         .when(spiedPublisher).publish(any(), any(byte[].class), any());
@@ -654,8 +654,8 @@ public class PublishJMSIT {
             }
         };
 
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
-        String destination = "testPublishRecords";
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final String destination = "testPublishRecords";
         testRunner = initializeTestRunner(processor, cf, destination);
         testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
@@ -684,8 +684,8 @@ public class PublishJMSIT {
 
     @Test
     public void testContinuePublishRecordsSuccessfullyWhenPreviousPublishFailed() throws InitializationException {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
-        String destination = "testPublishRecords";
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final String destination = "testPublishRecords";
         testRunner = initializeTestRunner(cf, destination);
         testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
@@ -714,14 +714,14 @@ public class PublishJMSIT {
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
     }
 
-    private TestRunner initializeTestRunner(ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
-        PublishJMS processor = new PublishJMS();
+    private TestRunner initializeTestRunner(final ConnectionFactory connectionFactory, final String destinationName) throws InitializationException {
+        final PublishJMS processor = new PublishJMS();
         return initializeTestRunner(processor, connectionFactory, destinationName);
     }
 
-    private TestRunner initializeTestRunner(PublishJMS processor, ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(processor);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+    private TestRunner initializeTestRunner(final PublishJMS processor, final ConnectionFactory connectionFactory, final String destinationName) throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(connectionFactory);
 
@@ -734,11 +734,11 @@ public class PublishJMSIT {
         return runner;
     }
 
-    private void verifyPublishedMessage(ConnectionFactory connectionFactory, String destinationName, String content) {
-        JmsTemplate jmst = new JmsTemplate(connectionFactory);
-        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+    private void verifyPublishedMessage(final ConnectionFactory connectionFactory, final String destinationName, final String content) {
+        final JmsTemplate jmst = new JmsTemplate(connectionFactory);
+        final BytesMessage message = (BytesMessage) jmst.receive(destinationName);
 
-        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        final byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
         assertEquals(content, new String(messageBytes));
     }
 
@@ -753,7 +753,7 @@ public class PublishJMSIT {
         return event;
     }
 
-    private void assertProvenanceEvent(String expectedDetails) {
+    private void assertProvenanceEvent(final String expectedDetails) {
         final ProvenanceEventRecord event = assertProvenanceEvent();
         assertEquals(expectedDetails, event.getDetails());
     }

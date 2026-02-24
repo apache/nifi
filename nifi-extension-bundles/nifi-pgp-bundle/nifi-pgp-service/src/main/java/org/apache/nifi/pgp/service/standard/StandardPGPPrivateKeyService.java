@@ -144,7 +144,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("keyring-file", KEYRING_FILE.getName());
         config.renameProperty("keyring", KEYRING.getName());
         config.renameProperty("key-password", KEY_PASSWORD.getName());

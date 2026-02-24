@@ -69,15 +69,15 @@ public class TestGeoEnrichIPRecord {
         final CityResponse cityResponse = getFullCityResponse();
         when(reader.city(InetAddress.getByName("1.2.3.4"))).thenReturn(cityResponse);
         runner = TestRunners.newTestRunner(new TestableGeoEnrichIPRecord());
-        ControllerService reader = new JsonTreeReader();
-        ControllerService writer = new JsonRecordSetWriter();
-        MockSchemaRegistry registry = new MockSchemaRegistry();
+        final ControllerService reader = new JsonTreeReader();
+        final ControllerService writer = new JsonRecordSetWriter();
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
         runner.addControllerService("registry", registry);
 
         final String raw = Files.readString(Paths.get("src/test/resources/avro/record_schema.avsc"));
-        RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
+        final RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
         registry.addSchema("record", parsed);
 
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
@@ -93,7 +93,7 @@ public class TestGeoEnrichIPRecord {
 
     @ParameterizedTest
     @MethodSource("logLevelArgs")
-    void testSpecifiedLogLevels(String logLevel, boolean expectValid) {
+    void testSpecifiedLogLevels(final String logLevel, final boolean expectValid) {
         runner.setProperty(AbstractEnrichIP.LOG_LEVEL, logLevel);
 
         if (expectValid) {
@@ -111,7 +111,7 @@ public class TestGeoEnrichIPRecord {
         );
     }
 
-    private void commonTest(String path, int not, int found, int original) {
+    private void commonTest(final String path, final int not, final int found, final int original) {
         runner.setProperty(GeoEnrichIPRecord.GEO_CITY, "/geo/city");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY, "/geo/country");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY_ISO, "/geo/country_iso");
@@ -121,7 +121,7 @@ public class TestGeoEnrichIPRecord {
         runner.setProperty(AbstractEnrichIP.LOG_LEVEL, "WARN");
         runner.assertValid();
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "record");
         runner.enqueue(getClass().getResourceAsStream(path), attrs);
         runner.run();
@@ -146,17 +146,17 @@ public class TestGeoEnrichIPRecord {
     public void testEnrichSendToFound() throws Exception {
         commonTest("/json/one_record.json", 0, 1, 0);
 
-        MockFlowFile ff = runner.getFlowFilesForRelationship(GeoEnrichIPRecord.REL_FOUND).getFirst();
-        byte[] raw = runner.getContentAsByteArray(ff);
-        String content = new String(raw);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> result = mapper.readValue(content, new TypeReference<>() { });
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(GeoEnrichIPRecord.REL_FOUND).getFirst();
+        final byte[] raw = runner.getContentAsByteArray(ff);
+        final String content = new String(raw);
+        final ObjectMapper mapper = new ObjectMapper();
+        final List<Map<String, Object>> result = mapper.readValue(content, new TypeReference<>() { });
 
         assertNotNull(result);
         assertEquals(1, result.size());
 
-        Map<String, Object> element = result.getFirst();
-        Map<String, Object> geo = (Map<String, Object>) element.get("geo");
+        final Map<String, Object> element = result.getFirst();
+        final Map<String, Object> geo = (Map<String, Object>) element.get("geo");
 
         assertNotNull(geo);
         assertNotNull(geo.get("city"));
@@ -209,7 +209,7 @@ public class TestGeoEnrichIPRecord {
 
         @Override
         @OnScheduled
-        public void onScheduled(ProcessContext context) {
+        public void onScheduled(final ProcessContext context) {
             databaseReaderRef.set(reader);
             readerFactory = context.getProperty(READER).asControllerService(RecordReaderFactory.class);
             writerFactory = context.getProperty(WRITER).asControllerService(RecordSetWriterFactory.class);

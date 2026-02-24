@@ -24,17 +24,17 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class AssertionUtils {
 
-    public static <T extends Throwable> void assertCausedBy(Class<T> expectedType, Runnable runnable) {
+    public static <T extends Throwable> void assertCausedBy(final Class<T> expectedType, final Runnable runnable) {
         assertCausedBy(expectedType, null, runnable);
     }
 
-    public static <T extends Throwable> void assertCausedBy(Class<T> expectedType, String expectedMessage, Runnable runnable) {
+    public static <T extends Throwable> void assertCausedBy(final Class<T> expectedType, final String expectedMessage, final Runnable runnable) {
         try {
             runnable.run();
             fail(String.format("Expected an exception to be thrown with a cause of %s, but nothing was thrown.", expectedType.getCanonicalName()));
-        } catch (Throwable throwable) {
+        } catch (final Throwable throwable) {
             final List<Throwable> causes = ExceptionUtils.getThrowableList(throwable);
-            for (Throwable cause : causes) {
+            for (final Throwable cause : causes) {
                 if (expectedType.isInstance(cause)) {
                     if (expectedMessage != null) {
                         if (cause.getMessage() != null && cause.getMessage().startsWith(expectedMessage)) {
@@ -49,13 +49,13 @@ public class AssertionUtils {
         }
     }
 
-    public static void assertCausedBy(Throwable expectedException, Runnable runnable) {
+    public static void assertCausedBy(final Throwable expectedException, final Runnable runnable) {
         try {
             runnable.run();
             fail(String.format("Expected an exception to be thrown with a cause of %s, but nothing was thrown.", expectedException));
-        } catch (Throwable throwable) {
+        } catch (final Throwable throwable) {
             final List<Throwable> causes = ExceptionUtils.getThrowableList(throwable);
-            for (Throwable cause : causes) {
+            for (final Throwable cause : causes) {
                 if (cause.equals(expectedException)) {
                     return;
                 }

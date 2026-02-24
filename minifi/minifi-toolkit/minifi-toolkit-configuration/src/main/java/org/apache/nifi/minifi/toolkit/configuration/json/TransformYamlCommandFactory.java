@@ -53,7 +53,7 @@ public class TransformYamlCommandFactory {
     private final PathInputStreamFactory pathInputStreamFactory;
     private final PathOutputStreamFactory pathOutputStreamFactory;
 
-    public TransformYamlCommandFactory(PathInputStreamFactory pathInputStreamFactory, PathOutputStreamFactory pathOutputStreamFactory) {
+    public TransformYamlCommandFactory(final PathInputStreamFactory pathInputStreamFactory, final PathOutputStreamFactory pathOutputStreamFactory) {
         this.pathInputStreamFactory = pathInputStreamFactory;
         this.pathOutputStreamFactory = pathOutputStreamFactory;
     }
@@ -62,33 +62,33 @@ public class TransformYamlCommandFactory {
         return new ConfigMain.Command(this::transformYamlToJson, COMMAND_DESCRIPTION);
     }
 
-    private int transformYamlToJson(String[] args) {
+    private int transformYamlToJson(final String[] args) {
         if (args.length != 5) {
             printTransformYmlUsage();
             return ConfigMain.ERR_INVALID_ARGS;
         }
 
-        String sourceMiNiFiConfigYamlPath = args[1];
-        String sourceBootstrapConfigPath = args[2];
-        String targetFlowJsonPath = args[3];
-        String targetBootstrapConfigPath = args[4];
+        final String sourceMiNiFiConfigYamlPath = args[1];
+        final String sourceBootstrapConfigPath = args[2];
+        final String targetFlowJsonPath = args[3];
+        final String targetBootstrapConfigPath = args[4];
 
         try {
-            ConfigSchema configSchema = readMiNiFiConfig(sourceMiNiFiConfigYamlPath);
+            final ConfigSchema configSchema = readMiNiFiConfig(sourceMiNiFiConfigYamlPath);
 
-            Properties sourceBootstrapProperties = loadProperties(sourceBootstrapConfigPath);
-            Properties targetBootstrapProperties = loadProperties(targetBootstrapConfigPath);
+            final Properties sourceBootstrapProperties = loadProperties(sourceBootstrapConfigPath);
+            final Properties targetBootstrapProperties = loadProperties(targetBootstrapConfigPath);
 
-            ConfigSchemaToVersionedDataFlowTransformer transformer = new ConfigSchemaToVersionedDataFlowTransformer(configSchema);
-            VersionedDataflow convertedFlow = transformer.convert();
+            final ConfigSchemaToVersionedDataFlowTransformer transformer = new ConfigSchemaToVersionedDataFlowTransformer(configSchema);
+            final VersionedDataflow convertedFlow = transformer.convert();
 
-            Map<String, String> extractedProperties = transformer.extractProperties();
+            final Map<String, String> extractedProperties = transformer.extractProperties();
             targetBootstrapProperties.putAll(sourceBootstrapProperties.entrySet().stream().collect(toMap(Entry::getKey, Entry::getValue)));
             targetBootstrapProperties.putAll(extractedProperties);
 
             persistFlowJson(convertedFlow, targetFlowJsonPath);
             persistProperties(targetBootstrapProperties, targetBootstrapConfigPath);
-        } catch (ConfigTransformException e) {
+        } catch (final ConfigTransformException e) {
             System.out.println("Unable to convert MiNiFi config YAML to flow JSON: " + e);
             return e.getErrorCode();
         }
@@ -103,18 +103,18 @@ public class TransformYamlCommandFactory {
         System.out.println();
     }
 
-    private ConfigSchema readMiNiFiConfig(String miNiFiConfigPath) throws ConfigTransformException {
+    private ConfigSchema readMiNiFiConfig(final String miNiFiConfigPath) throws ConfigTransformException {
         try (InputStream inputStream = pathInputStreamFactory.create(miNiFiConfigPath)) {
-            ConvertableSchema<ConfigSchema> convertableSchema = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(inputStream));
+            final ConvertableSchema<ConfigSchema> convertableSchema = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(inputStream));
             return throwIfInvalid(convertableSchema.convert());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when read MiNiFi config file", ConfigMain.ERR_UNABLE_TO_READ_TEMPLATE, e);
-        } catch (SchemaLoaderException e) {
+        } catch (final SchemaLoaderException e) {
             throw new ConfigTransformException("Error when parsing MiNiFi config file", ConfigMain.ERR_UNABLE_TO_PARSE_CONFIG, e);
         }
     }
 
-    private <T extends Schema> T throwIfInvalid(T schema) throws SchemaLoaderException {
+    private <T extends Schema> T throwIfInvalid(final T schema) throws SchemaLoaderException {
         if (!schema.isValid()) {
             throw new SchemaInstantiatonException("Failed to transform config file due to:["
                 + schema.getValidationIssues().stream().sorted().collect(joining("], [")) + "]");
@@ -122,26 +122,26 @@ public class TransformYamlCommandFactory {
         return schema;
     }
 
-    private Properties loadProperties(String propertiesFilePath) throws ConfigTransformException {
+    private Properties loadProperties(final String propertiesFilePath) throws ConfigTransformException {
         try (InputStream inputStream = pathInputStreamFactory.create(propertiesFilePath)) {
-            Properties properties = new Properties();
+            final Properties properties = new Properties();
             properties.load(inputStream);
             return properties;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when read properties file: " + propertiesFilePath, ConfigMain.ERR_UNABLE_TO_OPEN_INPUT, e);
         }
     }
 
-    private void persistFlowJson(VersionedDataflow flow, String flowJsonPath) throws ConfigTransformException {
+    private void persistFlowJson(final VersionedDataflow flow, final String flowJsonPath) throws ConfigTransformException {
         try (OutputStream outputStream = pathOutputStreamFactory.create(flowJsonPath)) {
-            ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
+            final ObjectMapper objectMapper = ObjectMapperUtils.createObjectMapper();
             objectMapper.writeValue(outputStream, flow);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when persisting flow JSON file: " + flowJsonPath, ConfigMain.ERR_UNABLE_TO_SAVE_CONFIG, e);
         }
     }
 
-    private void persistProperties(Properties properties, String bootstrapPropertiesPath) throws ConfigTransformException {
+    private void persistProperties(final Properties properties, final String bootstrapPropertiesPath) throws ConfigTransformException {
         try (OutputStream outputStream = pathOutputStreamFactory.create(bootstrapPropertiesPath)) {
             write(
                 properties.entrySet()
@@ -152,7 +152,7 @@ public class TransformYamlCommandFactory {
                 outputStream,
                 UTF_8
             );
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ConfigTransformException("Error when persisting bootstrap properties file: " + bootstrapPropertiesPath, ConfigMain.ERR_UNABLE_TO_SAVE_CONFIG, e);
         }
     }

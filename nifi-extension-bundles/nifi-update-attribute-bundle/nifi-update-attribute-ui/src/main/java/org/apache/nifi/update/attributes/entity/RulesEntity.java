@@ -36,7 +36,7 @@ public class RulesEntity {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -44,7 +44,7 @@ public class RulesEntity {
         return revision;
     }
 
-    public void setRevision(Long revision) {
+    public void setRevision(final Long revision) {
         this.revision = revision;
     }
 
@@ -52,7 +52,7 @@ public class RulesEntity {
         return processorId;
     }
 
-    public void setProcessorId(String processorId) {
+    public void setProcessorId(final String processorId) {
         this.processorId = processorId;
     }
 
@@ -60,7 +60,7 @@ public class RulesEntity {
         return rules;
     }
 
-    public void setRules(List<RuleDTO> rules) {
+    public void setRules(final List<RuleDTO> rules) {
         this.rules = rules;
     }
 

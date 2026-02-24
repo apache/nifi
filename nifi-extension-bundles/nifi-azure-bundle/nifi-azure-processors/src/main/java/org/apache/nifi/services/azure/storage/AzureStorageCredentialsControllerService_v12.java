@@ -83,31 +83,31 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         this.context = context;
     }
 
     @Override
-    public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
-        String accountName = context.getProperty(ACCOUNT_NAME).getValue();
-        String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
-        AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class);
-        ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
+    public AzureStorageCredentialsDetails_v12 getCredentialsDetails(final Map<String, String> attributes) {
+        final String accountName = context.getProperty(ACCOUNT_NAME).getValue();
+        final String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
+        final AzureStorageCredentialsType credentialsType = context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class);
+        final ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
 
         switch (credentialsType) {
             case ACCOUNT_KEY:
-                String accountKey = context.getProperty(ACCOUNT_KEY).getValue();
+                final String accountKey = context.getProperty(ACCOUNT_KEY).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithAccountKey(accountName, endpointSuffix, accountKey);
             case SAS_TOKEN:
-                String sasToken = context.getProperty(SAS_TOKEN).getValue();
+                final String sasToken = context.getProperty(SAS_TOKEN).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithSasToken(accountName, endpointSuffix, sasToken);
             case MANAGED_IDENTITY:
-                String managedIdentityClientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
+                final String managedIdentityClientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix, managedIdentityClientId, proxyOptions);
             case SERVICE_PRINCIPAL:
-                String servicePrincipalTenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
-                String servicePrincipalClientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
-                String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
+                final String servicePrincipalTenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
+                final String servicePrincipalClientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
+                final String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
                         servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
             case IDENTITY_FEDERATION:
@@ -123,7 +123,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.OLD_CREDENTIALS_TYPE_DESCRIPTOR_NAME, AzureStorageUtils.CREDENTIALS_TYPE.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_KEY.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_NAME.getName());

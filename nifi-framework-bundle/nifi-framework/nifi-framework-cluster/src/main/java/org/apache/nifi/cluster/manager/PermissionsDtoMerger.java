@@ -26,7 +26,7 @@ public class PermissionsDtoMerger {
      * @param mergedEntityPermissions the {@link PermissionsDTO} representing the merged permissions
      * @param entityPermissions       an {@link PermissionsDTO} to be merged
      */
-    public static void mergePermissions(PermissionsDTO mergedEntityPermissions, PermissionsDTO entityPermissions) {
+    public static void mergePermissions(final PermissionsDTO mergedEntityPermissions, final PermissionsDTO entityPermissions) {
         if (mergedEntityPermissions == null || entityPermissions == null) {
             return;
         }

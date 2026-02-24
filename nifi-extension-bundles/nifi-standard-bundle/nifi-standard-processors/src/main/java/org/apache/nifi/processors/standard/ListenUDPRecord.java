@@ -171,7 +171,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
 
     @Override
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) throws IOException {
         super.onScheduled(context);
         this.pollTimeout = context.getProperty(POLL_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
     }
@@ -182,7 +182,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> result = new ArrayList<>();
 
         final String sendingHost = validationContext.getProperty(SENDING_HOST).getValue();
@@ -308,7 +308,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 for (final Record record : records) {
                     writer.write(record);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Failed to write records", e);
                 IOUtils.closeQuietly(writer);
                 session.remove(flowFileRecordWriter.getFlowFile());
@@ -359,7 +359,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("sending-host", SENDING_HOST.getName());
         config.renameProperty("sending-host-port", SENDING_HOST_PORT.getName());
         config.renameProperty("record-reader", RECORD_READER.getName());
@@ -434,7 +434,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
     private static class HostValidator implements Validator {
 
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             try {
                 InetAddress.getByName(input);
                 return new ValidationResult.Builder().subject(subject).valid(true).input(input).build();

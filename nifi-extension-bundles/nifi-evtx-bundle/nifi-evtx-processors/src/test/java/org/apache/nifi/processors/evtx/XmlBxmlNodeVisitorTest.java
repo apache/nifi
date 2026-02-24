@@ -85,18 +85,18 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitOpenStartElementNode() throws IOException, XMLStreamException {
-        String tagName = "open";
-        OpenStartElementNode openStartElementNode = mock(OpenStartElementNode.class);
-        AttributeNode attributeNode = mock(AttributeNode.class);
-        AttributeNode attributeNode2 = mock(AttributeNode.class);
-        BxmlNode bxmlNode = mock(BxmlNode.class);
+        final String tagName = "open";
+        final OpenStartElementNode openStartElementNode = mock(OpenStartElementNode.class);
+        final AttributeNode attributeNode = mock(AttributeNode.class);
+        final AttributeNode attributeNode2 = mock(AttributeNode.class);
+        final BxmlNode bxmlNode = mock(BxmlNode.class);
 
         when(openStartElementNode.getTagName()).thenReturn(tagName);
         when(openStartElementNode.getChildren()).thenReturn(Arrays.asList(attributeNode, bxmlNode, attributeNode2));
 
         xmlBxmlNodeVisitor.visit(openStartElementNode);
 
-        InOrder inOrder = inOrder(xmlStreamWriter, attributeNode, attributeNode2, bxmlNode);
+        final InOrder inOrder = inOrder(xmlStreamWriter, attributeNode, attributeNode2, bxmlNode);
         inOrder.verify(xmlStreamWriter).writeStartElement(tagName);
         inOrder.verify(attributeNode).accept(xmlBxmlNodeVisitor);
         inOrder.verify(attributeNode2).accept(xmlBxmlNodeVisitor);
@@ -106,11 +106,11 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitAttributeNodeValueType() throws IOException, XMLStreamException {
-        String attributeName = "attributeName";
+        final String attributeName = "attributeName";
 
-        AttributeNode attributeNode = mock(AttributeNode.class);
-        ValueNode valueNode = mock(ValueNode.class);
-        BxmlNode child = mock(BxmlNode.class);
+        final AttributeNode attributeNode = mock(AttributeNode.class);
+        final ValueNode valueNode = mock(ValueNode.class);
+        final BxmlNode child = mock(BxmlNode.class);
 
         when(attributeNode.getAttributeName()).thenReturn(attributeName);
         when(attributeNode.getValue()).thenReturn(valueNode);
@@ -128,11 +128,11 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitAttributeNodeVariantType() throws IOException, XMLStreamException {
-        String attributeName = "attributeName";
-        String attributeValue = "attributeValue";
+        final String attributeName = "attributeName";
+        final String attributeValue = "attributeValue";
 
-        AttributeNode attributeNode = mock(AttributeNode.class);
-        VariantTypeNode variantTypeNode = mock(VariantTypeNode.class);
+        final AttributeNode attributeNode = mock(AttributeNode.class);
+        final VariantTypeNode variantTypeNode = mock(VariantTypeNode.class);
 
         when(attributeNode.getAttributeName()).thenReturn(attributeName);
         when(attributeNode.getValue()).thenReturn(variantTypeNode);
@@ -149,15 +149,15 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitAttributeNormalSubstitutionNode() throws IOException, XMLStreamException {
-        String attributeName = "attributeName";
-        String attributeValue = "attributeValue";
+        final String attributeName = "attributeName";
+        final String attributeValue = "attributeValue";
 
-        VariantTypeNode sub = mock(VariantTypeNode.class);
+        final VariantTypeNode sub = mock(VariantTypeNode.class);
         when(sub.getValue()).thenReturn(attributeValue);
         substitutions.add(sub);
 
-        AttributeNode attributeNode = mock(AttributeNode.class);
-        NormalSubstitutionNode normalSubstitutionNode = mock(NormalSubstitutionNode.class);
+        final AttributeNode attributeNode = mock(AttributeNode.class);
+        final NormalSubstitutionNode normalSubstitutionNode = mock(NormalSubstitutionNode.class);
 
         when(attributeNode.getAttributeName()).thenReturn(attributeName);
         when(attributeNode.getValue()).thenReturn(normalSubstitutionNode);
@@ -174,15 +174,15 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitAttributeConditionalSubstitutionNode() throws IOException, XMLStreamException {
-        String attributeName = "attributeName";
-        String attributeValue = "attributeValue";
+        final String attributeName = "attributeName";
+        final String attributeValue = "attributeValue";
 
-        VariantTypeNode sub = mock(VariantTypeNode.class);
+        final VariantTypeNode sub = mock(VariantTypeNode.class);
         when(sub.getValue()).thenReturn(attributeValue);
         substitutions.add(sub);
 
-        AttributeNode attributeNode = mock(AttributeNode.class);
-        ConditionalSubstitutionNode conditionalSubstitutionNode = mock(ConditionalSubstitutionNode.class);
+        final AttributeNode attributeNode = mock(AttributeNode.class);
+        final ConditionalSubstitutionNode conditionalSubstitutionNode = mock(ConditionalSubstitutionNode.class);
 
         when(attributeNode.getAttributeName()).thenReturn(attributeName);
         when(attributeNode.getValue()).thenReturn(conditionalSubstitutionNode);
@@ -199,8 +199,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitTemplateInstanceNode() throws IOException {
-        TemplateInstanceNode templateInstanceNode = mock(TemplateInstanceNode.class);
-        TemplateNode templateNode = mock(TemplateNode.class);
+        final TemplateInstanceNode templateInstanceNode = mock(TemplateInstanceNode.class);
+        final TemplateNode templateNode = mock(TemplateNode.class);
 
         when(templateInstanceNode.getTemplateNode()).thenReturn(templateNode);
 
@@ -210,8 +210,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitTemplateNode() throws IOException {
-        TemplateNode templateNode = mock(TemplateNode.class);
-        BxmlNode child = mock(BxmlNode.class);
+        final TemplateNode templateNode = mock(TemplateNode.class);
+        final BxmlNode child = mock(BxmlNode.class);
 
         when(templateNode.getChildren()).thenReturn(Arrays.asList(child));
 
@@ -222,8 +222,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitCDataSectionNode() throws IOException, XMLStreamException {
-        String cdata = "cdata";
-        CDataSectionNode cDataSectionNode = mock(CDataSectionNode.class);
+        final String cdata = "cdata";
+        final CDataSectionNode cDataSectionNode = mock(CDataSectionNode.class);
 
         when(cDataSectionNode.getCdata()).thenReturn(cdata);
 
@@ -234,8 +234,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitEntityReferenceNode() throws IOException, XMLStreamException {
-        String value = "value";
-        EntityReferenceNode entityReferenceNode = mock(EntityReferenceNode.class);
+        final String value = "value";
+        final EntityReferenceNode entityReferenceNode = mock(EntityReferenceNode.class);
 
         when(entityReferenceNode.getValue()).thenReturn(value);
 
@@ -246,8 +246,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitValueNode() throws IOException {
-        ValueNode valueNode = mock(ValueNode.class);
-        BxmlNode child = mock(BxmlNode.class);
+        final ValueNode valueNode = mock(ValueNode.class);
+        final BxmlNode child = mock(BxmlNode.class);
 
         when(valueNode.getChildren()).thenReturn(Arrays.asList(child));
 
@@ -258,8 +258,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitConditionalSubstitutionNode() throws IOException {
-        ConditionalSubstitutionNode conditionalSubstitutionNode = mock(ConditionalSubstitutionNode.class);
-        VariantTypeNode sub = mock(VariantTypeNode.class);
+        final ConditionalSubstitutionNode conditionalSubstitutionNode = mock(ConditionalSubstitutionNode.class);
+        final VariantTypeNode sub = mock(VariantTypeNode.class);
 
         substitutions.add(sub);
         when(conditionalSubstitutionNode.getIndex()).thenReturn(0);
@@ -271,8 +271,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitNormalSubstitutionNode() throws IOException {
-        NormalSubstitutionNode normalSubstitutionNode = mock(NormalSubstitutionNode.class);
-        VariantTypeNode sub = mock(VariantTypeNode.class);
+        final NormalSubstitutionNode normalSubstitutionNode = mock(NormalSubstitutionNode.class);
+        final VariantTypeNode sub = mock(VariantTypeNode.class);
 
         substitutions.add(sub);
         when(normalSubstitutionNode.getIndex()).thenReturn(0);
@@ -284,8 +284,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitBxmlTypeNode() throws IOException {
-        BXmlTypeNode bXmlTypeNode = mock(BXmlTypeNode.class);
-        RootNode rootNode = mock(RootNode.class);
+        final BXmlTypeNode bXmlTypeNode = mock(BXmlTypeNode.class);
+        final RootNode rootNode = mock(RootNode.class);
 
         when(bXmlTypeNode.getRootNode()).thenReturn(rootNode);
 
@@ -296,8 +296,8 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitVariantTypeNode() throws IOException, XMLStreamException {
-        String variantValue = "variantValue";
-        VariantTypeNode variantTypeNode = mock(VariantTypeNode.class);
+        final String variantValue = "variantValue";
+        final VariantTypeNode variantTypeNode = mock(VariantTypeNode.class);
 
         when(variantTypeNode.getValue()).thenReturn(variantValue);
 
@@ -308,17 +308,17 @@ public class XmlBxmlNodeVisitorTest {
 
     @Test
     public void testVisitRootNode() throws IOException {
-        RootNode rootNode = mock(RootNode.class);
-        BxmlNode child = mock(BxmlNode.class);
+        final RootNode rootNode = mock(RootNode.class);
+        final BxmlNode child = mock(BxmlNode.class);
 
         when(rootNode.getChildren()).thenReturn(Arrays.asList(child));
 
         xmlBxmlNodeVisitor.visit(rootNode);
 
-        ArgumentCaptor<BxmlNodeVisitor> captor = ArgumentCaptor.forClass(BxmlNodeVisitor.class);
+        final ArgumentCaptor<BxmlNodeVisitor> captor = ArgumentCaptor.forClass(BxmlNodeVisitor.class);
         verify(child).accept(captor.capture());
 
-        BxmlNodeVisitor value = captor.getValue();
+        final BxmlNodeVisitor value = captor.getValue();
         assertInstanceOf(XmlBxmlNodeVisitor.class, value);
         assertNotEquals(xmlBxmlNodeVisitor, value);
     }

@@ -49,7 +49,7 @@ public class CSVValidators {
                         .build();
             }
 
-            String unescaped = CSVUtils.unescape(input);
+            final String unescaped = CSVUtils.unescape(input);
 
             return new ValidationResult.Builder()
                     .subject(subject)
@@ -64,7 +64,7 @@ public class CSVValidators {
     private static Validator createSingleCharValidator(final boolean canBeEmpty) {
         return new Validator() {
             @Override
-            public ValidationResult validate(String subject, String input, ValidationContext context) {
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if (input == null) {
                     return new ValidationResult.Builder()
                             .input(input)

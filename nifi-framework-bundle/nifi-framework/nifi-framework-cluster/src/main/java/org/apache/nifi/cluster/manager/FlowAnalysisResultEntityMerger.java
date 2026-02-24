@@ -27,13 +27,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FlowAnalysisResultEntityMerger {
-    public void merge(FlowAnalysisResultEntity clientEntity, Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap) {
-        List<FlowAnalysisRuleDTO> aggregateRules = clientEntity.getRules();
+    public void merge(final FlowAnalysisResultEntity clientEntity, final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap) {
+        final List<FlowAnalysisRuleDTO> aggregateRules = clientEntity.getRules();
         entityMap.values().stream()
                 .map(FlowAnalysisResultEntity::getRules)
                 .forEach(aggregateRules::addAll);
 
-        Map<RuleViolationKey, FlowAnalysisRuleViolationDTO> mergedViolations = clientEntity.getRuleViolations().stream().collect(Collectors.toMap(
+        final Map<RuleViolationKey, FlowAnalysisRuleViolationDTO> mergedViolations = clientEntity.getRuleViolations().stream().collect(Collectors.toMap(
                 violation -> new RuleViolationKey(
                         violation.getScope(),
                         violation.getSubjectId(),
@@ -65,7 +65,7 @@ public class FlowAnalysisResultEntityMerger {
             );
         }
 
-        List<FlowAnalysisRuleViolationDTO> authorizedViolations = mergedViolations.values().stream()
+        final List<FlowAnalysisRuleViolationDTO> authorizedViolations = mergedViolations.values().stream()
                 .filter(violation -> violation.getSubjectPermissionDto().getCanRead())
                 .collect(Collectors.toList());
 

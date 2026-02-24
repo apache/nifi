@@ -68,7 +68,7 @@ class SmbjClientService implements SmbClientService {
             if (session != null) {
                 session.close();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Could not close session to {}", serviceLocation, e);
         }
     }
@@ -79,7 +79,7 @@ class SmbjClientService implements SmbClientService {
             final Directory directory;
             try {
                 directory = openDirectory(path);
-            } catch (SMBApiException e) {
+            } catch (final SMBApiException e) {
                 if (e.getStatus() == NtStatus.STATUS_ACCESS_DENIED) {
                     logger.warn("Could not list directory [{}/{}] because the user does not have access to it.", serviceLocation, path, e);
                     return Stream.empty();
@@ -90,7 +90,7 @@ class SmbjClientService implements SmbClientService {
                 } else {
                     throw e;
                 }
-            } catch (NullPointerException e) {
+            } catch (final NullPointerException e) {
                 // workaround for https://github.com/hierynomus/smbj/issues/869
                 final boolean isNpeFromGetDiskEntry = Optional.ofNullable(e.getStackTrace())
                         .filter(st -> st.length > 0)
@@ -125,7 +125,7 @@ class SmbjClientService implements SmbClientService {
             if (!share.folderExists(directoryPath)) {
                 try {
                     share.mkdir(directoryPath);
-                } catch (SMBApiException e) {
+                } catch (final SMBApiException e) {
                     if (e.getStatus() == NtStatus.STATUS_OBJECT_NAME_COLLISION) {
                         if (!share.folderExists(directoryPath)) {
                             throw e;
@@ -133,7 +133,7 @@ class SmbjClientService implements SmbClientService {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw wrapException(e);
         }
     }
@@ -149,7 +149,7 @@ class SmbjClientService implements SmbClientService {
                 EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY))
         ) {
             file.read(outputStream);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw wrapException(e);
         } finally {
             outputStream.close();
@@ -170,7 +170,7 @@ class SmbjClientService implements SmbClientService {
             // rename operation on Windows requires \ (backslash) path separator
             final String newFilePath = directoryPath.replace('/', '\\') + "\\" + parts[parts.length - 1];
             file.rename(newFilePath);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw wrapException(e);
         }
     }
@@ -179,7 +179,7 @@ class SmbjClientService implements SmbClientService {
     public void deleteFile(final String filePath) {
         try {
             share.rm(filePath);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw wrapException(e);
         }
     }

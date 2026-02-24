@@ -33,36 +33,36 @@ public class XmlRootNodeHandler implements RootNodeHandler {
     private final XMLStreamWriter xmlStreamWriter;
     private final XmlBxmlNodeVisitorFactory xmlBxmlNodeVisitorFactory;
 
-    public XmlRootNodeHandler(OutputStream outputStream) throws IOException {
+    public XmlRootNodeHandler(final OutputStream outputStream) throws IOException {
         this(getXmlStreamWriter(new BufferedOutputStream(outputStream)), XmlBxmlNodeVisitor::new);
     }
 
-    public XmlRootNodeHandler(XMLStreamWriter xmlStreamWriter, XmlBxmlNodeVisitorFactory xmlBxmlNodeVisitorFactory) throws IOException {
+    public XmlRootNodeHandler(final XMLStreamWriter xmlStreamWriter, final XmlBxmlNodeVisitorFactory xmlBxmlNodeVisitorFactory) throws IOException {
         this.xmlStreamWriter = xmlStreamWriter;
         this.xmlBxmlNodeVisitorFactory = xmlBxmlNodeVisitorFactory;
         try {
             this.xmlStreamWriter.writeStartDocument();
             try {
                 this.xmlStreamWriter.writeStartElement(EVENTS);
-            } catch (XMLStreamException e) {
+            } catch (final XMLStreamException e) {
                 this.xmlStreamWriter.close();
                 throw e;
             }
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e);
         }
     }
 
-    private static XMLStreamWriter getXmlStreamWriter(OutputStream outputStream) throws IOException {
+    private static XMLStreamWriter getXmlStreamWriter(final OutputStream outputStream) throws IOException {
         try {
             return XML_OUTPUT_FACTORY.createXMLStreamWriter(outputStream, "UTF-8");
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e);
         }
     }
 
     @Override
-    public void handle(RootNode rootNode) throws IOException {
+    public void handle(final RootNode rootNode) throws IOException {
         xmlBxmlNodeVisitorFactory.create(xmlStreamWriter, rootNode);
     }
 
@@ -70,12 +70,12 @@ public class XmlRootNodeHandler implements RootNodeHandler {
     public void close() throws IOException {
         try {
             xmlStreamWriter.writeEndElement();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e);
         } finally {
             try {
                 xmlStreamWriter.close();
-            } catch (XMLStreamException e) {
+            } catch (final XMLStreamException e) {
                 throw new IOException(e);
             }
         }

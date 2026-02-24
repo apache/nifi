@@ -41,7 +41,7 @@ public class AttributeStrategyUtil {
         .defaultValue(ATTRIBUTE_STRATEGY_ALL_COMMON.getValue())
         .build();
 
-    public static AttributeStrategy strategyFor(ProcessContext context) {
+    public static AttributeStrategy strategyFor(final ProcessContext context) {
         final String strategyName = context.getProperty(ATTRIBUTE_STRATEGY).getValue();
         if (ATTRIBUTE_STRATEGY_ALL_UNIQUE.getValue().equals(strategyName)) {
             return new KeepUniqueAttributeStrategy();

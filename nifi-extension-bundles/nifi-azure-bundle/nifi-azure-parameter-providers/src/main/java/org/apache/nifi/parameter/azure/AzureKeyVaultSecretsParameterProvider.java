@@ -128,7 +128,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
 
         for (final SecretProperties secretProperties : secretClient.listPropertiesOfSecrets()) {
             if (secretProperties.isEnabled()) {
-                KeyVaultSecret secretWithValue = secretClient.getSecret(secretProperties.getName(), secretProperties.getVersion());
+                final KeyVaultSecret secretWithValue = secretClient.getSecret(secretProperties.getName(), secretProperties.getVersion());
                 secrets.add(secretWithValue);
             }
         }

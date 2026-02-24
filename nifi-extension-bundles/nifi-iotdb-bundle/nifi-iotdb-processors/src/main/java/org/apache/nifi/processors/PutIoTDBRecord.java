@@ -121,8 +121,8 @@ public class PutIoTDBRecord extends AbstractIoTDB {
     }
 
     @Override
-    public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
-        FlowFile flowFile = processSession.get();
+    public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
+        final FlowFile flowFile = processSession.get();
         if (flowFile == null) {
             return;
         }
@@ -147,19 +147,19 @@ public class PutIoTDBRecord extends AbstractIoTDB {
 
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
-                long timestamp = getTimestamp(timeField, record);
+                final long timestamp = getTimestamp(timeField, record);
                 boolean filled = false;
 
                 for (final Map.Entry<String, Tablet> entry : tablets.entrySet()) {
-                    Tablet tablet = entry.getValue();
-                    int rowIndex = tablet.getRowSize() + 1;
+                    final Tablet tablet = entry.getValue();
+                    final int rowIndex = tablet.getRowSize() + 1;
 
                     tablet.addTimestamp(rowIndex, timestamp);
-                    List<IMeasurementSchema> measurements = tablet.getSchemas();
-                    for (IMeasurementSchema measurement : measurements) {
-                        String id = measurement.getMeasurementName();
-                        TSDataType type = measurement.getType();
-                        Object value = getTypedValue(record.getValue(id), type);
+                    final List<IMeasurementSchema> measurements = tablet.getSchemas();
+                    for (final IMeasurementSchema measurement : measurements) {
+                        final String id = measurement.getMeasurementName();
+                        final TSDataType type = measurement.getType();
+                        final Object value = getTypedValue(record.getValue(id), type);
                         tablet.addValue(id, rowIndex, value);
                     }
                     filled = tablet.getRowSize() == tablet.getMaxRowNumber();
@@ -197,7 +197,7 @@ public class PutIoTDBRecord extends AbstractIoTDB {
         processSession.transfer(flowFile, REL_SUCCESS);
     }
 
-    private DatabaseSchema getSchema(String timeField, String property, RecordReader recordReader) throws MalformedRecordException, IOException {
+    private DatabaseSchema getSchema(final String timeField, final String property, final RecordReader recordReader) throws MalformedRecordException, IOException {
         final ValidationResult result = property == null
                         ? validateSchema(timeField, recordReader.getSchema())
                         : validateSchemaAttribute(property);
@@ -225,7 +225,7 @@ public class PutIoTDBRecord extends AbstractIoTDB {
         return timestamp;
     }
 
-    private Object getTypedValue(Object value, TSDataType type) {
+    private Object getTypedValue(final Object value, final TSDataType type) {
         final Object typedValue;
         if (value == null) {
             typedValue = null;

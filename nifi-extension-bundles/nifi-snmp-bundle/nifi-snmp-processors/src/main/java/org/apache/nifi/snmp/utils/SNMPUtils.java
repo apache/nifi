@@ -119,7 +119,7 @@ public final class SNMPUtils {
     public static boolean addVariables(final PDU pdu, final Map<String, String> attributes) {
         boolean result = false;
         try {
-            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+            for (final Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
                 if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
                     final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
                     final String snmpPropName = splits[1];
@@ -140,16 +140,16 @@ public final class SNMPUtils {
                     }
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (final ArrayIndexOutOfBoundsException e) {
             return false;
         }
         return result;
     }
 
     public static VariableBinding[] addGetVariables(final Map<String, String> attributes) {
-        Set<VariableBinding> variableBindings = new HashSet<>();
+        final Set<VariableBinding> variableBindings = new HashSet<>();
         try {
-            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+            for (final Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
                 if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
                     final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
                     final String snmpPropName = splits[1];
@@ -158,16 +158,16 @@ public final class SNMPUtils {
                     }
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (final ArrayIndexOutOfBoundsException e) {
             return new VariableBinding[0];
         }
         return variableBindings.toArray(new VariableBinding[0]);
     }
 
     public static OID[] addWalkVariables(final Map<String, String> attributes) {
-        List<OID> oids = new ArrayList<>();
+        final List<OID> oids = new ArrayList<>();
         try {
-            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+            for (final Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
                 if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
                     final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
                     final String snmpPropName = splits[1];
@@ -176,7 +176,7 @@ public final class SNMPUtils {
                     }
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (final ArrayIndexOutOfBoundsException e) {
             return new OID[0];
         }
         return oids.toArray(new OID[0]);
@@ -199,7 +199,7 @@ public final class SNMPUtils {
                 logger.error("Unsupported conversion of [ {} ] to ", variable.getSyntaxString());
                 variable = null;
             }
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             logger.error("Unsupported conversion of [ {} ] to ", variable.getSyntaxString(), e);
             variable = null;
         }

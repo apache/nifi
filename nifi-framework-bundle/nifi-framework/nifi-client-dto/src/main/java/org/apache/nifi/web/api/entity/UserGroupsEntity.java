@@ -38,7 +38,7 @@ public class UserGroupsEntity extends Entity {
         return userGroups;
     }
 
-    public void setUserGroups(Collection<UserGroupEntity> userGroups) {
+    public void setUserGroups(final Collection<UserGroupEntity> userGroups) {
         this.userGroups = userGroups;
     }
 

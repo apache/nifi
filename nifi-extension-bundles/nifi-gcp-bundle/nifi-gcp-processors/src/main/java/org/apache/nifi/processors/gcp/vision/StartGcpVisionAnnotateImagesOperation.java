@@ -82,7 +82,7 @@ public class StartGcpVisionAnnotateImagesOperation extends AbstractStartGcpVisio
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
@@ -93,7 +93,7 @@ public class StartGcpVisionAnnotateImagesOperation extends AbstractStartGcpVisio
     }
 
     @Override
-    OperationFuture<?, ?> startOperation(AsyncBatchAnnotateImagesRequest.Builder builder) {
+    OperationFuture<?, ?> startOperation(final AsyncBatchAnnotateImagesRequest.Builder builder) {
         return getVisionClient().asyncBatchAnnotateImagesAsync(builder.build());
     }
 

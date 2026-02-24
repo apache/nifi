@@ -48,13 +48,13 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
     private String timeout = DEFAULT_TIMEOUT;
     private String yieldPeriod = DEFAULT_YIELD_PERIOD;
 
-    public RemoteProcessGroupSchemaV1(Map map) {
+    public RemoteProcessGroupSchemaV1(final Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESS_GROUPS_KEY);
-        String wrapperName = new StringBuilder("RemoteProcessingGroup(name: ").append(StringUtil.isNullOrEmpty(name) ? "unknown" : name).append(")").toString();
+        final String wrapperName = new StringBuilder("RemoteProcessingGroup(name: ").append(StringUtil.isNullOrEmpty(name) ? "unknown" : name).append(")").toString();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
         inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         if (inputPorts != null) {
-            for (RemotePortSchema remoteInputPortSchema : inputPorts) {
+            for (final RemotePortSchema remoteInputPortSchema : inputPorts) {
                 addIssuesIfNotNull(remoteInputPortSchema);
             }
         }
@@ -66,7 +66,7 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
 
     @Override
     public RemoteProcessGroupSchema convert() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(NAME_KEY, name);
         result.put(URL_KEY, url);
         result.put(COMMENT_KEY, comment);

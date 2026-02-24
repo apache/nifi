@@ -27,7 +27,7 @@ class TestInsertRowsWriter {
 
     @Test
     public void testGetWritableObject() {
-        InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
+        final InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
         assertNull(insertRowsWriter.getWritableObject(null, null));
         assertNull(insertRowsWriter.getWritableObject(Types.INTEGER, null));
         assertEquals((byte) 1, insertRowsWriter.getWritableObject(Types.INTEGER, (byte) 1));

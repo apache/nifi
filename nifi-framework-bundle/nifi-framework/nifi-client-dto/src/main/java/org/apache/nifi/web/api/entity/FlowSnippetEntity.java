@@ -36,7 +36,7 @@ public class FlowSnippetEntity extends Entity {
         return contents;
     }
 
-    public void setContents(FlowSnippetDTO contents) {
+    public void setContents(final FlowSnippetDTO contents) {
         this.contents = contents;
     }
 

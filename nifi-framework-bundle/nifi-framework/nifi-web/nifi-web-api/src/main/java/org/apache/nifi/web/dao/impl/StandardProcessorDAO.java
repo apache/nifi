@@ -90,7 +90,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public boolean hasProcessor(String id) {
+    public boolean hasProcessor(final String id) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findProcessor(id) != null;
     }
@@ -101,7 +101,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public ProcessorNode createProcessor(final String groupId, ProcessorDTO processorDTO) {
+    public ProcessorNode createProcessor(final String groupId, final ProcessorDTO processorDTO) {
         if (processorDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
         }
@@ -136,7 +136,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             processor.onConfigurationRestored(processContext);
 
             return processor;
-        } catch (IllegalStateException | ComponentLifeCycleException ise) {
+        } catch (final IllegalStateException | ComponentLifeCycleException ise) {
             throw new NiFiCoreException(ise.getMessage(), ise);
         }
     }
@@ -250,17 +250,17 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     private List<String> validateProposedConfiguration(final ProcessorNode processorNode, final ProcessorConfigDTO config) {
-        List<String> validationErrors = new ArrayList<>();
+        final List<String> validationErrors = new ArrayList<>();
 
         // validate settings
         if (isNotNull(config.getPenaltyDuration())) {
-            Matcher penaltyMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getPenaltyDuration());
+            final Matcher penaltyMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getPenaltyDuration());
             if (!penaltyMatcher.matches()) {
                 validationErrors.add("Penalty duration is not a valid time duration (ie 30 sec, 5 min)");
             }
         }
         if (isNotNull(config.getYieldDuration())) {
-            Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getYieldDuration());
+            final Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getYieldDuration());
             if (!yieldMatcher.matches()) {
                 validationErrors.add("Yield duration is not a valid time duration (ie 30 sec, 5 min)");
             }
@@ -268,14 +268,14 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (isNotNull(config.getBulletinLevel())) {
             try {
                 LogLevel.valueOf(config.getBulletinLevel());
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 validationErrors.add(String.format("Bulletin level: Value must be one of [%s]", StringUtils.join(LogLevel.values(), ", ")));
             }
         }
         if (isNotNull(config.getExecutionNode())) {
             try {
                 ExecutionNode.valueOf(config.getExecutionNode());
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 validationErrors.add(String.format("Execution node: Value must be one of [%s]", StringUtils.join(ExecutionNode.values(), ", ")));
             }
         }
@@ -288,7 +288,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             try {
                 // this will be the new scheduling strategy so use it
                 schedulingStrategy = SchedulingStrategy.valueOf(config.getSchedulingStrategy());
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 validationErrors.add(String.format("Scheduling strategy: Value must be one of [%s]", StringUtils.join(SchedulingStrategy.values(), ", ")));
             }
         }
@@ -353,8 +353,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public Set<ProcessorNode> getProcessors(String groupId, boolean includeDescendants) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Set<ProcessorNode> getProcessors(final String groupId, final boolean includeDescendants) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         if (includeDescendants) {
             return new HashSet<>(group.findAllProcessors());
         } else {
@@ -385,7 +385,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         verifyUpdate(locateProcessor(processorDTO.getId()), processorDTO);
     }
 
-    private void verifyUpdate(ProcessorNode processor, ProcessorDTO processorDTO) {
+    private void verifyUpdate(final ProcessorNode processor, final ProcessorDTO processorDTO) {
         // ensure the state, if specified, is valid
         if (isNotNull(processorDTO.getState())) {
             try {
@@ -424,7 +424,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.getProcessGroup().verifyCanScheduleComponentsIndividually();
                     processor.verifyCanStop();
                 }
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format(
                         "The specified processor state (%s) is not valid. Valid options are 'RUNNING', 'STOPPED', and 'DISABLED'.",
                         processorDTO.getState()));
@@ -508,9 +508,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public ProcessorNode updateProcessor(ProcessorDTO processorDTO) {
-        ProcessorNode processor = locateProcessor(processorDTO.getId());
-        ProcessGroup parentGroup = processor.getProcessGroup();
+    public ProcessorNode updateProcessor(final ProcessorDTO processorDTO) {
+        final ProcessorNode processor = locateProcessor(processorDTO.getId());
+        final ProcessGroup parentGroup = processor.getProcessGroup();
 
         // ensure we can perform the update
         verifyUpdate(processor, processorDTO);
@@ -556,18 +556,18 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             // These are internal transition states and should not be set directly via API
                             throw new IllegalStateException("Cannot set processor state to " + purposedScheduledState);
                     }
-                } catch (IllegalStateException | ComponentLifeCycleException ise) {
+                } catch (final IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
-                } catch (RejectedExecutionException ree) {
+                } catch (final RejectedExecutionException ree) {
                     throw new NiFiCoreException("Unable to schedule all tasks for the specified processor.", ree);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new NiFiCoreException("Unable to update processor [%s] run state: %s".formatted(processor, e), e);
                 }
             } else if  (purposedScheduledState == ScheduledState.STOPPED && processor.getPhysicalScheduledState() == ScheduledState.STARTING) {
                 // Handle special case: allow stopping a processor that's physically starting
                 try {
                     parentGroup.stopProcessor(processor);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new NiFiCoreException("Unable to stop starting processor [%s]: %s".formatted(processor, e), e);
                 }
             }
@@ -576,7 +576,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         return processor;
     }
 
-    private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
+    private void updateBundle(final ProcessorNode processor, final ProcessorDTO processorDTO) {
         final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
             final ExtensionManager extensionManager = flowController.getExtensionManager();
@@ -588,7 +588,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     final ConfigurableComponent tempComponent = extensionManager.getTempComponent(processor.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = processor.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     flowController.getReloadComponent().reload(processor, processor.getCanonicalClassName(), incomingCoordinate, additionalUrls);
-                } catch (ProcessorInstantiationException e) {
+                } catch (final ProcessorInstantiationException e) {
                     throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
                             processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
                 }
@@ -597,15 +597,15 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public void verifyDelete(String processorId) {
-        ProcessorNode processor = locateProcessor(processorId);
+    public void verifyDelete(final String processorId) {
+        final ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanDelete();
     }
 
     @Override
-    public void deleteProcessor(String processorId) {
+    public void deleteProcessor(final String processorId) {
         // get the group and the processor
-        ProcessorNode processor = locateProcessor(processorId);
+        final ProcessorNode processor = locateProcessor(processorId);
 
         try {
             // attempt remove the processor
@@ -616,13 +616,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public StateMap getState(String processorId, final Scope scope) {
+    public StateMap getState(final String processorId, final Scope scope) {
         final ProcessorNode processor = locateProcessor(processorId);
         return componentStateDAO.getState(processor, scope);
     }
 
     @Override
-    public void verifyClearState(String processorId) {
+    public void verifyClearState(final String processorId) {
         final ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanClearState();
     }
@@ -634,12 +634,12 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
     @Autowired
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 }

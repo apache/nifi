@@ -63,13 +63,13 @@ public class TestFieldTypeInference {
     @Test
     public void testToDataTypeWith_SHORT_INT_LONG_shouldReturn_LONG() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.SHORT.getDataType(),
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.LONG.getDataType()
         );
 
-        DataType expected = RecordFieldType.LONG.getDataType();
+        final DataType expected = RecordFieldType.LONG.getDataType();
 
         // WHEN
         // THEN
@@ -90,12 +90,12 @@ public class TestFieldTypeInference {
     @Test
     public void testToDataTypeWith_INT_STRING_shouldReturn_INT_STRING() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         );
 
-        Set<DataType> expected = new HashSet<>(Arrays.asList(
+        final Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.STRING.getDataType()
         ));
@@ -144,11 +144,11 @@ public class TestFieldTypeInference {
     @Test
     public void testToDataTypeWithMultipleComplexRecord() {
         // GIVEN
-        String fieldName1 = "fieldName1";
-        String fieldName2 = "fieldName2";
-        String fieldName3 = "fieldName3";
+        final String fieldName1 = "fieldName1";
+        final String fieldName2 = "fieldName2";
+        final String fieldName3 = "fieldName3";
 
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
             RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
                 new RecordField(fieldName1, RecordFieldType.INT.getDataType()),
                 new RecordField(fieldName2, RecordFieldType.STRING.getDataType())
@@ -159,7 +159,7 @@ public class TestFieldTypeInference {
             )))
         );
 
-        DataType expected = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+        final DataType expected = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
             new RecordField(fieldName1, RecordFieldType.INT.getDataType()),
             new RecordField(fieldName2, RecordFieldType.STRING.getDataType()),
             new RecordField(fieldName3, RecordFieldType.BOOLEAN.getDataType())
@@ -173,7 +173,7 @@ public class TestFieldTypeInference {
     @Test
     public void testToDataTypeWhenDecimal() {
         // GIVEN
-        List<DataType> dataTypes = Arrays.asList(
+        final List<DataType> dataTypes = Arrays.asList(
                 RecordFieldType.DECIMAL.getDecimalDataType(10, 1),
                 RecordFieldType.DECIMAL.getDecimalDataType(10, 3),
                 RecordFieldType.DECIMAL.getDecimalDataType(7, 3),
@@ -183,35 +183,35 @@ public class TestFieldTypeInference {
                 RecordFieldType.DOUBLE.getDataType()
         );
 
-        DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(10, 7);
+        final DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(10, 7);
 
         // WHEN
         // THEN
         runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
     }
 
-    private SimpleRecordSchema createRecordSchema(String fieldName, DataType fieldType) {
+    private SimpleRecordSchema createRecordSchema(final String fieldName, final DataType fieldType) {
         return new SimpleRecordSchema(Collections.singletonList(
             new RecordField(fieldName, fieldType)
         ));
     }
 
-    private <I, E> void runWithAllPermutations(BiFunction<List<I>, E, ?> test, List<I> input, E expected) {
+    private <I, E> void runWithAllPermutations(final BiFunction<List<I>, E, ?> test, final List<I> input, final E expected) {
         test.apply(input, expected);
     }
 
-    private Void testToDataTypeShouldReturnChoice(List<DataType> dataTypes, Set<DataType> expected) {
+    private Void testToDataTypeShouldReturnChoice(final List<DataType> dataTypes, final Set<DataType> expected) {
         dataTypes.forEach(testSubject::addPossibleDataType);
 
-        DataType actual = testSubject.toDataType();
+        final DataType actual = testSubject.toDataType();
         assertEquals(expected, new HashSet<>(((ChoiceDataType) actual).getPossibleSubTypes()));
         return null;
     }
 
-    private Void testToDataTypeShouldReturnSingleType(List<DataType> dataTypes, DataType expected) {
+    private Void testToDataTypeShouldReturnSingleType(final List<DataType> dataTypes, final DataType expected) {
         dataTypes.forEach(testSubject::addPossibleDataType);
 
-        DataType actual = testSubject.toDataType();
+        final DataType actual = testSubject.toDataType();
         assertEquals(expected, actual);
         return null;
     }

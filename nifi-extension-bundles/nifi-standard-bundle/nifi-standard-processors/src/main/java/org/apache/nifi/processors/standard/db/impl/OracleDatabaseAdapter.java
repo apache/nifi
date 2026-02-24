@@ -53,18 +53,19 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause, final Long limit, final Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause,
+            final String orderByClause, final Long limit, final Long offset, final String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
 
         final StringBuilder query = new StringBuilder();
-        boolean nestedSelect = (limit != null || offset != null) && StringUtils.isEmpty(columnForPartitioning);
+        final boolean nestedSelect = (limit != null || offset != null) && StringUtils.isEmpty(columnForPartitioning);
         if (nestedSelect) {
             // Need a nested SELECT query here in order to use ROWNUM to limit the results
             query.append("SELECT ");
@@ -123,18 +124,18 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getTableAliasClause(String tableName) {
+    public String getTableAliasClause(final String tableName) {
         return tableName;
     }
 
     @Override
-    public String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd) {
-        StringBuilder createTableStatement = new StringBuilder();
+    public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
+        final StringBuilder createTableStatement = new StringBuilder();
 
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder()
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder()
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
@@ -151,7 +152,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
     }
 
     @Override
-    public String getSQLForDataType(int sqlType) {
+    public String getSQLForDataType(final int sqlType) {
         return switch (sqlType) {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML ->
@@ -172,16 +173,16 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
      * @return A String containing DDL to create the specified table
      */
     @Override
-    public String getCreateTableStatement(TableSchema tableSchema) {
-        StringBuilder createTableStatement = new StringBuilder()
+    public String getCreateTableStatement(final TableSchema tableSchema) {
+        final StringBuilder createTableStatement = new StringBuilder()
                 .append("DECLARE\n\tsql_stmt long;\nBEGIN\n\tsql_stmt:='CREATE TABLE ")
                 .append(generateTableName(tableSchema.getCatalogName(), tableSchema.getSchemaName(), tableSchema.getTableName(), tableSchema))
                 .append(" (");
 
-        List<ColumnDescription> columns = tableSchema.getColumnsAsList();
-        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        final List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+        final Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         for (int i = 0; i < columns.size(); i++) {
-            ColumnDescription column = columns.get(i);
+            final ColumnDescription column = columns.get(i);
             createTableStatement
                     .append((i != 0) ? ", " : "")
                     .append(column.getColumnName())

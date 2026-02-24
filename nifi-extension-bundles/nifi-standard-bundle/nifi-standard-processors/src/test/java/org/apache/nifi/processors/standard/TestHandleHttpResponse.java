@@ -253,7 +253,7 @@ public class TestHandleHttpResponse {
         }
 
         @Override
-        public boolean register(String identifier, HttpServletRequest request, HttpServletResponse response, AsyncContext context) {
+        public boolean register(final String identifier, final HttpServletRequest request, final HttpServletResponse response, final AsyncContext context) {
             return true;
         }
 
@@ -273,21 +273,21 @@ public class TestHandleHttpResponse {
                         }
 
                         @Override
-                        public void setWriteListener(WriteListener writeListener) {
+                        public void setWriteListener(final WriteListener writeListener) {
                         }
 
                         @Override
-                        public void write(int b) {
+                        public void write(final int b) {
                             outputStream.write(b);
                         }
 
                         @Override
-                        public void write(byte[] b) throws IOException {
+                        public void write(final byte[] b) throws IOException {
                             outputStream.write(b);
                         }
 
                         @Override
-                        public void write(byte[] b, int off, int len) {
+                        public void write(final byte[] b, final int off, final int len) {
                             outputStream.write(b, off, len);
                         }
                     });
@@ -338,7 +338,7 @@ public class TestHandleHttpResponse {
         }
 
         @Override
-        public long getRequestTimeout(TimeUnit timeUnit) {
+        public long getRequestTimeout(final TimeUnit timeUnit) {
             return timeUnit.convert(30000, TimeUnit.MILLISECONDS);
         }
     }

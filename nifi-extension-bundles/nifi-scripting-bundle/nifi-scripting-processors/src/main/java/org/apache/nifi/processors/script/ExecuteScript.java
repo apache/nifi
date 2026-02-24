@@ -153,7 +153,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
@@ -175,12 +175,12 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new ProcessException(ioe);
         }
 
         // Create a script engine for each possible task
-        int maxTasks = context.getMaxConcurrentTasks();
+        final int maxTasks = context.getMaxConcurrentTasks();
         scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
     }
 
@@ -196,21 +196,21 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
      * @throws ProcessException if the scripted processor's onTrigger() method throws an exception
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
                 scriptingComponentHelper.createResources(false);
             }
         }
-        ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
-        ComponentLog log = getLogger();
+        final ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+        final ComponentLog log = getLogger();
         if (scriptRunner == null) {
             // No engine available so nothing more to do here
             return;
         }
-        ProcessSession session = sessionFactory.createSession();
+        final ProcessSession session = sessionFactory.createSession();
         try {
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
 
             try {
                 Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -224,7 +224,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 bindings.put("REL_FAILURE", REL_FAILURE);
 
                 // Find the user-added properties and set them on the script
-                for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+                for (final Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
                     if (property.getKey().isDynamic()) {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
@@ -240,7 +240,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // class with InvokeScriptedProcessor
                 session.commitAsync();
                 scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 // Create a new ScriptRunner to replace the one that caused an exception
                 scriptingComponentHelper.setupScriptRunners(false, 1, scriptToRun, getLogger());
 
@@ -280,7 +280,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     }
 
     @Override
-    public Collection<SearchResult> search(SearchContext context) {
+    public Collection<SearchResult> search(final SearchContext context) {
         return ScriptingComponentUtils.search(context, getLogger());
     }
 }

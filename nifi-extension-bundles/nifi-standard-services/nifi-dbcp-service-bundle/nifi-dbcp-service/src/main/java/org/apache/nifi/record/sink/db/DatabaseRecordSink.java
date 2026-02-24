@@ -179,7 +179,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         Boolean originalAutoCommit = null;
         Connection connection = null;
         WriteResult writeResult = null;
@@ -189,7 +189,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
             if (originalAutoCommit) {
                 try {
                     connection.setAutoCommit(false);
-                } catch (SQLFeatureNotSupportedException sfnse) {
+                } catch (final SQLFeatureNotSupportedException sfnse) {
                     getLogger().debug("setAutoCommit(false) not supported by this driver");
                 }
             }
@@ -204,7 +204,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
                 throw new IOException("Cannot process because Table Name is null or empty");
             }
 
-            TableSchema tableSchema = TableSchema.from(connection, catalog, schemaName, tableName, settings.translateFieldNames);
+            final TableSchema tableSchema = TableSchema.from(connection, catalog, schemaName, tableName, settings.translateFieldNames);
             // build the fully qualified table name
             final StringBuilder tableNameBuilder = new StringBuilder();
             if (catalog != null) {
@@ -216,7 +216,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
             tableNameBuilder.append(tableName);
             final String fqTableName = tableNameBuilder.toString();
 
-            RecordSchema recordSchema = recordSet.getSchema();
+            final RecordSchema recordSchema = recordSet.getSchema();
             if (recordSchema == null) {
                 throw new IllegalArgumentException("No record schema specified!");
             }
@@ -228,7 +228,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
 
                 try {
                     ps.setQueryTimeout(queryTimeout); // timeout in seconds
-                } catch (SQLException se) {
+                } catch (final SQLException se) {
                     // If the driver doesn't support query timeout, then assume it is "infinite". Allow a timeout of zero only
                     if (queryTimeout > 0) {
                         throw se;
@@ -236,12 +236,12 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
                 }
 
                 Record currentRecord;
-                List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
+                final List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
                 int recordCount = 0;
 
                 while ((currentRecord = recordSet.next()) != null) {
-                    Object[] values = currentRecord.getValues();
-                    List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
+                    final Object[] values = currentRecord.getValues();
+                    final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                     if (values != null) {
                         if (fieldIndexes != null) {
                             for (int i = 0; i < fieldIndexes.size(); i++) {
@@ -269,22 +269,22 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
                 writeResult = WriteResult.of(recordCount, attributes);
             }
 
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw ioe;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Failed to write metrics using record writer: " + e.getMessage(), e);
         } finally {
             if (connection != null) {
                 if (originalAutoCommit != null) {
                     try {
                         connection.setAutoCommit(originalAutoCommit);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         getLogger().debug("Error restoring auto-commit", e);
                     }
                 }
                 try {
                     connection.close();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().debug("Error closing connection", e);
                 }
             }
@@ -293,7 +293,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         RecordSinkService.super.migrateProperties(config);
         config.renameProperty("db-record-sink-dcbp-service", DBCP_SERVICE.getName());
         config.renameProperty("db-record-sink-catalog-name", CATALOG_NAME.getName());
@@ -327,7 +327,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
             final String normalizedColName = normalizeColumnName(requiredColName, settings.translateFieldNames);
             if (!normalizedFieldNames.contains(normalizedColName)) {
-                String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
+                final String missingColMessage = "Record does not have a value for the Required column '" + requiredColName + "'";
                 if (settings.failUnmappedColumns) {
                     getLogger().error(missingColMessage);
                     throw new IllegalArgumentException(missingColMessage);
@@ -349,15 +349,15 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
         sqlBuilder.append(" (");
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
-        List<String> fieldNames = recordSchema.getFieldNames();
+        final List<String> fieldNames = recordSchema.getFieldNames();
         final List<Integer> includedColumns = new ArrayList<>();
         if (fieldNames != null) {
-            int fieldCount = fieldNames.size();
-            AtomicInteger fieldsFound = new AtomicInteger(0);
+            final int fieldCount = fieldNames.size();
+            final AtomicInteger fieldsFound = new AtomicInteger(0);
 
             for (int i = 0; i < fieldCount; i++) {
-                RecordField field = recordSchema.getField(i);
-                String fieldName = field.getFieldName();
+                final RecordField field = recordSchema.getField(i);
+                final String fieldName = field.getFieldName();
 
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
                 if (desc == null && !settings.ignoreUnmappedFields) {
@@ -407,7 +407,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
         // Quote table name?
         private final boolean quoteTableName;
 
-        private DMLSettings(PropertyContext context) {
+        private DMLSettings(final PropertyContext context) {
             translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 
@@ -433,7 +433,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
          * @param sql          The prepared SQL statement (including parameters notated by ? )
          * @param fieldIndexes A List of record indexes. The index of the list is the location of the record field in the SQL prepared statement
          */
-        SqlAndIncludedColumns(String sql, List<Integer> fieldIndexes) {
+        SqlAndIncludedColumns(final String sql, final List<Integer> fieldIndexes) {
             this.sql = sql;
             this.fieldIndexes = fieldIndexes;
         }
@@ -526,7 +526,7 @@ public class DatabaseRecordSink extends AbstractControllerService implements Rec
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
             final ResultSetMetaData md = resultSet.getMetaData();
-            List<String> columns = new ArrayList<>();
+            final List<String> columns = new ArrayList<>();
 
             for (int i = 1; i < md.getColumnCount() + 1; i++) {
                 columns.add(md.getColumnName(i));

@@ -61,7 +61,7 @@ public interface ComponentNode extends ComponentAuthorizable {
 
     void setAnnotationData(String data);
 
-    default void setProperties(Map<String, String> properties) {
+    default void setProperties(final Map<String, String> properties) {
         setProperties(properties, false, Collections.emptySet());
     }
 
@@ -279,7 +279,7 @@ public interface ComponentNode extends ComponentAuthorizable {
     Optional<ProcessGroup> getParentProcessGroup();
 
     @Override
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+    default AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) {
         // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
         // is not a modification request, we just want to use the normal rules
         if (RequestAction.WRITE.equals(action) && isRestricted()) {
@@ -298,7 +298,7 @@ public interface ComponentNode extends ComponentAuthorizable {
     }
 
     @Override
-    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+    default void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) throws AccessDeniedException {
         // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
         // is not a modification request, we just want to use the normal rules
         if (RequestAction.WRITE.equals(action) && isRestricted()) {

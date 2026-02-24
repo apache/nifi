@@ -87,8 +87,8 @@ public class UpdateCounter extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -101,7 +101,7 @@ public class UpdateCounter extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("counter-name", COUNTER_NAME.getName());
         config.renameProperty("delta", DELTA.getName());
     }

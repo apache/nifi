@@ -62,7 +62,7 @@ public class RollbackOnFailure {
      *                      If not, it is important to call {@link #proceed()} after successful execution of processors task,
      *                      that indicates processor made an operation that can not be undone.
      */
-    public RollbackOnFailure(boolean rollbackOnFailure, boolean transactional) {
+    public RollbackOnFailure(final boolean rollbackOnFailure, final boolean transactional) {
         this.rollbackOnFailure = rollbackOnFailure;
         this.transactional = transactional;
     }
@@ -70,7 +70,7 @@ public class RollbackOnFailure {
     public static final String OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME = "rollback-on-failure";
     public static final PropertyDescriptor ROLLBACK_ON_FAILURE = createRollbackOnFailureProperty("");
 
-    public static  PropertyDescriptor createRollbackOnFailureProperty(String additionalDescription) {
+    public static  PropertyDescriptor createRollbackOnFailureProperty(final String additionalDescription) {
         return new PropertyDescriptor.Builder()
                 .name("Rollback On Failure")
                 .description("Specify how to handle error." +
@@ -146,11 +146,11 @@ public class RollbackOnFailure {
      * This function works as a safety net by covering cases that Processor implementation did not use ExceptionHandler and transfer FlowFiles
      * without considering RollbackOnFailure context.
      */
-    public static <FCT extends RollbackOnFailure> AdjustRoute<FCT> createAdjustRoute(Relationship... failureRelationships) {
+    public static <FCT extends RollbackOnFailure> AdjustRoute<FCT> createAdjustRoute(final Relationship... failureRelationships) {
         return (context, session, fc, result) -> {
             if (fc.isRollbackOnFailure()) {
                 // Check if route contains failure relationship.
-                for (Relationship failureRelationship : failureRelationships) {
+                for (final Relationship failureRelationship : failureRelationships) {
                     if (!result.contains(failureRelationship)) {
                         continue;
                     }
@@ -169,7 +169,7 @@ public class RollbackOnFailure {
         };
     }
 
-    public static <FCT extends RollbackOnFailure, I> ExceptionHandler.OnError<FCT, I> createOnError(ExceptionHandler.OnError<FCT, I> onError) {
+    public static <FCT extends RollbackOnFailure, I> ExceptionHandler.OnError<FCT, I> createOnError(final ExceptionHandler.OnError<FCT, I> onError) {
         return onError.andThen((context, input, result, e) -> {
             if (context.shouldDiscontinue()) {
                 throw new DiscontinuedException("Discontinue processing due to " + e, e);
@@ -178,8 +178,8 @@ public class RollbackOnFailure {
     }
 
     public static <FCT extends RollbackOnFailure> void onTrigger(
-            ProcessContext context, ProcessSessionFactory sessionFactory, FCT functionContext, ComponentLog logger,
-            PartialFunctions.OnTrigger onTrigger) throws ProcessException {
+            final ProcessContext context, final ProcessSessionFactory sessionFactory, final FCT functionContext, final ComponentLog logger,
+            final PartialFunctions.OnTrigger onTrigger) throws ProcessException {
 
         PartialFunctions.onTrigger(context, sessionFactory, logger, onTrigger, (session, t) -> {
             // If RollbackOnFailure is enabled, do not penalize processing FlowFiles when rollback,

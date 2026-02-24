@@ -84,8 +84,7 @@ public class ProcessorStatusDataSource implements ResettableDataSource {
         if (groupStatus == lastFetchedStatus) {
             processorStatuses = lastStatuses;
         } else {
-            lastStatuses = gatherProcessorStatuses(groupStatus);
-            processorStatuses = lastStatuses;
+            processorStatuses = lastStatuses = gatherProcessorStatuses(groupStatus);
         }
 
         lastFetchedStatus = groupStatus;

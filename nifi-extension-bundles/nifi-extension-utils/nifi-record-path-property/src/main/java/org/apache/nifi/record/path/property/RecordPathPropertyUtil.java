@@ -45,7 +45,7 @@ public final class RecordPathPropertyUtil {
      * @param propertyValue  property value to be resolved
      * @param record record to resolve the value from if the property value is a record path
      */
-    public static String resolvePropertyValue(String propertyValue, Record record) {
+    public static String resolvePropertyValue(final String propertyValue, final Record record) {
         if (propertyValue != null && !propertyValue.isBlank()) {
             final Matcher matcher = RECORD_PATH_PATTERN.matcher(propertyValue);
             if (matcher.matches()) {
@@ -58,7 +58,7 @@ public final class RecordPathPropertyUtil {
         return null;
     }
 
-    private static String resolveRecordState(String pathValue, final Record record) {
+    private static String resolveRecordState(final String pathValue, final Record record) {
         final RecordPath recordPath = RecordPath.compile(pathValue);
         final RecordPathResult result = recordPath.evaluate(record);
         final List<FieldValue> fieldValues = result.getSelectedFields().collect(toList());
@@ -97,7 +97,7 @@ public final class RecordPathPropertyUtil {
      * @param fieldValue record field
      * @return value of the record field
      */
-    private static String getFieldValue(final RecordPath recordPath, FieldValue fieldValue) {
+    private static String getFieldValue(final RecordPath recordPath, final FieldValue fieldValue) {
         final RecordFieldType fieldType = fieldValue.getField().getDataType().getFieldType();
 
         if (fieldType == RecordFieldType.RECORD || fieldType == RecordFieldType.ARRAY || fieldType == RecordFieldType.MAP) {

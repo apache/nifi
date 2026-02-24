@@ -75,7 +75,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -88,7 +88,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -101,7 +101,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return contents;
     }
 
-    public void setContents(FlowSnippetDTO contents) {
+    public void setContents(final FlowSnippetDTO contents) {
         this.contents = contents;
     }
 
@@ -115,7 +115,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
+    public void setInputPortCount(final Integer inputPortCount) {
         // Without having setter for 'inputPortCount', deserialization fails.
         // If we use Jackson annotation @JsonIgnoreProperties, this empty setter is not needed.
         // Ex. @JsonIgnoreProperties(value={"inputPortCount", "outputPortCount"}, allowGetters=true)
@@ -131,7 +131,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return localInputPortCount;
     }
 
-    public void setLocalInputPortCount(Integer localInputPortCount) {
+    public void setLocalInputPortCount(final Integer localInputPortCount) {
         this.localInputPortCount = localInputPortCount;
     }
 
@@ -144,7 +144,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return publicInputPortCount;
     }
 
-    public void setPublicInputPortCount(Integer publicInputPortCount) {
+    public void setPublicInputPortCount(final Integer publicInputPortCount) {
         this.publicInputPortCount = publicInputPortCount;
     }
 
@@ -157,7 +157,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return invalidCount;
     }
 
-    public void setInvalidCount(Integer invalidCount) {
+    public void setInvalidCount(final Integer invalidCount) {
         this.invalidCount = invalidCount;
     }
 
@@ -171,7 +171,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
+    public void setOutputPortCount(final Integer outputPortCount) {
         // See setInputPortCount for the reason why this is needed.
     }
 
@@ -184,7 +184,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return localOutputPortCount;
     }
 
-    public void setLocalOutputPortCount(Integer localOutputPortCount) {
+    public void setLocalOutputPortCount(final Integer localOutputPortCount) {
         this.localOutputPortCount = localOutputPortCount;
     }
 
@@ -197,7 +197,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return publicOutputPortCount;
     }
 
-    public void setPublicOutputPortCount(Integer publicOutputPortCount) {
+    public void setPublicOutputPortCount(final Integer publicOutputPortCount) {
         this.publicOutputPortCount = publicOutputPortCount;
     }
 
@@ -210,7 +210,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return runningCount;
     }
 
-    public void setRunningCount(Integer runningCount) {
+    public void setRunningCount(final Integer runningCount) {
         this.runningCount = runningCount;
     }
 
@@ -223,7 +223,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return stoppedCount;
     }
 
-    public void setStoppedCount(Integer stoppedCount) {
+    public void setStoppedCount(final Integer stoppedCount) {
         this.stoppedCount = stoppedCount;
     }
 
@@ -236,7 +236,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return disabledCount;
     }
 
-    public void setDisabledCount(Integer disabledCount) {
+    public void setDisabledCount(final Integer disabledCount) {
         this.disabledCount = disabledCount;
     }
 
@@ -249,7 +249,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return activeRemotePortCount;
     }
 
-    public void setActiveRemotePortCount(Integer activeRemotePortCount) {
+    public void setActiveRemotePortCount(final Integer activeRemotePortCount) {
         this.activeRemotePortCount = activeRemotePortCount;
     }
 
@@ -262,7 +262,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return inactiveRemotePortCount;
     }
 
-    public void setInactiveRemotePortCount(Integer inactiveRemotePortCount) {
+    public void setInactiveRemotePortCount(final Integer inactiveRemotePortCount) {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
@@ -271,7 +271,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return upToDateCount;
     }
 
-    public void setUpToDateCount(Integer upToDateCount) {
+    public void setUpToDateCount(final Integer upToDateCount) {
         this.upToDateCount = upToDateCount;
     }
 
@@ -280,7 +280,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return locallyModifiedCount;
     }
 
-    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+    public void setLocallyModifiedCount(final Integer locallyModifiedCount) {
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
@@ -289,7 +289,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return staleCount;
     }
 
-    public void setStaleCount(Integer staleCount) {
+    public void setStaleCount(final Integer staleCount) {
         this.staleCount = staleCount;
     }
 
@@ -298,7 +298,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return locallyModifiedAndStaleCount;
     }
 
-    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+    public void setLocallyModifiedAndStaleCount(final Integer locallyModifiedAndStaleCount) {
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
@@ -307,7 +307,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return syncFailureCount;
     }
 
-    public void setSyncFailureCount(Integer syncFailureCount) {
+    public void setSyncFailureCount(final Integer syncFailureCount) {
         this.syncFailureCount = syncFailureCount;
     }
 
@@ -354,7 +354,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         return defaultFlowFileExpiration;
     }
 
-    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+    public void setDefaultFlowFileExpiration(final String defaultFlowFileExpiration) {
         this.defaultFlowFileExpiration = defaultFlowFileExpiration;
     }
 

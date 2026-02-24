@@ -240,12 +240,12 @@ public class ValidateCsv extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
-        PropertyValue schemaProp = context.getProperty(SCHEMA);
-        PropertyValue headerProp = context.getProperty(HEADER);
-        String schema = schemaProp.getValue();
-        String subject = SCHEMA.getName();
+        final PropertyValue schemaProp = context.getProperty(SCHEMA);
+        final PropertyValue headerProp = context.getProperty(HEADER);
+        final String schema = schemaProp.getValue();
+        final String subject = SCHEMA.getName();
 
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(schema)) {
             return List.of(new ValidationResult.Builder().subject(subject).input(schema).explanation("Expression Language Present").valid(true).build());
@@ -257,7 +257,7 @@ public class ValidateCsv extends AbstractProcessor {
             } else if (!headerProp.asBoolean()) {
                 throw(new Exception("Schema cannot be empty if Header property is false."));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             final List<ValidationResult> problems = new ArrayList<>(1);
             problems.add(new ValidationResult.Builder().subject(subject)
                     .input(schema)
@@ -303,8 +303,8 @@ public class ValidateCsv extends AbstractProcessor {
      * to a list of cell processors used to validate the CSV data.
      * @param schema Schema to parse
      */
-    private CellProcessor[] parseSchema(String schema) {
-        List<CellProcessor> processorsList = new ArrayList<>();
+    private CellProcessor[] parseSchema(final String schema) {
+        final List<CellProcessor> processorsList = new ArrayList<>();
 
         String remaining = schema;
         while (!remaining.isEmpty()) {
@@ -314,14 +314,14 @@ public class ValidateCsv extends AbstractProcessor {
         return processorsList.toArray(new CellProcessor[0]);
     }
 
-    private String setProcessor(String remaining, List<CellProcessor> processorsList) {
-        StringBuilder buffer = new StringBuilder();
+    private String setProcessor(final String remaining, final List<CellProcessor> processorsList) {
+        final StringBuilder buffer = new StringBuilder();
         String inputString = remaining;
         int i = 0;
         int opening = 0;
         int closing = 0;
         while (buffer.length() != inputString.length()) {
-            char c = remaining.charAt(i);
+            final char c = remaining.charAt(i);
             i++;
 
             if (opening == 0 && c == ',') {
@@ -359,11 +359,11 @@ public class ValidateCsv extends AbstractProcessor {
         return remaining.substring(i);
     }
 
-    private CellProcessor getProcessor(String method, String argument) {
+    private CellProcessor getProcessor(final String method, final String argument) {
         switch (method) {
 
             case "optional":
-                int opening = argument.indexOf('(');
+                final int opening = argument.indexOf('(');
                 String subMethod = argument;
                 String subArgument = null;
                 if (opening != -1) {
@@ -433,23 +433,23 @@ public class ValidateCsv extends AbstractProcessor {
                 return new UniqueHashCode();
 
             case "strlen":
-                String[] splts = argument.split(",");
-                int[] requiredLengths = new int[splts.length];
+                final String[] splts = argument.split(",");
+                final int[] requiredLengths = new int[splts.length];
                 for (int i = 0; i < splts.length; i++) {
                     requiredLengths[i] = Integer.parseInt(splts[i]);
                 }
                 return new Strlen(requiredLengths);
 
             case "strminmax":
-                String[] splits = argument.split(",");
+                final String[] splits = argument.split(",");
                 return new StrMinMax(Long.parseLong(splits[0]), Long.parseLong(splits[1]));
 
             case "lminmax":
-                String[] args = argument.split(",");
+                final String[] args = argument.split(",");
                 return new LMinMax(Long.parseLong(args[0]), Long.parseLong(args[1]));
 
             case "dminmax":
-                String[] doubles = argument.split(",");
+                final String[] doubles = argument.split(",");
                 return new DMinMax(Double.parseDouble(doubles[0]), Double.parseDouble(doubles[1]));
 
             case "equals":
@@ -459,11 +459,11 @@ public class ValidateCsv extends AbstractProcessor {
                 return new Equals();
 
             case "forbidsubstr":
-                String[] forbiddenSubStrings = argument.replaceAll("\"", "").split(",[ ]*");
+                final String[] forbiddenSubStrings = argument.replaceAll("\"", "").split(",[ ]*");
                 return new ForbidSubStr(forbiddenSubStrings);
 
             case "requiresubstr":
-                String[] requiredSubStrings = argument.replaceAll("\"", "").split(",[ ]*");
+                final String[] requiredSubStrings = argument.replaceAll("\"", "").split(",[ ]*");
                 return new RequireSubStr(requiredSubStrings);
 
             case "strnotnullorempty":
@@ -473,8 +473,8 @@ public class ValidateCsv extends AbstractProcessor {
                 return new StrNotNullOrEmpty();
 
             case "requirehashcode":
-                String[] hashs = argument.split(",");
-                int[] hashcodes = new int[hashs.length];
+                final String[] hashs = argument.split(",");
+                final int[] hashcodes = new int[hashs.length];
                 for (int i = 0; i < hashs.length; i++) {
                     hashcodes[i] = Integer.parseInt(hashs[i]);
                 }
@@ -487,7 +487,7 @@ public class ValidateCsv extends AbstractProcessor {
                 return null;
 
             case "isincludedin":
-                String[] elements = argument.replaceAll("\"", "").split(",[ ]*");
+                final String[] elements = argument.replaceAll("\"", "").split(",[ ]*");
                 return new IsIncludedIn(elements);
 
             default:
@@ -497,7 +497,7 @@ public class ValidateCsv extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -528,9 +528,9 @@ public class ValidateCsv extends AbstractProcessor {
             validFF = session.create(flowFile);
         }
 
-        InputStream stream;
+        final InputStream stream;
         if (isWholeFFValidation && context.getProperty(CSV_SOURCE_ATTRIBUTE).isSet()) {
-            String csvAttribute = flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
+            final String csvAttribute = flowFile.getAttribute(context.getProperty(CSV_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
             stream = new ByteArrayInputStream(Objects.requireNonNullElse(csvAttribute, "").getBytes(StandardCharsets.UTF_8));
         } else {
             stream = session.read(flowFile);
@@ -542,11 +542,11 @@ public class ValidateCsv extends AbstractProcessor {
             if (header) {
 
                 // read header
-                List<String> headers = listReader.read();
+                final List<String> headers = listReader.read();
 
                 if (schema == null) {
                     if (headers != null && !headers.isEmpty()) {
-                        String newSchema = "Optional(StrNotNullOrEmpty()),".repeat(headers.size());
+                        final String newSchema = "Optional(StrNotNullOrEmpty()),".repeat(headers.size());
                         schema = newSchema.substring(0, newSchema.length() - 1);
                         cellProcs = this.parseSchema(schema);
                     } else {
@@ -659,7 +659,7 @@ public class ValidateCsv extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("validate-csv-schema", SCHEMA.getName());
         config.renameProperty("validate-csv-header", HEADER.getName());
         config.renameProperty("validate-csv-quote", QUOTE_CHARACTER.getName());
@@ -669,8 +669,8 @@ public class ValidateCsv extends AbstractProcessor {
         config.renameProperty("validate-csv-violations", INCLUDE_ALL_VIOLATIONS.getName());
     }
 
-    private byte[] print(String row, CsvPreference csvPref, boolean isFirstLine) {
-        StringBuffer buffer = new StringBuffer();
+    private byte[] print(final String row, final CsvPreference csvPref, final boolean isFirstLine) {
+        final StringBuffer buffer = new StringBuffer();
         if (!isFirstLine) {
             buffer.append(csvPref.getEndOfLineSymbols());
         }
@@ -684,11 +684,11 @@ public class ValidateCsv extends AbstractProcessor {
      */
     private class NifiCsvListReader extends CsvListReader {
 
-        public NifiCsvListReader(Reader reader, CsvPreference preferences) {
+        public NifiCsvListReader(final Reader reader, final CsvPreference preferences) {
             super(reader, preferences);
         }
 
-        public List<Object> read(boolean includeAllViolations, CellProcessor... processors) throws IOException {
+        public List<Object> read(final boolean includeAllViolations, final CellProcessor... processors) throws IOException {
             if (processors == null) {
                 throw new NullPointerException("Processors should not be null");
             }
@@ -699,13 +699,13 @@ public class ValidateCsv extends AbstractProcessor {
             return null; // EOF
         }
 
-        protected List<Object> executeProcessors(List<Object> processedColumns, CellProcessor[] processors, boolean includeAllViolations) {
+        protected List<Object> executeProcessors(final List<Object> processedColumns, final CellProcessor[] processors, final boolean includeAllViolations) {
             this.executeCellProcessors(processedColumns, getColumns(), processors, getLineNumber(), getRowNumber(), includeAllViolations);
             return processedColumns;
         }
 
         private void executeCellProcessors(final List<Object> destination, final List<?> source,
-            final CellProcessor[] processors, final int lineNo, final int rowNo, boolean includeAllViolations) {
+            final CellProcessor[] processors, final int lineNo, final int rowNo, final boolean includeAllViolations) {
 
             // the context used when cell processors report exceptions
             final CsvContext context = new CsvContext(lineNo, rowNo, 1);
@@ -720,7 +720,7 @@ public class ValidateCsv extends AbstractProcessor {
 
             destination.clear();
 
-            List<String> errors = new ArrayList<>();
+            final List<String> errors = new ArrayList<>();
 
             for (int i = 0; i < source.size(); i++) {
 
@@ -733,7 +733,7 @@ public class ValidateCsv extends AbstractProcessor {
                         destination.add(processors[i].execute(source.get(i), context)); // execute the processor chain
                     }
 
-                } catch (SuperCsvException e) {
+                } catch (final SuperCsvException e) {
                     if (includeAllViolations) {
                         if (errors.isEmpty()) {
                             errors.add(String.format("At {line=%d, row=%d}", e.getCsvContext().getLineNumber(), e.getCsvContext().getRowNumber()));

@@ -43,7 +43,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "a");
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
@@ -63,7 +63,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
     }
 
@@ -86,7 +86,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListGCSBucket.REL_SUCCESS, 4);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "generations/a");
         flowFiles.get(1).assertAttributeEquals("filename", "generations/a");
         flowFiles.get(2).assertAttributeEquals("filename", "generations/b");

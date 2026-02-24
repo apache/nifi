@@ -37,7 +37,7 @@ public class RuleViolationEntity extends Entity {
         return scope;
     }
 
-    public void setScope(String scope) {
+    public void setScope(final String scope) {
         this.scope = scope;
     }
 
@@ -48,7 +48,7 @@ public class RuleViolationEntity extends Entity {
         return subjectId;
     }
 
-    public void setSubjectId(String subjectId) {
+    public void setSubjectId(final String subjectId) {
         this.subjectId = subjectId;
     }
 
@@ -59,7 +59,7 @@ public class RuleViolationEntity extends Entity {
         return ruleId;
     }
 
-    public void setRuleId(String ruleId) {
+    public void setRuleId(final String ruleId) {
         this.ruleId = ruleId;
     }
 
@@ -70,7 +70,7 @@ public class RuleViolationEntity extends Entity {
         return issueId;
     }
 
-    public void setIssueId(String issueId) {
+    public void setIssueId(final String issueId) {
         this.issueId = issueId;
     }
 
@@ -81,7 +81,7 @@ public class RuleViolationEntity extends Entity {
         return enabled;
     }
 
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(final Boolean enabled) {
         this.enabled = enabled;
     }
 }

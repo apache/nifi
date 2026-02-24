@@ -140,7 +140,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
                 .build();
     }
 
-    private static boolean hasProhibitedName(String userInput, String correctName) {
+    private static boolean hasProhibitedName(final String userInput, final String correctName) {
         // Do not allow : in any case be
         // cause it is not the correct name
         // 'correctName' header is case-sensitive for overriding our default 'correctName' header, so prevent any other combination of upper/lower case letters
@@ -148,7 +148,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
                 || (correctName.equalsIgnoreCase(userInput) && !correctName.equals(userInput));
     }
 
-    private static PropertyDescriptor getInvalidDynamicPropertyDescriptor(String propertyDescriptorName, String explanation) {
+    private static PropertyDescriptor getInvalidDynamicPropertyDescriptor(final String propertyDescriptorName, final String explanation) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .addValidator((subject, input, context) -> new ValidationResult.Builder()
@@ -169,7 +169,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
                 .getProperty(WEB_SERVICE_CLIENT_PROVIDER).asControllerService(WebClientServiceProvider.class);
 
         if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context
+            final OAuth2AccessTokenProvider oauth2AccessTokenProvider = context
                     .getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
             oauth2AccessTokenProvider.getAccessDetails();
             oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
@@ -186,12 +186,12 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
-        WriteResult writeResult;
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
+        final WriteResult writeResult;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
              final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), baos, attributes)) {
             writeResult = sendRecords(recordSet, writer, baos, maxBatchSize);
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             final String errorMessage = String.format("RecordSetWriter could not be created because the schema was not found. The schema name for the RecordSet to write is %s",
                     recordSet.getSchema().getSchemaName());
             throw new IOException(errorMessage, e);
@@ -200,7 +200,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
         return writeResult;
     }
 
-    private WriteResult sendRecords(final RecordSet recordSet, final RecordSetWriter writer, final ByteArrayOutputStream baos, int maxBatchSize) throws IOException {
+    private WriteResult sendRecords(final RecordSet recordSet, final RecordSetWriter writer, final ByteArrayOutputStream baos, final int maxBatchSize) throws IOException {
         WriteResult writeResult = WriteResult.EMPTY;
         Record r = recordSet.next();
         if (r != null) {
@@ -234,7 +234,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
         return writeResult;
     }
 
-    public void sendHttpRequest(final byte[] body, String mimeType) throws IOException {
+    public void sendHttpRequest(final byte[] body, final String mimeType) throws IOException {
         final URI apiUri = URI.create(apiUrl);
         final HttpUriBuilder uriBuilder = webClientServiceProvider.getHttpUriBuilder()
                 .scheme(apiUri.getScheme())
@@ -245,7 +245,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
         }
         final URI uri = uriBuilder.build();
 
-        HttpRequestBodySpec requestBodySpec = webClientServiceProvider.getWebClientService()
+        final HttpRequestBodySpec requestBodySpec = webClientServiceProvider.getWebClientService()
                 .post()
                 .uri(uri);
 

@@ -24,7 +24,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 public class IsEmpty extends FunctionFilter {
 
-    public IsEmpty(RecordPathSegment recordPath) {
+    public IsEmpty(final RecordPathSegment recordPath) {
         super(recordPath);
     }
 

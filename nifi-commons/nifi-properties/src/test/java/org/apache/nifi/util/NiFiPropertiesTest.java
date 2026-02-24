@@ -42,21 +42,21 @@ public class NiFiPropertiesTest {
     @Test
     public void testProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
 
         assertEquals("UI Banner Text", properties.getBannerText());
 
-        Set<File> expectedDirectories = new HashSet<>();
+        final Set<File> expectedDirectories = new HashSet<>();
         expectedDirectories.add(new File("./target/resources/NiFiProperties/lib/"));
         expectedDirectories.add(new File("./target/resources/NiFiProperties/lib2/"));
 
-        Set<String> directories = new HashSet<>();
-        for (Path narLibDir : properties.getNarLibraryDirectories()) {
+        final Set<String> directories = new HashSet<>();
+        for (final Path narLibDir : properties.getNarLibraryDirectories()) {
             directories.add(narLibDir.toString());
         }
 
         assertEquals(expectedDirectories.size(), directories.size(), "Did not have the anticipated number of directories");
-        for (File expectedDirectory : expectedDirectories) {
+        for (final File expectedDirectory : expectedDirectories) {
             assertTrue(directories.contains(expectedDirectory.getPath()), "Listed directories did not contain expected directory");
         }
     }
@@ -64,9 +64,9 @@ public class NiFiPropertiesTest {
     @Test
     public void testMissingProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.missing.properties", null);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.missing.properties", null);
 
-        List<Path> directories = properties.getNarLibraryDirectories();
+        final List<Path> directories = properties.getNarLibraryDirectories();
 
         assertEquals(1, directories.size());
 
@@ -78,9 +78,9 @@ public class NiFiPropertiesTest {
     @Test
     public void testBlankProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", null);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", null);
 
-        List<Path> directories = properties.getNarLibraryDirectories();
+        final List<Path> directories = properties.getNarLibraryDirectories();
 
         assertEquals(1, directories.size());
 
@@ -130,15 +130,15 @@ public class NiFiPropertiesTest {
         final String scopeTrailingWhitespace = "ghi ";
         final String scopeLeadingTrailingWhitespace = " jkl ";
 
-        String additionalScopes = String.join(",", scope, scopeLeadingWhitespace,
+        final String additionalScopes = String.join(",", scope, scopeLeadingWhitespace,
                 scopeTrailingWhitespace, scopeLeadingTrailingWhitespace);
 
-        NiFiProperties properties = mock(NiFiProperties.class);
+        final NiFiProperties properties = mock(NiFiProperties.class);
         when(properties.getProperty(NiFiProperties.SECURITY_USER_OIDC_ADDITIONAL_SCOPES, ""))
                 .thenReturn(additionalScopes);
         when(properties.getOidcAdditionalScopes()).thenCallRealMethod();
 
-        List<String> scopes = properties.getOidcAdditionalScopes();
+        final List<String> scopes = properties.getOidcAdditionalScopes();
 
         assertTrue(scopes.contains(scope));
         assertFalse(scopes.contains(scopeLeadingWhitespace));
@@ -164,13 +164,13 @@ public class NiFiPropertiesTest {
         // Testing with CLUSTER_NODE_PROTOCOL_PORT
 
         // Arrange
-        String portValue = "8000";
-        Map<String, String> additionalProperties = new HashMap<>();
+        final String portValue = "8000";
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         // Act
-        Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
+        final Integer clusterProtocolPort = properties.getClusterNodeProtocolPort();
 
         // Assert
         assertEquals(Integer.parseInt(portValue), clusterProtocolPort.intValue());
@@ -182,10 +182,10 @@ public class NiFiPropertiesTest {
 
         // Arrange
         // Port Value is invalid Format
-        String portValue = "8000a";
-        Map<String, String> additionalProperties = new HashMap<>();
+        final String portValue = "8000a";
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         // Act
         properties.getClusterNodeProtocolPort();
@@ -197,15 +197,15 @@ public class NiFiPropertiesTest {
         // Testing with CLUSTER_NODE_ADDRESS
 
         // Arrange
-        String portValue = "8000";
-        String addressValue = "127.0.0.1";
-        Map<String, String> additionalProperties = new HashMap<>();
+        final String portValue = "8000";
+        final String addressValue = "127.0.0.1";
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         // Act
-        InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
+        final InetSocketAddress clusterProtocolAddress = properties.getClusterNodeProtocolAddress();
 
         // Assert
         assertEquals(Integer.parseInt(portValue), clusterProtocolAddress.getPort());
@@ -217,12 +217,12 @@ public class NiFiPropertiesTest {
 
         // Arrange
         // Port value is out of range
-        String portValue = "70000";
-        String addressValue = "127.0.0.1";
-        Map<String, String> additionalProperties = new HashMap<>();
+        final String portValue = "70000";
+        final String addressValue = "127.0.0.1";
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
@@ -230,12 +230,12 @@ public class NiFiPropertiesTest {
     @Test
     public void testShouldVerifyExceptionThrownWhenPortValueIsZero() {
         // Arrange
-        String portValue = "0";
-        String addressValue = "127.0.0.1";
-        Map<String, String> additionalProperties = new HashMap<>();
+        final String portValue = "0";
+        final String addressValue = "127.0.0.1";
+        final Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, portValue);
         additionalProperties.put(NiFiProperties.CLUSTER_NODE_ADDRESS, addressValue);
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+        final NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
 
         assertThrows(RuntimeException.class, () -> properties.getClusterNodeProtocolAddress());
     }
@@ -258,7 +258,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testIsZooKeeperTlsConfigurationPresent() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password",
@@ -273,7 +273,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testSomeZooKeeperTlsConfigurationIsMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "password",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, "JKS",
@@ -286,7 +286,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testZooKeeperTlsPasswordsBlank() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
             NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, "",
@@ -301,7 +301,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testKeystorePasswordIsMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
             NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
             NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks",
@@ -313,7 +313,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testTlsConfigurationIsPresentWithEmptyPasswords() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.SECURITY_KEYSTORE, "/a/keystore/filepath/keystore.jks",
             NiFiProperties.SECURITY_KEYSTORE_PASSWD, "",
             NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
@@ -326,7 +326,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testTlsConfigurationIsNotPresentWithPropertiesMissing() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, Map.of(
             NiFiProperties.SECURITY_KEYSTORE_PASSWD, "password",
             NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS",
             NiFiProperties.SECURITY_TRUSTSTORE, "/a/truststore/filepath/truststore.jks"));
@@ -336,7 +336,7 @@ public class NiFiPropertiesTest {
 
     @Test
     public void testTlsConfigurationIsNotPresentWithNoProperties() {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
 
         assertFalse(properties.isTlsConfigurationPresent());
     }

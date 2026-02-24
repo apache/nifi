@@ -81,7 +81,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.INPUT_SOURCE.createOption());
         addOption(CommandOption.SKIP_EXISTING.createOption());
 
@@ -121,7 +121,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
                 .thenComparing(VersionFileMetaData::getFlowName)
                 .thenComparing(VersionFileMetaData::getVersion));
 
-        for (VersionFileMetaData file : files) {
+        for (final VersionFileMetaData file : files) {
             final String inputSource = file.getInputSource();
             final String fileContent = getInputSourceContent(inputSource);
             final VersionedFlowSnapshot snapshot = MAPPER.readValue(fileContent, VersionedFlowSnapshot.class);
@@ -233,7 +233,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
                     .filter(path -> path.getFileName().toString().startsWith(FILE_NAME_PREFIX))
                     .map(VersionFileMetaData::new)
                     .collect(Collectors.toList());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new NiFiRegistryException("File listing failed", e);
         }
         return files;
@@ -273,7 +273,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
             flowCoordinates.setStorageLocation(updatedStorageLocation);
         }
 
-        for (VersionedProcessGroup processGroup : group.getProcessGroups()) {
+        for (final VersionedProcessGroup processGroup : group.getProcessGroups()) {
             updateStorageLocation(processGroup, registryUrl);
         }
     }
@@ -285,7 +285,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         try {
             final VersionedFlowSnapshotMetadata latestMetadata = snapshotClient.getLatestMetadata(bucketId, flowId);
             version = latestMetadata.getVersion() + 1;
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             // when there are no versions it produces a 404 not found
             version = 1;
         }

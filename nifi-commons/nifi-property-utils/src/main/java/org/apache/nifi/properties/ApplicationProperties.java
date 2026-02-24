@@ -23,11 +23,11 @@ import java.util.Properties;
  * A tagging class that represents the main configuration properties for an application (e.g. NiFi or NiFi Registry).
  */
 public class ApplicationProperties extends StandardReadableProperties {
-    public ApplicationProperties(Properties properties) {
+    public ApplicationProperties(final Properties properties) {
         super(properties);
     }
 
-    public ApplicationProperties(Map<String, String> properties) {
+    public ApplicationProperties(final Map<String, String> properties) {
         super(properties);
     }
 }

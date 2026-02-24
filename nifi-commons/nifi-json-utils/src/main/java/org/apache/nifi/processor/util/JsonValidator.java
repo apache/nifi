@@ -29,16 +29,16 @@ public class JsonValidator implements Validator {
     public static final JsonValidator INSTANCE = new JsonValidator();
 
     @Override
-    public ValidationResult validate(String subject, String input, ValidationContext context) {
-        ObjectMapper mapper = new ObjectMapper();
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+        final ObjectMapper mapper = new ObjectMapper();
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
             return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
         }
 
         try {
-            Class clz = input.startsWith("[") ? List.class : Map.class;
+            final Class clz = input.startsWith("[") ? List.class : Map.class;
             mapper.readValue(input, clz);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                     .explanation(subject + " is not a valid JSON representation due to " + e.getLocalizedMessage())
                     .build();

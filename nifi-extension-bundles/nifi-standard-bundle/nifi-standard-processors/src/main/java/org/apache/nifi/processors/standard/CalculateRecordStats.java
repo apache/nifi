@@ -136,7 +136,7 @@ public class CalculateRecordStats extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onEnabled(ProcessContext context) {
+    public void onEnabled(final ProcessContext context) {
         cache = new RecordPathCache(25);
     }
 
@@ -146,7 +146,7 @@ public class CalculateRecordStats extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -165,7 +165,7 @@ public class CalculateRecordStats extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-stats-reader", RECORD_READER.getName());
         config.renameProperty("record-stats-limit", LIMIT.getName());
     }

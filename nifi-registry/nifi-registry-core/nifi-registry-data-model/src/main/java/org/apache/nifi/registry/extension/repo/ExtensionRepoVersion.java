@@ -39,7 +39,7 @@ public class ExtensionRepoVersion {
         return extensionsLink;
     }
 
-    public void setExtensionsLink(Link extensionsLink) {
+    public void setExtensionsLink(final Link extensionsLink) {
         this.extensionsLink = extensionsLink;
     }
 
@@ -51,7 +51,7 @@ public class ExtensionRepoVersion {
         return downloadLink;
     }
 
-    public void setDownloadLink(Link downloadLink) {
+    public void setDownloadLink(final Link downloadLink) {
         this.downloadLink = downloadLink;
     }
 
@@ -63,7 +63,7 @@ public class ExtensionRepoVersion {
         return sha256Link;
     }
 
-    public void setSha256Link(Link sha256Link) {
+    public void setSha256Link(final Link sha256Link) {
         this.sha256Link = sha256Link;
     }
 
@@ -73,7 +73,7 @@ public class ExtensionRepoVersion {
         return sha256Supplied;
     }
 
-    public void setSha256Supplied(Boolean sha256Supplied) {
+    public void setSha256Supplied(final Boolean sha256Supplied) {
         this.sha256Supplied = sha256Supplied;
     }
 }

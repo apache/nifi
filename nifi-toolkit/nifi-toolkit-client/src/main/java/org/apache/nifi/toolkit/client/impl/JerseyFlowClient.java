@@ -342,7 +342,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public FlowRegistryBranchesEntity getFlowRegistryBranches(String registryClientId)
+    public FlowRegistryBranchesEntity getFlowRegistryBranches(final String registryClientId)
             throws NiFiClientException, IOException {
 
         if (StringUtils.isBlank(registryClientId)) {
@@ -357,7 +357,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public FlowRegistryBucketsEntity getFlowRegistryBuckets(String registryClientId, String branch)
+    public FlowRegistryBucketsEntity getFlowRegistryBuckets(final String registryClientId, final String branch)
             throws NiFiClientException, IOException {
 
         if (StringUtils.isBlank(registryClientId)) {
@@ -377,7 +377,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     }
 
     @Override
-    public VersionedFlowsEntity getFlowRegistryFlows(String registryClientId, String branch, String bucket)
+    public VersionedFlowsEntity getFlowRegistryFlows(final String registryClientId, final String branch, final String bucket)
             throws NiFiClientException, IOException {
 
         if (StringUtils.isBlank(registryClientId)) {

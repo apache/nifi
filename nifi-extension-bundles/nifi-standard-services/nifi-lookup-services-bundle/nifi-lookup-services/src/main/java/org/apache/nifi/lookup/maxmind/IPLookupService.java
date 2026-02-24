@@ -162,7 +162,7 @@ public class IPLookupService extends AbstractControllerService implements Record
     }
 
     private String getChecksum(final File file) throws IOException {
-        String fileChecksum;
+        final String fileChecksum;
         try (final InputStream in = new FileInputStream(file)) {
             fileChecksum = DigestUtils.md5Hex(in);
         }
@@ -198,7 +198,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         if (shouldAttemptDatabaseRefresh()) {
             try {
                 refreshDatabase();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new LookupFailureException("Failed to refresh database file: " + e.getMessage(), e);
             }
         }
@@ -208,7 +208,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         try {
             final DatabaseReader databaseReader = this.databaseReader;
             return doLookup(databaseReader, coordinates);
-        } catch (InvalidDatabaseException idbe) {
+        } catch (final InvalidDatabaseException idbe) {
             if (dbWriteLock.tryLock()) {
                 try {
                     getLogger().debug("Attempting to reload database after InvalidDatabaseException");
@@ -217,7 +217,7 @@ public class IPLookupService extends AbstractControllerService implements Record
                         final String dbFileChecksum = getChecksum(dbFile);
                         loadDatabase(dbFile, dbFileChecksum);
                         databaseLastRefreshAttempt = System.currentTimeMillis();
-                    } catch (IOException ioe) {
+                    } catch (final IOException ioe) {
                         throw new LookupFailureException("Error reloading database due to: " + ioe.getMessage(), ioe);
                     }
 
@@ -238,7 +238,7 @@ public class IPLookupService extends AbstractControllerService implements Record
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("database-file", GEO_DATABASE_FILE.getName());
         config.renameProperty("lookup-city", LOOKUP_CITY.getName());
         config.renameProperty("lookup-isp", LOOKUP_ISP.getName());
@@ -496,7 +496,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         return containerRecord;
     }
 
-    DatabaseReader createDatabaseReader(File dbFile) throws IOException {
+    DatabaseReader createDatabaseReader(final File dbFile) throws IOException {
         return new DatabaseReader.Builder(dbFile).build();
     }
 }

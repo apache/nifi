@@ -31,7 +31,7 @@ public class AnonymousIdentityFilter extends AnonymousAuthenticationFilter {
     }
 
     @Override
-    protected Authentication createAuthentication(HttpServletRequest request) {
+    protected Authentication createAuthentication(final HttpServletRequest request) {
         return new AuthenticationSuccessToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
     }
 

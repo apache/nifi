@@ -40,7 +40,7 @@ public class XXEValidator implements Validator {
 
     @Override
     public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
-        Path xmlFilePath = Paths.get(input);
+        final Path xmlFilePath = Paths.get(input);
         String line;
         boolean containsXXE = false;
 
@@ -53,10 +53,10 @@ public class XXEValidator implements Validator {
 
         if (Files.exists(xmlFilePath)) {
             try (BufferedReader reader = Files.newBufferedReader(xmlFilePath)) {
-                StringBuilder sb = new StringBuilder();
+                final StringBuilder sb = new StringBuilder();
 
                 while ((line = reader.readLine()) != null) {
-                    Matcher matcher = xxePattern.matcher(line);
+                    final Matcher matcher = xxePattern.matcher(line);
 
                     if (matcher.find()) {
                         // We found an external entity declaration. Stop reading the file and return an invalid property result.
@@ -71,7 +71,7 @@ public class XXEValidator implements Validator {
                 // Some attacks will be crafted with newlines between the characters which trigger the attack
                 if (!containsXXE) {
                     logger.debug("No XXE attack detected in {} line-by-line; checking concatenated document", xmlFilePathString);
-                    Matcher matcher = xxePattern.matcher(sb.toString());
+                    final Matcher matcher = xxePattern.matcher(sb.toString());
                     containsXXE = matcher.find();
                     if (containsXXE) {
                         logger.warn("Detected multiline XXE attack in {}", xmlFilePathString);
@@ -87,7 +87,7 @@ public class XXEValidator implements Validator {
                 } else {
                     return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("No XXE attack detected.").build();
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                         .explanation(input + " is not valid because: " + e.getLocalizedMessage())
                         .build();

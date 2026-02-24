@@ -100,17 +100,17 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                         .maximumSize(cacheSize)
                         .expireAfter(new Expiry<Tuple<String, Object>, Record>() {
                             @Override
-                            public long expireAfterCreate(Tuple<String, Object> stringObjectTuple, Record record, long currentTime) {
+                            public long expireAfterCreate(final Tuple<String, Object> stringObjectTuple, final Record record, final long currentTime) {
                                 return durationNanos;
                             }
 
                             @Override
-                            public long expireAfterUpdate(Tuple<String, Object> stringObjectTuple, Record record, long currentTime, long currentDuration) {
+                            public long expireAfterUpdate(final Tuple<String, Object> stringObjectTuple, final Record record, final long currentTime, final long currentDuration) {
                                 return currentDuration;
                             }
 
                             @Override
-                            public long expireAfterRead(Tuple<String, Object> stringObjectTuple, Record record, long currentTime, long currentDuration) {
+                            public long expireAfterRead(final Tuple<String, Object> stringObjectTuple, final Record record, final long currentTime, final long currentDuration) {
                                 return currentDuration;
                             }
                         })
@@ -124,12 +124,12 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
     @Override
-    public Optional<Record> lookup(final Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates, final Map<String, String> context) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }
@@ -144,7 +144,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
         final Integer defaultPrecision = getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(context).asInteger();
         final Integer defaultScale = getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(context).asInteger();
 
-        Set<String> lookupValueColumnsSet = new LinkedHashSet<>();
+        final Set<String> lookupValueColumnsSet = new LinkedHashSet<>();
         if (lookupValueColumnsList != null) {
             Stream.of(lookupValueColumnsList)
                     .flatMap(path -> Arrays.stream(path.split(",")))
@@ -155,7 +155,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
         final String lookupValueColumns = lookupValueColumnsSet.isEmpty() ? "*" : String.join(",", lookupValueColumnsSet);
 
-        Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
+        final Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
 
         // Not using the function param of cache.get so we can catch and handle the checked exceptions
         Record foundRecord = cache.get(cacheLookupKey, k -> null);
@@ -166,8 +166,8 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
                 st.setObject(1, key);
-                ResultSet resultSet = st.executeQuery();
-                ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null, defaultPrecision, defaultScale);
+                final ResultSet resultSet = st.executeQuery();
+                final ResultSetRecordSet resultSetRecordSet = new ResultSetRecordSet(resultSet, null, defaultPrecision, defaultScale);
                 foundRecord = resultSetRecordSet.next();
 
                 // Populate the cache if the record is present
@@ -175,10 +175,10 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
                     cache.put(cacheLookupKey, foundRecord);
                 }
 
-            } catch (SQLException se) {
+            } catch (final SQLException se) {
                 throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
                         + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new LookupFailureException("Error retrieving result set for SQL statement: " + selectQuery + "for value " + key.toString()
                         + " : " + (ioe.getCause() == null ? ioe.getMessage() : ioe.getCause().getMessage()), ioe);
             }
@@ -197,7 +197,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("dbrecord-lookup-value-columns", LOOKUP_VALUE_COLUMNS.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());

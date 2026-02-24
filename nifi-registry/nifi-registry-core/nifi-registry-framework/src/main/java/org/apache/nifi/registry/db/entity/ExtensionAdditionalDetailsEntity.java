@@ -28,7 +28,7 @@ public class ExtensionAdditionalDetailsEntity {
         return extensionId;
     }
 
-    public void setExtensionId(String extensionId) {
+    public void setExtensionId(final String extensionId) {
         this.extensionId = extensionId;
     }
 
@@ -36,7 +36,7 @@ public class ExtensionAdditionalDetailsEntity {
         return additionalDetails;
     }
 
-    public void setAdditionalDetails(Optional<String> additionalDetails) {
+    public void setAdditionalDetails(final Optional<String> additionalDetails) {
         this.additionalDetails = additionalDetails;
     }
 

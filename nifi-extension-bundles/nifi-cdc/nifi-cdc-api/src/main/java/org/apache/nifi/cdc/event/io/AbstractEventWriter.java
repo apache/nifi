@@ -32,18 +32,18 @@ public abstract class AbstractEventWriter<T extends EventInfo> implements EventW
     protected JsonGenerator jsonGenerator;
 
     // Common method to create a JSON generator and start the root object. Should be called by sub-classes unless they need their own generator and such.
-    protected void startJson(OutputStream outputStream, T event) throws IOException {
+    protected void startJson(final OutputStream outputStream, final T event) throws IOException {
         if (jsonGenerator == null) {
             jsonGenerator = createJsonGenerator(outputStream);
         }
         jsonGenerator.writeStartObject();
-        String eventType = event.getEventType();
+        final String eventType = event.getEventType();
         if (eventType == null) {
             jsonGenerator.writeNullField("type");
         } else {
             jsonGenerator.writeStringField("type", eventType);
         }
-        Long timestamp = event.getTimestamp();
+        final Long timestamp = event.getTimestamp();
         if (timestamp == null) {
             jsonGenerator.writeNullField("timestamp");
         } else {
@@ -64,7 +64,7 @@ public abstract class AbstractEventWriter<T extends EventInfo> implements EventW
         jsonGenerator = null;
     }
 
-    protected JsonGenerator createJsonGenerator(OutputStream out) throws IOException {
+    protected JsonGenerator createJsonGenerator(final OutputStream out) throws IOException {
         return JSON_FACTORY.createGenerator(out);
     }
 }

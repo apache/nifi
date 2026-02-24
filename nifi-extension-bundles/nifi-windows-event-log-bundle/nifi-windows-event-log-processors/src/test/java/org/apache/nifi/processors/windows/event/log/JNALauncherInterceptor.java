@@ -46,14 +46,14 @@ public class JNALauncherInterceptor implements LauncherInterceptor {
     private final URLClassLoader jnaMockClassLoader;
 
     public JNALauncherInterceptor() {
-        Map<String, Map<String, String>> classOverrideMap = getClassOverrideMap();
-        String classpath = System.getProperty("java.class.path");
-        URL[] result = Pattern.compile(File.pathSeparator).splitAsStream(classpath).map(Paths::get).map(Path::toAbsolutePath).map(Path::toUri)
+        final Map<String, Map<String, String>> classOverrideMap = getClassOverrideMap();
+        final String classpath = System.getProperty("java.class.path");
+        final URL[] result = Pattern.compile(File.pathSeparator).splitAsStream(classpath).map(Paths::get).map(Path::toAbsolutePath).map(Path::toUri)
                 .map(uri -> {
                     URL url = null;
                     try {
                         url = uri.toURL();
-                    } catch (MalformedURLException e) {
+                    } catch (final MalformedURLException e) {
                         fail(String.format("Unable to create URL for classpath entry '%s'", uri));
                     }
                     return url;
@@ -61,21 +61,21 @@ public class JNALauncherInterceptor implements LauncherInterceptor {
                 .toArray(URL[]::new);
         jnaMockClassLoader = new URLClassLoader(result, null) {
             @Override
-            protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                Map<String, String> classOverrides = classOverrideMap.get(name);
+            protected synchronized Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+                final Map<String, String> classOverrides = classOverrideMap.get(name);
                 if (classOverrides != null) {
-                    ClassPool classPool = ClassPool.getDefault();
+                    final ClassPool classPool = ClassPool.getDefault();
                     try {
-                        CtClass ctClass = classPool.get(name);
+                        final CtClass ctClass = classPool.get(name);
                         try {
-                            for (Map.Entry<String, String> methodAndBody : classOverrides.entrySet()) {
-                                for (CtMethod loadLibrary : ctClass.getDeclaredMethods(methodAndBody.getKey())) {
+                            for (final Map.Entry<String, String> methodAndBody : classOverrides.entrySet()) {
+                                for (final CtMethod loadLibrary : ctClass.getDeclaredMethods(methodAndBody.getKey())) {
                                     loadLibrary.setBody(methodAndBody.getValue());
                                 }
                             }
 
-                            byte[] bytes = ctClass.toBytecode();
-                            Class<?> definedClass = defineClass(name, bytes, 0, bytes.length);
+                            final byte[] bytes = ctClass.toBytecode();
+                            final Class<?> definedClass = defineClass(name, bytes, 0, bytes.length);
                             if (resolve) {
                                 resolveClass(definedClass);
                             }
@@ -83,11 +83,11 @@ public class JNALauncherInterceptor implements LauncherInterceptor {
                         } finally {
                             ctClass.detach();
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         throw new ClassNotFoundException(name, e);
                     }
                 } else if (name.startsWith("org.junit.")) {
-                    Class<?> result = JNALauncherInterceptor.class.getClassLoader().loadClass(name);
+                    final Class<?> result = JNALauncherInterceptor.class.getClassLoader().loadClass(name);
                     if (resolve) {
                         resolveClass(result);
                     }

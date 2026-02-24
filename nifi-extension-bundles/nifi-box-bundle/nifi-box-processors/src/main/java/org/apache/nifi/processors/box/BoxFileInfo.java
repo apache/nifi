@@ -102,32 +102,32 @@ public class BoxFileInfo implements ListableEntity {
         private long createdTime;
         private long modifiedTime;
 
-        public Builder id(String id) {
+        public Builder id(final String id) {
             this.id = id;
             return this;
         }
 
-        public Builder fileName(String fileName) {
+        public Builder fileName(final String fileName) {
             this.fileName = fileName;
             return this;
         }
 
-        public Builder path(String path) {
+        public Builder path(final String path) {
             this.path = path;
             return this;
         }
 
-        public Builder size(long size) {
+        public Builder size(final long size) {
             this.size = size;
             return this;
         }
 
-        public Builder createdTime(long createdTime) {
+        public Builder createdTime(final long createdTime) {
             this.createdTime = createdTime;
             return this;
         }
 
-        public Builder modifiedTime(long modifiedTime) {
+        public Builder modifiedTime(final long modifiedTime) {
             this.modifiedTime = modifiedTime;
             return this;
         }
@@ -147,7 +147,7 @@ public class BoxFileInfo implements ListableEntity {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -157,7 +157,7 @@ public class BoxFileInfo implements ListableEntity {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        BoxFileInfo other = (BoxFileInfo) obj;
+        final BoxFileInfo other = (BoxFileInfo) obj;
         if (id == null) {
             if (other.id != null) {
                 return false;
@@ -189,7 +189,7 @@ public class BoxFileInfo implements ListableEntity {
 
     @Override
     public long getTimestamp() {
-        long timestamp = Math.max(getCreatedTime(), getModifiedTime());
+        final long timestamp = Math.max(getCreatedTime(), getModifiedTime());
 
         return timestamp;
     }

@@ -30,7 +30,7 @@ public class ParameterProviderTypesEndpointMerger extends AbstractNodeStatusEndp
     public static final String PARAMETER_PROVIDER_TYPES_URI_PATTERN = "/nifi-api/flow/parameter-provider-types";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PARAMETER_PROVIDER_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class ParameterProviderTypesEndpointMerger extends AbstractNodeStatusEndp
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(ParameterProviderTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final ParameterProviderTypesEntity entity) {
         return entity.getParameterProviderTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

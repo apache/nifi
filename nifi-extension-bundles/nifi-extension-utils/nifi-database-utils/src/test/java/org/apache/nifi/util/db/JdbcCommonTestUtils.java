@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class JdbcCommonTestUtils {
-    static ResultSet resultSetReturningMetadata(ResultSetMetaData metadata) throws SQLException {
+    static ResultSet resultSetReturningMetadata(final ResultSetMetaData metadata) throws SQLException {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
@@ -42,7 +42,7 @@ class JdbcCommonTestUtils {
         return rs;
     }
 
-    static InputStream convertResultSetToAvroInputStream(ResultSet rs) throws SQLException, IOException {
+    static InputStream convertResultSetToAvroInputStream(final ResultSet rs) throws SQLException, IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         JdbcCommon.convertToAvroStream(rs, baos, false);

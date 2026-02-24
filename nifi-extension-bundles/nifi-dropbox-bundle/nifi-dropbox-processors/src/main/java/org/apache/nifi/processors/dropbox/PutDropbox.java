@@ -193,7 +193,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -225,25 +225,25 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                 } else {
                     fileMetadata = uploadLargeFileInChunks(uploadPath, rawIn, size, uploadChunkSize, conflictResolution);
                 }
-            } catch (UploadErrorException e) {
+            } catch (final UploadErrorException e) {
                 handleUploadError(conflictResolution, uploadPath, e);
-            } catch (UploadSessionFinishErrorException e) {
+            } catch (final UploadSessionFinishErrorException e) {
                 handleUploadSessionError(conflictResolution, uploadPath, e);
-            } catch (RateLimitException e) {
+            } catch (final RateLimitException e) {
                 context.yield();
                 throw new ProcessException("Dropbox API rate limit exceeded while uploading file", e);
             }
 
             if (fileMetadata != null) {
                 final Map<String, String> attributes = createAttributeMap(fileMetadata);
-                String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
+                final String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().send(flowFile, url, transferMillis);
             }
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             flowFile = session.penalize(flowFile);
@@ -252,7 +252,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
         config.renameProperty("folder", FOLDER.getName());
         config.renameProperty("file-name", FILE_NAME.getName());
@@ -287,8 +287,8 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private FileMetadata uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize,
-            ConflictResolutionStrategy conflictResolution) throws DbxException, IOException {
+    private FileMetadata uploadLargeFileInChunks(final String path, final InputStream rawIn, final long size, final long uploadChunkSize,
+            final ConflictResolutionStrategy conflictResolution) throws DbxException, IOException {
         final String sessionId;
         try (UploadSessionStartUploader uploader = createUploadSessionStartUploader()) {
             sessionId = uploader.uploadAndFinish(rawIn, uploadChunkSize).getSessionId();
@@ -319,7 +319,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private WriteMode getWriteMode(ConflictResolutionStrategy conflictResolution) {
+    private WriteMode getWriteMode(final ConflictResolutionStrategy conflictResolution) {
         if (conflictResolution == REPLACE) {
             return WriteMode.OVERWRITE;
         } else {
@@ -327,7 +327,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private UploadUploader createUploadUploader(String path, ConflictResolutionStrategy conflictResolution) throws DbxException {
+    private UploadUploader createUploadUploader(final String path, final ConflictResolutionStrategy conflictResolution) throws DbxException {
         return dropboxApiClient
                 .files()
                 .uploadBuilder(path)
@@ -342,13 +342,13 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                 .uploadSessionStart();
     }
 
-    private UploadSessionAppendV2Uploader createUploadSessionAppendV2Uploader(UploadSessionCursor cursor) throws DbxException {
+    private UploadSessionAppendV2Uploader createUploadSessionAppendV2Uploader(final UploadSessionCursor cursor) throws DbxException {
         return dropboxApiClient
                 .files()
                 .uploadSessionAppendV2(cursor);
     }
 
-    private UploadSessionFinishUploader createUploadSessionFinishUploader(UploadSessionCursor cursor, CommitInfo commitInfo) throws DbxException {
+    private UploadSessionFinishUploader createUploadSessionFinishUploader(final UploadSessionCursor cursor, final CommitInfo commitInfo) throws DbxException {
         return dropboxApiClient
                 .files()
                 .uploadSessionFinish(cursor, commitInfo);

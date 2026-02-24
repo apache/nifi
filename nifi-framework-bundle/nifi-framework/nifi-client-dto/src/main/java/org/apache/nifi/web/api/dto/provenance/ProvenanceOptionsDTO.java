@@ -38,7 +38,7 @@ public class ProvenanceOptionsDTO {
         return searchableFields;
     }
 
-    public void setSearchableFields(List<ProvenanceSearchableFieldDTO> searchableFields) {
+    public void setSearchableFields(final List<ProvenanceSearchableFieldDTO> searchableFields) {
         this.searchableFields = searchableFields;
     }
 

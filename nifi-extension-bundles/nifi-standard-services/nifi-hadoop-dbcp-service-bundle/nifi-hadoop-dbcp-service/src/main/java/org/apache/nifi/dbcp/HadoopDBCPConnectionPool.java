@@ -172,7 +172,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>();
 
         // Determine if we need to validate the presence of the required hadoop dependencies...
@@ -182,7 +182,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
                 Class.forName(HADOOP_CONFIGURATION_CLASS, true, classLoader);
                 Class.forName(HADOOP_UGI_CLASS, true, classLoader);
                 foundHadoopDependencies = true;
-            } catch (ClassNotFoundException cnf) {
+            } catch (final ClassNotFoundException cnf) {
                 getLogger().debug(cnf.getMessage(), cnf);
                 foundHadoopDependencies = false;
             }
@@ -276,7 +276,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
     }
 
     @Override
-    protected Driver getDriver(String driverName, String url) {
+    protected Driver getDriver(final String driverName, final String url) {
         final Class<?> clazz;
 
         try {
@@ -302,7 +302,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
     }
 
     @Override
-    protected DataSourceConfiguration getDataSourceConfiguration(ConfigurationContext context) {
+    protected DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context) {
         final String url = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
@@ -334,7 +334,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
     public Connection getConnection() throws ProcessException {
         try {
             return dataSource.getConnection();
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             throw new ProcessException(e);
         }
     }

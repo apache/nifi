@@ -23,7 +23,7 @@ public class DetailedFtpCommandException extends FtpCommandException {
     private final String subId;
     private final FtpFile ftpFile;
 
-    public DetailedFtpCommandException(int ftpReturnCode, String subId, String basicMessage, FtpFile ftpFile) {
+    public DetailedFtpCommandException(final int ftpReturnCode, final String subId, final String basicMessage, final FtpFile ftpFile) {
         super(ftpReturnCode, basicMessage);
         this.subId = subId;
         this.ftpFile = ftpFile;

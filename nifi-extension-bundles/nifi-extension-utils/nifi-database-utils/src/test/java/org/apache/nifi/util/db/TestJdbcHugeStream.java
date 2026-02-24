@@ -97,7 +97,7 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
     static String createProducts = "create table products (id integer, name varchar(100), code integer)";
     static String createRelationships = "create table relationships (id integer,name varchar(100), code integer)";
 
-    public static void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws SQLException {
+    public static void loadTestData2Database(final Connection con, final int nrOfPersons, final int nrOfProducts, final int nrOfRels) throws SQLException {
 
         final Statement st = con.createStatement();
 
@@ -138,15 +138,15 @@ class TestJdbcHugeStream extends AbstractConnectionTest {
 
     static Random rng = new Random(53495);
 
-    private static void loadPersons(Statement st, int nr) throws SQLException {
+    private static void loadPersons(final Statement st, final int nr) throws SQLException {
         st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 
-    private static void loadProducts(Statement st, int nr) throws SQLException {
+    private static void loadProducts(final Statement st, final int nr) throws SQLException {
         st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 
-    private static void loadRelationships(Statement st, int nr) throws SQLException {
+    private static void loadRelationships(final Statement st, final int nr) throws SQLException {
         st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 

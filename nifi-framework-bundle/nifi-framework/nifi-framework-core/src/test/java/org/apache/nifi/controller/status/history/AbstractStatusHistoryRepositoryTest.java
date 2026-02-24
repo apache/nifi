@@ -343,7 +343,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         return storageStatus;
     }
 
-    protected List<GarbageCollectionStatus> givenGarbageCollectionStatuses(final Date measuredAt, long gc1Count, long gc1Millis, long gc2Count, long gc2Millis) {
+    protected List<GarbageCollectionStatus> givenGarbageCollectionStatuses(final Date measuredAt, final long gc1Count, final long gc1Millis, final long gc2Count, final long gc2Millis) {
         final GarbageCollectionStatus status1 = new StandardGarbageCollectionStatus("gc1", measuredAt, gc1Count, gc1Millis);
         final GarbageCollectionStatus status2 = new StandardGarbageCollectionStatus("gc2", measuredAt, gc2Count, gc2Millis);
         return Arrays.asList(status1, status2);

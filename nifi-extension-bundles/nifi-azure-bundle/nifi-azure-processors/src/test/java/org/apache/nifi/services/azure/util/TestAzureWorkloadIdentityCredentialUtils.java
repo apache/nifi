@@ -102,11 +102,11 @@ public class TestAzureWorkloadIdentityCredentialUtils {
         private final String tokenValue;
         private final boolean returnNull;
 
-        MockOAuth2Provider(String tokenValue) {
+        MockOAuth2Provider(final String tokenValue) {
             this(tokenValue, false);
         }
 
-        MockOAuth2Provider(String tokenValue, boolean returnNull) {
+        MockOAuth2Provider(final String tokenValue, final boolean returnNull) {
             this.tokenValue = tokenValue;
             this.returnNull = returnNull;
         }

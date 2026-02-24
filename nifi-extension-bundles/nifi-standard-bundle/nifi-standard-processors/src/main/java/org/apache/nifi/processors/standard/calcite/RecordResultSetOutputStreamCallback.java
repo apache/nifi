@@ -67,7 +67,7 @@ public class RecordResultSetOutputStreamCallback implements OutputStreamCallback
     }
 
     @Override
-    public void process(OutputStream out) throws IOException {
+    public void process(final OutputStream out) throws IOException {
         final RecordSchema writeSchema;
 
         try (final ResultSetRecordSet recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale)) {

@@ -69,7 +69,7 @@ public class GetGcpVisionAnnotateFilesOperationStatusTest {
             }
 
             @Override
-            protected Message deserializeResponse(ByteString responseValue) {
+            protected Message deserializeResponse(final ByteString responseValue) {
                 return AsyncBatchAnnotateFilesResponse.newBuilder().build();
             }
         };

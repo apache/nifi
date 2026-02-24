@@ -297,7 +297,7 @@ public interface ContentRepository {
      * @throws UnsupportedOperationException if this repository does not implement this capability.
      * @see #isActiveResourceClaimsSupported()
      */
-    default Set<ResourceClaim> getActiveResourceClaims(String containerName) throws IOException {
+    default Set<ResourceClaim> getActiveResourceClaims(final String containerName) throws IOException {
         throw new UnsupportedOperationException();
     }
 

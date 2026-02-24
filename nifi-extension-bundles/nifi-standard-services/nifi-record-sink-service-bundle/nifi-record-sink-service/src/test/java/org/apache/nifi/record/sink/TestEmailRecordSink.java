@@ -67,7 +67,7 @@ public class TestEmailRecordSink {
         private final List<Message> messages = new ArrayList<>();
 
         @Override
-        protected void send(Message msg) throws MessagingException {
+        protected void send(final Message msg) throws MessagingException {
             messages.add(msg);
             if (this.e != null) {
                 throw e;
@@ -88,13 +88,13 @@ public class TestEmailRecordSink {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.setValidateExpressionUsage(false);
 
         recordSink = new EmailRecordSinkExtension();
         runner.addControllerService("emailRecordSink", recordSink);
 
-        MockRecordWriter writerFactory = new MockRecordWriter();
+        final MockRecordWriter writerFactory = new MockRecordWriter();
         runner.addControllerService("writer", writerFactory);
         runner.setProperty(recordSink, EmailRecordSink.RECORD_WRITER_FACTORY, "writer");
         runner.setProperty(recordSink, EmailRecordSink.SMTP_HOSTNAME, "localhost");

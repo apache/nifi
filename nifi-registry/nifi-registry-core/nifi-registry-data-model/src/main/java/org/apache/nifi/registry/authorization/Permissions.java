@@ -27,7 +27,7 @@ public class Permissions {
     public Permissions() {
     }
 
-    public Permissions(Permissions permissions) {
+    public Permissions(final Permissions permissions) {
         if (permissions == null) {
             throw new IllegalArgumentException("Cannot call copy constructor with null argument");
         }
@@ -48,11 +48,11 @@ public class Permissions {
         return canRead;
     }
 
-    public void setCanRead(boolean canRead) {
+    public void setCanRead(final boolean canRead) {
         this.canRead = canRead;
     }
 
-    public Permissions withCanRead(boolean canRead) {
+    public Permissions withCanRead(final boolean canRead) {
         setCanRead(canRead);
         return this;
     }
@@ -68,11 +68,11 @@ public class Permissions {
         return canWrite;
     }
 
-    public void setCanWrite(boolean canWrite) {
+    public void setCanWrite(final boolean canWrite) {
         this.canWrite = canWrite;
     }
 
-    public Permissions withCanWrite(boolean canWrite) {
+    public Permissions withCanWrite(final boolean canWrite) {
         setCanWrite(canWrite);
         return this;
     }
@@ -88,17 +88,17 @@ public class Permissions {
         return canDelete;
     }
 
-    public void setCanDelete(boolean canDelete) {
+    public void setCanDelete(final boolean canDelete) {
         this.canDelete = canDelete;
     }
 
-    public Permissions withCanDelete(boolean canDelete) {
+    public Permissions withCanDelete(final boolean canDelete) {
         setCanDelete(canDelete);
         return this;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -106,7 +106,7 @@ public class Permissions {
             return false;
         }
 
-        Permissions that = (Permissions) o;
+        final Permissions that = (Permissions) o;
 
         if (canRead != that.canRead) {
             return false;

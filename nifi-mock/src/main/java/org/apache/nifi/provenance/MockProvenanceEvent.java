@@ -571,7 +571,7 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         }
 
         @Override
-        public Builder setEventTime(long eventTime) {
+        public Builder setEventTime(final long eventTime) {
             this.eventTime = eventTime;
             return this;
         }
@@ -589,31 +589,31 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         }
 
         @Override
-        public Builder setEventType(ProvenanceEventType eventType) {
+        public Builder setEventType(final ProvenanceEventType eventType) {
             this.eventType = eventType;
             return this;
         }
 
         @Override
-        public Builder setComponentId(String componentId) {
+        public Builder setComponentId(final String componentId) {
             this.componentId = componentId;
             return this;
         }
 
         @Override
-        public Builder setComponentType(String componentType) {
+        public Builder setComponentType(final String componentType) {
             this.componentType = componentType;
             return this;
         }
 
         @Override
-        public Builder setSourceSystemFlowFileIdentifier(String sourceSystemFlowFileIdentifier) {
+        public Builder setSourceSystemFlowFileIdentifier(final String sourceSystemFlowFileIdentifier) {
             this.sourceSystemFlowFileIdentifier = sourceSystemFlowFileIdentifier;
             return this;
         }
 
         @Override
-        public Builder setTransitUri(String transitUri) {
+        public Builder setTransitUri(final String transitUri) {
             this.transitUri = transitUri;
             return this;
         }
@@ -662,19 +662,19 @@ public class MockProvenanceEvent implements ProvenanceEventRecord {
         }
 
         @Override
-        public Builder setAlternateIdentifierUri(String alternateIdentifierUri) {
+        public Builder setAlternateIdentifierUri(final String alternateIdentifierUri) {
             this.alternateIdentifierUri = alternateIdentifierUri;
             return this;
         }
 
         @Override
-        public Builder setDetails(String details) {
+        public Builder setDetails(final String details) {
             this.details = details;
             return this;
         }
 
         @Override
-        public Builder setRelationship(Relationship relationship) {
+        public Builder setRelationship(final Relationship relationship) {
             this.relationship = relationship.getName();
             return this;
         }

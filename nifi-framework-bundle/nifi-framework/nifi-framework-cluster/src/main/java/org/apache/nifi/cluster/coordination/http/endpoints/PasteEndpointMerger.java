@@ -56,7 +56,7 @@ public class PasteEndpointMerger extends AbstractSingleDTOEndpoint<PasteResponse
     }
 
     @Override
-    protected FlowDTO getDto(PasteResponseEntity entity) {
+    protected FlowDTO getDto(final PasteResponseEntity entity) {
         return entity.getFlow();
     }
 

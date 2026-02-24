@@ -404,7 +404,7 @@ public class PutEmail extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         try {
             message.setHeader(header, MimeUtility.encodeText(value));
-        } catch (UnsupportedEncodingException e) {
+        } catch (final UnsupportedEncodingException e) {
             logger.warn("Unable to add header {} with value {} due to encoding exception", header, value);
         }
     }
@@ -501,7 +501,7 @@ public class PutEmail extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("authorization-mode", AUTHORIZATION_MODE.getName());
         config.renameProperty("oauth2-access-token-provider", OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
         config.renameProperty("SMTP TLS", SMTP_TLS.getName());
@@ -582,7 +582,7 @@ public class PutEmail extends AbstractProcessor {
         }
 
         if (oauth2AccessTokenProvider != null) {
-            String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
+            final String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
 
             properties.setProperty("mail.smtp.password", accessToken);
             properties.put("mail.smtp.auth.mechanisms", "XOAUTH2");
@@ -627,8 +627,8 @@ public class PutEmail extends AbstractProcessor {
      * @throws AddressException if the property cannot be parsed to a valid InternetAddress[]
      */
     private InternetAddress[] toInetAddresses(final ProcessContext context, final FlowFile flowFile,
-                                              PropertyDescriptor propertyDescriptor) throws AddressException {
-        InternetAddress[] parse;
+                                              final PropertyDescriptor propertyDescriptor) throws AddressException {
+        final InternetAddress[] parse;
         final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
         if (value == null || value.isEmpty()) {
             if (propertyDescriptor.isRequired()) {
@@ -640,7 +640,7 @@ public class PutEmail extends AbstractProcessor {
         } else {
             try {
                 parse = InternetAddress.parse(value);
-            } catch (AddressException e) {
+            } catch (final AddressException e) {
                 final String exceptionMsg = "Unable to parse a valid address for property '" + propertyDescriptor.getDisplayName() + "' with value '" + value + "'";
                 throw new AddressException(exceptionMsg);
             }
@@ -660,7 +660,7 @@ public class PutEmail extends AbstractProcessor {
 
     private static class DynamicMailPropertyValidator implements Validator {
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final Matcher matcher = MAIL_PROPERTY_PATTERN.matcher(subject);
             if (!matcher.matches()) {
                 return new ValidationResult.Builder()

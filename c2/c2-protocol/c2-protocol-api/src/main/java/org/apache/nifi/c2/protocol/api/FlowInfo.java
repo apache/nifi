@@ -39,7 +39,7 @@ public class FlowInfo implements Serializable {
         return flowId;
     }
 
-    public void setFlowId(String flowId) {
+    public void setFlowId(final String flowId) {
         this.flowId = flowId;
     }
 
@@ -48,7 +48,7 @@ public class FlowInfo implements Serializable {
         return flowUri;
     }
 
-    public void setFlowUri(FlowUri flowUri) {
+    public void setFlowUri(final FlowUri flowUri) {
         this.flowUri = flowUri;
     }
 
@@ -57,7 +57,7 @@ public class FlowInfo implements Serializable {
         return components;
     }
 
-    public void setComponents(Map<String, ComponentStatus> components) {
+    public void setComponents(final Map<String, ComponentStatus> components) {
         this.components = components;
     }
 
@@ -66,7 +66,7 @@ public class FlowInfo implements Serializable {
         return queues;
     }
 
-    public void setQueues(Map<String, FlowQueueStatus> queues) {
+    public void setQueues(final Map<String, FlowQueueStatus> queues) {
         this.queues = queues;
     }
 
@@ -75,7 +75,7 @@ public class FlowInfo implements Serializable {
         return processorBulletins;
     }
 
-    public void setProcessorBulletins(List<ProcessorBulletin> processorBulletins) {
+    public void setProcessorBulletins(final List<ProcessorBulletin> processorBulletins) {
         this.processorBulletins = processorBulletins;
     }
 
@@ -84,7 +84,7 @@ public class FlowInfo implements Serializable {
         return processorStatuses;
     }
 
-    public void setProcessorStatuses(List<ProcessorStatus> processorStatuses) {
+    public void setProcessorStatuses(final List<ProcessorStatus> processorStatuses) {
         this.processorStatuses = processorStatuses;
     }
 
@@ -93,7 +93,7 @@ public class FlowInfo implements Serializable {
         return runStatus;
     }
 
-    public void setRunStatus(RunStatus runStatus) {
+    public void setRunStatus(final RunStatus runStatus) {
         this.runStatus = runStatus;
     }
 }

@@ -35,7 +35,7 @@ public class PutIoTDBRecordTest {
 
     @Test
     public void testParseSchemaByAttribute() throws JsonProcessingException {
-        String schemaAttribute =
+        final String schemaAttribute =
                 "{"
                         + "\"fields\": ["
                         + "{\"tsName\": \"s1\",\"dataType\": \"INT32\", \"encoding\": \"PLAIN\", \"compressionType\": \"SNAPPY\"},"
@@ -43,13 +43,13 @@ public class PutIoTDBRecordTest {
                         + "{\"tsName\": \"s3\",\"dataType\": \"TEXT\", \"encoding\": \"DICTIONARY\"}"
                         + "]"
                         + "}";
-        List<String> exceptedFieldNames = Arrays.asList("root.sg.d1.s1", "root.sg.d1.s2", "root.sg.d1.s3");
-        List<TSDataType> exceptedDataTypes = Arrays.asList(TSDataType.INT32, TSDataType.BOOLEAN, TSDataType.TEXT);
-        List<TSEncoding> exceptedEncodings = Arrays.asList(TSEncoding.PLAIN, TSEncoding.PLAIN, TSEncoding.DICTIONARY);
+        final List<String> exceptedFieldNames = Arrays.asList("root.sg.d1.s1", "root.sg.d1.s2", "root.sg.d1.s3");
+        final List<TSDataType> exceptedDataTypes = Arrays.asList(TSDataType.INT32, TSDataType.BOOLEAN, TSDataType.TEXT);
+        final List<TSEncoding> exceptedEncodings = Arrays.asList(TSEncoding.PLAIN, TSEncoding.PLAIN, TSEncoding.DICTIONARY);
 
-        List<CompressionType> exceptedCompressionTypes =  Arrays.asList(CompressionType.SNAPPY, CompressionType.GZIP, null);
+        final List<CompressionType> exceptedCompressionTypes =  Arrays.asList(CompressionType.SNAPPY, CompressionType.GZIP, null);
 
-        DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
+        final DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
         assertEquals(exceptedFieldNames, schema.getFieldNames("root.sg.d1."));
         assertArrayEquals(exceptedDataTypes.stream().sorted().toArray(), schema.getDataTypes().stream().sorted().toArray());
         assertArrayEquals(exceptedEncodings.stream().sorted().toArray(), schema.getEncodingTypes().stream().sorted().toArray());

@@ -117,7 +117,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         RecordSinkService.super.migrateProperties(config);
         config.renameProperty("api-url", API_URL.getName());
         config.renameProperty("access-token", ACCESS_TOKEN.getName());
@@ -128,7 +128,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
 
     @Override
     public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
-        WriteResult writeResult;
+        final WriteResult writeResult;
         final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
         int recordCount = 0;
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {

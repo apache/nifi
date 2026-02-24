@@ -136,33 +136,33 @@ public class TestControllerServiceApiMatcher {
         }
 
         @Override
-        public String execute(String a) {
+        public String execute(final String a) {
             return null;
         }
 
         // Declare the impl result here to test comparing a more specific return type against the API
         @Override
-        public FooResultImpl executeWithReturn(FooArg a) {
+        public FooResultImpl executeWithReturn(final FooArg a) {
             return null;
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
 
         }
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
 
         }
 
@@ -186,32 +186,32 @@ public class TestControllerServiceApiMatcher {
         }
 
         @Override
-        public String execute(String a) {
+        public String execute(final String a) {
             return null;
         }
 
         @Override
-        public FooResult executeWithReturn(FooArg a) {
+        public FooResult executeWithReturn(final FooArg a) {
             return null;
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
 
         }
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
 
         }
 
@@ -245,27 +245,27 @@ public class TestControllerServiceApiMatcher {
     private static class GenericServiceImpl implements GenericServiceApiV1<FooResultImpl, FooArgImpl> {
 
         @Override
-        public FooResultImpl execute(FooArgImpl arg) {
+        public FooResultImpl execute(final FooArgImpl arg) {
             return null;
         }
 
         @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+        public void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
 
         }
 
         @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
+        public Collection<ValidationResult> validate(final ValidationContext context) {
             return null;
         }
 
         @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
+        public PropertyDescriptor getPropertyDescriptor(final String name) {
             return null;
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
 
         }
 

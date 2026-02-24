@@ -36,59 +36,59 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class SchemaLoaderTest {
     @Test
     public void testMinimalConfigNoVersion() throws IOException, SchemaLoaderException {
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        final ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
         validateMinimalConfigVersion1Parse(configSchema);
     }
 
     @Test
     public void testMinimalConfigEmptyVersion() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, "");
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        final ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
         validateMinimalConfigVersion1Parse(configSchema);
     }
 
     @Test
     public void testMinimalConfigV1Version() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, ConfigSchemaV1.CONFIG_VERSION);
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        final ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
         validateMinimalConfigVersion1Parse(configSchema);
     }
 
     @Test
     public void testMinimalConfigV2Version() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, ConfigSchema.CONFIG_VERSION);
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        final ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
         validateMinimalConfigVersion1Parse(configSchema);
     }
 
     @Test
     public void testMinimalConfigV3Version() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v3.yml"));
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v3.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, ConfigSchema.CONFIG_VERSION);
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        final ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
         validateMinimalConfigVersion1Parse(configSchema);
     }
 
     @Test
     public void testUnsupportedVersion() throws IOException, SchemaLoaderException {
-        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
+        final Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, "9999999");
         final SchemaLoaderException e = assertThrows(SchemaLoaderException.class, () -> SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap));
         assertEquals("YAML configuration version 9999999 not supported.  Supported versions: 1, 2, 3", e.getMessage());
     }
 
-    private void validateMinimalConfigVersion1Parse(ConfigSchema configSchema) {
+    private void validateMinimalConfigVersion1Parse(final ConfigSchema configSchema) {
         assertInstanceOf(ConfigSchema.class, configSchema);
 
-        List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
+        final List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
         assertNotNull(connections);
         assertEquals(1, connections.size());
         assertNotNull(connections.get(0).getId());
 
-        List<ProcessorSchema> processors = configSchema.getProcessGroupSchema().getProcessors();
+        final List<ProcessorSchema> processors = configSchema.getProcessGroupSchema().getProcessors();
         assertNotNull(processors);
         assertEquals(2, processors.size());
         processors.forEach(p -> assertNotNull(p.getId()));

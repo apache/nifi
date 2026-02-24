@@ -49,7 +49,7 @@ public class RecordExtender {
     private final RecordSchema extendedSchema;
 
     public RecordExtender(final RecordSchema originalSchema) {
-        List<RecordField> recordFields = new ArrayList<>(originalSchema.getFields());
+        final List<RecordField> recordFields = new ArrayList<>(originalSchema.getFields());
         recordFields.add(new RecordField("attributes", RecordFieldType.RECORD.getRecordDataType(
                 ATTRIBUTES_RECORD_SCHEMA
         )));
@@ -57,26 +57,26 @@ public class RecordExtender {
         extendedSchema = new SimpleRecordSchema(recordFields);
     }
 
-    public ObjectNode getWrappedRecordsJson(ByteArrayOutputStream out) throws IOException {
-        ObjectNode root = MAPPER.createObjectNode();
-        JsonNode jsonNode = MAPPER.readTree(out.toByteArray());
+    public ObjectNode getWrappedRecordsJson(final ByteArrayOutputStream out) throws IOException {
+        final ObjectNode root = MAPPER.createObjectNode();
+        final JsonNode jsonNode = MAPPER.readTree(out.toByteArray());
         root.set("records", jsonNode);
         return root;
     }
 
-    public MapRecord getExtendedRecord(String objectType, int count, Record record) {
+    public MapRecord getExtendedRecord(final String objectType, final int count, final Record record) {
 
-        Set<String> rawFieldNames = record.getRawFieldNames().stream()
+        final Set<String> rawFieldNames = record.getRawFieldNames().stream()
                 .filter(fieldName -> record.getValue(fieldName) != null)
                 .collect(Collectors.toSet());
-        Map<String, Object> objectMap = rawFieldNames.stream()
+        final Map<String, Object> objectMap = rawFieldNames.stream()
                 .collect(Collectors.toMap(Function.identity(), record::getValue));
 
-        Map<String, Object> attributesMap = new HashMap<>();
+        final Map<String, Object> attributesMap = new HashMap<>();
         attributesMap.put("type", objectType);
         attributesMap.put("referenceId", count);
 
-        MapRecord attributesRecord = new MapRecord(ATTRIBUTES_RECORD_SCHEMA, attributesMap);
+        final MapRecord attributesRecord = new MapRecord(ATTRIBUTES_RECORD_SCHEMA, attributesMap);
 
         objectMap.put("attributes", attributesRecord);
 

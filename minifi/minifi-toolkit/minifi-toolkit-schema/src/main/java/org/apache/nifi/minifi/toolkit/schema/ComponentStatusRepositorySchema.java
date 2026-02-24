@@ -37,14 +37,14 @@ public class ComponentStatusRepositorySchema extends BaseSchema implements Writa
     public ComponentStatusRepositorySchema() {
     }
 
-    public ComponentStatusRepositorySchema(Map map) {
+    public ComponentStatusRepositorySchema(final Map map) {
         bufferSize = getOptionalKeyAsType(map, BUFFER_SIZE_KEY, Number.class, COMPONENT_STATUS_REPO_KEY, DEFAULT_BUFFER_SIZE);
         snapshotFrequency = getOptionalKeyAsType(map, SNAPSHOT_FREQUENCY_KEY, String.class, COMPONENT_STATUS_REPO_KEY, DEFAULT_SNAPSHOT_FREQUENCY);
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(BUFFER_SIZE_KEY, bufferSize);
         result.put(SNAPSHOT_FREQUENCY_KEY, snapshotFrequency);
         return result;

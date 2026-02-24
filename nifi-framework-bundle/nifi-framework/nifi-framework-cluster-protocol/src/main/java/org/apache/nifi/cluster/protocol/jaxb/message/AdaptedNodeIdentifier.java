@@ -37,7 +37,7 @@ public class AdaptedNodeIdentifier {
         return apiAddress;
     }
 
-    public void setApiAddress(String apiAddress) {
+    public void setApiAddress(final String apiAddress) {
         this.apiAddress = apiAddress;
     }
 
@@ -45,7 +45,7 @@ public class AdaptedNodeIdentifier {
         return apiPort;
     }
 
-    public void setApiPort(int apiPort) {
+    public void setApiPort(final int apiPort) {
         this.apiPort = apiPort;
     }
 
@@ -53,7 +53,7 @@ public class AdaptedNodeIdentifier {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -61,7 +61,7 @@ public class AdaptedNodeIdentifier {
         return socketAddress;
     }
 
-    public void setSocketAddress(String socketAddress) {
+    public void setSocketAddress(final String socketAddress) {
         this.socketAddress = socketAddress;
     }
 
@@ -69,7 +69,7 @@ public class AdaptedNodeIdentifier {
         return socketPort;
     }
 
-    public void setSocketPort(int socketPort) {
+    public void setSocketPort(final int socketPort) {
         this.socketPort = socketPort;
     }
 
@@ -93,7 +93,7 @@ public class AdaptedNodeIdentifier {
         return siteToSiteAddress;
     }
 
-    public void setSiteToSiteAddress(String siteToSiteAddress) {
+    public void setSiteToSiteAddress(final String siteToSiteAddress) {
         this.siteToSiteAddress = siteToSiteAddress;
     }
 
@@ -101,7 +101,7 @@ public class AdaptedNodeIdentifier {
         return siteToSitePort;
     }
 
-    public void setSiteToSitePort(Integer siteToSitePort) {
+    public void setSiteToSitePort(final Integer siteToSitePort) {
         this.siteToSitePort = siteToSitePort;
     }
 
@@ -109,7 +109,7 @@ public class AdaptedNodeIdentifier {
         return siteToSiteSecure;
     }
 
-    public void setSiteToSiteSecure(boolean siteToSiteSecure) {
+    public void setSiteToSiteSecure(final boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
     }
 
@@ -117,7 +117,7 @@ public class AdaptedNodeIdentifier {
         return siteToSiteHttpApiPort;
     }
 
-    public void setSiteToSiteHttpApiPort(Integer siteToSiteHttpApiPort) {
+    public void setSiteToSiteHttpApiPort(final Integer siteToSiteHttpApiPort) {
         this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
     }
 

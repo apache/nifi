@@ -113,7 +113,7 @@ class GetHubSpotTest {
 
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(expectedJsonNode, actualJsonNode);
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
@@ -188,7 +188,7 @@ class GetHubSpotTest {
         final String expectedJsonString = root.toString();
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
@@ -239,7 +239,7 @@ class GetHubSpotTest {
         final String expectedJsonString = root.toString();
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(baseUrl.toString(), provenanceEvents.getFirst().getTransitUri());
     }
 
@@ -247,12 +247,12 @@ class GetHubSpotTest {
 
         private final long currentEpochTime;
 
-        public MockGetHubSpot(long currentEpochTime) {
+        public MockGetHubSpot(final long currentEpochTime) {
             this.currentEpochTime = currentEpochTime;
         }
 
         @Override
-        URI getBaseUri(ProcessContext context) {
+        URI getBaseUri(final ProcessContext context) {
             return new StandardHttpUriBuilder()
                     .scheme(baseUrl.scheme())
                     .host(baseUrl.host())

@@ -96,7 +96,7 @@ public class C2HeartbeatFactoryTest {
         when(runtimeInfoWrapper.getManifest()).thenReturn(createManifest());
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
 
         assertEquals(FLOW_ID, heartbeat.getFlowId());
         assertEquals(AGENT_CLASS, heartbeat.getAgentClass());
@@ -108,7 +108,7 @@ public class C2HeartbeatFactoryTest {
         when(runtimeInfoWrapper.getManifest()).thenReturn(createManifest());
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
 
         assertNotNull(heartbeat.getAgentId());
         assertNotNull(heartbeat.getDeviceId());
@@ -120,13 +120,13 @@ public class C2HeartbeatFactoryTest {
         when(clientConfig.isFullHeartbeat()).thenReturn(true);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        AgentRepositories repos = new AgentRepositories();
-        RuntimeManifest manifest = createManifest();
-        Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
-        List<ProcessorBulletin> processorBulletins = new ArrayList<>();
-        List<ProcessorStatus> processorStatus = new ArrayList<>();
+        final AgentRepositories repos = new AgentRepositories();
+        final RuntimeManifest manifest = createManifest();
+        final Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
+        final List<ProcessorBulletin> processorBulletins = new ArrayList<>();
+        final List<ProcessorStatus> processorStatus = new ArrayList<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertEquals(manifest, heartbeat.getAgentInfo().getAgentManifest());
@@ -142,13 +142,13 @@ public class C2HeartbeatFactoryTest {
         when(clientConfig.isFullHeartbeat()).thenReturn(false);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        AgentRepositories repos = new AgentRepositories();
-        RuntimeManifest manifest = createManifest();
-        Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
-        List<ProcessorBulletin> processorBulletins = new ArrayList<>();
-        List<ProcessorStatus> processorStatus = new ArrayList<>();
+        final AgentRepositories repos = new AgentRepositories();
+        final RuntimeManifest manifest = createManifest();
+        final Map<String, FlowQueueStatus> queueStatus = new HashMap<>();
+        final List<ProcessorBulletin> processorBulletins = new ArrayList<>();
+        final List<ProcessorStatus> processorStatus = new ArrayList<>();
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(repos, manifest, queueStatus, processorBulletins, processorStatus, RUNNING));
 
         assertEquals(repos, heartbeat.getAgentInfo().getStatus().getRepositories());
         assertNull(heartbeat.getAgentInfo().getAgentManifest());
@@ -168,11 +168,11 @@ public class C2HeartbeatFactoryTest {
 
     @Test
     void testAgentManifestHashIsPopulatedInCaseOfRuntimeManifest() {
-        RuntimeManifest manifest = createManifest();
+        final RuntimeManifest manifest = createManifest();
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), Collections.emptySet())).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
@@ -181,15 +181,15 @@ public class C2HeartbeatFactoryTest {
 
     @Test
     void testAgentManifestHashIsPopulatedInCaseOfAgentManifest() {
-        AgentManifest manifest = new AgentManifest(createManifest());
-        SupportedOperation supportedOperation = new SupportedOperation();
+        final AgentManifest manifest = new AgentManifest(createManifest());
+        final SupportedOperation supportedOperation = new SupportedOperation();
         supportedOperation.setType(OperationType.HEARTBEAT);
-        Set<SupportedOperation> supportedOperations = Collections.singleton(supportedOperation);
+        final Set<SupportedOperation> supportedOperations = Collections.singleton(supportedOperation);
         manifest.setSupportedOperations(supportedOperations);
         when(manifestHashProvider.calculateManifestHash(manifest.getBundles(), supportedOperations)).thenReturn(MANIFEST_HASH);
         when(resourcesGlobalHashSupplier.get()).thenReturn(createResourcesGlobalHash());
 
-        C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
+        final C2Heartbeat heartbeat = c2HeartbeatFactory.create(new RuntimeInfoWrapper(new AgentRepositories(), manifest, new HashMap<>(), new ArrayList<>(), new ArrayList<>(), RUNNING));
 
         assertEquals(MANIFEST_HASH, heartbeat.getAgentInfo().getAgentManifestHash());
         assertEquals(RESOURCE_HASH, heartbeat.getResourceInfo().getHash());
@@ -200,14 +200,14 @@ public class C2HeartbeatFactoryTest {
         return createManifest(new Bundle());
     }
 
-    private RuntimeManifest createManifest(Bundle... bundles) {
-        RuntimeManifest manifest = new RuntimeManifest();
+    private RuntimeManifest createManifest(final Bundle... bundles) {
+        final RuntimeManifest manifest = new RuntimeManifest();
         manifest.setBundles(Arrays.asList(bundles));
         return manifest;
     }
 
     private ResourcesGlobalHash createResourcesGlobalHash() {
-        ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
+        final ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
         resourcesGlobalHash.setDigest(RESOURCE_HASH);
         return resourcesGlobalHash;
     }

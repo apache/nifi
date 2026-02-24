@@ -213,7 +213,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("inference-strategy", INFERENCE_STRATEGY.getName());
         config.renameProperty("raw-message-field", RAW_FIELD.getName());

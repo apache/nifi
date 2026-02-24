@@ -31,7 +31,7 @@ public class Location implements Serializable {
         return latitude;
     }
 
-    public void setLatitude(Double latitude) {
+    public void setLatitude(final Double latitude) {
         this.latitude = latitude;
     }
 
@@ -39,12 +39,12 @@ public class Location implements Serializable {
         return longitude;
     }
 
-    public void setLongitude(Double longitude) {
+    public void setLongitude(final Double longitude) {
         this.longitude = longitude;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

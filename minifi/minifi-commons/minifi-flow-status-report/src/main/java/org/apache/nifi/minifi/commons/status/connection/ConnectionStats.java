@@ -27,7 +27,7 @@ public class ConnectionStats implements java.io.Serializable {
         return inputCount;
     }
 
-    public void setInputCount(int inputCount) {
+    public void setInputCount(final int inputCount) {
         this.inputCount = inputCount;
     }
 
@@ -35,7 +35,7 @@ public class ConnectionStats implements java.io.Serializable {
         return inputBytes;
     }
 
-    public void setInputBytes(long inputBytes) {
+    public void setInputBytes(final long inputBytes) {
         this.inputBytes = inputBytes;
     }
 
@@ -43,7 +43,7 @@ public class ConnectionStats implements java.io.Serializable {
         return outputCount;
     }
 
-    public void setOutputCount(int outputCount) {
+    public void setOutputCount(final int outputCount) {
         this.outputCount = outputCount;
     }
 
@@ -51,12 +51,12 @@ public class ConnectionStats implements java.io.Serializable {
         return outputBytes;
     }
 
-    public void setOutputBytes(long outputBytes) {
+    public void setOutputBytes(final long outputBytes) {
         this.outputBytes = outputBytes;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -64,7 +64,7 @@ public class ConnectionStats implements java.io.Serializable {
             return false;
         }
 
-        ConnectionStats that = (ConnectionStats) o;
+        final ConnectionStats that = (ConnectionStats) o;
 
         if (getInputCount() != that.getInputCount()) {
             return false;

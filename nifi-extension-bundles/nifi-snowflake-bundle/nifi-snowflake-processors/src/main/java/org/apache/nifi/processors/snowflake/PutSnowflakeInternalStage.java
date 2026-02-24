@@ -137,7 +137,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -155,11 +155,11 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
                 final SnowflakeConnectionWrapper snowflakeConnection = connectionProviderService.getSnowflakeConnection()) {
             snowflakeConnection.unwrap()
                     .uploadStream(internalStageName, "", inputStream, stagedFileName, false);
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             getLogger().error("Failed to upload FlowFile content to internal Snowflake stage [{}]. Staged file path [{}]", internalStageName, stagedFileName, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to read FlowFile content", e);
         }
 
@@ -169,7 +169,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("snowflake-connection-provider", SNOWFLAKE_CONNECTION_PROVIDER.getName());
         config.renameProperty("internal-stage-type", INTERNAL_STAGE_TYPE.getName());
         config.renameProperty("table", TABLE.getName());

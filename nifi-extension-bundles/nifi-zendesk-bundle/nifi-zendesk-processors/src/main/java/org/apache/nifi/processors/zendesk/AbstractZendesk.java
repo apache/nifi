@@ -44,7 +44,7 @@ public abstract class AbstractZendesk extends AbstractProcessor {
             .build();
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         final WebClientServiceProvider webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE_PROVIDER).asControllerService(WebClientServiceProvider.class);
         final String user = context.getProperty(ZENDESK_USER).evaluateAttributeExpressions().getValue();
         final ZendeskAuthenticationType authenticationType = context.getProperty(ZENDESK_AUTHENTICATION_TYPE).asAllowableValue(ZendeskAuthenticationType.class);
@@ -54,7 +54,7 @@ public abstract class AbstractZendesk extends AbstractProcessor {
         zendeskClient = new ZendeskClient(webClientServiceProvider, authenticationContext);
     }
 
-    HttpUriBuilder uriBuilder(String resourcePath) {
+    HttpUriBuilder uriBuilder(final String resourcePath) {
         return zendeskClient.uriBuilder(resourcePath);
     }
 

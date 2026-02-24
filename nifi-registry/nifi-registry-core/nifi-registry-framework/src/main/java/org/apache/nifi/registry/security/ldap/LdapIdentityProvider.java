@@ -223,7 +223,7 @@ public class LdapIdentityProvider extends BasicAuthIdentityProvider implements I
     }
 
     @Override
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
+    public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
 
         if (authenticationRequest == null || StringUtils.isEmpty(authenticationRequest.getUsername())) {
             logger.debug("Call to authenticate method with null or empty authenticationRequest, returning null without attempting to authenticate");

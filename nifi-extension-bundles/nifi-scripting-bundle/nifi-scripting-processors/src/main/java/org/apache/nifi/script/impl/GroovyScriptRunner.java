@@ -36,7 +36,7 @@ public class GroovyScriptRunner extends BaseScriptRunner {
                     + "import org.apache.nifi.record.sink.*\n"
                     + "import org.apache.nifi.lookup.*\n";
 
-    public GroovyScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+    public GroovyScriptRunner(final ScriptEngine engine, final String scriptBody, final String[] modulePaths) {
         super(engine, scriptBody, PRELOADS, modulePaths);
     }
 
@@ -46,7 +46,7 @@ public class GroovyScriptRunner extends BaseScriptRunner {
     }
 
     @Override
-    public void run(Bindings bindings) throws ScriptException {
+    public void run(final Bindings bindings) throws ScriptException {
         scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
         scriptEngine.eval(scriptBody);
     }

@@ -28,19 +28,20 @@ import java.util.Map;
 
 public interface QueryTimeAware {
 
-    default String processStartAndEndTimes(ReportingContext context, String sql, TrackedQueryTime queryStartTime, TrackedQueryTime queryEndTime) throws IOException {
-        StateManager stateManager = context.getStateManager();
+    default String processStartAndEndTimes(final ReportingContext context, final String sql, final TrackedQueryTime queryStartTime, final TrackedQueryTime queryEndTime) throws IOException {
+        final StateManager stateManager = context.getStateManager();
         final Map<String, String> stateMap = new HashMap<>(stateManager.getState(Scope.LOCAL).toMap());
 
         if (sql.contains(queryStartTime.getSqlPlaceholder()) && sql.contains(queryEndTime.getSqlPlaceholder())) {
             final long startTime = stateMap.get(queryStartTime.name()) == null ? 0 : Long.parseLong(stateMap.get(queryStartTime.name()));
             final long currentTime = getCurrentTime();
 
-            sql = sql.replace(queryStartTime.getSqlPlaceholder(), String.valueOf(startTime));
-            sql = sql.replace(queryEndTime.getSqlPlaceholder(), String.valueOf(currentTime));
+            final String resolvedSql = sql.replace(queryStartTime.getSqlPlaceholder(), String.valueOf(startTime))
+                    .replace(queryEndTime.getSqlPlaceholder(), String.valueOf(currentTime));
 
             stateMap.put(queryStartTime.name(), String.valueOf(currentTime));
             stateManager.setState(stateMap, Scope.LOCAL);
+            return resolvedSql;
         }
         return sql;
     }

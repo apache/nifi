@@ -367,7 +367,7 @@ public class TestConsumeMQTT {
         assertProvenanceEvents(flowFiles.size());
 
         if (flowFiles.size() == 1) {
-            MockFlowFile flowFile = flowFiles.getFirst();
+            final MockFlowFile flowFile = flowFiles.getFirst();
 
             flowFile.assertContentEquals("testMessage");
             flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
@@ -770,7 +770,7 @@ public class TestConsumeMQTT {
         return testRunner;
     }
 
-    private TestRunner initializeTestRunner(MqttTestClient mqttTestClient) {
+    private TestRunner initializeTestRunner(final MqttTestClient mqttTestClient) {
         final TestRunner testRunner = TestRunners.newTestRunner(new ConsumeMQTT() {
             @Override
             protected MqttClient createMqttClient() {
@@ -783,40 +783,40 @@ public class TestConsumeMQTT {
         return testRunner;
     }
 
-    private void setCommonProperties(TestRunner testRunner) {
+    private void setCommonProperties(final TestRunner testRunner) {
         testRunner.setProperty(ConsumeMQTT.PROP_BROKER_URI, BROKER_URI);
         testRunner.setProperty(ConsumeMQTT.PROP_CLIENTID, CLIENT_ID);
         testRunner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, TOPIC_NAME);
         testRunner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, INTERNAL_QUEUE_SIZE);
     }
 
-    private static boolean isConnected(AbstractMQTTProcessor processor) throws NoSuchFieldException, IllegalAccessException {
+    private static boolean isConnected(final AbstractMQTTProcessor processor) throws NoSuchFieldException, IllegalAccessException {
         final Field f = AbstractMQTTProcessor.class.getDeclaredField("mqttClient");
         f.setAccessible(true);
         final MqttClient mqttClient = (MqttClient) f.get(processor);
         return mqttClient.isConnected();
     }
 
-    public static void reconnect(ConsumeMQTT processor, ProcessContext context) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public static void reconnect(final ConsumeMQTT processor, final ProcessContext context) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         final Method method = ConsumeMQTT.class.getDeclaredMethod("initializeClient", ProcessContext.class);
         method.setAccessible(true);
         method.invoke(processor, context);
     }
 
     @SuppressWarnings("unchecked")
-    public static BlockingQueue<ReceivedMqttMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
+    public static BlockingQueue<ReceivedMqttMessage> getMqttQueue(final ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
         final Field mqttQueueField = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         mqttQueueField.setAccessible(true);
         return (BlockingQueue<ReceivedMqttMessage>) mqttQueueField.get(consumeMQTT);
     }
 
-    public static void transferQueue(ConsumeMQTT consumeMQTT, ProcessSession session) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public static void transferQueue(final ConsumeMQTT consumeMQTT, final ProcessSession session) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         final Method transferQueue = ConsumeMQTT.class.getDeclaredMethod("transferQueue", ProcessSession.class);
         transferQueue.setAccessible(true);
         transferQueue.invoke(consumeMQTT, session);
     }
 
-    private void assertProvenanceEvents(int count) {
+    private void assertProvenanceEvents(final int count) {
         final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
         assertNotNull(provenanceEvents);
         assertEquals(count, provenanceEvents.size());
@@ -830,7 +830,7 @@ public class TestConsumeMQTT {
         mqttTestClient.publish(TOPIC_NAME, message);
     }
 
-    private static String addSSLContextService(TestRunner testRunner) throws InitializationException {
+    private static String addSSLContextService(final TestRunner testRunner) throws InitializationException {
         final SSLContextService sslContextService = mock(SSLContextService.class);
         final String identifier = SSLContextService.class.getSimpleName();
         when(sslContextService.getIdentifier()).thenReturn(identifier);

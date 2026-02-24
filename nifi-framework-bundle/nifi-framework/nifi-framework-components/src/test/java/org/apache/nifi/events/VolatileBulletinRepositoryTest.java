@@ -57,7 +57,7 @@ public class VolatileBulletinRepositoryTest {
         assertEquals(4, getBulletinCount());
 
         // Clear bulletins older than or equal to clearTime
-        int cleared = repository.clearBulletinsForComponent(componentId, clearTime);
+        final int cleared = repository.clearBulletinsForComponent(componentId, clearTime);
 
         // Should have cleared 2 bulletins (before clear time + at clear time)
         assertEquals(2, cleared);
@@ -81,7 +81,7 @@ public class VolatileBulletinRepositoryTest {
         assertEquals(5, getBulletinCount());
 
         // Clear bulletins for components 1 and 2 older than clearTime
-        int cleared = repository.clearBulletinsForComponents(
+        final int cleared = repository.clearBulletinsForComponents(
                 Arrays.asList("component-1", "component-2"), clearTime);
 
         // Should have cleared 2 bulletins (component-1 before + component-2 before)
@@ -141,7 +141,7 @@ public class VolatileBulletinRepositoryTest {
         assertEquals(3, getBulletinCount());
 
         // Clear bulletins older than or equal to exact time
-        int cleared = repository.clearBulletinsForComponent(componentId, exactTime);
+        final int cleared = repository.clearBulletinsForComponent(componentId, exactTime);
 
         // Should clear bulletins at and before exact time
         assertEquals(2, cleared);
@@ -155,7 +155,7 @@ public class VolatileBulletinRepositoryTest {
         assertEquals(1, getBulletinCount());
 
         // Try to clear bulletins for non-existent component
-        int cleared = repository.clearBulletinsForComponent("non-existent", Instant.now());
+        final int cleared = repository.clearBulletinsForComponent("non-existent", Instant.now());
 
         // Should clear 0 bulletins
         assertEquals(0, cleared);
@@ -171,21 +171,21 @@ public class VolatileBulletinRepositoryTest {
         addBulletin(componentId, "Test message", Date.from(clearTime.plusSeconds(1)));
 
         // Clear using single component method
-        int clearedSingle = repository.clearBulletinsForComponent(componentId, clearTime);
+        final int clearedSingle = repository.clearBulletinsForComponent(componentId, clearTime);
 
         // Add same bulletin again
         addBulletin(componentId, "Test message", Date.from(clearTime.plusSeconds(1)));
 
         // Clear using multiple components method with single component
-        int clearedMultiple = repository.clearBulletinsForComponents(
+        final int clearedMultiple = repository.clearBulletinsForComponents(
                 Collections.singletonList(componentId), clearTime);
 
         // Results should be the same
         assertEquals(clearedSingle, clearedMultiple);
     }
 
-    private void addBulletin(String sourceId, String message, Date timestamp) {
-        TestBulletin bulletin = new TestBulletin(sourceId, message, timestamp);
+    private void addBulletin(final String sourceId, final String message, final Date timestamp) {
+        final TestBulletin bulletin = new TestBulletin(sourceId, message, timestamp);
         repository.addBulletin(bulletin);
     }
 
@@ -194,7 +194,7 @@ public class VolatileBulletinRepositoryTest {
         private final String message;
         private final Date timestamp;
 
-        public TestBulletin(String sourceId, String message, Date timestamp) {
+        public TestBulletin(final String sourceId, final String message, final Date timestamp) {
             super(System.nanoTime());
             this.sourceId = sourceId;
             this.message = message;
@@ -263,8 +263,8 @@ public class VolatileBulletinRepositoryTest {
     }
 
     private int getBulletinCount() {
-        BulletinQuery query = new BulletinQuery.Builder().build();
-        List<Bulletin> bulletins = repository.findBulletins(query);
+        final BulletinQuery query = new BulletinQuery.Builder().build();
+        final List<Bulletin> bulletins = repository.findBulletins(query);
         return bulletins.size();
     }
 }

@@ -42,7 +42,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -55,7 +55,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -68,7 +68,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return sourceType;
     }
 
-    public void setSourceType(String sourceType) {
+    public void setSourceType(final String sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -81,7 +81,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return relationship;
     }
 
-    public void setRelationship(String relationship) {
+    public void setRelationship(final String relationship) {
         this.relationship = relationship;
     }
 
@@ -94,7 +94,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -107,7 +107,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return destinationName;
     }
 
-    public void setDestinationName(String destinationName) {
+    public void setDestinationName(final String destinationName) {
         this.destinationName = destinationName;
     }
 
@@ -120,7 +120,7 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
         return destinationType;
     }
 
-    public void setDestinationType(String destinationType) {
+    public void setDestinationType(final String destinationType) {
         this.destinationType = destinationType;
     }
 

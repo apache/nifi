@@ -96,7 +96,7 @@ public class GetZendeskTest {
     private static Stream<Arguments> unsupportedZendeskResourcesExportMethodCombinations() {
         return Stream.of(ZendeskResource.values())
             .flatMap(zendeskResource -> {
-                List<ZendeskExportMethod> zendeskExportMethods = new ArrayList<>(asList(ZendeskExportMethod.values()));
+                final List<ZendeskExportMethod> zendeskExportMethods = new ArrayList<>(asList(ZendeskExportMethod.values()));
                 zendeskExportMethods.removeAll(zendeskResource.getSupportedExportMethods());
                 return zendeskExportMethods.stream()
                     .map(exportMethod -> Arguments.of(zendeskResource, exportMethod));
@@ -110,8 +110,8 @@ public class GetZendeskTest {
 
         testRunner = newTestRunner(new TestGetZendesk());
 
-        StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
-        String standardWebClientServiceProviderId = "standardWebClientServiceProvider";
+        final StandardWebClientServiceProvider standardWebClientServiceProvider = new StandardWebClientServiceProvider();
+        final String standardWebClientServiceProviderId = "standardWebClientServiceProvider";
         testRunner.addControllerService(standardWebClientServiceProviderId, standardWebClientServiceProvider);
         testRunner.enableControllerService(standardWebClientServiceProvider);
 
@@ -130,7 +130,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testQueryStartTimestampIsUsedWhenNoStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
+    public void testQueryStartTimestampIsUsedWhenNoStateIsAvailable(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -143,7 +143,7 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest request = server.takeRequest();
+        final RecordedRequest request = server.takeRequest();
         assertEquals(
             zendeskResource.apiPath(exportMethod) + "?" + exportMethod.getInitialCursorQueryParameterName() + "=" + DEFAULT_QUERY_START_TIMESTAMP,
                 request.getTarget());
@@ -151,7 +151,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testCursorFromStateIsUsedWhenStateIsAvailable(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException, IOException {
+    public void testCursorFromStateIsUsedWhenStateIsAvailable(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) throws InterruptedException, IOException {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -165,7 +165,7 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        RecordedRequest request = server.takeRequest();
+        final RecordedRequest request = server.takeRequest();
         assertEquals(
             zendeskResource.apiPath(exportMethod) + "?" + exportMethod.getCursorQueryParameterName() + "=" + DEFAULT_CURSOR_VALUE,
                 request.getTarget());
@@ -173,7 +173,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testCursorPositionIsStoredInState(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws IOException {
+    public void testCursorPositionIsStoredInState(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) throws IOException {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -181,7 +181,7 @@ public class GetZendeskTest {
                 .build());
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
-        String stateKey = zendeskResource.getValue() + exportMethod.getValue();
+        final String stateKey = zendeskResource.getValue() + exportMethod.getValue();
         assertNull(testRunner.getStateManager().getState(CLUSTER).get(stateKey));
 
         // when
@@ -193,7 +193,7 @@ public class GetZendeskTest {
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testFlowFileIsCreatedAndContentIsAddedAndFlowFileAttributeIsSet(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
+    public void testFlowFileIsCreatedAndContentIsAddedAndFlowFileAttributeIsSet(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -206,16 +206,16 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(1, flowFiles.size());
-        MockFlowFile resultFlowFile = flowFiles.getFirst();
+        final MockFlowFile resultFlowFile = flowFiles.getFirst();
         assertEquals("3", resultFlowFile.getAttribute(RECORD_COUNT_ATTRIBUTE_NAME));
         assertEquals(THREE_RECORDS, resultFlowFile.getContent());
     }
 
     @ParameterizedTest
     @MethodSource("supportedZendeskResourcesExportMethodCombinations")
-    public void testNoFlowFileIsEmittedWhenZeroRecordsAreSent(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) throws InterruptedException {
+    public void testNoFlowFileIsEmittedWhenZeroRecordsAreSent(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) throws InterruptedException {
         // given
         server.enqueue(new MockResponse.Builder()
                 .code(HTTP_OK)
@@ -228,7 +228,7 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -245,7 +245,7 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
@@ -263,13 +263,13 @@ public class GetZendeskTest {
         testRunner.run(1);
 
         // then
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         assertEquals(0, flowFiles.size());
     }
 
     @ParameterizedTest
     @MethodSource("unsupportedZendeskResourcesExportMethodCombinations")
-    public void testUnsupportedZendeskResourceAndExportMethodsPairsShouldFailOnValidation(ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
+    public void testUnsupportedZendeskResourceAndExportMethodsPairsShouldFailOnValidation(final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) {
         // given
         testRunner.setProperty(ZENDESK_RESOURCE, zendeskResource);
         testRunner.setProperty(ZENDESK_EXPORT_METHOD, exportMethod);
@@ -297,8 +297,8 @@ public class GetZendeskTest {
 
     class TestGetZendesk extends GetZendesk {
         @Override
-        HttpUriBuilder uriBuilder(String resourcePath) {
-            HttpUrl url = server.url(resourcePath);
+        HttpUriBuilder uriBuilder(final String resourcePath) {
+            final HttpUrl url = server.url(resourcePath);
             return new StandardHttpUriBuilder()
                 .scheme(url.scheme())
                 .host(url.host())

@@ -90,7 +90,7 @@ public class VersionedDataflow {
         return flowAnalysisRules;
     }
 
-    public void setFlowAnalysisRules(List<VersionedFlowAnalysisRule> flowAnalysisRules) {
+    public void setFlowAnalysisRules(final List<VersionedFlowAnalysisRule> flowAnalysisRules) {
         this.flowAnalysisRules = flowAnalysisRules;
     }
 

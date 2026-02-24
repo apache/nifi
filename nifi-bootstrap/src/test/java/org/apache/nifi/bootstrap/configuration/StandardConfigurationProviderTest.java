@@ -122,14 +122,14 @@ class StandardConfigurationProviderTest {
     void testGetAdditionalArguments(@TempDir final Path applicationHomeDirectory) throws IOException {
         final Path bootstrapConfiguration = setRequiredConfiguration(applicationHomeDirectory);
         // Properties in random order and containing some java.arg and some non-java.arg names.
-        List<String> propertyNames = List.of("java.arg9", "java.arg2", "java.arg.my2", "non.java.arg.2",
+        final List<String> propertyNames = List.of("java.arg9", "java.arg2", "java.arg.my2", "non.java.arg.2",
                 "java.arg1", "java.arg.memory", "java.arg", "java.arg.my1", "non.java.arg.3", "random.nothing");
         // The expected returned list of java.arg properties sorted in ascending alphabetical order.
-        List<String> expectedArguments = List.of("java.arg", "java.arg.memory", "java.arg.my1", "java.arg.my2",
+        final List<String> expectedArguments = List.of("java.arg", "java.arg.memory", "java.arg.my1", "java.arg.my2",
                 "java.arg1", "java.arg2", "java.arg9");
 
         final Properties bootstrapProperties = new Properties();
-        for (String propertyName : propertyNames) {
+        for (final String propertyName : propertyNames) {
             bootstrapProperties.put(propertyName, propertyName);
         }
         try (OutputStream outputStream = Files.newOutputStream(bootstrapConfiguration)) {

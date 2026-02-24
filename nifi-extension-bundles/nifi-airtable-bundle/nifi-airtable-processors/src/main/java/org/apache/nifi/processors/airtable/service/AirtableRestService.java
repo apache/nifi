@@ -79,7 +79,7 @@ public class AirtableRestService {
             }
 
             throw new ProcessException(exceptionMessageBuilder.toString());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(String.format("Airtable HTTP request failed [%s]", uri), e);
         }
     }
@@ -98,7 +98,7 @@ public class AirtableRestService {
         return uriBuilder;
     }
 
-    private URI buildUri(AirtableGetRecordsParameters getRecordsParameters) {
+    private URI buildUri(final AirtableGetRecordsParameters getRecordsParameters) {
         final HttpUriBuilder uriBuilder = createUriBuilder();
         for (final String field : getRecordsParameters.getFields()) {
             uriBuilder.addQueryParameter("fields[]", field);

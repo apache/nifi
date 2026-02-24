@@ -29,7 +29,7 @@ public class ClearBulletinsForGroupEndpointMerger extends AbstractSingleEntityEn
     public static final Pattern CLEAR_BULLETINS_FOR_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/[a-f0-9\\-]{36}/bulletins");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "POST".equalsIgnoreCase(method) && CLEAR_BULLETINS_FOR_GROUP_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -39,8 +39,8 @@ public class ClearBulletinsForGroupEndpointMerger extends AbstractSingleEntityEn
     }
 
     @Override
-    protected void mergeResponses(ClearBulletinsForGroupResultsEntity clientEntity, Map<NodeIdentifier, ClearBulletinsForGroupResultsEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ClearBulletinsForGroupResultsEntity clientEntity, final Map<NodeIdentifier, ClearBulletinsForGroupResultsEntity> entityMap,
+                                  final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         // Sum up the total bulletins cleared across all nodes
         int totalBulletinsCleared = 0;

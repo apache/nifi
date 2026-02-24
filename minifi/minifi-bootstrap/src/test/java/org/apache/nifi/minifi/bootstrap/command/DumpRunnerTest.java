@@ -58,7 +58,7 @@ class DumpRunnerTest {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(DUMP_CMD, MINIFI_PORT)).thenReturn(Optional.of(DUMP_CONTENT));
 
-        int statusCode = dumpRunner.runCommand(new String[0]);
+        final int statusCode = dumpRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
@@ -68,11 +68,11 @@ class DumpRunnerTest {
     void testRunCommandShouldDumpToFileIfItIsDefined() throws IOException {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(DUMP_CMD, MINIFI_PORT)).thenReturn(Optional.of(DUMP_CONTENT));
-        File file = Files.createTempFile(null, null).toFile();
+        final File file = Files.createTempFile(null, null).toFile();
         file.deleteOnExit();
-        String tmpFilePath = file.getAbsolutePath();
+        final String tmpFilePath = file.getAbsolutePath();
 
-        int statusCode = dumpRunner.runCommand(new  String[] {DUMP_CMD, tmpFilePath});
+        final int statusCode = dumpRunner.runCommand(new  String[] {DUMP_CMD, tmpFilePath});
 
         assertEquals(OK.getStatusCode(), statusCode);
         assertEquals(DUMP_CONTENT, getDumpContent(file));
@@ -83,7 +83,7 @@ class DumpRunnerTest {
     void testRunCommandShouldReturnNotRunningStatusCodeIfPortReturnsNull() {
         when(currentPortProvider.getCurrentPort()).thenReturn(null);
 
-        int statusCode = dumpRunner.runCommand(new String[]{});
+        final int statusCode = dumpRunner.runCommand(new String[]{});
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider);
@@ -95,7 +95,7 @@ class DumpRunnerTest {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(DUMP_CMD, MINIFI_PORT)).thenThrow(new IOException());
 
-        int statusCode = dumpRunner.runCommand(new String[]{});
+        final int statusCode = dumpRunner.runCommand(new String[]{});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
@@ -105,23 +105,23 @@ class DumpRunnerTest {
     void testRunCommandShouldReturnErrorStatusCodeIfFileWriteFailureHappens() throws IOException {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(DUMP_CMD, MINIFI_PORT)).thenReturn(Optional.ofNullable(DUMP_CONTENT));
-        File file = Files.createTempFile(null, null).toFile();
+        final File file = Files.createTempFile(null, null).toFile();
         file.deleteOnExit();
         file.setReadOnly();
-        String tmpFilePath = file.getAbsolutePath();
+        final String tmpFilePath = file.getAbsolutePath();
 
-        int statusCode = dumpRunner.runCommand(new  String[] {DUMP_CMD, tmpFilePath});
+        final int statusCode = dumpRunner.runCommand(new  String[] {DUMP_CMD, tmpFilePath});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
-    private String getDumpContent(File dumpFile) {
+    private String getDumpContent(final File dumpFile) {
         String fileLines = null;
         if (dumpFile.exists()) {
             try {
                 fileLines = new String(Files.readAllBytes(dumpFile.toPath()));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 fileLines = null;
             }
         }

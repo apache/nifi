@@ -79,7 +79,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     );
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -105,7 +105,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
                 session.transfer(flowFile, REL_SUCCESS);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Directory deleted");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -113,7 +113,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
         config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());

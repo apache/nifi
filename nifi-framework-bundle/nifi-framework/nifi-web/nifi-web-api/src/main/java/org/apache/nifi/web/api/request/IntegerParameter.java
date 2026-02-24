@@ -25,10 +25,10 @@ public class IntegerParameter {
 
     private Integer integerValue;
 
-    public IntegerParameter(String rawIntegerValue) {
+    public IntegerParameter(final String rawIntegerValue) {
         try {
             integerValue = Integer.parseInt(rawIntegerValue);
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             throw new IllegalArgumentException(String.format(INVALID_INTEGER_MESSAGE, rawIntegerValue));
         }
     }

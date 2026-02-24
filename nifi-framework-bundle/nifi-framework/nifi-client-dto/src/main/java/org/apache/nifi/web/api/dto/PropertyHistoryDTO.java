@@ -38,7 +38,7 @@ public class PropertyHistoryDTO {
         return previousValues;
     }
 
-    public void setPreviousValues(List<PreviousValueDTO> previousValues) {
+    public void setPreviousValues(final List<PreviousValueDTO> previousValues) {
         this.previousValues = previousValues;
     }
 

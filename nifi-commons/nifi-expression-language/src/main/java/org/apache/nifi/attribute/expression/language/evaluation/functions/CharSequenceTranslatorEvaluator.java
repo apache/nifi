@@ -68,7 +68,7 @@ public class CharSequenceTranslatorEvaluator extends StringEvaluator {
     private final Evaluator<String> subject;
     private final CharSequenceTranslator method;
 
-    public CharSequenceTranslatorEvaluator(final Evaluator<String> subject, CharSequenceTranslator method) {
+    public CharSequenceTranslatorEvaluator(final Evaluator<String> subject, final CharSequenceTranslator method) {
         this.subject = subject;
         this.method = method;
     }

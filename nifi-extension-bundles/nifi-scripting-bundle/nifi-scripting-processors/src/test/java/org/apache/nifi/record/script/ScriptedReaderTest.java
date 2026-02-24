@@ -129,15 +129,15 @@ class ScriptedReaderTest {
         Files.copy(Paths.get(SOURCE_DIR, GROOVY_DIR, "test_record_reader_inline.groovy"), targetScriptFile, StandardCopyOption.REPLACE_EXISTING);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, targetScriptFile.toString());
         runner.enableControllerService(recordReaderFactory);
-        byte[] contentBytes = "Flow file content not used".getBytes();
-        InputStream inStream = new ByteArrayInputStream(contentBytes);
+        final byte[] contentBytes = "Flow file content not used".getBytes();
+        final InputStream inStream = new ByteArrayInputStream(contentBytes);
 
         final RecordReader recordReader =
                 recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, new MockComponentLog("id", recordReaderFactory));
         assertNotNull(recordReader);
 
         for (int index = 0; index < 3; index++) {
-            Record record = recordReader.nextRecord();
+            final Record record = recordReader.nextRecord();
             assertNotNull(record);
             assertEquals(record.getAsInt("code"), record.getAsInt("id") * 100);
         }
@@ -148,19 +148,19 @@ class ScriptedReaderTest {
     void testXmlRecordReaderGroovyScript() throws Exception {
         Files.copy(Paths.get(SOURCE_DIR, GROOVY_DIR, "test_record_reader_xml.groovy"), targetScriptFile, StandardCopyOption.REPLACE_EXISTING);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, targetScriptFile.toString());
-        String schemaText = "\n[\n{\"id\": \"int\"},\n{\"name\": \"string\"},\n{\"code\": \"int\"}\n]\n";
+        final String schemaText = "\n[\n{\"id\": \"int\"},\n{\"name\": \"string\"},\n{\"code\": \"int\"}\n]\n";
         runner.setProperty(recordReaderFactory, "schema.text", schemaText);
         runner.enableControllerService(recordReaderFactory);
 
-        Map<String, String> map = new LinkedHashMap<>(1);
+        final Map<String, String> map = new LinkedHashMap<>(1);
         map.put("record.tag", "myRecord");
-        byte[] contentBytes = Files.readAllBytes(Paths.get("src/test/resources/xmlRecord.xml"));
-        InputStream inStream = new ByteArrayInputStream(contentBytes);
+        final byte[] contentBytes = Files.readAllBytes(Paths.get("src/test/resources/xmlRecord.xml"));
+        final InputStream inStream = new ByteArrayInputStream(contentBytes);
         final RecordReader recordReader = recordReaderFactory.createRecordReader(map, inStream, contentBytes.length, new MockComponentLog("ScriptedReader", ""));
         assertNotNull(recordReader);
 
         for (int index = 0; index < 3; index++) {
-            Record record = recordReader.nextRecord();
+            final Record record = recordReader.nextRecord();
             assertNotNull(record);
             assertEquals(record.getAsInt("code"), record.getAsInt("id") * 100);
         }
@@ -177,8 +177,8 @@ class ScriptedReaderTest {
         Files.copy(Paths.get(SOURCE_DIR, "jar", "test.jar"), tempJar, StandardCopyOption.REPLACE_EXISTING);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, tempJar.toString());
         runner.enableControllerService(recordReaderFactory);
-        byte[] contentBytes = "Flow file content not used".getBytes();
-        InputStream inStream = new ByteArrayInputStream(contentBytes);
+        final byte[] contentBytes = "Flow file content not used".getBytes();
+        final InputStream inStream = new ByteArrayInputStream(contentBytes);
 
         final RecordReader recordReader =
                 recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, new MockComponentLog("id", recordReaderFactory));

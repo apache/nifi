@@ -28,8 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class Hex64TypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testHex64TypeNode() throws IOException {
-        UnsignedLong value = UnsignedLong.fromLongBits(Long.MAX_VALUE + 1234);
-        String hex = value.toString(16);
+        final UnsignedLong value = UnsignedLong.fromLongBits(Long.MAX_VALUE + 1234);
+        final String hex = value.toString(16);
         assertEquals(hex, new Hex64TypeNode(testBinaryReaderBuilder.putQWord(value).build(), chunkHeader, parent, -1).getValue().substring(2));
     }
 }

@@ -35,7 +35,7 @@ public abstract class ComponentDAO {
      * @param object object
      * @return true if the specified object is not null
      */
-    protected <T> boolean isNotNull(T object) {
+    protected <T> boolean isNotNull(final T object) {
         return object != null;
     }
 
@@ -46,7 +46,7 @@ public abstract class ComponentDAO {
      * @param objects objects
      * @return true if any of the specified objects are not null
      */
-    protected <T> boolean isAnyNotNull(T... objects) {
+    protected <T> boolean isAnyNotNull(final T... objects) {
         for (final T object : objects) {
             if (object != null) {
                 return true;
@@ -63,8 +63,8 @@ public abstract class ComponentDAO {
      * @param groupId id
      * @return group
      */
-    protected ProcessGroup locateProcessGroup(FlowController flowController, String groupId) {
-        ProcessGroup group = flowController.getFlowManager().getGroup(groupId);
+    protected ProcessGroup locateProcessGroup(final FlowController flowController, final String groupId) {
+        final ProcessGroup group = flowController.getFlowManager().getGroup(groupId);
 
         if (group == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));

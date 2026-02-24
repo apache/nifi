@@ -31,7 +31,7 @@ public class XmlValidator {
 
     private static final String EMPTY = "";
 
-    public static void assertXmlValid(String xml) {
+    public static void assertXmlValid(final String xml) {
         final String html = xml.replace(DOCTYPE, EMPTY);
         try {
             final DocumentProvider provider = new StandardDocumentProvider();
@@ -41,7 +41,7 @@ public class XmlValidator {
         }
     }
 
-    public static void assertContains(String original, String subword) {
+    public static void assertContains(final String original, final String subword) {
         assertTrue(original.contains(subword), original + " did not contain: " + subword);
     }
 }

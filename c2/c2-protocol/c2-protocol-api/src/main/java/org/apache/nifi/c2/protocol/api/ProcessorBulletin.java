@@ -44,7 +44,7 @@ public class ProcessorBulletin implements Serializable {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -53,7 +53,7 @@ public class ProcessorBulletin implements Serializable {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(final long id) {
         this.id = id;
     }
 
@@ -62,7 +62,7 @@ public class ProcessorBulletin implements Serializable {
         return nodeAddress;
     }
 
-    public void setNodeAddress(String nodeAddress) {
+    public void setNodeAddress(final String nodeAddress) {
         this.nodeAddress = nodeAddress;
     }
 
@@ -71,7 +71,7 @@ public class ProcessorBulletin implements Serializable {
         return level;
     }
 
-    public void setLevel(String level) {
+    public void setLevel(final String level) {
         this.level = level;
     }
 
@@ -80,7 +80,7 @@ public class ProcessorBulletin implements Serializable {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(final String category) {
         this.category = category;
     }
 
@@ -89,7 +89,7 @@ public class ProcessorBulletin implements Serializable {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
@@ -98,7 +98,7 @@ public class ProcessorBulletin implements Serializable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -107,7 +107,7 @@ public class ProcessorBulletin implements Serializable {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
+    public void setGroupName(final String groupName) {
         this.groupName = groupName;
     }
 
@@ -116,7 +116,7 @@ public class ProcessorBulletin implements Serializable {
         return groupPath;
     }
 
-    public void setGroupPath(String groupPath) {
+    public void setGroupPath(final String groupPath) {
         this.groupPath = groupPath;
     }
 
@@ -125,7 +125,7 @@ public class ProcessorBulletin implements Serializable {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -134,7 +134,7 @@ public class ProcessorBulletin implements Serializable {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -143,7 +143,7 @@ public class ProcessorBulletin implements Serializable {
         return flowFileUuid;
     }
 
-    public void setFlowFileUuid(String flowFileUuid) {
+    public void setFlowFileUuid(final String flowFileUuid) {
         this.flowFileUuid = flowFileUuid;
     }
 }

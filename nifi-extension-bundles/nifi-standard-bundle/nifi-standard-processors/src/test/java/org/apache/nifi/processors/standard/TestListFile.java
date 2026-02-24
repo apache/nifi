@@ -100,7 +100,7 @@ public class TestListFile {
             () -> {
                 try {
                     return runner.getStateManager().getState(Scope.LOCAL).toMap();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException("Failed to retrieve state", e);
                 }
             },
@@ -298,7 +298,7 @@ public class TestListFile {
 
             try {
                 runNext();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }
             return null;
@@ -439,7 +439,7 @@ public class TestListFile {
         assertTrue(file2.createNewFile());
         fos = new FileOutputStream(file2);
         fos.close();
-        FileStore store = Files.getFileStore(file2.toPath());
+        final FileStore store = Files.getFileStore(file2.toPath());
         if (store.supportsFileAttributeView("dos")) {
             Files.setAttribute(file2.toPath(), "dos:hidden", true);
         }
@@ -786,12 +786,12 @@ public class TestListFile {
         // create temp file and time constant
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
-        FileOutputStream fos = new FileOutputStream(file1);
+        final FileOutputStream fos = new FileOutputStream(file1);
         fos.write(new byte[1234]);
         fos.close();
         assertTrue(file1.setLastModified(time3millis));
-        Long time3rounded = time3millis - time3millis % 1000;
-        String userName = System.getProperty("user.name");
+        final Long time3rounded = time3millis - time3millis % 1000;
+        final String userName = System.getProperty("user.name");
 
         // validate the file transferred
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
@@ -813,7 +813,7 @@ public class TestListFile {
         final String time3Formatted = formatter.format(Instant.ofEpochMilli(time3rounded).atZone(ZoneId.systemDefault()));
 
         // check standard attributes
-        MockFlowFile mock1 = successFiles1.getFirst();
+        final MockFlowFile mock1 = successFiles1.getFirst();
         assertEquals(relativePathString, mock1.getAttribute(CoreAttributes.PATH.key()));
         assertEquals("file1.txt", mock1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(absolutePathString, mock1.getAttribute(CoreAttributes.ABSOLUTE_PATH.key()));
@@ -952,7 +952,7 @@ public class TestListFile {
 
     private void deleteDirectory(final File directory) {
         if (directory.exists()) {
-            File[] files = directory.listFiles();
+            final File[] files = directory.listFiles();
             if (files != null) {
                 for (final File file : files) {
                     if (file.isDirectory()) {

@@ -40,7 +40,7 @@ public class CountersSnapshotDTO implements Cloneable {
         return counters;
     }
 
-    public void setCounters(Collection<CounterDTO> counters) {
+    public void setCounters(final Collection<CounterDTO> counters) {
         this.counters = counters;
     }
 
@@ -52,7 +52,7 @@ public class CountersSnapshotDTO implements Cloneable {
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 

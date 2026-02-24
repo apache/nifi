@@ -32,7 +32,7 @@ public class HandshakeProperties {
         return commsIdentifier;
     }
 
-    public void setCommsIdentifier(String commsIdentifier) {
+    public void setCommsIdentifier(final String commsIdentifier) {
         this.commsIdentifier = commsIdentifier;
     }
 
@@ -40,7 +40,7 @@ public class HandshakeProperties {
         return transitUriPrefix;
     }
 
-    public void setTransitUriPrefix(String transitUriPrefix) {
+    public void setTransitUriPrefix(final String transitUriPrefix) {
         this.transitUriPrefix = transitUriPrefix;
     }
 
@@ -48,7 +48,7 @@ public class HandshakeProperties {
         return useGzip;
     }
 
-    public void setUseGzip(Boolean useGzip) {
+    public void setUseGzip(final Boolean useGzip) {
         this.useGzip = useGzip;
     }
 
@@ -56,7 +56,7 @@ public class HandshakeProperties {
         return expirationMillis;
     }
 
-    public void setExpirationMillis(long expirationMillis) {
+    public void setExpirationMillis(final long expirationMillis) {
         this.expirationMillis = expirationMillis;
     }
 
@@ -64,7 +64,7 @@ public class HandshakeProperties {
         return batchCount;
     }
 
-    public void setBatchCount(int batchCount) throws HandshakeException {
+    public void setBatchCount(final int batchCount) throws HandshakeException {
         if (batchCount < 0) {
             throw new HandshakeException("Cannot request Batch Count less than 1; requested value: " + batchCount);
         }
@@ -75,7 +75,7 @@ public class HandshakeProperties {
         return batchBytes;
     }
 
-    public void setBatchBytes(long batchBytes) throws HandshakeException {
+    public void setBatchBytes(final long batchBytes) throws HandshakeException {
         if (batchBytes < 0) {
             throw new HandshakeException("Cannot request Batch Size less than 1; requested value: " + batchBytes);
         }
@@ -86,7 +86,7 @@ public class HandshakeProperties {
         return batchDurationNanos;
     }
 
-    public void setBatchDurationNanos(long batchDurationNanos) throws HandshakeException {
+    public void setBatchDurationNanos(final long batchDurationNanos) throws HandshakeException {
         if (batchDurationNanos < 0) {
             throw new HandshakeException("Cannot request Batch Duration less than 1; requested value: " + batchDurationNanos);
         }

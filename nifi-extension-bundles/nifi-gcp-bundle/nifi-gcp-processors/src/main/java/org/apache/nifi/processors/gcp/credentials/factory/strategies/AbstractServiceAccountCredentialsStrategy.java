@@ -31,14 +31,14 @@ import java.util.Map;
  * or through a flat JSON file.
  */
 public abstract class AbstractServiceAccountCredentialsStrategy extends AbstractCredentialsStrategy {
-    public AbstractServiceAccountCredentialsStrategy(String name) {
+    public AbstractServiceAccountCredentialsStrategy(final String name) {
         super(name);
     }
 
     protected abstract InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException;
 
     @Override
-    public GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException {
+    public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties, final HttpTransportFactory transportFactory) throws IOException {
         final String delegationStrategy = properties.get(CredentialPropertyDescriptors.DELEGATION_STRATEGY);
         if (delegationStrategy != null && delegationStrategy.equals(DelegationStrategy.DELEGATED_ACCOUNT.getValue())) {
             final String delegationUser = properties.get(CredentialPropertyDescriptors.DELEGATION_USER);

@@ -89,7 +89,7 @@ public class ClearBulletinsEndpointMergerTest {
         assertFalse(clientEntity.getBulletins().isEmpty());
     }
 
-    private List<BulletinEntity> createTestBulletins(int count) {
+    private List<BulletinEntity> createTestBulletins(final int count) {
         final List<BulletinEntity> bulletins = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             final BulletinEntity bulletin = new BulletinEntity();

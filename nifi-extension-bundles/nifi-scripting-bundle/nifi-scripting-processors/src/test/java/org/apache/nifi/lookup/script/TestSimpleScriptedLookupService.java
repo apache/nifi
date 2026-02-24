@@ -53,7 +53,7 @@ public class TestSimpleScriptedLookupService {
     @Test
     void testSimpleLookupServiceGroovyScript() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        SimpleScriptedLookupService scriptedLookupService = new MockScriptedLookupService();
+        final SimpleScriptedLookupService scriptedLookupService = new MockScriptedLookupService();
         runner.addControllerService("lookupService", scriptedLookupService);
         runner.setProperty(scriptedLookupService, "Script Engine", "Groovy");
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());

@@ -37,12 +37,12 @@ import reactor.core.publisher.Mono;
 
 public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<ADLSCredentialsDetails, DataLakeServiceClient> {
 
-    public DataLakeServiceClientFactory(ComponentLog logger, ProxyOptions proxyOptions) {
+    public DataLakeServiceClientFactory(final ComponentLog logger, final ProxyOptions proxyOptions) {
         super(logger, proxyOptions);
     }
 
     @Override
-    protected DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
+    protected DataLakeServiceClient createStorageClient(final ADLSCredentialsDetails credentialsDetails, final ProxyOptions proxyOptions) {
         final String accountName = credentialsDetails.getAccountName();
         final String accountKey = credentialsDetails.getAccountKey();
         final String sasToken = credentialsDetails.getSasToken();

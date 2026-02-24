@@ -261,8 +261,8 @@ public class EncodeContent extends AbstractProcessor {
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
             int len;
-            byte[] inBuf = new byte[8192];
-            byte[] outBuf = new byte[inBuf.length * 2];
+            final byte[] inBuf = new byte[8192];
+            final byte[] outBuf = new byte[inBuf.length * 2];
             while ((len = in.read(inBuf)) > 0) {
                 for (int i = 0; i < len; i++) {
                     outBuf[i * 2] = HEX_CHARS[(inBuf[i] & 0xF0) >>> 4];
@@ -279,12 +279,12 @@ public class EncodeContent extends AbstractProcessor {
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
             int len;
-            byte[] inBuf = new byte[BUFFER_SIZE];
-            Hex h = new Hex();
+            final byte[] inBuf = new byte[BUFFER_SIZE];
+            final Hex h = new Hex();
             while ((len = in.read(inBuf)) > 0) {
                 // If the input buffer is of odd length, try to get another byte
                 if (len % 2 != 0) {
-                    int b = in.read();
+                    final int b = in.read();
                     if (b != -1) {
                         inBuf[len] = (byte) b;
                         len++;
@@ -292,7 +292,7 @@ public class EncodeContent extends AbstractProcessor {
                 }
 
                 // Construct a new buffer bounded to len
-                byte[] slice = Arrays.copyOfRange(inBuf, 0, len);
+                final byte[] slice = Arrays.copyOfRange(inBuf, 0, len);
                 try {
                     out.write(h.decode(slice));
                 } catch (final DecoderException e) {

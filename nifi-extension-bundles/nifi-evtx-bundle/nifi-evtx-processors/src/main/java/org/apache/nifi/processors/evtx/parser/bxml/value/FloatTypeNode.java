@@ -30,9 +30,9 @@ import java.io.IOException;
 public class FloatTypeNode extends VariantTypeNode {
     private final float value;
 
-    public FloatTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public FloatTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        UnsignedInteger unsignedInteger = binaryReader.readDWord();
+        final UnsignedInteger unsignedInteger = binaryReader.readDWord();
         value = Float.intBitsToFloat(unsignedInteger.intValue());
     }
 

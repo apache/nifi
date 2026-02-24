@@ -25,15 +25,15 @@ import java.util.Map;
 import java.util.Set;
 
 public class CollectionUtil {
-    public static <T> List<T> nullToEmpty(List<T> list) {
+    public static <T> List<T> nullToEmpty(final List<T> list) {
         return list == null ? Collections.emptyList() : list;
     }
 
-    public static <T> Set<T> nullToEmpty(Set<T> set) {
+    public static <T> Set<T> nullToEmpty(final Set<T> set) {
         return set == null ? Collections.emptySet() : set;
     }
 
-    public static <K, V> Map<K, V> nullToEmpty(Map<K, V> map) {
+    public static <K, V> Map<K, V> nullToEmpty(final Map<K, V> map) {
         return map == null ? Collections.emptyMap() : map;
     }
 }

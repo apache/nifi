@@ -41,12 +41,12 @@ abstract class AbstractComponentStateCheckpointStoreTest extends AbstractCheckpo
 
     abstract StateManager getStateManager();
 
-    PartitionOwnership setETagAndLastModified(PartitionOwnership partitionOwnership) {
+    PartitionOwnership setETagAndLastModified(final PartitionOwnership partitionOwnership) {
         return partitionOwnership.setETag(CoreUtils.randomUuid().toString())
                 .setLastModifiedTime(System.currentTimeMillis() - 1000);
     }
 
-    void assertClaimedOwnership(PartitionOwnership requestedOwnership, PartitionOwnership claimedOwnership) {
+    void assertClaimedOwnership(final PartitionOwnership requestedOwnership, final PartitionOwnership claimedOwnership) {
         assertEquals(requestedOwnership.getFullyQualifiedNamespace(), claimedOwnership.getFullyQualifiedNamespace());
         assertEquals(requestedOwnership.getEventHubName(), claimedOwnership.getEventHubName());
         assertEquals(requestedOwnership.getConsumerGroup(), claimedOwnership.getConsumerGroup());
@@ -61,7 +61,7 @@ abstract class AbstractComponentStateCheckpointStoreTest extends AbstractCheckpo
         assertNotEquals(requestedOwnership.getETag(), claimedOwnership.getETag());
     }
 
-    Map<String, String> initMap(PartitionOwnership... partitionOwnerships) {
+    Map<String, String> initMap(final PartitionOwnership... partitionOwnerships) {
         return Stream.of(partitionOwnerships)
                 .map(this::copy)
                 .map(this::setETagAndLastModified)

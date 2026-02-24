@@ -38,7 +38,7 @@ public class TimeAdapter extends XmlAdapter<String, Date> {
     private static final ZoneId ZONE_ID = TimeZone.getDefault().toZoneId();
 
     @Override
-    public String marshal(Date date) {
+    public String marshal(final Date date) {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DEFAULT_TIME_FORMAT, Locale.US);
         final ZonedDateTime localDateTime = ZonedDateTime.ofInstant(date.toInstant(), ZONE_ID);
         return formatter.format(localDateTime);
@@ -54,7 +54,7 @@ public class TimeAdapter extends XmlAdapter<String, Date> {
             .toFormatter(Locale.US));
 
     @Override
-    public Date unmarshal(String date) {
+    public Date unmarshal(final String date) {
         final DateTimeFormatter parser = formatter.get();
         final LocalDateTime parsedDateTime = LocalDateTime.parse(date, parser);
 

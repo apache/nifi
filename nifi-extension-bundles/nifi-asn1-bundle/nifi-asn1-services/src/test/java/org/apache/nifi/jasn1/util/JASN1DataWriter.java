@@ -24,12 +24,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class JASN1DataWriter {
-    public static void write(BerType berObject, String outputFile) {
+    public static void write(final BerType berObject, final String outputFile) {
         final File file = new File(outputFile);
 
         try {
             file.createNewFile();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
 
@@ -41,7 +41,7 @@ public class JASN1DataWriter {
 
             fileOutputStream.write(outputStream.getArray(), 0, encodeOffset);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }

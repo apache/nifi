@@ -114,7 +114,7 @@ public class FetchFTP extends FetchFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         FTPTransfer.migrateProxyProperties(config);
         config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
         config.renameProperty(OLD_FILE_NOT_FOUND_LOG_LEVEL_PROPERTY_NAME, FILE_NOT_FOUND_LOG_LEVEL.getName());
@@ -126,7 +126,7 @@ public class FetchFTP extends FetchFileTransfer {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         FTPTransfer.validateProxySpec(validationContext, results);
         return results;

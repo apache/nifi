@@ -182,7 +182,7 @@ public class DetectDuplicate extends AbstractProcessor {
 
             boolean duplicate = originalCacheValue != null;
             if (duplicate && durationMS != null && (now >= originalCacheValue.getEntryTimeMS() + durationMS)) {
-                boolean status = cache.remove(cacheKey, keySerializer);
+                final boolean status = cache.remove(cacheKey, keySerializer);
                 logger.debug("Removal of expired cached entry with key {} returned {}", cacheKey, status);
 
                 // both should typically result in duplicate being false...but, better safe than sorry
@@ -195,7 +195,7 @@ public class DetectDuplicate extends AbstractProcessor {
 
             if (duplicate) {
                 session.getProvenanceReporter().route(flowFile, REL_DUPLICATE, "Duplicate of: " + ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME);
-                String originalFlowFileDescription = originalCacheValue.getDescription();
+                final String originalFlowFileDescription = originalCacheValue.getDescription();
                 flowFile = session.putAttribute(flowFile, ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME, originalFlowFileDescription);
                 session.transfer(flowFile, REL_DUPLICATE);
                 logger.info("Found {} to be a duplicate of FlowFile with description {}", flowFile, originalFlowFileDescription);
@@ -218,7 +218,7 @@ public class DetectDuplicate extends AbstractProcessor {
         private final String description;
         private final long entryTimeMS;
 
-        public CacheValue(String description, long entryTimeMS) {
+        public CacheValue(final String description, final long entryTimeMS) {
             this.description = description;
             this.entryTimeMS = entryTimeMS;
         }
@@ -237,8 +237,8 @@ public class DetectDuplicate extends AbstractProcessor {
 
         @Override
         public void serialize(final CacheValue entry, final OutputStream out) throws SerializationException, IOException {
-            long time = entry.getEntryTimeMS();
-            byte[] writeBuffer = new byte[8];
+            final long time = entry.getEntryTimeMS();
+            final byte[] writeBuffer = new byte[8];
             writeBuffer[0] = (byte) (time >>> 56);
             writeBuffer[1] = (byte) (time >>> 48);
             writeBuffer[2] = (byte) (time >>> 40);
@@ -259,7 +259,7 @@ public class DetectDuplicate extends AbstractProcessor {
             if (input.length == 0) {
                 return null;
             }
-            long time = ((long) input[0] << 56)
+            final long time = ((long) input[0] << 56)
                     + ((long) (input[1] & 255) << 48)
                     + ((long) (input[2] & 255) << 40)
                     + ((long) (input[3] & 255) << 32)
@@ -267,7 +267,7 @@ public class DetectDuplicate extends AbstractProcessor {
                     + ((input[5] & 255) << 16)
                     + ((input[6] & 255) << 8)
                     + ((input[7] & 255));
-            String description = new String(input, 8, input.length - 8, StandardCharsets.UTF_8);
+            final String description = new String(input, 8, input.length - 8, StandardCharsets.UTF_8);
             return new CacheValue(description, time);
         }
     }

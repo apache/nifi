@@ -199,10 +199,10 @@ public class QueryTask implements Runnable {
         final long ms = TimeUnit.NANOSECONDS.toMillis(endConvert - start);
         logger.trace("Converting documents took {} ms", ms);
 
-        List<ProvenanceEventRecord> events;
+        final List<ProvenanceEventRecord> events;
         try {
             events = eventStore.getEvents(eventIds, authorizer, transformer);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new SearchFailedException("Unable to retrieve events from the Provenance Store", e);
         }
 

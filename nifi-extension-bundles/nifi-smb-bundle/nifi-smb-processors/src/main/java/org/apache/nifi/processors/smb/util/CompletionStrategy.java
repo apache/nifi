@@ -27,7 +27,7 @@ public enum CompletionStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    CompletionStrategy(String displayName, String description) {
+    CompletionStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

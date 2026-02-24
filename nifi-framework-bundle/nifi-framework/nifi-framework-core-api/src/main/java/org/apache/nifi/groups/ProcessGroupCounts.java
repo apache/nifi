@@ -34,9 +34,10 @@ public class ProcessGroupCounts {
     private final int locallyModifiedAndStaleCount;
     private final int syncFailureCount;
 
-    public ProcessGroupCounts(int localInputPortCount, int localOutputPortCount, int publicInputPortCount, int publicOutputPortCount,
-                              int runningCount, int stoppedCount, int invalidCount, int disabledCount, int activeRemotePortCount,
-                              int inactiveRemotePortCount, int upToDateCount, int locallyModifiedCount, int staleCount, int locallyModifiedAndStaleCount, int syncFailureCount) {
+    public ProcessGroupCounts(final int localInputPortCount, final int localOutputPortCount, final int publicInputPortCount, final int publicOutputPortCount,
+                              final int runningCount, final int stoppedCount, final int invalidCount, final int disabledCount, final int activeRemotePortCount,
+                              final int inactiveRemotePortCount, final int upToDateCount, final int locallyModifiedCount,
+                              final int staleCount, final int locallyModifiedAndStaleCount, final int syncFailureCount) {
         this.localInputPortCount = localInputPortCount;
         this.localOutputPortCount = localOutputPortCount;
         this.publicInputPortCount = publicInputPortCount;

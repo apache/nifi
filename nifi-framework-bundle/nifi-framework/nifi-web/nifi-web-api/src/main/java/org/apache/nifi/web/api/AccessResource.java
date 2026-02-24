@@ -164,7 +164,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
-    public Response logOut(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+    public Response logOut(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException(AUTHENTICATION_NOT_ENABLED_MSG);
         }
@@ -208,7 +208,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
-    public void logOutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void logOutComplete(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
@@ -259,7 +259,7 @@ public class AccessResource extends ApplicationResource {
     }
 
     @Autowired(required = false)
-    public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
+    public void setLoginIdentityProvider(final LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
     }
 
@@ -279,7 +279,7 @@ public class AccessResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
+    public void setLogoutRequestManager(final LogoutRequestManager logoutRequestManager) {
         this.logoutRequestManager = logoutRequestManager;
     }
 }

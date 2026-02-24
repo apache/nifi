@@ -121,7 +121,7 @@ public class OutboundAdapter {
      */
     public OutboundAdapter write(final Collection<byte[]> values) throws IOException {
         dos.writeInt(values.size());
-        for (byte[] value : values) {
+        for (final byte[] value : values) {
             write(value);
         }
         return this;
@@ -135,7 +135,7 @@ public class OutboundAdapter {
      * @return this object (allow chaining of calls to assemble payload)
      * @throws IOException on write failure
      */
-    public <T> OutboundAdapter write(T value, Serializer<T> serializer) throws IOException {
+    public <T> OutboundAdapter write(final T value, final Serializer<T> serializer) throws IOException {
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         serializer.serialize(value, os);
         dos.writeInt(os.size());

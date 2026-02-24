@@ -34,7 +34,7 @@ public class EnvRunner implements CommandRunner {
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final CurrentPortProvider currentPortProvider;
 
-    public EnvRunner(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider) {
+    public EnvRunner(final MiNiFiCommandSender miNiFiCommandSender, final CurrentPortProvider currentPortProvider) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
     }
@@ -45,12 +45,12 @@ public class EnvRunner implements CommandRunner {
      * @return status code
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         return env();
     }
 
     private int env() {
-        Integer port = currentPortProvider.getCurrentPort();
+        final Integer port = currentPortProvider.getCurrentPort();
         if (port == null) {
             CMD_LOGGER.error("Apache MiNiFi is not currently running");
             return MINIFI_NOT_RUNNING.getStatusCode();
@@ -58,7 +58,7 @@ public class EnvRunner implements CommandRunner {
 
         try {
             miNiFiCommandSender.sendCommand(ENV_CMD, port).ifPresent(CMD_LOGGER::info);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             CMD_LOGGER.error("Failed to get ENV response from MiNiFi");
             DEFAULT_LOGGER.error("Exception:", e);
             return ERROR.getStatusCode();

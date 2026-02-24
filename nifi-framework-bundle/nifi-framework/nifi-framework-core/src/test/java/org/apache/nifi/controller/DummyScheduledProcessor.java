@@ -30,7 +30,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @DefaultSchedule(concurrentTasks = 5, strategy = SchedulingStrategy.CRON_DRIVEN, period = "0 0 0 1/1 * ?")
 public class DummyScheduledProcessor extends AbstractProcessor {
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
     }
 }

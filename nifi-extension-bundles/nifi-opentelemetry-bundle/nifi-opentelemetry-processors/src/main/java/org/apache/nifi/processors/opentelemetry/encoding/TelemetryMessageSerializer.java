@@ -53,10 +53,10 @@ public class TelemetryMessageSerializer extends MessageSerializer {
      */
     @Override
     protected void writeValue(
-            Descriptors.FieldDescriptor field,
-            Object value,
-            JsonGenerator generator,
-            SerializerProvider serializerProvider
+            final Descriptors.FieldDescriptor field,
+            final Object value,
+            final JsonGenerator generator,
+            final SerializerProvider serializerProvider
     ) throws IOException {
         final String jsonName = field.getJsonName();
         if (HEXADECIMAL_BYTE_STRING_FIELDS.contains(jsonName)) {

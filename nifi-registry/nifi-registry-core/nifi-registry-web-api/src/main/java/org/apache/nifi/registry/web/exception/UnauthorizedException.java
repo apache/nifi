@@ -32,24 +32,24 @@ public class UnauthorizedException extends RuntimeException {
     public UnauthorizedException() {
     }
 
-    public UnauthorizedException(String message) {
+    public UnauthorizedException(final String message) {
         super(message);
     }
 
-    public UnauthorizedException(String message, Throwable cause) {
+    public UnauthorizedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public UnauthorizedException(Throwable cause) {
+    public UnauthorizedException(final Throwable cause) {
         super(cause);
     }
 
-    public UnauthorizedException withAuthenticateChallenge(IdentityProviderUsage.AuthType authType) {
+    public UnauthorizedException withAuthenticateChallenge(final IdentityProviderUsage.AuthType authType) {
         wwwAuthenticateChallenge = new String[] {authType.getHttpAuthScheme()};
         return this;
     }
 
-    public UnauthorizedException withAuthenticateChallenge(List<IdentityProviderUsage.AuthType> authTypes) {
+    public UnauthorizedException withAuthenticateChallenge(final List<IdentityProviderUsage.AuthType> authTypes) {
         wwwAuthenticateChallenge = new String[authTypes.size()];
         for (int i = 0; i < authTypes.size(); i++) {
             wwwAuthenticateChallenge[i] = authTypes.get(i).getHttpAuthScheme();
@@ -57,12 +57,12 @@ public class UnauthorizedException extends RuntimeException {
         return this;
     }
 
-    public UnauthorizedException withAuthenticateChallenge(String authType) {
+    public UnauthorizedException withAuthenticateChallenge(final String authType) {
         wwwAuthenticateChallenge = new String[] {authType};
         return this;
     }
 
-    public UnauthorizedException withAuthenticateChallenge(String[] authTypes) {
+    public UnauthorizedException withAuthenticateChallenge(final String[] authTypes) {
         wwwAuthenticateChallenge = authTypes;
         return this;
     }

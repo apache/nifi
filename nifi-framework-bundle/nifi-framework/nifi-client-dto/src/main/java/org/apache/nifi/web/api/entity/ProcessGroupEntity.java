@@ -68,7 +68,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     }
 
     @Override
-    public void setComponent(ProcessGroupDTO component) {
+    public void setComponent(final ProcessGroupDTO component) {
         this.component = component;
     }
 
@@ -81,7 +81,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return status;
     }
 
-    public void setStatus(ProcessGroupStatusDTO status) {
+    public void setStatus(final ProcessGroupStatusDTO status) {
         this.status = status;
     }
 
@@ -95,7 +95,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
+    public void setInputPortCount(final Integer inputPortCount) {
         // See ProcessGroupDTO.setInputPortCount for the reason why this is needed.
     }
 
@@ -108,7 +108,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return localInputPortCount;
     }
 
-    public void setLocalInputPortCount(Integer localInputPortCount) {
+    public void setLocalInputPortCount(final Integer localInputPortCount) {
         this.localInputPortCount = localInputPortCount;
     }
 
@@ -121,7 +121,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return publicInputPortCount;
     }
 
-    public void setPublicInputPortCount(Integer publicInputPortCount) {
+    public void setPublicInputPortCount(final Integer publicInputPortCount) {
         this.publicInputPortCount = publicInputPortCount;
     }
 
@@ -134,7 +134,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return invalidCount;
     }
 
-    public void setInvalidCount(Integer invalidCount) {
+    public void setInvalidCount(final Integer invalidCount) {
         this.invalidCount = invalidCount;
     }
 
@@ -148,7 +148,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
+    public void setOutputPortCount(final Integer outputPortCount) {
         // See ProcessGroupDTO.setInputPortCount for the reason why this is needed.
     }
 
@@ -161,7 +161,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return localOutputPortCount;
     }
 
-    public void setLocalOutputPortCount(Integer localOutputPortCount) {
+    public void setLocalOutputPortCount(final Integer localOutputPortCount) {
         this.localOutputPortCount = localOutputPortCount;
     }
 
@@ -174,7 +174,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return publicOutputPortCount;
     }
 
-    public void setPublicOutputPortCount(Integer publicOutputPortCount) {
+    public void setPublicOutputPortCount(final Integer publicOutputPortCount) {
         this.publicOutputPortCount = publicOutputPortCount;
     }
 
@@ -187,7 +187,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return runningCount;
     }
 
-    public void setRunningCount(Integer runningCount) {
+    public void setRunningCount(final Integer runningCount) {
         this.runningCount = runningCount;
     }
 
@@ -200,7 +200,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return stoppedCount;
     }
 
-    public void setStoppedCount(Integer stoppedCount) {
+    public void setStoppedCount(final Integer stoppedCount) {
         this.stoppedCount = stoppedCount;
     }
 
@@ -213,7 +213,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return disabledCount;
     }
 
-    public void setDisabledCount(Integer disabledCount) {
+    public void setDisabledCount(final Integer disabledCount) {
         this.disabledCount = disabledCount;
     }
 
@@ -226,7 +226,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return activeRemotePortCount;
     }
 
-    public void setActiveRemotePortCount(Integer activeRemotePortCount) {
+    public void setActiveRemotePortCount(final Integer activeRemotePortCount) {
         this.activeRemotePortCount = activeRemotePortCount;
     }
 
@@ -239,7 +239,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return inactiveRemotePortCount;
     }
 
-    public void setInactiveRemotePortCount(Integer inactiveRemotePortCount) {
+    public void setInactiveRemotePortCount(final Integer inactiveRemotePortCount) {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
@@ -248,7 +248,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(final RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
@@ -261,7 +261,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return versionedFlowState;
     }
 
-    public void setVersionedFlowState(String versionedFlowState) {
+    public void setVersionedFlowState(final String versionedFlowState) {
         this.versionedFlowState = versionedFlowState;
     }
 
@@ -270,7 +270,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return upToDateCount;
     }
 
-    public void setUpToDateCount(Integer upToDateCount) {
+    public void setUpToDateCount(final Integer upToDateCount) {
         this.upToDateCount = upToDateCount;
     }
 
@@ -279,7 +279,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return locallyModifiedCount;
     }
 
-    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+    public void setLocallyModifiedCount(final Integer locallyModifiedCount) {
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
@@ -288,7 +288,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return staleCount;
     }
 
-    public void setStaleCount(Integer staleCount) {
+    public void setStaleCount(final Integer staleCount) {
         this.staleCount = staleCount;
     }
 
@@ -297,7 +297,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return locallyModifiedAndStaleCount;
     }
 
-    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+    public void setLocallyModifiedAndStaleCount(final Integer locallyModifiedAndStaleCount) {
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
@@ -306,7 +306,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return syncFailureCount;
     }
 
-    public void setSyncFailureCount(Integer syncFailureCount) {
+    public void setSyncFailureCount(final Integer syncFailureCount) {
         this.syncFailureCount = syncFailureCount;
     }
 
@@ -315,7 +315,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return parameterContext;
     }
 
-    public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
+    public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
     }
 
@@ -326,7 +326,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         return processGroupUpdateStrategy;
     }
 
-    public void setProcessGroupUpdateStrategy(String processGroupUpdateStrategy) {
+    public void setProcessGroupUpdateStrategy(final String processGroupUpdateStrategy) {
         this.processGroupUpdateStrategy = processGroupUpdateStrategy;
     }
 }

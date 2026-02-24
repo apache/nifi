@@ -32,7 +32,7 @@ public enum FlowFileEventWriteStrategy implements DescribedValue {
     private String displayName;
     private String description;
 
-    FlowFileEventWriteStrategy(String displayName, String description) {
+    FlowFileEventWriteStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

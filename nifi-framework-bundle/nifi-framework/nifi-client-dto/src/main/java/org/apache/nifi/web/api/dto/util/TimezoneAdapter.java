@@ -38,14 +38,14 @@ public class TimezoneAdapter extends XmlAdapter<String, Date> {
     private static final ZoneId ZONE_ID = TimeZone.getDefault().toZoneId();
 
     @Override
-    public String marshal(Date date) throws Exception {
+    public String marshal(final Date date) throws Exception {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT, Locale.US);
         final ZonedDateTime localDateTime = ZonedDateTime.ofInstant(date.toInstant(), ZONE_ID);
         return formatter.format(localDateTime);
     }
 
     @Override
-    public Date unmarshal(String date) throws Exception {
+    public Date unmarshal(final String date) throws Exception {
         final LocalDateTime now = LocalDateTime.now();
         final DateTimeFormatter parser = new DateTimeFormatterBuilder().appendPattern(DEFAULT_DATE_TIME_FORMAT)
                 .parseDefaulting(ChronoField.YEAR, now.getYear())

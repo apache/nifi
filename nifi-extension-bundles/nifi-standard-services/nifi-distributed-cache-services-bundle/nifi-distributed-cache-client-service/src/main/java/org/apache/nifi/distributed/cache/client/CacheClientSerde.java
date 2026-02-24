@@ -54,7 +54,7 @@ public class CacheClientSerde {
     public static <T> Collection<byte[]> serialize(final Set<T> values, final Serializer<T> serializer) throws IOException {
         final Collection<byte[]> bytesValues = new ArrayList<>();
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
-        for (T value : values) {
+        for (final T value : values) {
             serializer.serialize(value, os);
             bytesValues.add(os.toByteArray());
             os.reset();

@@ -236,7 +236,7 @@ public class FTPCharsetIT {
         runnerList.run(1);
         runnerList.assertTransferCount(AbstractListProcessor.REL_SUCCESS, filenamesExpected.size());
         final List<MockFlowFile> flowFilesList = runnerList.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
-        for (MockFlowFile flowFile : flowFilesList) {
+        for (final MockFlowFile flowFile : flowFilesList) {
             filenamesExpected.remove(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         }
         assertTrue(filenamesExpected.isEmpty());
@@ -263,7 +263,7 @@ public class FTPCharsetIT {
         final List<MockFlowFile> flowFilesList = runnerList.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
         // FetchFTP
         final TestRunner runnerFetch = provisionTestRunner(FetchFTP.class);
-        for (MockFlowFile flowFile : flowFilesList) {
+        for (final MockFlowFile flowFile : flowFilesList) {
             runnerFetch.enqueue(flowFile);
         }
         runnerFetch.setProperty(FetchFTP.REMOTE_FILENAME, "${path}/${filename}");
@@ -275,7 +275,7 @@ public class FTPCharsetIT {
         final List<MockFlowFile> flowFilesFetch = runnerFetch.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
         // PutFTP
         final TestRunner runnerPut = provisionTestRunner(PutFTP.class);
-        for (MockFlowFile flowFile : flowFilesFetch) {
+        for (final MockFlowFile flowFile : flowFilesFetch) {
             runnerPut.enqueue(flowFile);
         }
         runnerPut.setValidateExpressionUsage(false);

@@ -178,7 +178,7 @@ public class TestLookupAttribute {
 
     private static class InvalidLookupService extends AbstractControllerService implements StringLookupService {
         @Override
-        public Optional<String> lookup(Map<String, Object> coordinates) {
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
             return Optional.empty();
         }
 
@@ -190,7 +190,7 @@ public class TestLookupAttribute {
 
     static class TestService extends AbstractControllerService implements StringLookupService {
         @Override
-        public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) {
+        public Optional<String> lookup(final Map<String, Object> coordinates, final Map<String, String> context) {
             assertNotNull(coordinates);
             assertNotNull(context);
             assertEquals(1, coordinates.size());
@@ -200,7 +200,7 @@ public class TestLookupAttribute {
         }
 
         @Override
-        public Optional<String> lookup(Map<String, Object> coordinates) {
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
             return Optional.empty();
         }
 

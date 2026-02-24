@@ -68,7 +68,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -81,7 +81,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -94,7 +94,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -109,7 +109,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -124,7 +124,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return schedulingPeriod;
     }
 
-    public void setSchedulingPeriod(String schedulingPeriod) {
+    public void setSchedulingPeriod(final String schedulingPeriod) {
         this.schedulingPeriod = schedulingPeriod;
     }
 
@@ -137,7 +137,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return persistsState;
     }
 
-    public void setPersistsState(Boolean persistsState) {
+    public void setPersistsState(final Boolean persistsState) {
         this.persistsState = persistsState;
     }
 
@@ -150,7 +150,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -163,7 +163,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -176,7 +176,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return isExtensionMissing;
     }
 
-    public void setExtensionMissing(Boolean extensionMissing) {
+    public void setExtensionMissing(final Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
     }
 
@@ -189,7 +189,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return multipleVersionsAvailable;
     }
 
-    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+    public void setMultipleVersionsAvailable(final Boolean multipleVersionsAvailable) {
         this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
@@ -216,7 +216,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -229,7 +229,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return schedulingStrategy;
     }
 
-    public void setSchedulingStrategy(String schedulingStrategy) {
+    public void setSchedulingStrategy(final String schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
     }
 
@@ -242,7 +242,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -255,7 +255,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -281,7 +281,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return customUiUrl;
     }
 
-    public void setCustomUiUrl(String customUiUrl) {
+    public void setCustomUiUrl(final String customUiUrl) {
         this.customUiUrl = customUiUrl;
     }
 
@@ -294,7 +294,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return annotationData;
     }
 
-    public void setAnnotationData(String annotationData) {
+    public void setAnnotationData(final String annotationData) {
         this.annotationData = annotationData;
     }
 
@@ -310,7 +310,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -321,7 +321,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 
@@ -334,7 +334,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return defaultSchedulingPeriod;
     }
 
-    public void setDefaultSchedulingPeriod(Map<String, String> defaultSchedulingPeriod) {
+    public void setDefaultSchedulingPeriod(final Map<String, String> defaultSchedulingPeriod) {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
     }
 
@@ -347,7 +347,7 @@ public class ReportingTaskDTO extends ComponentDTO {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 

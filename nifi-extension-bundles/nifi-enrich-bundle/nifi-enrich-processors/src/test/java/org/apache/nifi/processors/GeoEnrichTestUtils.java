@@ -115,8 +115,8 @@ public class GeoEnrichTestUtils {
                 .end()
                 .finish();
 
-        InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
-        ObjectMapper mapper = new ObjectMapper();
+        final InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         return mapper.readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
@@ -210,8 +210,8 @@ public class GeoEnrichTestUtils {
                 .end()
                 .finish();
 
-        InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
-        ObjectMapper mapper = new ObjectMapper();
+        final InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         return mapper.readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);

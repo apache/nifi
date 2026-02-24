@@ -209,7 +209,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     @Override
-    public List<ValidationResult> customValidate(ValidationContext validationContext) {
+    public List<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final long chunkUploadThreshold = validationContext.getProperty(CHUNKED_UPLOAD_THRESHOLD)
@@ -295,11 +295,11 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 session.getProvenanceReporter().send(flowFile, url, transferMillis);
             }
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (GoogleJsonResponseException e) {
+        } catch (final GoogleJsonResponseException e) {
             getLogger().error("Exception occurred while uploading File [{}] to [{}] Google Drive Folder", filename,
                     folderId, e);
             handleExpectedError(session, flowFile, e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Exception occurred while uploading File [{}] to [{}] Google Drive Folder", filename,
                     folderId, e);
 
@@ -321,7 +321,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_CONNECT_TIMEOUT_PROPERTY_NAME, CONNECT_TIMEOUT.getName());
         config.renameProperty(OLD_READ_TIMEOUT_PROPERTY_NAME, READ_TIMEOUT.getName());
         config.renameProperty("folder-id", FOLDER_ID.getName());
@@ -333,14 +333,14 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
-    private FlowFile addAttributes(File file, FlowFile flowFile, ProcessSession session) {
+    private FlowFile addAttributes(final File file, final FlowFile flowFile, final ProcessSession session) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ID, file.getId());
         attributes.put(FILENAME, file.getName());
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private DriveRequest<File> createDriveRequest(File fileMetadata, final InputStreamContent mediaContent) throws IOException {
+    private DriveRequest<File> createDriveRequest(final File fileMetadata, final InputStreamContent mediaContent) throws IOException {
         if (fileMetadata.getId() == null) {
             return driveService.files()
                     .create(fileMetadata, mediaContent)
@@ -354,7 +354,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         }
     }
 
-    private File uploadFileInChunks(DriveRequest<File> driveRequest, File fileMetadata, final int chunkSize, final InputStreamContent mediaContent) throws IOException {
+    private File uploadFileInChunks(final DriveRequest<File> driveRequest, final File fileMetadata, final int chunkSize, final InputStreamContent mediaContent) throws IOException {
         final HttpResponse response = driveRequest
                 .getMediaHttpUploader()
                 .setChunkSize(chunkSize)
@@ -387,7 +387,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         return metadata;
     }
 
-    private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
+    private Optional<File> checkFileExistence(final String fileName, final String parentId) throws IOException {
         final FileList result = driveService.files() //NOPMD
                 .list()
                 .setSupportsAllDrives(true)
@@ -400,17 +400,17 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 .findFirst();
     }
 
-    private void handleUnexpectedError(final ProcessSession session, FlowFile flowFile, final Exception e) {
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+    private void handleUnexpectedError(final ProcessSession session, final FlowFile flowFile, final Exception e) {
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 
-    private void handleExpectedError(final ProcessSession session, FlowFile flowFile, final GoogleJsonResponseException e) {
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_CODE, valueOf(e.getStatusCode()));
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+    private void handleExpectedError(final ProcessSession session, final FlowFile flowFile, final GoogleJsonResponseException e) {
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.putAttribute(updatedFlowFile, GoogleDriveAttributes.ERROR_CODE, valueOf(e.getStatusCode()));
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 
     private static Validator createChunkSizeValidator() {

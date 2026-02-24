@@ -32,7 +32,7 @@ public class SerializationExceptionMapper implements ExceptionMapper<Serializati
     private static final Logger logger = LoggerFactory.getLogger(SerializationExceptionMapper.class);
 
     @Override
-    public Response toResponse(SerializationException exception) {
+    public Response toResponse(final SerializationException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.INTERNAL_SERVER_ERROR);
 

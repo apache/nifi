@@ -146,16 +146,16 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         return getRecordSetWriterFactory(variables).getSchema(variables, readSchema);
     }
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
+    public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final Map<String, String> variables) throws SchemaNotFoundException, IOException {
         return getRecordSetWriterFactory(variables).createWriter(logger, schema, out, variables);
     }
 
-    private RecordSetWriterFactory getRecordSetWriterFactory(Map<String, String> variables) {
+    private RecordSetWriterFactory getRecordSetWriterFactory(final Map<String, String> variables) {
         final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
         if (serviceName.isBlank()) {
             throw new ProcessException("Unable to determine which Record Writer to use: after evaluating the property value against supplied variables, got an empty value");

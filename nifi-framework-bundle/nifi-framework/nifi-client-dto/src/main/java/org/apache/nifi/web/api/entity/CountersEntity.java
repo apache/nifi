@@ -34,7 +34,7 @@ public class CountersEntity extends Entity {
         return counters;
     }
 
-    public void setCounters(CountersDTO counters) {
+    public void setCounters(final CountersDTO counters) {
         this.counters = counters;
     }
 

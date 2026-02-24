@@ -40,7 +40,7 @@ public class PasteResponseEntity extends Entity {
         return flow;
     }
 
-    public void setFlow(FlowDTO flow) {
+    public void setFlow(final FlowDTO flow) {
         this.flow = flow;
     }
 
@@ -53,7 +53,7 @@ public class PasteResponseEntity extends Entity {
         return revision;
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
 }

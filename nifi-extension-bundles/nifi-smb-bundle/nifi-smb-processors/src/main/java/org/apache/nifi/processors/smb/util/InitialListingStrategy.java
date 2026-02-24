@@ -27,7 +27,7 @@ public enum InitialListingStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    InitialListingStrategy(String displayName, String description) {
+    InitialListingStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

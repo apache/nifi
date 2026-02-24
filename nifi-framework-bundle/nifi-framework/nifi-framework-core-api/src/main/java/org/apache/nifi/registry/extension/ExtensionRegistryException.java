@@ -21,11 +21,11 @@ package org.apache.nifi.registry.extension;
  */
 public class ExtensionRegistryException extends Exception {
 
-    public ExtensionRegistryException(String message) {
+    public ExtensionRegistryException(final String message) {
         super(message);
     }
 
-    public ExtensionRegistryException(String message, Throwable cause) {
+    public ExtensionRegistryException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

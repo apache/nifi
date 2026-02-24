@@ -64,8 +64,8 @@ public class AbstractHadoopTest {
 
     @Test
     public void testErrorConditions() {
-        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(true);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(true);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -90,8 +90,8 @@ public class AbstractHadoopTest {
 
     @Test
     public void testTimeoutDetection() {
-        SimpleHadoopProcessor processor = new SimpleHadoopProcessor(true);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(true);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         assertThrows(IOException.class, () -> {
             final File brokenCoreSite = new File("src/test/resources/core-site-broken.xml");
             final ResourceReference brokenCoreSiteReference = new FileResourceReference(brokenCoreSite);
@@ -104,7 +104,7 @@ public class AbstractHadoopTest {
     @Test
     public void testLocalFileSystemInvalid() {
         final SimpleHadoopProcessor processor = new SimpleHadoopProcessor(true);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
 
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
@@ -120,10 +120,10 @@ public class AbstractHadoopTest {
 
     @Test
     public void testGetNormalizedPathWithoutFileSystem() throws URISyntaxException {
-        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container1@storageaccount1");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "/dir1");
+        final AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container1@storageaccount1");
+        final TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "/dir1");
 
-        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+        final Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir1", path.toString());
         assertTrue(runner.getLogger().getWarnMessages().isEmpty());
@@ -131,10 +131,10 @@ public class AbstractHadoopTest {
 
     @Test
     public void testGetNormalizedPathWithCorrectFileSystem() throws URISyntaxException {
-        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container2@storageaccount2");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container2@storageaccount2/dir2");
+        final AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container2@storageaccount2");
+        final TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container2@storageaccount2/dir2");
 
-        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+        final Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir2", path.toString());
         assertTrue(runner.getLogger().getWarnMessages().isEmpty());
@@ -142,10 +142,10 @@ public class AbstractHadoopTest {
 
     @Test
     public void testGetNormalizedPathWithIncorrectScheme() throws URISyntaxException {
-        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container3@storageaccount3");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs://container3@storageaccount3/dir3");
+        final AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container3@storageaccount3");
+        final TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs://container3@storageaccount3/dir3");
 
-        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+        final Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir3", path.toString());
         assertFalse(runner.getLogger().getWarnMessages().isEmpty());
@@ -153,10 +153,10 @@ public class AbstractHadoopTest {
 
     @Test
     public void testGetNormalizedPathWithIncorrectAuthority() throws URISyntaxException {
-        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container4@storageaccount4");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container*@storageaccount*/dir4");
+        final AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container4@storageaccount4");
+        final TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container*@storageaccount*/dir4");
 
-        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+        final Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir4", path.toString());
         assertFalse(runner.getLogger().getWarnMessages().isEmpty());
@@ -164,16 +164,16 @@ public class AbstractHadoopTest {
 
     @Test
     public void testGetNormalizedPathWithoutAuthority() throws URISyntaxException {
-        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("hdfs://myhost:9000");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs:///dir5");
+        final AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("hdfs://myhost:9000");
+        final TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs:///dir5");
 
-        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+        final Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir5", path.toString());
         assertTrue(runner.getLogger().getWarnMessages().isEmpty());
     }
 
-    private AbstractHadoopProcessor initProcessorForTestGetNormalizedPath(String fileSystemUri) throws URISyntaxException {
+    private AbstractHadoopProcessor initProcessorForTestGetNormalizedPath(final String fileSystemUri) throws URISyntaxException {
         final FileSystem fileSystem = mock(FileSystem.class);
         when(fileSystem.getUri()).thenReturn(new URI(fileSystemUri));
 
@@ -185,7 +185,7 @@ public class AbstractHadoopTest {
         };
     }
 
-    private TestRunner initTestRunnerForTestGetNormalizedPath(AbstractHadoopProcessor processor, String directory) {
+    private TestRunner initTestRunnerForTestGetNormalizedPath(final AbstractHadoopProcessor processor, final String directory) {
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractHadoopProcessor.DIRECTORY, directory);
 

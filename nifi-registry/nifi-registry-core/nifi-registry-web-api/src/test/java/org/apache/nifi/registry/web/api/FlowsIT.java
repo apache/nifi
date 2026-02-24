@@ -118,7 +118,7 @@ public class FlowsIT extends UnsecuredITBase {
 
         // Given: an empty bucket with id "3" (see FlowsIT.sql)
 
-        long testStartTime = System.currentTimeMillis();
+        final long testStartTime = System.currentTimeMillis();
         final String bucketId = "3";
 
         // When: a flow is created
@@ -409,7 +409,7 @@ public class FlowsIT extends UnsecuredITBase {
 
         // Given: an empty Bucket "3" (see FlowsIT.sql) with a newly created flow
 
-        long testStartTime = System.currentTimeMillis();
+        final long testStartTime = System.currentTimeMillis();
         final String bucketId = "2";
         final VersionedFlow flow = new VersionedFlow();
         flow.setBucketIdentifier(bucketId);
@@ -434,7 +434,7 @@ public class FlowsIT extends UnsecuredITBase {
         flowSnapshot.setSnapshotMetadata(flowSnapshotMetadata);
         flowSnapshot.setFlowContents(new VersionedProcessGroup()); // an empty root process group
 
-        WebTarget clientRequestTarget = client
+        final WebTarget clientRequestTarget = client
                 .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
                 .resolveTemplate("bucketId", bucketId)
                 .resolveTemplate("flowId", flowId);
@@ -533,7 +533,7 @@ public class FlowsIT extends UnsecuredITBase {
         // saving the flow to bucket 1 should not work because there is a flow with the same name
         flow.setBucketIdentifier("1");
 
-        WebApplicationException e = assertThrows(WebApplicationException.class, () -> client.target(createURL("buckets/1/flows"))
+        final WebApplicationException e = assertThrows(WebApplicationException.class, () -> client.target(createURL("buckets/1/flows"))
                 .resolveTemplate("bucketId", bucketId)
                 .request()
                 .post(Entity.entity(flow, MediaType.APPLICATION_JSON), VersionedFlow.class));
@@ -628,7 +628,7 @@ public class FlowsIT extends UnsecuredITBase {
         // Imported Bucket id = 3
         final String importedBucketId = importedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier();
 
-        WebTarget clientRequestTarget = client
+        final WebTarget clientRequestTarget = client
                 .target(createURL("buckets/{bucketId}/flows/{flowId}/versions/import"))
                 .resolveTemplate("bucketId", importedBucketId)
                 .resolveTemplate("flowId", importedFlowId);

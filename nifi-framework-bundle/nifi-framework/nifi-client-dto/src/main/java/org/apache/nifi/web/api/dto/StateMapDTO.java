@@ -40,7 +40,7 @@ public class StateMapDTO {
         return scope;
     }
 
-    public void setScope(String scope) {
+    public void setScope(final String scope) {
         this.scope = scope;
     }
 
@@ -53,7 +53,7 @@ public class StateMapDTO {
         return totalEntryCount;
     }
 
-    public void setTotalEntryCount(int totalEntryCount) {
+    public void setTotalEntryCount(final int totalEntryCount) {
         this.totalEntryCount = totalEntryCount;
     }
 
@@ -66,7 +66,7 @@ public class StateMapDTO {
         return state;
     }
 
-    public void setState(List<StateEntryDTO> state) {
+    public void setState(final List<StateEntryDTO> state) {
         this.state = state;
     }
 

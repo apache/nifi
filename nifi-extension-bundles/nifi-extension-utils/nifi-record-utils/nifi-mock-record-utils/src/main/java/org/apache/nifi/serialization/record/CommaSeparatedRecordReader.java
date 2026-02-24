@@ -56,7 +56,7 @@ public class CommaSeparatedRecordReader extends AbstractControllerService implem
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
         final List<RecordField> fields = new ArrayList<>();

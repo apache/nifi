@@ -84,7 +84,7 @@ class S3FileResourceServiceTest {
         setupS3Client();
         setupService();
 
-        FileResource fileResource = service.getFileResource(Map.of());
+        final FileResource fileResource = service.getFileResource(Map.of());
         assertFileResource(fileResource);
     }
 
@@ -109,18 +109,18 @@ class S3FileResourceServiceTest {
 
     @Test
     void testValidBlobUsingEL() throws InitializationException {
-        String bucketProperty = "s3.bucket";
-        String keyProperty = "key";
+        final String bucketProperty = "s3.bucket";
+        final String keyProperty = "key";
         setupService("${" + bucketProperty + "}", "${" + keyProperty + "}");
         setupS3Client();
 
-        FileResource fileResource = service.getFileResource(Map.of(
+        final FileResource fileResource = service.getFileResource(Map.of(
                 bucketProperty, BUCKET_NAME,
                 keyProperty, KEY));
         assertFileResource(fileResource);
     }
 
-    private void assertFileResource(FileResource fileResource) {
+    private void assertFileResource(final FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), responseStream);
         assertEquals(fileResource.getSize(), CONTENT_LENGTH);
@@ -133,7 +133,7 @@ class S3FileResourceServiceTest {
         setupService(BUCKET_NAME, KEY);
     }
 
-    private void setupService(String bucket, String key) throws InitializationException {
+    private void setupService(final String bucket, final String key) throws InitializationException {
         final AwsCredentialsProviderService credentialsService = new AWSCredentialsProviderControllerService();
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsService);
@@ -156,12 +156,12 @@ class S3FileResourceServiceTest {
 
         private final S3Client client;
 
-        private TestS3FileResourceService(S3Client client) {
+        private TestS3FileResourceService(final S3Client client) {
             this.client = client;
         }
 
         @Override
-        protected S3Client getS3Client(Map<String, String> attributes, AwsCredentialsProvider credentialsProvider) {
+        protected S3Client getS3Client(final Map<String, String> attributes, final AwsCredentialsProvider credentialsProvider) {
             return client;
         }
     }

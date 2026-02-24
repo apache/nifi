@@ -60,16 +60,16 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
     ).toList();
 
     @Override
-    protected ImapMailReceiver buildMessageReceiver(ProcessContext processContext) {
-        ImapMailReceiver receiver = new ImapMailReceiver(this.buildUrl(processContext));
-        boolean shouldMarkAsRead = processContext.getProperty(SHOULD_MARK_READ).asBoolean();
+    protected ImapMailReceiver buildMessageReceiver(final ProcessContext processContext) {
+        final ImapMailReceiver receiver = new ImapMailReceiver(this.buildUrl(processContext));
+        final boolean shouldMarkAsRead = processContext.getProperty(SHOULD_MARK_READ).asBoolean();
         receiver.setShouldMarkMessagesAsRead(shouldMarkAsRead);
         receiver.setShouldDeleteMessages(processContext.getProperty(AbstractEmailProcessor.SHOULD_DELETE_MESSAGES).asBoolean());
         return receiver;
     }
 
     @Override
-    protected String getProtocol(ProcessContext processContext) {
+    protected String getProtocol(final ProcessContext processContext) {
         return processContext.getProperty(USE_SSL).asBoolean() ? "imaps" : "imap";
     }
 

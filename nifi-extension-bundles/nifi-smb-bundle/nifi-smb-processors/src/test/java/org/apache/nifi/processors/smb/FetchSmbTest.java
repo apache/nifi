@@ -105,7 +105,7 @@ class FetchSmbTest {
     public void noSuchAttributeReferencedInELShouldResultInFailure() throws Exception {
         final TestRunner testRunner = createRunner();
         mockNifiSmbClientService();
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("different_field_name_than_what_EL_expect", "testDirectory/cannotFindThis");
         testRunner.enqueue("ignore", attributes);
         testRunner.run();

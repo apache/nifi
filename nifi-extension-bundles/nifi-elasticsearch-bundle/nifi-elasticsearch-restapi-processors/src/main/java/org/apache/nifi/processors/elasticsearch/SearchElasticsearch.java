@@ -158,7 +158,7 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("restart-on-finish", RESTART_ON_FINISH.getName());
     }

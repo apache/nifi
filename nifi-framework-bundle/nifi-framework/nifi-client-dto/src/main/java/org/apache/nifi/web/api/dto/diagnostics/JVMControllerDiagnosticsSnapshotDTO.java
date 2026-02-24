@@ -31,7 +31,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         return primaryNode;
     }
 
-    public void setPrimaryNode(Boolean primaryNode) {
+    public void setPrimaryNode(final Boolean primaryNode) {
         this.primaryNode = primaryNode;
     }
 
@@ -40,7 +40,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         return clusterCoordinator;
     }
 
-    public void setClusterCoordinator(Boolean clusterCoordinator) {
+    public void setClusterCoordinator(final Boolean clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
 
@@ -49,7 +49,7 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         return maxTimerDrivenThreads;
     }
 
-    public void setMaxTimerDrivenThreads(Integer maxTimerDrivenThreads) {
+    public void setMaxTimerDrivenThreads(final Integer maxTimerDrivenThreads) {
         this.maxTimerDrivenThreads = maxTimerDrivenThreads;
     }
 

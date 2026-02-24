@@ -22,7 +22,7 @@ import java.nio.ByteOrder;
 public class ByteBufferReader {
     private final ByteBuffer buffer;
 
-    public ByteBufferReader(byte[] byteArray) {
+    public ByteBufferReader(final byte[] byteArray) {
         this.buffer = ByteBuffer.wrap(byteArray);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
     }
@@ -39,13 +39,13 @@ public class ByteBufferReader {
         return buffer.getInt();
     }
 
-    public byte[] readBytes(int n) {
-        byte[] output = new byte[n];
+    public byte[] readBytes(final int n) {
+        final byte[] output = new byte[n];
         buffer.get(output);
         return output;
     }
 
-    public byte[] readBytes(long n) {
+    public byte[] readBytes(final long n) {
         return readBytes((int) n);
     }
 

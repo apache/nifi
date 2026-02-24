@@ -22,9 +22,9 @@ import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
-                                                          StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
-                                                          long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(final FlowManager flowManager, final StatusHistoryRepository statusRepository,
+                                                          final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+                                                          final long predictIntervalMillis, final long queryIntervalMillis, final String scoreName, final double scoreThreshold) {
         return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory,
                                                    DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_QUERY_INTERVAL_MILLIS, scoreName, scoreThreshold);
     }

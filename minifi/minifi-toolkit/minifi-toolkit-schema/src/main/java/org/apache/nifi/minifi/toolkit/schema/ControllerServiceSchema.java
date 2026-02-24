@@ -33,9 +33,9 @@ public class ControllerServiceSchema extends BaseSchemaWithIdAndName {
     private String annotationData = "";
     private String serviceClass;
 
-    public ControllerServiceSchema(Map map) {
+    public ControllerServiceSchema(final Map map) {
         super(map, "Controller Service(id: {id}, name: {name})");
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
         serviceClass = getRequiredKeyAsType(map, TYPE_KEY, String.class, wrapperName);
         properties = getOptionalKeyAsType(map, PROPERTIES_KEY, Map.class, wrapperName, DEFAULT_PROPERTIES);
         annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, wrapperName, "");
@@ -43,7 +43,7 @@ public class ControllerServiceSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(TYPE_KEY, serviceClass);
         result.put(PROPERTIES_KEY, new TreeMap<>(properties));
 

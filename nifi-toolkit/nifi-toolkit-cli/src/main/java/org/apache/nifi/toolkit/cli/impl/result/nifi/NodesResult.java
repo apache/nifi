@@ -34,7 +34,7 @@ public class NodesResult extends AbstractWritableResult<ClusterEntity> {
 
     private final ClusterEntity clusterEntity;
 
-    public NodesResult(ResultType resultType, ClusterEntity clusterEntity) {
+    public NodesResult(final ResultType resultType, final ClusterEntity clusterEntity) {
         super(resultType);
         this.clusterEntity = Objects.requireNonNull(clusterEntity);
     }
@@ -45,7 +45,7 @@ public class NodesResult extends AbstractWritableResult<ClusterEntity> {
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         final Table table = new Table.Builder()
                 .column("#", 3, 3, false)
                 .column("Node ID", 36, 36, false)
@@ -54,9 +54,9 @@ public class NodesResult extends AbstractWritableResult<ClusterEntity> {
                 .column("Node Status", 13, 13, false)
                 .build();
 
-        List<NodeDTO> nodes = Lists.newArrayList(clusterEntity.getCluster().getNodes());
+        final List<NodeDTO> nodes = Lists.newArrayList(clusterEntity.getCluster().getNodes());
         for (int i = 0; i < nodes.size(); ++i) {
-            NodeDTO nodeDTO = nodes.get(i);
+            final NodeDTO nodeDTO = nodes.get(i);
             table.addRow(String.valueOf(i), nodeDTO.getNodeId(), nodeDTO.getAddress(), String.valueOf(nodeDTO.getApiPort()), nodeDTO.getStatus());
         }
 

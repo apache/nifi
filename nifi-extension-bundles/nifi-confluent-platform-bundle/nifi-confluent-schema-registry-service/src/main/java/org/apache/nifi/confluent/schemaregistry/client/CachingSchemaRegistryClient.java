@@ -61,7 +61,7 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, int version) {
+    public RecordSchema getSchema(final String schemaName, final int version) {
         return nameVersionCache.get(Pair.of(schemaName, version));
     }
 

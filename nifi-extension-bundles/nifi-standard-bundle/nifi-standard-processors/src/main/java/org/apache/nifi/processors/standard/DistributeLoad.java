@@ -337,7 +337,7 @@ public class DistributeLoad extends AbstractProcessor {
             Relationship relationship = null;
             // Getting set of available relationships only once. This may miss a relationship that recently became available, but
             // overall is more efficient than re-calling for every relationship evaluation
-            Set<Relationship> availableRelationships = context.getAvailableRelationships();
+            final Set<Relationship> availableRelationships = context.getAvailableRelationships();
 
             int weightedIndex = 0;
             while (!foundFreeRelationship) {

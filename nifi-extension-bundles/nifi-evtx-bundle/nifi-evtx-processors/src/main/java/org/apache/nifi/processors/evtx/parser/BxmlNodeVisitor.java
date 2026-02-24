@@ -43,79 +43,79 @@ import java.io.IOException;
  * Visitor interface for traversing a RootNode
  */
 public interface BxmlNodeVisitor {
-    default void visit(RootNode rootNode) throws IOException {
+    default void visit(final RootNode rootNode) throws IOException {
 
     }
 
-    default void visit(TemplateInstanceNode templateInstanceNode) throws IOException {
+    default void visit(final TemplateInstanceNode templateInstanceNode) throws IOException {
 
     }
 
-    default void visit(TemplateNode templateNode) throws IOException {
+    default void visit(final TemplateNode templateNode) throws IOException {
 
     }
 
-    default void visit(ValueNode valueNode) throws IOException {
+    default void visit(final ValueNode valueNode) throws IOException {
 
     }
 
-    default void visit(StreamStartNode streamStartNode) throws IOException {
+    default void visit(final StreamStartNode streamStartNode) throws IOException {
 
     }
 
-    default void visit(ProcessingInstructionTargetNode processingInstructionTargetNode) throws IOException {
+    default void visit(final ProcessingInstructionTargetNode processingInstructionTargetNode) throws IOException {
 
     }
 
-    default void visit(ProcessingInstructionDataNode processingInstructionDataNode) throws IOException {
+    default void visit(final ProcessingInstructionDataNode processingInstructionDataNode) throws IOException {
 
     }
 
-    default void visit(OpenStartElementNode openStartElementNode) throws IOException {
+    default void visit(final OpenStartElementNode openStartElementNode) throws IOException {
 
     }
 
-    default void visit(NormalSubstitutionNode normalSubstitutionNode) throws IOException {
+    default void visit(final NormalSubstitutionNode normalSubstitutionNode) throws IOException {
 
     }
 
-    default void visit(NameStringNode nameStringNode) throws IOException {
+    default void visit(final NameStringNode nameStringNode) throws IOException {
 
     }
 
-    default void visit(EntityReferenceNode entityReferenceNode) throws IOException {
+    default void visit(final EntityReferenceNode entityReferenceNode) throws IOException {
 
     }
 
-    default void visit(EndOfStreamNode endOfStreamNode) throws IOException {
+    default void visit(final EndOfStreamNode endOfStreamNode) throws IOException {
 
     }
 
-    default void visit(ConditionalSubstitutionNode conditionalSubstitutionNode) throws IOException {
+    default void visit(final ConditionalSubstitutionNode conditionalSubstitutionNode) throws IOException {
 
     }
 
-    default void visit(CloseStartElementNode closeStartElementNode) throws IOException {
+    default void visit(final CloseStartElementNode closeStartElementNode) throws IOException {
 
     }
 
-    default void visit(CloseEmptyElementNode closeEmptyElementNode) throws IOException {
+    default void visit(final CloseEmptyElementNode closeEmptyElementNode) throws IOException {
 
     }
 
-    default void visit(CloseElementNode closeElementNode) throws IOException {
+    default void visit(final CloseElementNode closeElementNode) throws IOException {
 
     }
 
-    default void visit(CDataSectionNode cDataSectionNode) throws IOException {
+    default void visit(final CDataSectionNode cDataSectionNode) throws IOException {
 
     }
 
-    default void visit(AttributeNode attributeNode) throws IOException {
+    default void visit(final AttributeNode attributeNode) throws IOException {
 
     }
 
-    default void visit(VariantTypeNode variantTypeNode) throws IOException {
+    default void visit(final VariantTypeNode variantTypeNode) throws IOException {
 
     }
 }

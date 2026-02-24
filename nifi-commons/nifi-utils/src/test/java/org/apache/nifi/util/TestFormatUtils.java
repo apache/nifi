@@ -39,7 +39,7 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantUsingFormatterWithoutZones")
-    public void testParseToInstantUsingFormatterWithoutZones(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) {
+    public void testParseToInstantUsingFormatterWithoutZones(final String pattern, final String parsedDateTime, final String systemDefaultZoneId, final String expectedUtcDateTime) {
         checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
     }
 
@@ -69,13 +69,14 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantUsingFormatterWithZone")
-    public void testParseToInstantUsingFormatterWithZone(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) {
+    public void testParseToInstantUsingFormatterWithZone(final String pattern, final String parsedDateTime,
+            final String systemDefaultZoneId, final String formatZoneId, final String expectedUtcDateTime) {
         checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, formatZoneId, expectedUtcDateTime);
     }
 
     private static Stream<Arguments> getParseToInstantUsingFormatterWithZone() {
-        String pattern = "yyyy-MM-dd HH:mm:ss";
-        String parsedDateTime = "2020-01-01 02:00:00";
+        final String pattern = "yyyy-MM-dd HH:mm:ss";
+        final String parsedDateTime = "2020-01-01 02:00:00";
         return Stream.of(Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
             Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
             Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"),
@@ -89,14 +90,14 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getFormatDataSize")
-    public void testFormatDataSize(double dataSize, String expected) {
+    public void testFormatDataSize(final double dataSize, final String expected) {
         assertEquals(expected, FormatUtils.formatDataSize(dataSize));
     }
 
     private static Stream<Arguments> getFormatDataSize() {
-        DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
-        char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
-        char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
+        final DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
+        final char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
+        final char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
 
         return Stream.of(Arguments.of(0d, "0 bytes"),
             Arguments.of(10.4d, String.format("10%s4 bytes", decimalSeparator)),
@@ -111,7 +112,7 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getFormatNanos")
-    public void testFormatNanos(long nanos, boolean includeTotalNanos, String expected) {
+    public void testFormatNanos(final long nanos, final boolean includeTotalNanos, final String expected) {
         assertEquals(expected, FormatUtils.formatNanos(nanos, includeTotalNanos));
     }
 
@@ -132,12 +133,12 @@ public class TestFormatUtils {
 
     @ParameterizedTest
     @MethodSource("getParseToInstantWithZonePassedInText")
-    public void testParseToInstantWithZonePassedInText(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) {
+    public void testParseToInstantWithZonePassedInText(final String pattern, final String parsedDateTime, final String systemDefaultZoneId, final String expectedUtcDateTime) {
         checkSameResultsWithFormatter(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
     }
 
     private static Stream<Arguments> getParseToInstantWithZonePassedInText() {
-        String pattern = "yyyy-MM-dd HH:mm:ss Z";
+        final String pattern = "yyyy-MM-dd HH:mm:ss Z";
         return Stream.of(Arguments.of(pattern, "2020-01-01 02:00:00 -0100", NEW_YORK_TIME_ZONE_ID, "2020-01-01T03:00:00"),
             Arguments.of(pattern, "2020-01-01 02:00:00 +0100", NEW_YORK_TIME_ZONE_ID, "2020-01-01T01:00:00"),
             Arguments.of(pattern, "2020-01-01 02:00:00 +0000", NEW_YORK_TIME_ZONE_ID, "2020-01-01T02:00:00"),
@@ -149,8 +150,8 @@ public class TestFormatUtils {
             Arguments.of(pattern, "2020-01-01 02:00:00 +0000", UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"));
     }
 
-    private void checkSameResultsWithFormatter(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) {
-        TimeZone current = TimeZone.getDefault();
+    private void checkSameResultsWithFormatter(final String pattern, final String parsedDateTime, final String systemDefaultZoneId, final String formatZoneId, final String expectedUtcDateTime) {
+        final TimeZone current = TimeZone.getDefault();
         TimeZone.setDefault(TimeZone.getTimeZone(systemDefaultZoneId));
         try {
             checkSameResultsWithFormatter(pattern, parsedDateTime, formatZoneId, expectedUtcDateTime);
@@ -159,21 +160,21 @@ public class TestFormatUtils {
         }
     }
 
-    private void checkSameResultsWithFormatter(String pattern, String parsedDateTime, String formatterZoneId, String expectedUtcDateTime) {
-        Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
+    private void checkSameResultsWithFormatter(final String pattern, final String parsedDateTime, final String formatterZoneId, final String expectedUtcDateTime) {
+        final Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
 
         // current implementation
         DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(pattern);
         if (formatterZoneId != null) {
             dtf = dtf.withZone(ZoneId.of(formatterZoneId));
         }
-        Instant result = FormatUtils.parseToInstant(dtf, parsedDateTime);
+        final Instant result = FormatUtils.parseToInstant(dtf, parsedDateTime);
         assertEquals(expectedInstant, result);
     }
 
     @ParameterizedTest
     @MethodSource("getFormatTime")
-    public void testFormatTime(long sourceDuration, TimeUnit sourceUnit, String expected) {
+    public void testFormatTime(final long sourceDuration, final TimeUnit sourceUnit, final String expected) {
         assertEquals(expected, FormatUtils.formatHoursMinutesSeconds(sourceDuration, sourceUnit));
     }
 

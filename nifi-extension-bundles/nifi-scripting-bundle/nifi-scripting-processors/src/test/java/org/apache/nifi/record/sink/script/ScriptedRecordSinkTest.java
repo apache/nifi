@@ -50,28 +50,28 @@ public class ScriptedRecordSinkTest {
 
     @Test
     public void testRecordFormat() throws IOException, InitializationException {
-        MockScriptedRecordSink task = initTask();
+        final MockScriptedRecordSink task = initTask();
 
-        List<RecordField> recordFields = Arrays.asList(
+        final List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
                 new RecordField("field2", RecordFieldType.STRING.getDataType())
         );
-        RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+        final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
-        Map<String, Object> row1 = new HashMap<>();
+        final Map<String, Object> row1 = new HashMap<>();
         row1.put("field1", 15);
         row1.put("field2", "Hello");
 
-        Map<String, Object> row2 = new HashMap<>();
+        final Map<String, Object> row2 = new HashMap<>();
         row2.put("field1", 6);
         row2.put("field2", "World!");
 
-        RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
+        final RecordSet recordSet = new ListRecordSet(recordSchema, Arrays.asList(
                 new MapRecord(recordSchema, row1),
                 new MapRecord(recordSchema, row2)
         ));
 
-        WriteResult writeResult = task.sendData(recordSet, new HashMap<>(), false);
+        final WriteResult writeResult = task.sendData(recordSet, new HashMap<>(), false);
         // Verify the attribute was added by the scripted RecordSinkService
         assertEquals("I am now set.", writeResult.getAttributes().get("newAttr"));
         assertEquals(2, writeResult.getRecordCount());

@@ -68,8 +68,8 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -93,13 +93,13 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip.geo.city"));
         assertEquals("44.98", finishedFound.getAttribute("ip.geo.latitude"));
@@ -129,13 +129,13 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip.geo.city"));
         assertNull(finishedFound.getAttribute("ip.geo.latitude"));
@@ -166,13 +166,13 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip0.geo.lookup.micros"));
         assertEquals("Minneapolis", finishedFound.getAttribute("ip0.geo.city"));
         assertNull(finishedFound.getAttribute("ip0.geo.latitude"));
@@ -200,8 +200,8 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -221,8 +221,8 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -242,8 +242,8 @@ public class TestGeoEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -266,8 +266,8 @@ public class TestGeoEnrichIP {
             testRunner.run();
         }
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(GeoEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -279,7 +279,7 @@ public class TestGeoEnrichIP {
     class TestableGeoEnrichIP extends GeoEnrichIP {
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) {
+        public void onScheduled(final ProcessContext context) {
             databaseReaderRef.set(databaseReader);
         }
 

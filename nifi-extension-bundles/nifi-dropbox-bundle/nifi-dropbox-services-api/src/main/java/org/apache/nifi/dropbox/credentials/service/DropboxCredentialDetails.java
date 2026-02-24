@@ -22,7 +22,7 @@ public class DropboxCredentialDetails {
     private final String accessToken;
     private final String refreshToken;
 
-    public DropboxCredentialDetails(String appKey, String appSecret, String accessToken, String refreshToken) {
+    public DropboxCredentialDetails(final String appKey, final String appSecret, final String accessToken, final String refreshToken) {
         this.appKey = appKey;
         this.appSecret = appSecret;
         this.accessToken = accessToken;

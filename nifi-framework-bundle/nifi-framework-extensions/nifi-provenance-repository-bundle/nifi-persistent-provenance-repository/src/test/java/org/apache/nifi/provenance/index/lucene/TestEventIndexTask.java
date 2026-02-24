@@ -68,7 +68,7 @@ public class TestEventIndexTask {
         // many times the index writer gets committed.
         final EventIndexTask task = new EventIndexTask(docQueue, indexManager, directoryManager, 201, EventReporter.NO_OP) {
             @Override
-            protected void commit(EventIndexWriter indexWriter) {
+            protected void commit(final EventIndexWriter indexWriter) {
                 commitCount.incrementAndGet();
             }
         };

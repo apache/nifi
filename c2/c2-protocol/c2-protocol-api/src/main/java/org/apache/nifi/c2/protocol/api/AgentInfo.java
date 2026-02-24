@@ -36,7 +36,7 @@ public class AgentInfo implements Serializable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -45,7 +45,7 @@ public class AgentInfo implements Serializable {
         return agentClass;
     }
 
-    public void setAgentClass(String agentClass) {
+    public void setAgentClass(final String agentClass) {
         this.agentClass = agentClass;
     }
 
@@ -54,7 +54,7 @@ public class AgentInfo implements Serializable {
         return this.agentManifestHash;
     }
 
-    public void setAgentManifestHash(String agentManifestHash) {
+    public void setAgentManifestHash(final String agentManifestHash) {
         this.agentManifestHash = agentManifestHash;
     }
 
@@ -63,7 +63,7 @@ public class AgentInfo implements Serializable {
         return agentManifest;
     }
 
-    public void setAgentManifest(RuntimeManifest runtimeManifest) {
+    public void setAgentManifest(final RuntimeManifest runtimeManifest) {
         this.agentManifest = runtimeManifest;
     }
 
@@ -72,7 +72,7 @@ public class AgentInfo implements Serializable {
         return status;
     }
 
-    public void setStatus(AgentStatus status) {
+    public void setStatus(final AgentStatus status) {
         this.status = status;
     }
 

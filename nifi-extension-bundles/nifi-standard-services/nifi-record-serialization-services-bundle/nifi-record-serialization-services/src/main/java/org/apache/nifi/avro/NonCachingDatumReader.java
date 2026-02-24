@@ -58,7 +58,7 @@ public class NonCachingDatumReader<T> extends GenericDatumReader<T> {
     }
 
     @Override
-    protected Class findStringClass(Schema schema) {
+    protected Class findStringClass(final Schema schema) {
         final String name = schema.getProp(GenericData.STRING_PROP);
         if ("String".equals(name)) {
             return String.class;

@@ -66,7 +66,7 @@ public class GhostParameterProvider implements ParameterProvider {
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
     }
 
     @Override

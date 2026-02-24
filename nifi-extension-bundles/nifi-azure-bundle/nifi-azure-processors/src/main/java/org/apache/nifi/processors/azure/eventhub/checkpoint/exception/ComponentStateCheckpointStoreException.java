@@ -18,11 +18,11 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint.exception;
 
 public class ComponentStateCheckpointStoreException extends RuntimeException {
 
-    public ComponentStateCheckpointStoreException(String message) {
+    public ComponentStateCheckpointStoreException(final String message) {
         super(message);
     }
 
-    public ComponentStateCheckpointStoreException(String message, Throwable cause) {
+    public ComponentStateCheckpointStoreException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

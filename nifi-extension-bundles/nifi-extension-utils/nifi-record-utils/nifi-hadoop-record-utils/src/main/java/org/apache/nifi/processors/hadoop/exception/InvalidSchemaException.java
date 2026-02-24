@@ -21,11 +21,11 @@ package org.apache.nifi.processors.hadoop.exception;
  */
 public class InvalidSchemaException extends FailureException {
 
-    public InvalidSchemaException(String message) {
+    public InvalidSchemaException(final String message) {
         super(message);
     }
 
-    public InvalidSchemaException(String message, Throwable cause) {
+    public InvalidSchemaException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

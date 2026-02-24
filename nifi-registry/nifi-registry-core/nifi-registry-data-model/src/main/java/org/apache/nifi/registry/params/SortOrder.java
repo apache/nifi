@@ -32,7 +32,7 @@ public enum SortOrder {
         return name;
     }
 
-    public static SortOrder fromString(String order) {
+    public static SortOrder fromString(final String order) {
         if (ASC.getName().equals(order)) {
             return  ASC;
         }

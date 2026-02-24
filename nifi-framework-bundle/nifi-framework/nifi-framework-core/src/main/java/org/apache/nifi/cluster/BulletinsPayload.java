@@ -49,7 +49,7 @@ public class BulletinsPayload {
     static {
         try {
             JAXB_CONTEXT = JAXBContext.newInstance(BulletinsPayload.class);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.");
         }
     }

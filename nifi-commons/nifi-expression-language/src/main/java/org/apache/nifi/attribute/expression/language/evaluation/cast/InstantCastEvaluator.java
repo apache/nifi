@@ -68,15 +68,15 @@ public class InstantCastEvaluator extends InstantEvaluator {
                         .appendOptional(DateTimeFormatter.RFC_1123_DATE_TIME)
                         .toFormatter();
                 try {
-                    Instant instant = dtf.parse(value, Instant::from);
+                    final Instant instant = dtf.parse(value, Instant::from);
                     return new InstantQueryResult(instant);
-                } catch (DateTimeParseException e) {
+                } catch (final DateTimeParseException e) {
                     throw new AttributeExpressionLanguageException("Could not implicitly convert input to INSTANT: " + value);
                 }
             case WHOLE_NUMBER:
                 return new InstantQueryResult(Instant.ofEpochMilli((Long) result.getValue()));
             case DECIMAL:
-                Double resultDouble = (Double) result.getValue();
+                final Double resultDouble = (Double) result.getValue();
                 return new InstantQueryResult(Instant.ofEpochMilli(resultDouble.longValue()));
             case NUMBER:
                 final Number numberValue = ((NumberQueryResult) result).getValue();

@@ -44,7 +44,7 @@ public class PGStatus extends AbstractNiFiCommand<ProcessGroupResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
     }
 

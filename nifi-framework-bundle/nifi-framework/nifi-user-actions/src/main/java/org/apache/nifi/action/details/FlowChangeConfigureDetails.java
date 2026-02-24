@@ -30,7 +30,7 @@ public class FlowChangeConfigureDetails implements ConfigureDetails {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -39,7 +39,7 @@ public class FlowChangeConfigureDetails implements ConfigureDetails {
         return previousValue;
     }
 
-    public void setPreviousValue(String previousValue) {
+    public void setPreviousValue(final String previousValue) {
         this.previousValue = previousValue;
     }
 
@@ -48,7 +48,7 @@ public class FlowChangeConfigureDetails implements ConfigureDetails {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 

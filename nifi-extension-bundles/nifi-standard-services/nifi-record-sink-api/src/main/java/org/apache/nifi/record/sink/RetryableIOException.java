@@ -26,15 +26,15 @@ public class RetryableIOException extends IOException {
     public RetryableIOException() {
     }
 
-    public RetryableIOException(String message) {
+    public RetryableIOException(final String message) {
         super(message);
     }
 
-    public RetryableIOException(String message, Throwable cause) {
+    public RetryableIOException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public RetryableIOException(Throwable cause) {
+    public RetryableIOException(final Throwable cause) {
         super(cause);
     }
 }

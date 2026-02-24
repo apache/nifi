@@ -40,7 +40,7 @@ public class FlowAnalysisRuleEntity extends ComponentEntity implements Permissib
     }
 
     @Override
-    public void setComponent(FlowAnalysisRuleDTO component) {
+    public void setComponent(final FlowAnalysisRuleDTO component) {
         this.component = component;
     }
 
@@ -54,7 +54,7 @@ public class FlowAnalysisRuleEntity extends ComponentEntity implements Permissib
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 
@@ -66,7 +66,7 @@ public class FlowAnalysisRuleEntity extends ComponentEntity implements Permissib
         return status;
     }
 
-    public void setStatus(FlowAnalysisRuleStatusDTO status) {
+    public void setStatus(final FlowAnalysisRuleStatusDTO status) {
         this.status = status;
     }
 }

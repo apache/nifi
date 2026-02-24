@@ -185,7 +185,7 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
     private String getDescription() {
         try {
             return "EventIdFirstSchemaRecordReader, toc: " + getTocReader().getFile().getAbsolutePath() + ", journal: " + getFilename();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return "EventIdFirstSchemaRecordReader@" + Integer.toHexString(this.hashCode());
         }
     }

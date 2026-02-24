@@ -76,25 +76,25 @@ public class ClojureScriptEngineFactory implements ScriptEngineFactory {
     }
 
     @Override
-    public Object getParameter(String key) {
+    public Object getParameter(final String key) {
         return key == null ? null : scriptEngine.get(key);
     }
 
     @Override
-    public String getMethodCallSyntax(String object, String method, String... args) {
+    public String getMethodCallSyntax(final String object, final String method, final String... args) {
         // construct a statement like (.method object arg1 arg2 ...). This works for instance methods as well as statics
-        List<String> params = Arrays.asList("(." + method, object);
+        final List<String> params = Arrays.asList("(." + method, object);
         params.addAll(Arrays.asList(args));
         return params.stream().collect(Collectors.joining(" ")).concat(")");
     }
 
     @Override
-    public String getOutputStatement(String toDisplay) {
+    public String getOutputStatement(final String toDisplay) {
         return toDisplay == null ? null : "(println \"" + toDisplay + "\")";
     }
 
     @Override
-    public String getProgram(String... statements) {
+    public String getProgram(final String... statements) {
         if (statements == null) {
             return null;
         }

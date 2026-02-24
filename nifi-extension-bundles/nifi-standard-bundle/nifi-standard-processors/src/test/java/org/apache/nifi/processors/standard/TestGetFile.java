@@ -143,7 +143,7 @@ public class TestGetFile {
 
         try {
             destFile.setLastModified(1000000000);
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
         }
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());

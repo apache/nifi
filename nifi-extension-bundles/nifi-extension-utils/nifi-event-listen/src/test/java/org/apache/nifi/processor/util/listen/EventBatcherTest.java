@@ -61,7 +61,7 @@ public class EventBatcherTest {
         errorEvents = new LinkedBlockingQueue<>();
         batcher = new EventBatcher<ByteArrayMessage>(logger, events, errorEvents) {
             @Override
-            protected String getBatchKey(ByteArrayMessage event) {
+            protected String getBatchKey(final ByteArrayMessage event) {
                 return event.getSender();
             }
         };
@@ -71,8 +71,8 @@ public class EventBatcherTest {
 
     @Test
     public void testGetBatches() throws InterruptedException {
-        String sender1 = new InetSocketAddress(0).toString();
-        String sender2 = new InetSocketAddress(2).toString();
+        final String sender1 = new InetSocketAddress(0).toString();
+        final String sender2 = new InetSocketAddress(2).toString();
         final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1, 0);
         final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2, 2);
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
@@ -81,7 +81,7 @@ public class EventBatcherTest {
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_2.getBytes(StandardCharsets.UTF_8), sender2Metadata));
-        Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 100, "\n".getBytes(StandardCharsets.UTF_8));
+        final Map<String, FlowFileEventBatch> batches = batcher.getBatches(session, 100, "\n".getBytes(StandardCharsets.UTF_8));
         assertEquals(2, batches.size());
         assertEquals(4, batches.get(sender1).getEvents().size());
         assertEquals(2, batches.get(sender2).getEvents().size());
@@ -89,7 +89,7 @@ public class EventBatcherTest {
 
     public static class SimpleProcessor extends AbstractProcessor {
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         }
     }
 }

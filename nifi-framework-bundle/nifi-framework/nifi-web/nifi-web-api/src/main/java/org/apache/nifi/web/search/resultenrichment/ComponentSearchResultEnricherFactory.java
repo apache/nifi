@@ -36,7 +36,7 @@ public class ComponentSearchResultEnricherFactory {
         return new ParameterSearchResultEnricher(parameterContext);
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

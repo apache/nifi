@@ -100,7 +100,7 @@ public class CalculateParquetRowGroupOffsets extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {
             return;
@@ -118,7 +118,7 @@ public class CalculateParquetRowGroupOffsets extends AbstractProcessor {
         }
     }
 
-    private ParquetMetadata getParquetMetadata(ProcessSession session, FlowFile flowFile) {
+    private ParquetMetadata getParquetMetadata(final ProcessSession session, final FlowFile flowFile) {
         final ParquetReadOptions readOptions = ParquetReadOptions.builder().build();
         try (
                 final InputStream in = session.read(flowFile);
@@ -128,16 +128,16 @@ public class CalculateParquetRowGroupOffsets extends AbstractProcessor {
                 )
         ) {
             return reader.getFooter();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
     }
 
     private List<FlowFile> getPartitions(
-            ProcessSession session,
-            FlowFile flowFile,
-            List<BlockMetaData> blocks,
-            boolean zeroContentOutput
+            final ProcessSession session,
+            final FlowFile flowFile,
+            final List<BlockMetaData> blocks,
+            final boolean zeroContentOutput
     ) {
         final List<FlowFile> results = new ArrayList<>(blocks.size());
 

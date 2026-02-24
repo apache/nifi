@@ -26,7 +26,7 @@ public class DatabaseUser {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -34,7 +34,7 @@ public class DatabaseUser {
         return identity;
     }
 
-    public void setIdentity(String identity) {
+    public void setIdentity(final String identity) {
         this.identity = identity;
     }
 

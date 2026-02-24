@@ -165,7 +165,7 @@ public class JettyServer {
                     final String host = StringUtils.defaultIfEmpty(connectorHost, HOST_UNSPECIFIED);
                     try {
                         return new URI(scheme, null, host, port, APPLICATION_PATH, null, null);
-                    } catch (URISyntaxException e) {
+                    } catch (final URISyntaxException e) {
                         throw new RuntimeException(e);
                     }
                 })

@@ -56,21 +56,21 @@ public abstract class TestStatusAnalyticsEngine {
         flowManager = Mockito.mock(FlowManager.class);
         statusAnalyticsModelMapFactory = Mockito.mock(StatusAnalyticsModelMapFactory.class);
 
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
-        StatusAnalyticsModel countModel = Mockito.mock(StatusAnalyticsModel.class);
-        StatusAnalyticsModel byteModel = Mockito.mock(StatusAnalyticsModel.class);
-        StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
-        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countTuple = new Tuple<>(countModel, extractFunction);
-        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteTuple = new Tuple<>(byteModel, extractFunction);
+        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
+        final StatusAnalyticsModel countModel = Mockito.mock(StatusAnalyticsModel.class);
+        final StatusAnalyticsModel byteModel = Mockito.mock(StatusAnalyticsModel.class);
+        final StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
+        final Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countTuple = new Tuple<>(countModel, extractFunction);
+        final Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteTuple = new Tuple<>(byteModel, extractFunction);
         modelMap.put("queuedCount", countTuple);
         modelMap.put("queuedBytes", byteTuple);
 
-        Double[][] features = new Double[1][1];
-        Double[] target = new Double[1];
+        final Double[][] features = new Double[1][1];
+        final Double[] target = new Double[1];
 
-        ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
-        StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
-        StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
+        final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
+        final StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
+        final StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
 
         when(statusAnalyticsModelMapFactory.getConnectionStatusModelMap()).thenReturn(modelMap);
 
@@ -84,9 +84,9 @@ public abstract class TestStatusAnalyticsEngine {
 
     @Test
     public void testGetStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory, DEFAULT_PREDICT_INTERVAL_MILLIS,
+        final StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory, DEFAULT_PREDICT_INTERVAL_MILLIS,
                                                                                 DEFAULT_QUERY_INTERVAL_MILLIS, DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
-        StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
+        final StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 

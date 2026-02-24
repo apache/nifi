@@ -19,15 +19,15 @@ package org.apache.nifi.web.util;
 
 public class LifecycleManagementException extends Exception {
 
-    public LifecycleManagementException(String message) {
+    public LifecycleManagementException(final String message) {
         super(message);
     }
 
-    public LifecycleManagementException(Throwable cause) {
+    public LifecycleManagementException(final Throwable cause) {
         super(cause);
     }
 
-    public LifecycleManagementException(String message, Throwable cause) {
+    public LifecycleManagementException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

@@ -70,10 +70,10 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
     }
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
-        WriteResult writeResult;
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
+        final WriteResult writeResult;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            ComponentLog log = getLogger();
+            final ComponentLog log = getLogger();
             try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), baos, attributes)) {
                 writer.beginRecordSet();
                 Record r;
@@ -87,14 +87,14 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
                 writer.flush();
             }
 
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             throw new IOException(e);
         }
         return writeResult;
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         RecordSinkService.super.migrateProperties(config);
         config.renameProperty("logsink-log-level", LOG_LEVEL.getName());
     }

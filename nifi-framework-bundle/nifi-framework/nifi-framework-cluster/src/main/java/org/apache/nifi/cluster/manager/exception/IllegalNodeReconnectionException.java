@@ -25,15 +25,15 @@ public class IllegalNodeReconnectionException extends IllegalClusterStateExcepti
     public IllegalNodeReconnectionException() {
     }
 
-    public IllegalNodeReconnectionException(String msg) {
+    public IllegalNodeReconnectionException(final String msg) {
         super(msg);
     }
 
-    public IllegalNodeReconnectionException(Throwable cause) {
+    public IllegalNodeReconnectionException(final Throwable cause) {
         super(cause);
     }
 
-    public IllegalNodeReconnectionException(String msg, Throwable cause) {
+    public IllegalNodeReconnectionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

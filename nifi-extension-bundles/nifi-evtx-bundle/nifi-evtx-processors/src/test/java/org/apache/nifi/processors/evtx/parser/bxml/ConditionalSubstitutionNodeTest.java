@@ -57,7 +57,7 @@ public class ConditionalSubstitutionNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         conditionalSubstitutionNode.accept(mock);
         verify(mock).visit(conditionalSubstitutionNode);
         verifyNoMoreInteractions(mock);

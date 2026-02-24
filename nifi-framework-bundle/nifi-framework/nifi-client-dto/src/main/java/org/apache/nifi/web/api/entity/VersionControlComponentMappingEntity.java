@@ -36,7 +36,7 @@ public class VersionControlComponentMappingEntity extends Entity {
         return versionControlDto;
     }
 
-    public void setVersionControlInformation(VersionControlInformationDTO versionControlDto) {
+    public void setVersionControlInformation(final VersionControlInformationDTO versionControlDto) {
         this.versionControlDto = versionControlDto;
     }
 
@@ -45,7 +45,7 @@ public class VersionControlComponentMappingEntity extends Entity {
         return versionControlComponentMapping;
     }
 
-    public void setVersionControlComponentMapping(Map<String, String> mapping) {
+    public void setVersionControlComponentMapping(final Map<String, String> mapping) {
         this.versionControlComponentMapping = mapping;
     }
 
@@ -54,7 +54,7 @@ public class VersionControlComponentMappingEntity extends Entity {
         return processGroupRevision;
     }
 
-    public void setProcessGroupRevision(RevisionDTO processGroupRevision) {
+    public void setProcessGroupRevision(final RevisionDTO processGroupRevision) {
         this.processGroupRevision = processGroupRevision;
     }
 
@@ -64,7 +64,7 @@ public class VersionControlComponentMappingEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

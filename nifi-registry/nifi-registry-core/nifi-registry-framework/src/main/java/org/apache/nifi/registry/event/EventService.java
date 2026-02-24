@@ -74,11 +74,11 @@ public class EventService implements DisposableBean {
                                     || (event.getEventType() != null && provider.shouldHandle(event.getEventType()))) {
                                 provider.handle(event);
                             }
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             LOGGER.error("Error handling event hook", e);
                         }
                     }
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     LOGGER.warn("Interrupted while polling event queue");
                     return;
                 }
@@ -107,7 +107,7 @@ public class EventService implements DisposableBean {
             if (!queued) {
                 LOGGER.error("Unable to queue event because queue is full");
             }
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             LOGGER.error("Invalid event", e);
         }
     }

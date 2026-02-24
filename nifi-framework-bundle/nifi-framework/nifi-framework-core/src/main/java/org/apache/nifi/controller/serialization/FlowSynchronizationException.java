@@ -26,19 +26,19 @@ public class FlowSynchronizationException extends ConnectionException {
 
     private static final long serialVersionUID = 109234802938L;
 
-    public FlowSynchronizationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public FlowSynchronizationException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public FlowSynchronizationException(Throwable cause) {
+    public FlowSynchronizationException(final Throwable cause) {
         super(cause);
     }
 
-    public FlowSynchronizationException(String message, Throwable cause) {
+    public FlowSynchronizationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public FlowSynchronizationException(String message) {
+    public FlowSynchronizationException(final String message) {
         super(message);
     }
 

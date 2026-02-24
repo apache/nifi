@@ -275,7 +275,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setPosition(Position position) {
+    public void setPosition(final Position position) {
         this.position.set(position);
     }
 
@@ -315,7 +315,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public boolean isAutoTerminated(Relationship relationship) {
+    public boolean isAutoTerminated(final Relationship relationship) {
         return false;
     }
 
@@ -401,7 +401,7 @@ public class StandardFunnel implements Funnel {
      * Has no effect
      */
     @Override
-    public void setMaxConcurrentTasks(int taskCount) {
+    public void setMaxConcurrentTasks(final int taskCount) {
     }
 
     @Override
@@ -516,7 +516,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void verifyCanDelete(boolean ignoreConnections) throws IllegalStateException {
+    public void verifyCanDelete(final boolean ignoreConnections) throws IllegalStateException {
         if (ignoreConnections) {
             return;
         }
@@ -584,7 +584,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setRetryCount(Integer retryCount) {
+    public void setRetryCount(final Integer retryCount) {
     }
 
     @Override
@@ -593,11 +593,11 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    public void setRetriedRelationships(final Set<String> retriedRelationships) {
     }
 
     @Override
-    public boolean isRelationshipRetried(Relationship relationship) {
+    public boolean isRelationshipRetried(final Relationship relationship) {
         return false;
     }
 
@@ -607,7 +607,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+    public void setBackoffMechanism(final BackoffMechanism backoffMechanism) {
     }
 
     @Override
@@ -616,11 +616,11 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    public void setMaxBackoffPeriod(final String maxBackoffPeriod) {
     }
 
     @Override
-    public String evaluateParameters(String value) {
+    public String evaluateParameters(final String value) {
         return value;
     }
 

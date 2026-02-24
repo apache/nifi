@@ -45,7 +45,7 @@ public class SyslogRecordReader implements RecordReader {
     private final SyslogParser parser;
     private final boolean includeRaw;
 
-    public SyslogRecordReader(SyslogParser parser, boolean includeRaw, InputStream in, RecordSchema schema) {
+    public SyslogRecordReader(final SyslogParser parser, final boolean includeRaw, final InputStream in, final RecordSchema schema) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.schema = schema;
         this.parser = parser;
@@ -53,7 +53,7 @@ public class SyslogRecordReader implements RecordReader {
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         String line;
         while (true) {
             line = reader.readLine();

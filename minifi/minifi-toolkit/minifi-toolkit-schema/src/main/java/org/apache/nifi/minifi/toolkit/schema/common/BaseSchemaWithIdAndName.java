@@ -26,7 +26,7 @@ import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.NA
 public class BaseSchemaWithIdAndName extends BaseSchemaWithId implements WritableSchema {
     private String name;
 
-    public BaseSchemaWithIdAndName(Map map, String wrapperName) {
+    public BaseSchemaWithIdAndName(final Map map, final String wrapperName) {
         super(map, wrapperName);
         name = getOptionalKeyAsType(map, NAME_KEY, String.class, getWrapperName(), "");
     }
@@ -35,7 +35,7 @@ public class BaseSchemaWithIdAndName extends BaseSchemaWithId implements Writabl
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -46,7 +46,7 @@ public class BaseSchemaWithIdAndName extends BaseSchemaWithId implements Writabl
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> map = super.toMap();
+        final Map<String, Object> map = super.toMap();
         map.put(NAME_KEY, name);
         return map;
     }

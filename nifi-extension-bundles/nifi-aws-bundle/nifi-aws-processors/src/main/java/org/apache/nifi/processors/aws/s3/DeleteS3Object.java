@@ -83,7 +83,7 @@ public class DeleteS3Object extends AbstractS3Processor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
 
         config.removeProperty(FULL_CONTROL_USER_LIST.getName());
@@ -104,7 +104,7 @@ public class DeleteS3Object extends AbstractS3Processor {
         final S3Client client;
         try {
             client = getClient(context, flowFile.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);

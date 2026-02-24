@@ -139,22 +139,22 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
-    public Port createPublicInputPort(String id, String name) {
-        id = requireNonNull(id).intern();
-        name = requireNonNull(name).intern();
-        verifyPortIdDoesNotExist(id);
-        return new StandardPublicPort(id, name,
+    public Port createPublicInputPort(final String id, final String name) {
+        final String internedId = requireNonNull(id).intern();
+        final String internedName = requireNonNull(name).intern();
+        verifyPortIdDoesNotExist(internedId);
+        return new StandardPublicPort(internedId, internedName,
             TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, authorizer, bulletinRepository,
             processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
             IdentityMappingUtil.getIdentityMappings(nifiProperties));
     }
 
     @Override
-    public Port createPublicOutputPort(String id, String name) {
-        id = requireNonNull(id).intern();
-        name = requireNonNull(name).intern();
-        verifyPortIdDoesNotExist(id);
-        return new StandardPublicPort(id, name,
+    public Port createPublicOutputPort(final String id, final String name) {
+        final String internedId = requireNonNull(id).intern();
+        final String internedName = requireNonNull(name).intern();
+        verifyPortIdDoesNotExist(internedId);
+        return new StandardPublicPort(internedId, internedName,
             TransferDirection.SEND, ConnectableType.OUTPUT_PORT, authorizer, bulletinRepository,
             processScheduler, isSiteToSiteSecure, nifiProperties.getBoredYieldDuration(),
             IdentityMappingUtil.getIdentityMappings(nifiProperties));
@@ -182,7 +182,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     private Set<Port> getPublicPorts(final Function<ProcessGroup, Set<Port>> getPorts) {
         final Set<Port> publicPorts = new HashSet<>();
-        ProcessGroup rootGroup = getRootGroup();
+        final ProcessGroup rootGroup = getRootGroup();
         getPublicPorts(publicPorts, rootGroup, getPorts);
         return publicPorts;
     }
@@ -197,12 +197,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
-    public Optional<Port> getPublicInputPort(String name) {
+    public Optional<Port> getPublicInputPort(final String name) {
         return findPort(name, getPublicInputPorts());
     }
 
     @Override
-    public Optional<Port> getPublicOutputPort(String name) {
+    public Optional<Port> getPublicOutputPort(final String name) {
         return findPort(name, getPublicOutputPorts());
     }
 
@@ -253,29 +253,29 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
-    public Port createLocalInputPort(String id, String name) {
-        id = requireNonNull(id).intern();
-        name = requireNonNull(name).intern();
-        verifyPortIdDoesNotExist(id);
+    public Port createLocalInputPort(final String id, final String name) {
+        final String internedId = requireNonNull(id).intern();
+        final String internedName = requireNonNull(name).intern();
+        verifyPortIdDoesNotExist(internedId);
 
         final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
         final int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
 
-        return new LocalPort(id, name, ConnectableType.INPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
+        return new LocalPort(internedId, internedName, ConnectableType.INPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
     @Override
-    public Port createLocalOutputPort(String id, String name) {
-        id = requireNonNull(id).intern();
-        name = requireNonNull(name).intern();
-        verifyPortIdDoesNotExist(id);
+    public Port createLocalOutputPort(final String id, final String name) {
+        final String internedId = requireNonNull(id).intern();
+        final String internedName = requireNonNull(name).intern();
+        verifyPortIdDoesNotExist(internedId);
 
         final int maxConcurrentTasks = Integer.parseInt(nifiProperties.getProperty(MAX_CONCURRENT_TASKS_PROP_NAME, "1"));
         final int maxTransferredFlowFiles = Integer.parseInt(nifiProperties.getProperty(MAX_TRANSFERRED_FLOWFILES_PROP_NAME, "10000"));
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
 
-        return new LocalPort(id, name, ConnectableType.OUTPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
+        return new LocalPort(internedId, internedName, ConnectableType.OUTPUT_PORT, processScheduler, maxConcurrentTasks, maxTransferredFlowFiles, boredYieldDuration);
     }
 
     @Override
@@ -305,7 +305,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     @Override
     public FlowFilePrioritizer createPrioritizer(final String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-        FlowFilePrioritizer prioritizer;
+        final FlowFilePrioritizer prioritizer;
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -341,7 +341,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
-    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls,
+    public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls,
                                          final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
@@ -397,7 +397,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     @Override
     public FlowRegistryClientNode createFlowRegistryClient(
             final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
-            final boolean firstTimeAdded, final boolean registerLogObserver, String classloaderIsolationKey) {
+            final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
         requireNonNull(type);
         requireNonNull(id);
         requireNonNull(bundleCoordinate);
@@ -574,7 +574,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         LogRepositoryFactory.getRepository(flowAnalysisRuleNode.getIdentifier()).setLogger(flowAnalysisRuleNode.getLogger());
 
         if (firstTimeAdded) {
-            FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleNode.getFlowAnalysisRule();
+            final FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleNode.getFlowAnalysisRule();
             final Class<? extends ConfigurableComponent> flowAnalysisRuleClass = flowAnalysisRule.getClass();
             final String identifier = flowAnalysisRule.getIdentifier();
 

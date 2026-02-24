@@ -251,7 +251,7 @@ public class GetHubSpot extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("object-type", OBJECT_TYPE.getName());
         config.renameProperty("access-token", ACCESS_TOKEN.getName());
         config.renameProperty("result-limit", RESULT_LIMIT.getName());
@@ -321,7 +321,7 @@ public class GetHubSpot extends AbstractProcessor {
                     .header("Content-Type", "application/json")
                     .body(inputStream, OptionalLong.of(inputStream.available()))
                     .retrieve();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Could not transform incremental filters to input stream", e);
         }
     }
@@ -384,7 +384,7 @@ public class GetHubSpot extends AbstractProcessor {
         return root.toString();
     }
 
-    private String getInitialStartTimeEpoch(String initialStartTimeValue) {
+    private String getInitialStartTimeEpoch(final String initialStartTimeValue) {
         if (initialStartTimeValue != null) {
             return String.valueOf(Instant.parse(initialStartTimeValue).toEpochMilli());
         }
@@ -399,24 +399,24 @@ public class GetHubSpot extends AbstractProcessor {
         final StateMap stateMap;
         try {
             stateMap = session.getState(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("State retrieval failed", e);
         }
         return new HashMap<>(stateMap.toMap());
     }
 
-    private void updateState(ProcessSession session, Map<String, String> newState) {
+    private void updateState(final ProcessSession session, final Map<String, String> newState) {
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Page cursor update failed", e);
         }
     }
 
-    private void clearState(ProcessContext context) {
+    private void clearState(final ProcessContext context) {
         try {
             context.getStateManager().clear(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Clearing state failed", e);
         }
     }

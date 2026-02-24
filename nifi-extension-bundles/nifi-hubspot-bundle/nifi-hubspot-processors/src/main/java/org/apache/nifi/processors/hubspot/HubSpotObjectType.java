@@ -107,7 +107,7 @@ public enum HubSpotObjectType implements DescribedValue {
     private final String description;
     private final IncrementalFieldType lastModifiedDateType;
 
-    HubSpotObjectType(String value, String displayName, String description, IncrementalFieldType lastModifiedDateType) {
+    HubSpotObjectType(final String value, final String displayName, final String description, final IncrementalFieldType lastModifiedDateType) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;

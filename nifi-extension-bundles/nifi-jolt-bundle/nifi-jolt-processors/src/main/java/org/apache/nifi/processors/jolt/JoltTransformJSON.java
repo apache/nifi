@@ -144,7 +144,7 @@ public class JoltTransformJSON extends AbstractJoltTransform {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {
             return;

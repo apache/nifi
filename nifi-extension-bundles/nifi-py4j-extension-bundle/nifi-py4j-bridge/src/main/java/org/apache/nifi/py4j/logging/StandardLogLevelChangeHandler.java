@@ -74,7 +74,7 @@ public class StandardLogLevelChangeHandler implements LogLevelChangeHandler {
      * @param identifier Tracking identifier of registered listener to be removed
      */
     @Override
-    public void removeListener(String identifier) {
+    public void removeListener(final String identifier) {
         Objects.requireNonNull(identifier, "Identifier required");
         listeners.remove(identifier);
         handlerLogger.trace("Removed Listener [{}]", identifier);

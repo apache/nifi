@@ -56,13 +56,14 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
 
     private long startedAtMillis;
 
-    public ListProcessorTestWatcher(Provider<Map<String, String>> stateMapProvider, Provider<List<ListableEntity>> entitiesProvider, Provider<List<FlowFile>> successFlowFilesProvider) {
+    public ListProcessorTestWatcher(final Provider<Map<String, String>> stateMapProvider,
+            final Provider<List<ListableEntity>> entitiesProvider, final Provider<List<FlowFile>> successFlowFilesProvider) {
         this.stateMapProvider = stateMapProvider;
         this.entitiesProvider = entitiesProvider;
         this.successFlowFilesProvider = successFlowFilesProvider;
     }
 
-    private void log(Consumer<String> dumper, String format, Object... args) {
+    private void log(final Consumer<String> dumper, final String format, final Object... args) {
         dumper.accept(String.format(format, args));
     }
 
@@ -70,7 +71,7 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
         dumpState(logStateDump, stateMapProvider.provide(), entitiesProvider.provide(), successFlowFilesProvider.provide(), start);
     }
 
-    private void dumpState(Consumer<String> d, final Map<String, String> state, final List<ListableEntity> entities, final List<FlowFile> flowFiles, final long start) {
+    private void dumpState(final Consumer<String> d, final Map<String, String> state, final List<ListableEntity> entities, final List<FlowFile> flowFiles, final long start) {
 
         final OffsetDateTime nTime = OffsetDateTime.now();
         log(d, "--------------------------------------------------------------------");
@@ -94,15 +95,15 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
         }
         log(d, "---- input folder contents -----------------------------------------");
         entities.sort(Comparator.comparing(ListableEntity::getIdentifier));
-        for (ListableEntity entity : entities) {
+        for (final ListableEntity entity : entities) {
             final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli(entity.getTimestamp()), ZoneId.systemDefault());
             log(d, "%19s = %12d %s %8d", entity.getIdentifier(), entity.getTimestamp(), dateTimeFormatter.format(timestamp), entity.getTimestamp() - nTime.toInstant().toEpochMilli());
         }
         log(d, "---- output flowfiles ----------------------------------------------");
         final Map<String, Long> fileTimes = entities.stream().collect(Collectors.toMap(ListableEntity::getIdentifier, ListableEntity::getTimestamp));
-        for (FlowFile ff : flowFiles) {
-            String fName = ff.getAttribute(CoreAttributes.FILENAME.key());
-            Long fTime = fileTimes.get(fName);
+        for (final FlowFile ff : flowFiles) {
+            final String fName = ff.getAttribute(CoreAttributes.FILENAME.key());
+            final Long fTime = fileTimes.get(fName);
             final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli(fTime), ZoneId.systemDefault());
             log(d, "%19s = %13d %s %8d", fName, fTime, dateTimeFormatter.format(timestamp), fTime - nTime.toInstant().toEpochMilli());
         }
@@ -112,12 +113,12 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
     }
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) {
+    public void beforeEach(final ExtensionContext extensionContext) {
         startedAtMillis = System.currentTimeMillis();
     }
 
     @Override
-    public void testFailed(ExtensionContext context, Throwable cause) {
+    public void testFailed(final ExtensionContext context, final Throwable cause) {
         if (!(cause instanceof AssertionError)) {
             return;
         }

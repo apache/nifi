@@ -154,7 +154,7 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
     }
 
     @Override
-    protected void addRequiredPropertiesToRunner(TestRunner runner) {
+    protected void addRequiredPropertiesToRunner(final TestRunner runner) {
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.setProperty(FetchGCSObject.KEY, KEY);
     }
@@ -459,8 +459,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         runner.run();
 
-        ArgumentCaptor<BlobId> blobIdArgumentCaptor = ArgumentCaptor.forClass(BlobId.class);
-        ArgumentCaptor<Storage.BlobSourceOption> blobSourceOptionArgumentCaptor = ArgumentCaptor.forClass(Storage.BlobSourceOption.class);
+        final ArgumentCaptor<BlobId> blobIdArgumentCaptor = ArgumentCaptor.forClass(BlobId.class);
+        final ArgumentCaptor<Storage.BlobSourceOption> blobSourceOptionArgumentCaptor = ArgumentCaptor.forClass(Storage.BlobSourceOption.class);
         verify(storage).get(blobIdArgumentCaptor.capture());
         verify(storage).reader(any(BlobId.class), blobSourceOptionArgumentCaptor.capture());
 
@@ -499,8 +499,8 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
         runner.run();
 
-        ArgumentCaptor<BlobId> blobIdArgumentCaptor = ArgumentCaptor.forClass(BlobId.class);
-        ArgumentCaptor<Storage.BlobSourceOption> blobSourceOptionArgumentCaptor = ArgumentCaptor.forClass(Storage.BlobSourceOption.class);
+        final ArgumentCaptor<BlobId> blobIdArgumentCaptor = ArgumentCaptor.forClass(BlobId.class);
+        final ArgumentCaptor<Storage.BlobSourceOption> blobSourceOptionArgumentCaptor = ArgumentCaptor.forClass(Storage.BlobSourceOption.class);
         verify(storage).get(blobIdArgumentCaptor.capture());
         verify(storage).reader(any(BlobId.class), blobSourceOptionArgumentCaptor.capture());
 
@@ -536,7 +536,7 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(FetchGCSObject.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(FetchGCSObject.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("gcs-bucket", FetchGCSObject.BUCKET.getName()),
                 Map.entry("gcs-key", FetchGCSObject.KEY.getName()),

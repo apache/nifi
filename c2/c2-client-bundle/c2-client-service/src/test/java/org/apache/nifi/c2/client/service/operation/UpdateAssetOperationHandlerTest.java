@@ -100,9 +100,9 @@ public class UpdateAssetOperationHandlerTest {
 
     @ParameterizedTest(name = "c2Client={0} operandPropertiesProvider={1} bundleFileList={2} contentFilter={3}")
     @MethodSource("invalidConstructorArguments")
-    public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                                                            BiPredicate<String, Boolean> assetUpdatePrecondition,
-                                                                            BiFunction<String, byte[], Boolean> assetPersistFunction) {
+    public void testAttemptingCreateWithInvalidParametersWillThrowException(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                                                            final BiPredicate<String, Boolean> assetUpdatePrecondition,
+                                                                            final BiFunction<String, byte[], Boolean> assetPersistFunction) {
         assertThrows(IllegalArgumentException.class, () -> UpdateAssetOperationHandler.create(c2Client, operandPropertiesProvider, assetUpdatePrecondition, assetPersistFunction));
     }
 
@@ -115,11 +115,11 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetUrlCanNotBeNull() {
         // given
-        C2Operation operation = operation(null, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(null, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(c2Client.getCallbackUrl(any(), any())).thenThrow(new IllegalArgumentException());
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -130,10 +130,10 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetFileNameCanNotBeNull() {
         // given
-        C2Operation operation = operation(ASSET_URL, null, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(ASSET_URL, null, FORCE_DOWNLOAD);
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -144,11 +144,11 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetPreconditionIsNotMet() {
         // given
-        C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(FALSE);
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -159,12 +159,12 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetRetrieveReturnsEmptyResult() {
         // given
-        C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
         when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(empty());
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -175,14 +175,14 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetPersistFunctionFails() {
         // given
-        C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
-        byte[] mockUpdateContent = new byte[0];
+        final byte[] mockUpdateContent = new byte[0];
         when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
         when(assetPersistFunction.apply(ASSET_FILE_NAME, mockUpdateContent)).thenReturn(FALSE);
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -193,14 +193,14 @@ public class UpdateAssetOperationHandlerTest {
     @Test
     public void testAssetIsDownloadedAndPersistedSuccessfully() {
         // given
-        C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        final C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
-        byte[] mockUpdateContent = new byte[0];
+        final byte[] mockUpdateContent = new byte[0];
         when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
         when(assetPersistFunction.apply(ASSET_FILE_NAME, mockUpdateContent)).thenReturn(TRUE);
 
         // when
-        C2OperationAck result = testHandler.handle(operation);
+        final C2OperationAck result = testHandler.handle(operation);
 
         // then
         assertEquals(OPERATION_ID, result.getOperationId());
@@ -208,11 +208,11 @@ public class UpdateAssetOperationHandlerTest {
         assertEquals(SUCCESSFULLY_UPDATE_ASSET, result.getOperationState().getDetails());
     }
 
-    private C2Operation operation(String assetUrl, String assetFile, String forceDownload) {
-        C2Operation c2Operation = new C2Operation();
+    private C2Operation operation(final String assetUrl, final String assetFile, final String forceDownload) {
+        final C2Operation c2Operation = new C2Operation();
         c2Operation.setIdentifier(OPERATION_ID);
 
-        Map<String, Object> arguments = new HashMap<>();
+        final Map<String, Object> arguments = new HashMap<>();
         arguments.put(ASSET_URL_KEY, assetUrl);
         arguments.put(ASSET_FILE_KEY, assetFile);
         arguments.put(ASSET_FORCE_DOWNLOAD_KEY, forceDownload);

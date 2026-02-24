@@ -84,7 +84,7 @@ public class PublishKafkaWrapperRecordTombstoneIT extends AbstractPublishKafkaIT
             consumer.subscribe(Collections.singletonList(getClass().getName()));
             final ConsumerRecords<String, Object> records = consumer.poll(DURATION_POLL);
             assertEquals(TEST_RECORD_COUNT, records.count());
-            for (ConsumerRecord<String, Object> record : records) {
+            for (final ConsumerRecord<String, Object> record : records) {
                 // kafka record headers
                 final List<Header> headers = Arrays.asList(record.headers().toArray());
                 assertEquals(1, headers.size());

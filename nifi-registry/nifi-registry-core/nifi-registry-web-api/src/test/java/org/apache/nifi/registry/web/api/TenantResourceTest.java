@@ -54,7 +54,7 @@ public class TenantResourceTest {
             protected URI getBaseUri() {
                 try {
                     return new URI("http://registry.nifi.apache.org/nifi-registry");
-                } catch (URISyntaxException e) {
+                } catch (final URISyntaxException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -63,14 +63,14 @@ public class TenantResourceTest {
 
     @Test
     public void testCreateUser() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
-        User user = new User(null, "identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
+        final User user = new User(null, "identity");
         user.setRevision(revisionInfo);
 
-        RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
-        User result = new User("identifier", user.getIdentity());
+        final RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
+        final User result = new User("identifier", user.getIdentity());
         result.setRevision(resultRevisionInfo);
 
         when(serviceFacade.createUser(user)).thenReturn(result);
@@ -83,10 +83,10 @@ public class TenantResourceTest {
 
     @Test
     public void testUpdateUser() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
-        User user = new User("identifier", "new-identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
+        final User user = new User("identifier", "new-identity");
         user.setRevision(revisionInfo);
 
         when(serviceFacade.updateUser(user)).thenReturn(user);
@@ -99,10 +99,10 @@ public class TenantResourceTest {
 
     @Test
     public void testDeleteUser() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        User user = new User("identifier", "identity");
-        Long version = Long.valueOf(0);
-        ClientIdParameter clientId = new ClientIdParameter();
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final User user = new User("identifier", "identity");
+        final Long version = Long.valueOf(0);
+        final ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUser(eq(user.getIdentifier()), any(RevisionInfo.class))).thenReturn(user);
 
@@ -114,14 +114,14 @@ public class TenantResourceTest {
 
     @Test
     public void testCreateUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
-        UserGroup userGroup = new UserGroup(null, "identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
+        final UserGroup userGroup = new UserGroup(null, "identity");
         userGroup.setRevision(revisionInfo);
 
-        RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
-        UserGroup result = new UserGroup("identifier", userGroup.getIdentity());
+        final RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
+        final UserGroup result = new UserGroup("identifier", userGroup.getIdentity());
         result.setRevision(resultRevisionInfo);
 
         when(serviceFacade.createUserGroup(userGroup)).thenReturn(result);
@@ -134,10 +134,10 @@ public class TenantResourceTest {
 
     @Test
     public void testUpdateUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
-        UserGroup userGroup = new UserGroup("identifier", "new-identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
+        final UserGroup userGroup = new UserGroup("identifier", "new-identity");
         userGroup.setRevision(revisionInfo);
 
         when(serviceFacade.updateUserGroup(userGroup)).thenReturn(userGroup);
@@ -150,10 +150,10 @@ public class TenantResourceTest {
 
     @Test
     public void testDeleteUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        UserGroup userGroup = new UserGroup("identifier", "identity");
-        Long version = Long.valueOf(0);
-        ClientIdParameter clientId = new ClientIdParameter();
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final UserGroup userGroup = new UserGroup("identifier", "identity");
+        final Long version = Long.valueOf(0);
+        final ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUserGroup(eq(userGroup.getIdentifier()), any(RevisionInfo.class))).thenReturn(userGroup);
 

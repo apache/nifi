@@ -32,16 +32,16 @@ public class CollectionOverlap<T> {
     private final Set<T> elements;
     private final Set<T> duplicates;
 
-    public CollectionOverlap(Collection<T>... collections) {
+    public CollectionOverlap(final Collection<T>... collections) {
         this(Arrays.stream(collections).map(c -> c.stream()));
     }
 
-    public CollectionOverlap(Stream<T>... streams) {
+    public CollectionOverlap(final Stream<T>... streams) {
         this(Arrays.stream(streams).map(Function.identity()));
     }
 
-    public CollectionOverlap(Stream<Stream<T>> streams) {
-        Set<T> elements = new HashSet<>();
+    public CollectionOverlap(final Stream<Stream<T>> streams) {
+        final Set<T> elements = new HashSet<>();
         this.duplicates = Collections.unmodifiableSet(streams.flatMap(Function.identity()).sequential().filter(s -> !elements.add(s)).collect(Collectors.toSet()));
         this.elements = Collections.unmodifiableSet(elements);
     }

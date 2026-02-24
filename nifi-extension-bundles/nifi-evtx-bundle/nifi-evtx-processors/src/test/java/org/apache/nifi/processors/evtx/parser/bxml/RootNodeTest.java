@@ -53,18 +53,18 @@ public class RootNodeTest extends BxmlNodeTestBase {
 
     @Test
     public void testInit() {
-        List<BxmlNode> children = rootNode.getChildren();
+        final List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(EndOfStreamNode.class, children.get(0));
 
-        List<VariantTypeNode> substitutions = rootNode.getSubstitutions();
+        final List<VariantTypeNode> substitutions = rootNode.getSubstitutions();
         assertEquals(1, substitutions.size());
         assertEquals(testString, substitutions.get(0).getValue());
     }
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         rootNode.accept(mock);
         verify(mock).visit(rootNode);
         verifyNoMoreInteractions(mock);

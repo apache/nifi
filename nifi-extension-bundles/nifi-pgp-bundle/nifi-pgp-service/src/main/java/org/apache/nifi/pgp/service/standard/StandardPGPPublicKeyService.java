@@ -126,7 +126,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("keyring-file", KEYRING_FILE.getName());
         config.renameProperty("keyring", KEYRING.getName());
     }

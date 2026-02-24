@@ -54,7 +54,7 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
         this.buffered = new BufferedOutputStream(out);
         this.recycleQueue = recycleQueue;
 
-        BinaryEncoder reusableEncoder = recycleQueue.poll();
+        final BinaryEncoder reusableEncoder = recycleQueue.poll();
         if (reusableEncoder == null) {
             logger.debug("Was not able to obtain a BinaryEncoder from reuse pool. This is normal for the first X number of iterations (where X is equal to the max size of the pool), " +
                 "but if this continues, it indicates that increasing the size of the pool will likely yield better performance for this Avro Writer.");

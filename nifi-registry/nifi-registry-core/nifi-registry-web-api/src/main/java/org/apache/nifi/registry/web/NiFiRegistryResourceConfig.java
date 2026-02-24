@@ -50,7 +50,7 @@ public class NiFiRegistryResourceConfig extends ResourceConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryResourceConfig.class);
 
-    public NiFiRegistryResourceConfig(@Context ServletContext servletContext) {
+    public NiFiRegistryResourceConfig(final @Context ServletContext servletContext) {
         // register filters
         register(HttpMethodOverrideFilter.class);
 

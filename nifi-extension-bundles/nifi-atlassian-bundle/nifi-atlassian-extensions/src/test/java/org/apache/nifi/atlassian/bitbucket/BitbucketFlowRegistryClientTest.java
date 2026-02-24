@@ -40,7 +40,7 @@ public class BitbucketFlowRegistryClientTest {
 
     @ParameterizedTest
     @MethodSource("apiUrlArgs")
-    void testApiUrl(String input, boolean valid) {
+    void testApiUrl(final String input, final boolean valid) {
         when(validationContext.newPropertyValue(input)).thenReturn(new StandardPropertyValue(input, null, null));
         final ValidationResult validationResult = BitbucketFlowRegistryClient.BITBUCKET_API_URL.validate(input, validationContext);
 
@@ -61,7 +61,7 @@ public class BitbucketFlowRegistryClientTest {
 
     @ParameterizedTest
     @MethodSource("apiHostArgs")
-    void testApiHost(String input, boolean valid) {
+    void testApiHost(final String input, final boolean valid) {
         final ValidationResult validationResult = BitbucketFlowRegistryClient.BITBUCKET_API_URL.validate(input, validationContext);
 
         if (valid) {

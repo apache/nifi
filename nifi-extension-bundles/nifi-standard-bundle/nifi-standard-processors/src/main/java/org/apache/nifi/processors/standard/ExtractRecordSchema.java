@@ -109,7 +109,7 @@ public class ExtractRecordSchema extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setup(ProcessContext context) {
+    public void setup(final ProcessContext context) {
         final int cacheSize = context.getProperty(SCHEMA_CACHE_SIZE).asInteger();
         avroSchemaTextCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
@@ -117,8 +117,8 @@ public class ExtractRecordSchema extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -135,7 +135,7 @@ public class ExtractRecordSchema extends AbstractProcessor {
             // Since we are wrapping the exceptions above there should always be a cause,
             // but it's possible it might not have a message. This handles that by logging
             // the name of the class thrown.
-            Throwable c = e.getCause();
+            final Throwable c = e.getCause();
             if (c == null) {
                 session.putAttribute(flowFile, "record.error.message", e.getClass().getCanonicalName() + " Thrown");
             } else {
@@ -150,7 +150,7 @@ public class ExtractRecordSchema extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("cache-size", SCHEMA_CACHE_SIZE.getName());
     }

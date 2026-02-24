@@ -31,17 +31,17 @@ import java.io.UncheckedIOException;
 public class DDLEventWriter extends AbstractBinlogTableEventWriter<DDLEventInfo> {
 
     @Override
-    public long writeEvent(ProcessSession session, String transitUri, DDLEventInfo eventInfo, long currentSequenceId, Relationship relationship,
+    public long writeEvent(final ProcessSession session, final String transitUri, final DDLEventInfo eventInfo, final long currentSequenceId, final Relationship relationship,
                            final EventWriterConfiguration eventWriterConfiguration) {
         configureEventWriter(eventWriterConfiguration, session, eventInfo);
-        OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
+        final OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
 
         try {
             super.startJson(outputStream, eventInfo);
             super.writeJson(eventInfo);
             jsonGenerator.writeStringField("query", eventInfo.getQuery());
             super.endJson();
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new UncheckedIOException("Write JSON start array failed", ioe);
         }
 

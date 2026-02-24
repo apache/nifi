@@ -50,7 +50,7 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
 
     private class TestCreateBoxMetadataTemplate extends CreateBoxMetadataTemplate {
         @Override
-        protected BoxAPIConnection getBoxAPIConnection(ProcessContext context) {
+        protected BoxAPIConnection getBoxAPIConnection(final ProcessContext context) {
             return mockBoxAPIConnection;
         }
 
@@ -81,7 +81,7 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.setProperty(CreateBoxMetadataTemplate.RECORD_READER, "json-reader");
     }
 
-    private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
+    private void configureJsonRecordReader(final TestRunner runner) throws InitializationException {
         final JsonTreeReader readerService = new JsonTreeReader();
         runner.addControllerService("json-reader", readerService);
         runner.enableControllerService(readerService);

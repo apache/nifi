@@ -74,12 +74,12 @@ public class QueryParameters {
         private Integer numRows;
         private List<SortParameter> sortParameters = new ArrayList<>();
 
-        public Builder pageNum(Integer pageNum) {
+        public Builder pageNum(final Integer pageNum) {
             this.pageNum = pageNum;
             return this;
         }
 
-        public Builder numRows(Integer numRows) {
+        public Builder numRows(final Integer numRows) {
             this.numRows = numRows;
             return this;
         }

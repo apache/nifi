@@ -29,7 +29,7 @@ public enum ConflictResolutionStrategy implements DescribedValue {
     private static final Map<String, ConflictResolutionStrategy> ENUM_MAP = new HashMap<>();
 
     static {
-        for (ConflictResolutionStrategy strategy : values()) {
+        for (final ConflictResolutionStrategy strategy : values()) {
             ENUM_MAP.put(strategy.getValue(), strategy);
         }
     }
@@ -37,12 +37,12 @@ public enum ConflictResolutionStrategy implements DescribedValue {
     private final String value;
     private final String description;
 
-    ConflictResolutionStrategy(final String value, String description) {
+    ConflictResolutionStrategy(final String value, final String description) {
         this.value = value;
         this.description = description;
     }
 
-    public static ConflictResolutionStrategy forValue(String value) {
+    public static ConflictResolutionStrategy forValue(final String value) {
         return ENUM_MAP.get(value);
     }
 

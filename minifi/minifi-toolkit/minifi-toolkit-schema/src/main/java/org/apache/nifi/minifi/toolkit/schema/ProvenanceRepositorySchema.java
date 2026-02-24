@@ -50,7 +50,7 @@ public class ProvenanceRepositorySchema extends BaseSchema implements WritableSc
 
     public ProvenanceRepositorySchema() { }
 
-    public ProvenanceRepositorySchema(Map map) {
+    public ProvenanceRepositorySchema(final Map map) {
         provenanceRepoRolloverTime = getOptionalKeyAsType(map, PROVENANCE_REPO_ROLLOVER_TIME_KEY, String.class,
                 PROVENANCE_REPO_KEY, DEFAULT_PROVENANCE_ROLLOVER_TIME);
         provenanceRepository = getOptionalKeyAsType(map, PROVENANCE_REPOSITORY_KEY, String.class,
@@ -67,7 +67,7 @@ public class ProvenanceRepositorySchema extends BaseSchema implements WritableSc
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(PROVENANCE_REPO_ROLLOVER_TIME_KEY, provenanceRepoRolloverTime);
         result.put(PROVENANCE_REPOSITORY_KEY, provenanceRepository);
         result.put(PROVENANCE_REPO_INDEX_SHARD_SIZE, provenanceRepoIndexShardSize);

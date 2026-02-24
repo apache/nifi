@@ -28,7 +28,7 @@ public class BulkOperation {
     private final List<Record> originalRecords;
     private final RecordSchema schema;
 
-    public BulkOperation(List<IndexOperationRequest> operationList, List<Record> originalRecords, RecordSchema schema) {
+    public BulkOperation(final List<IndexOperationRequest> operationList, final List<Record> originalRecords, final RecordSchema schema) {
         this.operationList = operationList;
         this.originalRecords = originalRecords;
         this.schema = schema;

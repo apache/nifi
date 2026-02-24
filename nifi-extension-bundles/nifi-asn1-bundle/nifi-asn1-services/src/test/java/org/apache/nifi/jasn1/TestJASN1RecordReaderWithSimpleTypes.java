@@ -62,14 +62,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTester {
     @Test
     public void testBoolean() throws Exception {
-        String dataFile = "target/boolean_wrapper.dat";
+        final String dataFile = "target/boolean_wrapper.dat";
 
-        BooleanWrapper berValue = new BooleanWrapper();
+        final BooleanWrapper berValue = new BooleanWrapper();
         berValue.setValue(new BerBoolean(true));
 
-        Map<String, Object> expectedValues = Map.of("value", true);
+        final Map<String, Object> expectedValues = Map.of("value", true);
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.BOOLEAN.getDataType()))
         );
 
@@ -78,14 +78,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testInteger() throws Exception {
-        String dataFile = "target/integer_wrapper.dat";
+        final String dataFile = "target/integer_wrapper.dat";
 
-        IntegerWrapper berValue = new IntegerWrapper();
+        final IntegerWrapper berValue = new IntegerWrapper();
         berValue.setValue(new BerInteger(4321234));
 
-        Map<String, Object> expectedValues = Map.of("value", BigInteger.valueOf(4321234));
+        final Map<String, Object> expectedValues = Map.of("value", BigInteger.valueOf(4321234));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.BIGINT.getDataType()))
         );
 
@@ -94,14 +94,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testBitString() throws Exception {
-        String dataFile = "target/bit_string_wrapper.dat";
+        final String dataFile = "target/bit_string_wrapper.dat";
 
-        BitStringWrapper berValue = new BitStringWrapper();
+        final BitStringWrapper berValue = new BitStringWrapper();
         berValue.setValue(new BerBitString(new boolean[]{false, true, false, false, true, true, true, true, false, true, false, false}));
 
-        Map<String, Object> expectedValues = Map.of("value", "010011110100");
+        final Map<String, Object> expectedValues = Map.of("value", "010011110100");
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
         );
 
@@ -110,15 +110,15 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testOctetString() throws Exception {
-        String dataFile = "target/octet_string_wrapper.dat";
+        final String dataFile = "target/octet_string_wrapper.dat";
 
-        OctetStringWrapper berValue = new OctetStringWrapper();
+        final OctetStringWrapper berValue = new OctetStringWrapper();
         berValue.setValue(new BerOctetString("0123456789ABCDEFGHIJKLMNopqrstuvwxyz".getBytes()));
 
-        Map<String, Object> expectedValues =
+        final Map<String, Object> expectedValues =
                 Map.of("value", octetStringExpectedValueConverter("0123456789ABCDEFGHIJKLMNopqrstuvwxyz".getBytes()));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
         );
 
@@ -127,14 +127,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testUTF8StringString() throws Exception {
-        String dataFile = "target/utf8string_wrapper.dat";
+        final String dataFile = "target/utf8string_wrapper.dat";
 
-        UTF8StringWrapper berValue = new UTF8StringWrapper();
+        final UTF8StringWrapper berValue = new UTF8StringWrapper();
         berValue.setValue(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
 
-        Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
+        final Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
         );
 
@@ -143,14 +143,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testBMPString() throws Exception {
-        String dataFile = "target/bmpstring_wrapper.dat";
+        final String dataFile = "target/bmpstring_wrapper.dat";
 
-        BMPStringWrapper berValue = new BMPStringWrapper();
+        final BMPStringWrapper berValue = new BMPStringWrapper();
         berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes(StandardCharsets.UTF_8)));
 
-        Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
+        final Map<String, Object> expectedValues = Map.of("value", "Some UTF-8 String. こんにちは世界。");
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))
         );
 
@@ -159,14 +159,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testDate() throws Exception {
-        String dataFile = "target/date_wrapper.dat";
+        final String dataFile = "target/date_wrapper.dat";
 
-        DateWrapper berValue = new DateWrapper();
+        final DateWrapper berValue = new DateWrapper();
         berValue.setValue(new BerDate("2019-10-16"));
 
-        Map<String, Object> expectedValues = Map.of("value", LocalDate.parse("2019-10-16"));
+        final Map<String, Object> expectedValues = Map.of("value", LocalDate.parse("2019-10-16"));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.DATE.getDataType()))
         );
 
@@ -175,29 +175,29 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testDateInvalidValue() throws Exception {
-        String dataFile = "target/date_invalid_wrapper.dat";
+        final String dataFile = "target/date_invalid_wrapper.dat";
 
-        DateWrapper berValue = new DateWrapper();
+        final DateWrapper berValue = new DateWrapper();
         berValue.setValue(new BerDate("2019_10-16"));
 
         try {
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             assertTrue(e.getMessage().contains("Text '2019_10-16' could not be parsed at index 4"));
         }
     }
 
     @Test
     public void testTimeOfDay() throws Exception {
-        String dataFile = "target/time_of_day_wrapper.dat";
+        final String dataFile = "target/time_of_day_wrapper.dat";
 
-        TimeOfDayWrapper berValue = new TimeOfDayWrapper();
+        final TimeOfDayWrapper berValue = new TimeOfDayWrapper();
         berValue.setValue(new BerTimeOfDay("16:13:12"));
 
-        Map<String, Object> expectedValues = Map.of("value", LocalTime.parse("16:13:12"));
+        final Map<String, Object> expectedValues = Map.of("value", LocalTime.parse("16:13:12"));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.TIME.getDataType()))
         );
 
@@ -206,29 +206,29 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testTimeOfDayInvalidValue() {
-        String dataFile = "target/time_of_day_invalid_wrapper.dat";
+        final String dataFile = "target/time_of_day_invalid_wrapper.dat";
 
-        TimeOfDayWrapper berValue = new TimeOfDayWrapper();
+        final TimeOfDayWrapper berValue = new TimeOfDayWrapper();
         berValue.setValue(new BerTimeOfDay("16.13:12"));
 
         try {
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             assertTrue(e.getMessage().contains("Text '16.13:12' could not be parsed at index 2"));
         }
     }
 
     @Test
     public void testDateTime() throws Exception {
-        String dataFile = "target/date_time_wrapper.dat";
+        final String dataFile = "target/date_time_wrapper.dat";
 
-        DateTimeWrapper berValue = new DateTimeWrapper();
+        final DateTimeWrapper berValue = new DateTimeWrapper();
         berValue.setValue(new BerDateTime("2019-10-16T16:18:20"));
 
-        Map<String, Object> expectedValues = Map.of("value", LocalDateTime.parse("2019-10-16T16:18:20"));
+        final Map<String, Object> expectedValues = Map.of("value", LocalDateTime.parse("2019-10-16T16:18:20"));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-ddTHH:mm:ss")))
         );
 
@@ -237,29 +237,29 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testDateTimeInvalid() {
-        String dataFile = "target/date_time_invalid_wrapper.dat";
+        final String dataFile = "target/date_time_invalid_wrapper.dat";
 
-        DateTimeWrapper berValue = new DateTimeWrapper();
+        final DateTimeWrapper berValue = new DateTimeWrapper();
         berValue.setValue(new BerDateTime("2019-10-16 16:18:20"));
 
         try {
             testReadRecord(dataFile, berValue, (Map) null, null);
             fail();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             assertTrue(e.getMessage().contains("Text '2019-10-16 16:18:20' could not be parsed at index 10"));
         }
     }
 
     @Test
     public void testReal() throws Exception {
-        String dataFile = "target/real_wrapper.dat";
+        final String dataFile = "target/real_wrapper.dat";
 
-        RealWrapper berValue = new RealWrapper();
+        final RealWrapper berValue = new RealWrapper();
         berValue.setValue(new BerReal(176.34D));
 
-        Map<String, Object> expectedValues = Map.of("value", 176.34D);
+        final Map<String, Object> expectedValues = Map.of("value", 176.34D);
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()))
         );
 
@@ -268,14 +268,14 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
 
     @Test
     public void testEnumerated() throws Exception {
-        String dataFile = "target/enumerated_wrapper.dat";
+        final String dataFile = "target/enumerated_wrapper.dat";
 
-        EnumeratedWrapper berValue = new EnumeratedWrapper();
+        final EnumeratedWrapper berValue = new EnumeratedWrapper();
         berValue.setValue(new BerEnum(0));
 
-        Map<String, Object> expectedValues = Map.of("value", 0);
+        final Map<String, Object> expectedValues = Map.of("value", 0);
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.INT.getDataType()))
         );
 

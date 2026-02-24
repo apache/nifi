@@ -313,7 +313,7 @@ public class ReplaceText extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> errors = new ArrayList<>(super.customValidate(validationContext));
 
         switch (validationContext.getProperty(REPLACEMENT_STRATEGY).getValue()) {
@@ -340,7 +340,7 @@ public class ReplaceText extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setup(ProcessContext context) {
+    public void setup(final ProcessContext context) {
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
         final String evaluateMode = context.getProperty(EVALUATION_MODE).getValue();
 
@@ -407,13 +407,13 @@ public class ReplaceText extends AbstractProcessor {
 
         try {
             flowFile = replacementStrategyExecutor.replace(flowFile, session, context, evaluateMode, charset, maxBufferSize);
-        } catch (StackOverflowError e) {
+        } catch (final StackOverflowError e) {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
             logger.info("Transferred {} to 'failure'", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
-        } catch (BufferOverflowException | IllegalAttributeException | AttributeExpressionLanguageException e) {
+        } catch (final BufferOverflowException | IllegalAttributeException | AttributeExpressionLanguageException e) {
             logger.warn("Transferred {} to 'failure'", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -425,7 +425,7 @@ public class ReplaceText extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Regular Expression", SEARCH_VALUE.getName());
     }
 
@@ -471,15 +471,16 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class AlwaysReplace implements ReplacementStrategyExecutor {
         @Override
-        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
 
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
             final StringBuilder lineEndingBuilder = new StringBuilder(2);
 
+            FlowFile result = flowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, out -> out.write(replacementValue.getBytes(charset)));
+                result = session.write(result, out -> out.write(replacementValue.getBytes(charset)));
             } else {
-                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                result = session.write(result, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     ((bw, oneLine) -> {
                         // We need to determine what line ending was used and use that after our replacement value.
                         lineEndingBuilder.setLength(0);
@@ -500,7 +501,7 @@ public class ReplaceText extends AbstractProcessor {
                     })));
             }
 
-            return flowFile;
+            return result;
         }
 
         @Override
@@ -511,19 +512,20 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class PrependReplace implements ReplacementStrategyExecutor {
         @Override
-        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
+            FlowFile result = flowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, (in, out) -> {
+                result = session.write(result, (in, out) -> {
                     out.write(replacementValue.getBytes(charset));
                     IOUtils.copy(in, out);
                 });
             } else {
-                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                result = session.write(result, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> bw.write(replacementValue.concat(oneLine))));
             }
-            return flowFile;
+            return result;
         }
 
         @Override
@@ -543,12 +545,13 @@ public class ReplaceText extends AbstractProcessor {
         }
 
         @Override
-        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
             final String prependValue = (prependValueDescriptor == null) ? null : context.getProperty(prependValueDescriptor).evaluateAttributeExpressions(flowFile).getValue();
             final String appendValue = context.getProperty(appendValueDescriptor).evaluateAttributeExpressions(flowFile).getValue();
 
+            FlowFile result = flowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, (in, out) -> {
+                result = session.write(result, (in, out) -> {
                     if (prependValue != null && !prependValue.isEmpty()) {
                         out.write(prependValue.getBytes(charset));
                     }
@@ -557,7 +560,7 @@ public class ReplaceText extends AbstractProcessor {
                     out.write(appendValue.getBytes(charset));
                 });
             } else {
-                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                result = session.write(result, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> {
                         if (prependValue != null && !prependValue.isEmpty()) {
                             bw.write(prependValue);
@@ -588,7 +591,7 @@ public class ReplaceText extends AbstractProcessor {
                         }
                     }));
             }
-            return flowFile;
+            return result;
         }
 
         @Override
@@ -618,7 +621,7 @@ public class ReplaceText extends AbstractProcessor {
             final Pattern searchPattern = Pattern.compile(searchRegex);
             final Map<String, String> additionalAttrs = new HashMap<>(numCapturingGroups);
 
-            FlowFile updatedFlowFile;
+            final FlowFile updatedFlowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
                 final int flowFileSize = (int) flowFile.getSize();
                 final int bufferSize = Math.min(maxBufferSize, flowFileSize);
@@ -642,7 +645,7 @@ public class ReplaceText extends AbstractProcessor {
 
                     String replacement = replacementValueProperty.evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                    String replacementFinal = normalizeReplacementString(replacement);
+                    final String replacementFinal = normalizeReplacementString(replacement);
 
                     matcher.appendReplacement(sb, replacementFinal);
                 }
@@ -663,7 +666,7 @@ public class ReplaceText extends AbstractProcessor {
                         matcher.reset(oneLine);
 
                         int matches = 0;
-                        StringBuffer sb = new StringBuffer();
+                        final StringBuffer sb = new StringBuffer();
 
                         while (matcher.find()) {
                             matches++;
@@ -674,7 +677,7 @@ public class ReplaceText extends AbstractProcessor {
 
                             String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                             replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
-                            String replacementFinal = normalizeReplacementString(replacement);
+                            final String replacementFinal = normalizeReplacementString(replacement);
 
                             matcher.appendReplacement(sb, replacementFinal);
                         }
@@ -702,16 +705,17 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class LiteralReplace implements ReplacementStrategyExecutor {
         @Override
-        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
             final String searchValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
+            FlowFile result = flowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
                 final int flowFileSize = (int) flowFile.getSize();
                 final int bufferSize = Math.min(maxBufferSize, flowFileSize);
                 final byte[] buffer = new byte[bufferSize];
 
-                flowFile = session.write(flowFile, (in, out) -> {
+                result = session.write(result, (in, out) -> {
                     StreamUtils.fillBuffer(in, buffer, false);
                     final String contentString = new String(buffer, 0, flowFileSize, charset);
                     // Interpreting the search and replacement values as char sequences
@@ -720,7 +724,7 @@ public class ReplaceText extends AbstractProcessor {
                 });
             } else {
 
-                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                result = session.write(result, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> {
                         int matches = 0;
                         int lastEnd = 0;
@@ -742,7 +746,7 @@ public class ReplaceText extends AbstractProcessor {
                         }
                     }));
             }
-            return flowFile;
+            return result;
         }
 
         @Override
@@ -753,28 +757,29 @@ public class ReplaceText extends AbstractProcessor {
 
     private static class SubstituteVariablesReplace implements ReplacementStrategyExecutor {
         @Override
-        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+        public FlowFile replace(final FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
             final Map<String, String> flowFileAttributes = flowFile.getAttributes();
 
+            FlowFile result = flowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
                 final int flowFileSize = (int) flowFile.getSize();
                 final int bufferSize = Math.min(maxBufferSize, flowFileSize);
                 final byte[] buffer = new byte[bufferSize];
 
-                flowFile = session.write(flowFile, (in, out) -> {
+                result = session.write(result, (in, out) -> {
                     StreamUtils.fillBuffer(in, buffer, false);
                     final String originalContent = new String(buffer, 0, flowFileSize, charset);
                     final String substitutedContent = StringSubstitutor.replace(originalContent, flowFileAttributes);
                     out.write(substitutedContent.getBytes(charset));
                 });
             } else {
-                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                result = session.write(result, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                         (bw, oneLine) -> {
                             final String substitutedLine = StringSubstitutor.replace(oneLine, flowFileAttributes);
                             bw.write(substitutedLine);
                         }));
             }
-            return flowFile;
+            return result;
         }
 
         @Override
@@ -788,7 +793,7 @@ public class ReplaceText extends AbstractProcessor {
      * it. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
      * regex.
      */
-    private static String normalizeReplacementString(String replacement) {
+    private static String normalizeReplacementString(final String replacement) {
         String replacementFinal = replacement;
         if (REPLACEMENT_NORMALIZATION_PATTERN.matcher(replacement).find()) {
             replacementFinal = Matcher.quoteReplacement(replacement);
@@ -813,10 +818,10 @@ public class ReplaceText extends AbstractProcessor {
         private final String lineByLineEvaluationMode;
         private final ReplaceLine replaceLine;
 
-        private StreamReplaceCallback(Charset charset,
-                                     int maxBufferSize,
-                                     String lineByLineEvaluationMode,
-                                     ReplaceLine replaceLine) {
+        private StreamReplaceCallback(final Charset charset,
+                                     final int maxBufferSize,
+                                     final String lineByLineEvaluationMode,
+                                     final ReplaceLine replaceLine) {
             this.charset = charset;
             this.maxBufferSize = maxBufferSize;
             this.lineByLineEvaluationMode = lineByLineEvaluationMode;

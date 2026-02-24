@@ -36,7 +36,7 @@ public class ProcessorStatusSnapshotEntity extends Entity implements ReadablePer
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ public class ProcessorStatusSnapshotEntity extends Entity implements ReadablePer
         return processorStatusSnapshot;
     }
 
-    public void setProcessorStatusSnapshot(ProcessorStatusSnapshotDTO processorStatusSnapshot) {
+    public void setProcessorStatusSnapshot(final ProcessorStatusSnapshotDTO processorStatusSnapshot) {
         this.processorStatusSnapshot = processorStatusSnapshot;
     }
 
@@ -59,7 +59,7 @@ public class ProcessorStatusSnapshotEntity extends Entity implements ReadablePer
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

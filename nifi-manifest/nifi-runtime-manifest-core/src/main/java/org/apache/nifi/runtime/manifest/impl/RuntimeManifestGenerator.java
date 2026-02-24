@@ -89,7 +89,7 @@ public class RuntimeManifestGenerator {
         long buildTimestampMillis;
         try {
             buildTimestampMillis = OffsetDateTime.parse(buildTimestamp, TIMESTAMP_FORMATTER).toInstant().toEpochMilli();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             buildTimestampMillis = System.currentTimeMillis();
         }
 
@@ -164,7 +164,7 @@ public class RuntimeManifestGenerator {
     /**
      * Called from maven-exec-plugin during build of nifi-runtime-manifest.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         if (args == null || args.length != 4) {
             System.out.println("USAGE: <extension-manifest-base-dir> <build-props-file> <output-file> <manifest-id>");
             return;

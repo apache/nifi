@@ -27,7 +27,7 @@ import java.util.List;
 class EventTypeValidator implements Validator {
 
     @Override
-    public ValidationResult validate(String subject, String input, ValidationContext context) {
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
         final String explanation = isValidEventType(input);
         return new ValidationResult.Builder()
                 .subject(subject)
@@ -37,14 +37,14 @@ class EventTypeValidator implements Validator {
                 .build();
     }
 
-    private String isValidEventType(String input) {
+    private String isValidEventType(final String input) {
         if (input != null && !"".equals(input.trim())) {
             final String[] events = input.split(",");
             final List<String> invalid = new ArrayList<>();
-            for (String event : events) {
+            for (final String event : events) {
                 try {
                     Event.EventType.valueOf(event.trim().toUpperCase());
-                } catch (IllegalArgumentException e) {
+                } catch (final IllegalArgumentException e) {
                     invalid.add(event.trim());
                 }
             }

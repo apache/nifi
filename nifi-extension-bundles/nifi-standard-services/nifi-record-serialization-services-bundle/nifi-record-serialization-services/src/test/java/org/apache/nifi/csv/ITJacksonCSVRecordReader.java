@@ -52,7 +52,7 @@ public class ITJacksonCSVRecordReader {
     public void testParserPerformance() throws IOException, MalformedRecordException {
         // Generates about 130MB of data
         final int NUM_LINES = 2500000;
-        String sb = "id,name,balance,address,city,state,zipCode,country\n" +
+        final String sb = "id,name,balance,address,city,state,zipCode,country\n" +
                 "1,John Doe,4750.89D,123 My Street,My City,MS,11111,USA\n".repeat(NUM_LINES);
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 

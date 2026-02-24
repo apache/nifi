@@ -319,9 +319,9 @@ public class DeduplicateRecord extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        List<ValidationResult> validationResults = new ArrayList<>();
+        final List<ValidationResult> validationResults = new ArrayList<>();
 
-        boolean useSingleFile = context.getProperty(DEDUPLICATION_STRATEGY).getValue().equals(OPTION_SINGLE_FILE.getValue());
+        final boolean useSingleFile = context.getProperty(DEDUPLICATION_STRATEGY).getValue().equals(OPTION_SINGLE_FILE.getValue());
 
         if (useSingleFile && context.getProperty(BLOOM_FILTER_FPP).isSet()) {
             final double falsePositiveProbability = context.getProperty(BLOOM_FILTER_FPP).asDouble();
@@ -357,7 +357,7 @@ public class DeduplicateRecord extends AbstractProcessor {
         dynamicProperties = context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
-        int cacheSize = dynamicProperties.size();
+        final int cacheSize = dynamicProperties.size();
 
         final String deduplicationStrategy = context.getProperty(DEDUPLICATION_STRATEGY).getValue();
 
@@ -373,7 +373,7 @@ public class DeduplicateRecord extends AbstractProcessor {
         writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
     }
 
-    private FilterWrapper getFilter(ProcessContext context) {
+    private FilterWrapper getFilter(final ProcessContext context) {
         if (useInMemoryStrategy) {
             final String filterType = context.getProperty(FILTER_TYPE).getValue();
 
@@ -401,8 +401,8 @@ public class DeduplicateRecord extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        FlowFile nonDuplicatesFlowFile = session.create(flowFile);
-        FlowFile duplicatesFlowFile = session.create(flowFile);
+        final FlowFile nonDuplicatesFlowFile = session.create(flowFile);
+        final FlowFile duplicatesFlowFile = session.create(flowFile);
 
         long index = 0;
 
@@ -435,7 +435,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             Record record;
 
             while ((record = reader.nextRecord()) != null) {
-                String recordValue;
+                final String recordValue;
 
                 if (matchWholeRecord) {
                     recordValue = Joiner.on(JOIN_CHAR).join(record.getValues());
@@ -452,7 +452,7 @@ public class DeduplicateRecord extends AbstractProcessor {
 
                 // If a cache entry identifier is specified, apply any expressions to determine the final cache value
                 if (!useInMemoryStrategy && context.getProperty(CACHE_IDENTIFIER).isSet()) {
-                    Map<String, String> additional = new HashMap<>();
+                    final Map<String, String> additional = new HashMap<>();
                     additional.put(RECORD_HASH_VALUE_ATTRIBUTE, recordHash);
                     recordHash = context.getProperty(CACHE_IDENTIFIER).evaluateAttributeExpressions(flowFile, additional).getValue();
                 }
@@ -500,7 +500,7 @@ public class DeduplicateRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("deduplication-strategy", DEDUPLICATION_STRATEGY.getName());
@@ -514,29 +514,29 @@ public class DeduplicateRecord extends AbstractProcessor {
         config.renameProperty("bloom-filter-certainty", BLOOM_FILTER_FPP.getName());
     }
 
-    private void sendOrRemove(ProcessSession session,
-                              FlowFile outputFlowFile,
-                              Relationship targetRelationship,
-                              String mimeType,
-                              boolean includeZeroRecordFlowFiles,
-                              WriteResult writeResult) {
+    private void sendOrRemove(final ProcessSession session,
+                              final FlowFile outputFlowFile,
+                              final Relationship targetRelationship,
+                              final String mimeType,
+                              final boolean includeZeroRecordFlowFiles,
+                              final WriteResult writeResult) {
         if (!includeZeroRecordFlowFiles && writeResult.getRecordCount() == 0) {
             session.remove(outputFlowFile);
         } else {
-            Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+            final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
             attributes.put(RECORD_COUNT_ATTRIBUTE, String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
-            outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
+            final FlowFile updatedOutputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Successfully found {} unique records for {}",
-                        writeResult.getRecordCount(), outputFlowFile);
+                        writeResult.getRecordCount(), updatedOutputFlowFile);
             }
 
-            session.transfer(outputFlowFile, targetRelationship);
+            session.transfer(updatedOutputFlowFile, targetRelationship);
         }
     }
 
-    private String evaluateKeyFromDynamicProperties(ProcessContext context, Record record, FlowFile flowFile) {
+    private String evaluateKeyFromDynamicProperties(final ProcessContext context, final Record record, final FlowFile flowFile) {
         final List<String> fieldValues = new ArrayList<>();
         for (final PropertyDescriptor propertyDescriptor : dynamicProperties) {
             final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
@@ -568,17 +568,17 @@ public class DeduplicateRecord extends AbstractProcessor {
 
         private final HashSet<String> filter; //NOPMD
 
-        public HashSetFilterWrapper(HashSet<String> filter) { //NOPMD
+        public HashSetFilterWrapper(final HashSet<String> filter) { //NOPMD
             this.filter = filter;
         }
 
         @Override
-        public boolean contains(String value) {
+        public boolean contains(final String value) {
             return filter.contains(value);
         }
 
         @Override
-        public void put(String value) {
+        public void put(final String value) {
             filter.add(value);
         }
     }
@@ -587,17 +587,17 @@ public class DeduplicateRecord extends AbstractProcessor {
 
         private final BloomFilter<String> filter;
 
-        public BloomFilterWrapper(BloomFilter<String> filter) {
+        public BloomFilterWrapper(final BloomFilter<String> filter) {
             this.filter = filter;
         }
 
         @Override
-        public boolean contains(String value) {
+        public boolean contains(final String value) {
             return filter.mightContain(value);
         }
 
         @Override
-        public void put(String value) {
+        public void put(final String value) {
             filter.put(value);
         }
     }
@@ -613,20 +613,20 @@ public class DeduplicateRecord extends AbstractProcessor {
         }
 
         @Override
-        public boolean contains(String value) {
+        public boolean contains(final String value) {
             try {
                 if (putCacheIdentifier) {
                     return !client.putIfAbsent(value, "", STRING_SERIALIZER, STRING_SERIALIZER);
                 } else {
                     return client.containsKey(value, STRING_SERIALIZER);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Distributed Map lookup failed", e);
             }
         }
 
         @Override
-        public void put(String value) {
+        public void put(final String value) {
             // Do nothing as the key is queried and put to the cache atomically in the `contains` method.
         }
     }

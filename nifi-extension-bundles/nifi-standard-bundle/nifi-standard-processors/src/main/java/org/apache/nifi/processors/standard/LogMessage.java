@@ -139,12 +139,12 @@ public class LogMessage extends AbstractProcessor {
         final MessageLogLevel logLevel;
         try {
             logLevel = MessageLogLevel.valueOf(logLevelValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 
         final ComponentLog logger = getLogger();
-        boolean isLogLevelEnabled = switch (logLevel) {
+        final boolean isLogLevelEnabled = switch (logLevel) {
             case trace -> logger.isTraceEnabled();
             case debug -> logger.isDebugEnabled();
             case info -> logger.isInfoEnabled();
@@ -159,7 +159,7 @@ public class LogMessage extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("log-level", LOG_LEVEL.getName());
         config.renameProperty("log-prefix", LOG_PREFIX.getName());
         config.renameProperty("log-message", LOG_MESSAGE.getName());
@@ -171,10 +171,10 @@ public class LogMessage extends AbstractProcessor {
             final FlowFile flowFile,
             final ProcessContext context) {
 
-        String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
-        String logMessage = context.getProperty(LOG_MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
+        final String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
+        final String logMessage = context.getProperty(LOG_MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
 
-        String messageToWrite;
+        final String messageToWrite;
         if (StringUtil.isBlank(logPrefix)) {
             messageToWrite = logMessage;
         } else {

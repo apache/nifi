@@ -23,7 +23,7 @@ import java.io.IOException;
  */
 public class C2ServerException extends IOException {
 
-    public C2ServerException(String message) {
+    public C2ServerException(final String message) {
         super(message);
     }
 }

@@ -19,7 +19,7 @@ package org.apache.nifi.util.timebuffer;
 public class LongEntityAccess implements EntityAccess<TimestampedLong> {
 
     @Override
-    public TimestampedLong aggregate(TimestampedLong oldValue, TimestampedLong toAdd) {
+    public TimestampedLong aggregate(final TimestampedLong oldValue, final TimestampedLong toAdd) {
         if (oldValue == null && toAdd == null) {
             return new TimestampedLong(0L);
         } else if (oldValue == null) {
@@ -37,7 +37,7 @@ public class LongEntityAccess implements EntityAccess<TimestampedLong> {
     }
 
     @Override
-    public long getTimestamp(TimestampedLong entity) {
+    public long getTimestamp(final TimestampedLong entity) {
         return entity == null ? 0L : entity.getTimestamp();
     }
 }

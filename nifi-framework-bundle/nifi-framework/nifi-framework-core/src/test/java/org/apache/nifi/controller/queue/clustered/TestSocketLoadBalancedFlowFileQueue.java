@@ -83,7 +83,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
     @BeforeEach
     public void setup() {
         MockFlowFileRecord.resetIdGenerator();
-        Connection connection = mock(Connection.class);
+        final Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn("unit-test");
 
         flowFileRepo = mock(FlowFileRepository.class);
@@ -384,7 +384,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
             final List<FlowFileRecord> flowFiles = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
-                FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+                final FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
                 flowFiles.add(newMockFlowFilerecord);
                 expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
                 expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();
@@ -395,7 +395,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+            final FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
             flowFiles.add(newMockFlowFilerecord);
             expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
             expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();

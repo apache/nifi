@@ -57,13 +57,13 @@ public class TaskTerminationOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
         verifyNotTerminated();
         delegate.write(b, off, len);
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public void write(final byte[] b) throws IOException {
         verifyNotTerminated();
         delegate.write(b);
     }

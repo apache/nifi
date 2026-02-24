@@ -103,7 +103,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
     protected volatile MongoDBClientService clientService;
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("gridfs-client-service", CLIENT_SERVICE.getName());
         config.renameProperty("gridfs-database-name", DATABASE_NAME.getName());
         config.renameProperty("gridfs-bucket-name", BUCKET_NAME.getName());
@@ -119,13 +119,13 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         return RELATIONSHIPS;
     }
 
-    protected MongoDatabase getDatabase(FlowFile input, ProcessContext context) {
+    protected MongoDatabase getDatabase(final FlowFile input, final ProcessContext context) {
         return clientService.getDatabase(context.getProperty(DATABASE_NAME)
                 .evaluateAttributeExpressions(input)
                 .getValue());
     }
 
-    protected GridFSBucket getBucket(FlowFile input, ProcessContext context) {
+    protected GridFSBucket getBucket(final FlowFile input, final ProcessContext context) {
         final String name = getBucketName(input, context);
         if (StringUtils.isEmpty(name)) {
             return GridFSBuckets.create(getDatabase(input, context));
@@ -134,15 +134,15 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         }
     }
 
-    protected String getBucketName(FlowFile input, ProcessContext context) {
+    protected String getBucketName(final FlowFile input, final ProcessContext context) {
         return context.getProperty(BUCKET_NAME).isSet()
             ? context.getProperty(BUCKET_NAME).evaluateAttributeExpressions(input).getValue()
             : null;
     }
 
-    protected String getTransitUri(ObjectId id, FlowFile input, ProcessContext context) {
-        String bucket = getBucketName(input, context);
-        String uri = clientService.getURI();
+    protected String getTransitUri(final ObjectId id, final FlowFile input, final ProcessContext context) {
+        final String bucket = getBucketName(input, context);
+        final String uri = clientService.getURI();
         return new StringBuilder()
             .append(uri)
             .append(uri.endsWith("/") ? "" : "/")

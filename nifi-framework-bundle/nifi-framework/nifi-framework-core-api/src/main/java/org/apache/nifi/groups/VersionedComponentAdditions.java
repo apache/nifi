@@ -117,57 +117,57 @@ public class VersionedComponentAdditions {
         private Map<String, VersionedParameterContext> parameterContexts;
         private Map<String, ParameterProviderReference> parameterProviders;
 
-        public Builder setProcessGroups(Set<VersionedProcessGroup> processGroups) {
+        public Builder setProcessGroups(final Set<VersionedProcessGroup> processGroups) {
             this.processGroups = processGroups;
             return this;
         }
 
-        public Builder setRemoteProcessGroups(Set<VersionedRemoteProcessGroup> remoteProcessGroups) {
+        public Builder setRemoteProcessGroups(final Set<VersionedRemoteProcessGroup> remoteProcessGroups) {
             this.remoteProcessGroups = remoteProcessGroups;
             return this;
         }
 
-        public Builder setProcessors(Set<VersionedProcessor> processors) {
+        public Builder setProcessors(final Set<VersionedProcessor> processors) {
             this.processors = processors;
             return this;
         }
 
-        public Builder setInputPorts(Set<VersionedPort> inputPorts) {
+        public Builder setInputPorts(final Set<VersionedPort> inputPorts) {
             this.inputPorts = inputPorts;
             return this;
         }
 
-        public Builder setOutputPorts(Set<VersionedPort> outputPorts) {
+        public Builder setOutputPorts(final Set<VersionedPort> outputPorts) {
             this.outputPorts = outputPorts;
             return this;
         }
 
-        public Builder setConnections(Set<VersionedConnection> connections) {
+        public Builder setConnections(final Set<VersionedConnection> connections) {
             this.connections = connections;
             return this;
         }
 
-        public Builder setLabels(Set<VersionedLabel> labels) {
+        public Builder setLabels(final Set<VersionedLabel> labels) {
             this.labels = labels;
             return this;
         }
 
-        public Builder setFunnels(Set<VersionedFunnel> funnels) {
+        public Builder setFunnels(final Set<VersionedFunnel> funnels) {
             this.funnels = funnels;
             return this;
         }
 
-        public Builder setControllerServices(Set<VersionedControllerService> controllerServices) {
+        public Builder setControllerServices(final Set<VersionedControllerService> controllerServices) {
             this.controllerServices = controllerServices;
             return this;
         }
 
-        public Builder setParameterContexts(Map<String, VersionedParameterContext> parameterContexts) {
+        public Builder setParameterContexts(final Map<String, VersionedParameterContext> parameterContexts) {
             this.parameterContexts = parameterContexts;
             return this;
         }
 
-        public Builder setParameterProviders(Map<String, ParameterProviderReference> parameterProviders) {
+        public Builder setParameterProviders(final Map<String, ParameterProviderReference> parameterProviders) {
             this.parameterProviders = parameterProviders;
             return this;
         }

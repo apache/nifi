@@ -33,7 +33,7 @@ public class TransferDebugCommandHelperTest {
 
     @BeforeEach
     public void setUp() {
-        NiFiProperties niFiProperties = new NiFiProperties();
+        final NiFiProperties niFiProperties = new NiFiProperties();
         transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
     }
 
@@ -61,7 +61,7 @@ public class TransferDebugCommandHelperTest {
 
     @ParameterizedTest
     @MethodSource("textAndExpectedResult")
-    public void testSensitiveTextIsExcluded(String propertyName, boolean expectedResult) {
+    public void testSensitiveTextIsExcluded(final String propertyName, final boolean expectedResult) {
         assertEquals(expectedResult, transferDebugCommandHelper.excludeSensitiveText(propertyName));
     }
 }

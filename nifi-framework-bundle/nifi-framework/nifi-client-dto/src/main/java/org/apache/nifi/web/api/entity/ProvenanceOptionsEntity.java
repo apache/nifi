@@ -36,7 +36,7 @@ public class ProvenanceOptionsEntity extends Entity {
         return provenanceOptions;
     }
 
-    public void setProvenanceOptions(ProvenanceOptionsDTO provenanceOptions) {
+    public void setProvenanceOptions(final ProvenanceOptionsDTO provenanceOptions) {
         this.provenanceOptions = provenanceOptions;
     }
 

@@ -68,7 +68,7 @@ public class TestFTP {
         fakeFtpServer.setServerControlPort(0);
         fakeFtpServer.addUserAccount(new UserAccount(username, password, "c:\\data"));
 
-        FileSystem fileSystem = new WindowsFakeFileSystem();
+        final FileSystem fileSystem = new WindowsFakeFileSystem();
         fileSystem.add(new DirectoryEntry("c:\\data"));
         fakeFtpServer.setFileSystem(fileSystem);
 
@@ -84,7 +84,7 @@ public class TestFTP {
 
     @Test
     public void testValidators() {
-        TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -134,20 +134,20 @@ public class TestFTP {
 
     @Test
     public void testPutFtp() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
         runner.setProperty(FTPTransfer.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FTPTransfer.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
         try (FileInputStream fis = new FileInputStream("src/test/resources/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             runner.enqueue(fis, attributes);
             runner.run();
         }
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(PutFTP.REL_SUCCESS);
-        FileSystem results = fakeFtpServer.getFileSystem();
+        final FileSystem results = fakeFtpServer.getFileSystem();
 
         // Check file was uploaded
         assertTrue(results.exists("c:\\data\\randombytes-1"));
@@ -155,7 +155,7 @@ public class TestFTP {
 
     @Test
     public void testPutFtpProvenanceEvents() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
 
         runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
         runner.setProperty(FTPTransfer.USERNAME, username);
@@ -164,14 +164,14 @@ public class TestFTP {
 
         // Get two flowfiles to test by running data
         try (FileInputStream fis = new FileInputStream("src/test/resources/randombytes-1")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
             attributes.put("transfer-host", "localhost");
             runner.enqueue(fis, attributes);
             runner.run();
         }
         try (FileInputStream fis = new FileInputStream("src/test/resources/hello.txt")) {
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "hello.txt");
             attributes.put("transfer-host", LOCALHOST_ADDRESS);
             runner.enqueue(fis, attributes);
@@ -180,13 +180,13 @@ public class TestFTP {
         runner.assertQueueEmpty();
         runner.assertTransferCount(PutFTP.REL_SUCCESS, 2);
 
-        MockFlowFile flowFile1 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(0);
-        MockFlowFile flowFile2 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(1);
+        final MockFlowFile flowFile1 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile2 = runner.getFlowFilesForRelationship(PutFileTransfer.REL_SUCCESS).get(1);
 
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        Map<String, String> map1 = new HashMap<>();
-        Map<String, String> map2 = new HashMap<>();
+        final Map<String, String> map1 = new HashMap<>();
+        final Map<String, String> map2 = new HashMap<>();
         map1.put(CoreAttributes.FILENAME.key(), "randombytes-xx");
         map2.put(CoreAttributes.FILENAME.key(), "randombytes-yy");
 
@@ -206,16 +206,16 @@ public class TestFTP {
 
     @Test
     public void testGetFtp() {
-        FileSystem results = fakeFtpServer.getFileSystem();
+        final FileSystem results = fakeFtpServer.getFileSystem();
 
-        FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
+        final FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
         sampleFile.setContents("Just some random test test test chocolate");
         results.add(sampleFile);
 
         // Check file exists
         assertTrue(results.exists("c:\\data\\randombytes-2"));
 
-        TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
         runner.setProperty(FTPTransfer.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FTPTransfer.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
@@ -230,7 +230,7 @@ public class TestFTP {
 
     @Test
     void testGetFtpMigrateProperties() {
-        TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
         final Map<String, String> expectedRenamed = Map.of(
                 FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName(),
                 FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName(),
@@ -243,16 +243,16 @@ public class TestFTP {
 
     @Test
     public void testFetchFtp() {
-        FileSystem results = fakeFtpServer.getFileSystem();
+        final FileSystem results = fakeFtpServer.getFileSystem();
 
-        FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
+        final FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
         sampleFile.setContents("Just some random test test test chocolate");
         results.add(sampleFile);
 
         // Check file exists
         assertTrue(results.exists("c:\\data\\randombytes-2"));
 
-        TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
         runner.setProperty(FetchFTP.HOSTNAME, "${host}");
         runner.setProperty(FetchFTP.USERNAME, "${username}");
         runner.setProperty(FTPTransfer.PASSWORD, password);
@@ -261,7 +261,7 @@ public class TestFTP {
         runner.setProperty(FetchFTP.COMPLETION_STRATEGY, FetchFTP.COMPLETION_MOVE);
         runner.setProperty(FetchFTP.MOVE_DESTINATION_DIR, "data");
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("host", "localhost");
         attrs.put("username", username);
         attrs.put("port", Integer.toString(ftpPort));
@@ -313,7 +313,7 @@ public class TestFTP {
 
     @Test
     void testListFtpMigrateProperties() {
-        TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName()),
                 Map.entry(FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName()),
@@ -365,13 +365,13 @@ public class TestFTP {
     @EnabledIfSystemProperty(named = "file.encoding", matches = "UTF-8",
             disabledReason = "org.mockftpserver does not support specification of charset")
     public void testFetchFtpUnicodeFileName() {
-        FileSystem fs = fakeFtpServer.getFileSystem();
+        final FileSystem fs = fakeFtpServer.getFileSystem();
 
-        FileEntry sampleFile = new FileEntry("c:\\data\\őűőű.txt");
+        final FileEntry sampleFile = new FileEntry("c:\\data\\őűőű.txt");
         sampleFile.setContents("Just some random test test test chocolate");
         fs.add(sampleFile);
 
-        TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
         runner.setProperty(FetchFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FetchFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
@@ -392,16 +392,16 @@ public class TestFTP {
 
     @Test
     public void testListFtp() throws InterruptedException {
-        FileSystem results = fakeFtpServer.getFileSystem();
+        final FileSystem results = fakeFtpServer.getFileSystem();
 
-        FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
+        final FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
         sampleFile.setContents("Just some random test test test chocolate");
         results.add(sampleFile);
 
         // Check file exists
         assertTrue(results.exists("c:\\data\\randombytes-2"));
 
-        TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
         runner.setProperty(ListFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(ListFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);

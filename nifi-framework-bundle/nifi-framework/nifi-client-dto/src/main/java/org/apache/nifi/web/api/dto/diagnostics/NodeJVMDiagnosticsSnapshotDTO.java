@@ -33,7 +33,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
+    public void setNodeId(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -42,7 +42,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(final String address) {
         this.address = address;
     }
 
@@ -51,7 +51,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         return apiPort;
     }
 
-    public void setApiPort(Integer apiPort) {
+    public void setApiPort(final Integer apiPort) {
         this.apiPort = apiPort;
     }
 
@@ -60,7 +60,7 @@ public class NodeJVMDiagnosticsSnapshotDTO {
         return snapshot;
     }
 
-    public void setSnapshot(JVMDiagnosticsSnapshotDTO snapshot) {
+    public void setSnapshot(final JVMDiagnosticsSnapshotDTO snapshot) {
         this.snapshot = snapshot;
     }
 

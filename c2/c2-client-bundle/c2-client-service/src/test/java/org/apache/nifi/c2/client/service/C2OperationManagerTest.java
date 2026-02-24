@@ -98,7 +98,7 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldWaitForIncomingOperationThenTimeout() {
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
         verify(mockC2OperationHandlerProvider, never()).getHandlerForOperation(any());
@@ -106,10 +106,10 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldContinueWithoutProcessingWhenNoHandlerIsDefined() {
-        C2Operation testOperation = mock(C2Operation.class);
+        final C2Operation testOperation = mock(C2Operation.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(testOperation)).thenReturn(empty());
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
         testC2OperationManager.add(testOperation);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
@@ -119,14 +119,14 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessOperationWithoutRestartAndAcknowledge() {
-        C2Operation mockOperation = mock(C2Operation.class);
-        C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
-        C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
+        final C2Operation mockOperation = mock(C2Operation.class);
+        final C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(mockOperation)).thenReturn(ofNullable(mockOperationHandler));
         when(mockOperationHandler.handle(mockOperation)).thenReturn(mockC2OperationAck);
         when(mockOperationHandler.requiresRestart()).thenReturn(false);
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
         testC2OperationManager.add(mockOperation);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
@@ -136,10 +136,10 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessOperationWithSuccessfulRestart() {
-        C2Operation mockOperation = mock(C2Operation.class);
-        C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
-        C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
-        C2OperationState mockC2OperationState = mock(C2OperationState.class);
+        final C2Operation mockOperation = mock(C2Operation.class);
+        final C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
+        final C2OperationState mockC2OperationState = mock(C2OperationState.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(mockOperation)).thenReturn(ofNullable(mockOperationHandler));
         when(mockOperationHandler.handle(mockOperation)).thenReturn(mockC2OperationAck);
         when(mockOperationHandler.requiresRestart()).thenReturn(true);
@@ -147,7 +147,7 @@ public class C2OperationManagerTest {
         when(mockC2OperationState.getState()).thenReturn(FULLY_APPLIED);
         when(mockC2OperationRestartHandler.handleRestart(mockOperation)).thenReturn(empty());
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
         testC2OperationManager.add(mockOperation);
 
         assertDoesNotThrow(() -> future.get());
@@ -160,10 +160,10 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessOperationWithFailedRestartDueToFailedResponse() {
-        C2Operation mockOperation = mock(C2Operation.class);
-        C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
-        C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
-        C2OperationState mockC2OperationState = mock(C2OperationState.class);
+        final C2Operation mockOperation = mock(C2Operation.class);
+        final C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
+        final C2OperationState mockC2OperationState = mock(C2OperationState.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(mockOperation)).thenReturn(ofNullable(mockOperationHandler));
         when(mockOperationHandler.handle(mockOperation)).thenReturn(mockC2OperationAck);
         when(mockOperationHandler.requiresRestart()).thenReturn(true);
@@ -171,7 +171,7 @@ public class C2OperationManagerTest {
         when(mockC2OperationState.getState()).thenReturn(FULLY_APPLIED);
         when(mockC2OperationRestartHandler.handleRestart(mockOperation)).thenReturn(ofNullable(NOT_APPLIED));
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
         testC2OperationManager.add(mockOperation);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
@@ -184,10 +184,10 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessOperationWithFailedRestartDueToException() {
-        C2Operation mockOperation = mock(C2Operation.class);
-        C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
-        C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
-        C2OperationState mockC2OperationState = mock(C2OperationState.class);
+        final C2Operation mockOperation = mock(C2Operation.class);
+        final C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
+        final C2OperationState mockC2OperationState = mock(C2OperationState.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(mockOperation)).thenReturn(ofNullable(mockOperationHandler));
         when(mockOperationHandler.handle(mockOperation)).thenReturn(mockC2OperationAck);
         when(mockOperationHandler.requiresRestart()).thenReturn(true);
@@ -195,7 +195,7 @@ public class C2OperationManagerTest {
         when(mockC2OperationState.getState()).thenReturn(FULLY_APPLIED);
         when(mockC2OperationRestartHandler.handleRestart(mockOperation)).thenThrow(new RuntimeException());
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
         testC2OperationManager.add(mockOperation);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
@@ -208,14 +208,14 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessStateWithOneCurrentAndNoRemainingOperations() {
-        OperationQueue mockOperationQueue = mock(OperationQueue.class);
-        C2Operation mockCurrentOperation = mock(C2Operation.class);
+        final OperationQueue mockOperationQueue = mock(OperationQueue.class);
+        final C2Operation mockCurrentOperation = mock(C2Operation.class);
         when(mockOperationQueue.getCurrentOperation()).thenReturn(mockCurrentOperation);
         when(mockOperationQueue.getRemainingOperations()).thenReturn(List.of());
         when(mockOperationQueueDAO.load()).thenReturn(ofNullable(mockOperationQueue));
         when(mockC2OperationRestartHandler.waitForResponse()).thenReturn(ofNullable(FULLY_APPLIED));
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
         verify(mockHeartbeatLock, never()).lock();
@@ -226,20 +226,20 @@ public class C2OperationManagerTest {
 
     @Test
     void shouldProcessStateWithOneCurrentAndOneRemainingOperation() {
-        OperationQueue mockOperationQueue = mock(OperationQueue.class);
-        C2Operation mockCurrentOperation = mock(C2Operation.class);
-        C2Operation mockRemainingOperation = mock(C2Operation.class);
+        final OperationQueue mockOperationQueue = mock(OperationQueue.class);
+        final C2Operation mockCurrentOperation = mock(C2Operation.class);
+        final C2Operation mockRemainingOperation = mock(C2Operation.class);
         when(mockOperationQueue.getCurrentOperation()).thenReturn(mockCurrentOperation);
         when(mockOperationQueue.getRemainingOperations()).thenReturn(List.of(mockRemainingOperation));
         when(mockOperationQueueDAO.load()).thenReturn(ofNullable(mockOperationQueue));
         when(mockC2OperationRestartHandler.waitForResponse()).thenReturn(ofNullable(FULLY_APPLIED));
-        C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
-        C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
+        final C2OperationHandler mockOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationAck mockC2OperationAck = mock(C2OperationAck.class);
         when(mockC2OperationHandlerProvider.getHandlerForOperation(mockRemainingOperation)).thenReturn(ofNullable(mockOperationHandler));
         when(mockOperationHandler.handle(mockRemainingOperation)).thenReturn(mockC2OperationAck);
         when(mockOperationHandler.requiresRestart()).thenReturn(false);
 
-        Future<?> future = executorService.submit(testC2OperationManager);
+        final Future<?> future = executorService.submit(testC2OperationManager);
 
         assertThrows(TimeoutException.class, () -> future.get(MAX_WAIT_TIME_MS, MILLISECONDS));
         verify(mockHeartbeatLock, times(1)).lock();

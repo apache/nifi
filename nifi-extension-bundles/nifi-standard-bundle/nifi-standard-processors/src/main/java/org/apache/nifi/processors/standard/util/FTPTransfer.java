@@ -134,7 +134,7 @@ public class FTPTransfer implements FileTransfer {
         this.logger = logger;
     }
 
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+    public static void validateProxySpec(final ValidationContext context, final Collection<ValidationResult> results) {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
@@ -271,13 +271,13 @@ public class FTPTransfer implements FileTransfer {
         return listing;
     }
 
-    private FileInfo newFileInfo(final FTPFile file, String path) {
+    private FileInfo newFileInfo(final FTPFile file, final String path) {
         if (file == null) {
             return null;
         }
         final File newFullPath = new File(path, file.getName());
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
-        StringBuilder perms = new StringBuilder();
+        final StringBuilder perms = new StringBuilder();
         perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
         perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
         perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
@@ -290,7 +290,7 @@ public class FTPTransfer implements FileTransfer {
 
         final long lastModifiedTime  = (file.getTimestamp() != null) ? file.getTimestamp().getTimeInMillis() : 0L;
 
-        FileInfo.Builder builder = new FileInfo.Builder()
+        final FileInfo.Builder builder = new FileInfo.Builder()
             .filename(file.getName())
             .fullPathFileName(newFullForwardPath)
             .directory(file.isDirectory())
@@ -305,7 +305,7 @@ public class FTPTransfer implements FileTransfer {
     @Override
     public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
         final FTPClient client = getClient(origFlowFile);
-        FlowFile resultFlowFile;
+        final FlowFile resultFlowFile;
         try (InputStream in = client.retrieveFileStream(remoteFileName)) {
             if (in == null) {
                 final String reply = client.getReplyString();
@@ -332,23 +332,29 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public FileInfo getRemoteFileInfo(final FlowFile flowFile, String path, String remoteFileName) throws IOException {
+    public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
         final FTPClient client = getClient(flowFile);
 
+        final String resolvedPath;
+        final String resolvedFileName;
         if (path == null) {
-            int slashpos = remoteFileName.lastIndexOf('/');
+            final int slashpos = remoteFileName.lastIndexOf('/');
             if (slashpos >= 0 && !remoteFileName.endsWith("/")) {
-                path = remoteFileName.substring(0, slashpos);
-                remoteFileName = remoteFileName.substring(slashpos + 1);
+                resolvedPath = remoteFileName.substring(0, slashpos);
+                resolvedFileName = remoteFileName.substring(slashpos + 1);
             } else {
-                path = "";
+                resolvedPath = "";
+                resolvedFileName = remoteFileName;
             }
+        } else {
+            resolvedPath = path;
+            resolvedFileName = remoteFileName;
         }
 
-        final FTPFile[] files = client.listFiles(path);
+        final FTPFile[] files = client.listFiles(resolvedPath);
         FTPFile matchingFile = null;
         for (final FTPFile file : files) {
-            if (file.getName().equalsIgnoreCase(remoteFileName)) {
+            if (file.getName().equalsIgnoreCase(resolvedFileName)) {
                 matchingFile = file;
                 break;
             }
@@ -358,7 +364,7 @@ public class FTPTransfer implements FileTransfer {
             return null;
         }
 
-        return newFileInfo(matchingFile, path);
+        return newFileInfo(matchingFile, resolvedPath);
     }
 
     @Override
@@ -438,7 +444,7 @@ public class FTPTransfer implements FileTransfer {
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
         if (permissions != null && !permissions.isBlank()) {
             try {
-                int perms = numberPermissions(permissions);
+                final int perms = numberPermissions(permissions);
                 if (perms >= 0) {
                     if (!client.sendSiteCommand("chmod " + Integer.toOctalString(perms) + " " + tempFilename)) {
                         logger.warn("Could not set permission on {} to {}", flowFile, permissions);
@@ -516,9 +522,9 @@ public class FTPTransfer implements FileTransfer {
         }
 
         final FTPClient client = getClient(flowFile);
-        for (String cmd : commands) {
+        for (final String cmd : commands) {
             if (!cmd.isEmpty()) {
-                int result;
+                final int result;
                 result = client.sendCommand(cmd);
                 logger.debug("{} sent command to the FTP server: {} for {}", this, cmd, flowFile);
 
@@ -564,7 +570,7 @@ public class FTPTransfer implements FileTransfer {
         return client;
     }
 
-    protected int numberPermissions(String perms) {
+    protected int numberPermissions(final String perms) {
         int number = -1;
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
         final Pattern numPattern = Pattern.compile("\\d+");
@@ -600,7 +606,7 @@ public class FTPTransfer implements FileTransfer {
         } else if (numPattern.matcher(perms).matches()) {
             try {
                 number = Integer.parseInt(perms, 8);
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
             }
         }
         return number;

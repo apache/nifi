@@ -197,12 +197,12 @@ public class TransformXml extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
-        PropertyValue filename = validationContext.getProperty(XSLT_FILE_NAME);
-        PropertyValue controller = validationContext.getProperty(XSLT_CONTROLLER);
-        PropertyValue key = validationContext.getProperty(XSLT_CONTROLLER_KEY);
+        final PropertyValue filename = validationContext.getProperty(XSLT_FILE_NAME);
+        final PropertyValue controller = validationContext.getProperty(XSLT_CONTROLLER);
+        final PropertyValue key = validationContext.getProperty(XSLT_CONTROLLER_KEY);
 
         if ((filename.isSet() && controller.isSet())
                 || (!filename.isSet() && !controller.isSet())) {
@@ -297,7 +297,7 @@ public class TransformXml extends AbstractProcessor {
                     // pass all dynamic properties to the transformer
                     for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
                         if (entry.getKey().isDynamic()) {
-                            String value = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions(original).getValue();
+                            final String value = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions(original).getValue();
                             transformer.setParameter(entry.getKey().getName(), value);
                         }
                     }
@@ -319,7 +319,7 @@ public class TransformXml extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("xslt-controller", XSLT_CONTROLLER.getName());
         OBSOLETE_XSLT_CONTROLLER_KEY_PROPERTY_NAMES.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, XSLT_CONTROLLER_KEY.getName()));
         config.renameProperty("indent-output", INDENT_OUTPUT.getName());
@@ -388,22 +388,22 @@ public class TransformXml extends AbstractProcessor {
     private static class ErrorListenerLogger implements ErrorListener {
         private final ComponentLog logger;
 
-        ErrorListenerLogger(ComponentLog logger) {
+        ErrorListenerLogger(final ComponentLog logger) {
             this.logger = logger;
         }
 
         @Override
-        public void warning(TransformerException exception) {
+        public void warning(final TransformerException exception) {
             logger.warn(exception.getMessageAndLocation(), exception);
         }
 
         @Override
-        public void error(TransformerException exception) {
+        public void error(final TransformerException exception) {
             logger.error(exception.getMessageAndLocation(), exception);
         }
 
         @Override
-        public void fatalError(TransformerException exception) throws TransformerException {
+        public void fatalError(final TransformerException exception) throws TransformerException {
             logger.log(LogLevel.FATAL, exception.getMessageAndLocation(), exception);
             throw exception;
         }

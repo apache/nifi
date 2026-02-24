@@ -100,7 +100,7 @@ public class StandardBatchCounts implements BatchCounts {
         final StateMap stateMap;
         try {
             stateMap = stateManager.getState(Scope.LOCAL);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("Failed to restore local state for {}. This could result in the batch.output.* attributes being inaccurate for the current batch of FlowFiles", processGroup, e);
             return Collections.emptyMap();
         }

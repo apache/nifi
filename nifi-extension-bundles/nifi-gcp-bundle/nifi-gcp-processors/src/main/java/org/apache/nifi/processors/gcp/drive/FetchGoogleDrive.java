@@ -309,7 +309,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -354,15 +354,15 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (GoogleJsonResponseException e) {
+        } catch (final GoogleJsonResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             handleUnexpectedError(session, flowFile, fileId, e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("drive-file-id", FILE_ID.getName());
         config.renameProperty(OLD_CONNECT_TIMEOUT_PROPERTY_NAME, CONNECT_TIMEOUT.getName());
         config.renameProperty(OLD_READ_TIMEOUT_PROPERTY_NAME, READ_TIMEOUT.getName());
@@ -425,7 +425,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                     .executeMediaAsInputStream()) {
 
                 return session.importFrom(driveFileInputStream, flowFile);
-            } catch (GoogleJsonResponseException e) {
+            } catch (final GoogleJsonResponseException e) {
                 if (!e.getContent().contains(EXPORT_SIZE_ERROR)) {
                     throw e;
                 }
@@ -473,22 +473,22 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
                 .execute();
     }
 
-    private void handleErrorResponse(final ProcessSession session, final String fileId, FlowFile flowFile, final GoogleJsonResponseException e) {
+    private void handleErrorResponse(final ProcessSession session, final String fileId, final FlowFile flowFile, final GoogleJsonResponseException e) {
         getLogger().error("Fetching File [{}] failed", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getStatusCode()));
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getStatusCode()));
+        updatedFlowFile = session.putAttribute(updatedFlowFile, ERROR_MESSAGE, e.getMessage());
 
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 
-    private void handleUnexpectedError(final ProcessSession session, FlowFile flowFile, final String fileId, final Exception e) {
+    private void handleUnexpectedError(final ProcessSession session, final FlowFile flowFile, final String fileId, final Exception e) {
         getLogger().error("Fetching File [{}] failed", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
 
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 }

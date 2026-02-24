@@ -44,7 +44,7 @@ public class DatabaseProfileValueSource implements ProfileValueSource {
     }
 
     @Override
-    public String get(String key) {
+    public String get(final String key) {
         if (!key.startsWith("current.database.is.")) {
             return null;
         }

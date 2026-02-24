@@ -72,14 +72,14 @@ public class TestPutDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "1");
 
-        String flowFileContent = "content";
+        final String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutDistributedMapCache.REL_SUCCESS, 1);
         runner.assertTransferCount(PutDistributedMapCache.REL_SUCCESS, 1);
-        byte[] value = service.get("1", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
+        final byte[] value = service.get("1", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
         assertEquals(flowFileContent, new String(value, StandardCharsets.UTF_8));
 
         final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(PutDistributedMapCache.REL_SUCCESS).get(0);
@@ -112,7 +112,7 @@ public class TestPutDistributedMapCache {
         runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_MAX_BYTES, "10 B");
 
         // max length is 10 bytes, flow file content is 20 bytes
-        String flowFileContent = "contentwhichistoobig";
+        final String flowFileContent = "contentwhichistoobig";
         runner.enqueue(flowFileContent.getBytes(StandardCharsets.UTF_8));
 
         runner.run();
@@ -138,7 +138,7 @@ public class TestPutDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "replaceme");
 
-        String original = "original";
+        final String original = "original";
         runner.enqueue(original.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -154,7 +154,7 @@ public class TestPutDistributedMapCache {
         byte[] value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
         assertEquals(original, new String(value, StandardCharsets.UTF_8));
 
-        String replaced = "replaced";
+        final String replaced = "replaced";
         runner.enqueue(replaced.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -182,7 +182,7 @@ public class TestPutDistributedMapCache {
         final Map<String, String> props = new HashMap<>();
         props.put("cacheKeyAttribute", "replaceme");
 
-        String original = "original";
+        final String original = "original";
         runner.enqueue(original.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();
@@ -198,7 +198,7 @@ public class TestPutDistributedMapCache {
         byte[] value = service.get("replaceme", new PutDistributedMapCache.StringSerializer(), new PutDistributedMapCache.CacheValueDeserializer());
         assertEquals(original, new String(value, StandardCharsets.UTF_8));
 
-        String replaced = "replaced";
+        final String replaced = "replaced";
         runner.enqueue(replaced.getBytes(StandardCharsets.UTF_8), props);
 
         runner.run();

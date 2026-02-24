@@ -28,7 +28,7 @@ public class User extends Tenant {
 
     public User() { }
 
-    public User(String identifier, String identity) {
+    public User(final String identifier, final String identity) {
         super(identifier, identity);
     }
 
@@ -40,11 +40,11 @@ public class User extends Tenant {
         return userGroups;
     }
 
-    public void setUserGroups(Set<Tenant> userGroups) {
+    public void setUserGroups(final Set<Tenant> userGroups) {
         this.userGroups = userGroups;
     }
 
-    public void addUserGroups(Collection<? extends Tenant> userGroups) {
+    public void addUserGroups(final Collection<? extends Tenant> userGroups) {
         if (userGroups != null) {
             if (this.userGroups == null) {
                 this.userGroups = new HashSet<>();

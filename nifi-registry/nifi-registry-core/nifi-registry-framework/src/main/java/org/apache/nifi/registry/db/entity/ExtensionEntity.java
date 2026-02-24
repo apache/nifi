@@ -58,7 +58,7 @@ public class ExtensionEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -66,7 +66,7 @@ public class ExtensionEntity {
         return bundleVersionId;
     }
 
-    public void setBundleVersionId(String bundleVersionId) {
+    public void setBundleVersionId(final String bundleVersionId) {
         this.bundleVersionId = bundleVersionId;
     }
 
@@ -74,7 +74,7 @@ public class ExtensionEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -82,7 +82,7 @@ public class ExtensionEntity {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -90,7 +90,7 @@ public class ExtensionEntity {
         return extensionType;
     }
 
-    public void setExtensionType(ExtensionType extensionType) {
+    public void setExtensionType(final ExtensionType extensionType) {
         this.extensionType = extensionType;
     }
 
@@ -98,7 +98,7 @@ public class ExtensionEntity {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(final String content) {
         this.content = content;
     }
 
@@ -106,7 +106,7 @@ public class ExtensionEntity {
         return additionalDetails;
     }
 
-    public void setAdditionalDetails(String additionalDetails) {
+    public void setAdditionalDetails(final String additionalDetails) {
         this.additionalDetails = additionalDetails;
     }
 
@@ -114,7 +114,7 @@ public class ExtensionEntity {
         return hasAdditionalDetails;
     }
 
-    public void setHasAdditionalDetails(boolean hasAdditionalDetails) {
+    public void setHasAdditionalDetails(final boolean hasAdditionalDetails) {
         this.hasAdditionalDetails = hasAdditionalDetails;
     }
 
@@ -122,7 +122,7 @@ public class ExtensionEntity {
         return tags;
     }
 
-    public void setTags(Set<String> tags) {
+    public void setTags(final Set<String> tags) {
         this.tags = tags;
     }
 
@@ -130,7 +130,7 @@ public class ExtensionEntity {
         return providedServiceApis;
     }
 
-    public void setProvidedServiceApis(Set<ExtensionProvidedServiceApiEntity> providedServiceApis) {
+    public void setProvidedServiceApis(final Set<ExtensionProvidedServiceApiEntity> providedServiceApis) {
         this.providedServiceApis = providedServiceApis;
     }
 
@@ -138,7 +138,7 @@ public class ExtensionEntity {
         return restrictions;
     }
 
-    public void setRestrictions(Set<ExtensionRestrictionEntity> restrictions) {
+    public void setRestrictions(final Set<ExtensionRestrictionEntity> restrictions) {
         this.restrictions = restrictions;
     }
 
@@ -146,7 +146,7 @@ public class ExtensionEntity {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -154,7 +154,7 @@ public class ExtensionEntity {
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -162,7 +162,7 @@ public class ExtensionEntity {
         return bundleId;
     }
 
-    public void setBundleId(String bundleId) {
+    public void setBundleId(final String bundleId) {
         this.bundleId = bundleId;
     }
 
@@ -170,7 +170,7 @@ public class ExtensionEntity {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -178,7 +178,7 @@ public class ExtensionEntity {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -186,7 +186,7 @@ public class ExtensionEntity {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -194,7 +194,7 @@ public class ExtensionEntity {
         return systemApiVersion;
     }
 
-    public void setSystemApiVersion(String systemApiVersion) {
+    public void setSystemApiVersion(final String systemApiVersion) {
         this.systemApiVersion = systemApiVersion;
     }
 
@@ -202,7 +202,7 @@ public class ExtensionEntity {
         return bundleType;
     }
 
-    public void setBundleType(BundleType bundleType) {
+    public void setBundleType(final BundleType bundleType) {
         this.bundleType = bundleType;
     }
 }

@@ -193,12 +193,12 @@ public class ExtensionBuilder {
         return this;
     }
 
-    public ExtensionBuilder ruleViolationsManager(RuleViolationsManager ruleViolationsManager) {
+    public ExtensionBuilder ruleViolationsManager(final RuleViolationsManager ruleViolationsManager) {
         this.ruleViolationsManager = ruleViolationsManager;
         return this;
     }
 
-    public ExtensionBuilder flowAnalyzer(FlowAnalyzer flowAnalyzer) {
+    public ExtensionBuilder flowAnalyzer(final FlowAnalyzer flowAnalyzer) {
         this.flowAnalyzer = flowAnalyzer;
         return this;
     }
@@ -542,7 +542,7 @@ public class ExtensionBuilder {
         return taskNode;
     }
 
-    private StandardValidationContextFactory createValidationContextFactory(ControllerServiceProvider serviceProvider) {
+    private StandardValidationContextFactory createValidationContextFactory(final ControllerServiceProvider serviceProvider) {
         return new StandardValidationContextFactory(serviceProvider, ruleViolationsManager, flowAnalyzer);
     }
 
@@ -926,7 +926,7 @@ public class ExtensionBuilder {
         }
     }
 
-    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType, LoggingContext loggingContext)
+    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(final Class<T> nodeType, final LoggingContext loggingContext)
         throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();

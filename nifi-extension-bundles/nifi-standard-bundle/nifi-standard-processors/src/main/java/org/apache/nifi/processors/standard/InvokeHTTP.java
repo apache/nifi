@@ -593,10 +593,10 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         if (propertyDescriptorName.startsWith(FORM_DATA_NAME_BASE)) {
 
-            Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(propertyDescriptorName);
+            final Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(propertyDescriptorName);
             if (matcher.matches()) {
                 return new PropertyDescriptor.Builder()
                         .required(false)
@@ -737,10 +737,10 @@ public class InvokeHTTP extends AbstractProcessor {
                     .build());
         }
 
-        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(REQUEST_USERNAME).isSet()
+        final boolean usingUserNamePasswordAuthorization = validationContext.getProperty(REQUEST_USERNAME).isSet()
             || validationContext.getProperty(REQUEST_PASSWORD).isSet();
 
-        boolean usingOAuth2Authorization = validationContext.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+        final boolean usingOAuth2Authorization = validationContext.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
 
         if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
             results.add(new ValidationResult.Builder()
@@ -757,7 +757,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public void setUpClient(final ProcessContext context) throws IOException {
         okHttpClientAtomicReference.set(null);
 
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
+        final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
 
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
 
@@ -765,7 +765,7 @@ public class InvokeHTTP extends AbstractProcessor {
         if (!Type.DIRECT.equals(proxy.type())) {
             okHttpClientBuilder.proxy(proxy);
             if (proxyConfig.hasCredential()) {
-                ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                final ProxyAuthenticator proxyAuthenticator = new ProxyAuthenticator(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
                 okHttpClientBuilder.proxyAuthenticator(proxyAuthenticator);
             }
         }
@@ -819,7 +819,7 @@ public class InvokeHTTP extends AbstractProcessor {
     @OnScheduled
     public void initOauth2AccessTokenProvider(final ProcessContext context) {
         if (context.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+            final OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
             oauth2AccessTokenProvider.getAccessDetails();
 
@@ -829,7 +829,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
     }
 
-    private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
+    private void setAuthenticator(final OkHttpClient.Builder okHttpClientBuilder, final ProcessContext context) {
         final String authUser = trimToEmpty(context.getProperty(REQUEST_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
@@ -837,7 +837,7 @@ public class InvokeHTTP extends AbstractProcessor {
             final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
             final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
-            com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
+            final com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
 
             okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));
@@ -846,13 +846,13 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        OkHttpClient okHttpClient = okHttpClientAtomicReference.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final OkHttpClient okHttpClient = okHttpClientAtomicReference.get();
 
         FlowFile requestFlowFile = session.get();
 
         // Checking to see if the property to put the body of the response in an attribute was set
-        boolean putToAttribute = context.getProperty(RESPONSE_BODY_ATTRIBUTE_NAME).isSet();
+        final boolean putToAttribute = context.getProperty(RESPONSE_BODY_ATTRIBUTE_NAME).isSet();
         final int maxAttributeSize = putToAttribute ? context.getProperty(RESPONSE_BODY_ATTRIBUTE_SIZE).asInteger() : 256;
 
         if (requestFlowFile == null) {
@@ -877,7 +877,7 @@ public class InvokeHTTP extends AbstractProcessor {
         try {
             final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
 
-            Request httpRequest = configureRequest(context, session, requestFlowFile, urlProperty);
+            final Request httpRequest = configureRequest(context, session, requestFlowFile, urlProperty);
 
             if (httpRequest.body() != null) {
                 session.getProvenanceReporter().send(requestFlowFile, urlProperty, true);
@@ -891,10 +891,10 @@ public class InvokeHTTP extends AbstractProcessor {
                 logger.info("Request [{}] {} {} HTTP {} [{}]", txId, httpRequest.method(), httpRequest.url(), statusCode, responseHttp.protocol());
 
                 // store the status code and message
-                String statusMessage = responseHttp.message();
+                final String statusMessage = responseHttp.message();
 
                 // Create a map of the status attributes that are always written to the request and response FlowFiles
-                Map<String, String> statusAttributes = new HashMap<>();
+                final Map<String, String> statusAttributes = new HashMap<>();
                 statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
                 statusAttributes.put(STATUS_MESSAGE, statusMessage);
                 statusAttributes.put(REQUEST_URL, urlProperty);
@@ -906,10 +906,10 @@ public class InvokeHTTP extends AbstractProcessor {
                     requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
                 }
 
-                boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
-                boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean();
-                ResponseBody responseBody = responseHttp.body();
-                boolean bodyExists = responseBody != null && !context.getProperty(RESPONSE_BODY_IGNORED).asBoolean();
+                final boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
+                final boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean();
+                final ResponseBody responseBody = responseHttp.body();
+                final boolean bodyExists = responseBody != null && !context.getProperty(RESPONSE_BODY_IGNORED).asBoolean();
 
                 InputStream responseBodyStream = null;
                 SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
@@ -944,7 +944,7 @@ public class InvokeHTTP extends AbstractProcessor {
                         // update FlowFile's filename attribute with an extracted value from the remote URL
                         if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && HttpMethod.GET.name().equals(httpRequest.method())) {
                             final URL url = URLValidator.createURL(urlProperty);
-                            String fileName = getFileNameFromUrl(url);
+                            final String fileName = getFileNameFromUrl(url);
                             if (fileName != null) {
                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
                             }
@@ -980,8 +980,8 @@ public class InvokeHTTP extends AbstractProcessor {
                         if (attributeKey == null) {
                             attributeKey = RESPONSE_BODY;
                         }
-                        byte[] outputBuffer;
-                        int size;
+                        final byte[] outputBuffer;
+                        final int size;
 
                         if (outputStreamToRequestAttribute != null) {
                             outputBuffer = outputStreamToRequestAttribute.getBuffer();
@@ -990,7 +990,7 @@ public class InvokeHTTP extends AbstractProcessor {
                             outputBuffer = new byte[maxAttributeSize];
                             size = StreamUtils.fillBuffer(responseBodyStream, outputBuffer, false);
                         }
-                        String bodyString = new String(outputBuffer, 0, size, getCharsetFromMediaType(responseBody.contentType()));
+                        final String bodyString = new String(outputBuffer, 0, size, getCharsetFromMediaType(responseBody.contentType()));
                         requestFlowFile = session.putAttribute(requestFlowFile, attributeKey, bodyString);
 
                         final long processingDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -1039,7 +1039,7 @@ public class InvokeHTTP extends AbstractProcessor {
         }
     }
 
-    private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, String url) {
+    private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, final String url) {
         final Request.Builder requestBuilder = new Request.Builder();
 
         requestBuilder.url(url);
@@ -1049,7 +1049,7 @@ public class InvokeHTTP extends AbstractProcessor {
         if (!authUser.isEmpty() && !context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).asBoolean()) {
             final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
-            String credential = Credentials.basic(authUser, authPass);
+            final String credential = Credentials.basic(authUser, authPass);
             requestBuilder.header(HttpHeader.AUTHORIZATION.getHeader(), credential);
         } else {
             oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
@@ -1087,18 +1087,18 @@ public class InvokeHTTP extends AbstractProcessor {
                                              final FlowFile requestFlowFile,
                                              final ContentEncodingStrategy contentEncodingStrategy
     ) {
-        boolean requestBodyEnabled = context.getProperty(REQUEST_BODY_ENABLED).asBoolean();
+        final boolean requestBodyEnabled = context.getProperty(REQUEST_BODY_ENABLED).asBoolean();
 
-        String evalContentType = context.getProperty(REQUEST_CONTENT_TYPE)
+        final String evalContentType = context.getProperty(REQUEST_CONTENT_TYPE)
                 .evaluateAttributeExpressions(requestFlowFile).getValue();
         final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
-        String formDataName = context.getProperty(REQUEST_FORM_DATA_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
+        final String formDataName = context.getProperty(REQUEST_FORM_DATA_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
 
         // Check for dynamic properties for form components.
         // Even if the flowfile is not sent, we may still send form parameters.
-        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        final Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(entry.getKey().getName());
+            final Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(entry.getKey().getName());
             if (matcher.matches()) {
                 propertyDescriptors.put(matcher.group(FORM_DATA_NAME_GROUP), entry.getKey());
             }
@@ -1106,7 +1106,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
         final boolean chunkedTransferEncoding = context.getProperty(REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED).asBoolean();
         final boolean contentLengthUnknown = chunkedTransferEncoding || ContentEncodingStrategy.GZIP == contentEncodingStrategy;
-        RequestBody requestBody = new RequestBody() {
+        final RequestBody requestBody = new RequestBody() {
             @Nullable
             @Override
             public MediaType contentType() {
@@ -1138,8 +1138,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
         if (!propertyDescriptors.isEmpty() || StringUtils.isNotEmpty(formDataName)) {
             // we have form data
-            MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
-            boolean useFileName = context.getProperty(REQUEST_FORM_DATA_FILENAME_ENABLED).asBoolean();
+            final MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
+            final boolean useFileName = context.getProperty(REQUEST_FORM_DATA_FILENAME_ENABLED).asBoolean();
             String contentFileName = null;
             if (useFileName) {
                 contentFileName = requestFlowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -1169,8 +1169,8 @@ public class InvokeHTTP extends AbstractProcessor {
             requestBuilder.addHeader(HttpHeader.DATE.getHeader(), RFC_2616_DATE_TIME.format(universalCoordinatedTimeNow));
         }
 
-        for (String headerKey : dynamicPropertyNames) {
-            String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
+        for (final String headerKey : dynamicPropertyNames) {
+            final String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
 
             // ignore form data name dynamic properties
             if (FORM_DATA_NAME_PARAMETER_PATTERN.matcher(headerKey).matches()) {
@@ -1184,10 +1184,10 @@ public class InvokeHTTP extends AbstractProcessor {
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
         if (requestHeaderAttributesPattern != null && requestFlowFile != null) {
-            Map<String, String> attributes = requestFlowFile.getAttributes();
-            Matcher m = requestHeaderAttributesPattern.matcher("");
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                String headerKey = trimToEmpty(entry.getKey());
+            final Map<String, String> attributes = requestFlowFile.getAttributes();
+            final Matcher m = requestHeaderAttributesPattern.matcher("");
+            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+                final String headerKey = trimToEmpty(entry.getKey());
                 if (IGNORED_REQUEST_ATTRIBUTES.contains(headerKey)) {
                     continue;
                 }
@@ -1196,14 +1196,14 @@ public class InvokeHTTP extends AbstractProcessor {
                 // if so, include in the request as a header
                 m.reset(headerKey);
                 if (m.matches()) {
-                    String headerVal = trimToEmpty(entry.getValue());
+                    final String headerVal = trimToEmpty(entry.getValue());
                     requestBuilder.addHeader(headerKey, headerVal);
                 }
             }
         }
     }
 
-    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode) {
+    private void route(final FlowFile request, final FlowFile response, final ProcessSession session, final ProcessContext context, final int statusCode) {
         // check if we should yield the processor
         if (!isSuccess(statusCode) && request == null) {
             context.yield();
@@ -1230,8 +1230,8 @@ public class InvokeHTTP extends AbstractProcessor {
             // 5xx -> RETRY
         } else if (statusCode / 100 == 5) {
             if (request != null) {
-                request = session.penalize(request);
-                session.transfer(request, RETRY);
+                final FlowFile penalized = session.penalize(request);
+                session.transfer(penalized, RETRY);
             }
 
             // 1xx, 3xx, 4xx -> NO RETRY
@@ -1240,24 +1240,20 @@ public class InvokeHTTP extends AbstractProcessor {
                 final TokenRefreshStrategy tokenRefreshStrategy = context.getProperty(REQUEST_OAUTH2_REFRESH_TOKEN).asAllowableValue(TokenRefreshStrategy.class);
 
                 if (tokenRefreshStrategy == TokenRefreshStrategy.ON_UNAUTHORIZED_RESPONSE && statusCode == 401) {
-                    // we are using oauth2 and we got a 401 response
-                    // it may be because the token has been revoked even though it has not expired
-                    // yet, so we force the token to be refreshed if configured to do so
                     oauth2AccessTokenProvider.refreshAccessDetails();
                 }
             });
 
             if (request != null) {
-                if (context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()) {
-                    request = session.penalize(request);
-                }
-                session.transfer(request, NO_RETRY);
+                final FlowFile toTransfer = context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()
+                        ? session.penalize(request) : request;
+                session.transfer(toTransfer, NO_RETRY);
             }
         }
 
     }
 
-    private boolean isSuccess(int statusCode) {
+    private boolean isSuccess(final int statusCode) {
         return statusCode / 100 == 2;
     }
 
@@ -1297,7 +1293,7 @@ public class InvokeHTTP extends AbstractProcessor {
         return attributes;
     }
 
-    private Charset getCharsetFromMediaType(MediaType contentType) {
+    private Charset getCharsetFromMediaType(final MediaType contentType) {
         return contentType != null ? contentType.charset(StandardCharsets.UTF_8) : StandardCharsets.UTF_8;
     }
 
@@ -1310,9 +1306,9 @@ public class InvokeHTTP extends AbstractProcessor {
         return FlowFileNamingStrategy.valueOf(strategy);
     }
 
-    private String getFileNameFromUrl(URL url) {
+    private String getFileNameFromUrl(final URL url) {
         String fileName = null;
-        String path = Strings.CS.removeEnd(url.getPath(), "/");
+        final String path = Strings.CS.removeEnd(url.getPath(), "/");
 
         if (!StringUtils.isEmpty(path)) {
             fileName = path.substring(path.lastIndexOf('/') + 1);
@@ -1321,7 +1317,7 @@ public class InvokeHTTP extends AbstractProcessor {
         return fileName;
     }
 
-    private Optional<HttpMethod> findRequestMethod(String method) {
+    private Optional<HttpMethod> findRequestMethod(final String method) {
         return HTTP_METHOD_VALUES.stream()
                 .filter(httpMethod -> httpMethod.name().equals(method))
                 .findFirst();

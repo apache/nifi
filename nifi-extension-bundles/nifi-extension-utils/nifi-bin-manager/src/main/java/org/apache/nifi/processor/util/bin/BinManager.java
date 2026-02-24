@@ -225,7 +225,7 @@ public class BinManager {
      *                                so bins that are older than maxBinAgeSeconds will always be considered ready regardless of this parameter.
      * @return bins that are considered full
      */
-    public Collection<Bin> removeReadyBins(boolean relaxFullnessConstraint) {
+    public Collection<Bin> removeReadyBins(final boolean relaxFullnessConstraint) {
         final Map<String, List<Bin>> newGroupMap = new HashMap<>();
         final List<Bin> readyBins = new ArrayList<>();
 

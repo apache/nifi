@@ -38,7 +38,7 @@ public class RemoteProcessGroupStatusEntity extends Entity implements ReadablePe
         return remoteProcessGroupStatus;
     }
 
-    public void setRemoteProcessGroupStatus(RemoteProcessGroupStatusDTO remoteProcessGroupStatus) {
+    public void setRemoteProcessGroupStatus(final RemoteProcessGroupStatusDTO remoteProcessGroupStatus) {
         this.remoteProcessGroupStatus = remoteProcessGroupStatus;
     }
 
@@ -48,7 +48,7 @@ public class RemoteProcessGroupStatusEntity extends Entity implements ReadablePe
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

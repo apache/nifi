@@ -75,7 +75,7 @@ public class NumberParsing {
 
     private NumberParsing() { }
 
-    public static ParseResultType parse(String input) {
+    public static ParseResultType parse(final String input) {
         if (NUMBER_PATTERN.matcher(input).matches()) {
             return ParseResultType.WHOLE_NUMBER;
         } else if (DOUBLE_PATTERN.matcher(input).matches()) {

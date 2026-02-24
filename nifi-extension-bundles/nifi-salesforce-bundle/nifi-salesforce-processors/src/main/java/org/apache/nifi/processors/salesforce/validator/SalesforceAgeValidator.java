@@ -29,7 +29,7 @@ public final class SalesforceAgeValidator {
     private SalesforceAgeValidator() {
     }
 
-    public static List<ValidationResult> validate(ValidationContext validationContext, List<ValidationResult> results) {
+    public static List<ValidationResult> validate(final ValidationContext validationContext, final List<ValidationResult> results) {
         if (validationContext.getProperty(INITIAL_AGE_FILTER).isSet() && !validationContext.getProperty(AGE_FIELD).isSet()) {
             results.add(
                     new ValidationResult.Builder()

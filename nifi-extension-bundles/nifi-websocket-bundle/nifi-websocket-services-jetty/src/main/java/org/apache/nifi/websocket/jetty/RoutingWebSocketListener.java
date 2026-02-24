@@ -47,7 +47,7 @@ public class RoutingWebSocketListener extends AbstractAutoDemanding {
     }
 
     @Override
-    public void onWebSocketClose(final int statusCode, final String reason, Callback callback) {
+    public void onWebSocketClose(final int statusCode, final String reason, final Callback callback) {
         super.onWebSocketClose(statusCode, reason, callback);
         router.onWebSocketClose(sessionId, statusCode, reason);
     }
@@ -62,7 +62,7 @@ public class RoutingWebSocketListener extends AbstractAutoDemanding {
         router.onWebSocketBinary(sessionId, payload.array(), payload.arrayOffset(), payload.limit());
     }
 
-    public void setSessionId(String sessionId) {
+    public void setSessionId(final String sessionId) {
         this.sessionId = sessionId;
     }
 

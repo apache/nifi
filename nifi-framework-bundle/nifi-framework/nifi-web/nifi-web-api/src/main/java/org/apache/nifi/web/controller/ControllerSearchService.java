@@ -184,59 +184,59 @@ public class ControllerSearchService {
                 });
     }
 
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public void setResultEnricherFactory(ComponentSearchResultEnricherFactory resultEnricherFactory) {
+    public void setResultEnricherFactory(final ComponentSearchResultEnricherFactory resultEnricherFactory) {
         this.resultEnricherFactory = resultEnricherFactory;
     }
 
-    public void setMatcherForProcessor(ComponentMatcher<ProcessorNode> matcherForProcessor) {
+    public void setMatcherForProcessor(final ComponentMatcher<ProcessorNode> matcherForProcessor) {
         this.matcherForProcessor = matcherForProcessor;
     }
 
-    public void setMatcherForProcessGroup(ComponentMatcher<ProcessGroup> matcherForProcessGroup) {
+    public void setMatcherForProcessGroup(final ComponentMatcher<ProcessGroup> matcherForProcessGroup) {
         this.matcherForProcessGroup = matcherForProcessGroup;
     }
 
-    public void setMatcherForConnection(ComponentMatcher<Connection> matcherForConnection) {
+    public void setMatcherForConnection(final ComponentMatcher<Connection> matcherForConnection) {
         this.matcherForConnection = matcherForConnection;
     }
 
-    public void setMatcherForRemoteProcessGroup(ComponentMatcher<RemoteProcessGroup> matcherForRemoteProcessGroup) {
+    public void setMatcherForRemoteProcessGroup(final ComponentMatcher<RemoteProcessGroup> matcherForRemoteProcessGroup) {
         this.matcherForRemoteProcessGroup = matcherForRemoteProcessGroup;
     }
 
-    public void setMatcherForPort(ComponentMatcher<Port> matcherForPort) {
+    public void setMatcherForPort(final ComponentMatcher<Port> matcherForPort) {
         this.matcherForPort = matcherForPort;
     }
 
-    public void setMatcherForFunnel(ComponentMatcher<Funnel> matcherForFunnel) {
+    public void setMatcherForFunnel(final ComponentMatcher<Funnel> matcherForFunnel) {
         this.matcherForFunnel = matcherForFunnel;
     }
 
-    public void setMatcherForParameterContext(ComponentMatcher<ParameterContext> matcherForParameterContext) {
+    public void setMatcherForParameterContext(final ComponentMatcher<ParameterContext> matcherForParameterContext) {
         this.matcherForParameterContext = matcherForParameterContext;
     }
 
-    public void setMatcherForParameter(ComponentMatcher<Parameter> matcherForParameter) {
+    public void setMatcherForParameter(final ComponentMatcher<Parameter> matcherForParameter) {
         this.matcherForParameter = matcherForParameter;
     }
 
-    public void setMatcherForLabel(ComponentMatcher<Label> matcherForLabel) {
+    public void setMatcherForLabel(final ComponentMatcher<Label> matcherForLabel) {
         this.matcherForLabel = matcherForLabel;
     }
 
-    public void setMatcherForControllerServiceNode(ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode) {
+    public void setMatcherForControllerServiceNode(final ComponentMatcher<ControllerServiceNode> matcherForControllerServiceNode) {
         this.matcherForControllerServiceNode = matcherForControllerServiceNode;
     }
 
-    public void setMatcherForParameterProviderNode(ComponentMatcher<ParameterProviderNode> matcherForParameterProviderNode) {
+    public void setMatcherForParameterProviderNode(final ComponentMatcher<ParameterProviderNode> matcherForParameterProviderNode) {
         this.matcherForParameterProviderNode = matcherForParameterProviderNode;
     }
 }

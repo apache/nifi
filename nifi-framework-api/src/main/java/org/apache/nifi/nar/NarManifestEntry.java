@@ -37,7 +37,7 @@ public enum NarManifestEntry {
 
     final String entryName;
 
-    NarManifestEntry(String entryName) {
+    NarManifestEntry(final String entryName) {
         this.entryName = entryName;
     }
 

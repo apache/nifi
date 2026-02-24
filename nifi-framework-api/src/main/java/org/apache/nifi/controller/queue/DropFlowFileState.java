@@ -42,10 +42,10 @@ public enum DropFlowFileState {
      * @param description string form of drop flow file state
      * @return the matching DropFlowFileState or null if the description doesn't match
      */
-    public static DropFlowFileState valueOfDescription(String description) {
+    public static DropFlowFileState valueOfDescription(final String description) {
         DropFlowFileState desiredState = null;
 
-        for (DropFlowFileState state : values()) {
+        for (final DropFlowFileState state : values()) {
             if (state.toString().equals(description)) {
                 desiredState = state;
                 break;

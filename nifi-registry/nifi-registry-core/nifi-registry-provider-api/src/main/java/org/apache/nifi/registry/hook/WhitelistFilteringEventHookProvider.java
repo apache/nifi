@@ -34,10 +34,10 @@ public abstract class WhitelistFilteringEventHookProvider
     protected Set<EventType> whiteListEvents = null;
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         whiteListEvents = new HashSet<>();
-        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-            Matcher matcher = EVENT_WHITELIST_PATTERN.matcher(entry.getKey());
+        for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            final Matcher matcher = EVENT_WHITELIST_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && (entry.getValue() != null && entry.getValue().length() > 0)) {
                 whiteListEvents.add(EventType.valueOf(entry.getValue()));
             }
@@ -55,7 +55,7 @@ public abstract class WhitelistFilteringEventHookProvider
      *  True if the EventType is in the whitelist set and false otherwise.
      */
     @Override
-    public boolean shouldHandle(EventType eventType) {
+    public boolean shouldHandle(final EventType eventType) {
         if (whiteListEvents != null && !whiteListEvents.isEmpty()) {
             if (whiteListEvents.contains(eventType)) {
                 return true;

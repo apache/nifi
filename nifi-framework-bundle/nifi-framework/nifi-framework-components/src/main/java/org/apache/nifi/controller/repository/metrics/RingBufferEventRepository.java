@@ -59,7 +59,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public void purgeTransferEvents(String componentIdentifier) {
+    public void purgeTransferEvents(final String componentIdentifier) {
         componentEventMap.remove(componentIdentifier);
     }
 

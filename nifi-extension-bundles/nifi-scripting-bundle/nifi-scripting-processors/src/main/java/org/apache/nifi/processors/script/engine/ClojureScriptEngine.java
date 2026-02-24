@@ -45,11 +45,11 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
     private final String uuid = "ns-" + UUID.randomUUID().toString();
     private final Symbol NAMESPACE_SYMBOL = Symbol.create(uuid);
 
-    protected ClojureScriptEngine(ScriptEngineFactory scriptEngineFactory) {
+    protected ClojureScriptEngine(final ScriptEngineFactory scriptEngineFactory) {
         this.scriptEngineFactory = scriptEngineFactory;
 
         // Set up the engine bindings
-        Bindings engineScope = getBindings(ScriptContext.ENGINE_SCOPE);
+        final Bindings engineScope = getBindings(ScriptContext.ENGINE_SCOPE);
         engineScope.put(ENGINE, ENGINE_NAME);
         engineScope.put(ENGINE_VERSION, ENGINE_VERSION);
         engineScope.put(NAME, ENGINE_NAME);
@@ -58,7 +58,7 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
     }
 
     @Override
-    public Object eval(String script, ScriptContext context) throws ScriptException {
+    public Object eval(final String script, final ScriptContext context) throws ScriptException {
         if (script == null) {
             throw new NullPointerException("script is null");
         }
@@ -67,11 +67,11 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
     }
 
     @Override
-    public Object eval(Reader reader, ScriptContext context) throws ScriptException {
+    public Object eval(final Reader reader, final ScriptContext context) throws ScriptException {
 
         try {
             // Get engine bindings and send them to Clojure
-            Bindings engineBindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
+            final Bindings engineBindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
             engineBindings.entrySet().forEach((entry) -> Var.intern(Namespace.findOrCreate(NAMESPACE_SYMBOL), Symbol.create(entry.getKey().intern()), entry.getValue(), true));
 
             Var.pushThreadBindings(
@@ -80,9 +80,9 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
                             RT.OUT, context.getWriter(),
                             RT.ERR, context.getErrorWriter()));
 
-            Object result = Compiler.load(reader);
+            final Object result = Compiler.load(reader);
             return result;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ScriptException(e);
         } finally {
             Namespace.remove(NAMESPACE_SYMBOL);

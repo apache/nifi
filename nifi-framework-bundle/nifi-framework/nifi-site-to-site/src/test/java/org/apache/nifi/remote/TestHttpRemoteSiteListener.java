@@ -40,12 +40,12 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNormalTransactionProgress() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
-        String transactionId = transactionManager.createTransaction();
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
+        final String transactionId = transactionManager.createTransaction();
 
         assertTrue(transactionManager.isTransactionActive(transactionId), "Transaction should be active.");
 
-        ProcessSession processSession = Mockito.mock(ProcessSession.class);
+        final ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
         transactionManager.holdTransaction(transactionId, transaction, new HandshakeProperties());
 
@@ -60,13 +60,13 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testDuplicatedTransactionId() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
-        String transactionId = transactionManager.createTransaction();
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
+        final String transactionId = transactionManager.createTransaction();
 
         assertTrue(transactionManager.isTransactionActive(transactionId), "Transaction should be active.");
 
-        ProcessSession processSession = Mockito.mock(ProcessSession.class);
-        FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
+        final ProcessSession processSession = Mockito.mock(ProcessSession.class);
+        final FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
         transactionManager.holdTransaction(transactionId, transaction, null);
 
         assertThrows(IllegalStateException.class,
@@ -76,13 +76,13 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNoneExistingTransaction() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
         final String transactionId = "does-not-exist-1";
         assertFalse(transactionManager.isTransactionActive(transactionId), "Transaction should not be active.");
 
-        ProcessSession processSession = Mockito.mock(ProcessSession.class);
-        FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
+        final ProcessSession processSession = Mockito.mock(ProcessSession.class);
+        final FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
         assertDoesNotThrow(() -> transactionManager.holdTransaction(transactionId, transaction, null),
                 "Transaction can be held even if the transaction id is not valid anymore,"
                         + " in order to support large file or slow network.");

@@ -36,13 +36,13 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     private List<Map<String, Object>> rows = new ArrayList<>();
 
     @Override
-    public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         rows = new ArrayList<>();
         int numRecordsWritten = 0;
-        RecordSchema recordSchema = recordSet.getSchema();
+        final RecordSchema recordSchema = recordSet.getSchema();
         Record record;
         while ((record = recordSet.next()) != null) {
-            Map<String, Object> row = new HashMap<>();
+            final Map<String, Object> row = new HashMap<>();
             final Record finalRecord = record;
             recordSchema.getFieldNames().forEach((fieldName) -> row.put(fieldName, finalRecord.getValue(fieldName)));
             rows.add(row);
@@ -58,7 +58,7 @@ public class MockRecordSinkService extends AbstractConfigurableComponent impleme
     }
 
     @Override
-    public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
+    public void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
     }
 
     public List<Map<String, Object>> getRows() {

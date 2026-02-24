@@ -60,10 +60,10 @@ public class TestFlowDifferenceFilters {
 
     @Test
     public void testFilterAddedRemotePortsWithRemoteInputPortAsComponentB() {
-        VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
+        final VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
         remoteGroupPort.setComponentType(ComponentType.REMOTE_INPUT_PORT);
 
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
@@ -72,10 +72,10 @@ public class TestFlowDifferenceFilters {
 
     @Test
     public void testFilterAddedRemotePortsWithRemoteInputPortAsComponentA() {
-        VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
+        final VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
         remoteGroupPort.setComponentType(ComponentType.REMOTE_INPUT_PORT);
 
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED, remoteGroupPort, null, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
@@ -84,10 +84,10 @@ public class TestFlowDifferenceFilters {
 
     @Test
     public void testFilterAddedRemotePortsWithRemoteOutputPort() {
-        VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
+        final VersionedRemoteGroupPort remoteGroupPort = new VersionedRemoteGroupPort();
         remoteGroupPort.setComponentType(ComponentType.REMOTE_OUTPUT_PORT);
 
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
@@ -96,10 +96,10 @@ public class TestFlowDifferenceFilters {
 
     @Test
     public void testFilterAddedRemotePortsWithNonRemoteInputPort() {
-        VersionedProcessor versionedProcessor = new VersionedProcessor();
+        final VersionedProcessor versionedProcessor = new VersionedProcessor();
         versionedProcessor.setComponentType(ComponentType.PROCESSOR);
 
-        StandardFlowDifference flowDifference = new StandardFlowDifference(
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
                 DifferenceType.COMPONENT_ADDED, null, versionedProcessor, null, null, "");
 
         // predicate should return true because we do want to include changes for adding a non-port

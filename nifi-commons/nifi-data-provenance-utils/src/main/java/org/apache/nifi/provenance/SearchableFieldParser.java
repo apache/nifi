@@ -27,8 +27,8 @@ public class SearchableFieldParser {
         final List<SearchableField> searchableFields = new ArrayList<>();
         if (indexedFieldString != null) {
             final String[] split = indexedFieldString.split(",");
-            for (String fieldName : split) {
-                fieldName = fieldName.trim();
+            for (final String rawFieldName : split) {
+                final String fieldName = rawFieldName.trim();
                 if (fieldName.isEmpty()) {
                     continue;
                 }

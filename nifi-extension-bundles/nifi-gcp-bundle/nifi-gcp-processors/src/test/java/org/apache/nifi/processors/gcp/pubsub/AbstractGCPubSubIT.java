@@ -31,7 +31,7 @@ public class AbstractGCPubSubIT {
     protected static final String CONTROLLER_SERVICE = "GCPCredentialsService";
     protected static TestRunner runner;
 
-    protected TestRunner setCredentialsCS(TestRunner runner) throws InitializationException {
+    protected TestRunner setCredentialsCS(final TestRunner runner) throws InitializationException {
         final String serviceAccountJsonFilePath = "path/to/credentials/json";
         final Map<String, String> propertiesMap = new HashMap<>();
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();

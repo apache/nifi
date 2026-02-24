@@ -155,7 +155,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("credential-configuration-strategy", CREDENTIAL_CONFIGURATION_STRATEGY.getName());
         config.renameProperty("managed-identity-client-id", MANAGED_IDENTITY_CLIENT_ID.getName());
     }

@@ -94,13 +94,13 @@ public class RestChangeIngestor implements ChangeIngestor {
     private volatile ConfigurationChangeNotifier configurationChangeNotifier;
 
     public RestChangeIngestor() {
-        QueuedThreadPool queuedThreadPool = new QueuedThreadPool();
+        final QueuedThreadPool queuedThreadPool = new QueuedThreadPool();
         queuedThreadPool.setDaemon(true);
         jetty = new Server(queuedThreadPool);
     }
 
     @Override
-    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+    public void initialize(final BootstrapProperties properties, final ConfigurationFileHolder configurationFileHolder, final ConfigurationChangeNotifier configurationChangeNotifier) {
         logger.info("Initializing RestChangeIngestor");
         this.differentiator = ofNullable(properties.getProperty(DIFFERENTIATOR_KEY))
             .filter(not(String::isBlank))
@@ -125,7 +125,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         try {
             jetty.start();
             logger.info("RestChangeIngester has started and is listening on port {}.", getPort());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
     }
@@ -136,7 +136,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         try {
             jetty.stop();
             jetty.destroy();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException(e);
         }
         logger.warn("Done shutting down the jetty server");
@@ -153,8 +153,8 @@ public class RestChangeIngestor implements ChangeIngestor {
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
     }
 
-    private void createConnector(BootstrapProperties properties) {
-        ServerConnector http = new ServerConnector(jetty);
+    private void createConnector(final BootstrapProperties properties) {
+        final ServerConnector http = new ServerConnector(jetty);
 
         http.setPort(Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
         http.setHost(properties.getProperty(HOST_KEY, "localhost"));
@@ -166,8 +166,8 @@ public class RestChangeIngestor implements ChangeIngestor {
         logger.info("Added an http connector on the host '{}' and port '{}'", http.getHost(), http.getPort());
     }
 
-    private void createSecureConnector(BootstrapProperties properties) {
-        KeyStore keyStore;
+    private void createSecureConnector(final BootstrapProperties properties) {
+        final KeyStore keyStore;
         KeyStore trustStore = null;
 
         try (FileInputStream keyStoreStream = new FileInputStream(properties.getProperty(KEYSTORE_LOCATION_KEY))) {
@@ -182,7 +182,7 @@ public class RestChangeIngestor implements ChangeIngestor {
             }
 
             keyStore = builder.build();
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new UncheckedIOException("Key Store loading failed", ioe);
         }
 
@@ -199,23 +199,23 @@ public class RestChangeIngestor implements ChangeIngestor {
                 }
 
                 trustStore = builder.build();
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new UncheckedIOException("Trust Store loading failed", ioe);
             }
         }
 
-        SSLContext sslContext = new StandardSslContextBuilder()
+        final SSLContext sslContext = new StandardSslContextBuilder()
             .keyStore(keyStore)
             .keyPassword(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
             .trustStore(trustStore)
             .build();
 
-        StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(jetty, Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(jetty, Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
         serverConnectorFactory.setNeedClientAuth(Boolean.parseBoolean(properties.getProperty(NEED_CLIENT_AUTH_KEY, "true")));
         serverConnectorFactory.setSslContext(sslContext);
         serverConnectorFactory.setIncludeSecurityProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
 
-        ServerConnector https = serverConnectorFactory.getServerConnector();
+        final ServerConnector https = serverConnectorFactory.getServerConnector();
         https.setHost(properties.getProperty(HOST_KEY, "localhost"));
 
         // add the connector
@@ -224,20 +224,20 @@ public class RestChangeIngestor implements ChangeIngestor {
         logger.info("HTTPS Connector added for Host [{}] and Port [{}]", https.getHost(), https.getPort());
     }
 
-    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(String differentiator) {
+    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(final String differentiator) {
         return () -> new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiator
             + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
     }
 
     // Method exposed only for enable testing
-    void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
+    void setDifferentiator(final Differentiator<ByteBuffer> differentiator) {
         this.differentiator = differentiator;
     }
 
     private class JettyHandler extends Handler.Abstract {
 
         @Override
-        public boolean handle(Request request, Response response, Callback callback) {
+        public boolean handle(final Request request, final Response response, final Callback callback) {
 
             logRequest(request);
 
@@ -245,12 +245,12 @@ public class RestChangeIngestor implements ChangeIngestor {
                 int statusCode;
                 String responseText;
                 try {
-                    ByteBuffer newFlowConfig = wrap(toByteArray(Request.asInputStream(request))).duplicate();
+                    final ByteBuffer newFlowConfig = wrap(toByteArray(Request.asInputStream(request))).duplicate();
                     if (differentiator.isNew(newFlowConfig)) {
-                        java.util.Collection<ListenerHandleResult> listenerHandleResults = configurationChangeNotifier.notifyListeners(newFlowConfig);
+                        final java.util.Collection<ListenerHandleResult> listenerHandleResults = configurationChangeNotifier.notifyListeners(newFlowConfig);
 
                         statusCode = 200;
-                        for (ListenerHandleResult result : listenerHandleResults) {
+                        for (final ListenerHandleResult result : listenerHandleResults) {
                             if (!result.succeeded()) {
                                 statusCode = 500;
                                 break;
@@ -261,7 +261,7 @@ public class RestChangeIngestor implements ChangeIngestor {
                         statusCode = 409;
                         responseText = "Request received but instance is already running this config.";
                     }
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Failed to override config file", e);
                     statusCode = 500;
                     responseText = "Failed to override config file";
@@ -277,10 +277,10 @@ public class RestChangeIngestor implements ChangeIngestor {
             return false;
         }
 
-        private String getPostText(java.util.Collection<ListenerHandleResult> listenerHandleResults) {
-            StringBuilder postResult = new StringBuilder("The result of notifying listeners:\n");
+        private String getPostText(final java.util.Collection<ListenerHandleResult> listenerHandleResults) {
+            final StringBuilder postResult = new StringBuilder("The result of notifying listeners:\n");
 
-            for (ListenerHandleResult result : listenerHandleResults) {
+            for (final ListenerHandleResult result : listenerHandleResults) {
                 postResult.append(result.toString());
                 postResult.append("\n");
             }
@@ -288,7 +288,7 @@ public class RestChangeIngestor implements ChangeIngestor {
             return postResult.toString();
         }
 
-        private void writeOutput(Request request, Response response, String responseText, int responseCode) {
+        private void writeOutput(final Request request, final Response response, final String responseText, final int responseCode) {
             response.setStatus(responseCode);
             response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/plain");
             response.getHeaders().put(HttpHeader.CONTENT_LENGTH, responseText.length());
@@ -299,7 +299,7 @@ public class RestChangeIngestor implements ChangeIngestor {
             }
         }
 
-        private void logRequest(Request request) {
+        private void logRequest(final Request request) {
             logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.info("request method = {}", request.getMethod());
             logger.info("request url = {}", request.getHttpURI());

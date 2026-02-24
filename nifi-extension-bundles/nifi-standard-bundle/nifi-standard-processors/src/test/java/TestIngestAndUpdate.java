@@ -19,8 +19,8 @@ import java.io.IOException;
 
 public class TestIngestAndUpdate {
 
-    public static void main(String[] args) throws IOException {
-        byte[] bytes = new byte[1024];
+    public static void main(final String[] args) throws IOException {
+        final byte[] bytes = new byte[1024];
         System.out.write(System.getProperty("user.dir").getBytes());
         System.out.println(":ModifiedResult");
         int numRead = 0;

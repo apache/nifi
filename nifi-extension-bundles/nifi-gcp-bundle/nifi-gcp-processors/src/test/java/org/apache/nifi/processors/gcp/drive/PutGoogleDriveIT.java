@@ -137,14 +137,14 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> {
         runWithFileContent(DEFAULT_FILE_CONTENT);
     }
 
-    private void runWithFileContent(String content) {
+    private void runWithFileContent(final String content) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
         testRunner.enqueue(content, attributes);
         testRunner.run();
     }
 
-    private void assertFlowFileAttributes(MockFlowFile flowFile) {
+    private void assertFlowFileAttributes(final MockFlowFile flowFile) {
         flowFile.assertAttributeExists(GoogleDriveAttributes.ID);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
         flowFile.assertAttributeExists(GoogleDriveAttributes.TIMESTAMP);

@@ -99,7 +99,7 @@ class PropertiesPersisterTest {
 
         propertiesPersister.persistProperties(Collections.singletonMap(C2_ENABLE.getKey(), FALSE));
 
-        Properties properties = readUpdatedProperties();
+        final Properties properties = readUpdatedProperties();
         assertEquals(1, properties.stringPropertyNames().size());
         assertEquals(FALSE, properties.getProperty(C2_ENABLE.getKey()));
     }
@@ -112,7 +112,7 @@ class PropertiesPersisterTest {
 
         propertiesPersister.persistProperties(Collections.singletonMap(C2_ENABLE.getKey(), FALSE));
 
-        Properties properties = readUpdatedProperties();
+        final Properties properties = readUpdatedProperties();
         assertEquals(2, properties.stringPropertyNames().size());
         assertEquals(FALSE, properties.getProperty(C2_ENABLE.getKey()));
         assertEquals(EXTRA_PROPERTY_VALUE, properties.getProperty(EXTRA_PROPERTY_KEY));
@@ -126,26 +126,26 @@ class PropertiesPersisterTest {
 
         propertiesPersister.persistProperties(Collections.singletonMap(C2_ENABLE.getKey(), FALSE));
 
-        Properties properties = readUpdatedProperties();
+        final Properties properties = readUpdatedProperties();
         assertEquals(2, properties.stringPropertyNames().size());
         assertEquals(FALSE, properties.getProperty(C2_ENABLE.getKey()));
         assertEquals(EXTRA_PROPERTY_VALUE, properties.getProperty(EXTRA_PROPERTY_KEY));
     }
 
-    private void writeBootstrapFile(String property) {
+    private void writeBootstrapFile(final String property) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(bootstrapConfigFileLocation))) {
             writer.write(property + System.lineSeparator());
             writer.write(EXTRA_PROPERTY_KEY + "=" + EXTRA_PROPERTY_VALUE);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     private Properties readUpdatedProperties() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         try (FileInputStream fis = new FileInputStream(bootstrapNewConfigFileLocation)) {
             props.load(fis);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             fail("Failed to read bootstrap file");
         }
         return props;

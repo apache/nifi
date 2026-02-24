@@ -36,7 +36,7 @@ public class SystemDiagnosticsEntity extends Entity {
         return systemDiagnostics;
     }
 
-    public void setSystemDiagnostics(SystemDiagnosticsDTO health) {
+    public void setSystemDiagnostics(final SystemDiagnosticsDTO health) {
         this.systemDiagnostics = health;
     }
 

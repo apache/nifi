@@ -76,7 +76,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return availableProcessors;
     }
 
-    public void setAvailableProcessors(Integer availableProcessors) {
+    public void setAvailableProcessors(final Integer availableProcessors) {
         this.availableProcessors = availableProcessors;
     }
 
@@ -85,7 +85,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return daemonThreads;
     }
 
-    public void setDaemonThreads(Integer daemonThreads) {
+    public void setDaemonThreads(final Integer daemonThreads) {
         this.daemonThreads = daemonThreads;
     }
 
@@ -94,7 +94,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return freeHeap;
     }
 
-    public void setFreeHeap(String freeHeap) {
+    public void setFreeHeap(final String freeHeap) {
         this.freeHeap = freeHeap;
     }
 
@@ -103,7 +103,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return freeNonHeap;
     }
 
-    public void setFreeNonHeap(String freeNonHeap) {
+    public void setFreeNonHeap(final String freeNonHeap) {
         this.freeNonHeap = freeNonHeap;
     }
 
@@ -112,7 +112,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxHeap;
     }
 
-    public void setMaxHeap(String maxHeap) {
+    public void setMaxHeap(final String maxHeap) {
         this.maxHeap = maxHeap;
     }
 
@@ -121,7 +121,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxNonHeap;
     }
 
-    public void setMaxNonHeap(String maxNonHeap) {
+    public void setMaxNonHeap(final String maxNonHeap) {
         this.maxNonHeap = maxNonHeap;
     }
 
@@ -130,7 +130,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return processorLoadAverage;
     }
 
-    public void setProcessorLoadAverage(Double processorLoadAverage) {
+    public void setProcessorLoadAverage(final Double processorLoadAverage) {
         this.processorLoadAverage = processorLoadAverage;
     }
 
@@ -139,7 +139,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return totalHeap;
     }
 
-    public void setTotalHeap(String totalHeap) {
+    public void setTotalHeap(final String totalHeap) {
         this.totalHeap = totalHeap;
     }
 
@@ -148,7 +148,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return totalNonHeap;
     }
 
-    public void setTotalNonHeap(String totalNonHeap) {
+    public void setTotalNonHeap(final String totalNonHeap) {
         this.totalNonHeap = totalNonHeap;
     }
 
@@ -157,7 +157,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return totalThreads;
     }
 
-    public void setTotalThreads(Integer totalThreads) {
+    public void setTotalThreads(final Integer totalThreads) {
         this.totalThreads = totalThreads;
     }
 
@@ -166,7 +166,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return usedHeap;
     }
 
-    public void setUsedHeap(String usedHeap) {
+    public void setUsedHeap(final String usedHeap) {
         this.usedHeap = usedHeap;
     }
 
@@ -175,7 +175,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return usedNonHeap;
     }
 
-    public void setUsedNonHeap(String usedNonHeap) {
+    public void setUsedNonHeap(final String usedNonHeap) {
         this.usedNonHeap = usedNonHeap;
     }
 
@@ -184,7 +184,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return heapUtilization;
     }
 
-    public void setHeapUtilization(String heapUtilization) {
+    public void setHeapUtilization(final String heapUtilization) {
         this.heapUtilization = heapUtilization;
     }
 
@@ -193,7 +193,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return nonHeapUtilization;
     }
 
-    public void setNonHeapUtilization(String nonHeapUsage) {
+    public void setNonHeapUtilization(final String nonHeapUsage) {
         this.nonHeapUtilization = nonHeapUsage;
     }
 
@@ -202,7 +202,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return contentRepositoryStorageUsage;
     }
 
-    public void setContentRepositoryStorageUsage(Set<StorageUsageDTO> contentRepositoryStorageUsage) {
+    public void setContentRepositoryStorageUsage(final Set<StorageUsageDTO> contentRepositoryStorageUsage) {
         this.contentRepositoryStorageUsage = contentRepositoryStorageUsage;
     }
 
@@ -211,7 +211,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return provenanceRepositoryStorageUsage;
     }
 
-    public void setProvenanceRepositoryStorageUsage(Set<StorageUsageDTO> provenanceRepositoryStorageUsage) {
+    public void setProvenanceRepositoryStorageUsage(final Set<StorageUsageDTO> provenanceRepositoryStorageUsage) {
         this.provenanceRepositoryStorageUsage = provenanceRepositoryStorageUsage;
     }
 
@@ -220,7 +220,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return flowFileRepositoryStorageUsage;
     }
 
-    public void setFlowFileRepositoryStorageUsage(StorageUsageDTO flowFileRepositoryStorageUsage) {
+    public void setFlowFileRepositoryStorageUsage(final StorageUsageDTO flowFileRepositoryStorageUsage) {
         this.flowFileRepositoryStorageUsage = flowFileRepositoryStorageUsage;
     }
 
@@ -229,7 +229,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return garbageCollection;
     }
 
-    public void setGarbageCollection(Set<GarbageCollectionDTO> garbageCollection) {
+    public void setGarbageCollection(final Set<GarbageCollectionDTO> garbageCollection) {
         this.garbageCollection = garbageCollection;
     }
 
@@ -249,7 +249,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 
@@ -258,7 +258,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return totalNonHeapBytes;
     }
 
-    public void setTotalNonHeapBytes(Long totalNonHeapBytes) {
+    public void setTotalNonHeapBytes(final Long totalNonHeapBytes) {
         this.totalNonHeapBytes = totalNonHeapBytes;
     }
 
@@ -267,7 +267,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return usedNonHeapBytes;
     }
 
-    public void setUsedNonHeapBytes(Long usedNonHeapBytes) {
+    public void setUsedNonHeapBytes(final Long usedNonHeapBytes) {
         this.usedNonHeapBytes = usedNonHeapBytes;
     }
 
@@ -276,7 +276,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return freeNonHeapBytes;
     }
 
-    public void setFreeNonHeapBytes(Long freeNonHeapBytes) {
+    public void setFreeNonHeapBytes(final Long freeNonHeapBytes) {
         this.freeNonHeapBytes = freeNonHeapBytes;
     }
 
@@ -285,7 +285,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxNonHeapBytes;
     }
 
-    public void setMaxNonHeapBytes(Long maxNonHeapBytes) {
+    public void setMaxNonHeapBytes(final Long maxNonHeapBytes) {
         this.maxNonHeapBytes = maxNonHeapBytes;
     }
 
@@ -294,7 +294,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return totalHeapBytes;
     }
 
-    public void setTotalHeapBytes(Long totalHeapBytes) {
+    public void setTotalHeapBytes(final Long totalHeapBytes) {
         this.totalHeapBytes = totalHeapBytes;
     }
 
@@ -303,7 +303,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return usedHeapBytes;
     }
 
-    public void setUsedHeapBytes(Long usedHeapBytes) {
+    public void setUsedHeapBytes(final Long usedHeapBytes) {
         this.usedHeapBytes = usedHeapBytes;
     }
 
@@ -312,7 +312,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return freeHeapBytes;
     }
 
-    public void setFreeHeapBytes(Long freeHeapBytes) {
+    public void setFreeHeapBytes(final Long freeHeapBytes) {
         this.freeHeapBytes = freeHeapBytes;
     }
 
@@ -321,7 +321,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return maxHeapBytes;
     }
 
-    public void setMaxHeapBytes(Long maxHeapBytes) {
+    public void setMaxHeapBytes(final Long maxHeapBytes) {
         this.maxHeapBytes = maxHeapBytes;
     }
 
@@ -330,7 +330,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return versionInfo;
     }
 
-    public void setVersionInfo(VersionInfoDTO versionInfo) {
+    public void setVersionInfo(final VersionInfoDTO versionInfo) {
         this.versionInfo = versionInfo;
     }
 
@@ -339,7 +339,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         return uptime;
     }
 
-    public void setUptime(String uptime) {
+    public void setUptime(final String uptime) {
         this.uptime = uptime;
     }
 
@@ -427,7 +427,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
 
         private String utilization;
 
-        public void setIdentifier(String identifier) {
+        public void setIdentifier(final String identifier) {
             this.identifier = identifier;
         }
 
@@ -439,7 +439,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return freeSpace;
         }
 
-        public void setFreeSpace(String freeSpace) {
+        public void setFreeSpace(final String freeSpace) {
             this.freeSpace = freeSpace;
         }
 
@@ -451,7 +451,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return totalSpace;
         }
 
-        public void setTotalSpace(String totalSpace) {
+        public void setTotalSpace(final String totalSpace) {
             this.totalSpace = totalSpace;
         }
 
@@ -463,7 +463,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return usedSpace;
         }
 
-        public void setUsedSpace(String usedSpace) {
+        public void setUsedSpace(final String usedSpace) {
             this.usedSpace = usedSpace;
         }
 
@@ -475,7 +475,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return utilization;
         }
 
-        public void setUtilization(String utilization) {
+        public void setUtilization(final String utilization) {
             this.utilization = utilization;
         }
 
@@ -487,7 +487,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return freeSpaceBytes;
         }
 
-        public void setFreeSpaceBytes(Long freeSpaceBytes) {
+        public void setFreeSpaceBytes(final Long freeSpaceBytes) {
             this.freeSpaceBytes = freeSpaceBytes;
         }
 
@@ -499,7 +499,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return totalSpaceBytes;
         }
 
-        public void setTotalSpaceBytes(Long totalSpaceBytes) {
+        public void setTotalSpaceBytes(final Long totalSpaceBytes) {
             this.totalSpaceBytes = totalSpaceBytes;
         }
 
@@ -511,7 +511,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return usedSpaceBytes;
         }
 
-        public void setUsedSpaceBytes(Long usedSpaceBytes) {
+        public void setUsedSpaceBytes(final Long usedSpaceBytes) {
             this.usedSpaceBytes = usedSpaceBytes;
         }
 
@@ -633,7 +633,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return name;
         }
 
-        public void setName(String name) {
+        public void setName(final String name) {
             this.name = name;
         }
 
@@ -642,7 +642,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return collectionCount;
         }
 
-        public void setCollectionCount(long collectionCount) {
+        public void setCollectionCount(final long collectionCount) {
             this.collectionCount = collectionCount;
         }
 
@@ -651,7 +651,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return collectionTime;
         }
 
-        public void setCollectionTime(String collectionTime) {
+        public void setCollectionTime(final String collectionTime) {
             this.collectionTime = collectionTime;
         }
 
@@ -660,7 +660,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return collectionMillis;
         }
 
-        public void setCollectionMillis(Long collectionMillis) {
+        public void setCollectionMillis(final Long collectionMillis) {
             this.collectionMillis = collectionMillis;
         }
 
@@ -697,7 +697,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return niFiVersion;
         }
 
-        public void setNiFiVersion(String niFiVersion) {
+        public void setNiFiVersion(final String niFiVersion) {
             this.niFiVersion = niFiVersion;
         }
 
@@ -706,7 +706,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return javaVendor;
         }
 
-        public void setJavaVendor(String javaVendor) {
+        public void setJavaVendor(final String javaVendor) {
             this.javaVendor = javaVendor;
         }
 
@@ -715,7 +715,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return javaVersion;
         }
 
-        public void setJavaVersion(String javaVersion) {
+        public void setJavaVersion(final String javaVersion) {
             this.javaVersion = javaVersion;
         }
 
@@ -724,7 +724,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return osName;
         }
 
-        public void setOsName(String osName) {
+        public void setOsName(final String osName) {
             this.osName = osName;
         }
 
@@ -733,7 +733,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return osVersion;
         }
 
-        public void setOsVersion(String osVersion) {
+        public void setOsVersion(final String osVersion) {
             this.osVersion = osVersion;
         }
 
@@ -742,7 +742,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return osArchitecture;
         }
 
-        public void setOsArchitecture(String osArchitecture) {
+        public void setOsArchitecture(final String osArchitecture) {
             this.osArchitecture = osArchitecture;
         }
 
@@ -751,7 +751,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return buildTag;
         }
 
-        public void setBuildTag(String buildTag) {
+        public void setBuildTag(final String buildTag) {
             this.buildTag = buildTag;
         }
 
@@ -760,7 +760,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return buildRevision;
         }
 
-        public void setBuildRevision(String buildRevision) {
+        public void setBuildRevision(final String buildRevision) {
             this.buildRevision = buildRevision;
         }
 
@@ -769,7 +769,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return buildBranch;
         }
 
-        public void setBuildBranch(String buildBranch) {
+        public void setBuildBranch(final String buildBranch) {
             this.buildBranch = buildBranch;
         }
 
@@ -779,7 +779,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             return buildTimestamp;
         }
 
-        public void setBuildTimestamp(Date buildTimestamp) {
+        public void setBuildTimestamp(final Date buildTimestamp) {
             this.buildTimestamp = buildTimestamp;
         }
 

@@ -276,7 +276,7 @@ public class ConsumeTwitter extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         startTweetStreamService(context);
 
         final String firstTweet = messageQueue.poll();
@@ -328,7 +328,7 @@ public class ConsumeTwitter extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("stream-endpoint", ENDPOINT.getName());
         config.renameProperty("base-path", BASE_PATH.getName());
         config.renameProperty("bearer-token", BEARER_TOKEN.getName());

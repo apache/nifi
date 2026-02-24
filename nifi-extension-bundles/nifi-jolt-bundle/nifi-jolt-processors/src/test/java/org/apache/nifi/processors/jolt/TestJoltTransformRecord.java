@@ -104,7 +104,7 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
         runner.enqueue(new byte[0]);
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformRecord.REL_FAILURE));
         assertTrue(relationships.contains(JoltTransformRecord.REL_SUCCESS));
         assertTrue(relationships.contains(JoltTransformRecord.REL_ORIGINAL));
@@ -121,7 +121,7 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, CHAINR_SPEC_PATH);
         runner.enqueue(new byte[0]);
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformRecord.REL_FAILURE));
         assertTrue(relationships.contains(JoltTransformRecord.REL_SUCCESS));
         assertTrue(relationships.contains(JoltTransformRecord.REL_ORIGINAL));
@@ -136,7 +136,7 @@ public class TestJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
-        String spec = "[{}]";
+        final String spec = "[{}]";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.assertNotValid();
 
@@ -288,7 +288,7 @@ public class TestJoltTransformRecord {
 
     @ParameterizedTest(name = "{index} {1}")
     @MethodSource("getChainrArguments")
-    public void testTransformInputWithChainr(Path specPath, String ignoredDescription) throws IOException {
+    public void testTransformInputWithChainr(final Path specPath, final String ignoredDescription) throws IOException {
         generateTestData(1, null);
         final String outputSchemaText = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutputSchema.avsc"));
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
@@ -351,12 +351,12 @@ public class TestJoltTransformRecord {
 
     @Test
     public void testTransformInputWithShiftrMultipleOutputRecords() throws IOException {
-        RecordField aField = new RecordField("a", RecordFieldType.INT.getDataType());
-        RecordField bField = new RecordField("b", RecordFieldType.INT.getDataType());
-        RecordField cField = new RecordField("c", RecordFieldType.INT.getDataType());
-        List<RecordField> abcFields = Arrays.asList(aField, bField, cField);
-        RecordSchema xSchema = new SimpleRecordSchema(abcFields);
-        RecordField xRecord = new RecordField("x", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(xSchema)));
+        final RecordField aField = new RecordField("a", RecordFieldType.INT.getDataType());
+        final RecordField bField = new RecordField("b", RecordFieldType.INT.getDataType());
+        final RecordField cField = new RecordField("c", RecordFieldType.INT.getDataType());
+        final List<RecordField> abcFields = Arrays.asList(aField, bField, cField);
+        final RecordSchema xSchema = new SimpleRecordSchema(abcFields);
+        final RecordField xRecord = new RecordField("x", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(xSchema)));
         parser.addSchemaField(xRecord);
 
         final Record record1 = new MapRecord(xSchema, Map.of("a", 1, "b", 2, "c", 3));
@@ -623,7 +623,7 @@ public class TestJoltTransformRecord {
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
-        Map<String, String> customSpecs = new HashMap<>();
+        final Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", spec);
         customSpecs.put("CUSTOM_JOLT_CLASS", customJoltTransform);
         customSpecs.put("CUSTOM_CLASS", customClass);
@@ -698,7 +698,7 @@ public class TestJoltTransformRecord {
                 Arguments.of(Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
     }
 
-    private void generateTestData(int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
+    private void generateTestData(final int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
         if (recordGenerator == null) {
             final RecordSchema primarySchema = new SimpleRecordSchema(List.of(
                     new RecordField("value", RecordFieldType.INT.getDataType())));
@@ -719,7 +719,7 @@ public class TestJoltTransformRecord {
                 final Record seriesRecord = new MapRecord(seriesSchema, Map.of("value", new Integer[]{(10 * i) + 5, (10 * i) + 4}));
                 final Record qualityRecord = new MapRecord(qualitySchema, Map.of("value", 3));
 
-                Record ratingRecord = new MapRecord(ratingSchema, Map.of("primary", primaryRecord,
+                final Record ratingRecord = new MapRecord(ratingSchema, Map.of("primary", primaryRecord,
                         "series", seriesRecord, "quality", qualityRecord));
 
                 parser.addRecord(ratingRecord);
@@ -729,7 +729,7 @@ public class TestJoltTransformRecord {
         }
     }
 
-    private static String getExpectedContent(String path) throws IOException {
+    private static String getExpectedContent(final String path) throws IOException {
         final boolean windows = System.getProperty("os.name").startsWith("Windows");
         String expectedContent = Files.readString(Paths.get(path));
 

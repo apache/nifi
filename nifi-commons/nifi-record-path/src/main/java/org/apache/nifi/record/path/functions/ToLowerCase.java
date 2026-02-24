@@ -19,12 +19,12 @@ package org.apache.nifi.record.path.functions;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class ToLowerCase extends NoArgStringFunction {
-    public ToLowerCase(RecordPathSegment valuePath, boolean absolute) {
+    public ToLowerCase(final RecordPathSegment valuePath, final boolean absolute) {
         super("toLowerCase", valuePath, absolute);
     }
 
     @Override
-    String apply(String value) {
+    String apply(final String value) {
         return value == null ? null : value.toLowerCase();
     }
 }

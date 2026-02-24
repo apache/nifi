@@ -116,7 +116,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean isWriterSet = validationContext.getProperty(RECORD_WRITER).isSet();
@@ -165,7 +165,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             final OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
             final double systemLoad = os.getSystemLoadAverage();
 
-            byte[] data;
+            final byte[] data;
             final Map<String, String> attributes = new HashMap<>();
 
             if (context.getProperty(FORMAT).getValue().equals(AMBARI_FORMAT.getValue())) {
@@ -193,7 +193,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
                 // Lazily create SiteToSiteClient to provide a StateManager
                 setup(context);
 
-                long start = System.nanoTime();
+                final long start = System.nanoTime();
                 transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     getLogger().debug("All destination nodes are penalized; will attempt to send data later");
@@ -229,7 +229,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("s2s-metrics-application-id", APPLICATION_ID.getName());
         config.renameProperty("s2s-metrics-hostname", HOSTNAME.getName());

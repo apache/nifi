@@ -30,7 +30,7 @@ public class HeartbeatMessage extends ProtocolMessage {
         return heartbeat;
     }
 
-    public void setHeartbeat(Heartbeat heartbeat) {
+    public void setHeartbeat(final Heartbeat heartbeat) {
         this.heartbeat = heartbeat;
     }
 

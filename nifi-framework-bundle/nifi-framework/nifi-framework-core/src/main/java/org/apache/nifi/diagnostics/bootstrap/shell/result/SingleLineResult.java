@@ -45,7 +45,7 @@ public class SingleLineResult implements ShellCommandResult {
                 }
             }
             return result;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(String.format("Failed to process result for command: %s", commandName), e);
         }
     }

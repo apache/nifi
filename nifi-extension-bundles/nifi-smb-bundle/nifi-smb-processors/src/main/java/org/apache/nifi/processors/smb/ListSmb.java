@@ -269,10 +269,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> validationResults) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> validationResults) {
         try {
             getInitialListingTimestamp(validationContext);
-        } catch (InvalidTimestampException ite) {
+        } catch (final InvalidTimestampException ite) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(INITIAL_LISTING_TIMESTAMP.getDisplayName())
                     .explanation(ite.getMessage())
@@ -282,13 +282,13 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
-        boolean isStateEmpty = context.getStateManager().getState(getStateScope(context)).toMap().isEmpty();
+    public void onScheduled(final ProcessContext context) throws IOException {
+        final boolean isStateEmpty = context.getStateManager().getState(getStateScope(context)).toMap().isEmpty();
         initialListingTimestamp = isStateEmpty ? getInitialListingTimestamp(context) : null;
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
@@ -307,7 +307,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @Override
-    protected Map<String, String> createAttributes(SmbListableEntity entity, ProcessContext context) {
+    protected Map<String, String> createAttributes(final SmbListableEntity entity, final ProcessContext context) {
         final Map<String, String> attributes = new TreeMap<>();
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
@@ -325,7 +325,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @Override
-    protected String getPath(ProcessContext context) {
+    protected String getPath(final ProcessContext context) {
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final URI serviceLocation = clientProviderService.getServiceLocation();
@@ -334,8 +334,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @Override
-    protected List<SmbListableEntity> performListing(ProcessContext context, Long minimumTimestampOrNull,
-            ListingMode listingMode) throws IOException {
+    protected List<SmbListableEntity> performListing(final ProcessContext context, final Long minimumTimestampOrNull,
+            final ListingMode listingMode) throws IOException {
 
         final Predicate<SmbListableEntity> fileFilter =
                 createFileFilter(context, minimumTimestampOrNull);
@@ -353,18 +353,18 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 }
             }
             return result;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Could not perform listing", e);
         }
     }
 
     @Override
-    protected boolean isListingResetNecessary(PropertyDescriptor property) {
+    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         return asList(SMB_CLIENT_PROVIDER_SERVICE, DIRECTORY, IGNORE_FILES_WITH_SUFFIX).contains(property);
     }
 
     @Override
-    protected Scope getStateScope(PropertyContext context) {
+    protected Scope getStateScope(final PropertyContext context) {
         return CLUSTER;
     }
 
@@ -374,29 +374,29 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     @Override
-    protected Integer countUnfilteredListing(ProcessContext context) throws IOException {
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
         try (Stream<SmbListableEntity> listing = performListing(context)) {
             return Long.valueOf(listing.count()).intValue();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Could not count files", e);
         }
     }
 
     @Override
-    protected String getListingContainerName(ProcessContext context) {
+    protected String getListingContainerName(final ProcessContext context) {
         return String.format("Remote Directory [%s]", getPath(context));
     }
 
-    private String formatTimeStamp(long timestamp) {
+    private String formatTimeStamp(final long timestamp) {
         return ISO_DATE_TIME.format(
                 LocalDateTime.ofEpochSecond(MILLISECONDS.toSeconds(timestamp), 0, UTC));
     }
 
-    private boolean isExecutionStopped(ListingMode listingMode) {
+    private boolean isExecutionStopped(final ListingMode listingMode) {
         return ListingMode.EXECUTION.equals(listingMode) && !isScheduled();
     }
 
-    private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {
+    private Predicate<SmbListableEntity> createFileFilter(final ProcessContext context, final Long minTimestampOrNull) {
 
         final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(MILLISECONDS);
         final Long maximumAgeOrNull = context.getProperty(MAXIMUM_AGE).isSet() ? context.getProperty(MAXIMUM_AGE)
@@ -449,7 +449,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         return filter;
     }
 
-    private Stream<SmbListableEntity> performListing(ProcessContext context) throws IOException {
+    private Stream<SmbListableEntity> performListing(final ProcessContext context) throws IOException {
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
@@ -457,19 +457,19 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         return clientService.listFiles(directory).onClose(() -> {
             try {
                 clientService.close();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new ProcessException("Could not close SMB client", e);
             }
         });
     }
 
-    private String getDirectory(ProcessContext context) {
+    private String getDirectory(final ProcessContext context) {
         final PropertyValue property = context.getProperty(DIRECTORY);
         final String directory = property.isSet() ? property.getValue().replace('\\', '/') : "";
         return "/".equals(directory) ? "" : directory;
     }
 
-    private Long getInitialListingTimestamp(PropertyContext context) {
+    private Long getInitialListingTimestamp(final PropertyContext context) {
         final String listingStrategy = context.getProperty(SMB_LISTING_STRATEGY).getValue();
 
         if (BY_TIMESTAMPS.getValue().equals(listingStrategy)) {
@@ -482,10 +482,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
                 try {
                     return Instant.parse(initialListingTimestamp).toEpochMilli();
-                } catch (DateTimeParseException dtpe) {
+                } catch (final DateTimeParseException dtpe) {
                     try {
                         return Long.parseLong(initialListingTimestamp);
-                    } catch (NumberFormatException nfe) {
+                    } catch (final NumberFormatException nfe) {
                         throw new InvalidTimestampException(initialListingTimestamp);
                     }
                 }
@@ -498,7 +498,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     private static class MustNotContainDirectorySeparatorsValidator implements Validator {
 
         @Override
-        public ValidationResult validate(String subject, String value, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(value)
@@ -510,7 +510,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     private static class InvalidTimestampException extends RuntimeException {
-        InvalidTimestampException(String timestamp) {
+        InvalidTimestampException(final String timestamp) {
             super(String.format("'%s' is neither an epoch timestamp nor a UTC datetime.", timestamp));
         }
     }

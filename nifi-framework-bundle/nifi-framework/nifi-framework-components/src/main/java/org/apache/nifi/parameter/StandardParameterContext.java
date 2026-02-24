@@ -116,7 +116,7 @@ public class StandardParameterContext implements ParameterContext {
     }
 
     @Override
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -389,7 +389,7 @@ public class StandardParameterContext implements ParameterContext {
 
         // Loop backwards so that the first ParameterContext in the list will override any parameters later in the list
         for (int i = parameterContexts.size() - 1; i >= 0; i--) {
-            ParameterContext parameterContext = parameterContexts.get(i);
+            final ParameterContext parameterContext = parameterContexts.get(i);
             combineOverrides(allOverrides, overrideParameters(effectiveParameters, parameterContext.getEffectiveParameters(), parameterContext));
         }
 

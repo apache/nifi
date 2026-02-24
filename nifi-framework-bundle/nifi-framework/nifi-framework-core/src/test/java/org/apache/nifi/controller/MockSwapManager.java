@@ -75,7 +75,7 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
+    public String swapOut(final List<FlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
         swapOutCalledCount++;
 
         if (failSwapOutAfterN > -1 && swapOutCalledCount >= failSwapOutAfterN) {
@@ -117,27 +117,27 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
-    public SwapContents peek(String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
+    public SwapContents peek(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         throwIncompleteIfNecessary(swapLocation, false);
         return new StandardSwapContents(getSwapSummary(swapLocation), swappedOut.get(swapLocation));
     }
 
     @Override
-    public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+    public SwapContents swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         swapInCalledCount++;
         throwIncompleteIfNecessary(swapLocation, true);
         return new StandardSwapContents(getSwapSummary(swapLocation), swappedOut.remove(swapLocation));
     }
 
     @Override
-    public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
+    public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
         return swappedOut.keySet().stream()
             .filter(key -> key.endsWith("." + partitionName))
             .collect(Collectors.toList());
     }
 
     @Override
-    public SwapSummary getSwapSummary(String swapLocation) throws IOException {
+    public SwapSummary getSwapSummary(final String swapLocation) throws IOException {
         final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
         if (flowFiles == null) {
             return StandardSwapSummary.EMPTY_SUMMARY;

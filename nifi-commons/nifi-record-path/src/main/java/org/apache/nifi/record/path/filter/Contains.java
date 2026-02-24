@@ -21,7 +21,7 @@ import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class Contains extends StringComparisonFilter {
 
-    public Contains(RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
+    public Contains(final RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
         super(recordPath, searchValuePath);
     }
 

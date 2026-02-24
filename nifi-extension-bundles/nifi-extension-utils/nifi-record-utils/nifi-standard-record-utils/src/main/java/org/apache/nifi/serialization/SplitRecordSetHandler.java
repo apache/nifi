@@ -24,7 +24,7 @@ import java.io.IOException;
 public abstract class SplitRecordSetHandler {
     final int maximumChunkSize;
 
-    protected SplitRecordSetHandler(int maximumChunkSize) {
+    protected SplitRecordSetHandler(final int maximumChunkSize) {
         if (maximumChunkSize < 1) {
             throw new IllegalArgumentException("The maximum chunk size must be a positive number");
         }

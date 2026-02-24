@@ -127,7 +127,7 @@ public class PutParquet extends AbstractPutHDFSRecord {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("remove-crc-files", REMOVE_CRC_FILES.getName());
         config.renameProperty(ParquetUtils.OLD_ROW_GROUP_SIZE_PROPERTY_NAME, ParquetUtils.ROW_GROUP_SIZE.getName());

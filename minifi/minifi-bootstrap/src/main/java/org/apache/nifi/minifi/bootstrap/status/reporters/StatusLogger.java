@@ -42,27 +42,27 @@ public class StatusLogger extends PeriodicStatusReporter {
     static final String ENCOUNTERED_IO_EXCEPTION = "Encountered an IO Exception while attempting to query the flow status.";
 
     @Override
-    public void initialize(BootstrapProperties properties, QueryableStatusAggregator queryableStatusAggregator) {
+    public void initialize(final BootstrapProperties properties, final QueryableStatusAggregator queryableStatusAggregator) {
         this.queryableStatusAggregator = queryableStatusAggregator;
 
-        String periodString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey());
+        final String periodString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey());
         if (periodString == null) {
             throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey() + " is null but it is required. Please configure it.");
         }
         try {
             setPeriod(Integer.parseInt(periodString));
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
             throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey() + " is not a valid number.", e);
         }
 
-        String loglevelString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey());
+        final String loglevelString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey());
         if (loglevelString == null) {
             throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " is null but it is required. Please configure it.");
         }
 
         try {
             logLevel = LogLevel.valueOf(loglevelString.toUpperCase());
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new IllegalStateException("Value set for " + NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " is not a valid log level.");
         }
 
@@ -86,9 +86,9 @@ public class StatusLogger extends PeriodicStatusReporter {
                 String toLog;
                 Exception exception = null;
                 try {
-                    FlowStatusReport flowStatusReport = queryableStatusAggregator.statusReport(statusQuery);
+                    final FlowStatusReport flowStatusReport = queryableStatusAggregator.statusReport(statusQuery);
                     toLog = flowStatusReport.toString();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     toLog = ENCOUNTERED_IO_EXCEPTION;
                     exception = e;
                 }
@@ -114,7 +114,7 @@ public class StatusLogger extends PeriodicStatusReporter {
                         throw new IllegalStateException("Cannot log status at level " + logLevel + ". Please configure another.");
                 }
 
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 if (logLevel == LogLevel.ERROR) {
                     logger.error("Unexpected exception when attempting to report the status", e);
                 } else {

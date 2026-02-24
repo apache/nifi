@@ -39,12 +39,13 @@ public class MiNiFiListener {
     private Listener listener;
     private ServerSocket serverSocket;
 
-    public int start(RunMiNiFi runner, int listenPort, BootstrapFileProvider bootstrapFileProvider, ConfigurationChangeListener configurationChangeListener) throws IOException {
+    public int start(final RunMiNiFi runner, final int listenPort, final BootstrapFileProvider bootstrapFileProvider,
+            final ConfigurationChangeListener configurationChangeListener) throws IOException {
         serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", listenPort));
 
         listener = new Listener(serverSocket, new BootstrapCodec(runner, bootstrapFileProvider, configurationChangeListener));
-        Thread listenThread = new Thread(listener);
+        final Thread listenThread = new Thread(listener);
         listenThread.setName("Listen to MiNiFi");
         listenThread.setDaemon(true);
         listenThread.start();
@@ -56,7 +57,7 @@ public class MiNiFiListener {
             if (serverSocket != null) {
                 serverSocket.close();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Failed to close socket");
         }
         Optional.ofNullable(listener).ifPresent(Listener::stop);
@@ -69,11 +70,11 @@ public class MiNiFiListener {
         private volatile boolean stopped = false;
         private final BootstrapCodec codec;
 
-        public Listener(ServerSocket serverSocket, BootstrapCodec bootstrapCodec) {
+        public Listener(final ServerSocket serverSocket, final BootstrapCodec bootstrapCodec) {
             this.serverSocket = serverSocket;
             this.codec = bootstrapCodec;
             this.executor = Executors.newFixedThreadPool(2, runnable -> {
-                Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                final Thread t = Executors.defaultThreadFactory().newThread(runnable);
                 t.setDaemon(true);
                 t.setName("MiNiFi Bootstrap Command Listener");
                 return t;
@@ -89,15 +90,15 @@ public class MiNiFiListener {
                     if (!executor.awaitTermination(3, TimeUnit.SECONDS)) {
                         executor.shutdownNow();
                     }
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     LOGGER.warn("Failed to stop the MiNiFi listener executor", e);
                     executor.shutdownNow();
                 }
 
                 serverSocket.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.warn("Failed to close socket", e);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.warn("Failed to stop the MiNiFi listener executor", e);
             }
         }
@@ -110,10 +111,10 @@ public class MiNiFiListener {
                         return;
                     }
 
-                    Socket socket;
+                    final Socket socket;
                     try {
                         socket = serverSocket.accept();
-                    } catch (IOException ioe) {
+                    } catch (final IOException ioe) {
                         if (stopped) {
                             return;
                         }
@@ -128,17 +129,17 @@ public class MiNiFiListener {
                         // So we will limit the amount of data to read to 4 KB
                         try (InputStream limitingIn = new LimitingInputStream(socket.getInputStream(), 4096)) {
                             codec.communicate(limitingIn, socket.getOutputStream());
-                        } catch (Exception t) {
+                        } catch (final Exception t) {
                             LOGGER.error("Failed to communicate with MiNiFi due to exception: ", t);
                         } finally {
                             try {
                                 socket.close();
-                            } catch (IOException ioe) {
+                            } catch (final IOException ioe) {
                                 LOGGER.warn("Failed to close the socket ", ioe);
                             }
                         }
                     });
-                } catch (Exception t) {
+                } catch (final Exception t) {
                     LOGGER.error("Failed to receive information from MiNiFi due to exception: ", t);
                 }
             }

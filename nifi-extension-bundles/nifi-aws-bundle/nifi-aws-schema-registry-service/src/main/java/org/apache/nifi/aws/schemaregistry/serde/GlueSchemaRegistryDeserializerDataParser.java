@@ -53,10 +53,10 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      * @throws GlueSchemaRegistryIncompatibleDataException when the data is incompatible with
      *                                      schema registry
      */
-    public UUID getSchemaVersionId(ByteBuffer byteBuffer) {
+    public UUID getSchemaVersionId(final ByteBuffer byteBuffer) {
         byteBuffer.rewind();
         // Ensure that we are not changing the buffer position.
-        ByteBuffer slicedBuffer = byteBuffer.slice();
+        final ByteBuffer slicedBuffer = byteBuffer.slice();
 
         //Make sure we have valid byteBuffer.
         validateData(slicedBuffer);
@@ -66,8 +66,8 @@ public final class GlueSchemaRegistryDeserializerDataParser {
         // Skip COMPRESSION_BYTE
         slicedBuffer.get();
 
-        long mostSigBits = slicedBuffer.getLong();
-        long leastSigBits = slicedBuffer.getLong();
+        final long mostSigBits = slicedBuffer.getLong();
+        final long leastSigBits = slicedBuffer.getLong();
 
         return new UUID(mostSigBits, leastSigBits);
     }
@@ -81,30 +81,30 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      * @return true - validation success; false - otherwise
      */
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public boolean isDataCompatible(ByteBuffer byteBuffer, StringBuilder errorBuilder) {
+    public boolean isDataCompatible(final ByteBuffer byteBuffer, final StringBuilder errorBuilder) {
         // Ensure that we are not changing the buffer position.
         byteBuffer.rewind();
-        ByteBuffer toValidate = byteBuffer.slice();
+        final ByteBuffer toValidate = byteBuffer.slice();
 
         // We should be at least 18 bytes long
         if (toValidate.limit() < 18) {
-            String message = String.format("%s size: %d", GlueSchemaRegistryIncompatibleDataException.UNKNOWN_DATA_ERROR_MESSAGE,
+            final String message = String.format("%s size: %d", GlueSchemaRegistryIncompatibleDataException.UNKNOWN_DATA_ERROR_MESSAGE,
                     toValidate.limit());
             errorBuilder.append(message);
             return false;
         }
 
-        Byte headerVersionByte = toValidate.get();
+        final Byte headerVersionByte = toValidate.get();
         if (!headerVersionByte.equals(AWSSchemaRegistryConstants.HEADER_VERSION_BYTE)) {
-            String message = GlueSchemaRegistryIncompatibleDataException.UNKNOWN_HEADER_VERSION_BYTE_ERROR_MESSAGE;
+            final String message = GlueSchemaRegistryIncompatibleDataException.UNKNOWN_HEADER_VERSION_BYTE_ERROR_MESSAGE;
             errorBuilder.append(message);
             return false;
         }
 
-        Byte compressionByte = toValidate.get();
+        final Byte compressionByte = toValidate.get();
         if (!compressionByte.equals(AWSSchemaRegistryConstants.COMPRESSION_BYTE)
                 && !compressionByte.equals(AWSSchemaRegistryConstants.COMPRESSION_DEFAULT_BYTE)) {
-            String message = GlueSchemaRegistryIncompatibleDataException.UNKNOWN_COMPRESSION_BYTE_ERROR_MESSAGE;
+            final String message = GlueSchemaRegistryIncompatibleDataException.UNKNOWN_COMPRESSION_BYTE_ERROR_MESSAGE;
             errorBuilder.append(message);
             return false;
         }
@@ -117,8 +117,8 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      *
      * @param buffer     data to be de-serialized as ByteBuffer
      */
-    private void validateData(ByteBuffer buffer) throws GlueSchemaRegistryIncompatibleDataException {
-        StringBuilder errorMessageBuilder = new StringBuilder();
+    private void validateData(final ByteBuffer buffer) throws GlueSchemaRegistryIncompatibleDataException {
+        final StringBuilder errorMessageBuilder = new StringBuilder();
         if (!isDataCompatible(buffer, errorMessageBuilder)) {
             throw new GlueSchemaRegistryIncompatibleDataException(errorMessageBuilder.toString());
         }
@@ -130,17 +130,17 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      * @param byteBuffer byte buffer
      * @return whether the byte buffer has been compressed
      */
-    public boolean isCompressionEnabled(ByteBuffer byteBuffer) {
+    public boolean isCompressionEnabled(final ByteBuffer byteBuffer) {
         byteBuffer.rewind();
-        ByteBuffer slicedBuffer = byteBuffer.slice();
+        final ByteBuffer slicedBuffer = byteBuffer.slice();
 
         // skip the first byte.
         slicedBuffer.get();
-        Byte compressionByte = slicedBuffer.get();
+        final Byte compressionByte = slicedBuffer.get();
         return isCompressionByteSet(compressionByte);
     }
 
-    private boolean isCompressionByteSet(Byte compressionByte) {
+    private boolean isCompressionByteSet(final Byte compressionByte) {
         return !compressionByte.equals(AWSSchemaRegistryConstants.COMPRESSION_DEFAULT_BYTE);
     }
 
@@ -150,9 +150,9 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      * @param byteBuffer byte buffer
      * @return compression byte
      */
-    public Byte getCompressionByte(ByteBuffer byteBuffer) {
+    public Byte getCompressionByte(final ByteBuffer byteBuffer) {
         byteBuffer.rewind();
-        ByteBuffer slicedBuffer = byteBuffer.slice();
+        final ByteBuffer slicedBuffer = byteBuffer.slice();
         // skip the first byte.
         slicedBuffer.get();
         return slicedBuffer.get();
@@ -164,9 +164,9 @@ public final class GlueSchemaRegistryDeserializerDataParser {
      * @param byteBuffer byte buffer
      * @return header byte
      */
-    public Byte getHeaderVersionByte(ByteBuffer byteBuffer) {
+    public Byte getHeaderVersionByte(final ByteBuffer byteBuffer) {
         byteBuffer.rewind();
-        ByteBuffer slicedBuffer = byteBuffer.slice();
+        final ByteBuffer slicedBuffer = byteBuffer.slice();
 
         return slicedBuffer.get();
     }

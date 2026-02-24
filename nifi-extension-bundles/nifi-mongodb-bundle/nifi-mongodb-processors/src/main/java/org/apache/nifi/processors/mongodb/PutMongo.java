@@ -176,7 +176,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        List<ValidationResult> problems = new ArrayList<>();
+        final List<ValidationResult> problems = new ArrayList<>();
 
         if (validationContext.getProperty(MODE).getValue().equals(MODE_INSERT)) {
             return problems;
@@ -242,28 +242,28 @@ public class PutMongo extends AbstractMongoProcessor {
                 } else {
                     updateQuery = Document.parse(filterQuery);
                 }
-                UpdateResult updateResult;
+                final UpdateResult updateResult;
                 if (Objects.equals(updateOperationMode, UPDATE_WITH_DOC.getValue())) {
                     updateResult = collection.replaceOne(updateQuery, (Document) doc, new ReplaceOptions().upsert(upsert));
                 } else {
-                    BasicDBObject update = (BasicDBObject) doc; //NOPMD
+                    final BasicDBObject update = (BasicDBObject) doc; //NOPMD
                     update.remove(updateKey);
-                    UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
-                    UpdateMethod updateQueryMode = context.getProperty(UPDATE_METHOD).asAllowableValue(UpdateMethod.class);
+                    final UpdateOptions updateOptions = new UpdateOptions().upsert(upsert);
+                    final UpdateMethod updateQueryMode = context.getProperty(UPDATE_METHOD).asAllowableValue(UpdateMethod.class);
 
                     if (this.updateModeMatches(UpdateMethod.UPDATE_ONE, updateQueryMode, flowFile)) {
                         updateResult = collection.updateOne(updateQuery, update, updateOptions);
                     } else if (this.updateModeMatches(UpdateMethod.UPDATE_MANY, updateQueryMode, flowFile)) {
                         updateResult = collection.updateMany(updateQuery, update, updateOptions);
                     } else {
-                        String flowfileUpdateMode = flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE);
+                        final String flowfileUpdateMode = flowFile.getAttribute(ATTRIBUTE_MONGODB_UPDATE_MODE);
                         throw new ProcessException("Unrecognized '" + ATTRIBUTE_MONGODB_UPDATE_MODE + "' value '" + flowfileUpdateMode + "'");
                     }
                 }
 
                 flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(updateResult.getMatchedCount()));
                 flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(updateResult.getModifiedCount()));
-                BsonValue upsertedId = updateResult.getUpsertedId();
+                final BsonValue upsertedId = updateResult.getUpsertedId();
                 if (upsertedId != null) {
                     final String id;
                     if (upsertedId.isString()) {
@@ -281,7 +281,7 @@ public class PutMongo extends AbstractMongoProcessor {
 
             session.getProvenanceReporter().send(flowFile, getURI(context));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Failed to insert {} into MongoDB due to {}", flowFile, e, e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
@@ -289,25 +289,25 @@ public class PutMongo extends AbstractMongoProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("putmongo-update-query", UPDATE_QUERY.getName());
         config.renameProperty("put-mongo-update-mode", UPDATE_OPERATION_MODE.getName());
     }
 
-    private void removeUpdateKeys(String updateKeyParam, Map doc) {
-        String[] parts = updateKeyParam.split(",[\\s]*");
-        for (String part : parts) {
+    private void removeUpdateKeys(final String updateKeyParam, final Map doc) {
+        final String[] parts = updateKeyParam.split(",[\\s]*");
+        for (final String part : parts) {
             if (part.contains(".")) {
                 doc.remove(part);
             }
         }
     }
 
-    private Document parseUpdateKey(String updateKey, Map doc) {
-        Document retVal;
+    private Document parseUpdateKey(final String updateKey, final Map doc) {
+        final Document retVal;
         if (updateKey.equals("_id")) {
-            Object idValue = doc.get("_id");
+            final Object idValue = doc.get("_id");
             if (idValue instanceof ObjectId) {
                 retVal = new Document("_id", idValue);
             } else if (idValue instanceof String && ObjectId.isValid((String) idValue)) {
@@ -316,9 +316,9 @@ public class PutMongo extends AbstractMongoProcessor {
                 retVal = new Document("_id", idValue);
             }
         } else if (updateKey.contains(",")) {
-            String[] parts = updateKey.split(",[\\s]*");
+            final String[] parts = updateKey.split(",[\\s]*");
             retVal = new Document();
-            for (String part : parts) {
+            for (final String part : parts) {
                 retVal.append(part, doc.get(part));
             }
         } else {

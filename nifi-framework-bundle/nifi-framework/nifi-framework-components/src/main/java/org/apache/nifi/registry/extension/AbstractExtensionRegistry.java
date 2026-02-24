@@ -52,7 +52,7 @@ public abstract class AbstractExtensionRegistry<T extends ExtensionBundleMetadat
     }
 
     @Override
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -62,7 +62,7 @@ public abstract class AbstractExtensionRegistry<T extends ExtensionBundleMetadat
     }
 
     @Override
-    public void setURL(String url) {
+    public void setURL(final String url) {
         this.url = url;
     }
 

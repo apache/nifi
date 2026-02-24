@@ -32,7 +32,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicyEntit
 
     private final AccessPolicyEntity accessPolicyEntity;
 
-    public AccessPolicyResult(ResultType resultType, AccessPolicyEntity accessPolicyEntity) {
+    public AccessPolicyResult(final ResultType resultType, final AccessPolicyEntity accessPolicyEntity) {
         super(resultType);
         this.accessPolicyEntity = Objects.requireNonNull(accessPolicyEntity);
     }
@@ -43,7 +43,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicyEntit
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         final AccessPolicyDTO accessPolicyDTO = accessPolicyEntity.getComponent();
 
         output.printf("Resource: %s\nAction  : %s\nUsers   : %s\nGroups  : %s\n",
@@ -54,7 +54,7 @@ public class AccessPolicyResult extends AbstractWritableResult<AccessPolicyEntit
         );
     }
 
-    private String joinTenantIdentity(Set<TenantEntity> entities) {
+    private String joinTenantIdentity(final Set<TenantEntity> entities) {
         return entities.stream()
                 .map(e -> e.getComponent() != null ? e.getComponent().getIdentity() : e.getId())
                 .collect(Collectors.joining(", "));

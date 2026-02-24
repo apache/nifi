@@ -58,9 +58,9 @@ public class SecureITClientConfiguration {
      * @param clientProperties A NiFiRegistryProperties object holding the config for client keystore, truststore, etc.
      * @return A NiFiRegistryClientConfig instance based on the properties file contents
      */
-    private static NiFiRegistryClientConfig createNiFiRegistryClientConfig(NiFiRegistryProperties clientProperties) {
+    private static NiFiRegistryClientConfig createNiFiRegistryClientConfig(final NiFiRegistryProperties clientProperties) {
 
-        NiFiRegistryClientConfig.Builder configBuilder = new NiFiRegistryClientConfig.Builder();
+        final NiFiRegistryClientConfig.Builder configBuilder = new NiFiRegistryClientConfig.Builder();
 
         // load keystore/truststore if applicable
         if (clientProperties.getKeyStorePath() != null) {

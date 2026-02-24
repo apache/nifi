@@ -72,7 +72,7 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
         for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
             final String attribute = entry.getKey();
             final String expectedValue = entry.getValue();
@@ -116,7 +116,7 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
@@ -148,7 +148,7 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }
 
@@ -176,7 +176,7 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
@@ -210,7 +210,7 @@ public class CountTextTest {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-            MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
             for (final Map.Entry<String, String> entry: expectedValues.entrySet()) {
                 final String attribute = entry.getKey();
                 final String expectedValue = entry.getValue();
@@ -227,9 +227,9 @@ public class CountTextTest {
 
     @Test
     void testShouldHandleInternalError() {
-        CountText ct = new CountText() {
+        final CountText ct = new CountText() {
             @Override
-            int countWordsInLine(String line, boolean splitWordsOnSymbols) throws IOException {
+            int countWordsInLine(final String line, final boolean splitWordsOnSymbols) throws IOException {
                 throw new IOException("Expected exception");
             }
         };
@@ -272,7 +272,7 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }
 
@@ -299,7 +299,7 @@ public class CountTextTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
 
         flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
     }

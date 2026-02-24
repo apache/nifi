@@ -69,7 +69,7 @@ public class PartialFunctions {
     public interface TransferFlowFiles<FC> {
         void apply(ProcessContext context, ProcessSession session, FC functionContext, RoutingResult result) throws ProcessException;
 
-        default TransferFlowFiles<FC> andThen(TransferFlowFiles<FC> after) {
+        default TransferFlowFiles<FC> andThen(final TransferFlowFiles<FC> after) {
             return (context, session, functionContext, result) -> {
                 apply(context, session, functionContext, result);
                 after.apply(context, session, functionContext, result);
@@ -107,13 +107,13 @@ public class PartialFunctions {
      * <p>Create a session from ProcessSessionFactory and execute specified onTrigger function, and commit the session if onTrigger finishes successfully.</p>
      * <p>When an Exception is thrown during execution of the onTrigger, the session will be rollback. FlowFiles being processed will be penalized.</p>
      */
-    public static void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory, ComponentLog logger, OnTrigger onTrigger) throws ProcessException {
+    public static void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory, final ComponentLog logger, final OnTrigger onTrigger) throws ProcessException {
         onTrigger(context, sessionFactory, logger, onTrigger, (session, t) -> session.rollback(true));
     }
 
     public static void onTrigger(
-            ProcessContext context, ProcessSessionFactory sessionFactory, ComponentLog logger, OnTrigger onTrigger,
-            RollbackSession rollbackSession) throws ProcessException {
+            final ProcessContext context, final ProcessSessionFactory sessionFactory, final ComponentLog logger, final OnTrigger onTrigger,
+            final RollbackSession rollbackSession) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger.execute(session);

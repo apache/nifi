@@ -50,7 +50,7 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.RECURSIVE.createOption());
     }
@@ -79,7 +79,7 @@ public class PGList extends AbstractNiFiCommand<ProcessGroupsResult> {
 
     private void recursivePGList(final List<ProcessGroupDTO> pgList, final NiFiClient client, final Properties properties, final String pgId) throws NiFiClientException, IOException {
         final ProcessGroupsResult result = getList(client, properties, pgId);
-        for (ProcessGroupDTO pgDTO : result.getResult()) {
+        for (final ProcessGroupDTO pgDTO : result.getResult()) {
             pgList.add(pgDTO);
             recursivePGList(pgList, client, properties, pgDTO.getId());
         }

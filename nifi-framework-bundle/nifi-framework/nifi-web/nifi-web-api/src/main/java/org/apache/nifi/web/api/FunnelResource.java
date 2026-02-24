@@ -69,8 +69,8 @@ public class FunnelResource extends ApplicationResource {
      * @param funnelEntities funnels
      * @return funnels
      */
-    public Set<FunnelEntity> populateRemainingFunnelEntitiesContent(Set<FunnelEntity> funnelEntities) {
-        for (FunnelEntity funnelEntity : funnelEntities) {
+    public Set<FunnelEntity> populateRemainingFunnelEntitiesContent(final Set<FunnelEntity> funnelEntities) {
+        for (final FunnelEntity funnelEntity : funnelEntities) {
             populateRemainingFunnelEntityContent(funnelEntity);
         }
         return funnelEntities;
@@ -82,7 +82,7 @@ public class FunnelResource extends ApplicationResource {
      * @param funnelEntity funnel
      * @return funnel
      */
-    public FunnelEntity populateRemainingFunnelEntityContent(FunnelEntity funnelEntity) {
+    public FunnelEntity populateRemainingFunnelEntityContent(final FunnelEntity funnelEntity) {
         funnelEntity.setUri(generateResourceUri("funnels", funnelEntity.getId()));
         return funnelEntity;
     }
@@ -206,7 +206,7 @@ public class FunnelResource extends ApplicationResource {
                 requestFunnelEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getFunnel(id);
+                    final Authorizable authorizable = lookup.getFunnel(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
@@ -303,12 +303,12 @@ public class FunnelResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

@@ -45,7 +45,7 @@ public class InstrumentedStandardValidator implements Validator {
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
-    public InstrumentedStandardValidator(Validator mockedValidator) {
+    public InstrumentedStandardValidator(final Validator mockedValidator) {
         this(mockedValidator, false);
     }
 
@@ -54,13 +54,13 @@ public class InstrumentedStandardValidator implements Validator {
      *
      * @param mockedValidator the {@class Validator} to wrap.
      */
-    public InstrumentedStandardValidator(Validator mockedValidator, boolean resetOnGet) {
+    public InstrumentedStandardValidator(final Validator mockedValidator, final boolean resetOnGet) {
         this.mockedValidator = mockedValidator;
         this.doReset = resetOnGet;
     }
 
     @Override
-    public ValidationResult validate(String subject, String input, ValidationContext context) {
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
         validateCallCount++;
         return mockedValidator.validate(subject, input, context);
     }
@@ -70,7 +70,7 @@ public class InstrumentedStandardValidator implements Validator {
      * @return count of validate() calls
      */
     public int getValidateCallCount() {
-        int count = validateCallCount;
+        final int count = validateCallCount;
         if (doReset) {
             validateCallCount = 0;
         }

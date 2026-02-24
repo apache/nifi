@@ -40,7 +40,7 @@ public class FlowAnalysisRulesEntity extends Entity {
         return flowAnalysisRules;
     }
 
-    public void setFlowAnalysisRules(Set<FlowAnalysisRuleEntity> flowAnalysisRules) {
+    public void setFlowAnalysisRules(final Set<FlowAnalysisRuleEntity> flowAnalysisRules) {
         this.flowAnalysisRules = flowAnalysisRules;
     }
 
@@ -56,7 +56,7 @@ public class FlowAnalysisRulesEntity extends Entity {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 

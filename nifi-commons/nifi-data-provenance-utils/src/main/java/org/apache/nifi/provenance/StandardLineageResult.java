@@ -201,7 +201,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
         nodes.clear();
         edges.clear();
 
-        Map<String, LineageNode> lastEventMap = new HashMap<>();    // maps FlowFile UUID to last event for that FlowFile
+        final Map<String, LineageNode> lastEventMap = new HashMap<>();    // maps FlowFile UUID to last event for that FlowFile
         final List<ProvenanceEventRecord> sortedRecords = new ArrayList<>(relevantRecords);
         sortedRecords.sort((o1, o2) -> {
             // Sort on Event Time, then Event ID.
@@ -263,15 +263,15 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
                         }
                     }
                     for (final String parentUuid : record.getParentUuids()) {
-                        LineageNode lastNodeForParent = lastEventMap.get(parentUuid);
+                        final LineageNode lastNodeForParent = lastEventMap.get(parentUuid);
                         if (lastNodeForParent != null && !lastNodeForParent.equals(lineageNode)) {
                             edges.add(new EdgeNode(parentUuid, lastNodeForParent, lineageNode));
                         }
 
                         lastEventMap.put(parentUuid, lineageNode);
                     }
-                    break;
                 }
+                    break;
                 case RECEIVE:
                 case CREATE: {
                     // for a receive event, we want to create a FlowFile Node that represents the FlowFile received
@@ -287,8 +287,8 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
                     }
                     edges.add(new EdgeNode(record.getFlowFileUuid(), lineageNode, flowFileNode));
                     lastEventMap.put(record.getFlowFileUuid(), flowFileNode);
-                    break;
                 }
+                    break;
                 default:
                     break;
             }

@@ -177,12 +177,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     }
 
     @Override
-    public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
+    public AsyncClusterResponse replicate(final String method, final URI uri, final Object entity, final Map<String, String> headers) {
         return replicate(NiFiUserUtils.getNiFiUser(), method, uri, entity, headers);
     }
 
     @Override
-    public AsyncClusterResponse replicate(NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers) {
+    public AsyncClusterResponse replicate(final NiFiUser user, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
         final boolean mutable = isMutableRequest(method);
 
@@ -262,14 +262,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
+    public AsyncClusterResponse replicate(final Set<NodeIdentifier> nodeIds, final String method, final URI uri, final Object entity, final Map<String, String> headers,
                 final boolean indicateReplicated, final boolean performVerification) {
 
         return replicate(nodeIds, NiFiUserUtils.getNiFiUser(), method, uri, entity, headers, indicateReplicated, performVerification);
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, final NiFiUser user, String method, URI uri, Object entity, Map<String, String> headers,
+    public AsyncClusterResponse replicate(final Set<NodeIdentifier> nodeIds, final NiFiUser user, final String method, final URI uri, final Object entity, final Map<String, String> headers,
                                           final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
@@ -300,7 +300,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
                     try {
                         monitor.wait();
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
 
@@ -340,13 +340,14 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
      * @param entity              the entity to use
      * @param headers             the HTTP Headers
      * @param performVerification whether or not to verify that all nodes in the cluster are connected and that all nodes can perform request. Ignored if request is not mutable.
-     * @param response            the response to update with the results
+     * @param responseArg         the response to update with the results
      * @param executionPhase      <code>true</code> if this is the execution phase, <code>false</code> otherwise
      * @param monitor             a monitor that will be notified when the request completes (successfully or otherwise)
      * @return an AsyncClusterResponse that can be used to obtain the result
      */
     AsyncClusterResponse replicate(final Set<NodeIdentifier> nodeIds, final String method, final URI uri, final Object entity, final Map<String, String> headers,
-        final boolean performVerification, StandardAsyncClusterResponse response, final boolean executionPhase, final boolean merge, final Object monitor) {
+        final boolean performVerification, final StandardAsyncClusterResponse responseArg, final boolean executionPhase, final boolean merge, final Object monitor) {
+        StandardAsyncClusterResponse response = responseArg;
         try {
             // state validation
             Objects.requireNonNull(nodeIds);
@@ -370,7 +371,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
                     throw new IllegalClusterStateException("Cannot replicate request to Node " + nodeId + " because the node is not connected");
                 }
             }
-
             logger.debug("Replicating request {} {} with entity {} to {}; response is {}", method, uri, entity, nodeIds, response);
 
             // Update headers to indicate the current revision so that we can
@@ -447,7 +447,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
 
             // Callback function for generating a NodeHttpRequestCallable that can be used to perform the work
             final StandardAsyncClusterResponse finalResponse = response;
-            NodeRequestCompletionCallback nodeCompletionCallback = nodeResponse -> {
+            final NodeRequestCompletionCallback nodeCompletionCallback = nodeResponse -> {
                 logger.debug("Received response from {} for {} {}", nodeResponse.getNodeId(), method, uri.getPath());
                 finalResponse.add(nodeResponse);
             };

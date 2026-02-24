@@ -123,7 +123,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
      * @throws IOException Thrown on transmission failures
      */
     @Override
-    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         final Map<String, String> writeAttributes = new LinkedHashMap<>(attributes);
         writeAttributes.put(TRANSIT_URI_ATTRIBUTE_KEY, transitUri);
         int recordCount = 0;
@@ -149,7 +149,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         RecordSinkService.super.migrateProperties(config);
         config.renameProperty("hostname", HOSTNAME.getName());
         config.renameProperty("port", PORT.getName());

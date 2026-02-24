@@ -88,9 +88,9 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
                 break;
             case BUNDLE_CHANGED:
                 if (componentA instanceof VersionedProcessor processorA && componentB instanceof VersionedProcessor processorB) {
-                    String artifact = processorA.getBundle().getArtifact();
-                    String versionA = processorA.getBundle().getVersion();
-                    String versionB = processorB.getBundle().getVersion();
+                    final String artifact = processorA.getBundle().getArtifact();
+                    final String versionA = processorA.getBundle().getVersion();
+                    final String versionB = processorB.getBundle().getVersion();
                     description = String.format("%s version %s to %s", artifact, versionA, versionB);
                     break;
                 }
@@ -105,7 +105,7 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
         return description;
     }
 
-    private String defaultDescription(Object valueA, Object valueB) {
+    private String defaultDescription(final Object valueA, final Object valueB) {
         return String.format("From '%s' to '%s'", valueA, valueB);
     }
 }

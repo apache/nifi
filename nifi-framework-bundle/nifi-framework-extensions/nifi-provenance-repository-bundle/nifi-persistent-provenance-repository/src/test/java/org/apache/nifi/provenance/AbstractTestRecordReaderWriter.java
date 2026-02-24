@@ -69,7 +69,7 @@ public abstract class AbstractTestRecordReaderWriter {
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
 
-    private void assertRecoveredRecord(File journalFile, TocReader tocReader, String expectedTransitUri, int expectedBlockIndex) throws IOException {
+    private void assertRecoveredRecord(final File journalFile, final TocReader tocReader, final String expectedTransitUri, final int expectedBlockIndex) throws IOException {
         try (final FileInputStream fis = new FileInputStream(journalFile);
              final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
             assertEquals(expectedBlockIndex, reader.getBlockIndex());

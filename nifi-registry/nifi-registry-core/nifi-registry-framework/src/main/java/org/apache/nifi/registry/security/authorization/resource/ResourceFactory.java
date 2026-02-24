@@ -181,7 +181,7 @@ public final class ResourceFactory {
      * Gets the {@link Resource} for accessing buckets.
      * @return The buckets resource
      */
-    public static Resource getBucketResource(String bucketIdentifier, String bucketName) {
+    public static Resource getBucketResource(final String bucketIdentifier, final String bucketName) {
         return getChildResource(ResourceType.Bucket, bucketIdentifier, bucketName);
     }
 

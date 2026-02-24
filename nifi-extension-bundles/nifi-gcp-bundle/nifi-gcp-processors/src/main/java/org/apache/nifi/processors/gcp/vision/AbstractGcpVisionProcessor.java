@@ -70,22 +70,22 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         final GCPCredentialsService gcpCredentialsService =
                 context.getProperty(GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
         try {
-            GoogleCredentials credentials = gcpCredentialsService.getGoogleCredentials();
-            FixedCredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
-            ImageAnnotatorSettings.Builder builder = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(credentialsProvider);
+            final GoogleCredentials credentials = gcpCredentialsService.getGoogleCredentials();
+            final FixedCredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
+            final ImageAnnotatorSettings.Builder builder = ImageAnnotatorSettings.newBuilder().setCredentialsProvider(credentialsProvider);
             vision = ImageAnnotatorClient.create(builder.build());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to create vision client.", e);
             throw new ProcessException("Failed to create vision client.", e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GCP_CREDENTIALS_PROVIDER_SERVICE.getName());
     }
 

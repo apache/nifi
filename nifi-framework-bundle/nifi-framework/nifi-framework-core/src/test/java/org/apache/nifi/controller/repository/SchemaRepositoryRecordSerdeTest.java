@@ -64,8 +64,8 @@ public class SchemaRepositoryRecordSerdeTest {
     @Test
     public void testV1CreateCantHandleLongAttributeName() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
@@ -73,17 +73,17 @@ public class SchemaRepositoryRecordSerdeTest {
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV1CreateCantHandleLongAttributeValue() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
@@ -91,156 +91,156 @@ public class SchemaRepositoryRecordSerdeTest {
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV2CreateCanHandleLongAttributeName() throws IOException {
         schemaRepositoryRecordSerde.writeHeader(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put(stringBuilder.toString(), "testValue");
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV2CreateCanHandleLongAttributeValue() throws IOException {
         schemaRepositoryRecordSerde.writeHeader(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put("testName", stringBuilder.toString());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testRoundTripCreateV1ToV2() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("testName", "testValue");
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(createCreateFlowFileRecord(attributes)), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV1SwapInCantHandleLongAttributeName() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put(stringBuilder.toString(), "testValue");
-        StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
+        final StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV1SwapInCantHandleLongAttributeValue() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put("testName", stringBuilder.toString());
-        StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
+        final StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertNotEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV2SwapInCanHandleLongAttributeName() throws IOException {
         schemaRepositoryRecordSerde.writeHeader(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put(stringBuilder.toString(), "testValue");
-        StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
+        final StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testV2SwapInCanHandleLongAttributeValue() throws IOException {
         schemaRepositoryRecordSerde.writeHeader(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, String> attributes = new HashMap<>();
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < 65536; i++) {
             stringBuilder.append('a');
         }
         attributes.put("testName", stringBuilder.toString());
-        StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
+        final StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
     }
 
     @Test
     public void testRoundTripSwapInV1ToV2() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("testName", "testValue");
-        StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
+        final StandardRepositoryRecord record = createCreateFlowFileRecord(attributes);
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(new LiveSerializedRepositoryRecord(record), dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1,
             RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
 
-        DataInputStream dataInputStream = createDataInputStream();
+        final DataInputStream dataInputStream = createDataInputStream();
         schemaRepositoryRecordSerde.readHeader(dataInputStream);
-        SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        final SerializedRepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
         assertEquals(attributes, repositoryRecord.getFlowFileRecord().getAttributes());
         assertEquals(SWAP_IN, repositoryRecord.getType());
     }
@@ -250,16 +250,16 @@ public class SchemaRepositoryRecordSerdeTest {
         return new DataInputStream(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
     }
 
-    private StandardRepositoryRecord createCreateFlowFileRecord(Map<String, String> attributes) {
-        StandardRepositoryRecord standardRepositoryRecord = new StandardRepositoryRecord(flowFileQueue);
-        StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder();
+    private StandardRepositoryRecord createCreateFlowFileRecord(final Map<String, String> attributes) {
+        final StandardRepositoryRecord standardRepositoryRecord = new StandardRepositoryRecord(flowFileQueue);
+        final StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder();
         flowFileRecordBuilder.addAttributes(attributes);
         standardRepositoryRecord.setWorking(flowFileRecordBuilder.build(), false);
         return standardRepositoryRecord;
     }
 
-    private FlowFileQueue createMockQueue(String identifier) {
-        FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
+    private FlowFileQueue createMockQueue(final String identifier) {
+        final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(flowFileQueue.getIdentifier()).thenReturn(identifier);
         return flowFileQueue;
     }

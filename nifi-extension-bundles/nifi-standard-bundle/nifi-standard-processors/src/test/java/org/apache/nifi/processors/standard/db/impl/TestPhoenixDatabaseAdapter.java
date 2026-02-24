@@ -74,11 +74,11 @@ class TestPhoenixDatabaseAdapter {
     @Test
     void testGetUpsertStatement() {
         // GIVEN
-        String tableName = "table";
-        List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
+        final String tableName = "table";
+        final List<String> columnNames = Arrays.asList("column1", "column2", "column3", "column4");
+        final Collection<String> uniqueKeyColumnNames = Arrays.asList("column2", "column4");
 
-        String expected = "UPSERT INTO" +
+        final String expected = "UPSERT INTO" +
                 " table(column1, column2, column3, column4) VALUES (?, ?, ?, ?)";
 
         // WHEN
@@ -86,16 +86,16 @@ class TestPhoenixDatabaseAdapter {
         testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
     }
 
-    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
+    private void testGetUpsertStatement(final String tableName, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames, final IllegalArgumentException expected) {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
             testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String) null);
         });
         assertEquals(expected.getMessage(), e.getMessage());
     }
 
-    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
+    private void testGetUpsertStatement(final String tableName, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames, final String expected) {
         // WHEN
-        String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
+        final String actual = testSubject.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
 
         // THEN
         assertEquals(expected, actual);
@@ -104,11 +104,11 @@ class TestPhoenixDatabaseAdapter {
     @Test
     public void testGetUpsertStatementQuoted() {
         // GIVEN
-        String tableName = "\"table\"";
-        List<String> columnNames = Arrays.asList("column1", "\"column2\"", "column3", "column4");
-        Collection<String> uniqueKeyColumnNames = Arrays.asList("\"column2\"", "column4");
+        final String tableName = "\"table\"";
+        final List<String> columnNames = Arrays.asList("column1", "\"column2\"", "column3", "column4");
+        final Collection<String> uniqueKeyColumnNames = Arrays.asList("\"column2\"", "column4");
 
-        String expected = "UPSERT INTO" +
+        final String expected = "UPSERT INTO" +
                 " \"table\"(column1, \"column2\", column3, column4) VALUES (?, ?, ?, ?)";
 
         // WHEN

@@ -93,7 +93,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
             siteToSiteClient = SiteToSiteUtils.getClient(context, logger, stateManager);
 
             writerFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new InitializationException(e);
         }
     }
@@ -131,7 +131,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
                 }
             }
             return writeResult;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             if (transaction != null) {
                 transaction.error();
             }

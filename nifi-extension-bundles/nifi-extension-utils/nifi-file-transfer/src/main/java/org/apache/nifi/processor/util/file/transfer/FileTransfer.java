@@ -61,7 +61,7 @@ public interface FileTransfer extends Closeable {
      * @param remotePath the target remote path
      * @return The absolute path for the given remote path
      */
-    default String getAbsolutePath(FlowFile flowFile, String remotePath) throws IOException {
+    default String getAbsolutePath(final FlowFile flowFile, final String remotePath) throws IOException {
         final String absoluteRemotePath;
         if (!remotePath.startsWith("/") && !remotePath.startsWith("\\")) {
             absoluteRemotePath = new File(getHomeDirectory(flowFile), remotePath).getPath();

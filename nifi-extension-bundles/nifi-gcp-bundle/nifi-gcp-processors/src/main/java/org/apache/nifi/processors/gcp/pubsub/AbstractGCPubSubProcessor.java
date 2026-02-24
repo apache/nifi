@@ -108,7 +108,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcp-pubsub-publish-batch-size", BATCH_SIZE_THRESHOLD.getName());
         config.renameProperty("gcp-batch-bytes", BATCH_BYTES_THRESHOLD.getName());
@@ -117,12 +117,12 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
     }
 
     @Override
-    protected ServiceOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
+    protected ServiceOptions getServiceOptions(final ProcessContext context, final GoogleCredentials credentials) {
         return null;
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new HashSet<>(super.customValidate(validationContext));
 
         final boolean projectId = validationContext.getProperty(PROJECT_ID).isSet();
@@ -138,11 +138,11 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
     }
 
     @Override
-    protected GoogleCredentials getGoogleCredentials(ProcessContext context) {
+    protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
         return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_PUBSUB_SCOPE);
     }
 
-    protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {
+    protected TransportChannelProvider getTransportChannelProvider(final ProcessContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
         return TopicAdminSettings.defaultGrpcTransportProviderBuilder()
@@ -150,7 +150,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
                         new ProxyDetector() {
                             @Nullable
                             @Override
-                            public ProxiedSocketAddress proxyFor(SocketAddress socketAddress) {
+                            public ProxiedSocketAddress proxyFor(final SocketAddress socketAddress) {
                                 if (Proxy.Type.HTTP.equals(proxyConfiguration.getProxyType())) {
                                     return HttpConnectProxiedSocketAddress.newBuilder()
                                             .setUsername(proxyConfiguration.getProxyUserName())

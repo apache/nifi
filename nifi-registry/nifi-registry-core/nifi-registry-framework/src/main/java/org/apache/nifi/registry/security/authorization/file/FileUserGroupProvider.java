@@ -87,7 +87,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         try {
             return JAXBContext.newInstance(contextPath, FileAuthorizer.class.getClassLoader());
             //return JAXBContext.newInstance(contextPath);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext: " + e);
         }
     }
@@ -111,17 +111,17 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private final AtomicReference<UserGroupHolder> userGroupHolder = new AtomicReference<>();
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         try {
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             tenantsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(TENANTS_XSD));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SecurityProviderCreationException(e);
         }
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
         try {
             final PropertyValue tenantsPath = configurationContext.getProperty(PROP_TENANTS_FILE);
             if (StringUtils.isBlank(tenantsPath.getValue())) {
@@ -141,7 +141,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             load();
 
             logger.info("Users/Groups file loaded at {}", new Date());
-        } catch (SecurityProviderCreationException | JAXBException | IllegalStateException | SAXException e) {
+        } catch (final SecurityProviderCreationException | JAXBException | IllegalStateException | SAXException e) {
             throw new SecurityProviderCreationException(e);
         }
     }
@@ -152,7 +152,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User addUser(User user) throws AuthorizationAccessException {
+    public synchronized User addUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -169,7 +169,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         if (identifier == null) {
             return null;
         }
@@ -179,7 +179,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User updateUser(User user) throws AuthorizationAccessException {
+    public synchronized User updateUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -191,7 +191,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         // fine the User that needs to be updated
         org.apache.nifi.registry.security.authorization.file.tenants.generated.User updateUser = null;
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.User jaxbUser : users) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.User jaxbUser : users) {
             if (user.getIdentifier().equals(jaxbUser.getIdentifier())) {
                 updateUser = jaxbUser;
                 break;
@@ -210,7 +210,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         if (identity == null) {
             return null;
         }
@@ -220,7 +220,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User deleteUser(User user) throws AuthorizationAccessException {
+    public synchronized User deleteUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -228,7 +228,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         return deleteUser(user.getIdentifier());
     }
 
-    private synchronized User deleteUser(String userIdentifier) throws AuthorizationAccessException {
+    private synchronized User deleteUser(final String userIdentifier) throws AuthorizationAccessException {
         if (userIdentifier == null) {
             throw new IllegalArgumentException("User identifier cannot be null");
         }
@@ -241,10 +241,10 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         // for each group iterate over the user references and remove the user reference if it matches the user being deleted
         final Tenants tenants = holder.getTenants();
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
-            Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User> groupUserIter = group.getUser().iterator();
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
+            final Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User> groupUserIter = group.getUser().iterator();
             while (groupUserIter.hasNext()) {
-                org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User groupUser = groupUserIter.next();
+                final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User groupUser = groupUserIter.next();
                 if (groupUser.getIdentifier().equals(userIdentifier)) {
                     groupUserIter.remove();
                     break;
@@ -253,9 +253,9 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
 
         // remove the actual user
-        Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.User> iter = tenants.getUsers().getUser().iterator();
+        final Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.User> iter = tenants.getUsers().getUser().iterator();
         while (iter.hasNext()) {
-            org.apache.nifi.registry.security.authorization.file.tenants.generated.User jaxbUser = iter.next();
+            final org.apache.nifi.registry.security.authorization.file.tenants.generated.User jaxbUser = iter.next();
             if (userIdentifier.equals(jaxbUser.getIdentifier())) {
                 iter.remove();
                 break;
@@ -272,7 +272,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized Group addGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group addGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
@@ -287,8 +287,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         jaxbGroup.setName(group.getName());
 
         // add each user to the group
-        for (String groupUser : group.getUsers()) {
-            org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User jaxbGroupUser =
+        for (final String groupUser : group.getUsers()) {
+            final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User jaxbGroupUser =
                     new org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User();
             jaxbGroupUser.setIdentifier(groupUser);
             jaxbGroup.getUser().add(jaxbGroupUser);
@@ -301,7 +301,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         if (identifier == null) {
             return null;
         }
@@ -328,7 +328,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group updateGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
@@ -338,7 +338,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         // find the group that needs to be update
         org.apache.nifi.registry.security.authorization.file.tenants.generated.Group updateGroup = null;
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.Group jaxbGroup : tenants.getGroups().getGroup()) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group jaxbGroup : tenants.getGroups().getGroup()) {
             if (jaxbGroup.getIdentifier().equals(group.getIdentifier())) {
                 updateGroup = jaxbGroup;
                 break;
@@ -352,8 +352,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         // reset the list of users and add each user to the group
         updateGroup.getUser().clear();
-        for (String groupUser : group.getUsers()) {
-            org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User jaxbGroupUser =
+        for (final String groupUser : group.getUsers()) {
+            final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User jaxbGroupUser =
                     new org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User();
             jaxbGroupUser.setIdentifier(groupUser);
             updateGroup.getUser().add(jaxbGroupUser);
@@ -366,7 +366,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group deleteGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
@@ -374,7 +374,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         return deleteGroup(group.getIdentifier());
     }
 
-    private synchronized Group deleteGroup(String groupIdentifier) throws AuthorizationAccessException {
+    private synchronized Group deleteGroup(final String groupIdentifier) throws AuthorizationAccessException {
         if (groupIdentifier == null) {
             throw new IllegalArgumentException("Group identifier cannot be null");
         }
@@ -387,9 +387,9 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         // now remove the actual group from the top-level list of groups
         final Tenants tenants = holder.getTenants();
-        Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.Group> iter = tenants.getGroups().getGroup().iterator();
+        final Iterator<org.apache.nifi.registry.security.authorization.file.tenants.generated.Group> iter = tenants.getGroups().getGroup().iterator();
         while (iter.hasNext()) {
-            org.apache.nifi.registry.security.authorization.file.tenants.generated.Group jaxbGroup = iter.next();
+            final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group jaxbGroup = iter.next();
             if (groupIdentifier.equals(jaxbGroup.getIdentifier())) {
                 iter.remove();
                 break;
@@ -410,14 +410,14 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public synchronized void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
         usersAndGroups.getUsers().forEach(user -> addUser(user));
         usersAndGroups.getGroups().forEach(group -> addGroup(group));
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException {
         try {
             // ensure we understand the proposed fingerprint
             parseUsersAndGroups(proposedFingerprint);
@@ -450,23 +450,23 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             writer.writeStartDocument();
             writer.writeStartElement("tenants");
 
-            for (User user : users) {
+            for (final User user : users) {
                 writeUser(writer, user);
             }
-            for (Group group : groups) {
+            for (final Group group : groups) {
                 writeGroup(writer, group);
             }
 
             writer.writeEndElement();
             writer.writeEndDocument();
             writer.flush();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         } finally {
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException ignored) {
+                } catch (final XMLStreamException ignored) {
                     // nothing to do here
                 }
             }
@@ -486,16 +486,16 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             final Element rootElement = document.getDocumentElement();
 
             // parse all the users and add them to the current user group provider
-            NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
+            final NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
             for (int i = 0; i < userNodes.getLength(); i++) {
-                Node userNode = userNodes.item(i);
+                final Node userNode = userNodes.item(i);
                 users.add(parseUser((Element) userNode));
             }
 
             // parse all the groups and add them to the current user group provider
-            NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
+            final NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
             for (int i = 0; i < groupNodes.getLength(); i++) {
-                Node groupNode = groupNodes.item(i);
+                final Node groupNode = groupNodes.item(i);
                 groups.add(parseGroup((Element) groupNode));
             }
         } catch (final ProcessingException | IOException e) {
@@ -518,9 +518,9 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
                 .identifier(element.getAttribute(IDENTIFIER_ATTR))
                 .name(element.getAttribute(NAME_ATTR));
 
-        NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
+        final NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
         for (int i = 0; i < groupUsers.getLength(); i++) {
-            Element groupUserNode = (Element) groupUsers.item(i);
+            final Element groupUserNode = (Element) groupUsers.item(i);
             builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
@@ -535,14 +535,14 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     private void writeGroup(final XMLStreamWriter writer, final Group group) throws XMLStreamException {
-        List<String> users = new ArrayList<>(group.getUsers());
+        final List<String> users = new ArrayList<>(group.getUsers());
         Collections.sort(users);
 
         writer.writeStartElement(GROUP_ELEMENT);
         writer.writeAttribute(IDENTIFIER_ATTR, group.getIdentifier());
         writer.writeAttribute(NAME_ATTR, group.getName());
 
-        for (String user : users) {
+        for (final String user : users) {
             writer.writeStartElement(GROUP_USER_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, user);
             writer.writeEndElement();
@@ -551,7 +551,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         writer.writeEndElement();
     }
 
-    private org.apache.nifi.registry.security.authorization.file.tenants.generated.User createJAXBUser(User user) {
+    private org.apache.nifi.registry.security.authorization.file.tenants.generated.User createJAXBUser(final User user) {
         final org.apache.nifi.registry.security.authorization.file.tenants.generated.User jaxbUser =
                 new org.apache.nifi.registry.security.authorization.file.tenants.generated.User();
         jaxbUser.setIdentifier(user.getIdentifier());
@@ -605,7 +605,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     private void populateInitialUsers(final Tenants tenants) {
-        for (String initialUserIdentity : initialUserIdentities) {
+        for (final String initialUserIdentity : initialUserIdentities) {
             getOrCreateUser(tenants, initialUserIdentity);
         }
     }
@@ -623,7 +623,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
 
         org.apache.nifi.registry.security.authorization.file.tenants.generated.User foundUser = null;
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
             if (user.getIdentity().equals(userIdentity)) {
                 foundUser = user;
                 break;
@@ -654,7 +654,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
 
         org.apache.nifi.registry.security.authorization.file.tenants.generated.Group foundGroup = null;
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
             if (group.getName().equals(groupName)) {
                 foundGroup = group;
                 break;
@@ -686,7 +686,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             saveTenants(tenants);
 
             this.userGroupHolder.set(new UserGroupHolder(tenants));
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new AuthorizationAccessException("Unable to save Authorizations", e);
         }
     }
@@ -699,7 +699,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         final List<User> users;
         final List<Group> groups;
 
-        public UsersAndGroups(List<User> users, List<Group> groups) {
+        public UsersAndGroups(final List<User> users, final List<Group> groups) {
             this.users = users;
             this.groups = groups;
         }

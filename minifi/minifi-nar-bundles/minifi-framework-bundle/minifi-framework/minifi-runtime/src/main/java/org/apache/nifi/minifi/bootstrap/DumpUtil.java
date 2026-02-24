@@ -30,17 +30,17 @@ import java.util.List;
 public class DumpUtil {
 
     public static String getDump() {
-        ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
-        ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
-        long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
-        long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
+        final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+        final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
+        final long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
+        final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
 
-        List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
+        final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
         sortedInfos.addAll(Arrays.asList(infos));
         sortedInfos.sort(Comparator.comparing(o -> o.getThreadName().toLowerCase()));
 
-        StringBuilder sb = new StringBuilder();
-        for (ThreadInfo info : sortedInfos) {
+        final StringBuilder sb = new StringBuilder();
+        for (final ThreadInfo info : sortedInfos) {
             sb.append("\n");
             sb.append("\"").append(info.getThreadName()).append("\" Id=");
             sb.append(info.getThreadId()).append(" ");
@@ -65,7 +65,7 @@ public class DumpUtil {
             }
 
             if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
-                for (long id : deadlockedThreadIds) {
+                for (final long id : deadlockedThreadIds) {
                     if (id == info.getThreadId()) {
                         sb.append(" ** DEADLOCKED THREAD **");
                     }
@@ -73,30 +73,30 @@ public class DumpUtil {
             }
 
             if (monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0) {
-                for (long id : monitorDeadlockThreadIds) {
+                for (final long id : monitorDeadlockThreadIds) {
                     if (id == info.getThreadId()) {
                         sb.append(" ** MONITOR-DEADLOCKED THREAD **");
                     }
                 }
             }
 
-            StackTraceElement[] stackTraces = info.getStackTrace();
-            for (StackTraceElement element : stackTraces) {
+            final StackTraceElement[] stackTraces = info.getStackTrace();
+            for (final StackTraceElement element : stackTraces) {
                 sb.append("\n\tat ").append(element);
 
-                MonitorInfo[] monitors = info.getLockedMonitors();
-                for (MonitorInfo monitor : monitors) {
+                final MonitorInfo[] monitors = info.getLockedMonitors();
+                for (final MonitorInfo monitor : monitors) {
                     if (monitor.getLockedStackFrame().equals(element)) {
                         sb.append("\n\t- waiting on ").append(monitor);
                     }
                 }
             }
 
-            LockInfo[] lockInfos = info.getLockedSynchronizers();
+            final LockInfo[] lockInfos = info.getLockedSynchronizers();
             if (lockInfos.length > 0) {
                 sb.append("\n\t");
                 sb.append("Number of Locked Synchronizes: ").append(lockInfos.length);
-                for (LockInfo lockInfo : lockInfos) {
+                for (final LockInfo lockInfo : lockInfos) {
                     sb.append("\n\t- ").append(lockInfo.toString());
                 }
             }
@@ -107,7 +107,7 @@ public class DumpUtil {
         if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
             sb.append("\n\nDEADLOCK DETECTED");
             sb.append("\nThe following thread IDs are deadlocked:");
-            for (long id : deadlockedThreadIds) {
+            for (final long id : deadlockedThreadIds) {
                 sb.append("\n").append(id);
             }
         }
@@ -115,7 +115,7 @@ public class DumpUtil {
         if (monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0) {
             sb.append("\n\nMONITOR DEADLOCK DETECTED");
             sb.append("\nThe following thread IDs are deadlocked:");
-            for (long id : monitorDeadlockThreadIds) {
+            for (final long id : monitorDeadlockThreadIds) {
                 sb.append("\n").append(id);
             }
         }

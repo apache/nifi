@@ -117,7 +117,7 @@ public abstract class IntegrationTestBase {
      *
      * @return a String containing the absolute URL of the resource.
      */
-    String createURL(String relativeResourcePath) {
+    String createURL(final String relativeResourcePath) {
         if (relativeResourcePath == null) {
             throw new IllegalArgumentException("Resource path cannot be null");
         }
@@ -147,7 +147,7 @@ public abstract class IntegrationTestBase {
         return baseUriBuilder.toString();
     }
 
-    NiFiRegistryClientConfig createClientConfig(String baseUrl) {
+    NiFiRegistryClientConfig createClientConfig(final String baseUrl) {
         final NiFiRegistryClientConfig.Builder builder = new NiFiRegistryClientConfig.Builder();
         builder.baseUrl(baseUrl);
 
@@ -201,9 +201,9 @@ public abstract class IntegrationTestBase {
     }
 
     private static JacksonJaxbJsonProvider jacksonJaxbJsonProvider() {
-        JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
+        final JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
-        ObjectMapper mapper = JsonMapper.builder()
+        final ObjectMapper mapper = JsonMapper.builder()
                 .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
                 .annotationIntrospector(new JakartaXmlBindAnnotationIntrospector(TypeFactory.defaultInstance()))
                 // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields

@@ -148,7 +148,7 @@ public class TestSiteToSiteRestApiClient {
 
     @Test
     public void testGetUrlsDifferentProtocols() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> parseClusterUrls("http://host1:8080/nifi,https://host2:8080/nifi,http://host3:8080/nifi"));
 
         assertTrue(exception.getMessage().contains("Different protocols"));
@@ -156,7 +156,7 @@ public class TestSiteToSiteRestApiClient {
 
     @Test
     public void testGetUrlsMalformed() {
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> parseClusterUrls("http://host1:8080/nifi,host&2:8080,http://host3:8080/nifi"));
         assertTrue(exception.getMessage().contains("malformed"));
     }

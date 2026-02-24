@@ -44,7 +44,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -53,7 +53,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedMillisUntilCountBackpressure;
     }
 
-    public void setPredictedMillisUntilCountBackpressure(Long predictedMillisUntilCountBackpressure) {
+    public void setPredictedMillisUntilCountBackpressure(final Long predictedMillisUntilCountBackpressure) {
         this.predictedMillisUntilCountBackpressure = predictedMillisUntilCountBackpressure;
     }
 
@@ -62,7 +62,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedMillisUntilBytesBackpressure;
     }
 
-    public void setPredictedMillisUntilBytesBackpressure(Long predictedMillisUntilBytesBackpressure) {
+    public void setPredictedMillisUntilBytesBackpressure(final Long predictedMillisUntilBytesBackpressure) {
         this.predictedMillisUntilBytesBackpressure = predictedMillisUntilBytesBackpressure;
     }
 
@@ -71,7 +71,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedCountAtNextInterval;
     }
 
-    public void setPredictedCountAtNextInterval(Integer predictedCountAtNextInterval) {
+    public void setPredictedCountAtNextInterval(final Integer predictedCountAtNextInterval) {
         this.predictedCountAtNextInterval = predictedCountAtNextInterval;
     }
 
@@ -80,7 +80,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedBytesAtNextInterval;
     }
 
-    public void setPredictedBytesAtNextInterval(Long predictedBytesAtNextInterval) {
+    public void setPredictedBytesAtNextInterval(final Long predictedBytesAtNextInterval) {
         this.predictedBytesAtNextInterval = predictedBytesAtNextInterval;
     }
 
@@ -89,7 +89,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedPercentCount;
     }
 
-    public void setPredictedPercentCount(Integer predictedPercentCount) {
+    public void setPredictedPercentCount(final Integer predictedPercentCount) {
         this.predictedPercentCount = predictedPercentCount;
     }
 
@@ -98,7 +98,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictedPercentBytes;
     }
 
-    public void setPredictedPercentBytes(Integer predictedPercentBytes) {
+    public void setPredictedPercentBytes(final Integer predictedPercentBytes) {
         this.predictedPercentBytes = predictedPercentBytes;
     }
 
@@ -107,7 +107,7 @@ public class ConnectionStatisticsSnapshotDTO implements Cloneable {
         return predictionIntervalMillis;
     }
 
-    public void setPredictionIntervalMillis(Long predictionIntervalMillis) {
+    public void setPredictionIntervalMillis(final Long predictionIntervalMillis) {
         this.predictionIntervalMillis = predictionIntervalMillis;
     }
 

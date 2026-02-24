@@ -38,10 +38,10 @@ public class CommandAResult implements Result<List<String>>, Referenceable {
     }
 
     @Override
-    public ReferenceResolver createReferenceResolver(Context context) {
+    public ReferenceResolver createReferenceResolver(final Context context) {
         return new ReferenceResolver() {
             @Override
-            public ResolvedReference resolve(CommandOption option, Integer position) {
+            public ResolvedReference resolve(final CommandOption option, final Integer position) {
                 if (position != null && position <= results.size()) {
                     return new ResolvedReference(option, position, "CommandA", results.get(position - 1));
                 } else {

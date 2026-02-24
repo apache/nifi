@@ -38,7 +38,7 @@ public class ResourcesEntity extends Entity {
         return resources;
     }
 
-    public void setResources(List<ResourceDTO> resources) {
+    public void setResources(final List<ResourceDTO> resources) {
         this.resources = resources;
     }
 

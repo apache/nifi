@@ -26,7 +26,7 @@ public enum ResourceTransferSource implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    ResourceTransferSource(String displayName, String description) {
+    ResourceTransferSource(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

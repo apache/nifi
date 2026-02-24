@@ -75,7 +75,7 @@ public class YieldSource extends AbstractProcessor {
             getLogger().info("Created FlowFile {} without yielding", alreadyCreated);
         }
 
-        FlowFile flowFile = session.create();
+        final FlowFile flowFile = session.create();
         session.transfer(flowFile, REL_SUCCESS);
     }
 }

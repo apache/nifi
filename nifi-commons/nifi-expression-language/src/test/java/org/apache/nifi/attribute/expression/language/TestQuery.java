@@ -171,10 +171,10 @@ public class TestQuery {
         attrs.put("id", "1234");
         attrs.put("sql.query", "SELECT * FROM table WHERE ID = ${id}");
 
-        String query = "${sql.query:evaluateELString()}";
-        String query1 = "${employee.name:evaluateELString()}";
-        String query2 = "${employee.name:evaluateELString():toUpper()}";
-        String query3 = "${employee.gender:trim():evaluateELString()}";
+        final String query = "${sql.query:evaluateELString()}";
+        final String query1 = "${employee.name:evaluateELString()}";
+        final String query2 = "${employee.name:evaluateELString():toUpper()}";
+        final String query3 = "${employee.gender:trim():evaluateELString()}";
 
         verifyEquals(query, attrs, "SELECT * FROM table WHERE ID = 1234");
         verifyEquals(query1, attrs, "Harry Potter");
@@ -458,7 +458,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPath() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "", "${json:jsonPathDelete('$.missingpath')}", "");
         verifyEquals("${json:jsonPath('$.missingpath')}", attributes, "");
@@ -473,19 +473,19 @@ public class TestQuery {
                 () -> verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John"));
     }
 
-    private void verifyAddressBookAttributes(String originalAddressBook, Map<String, String> attributes, String updatedAttribute, Object updatedValue) {
+    private void verifyAddressBookAttributes(final String originalAddressBook, final Map<String, String> attributes, final String updatedAttribute, final Object updatedValue) {
 
         if (StringUtils.isBlank(attributes.get("json"))) {
             throw new IllegalArgumentException("original Json attributes is empty");
         }
 
-        Map<String, String> originalAttributes = new HashMap<>();
+        final Map<String, String> originalAttributes = new HashMap<>();
         originalAttributes.put("json", originalAddressBook);
 
         phoneBookAttributes.stream()
                 .filter(currentAttribute -> !currentAttribute.equals(updatedAttribute))
                 .forEach(currentAttribute -> {
-                    String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
+                    final String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
                     verifyEquals(currentAttribute, attributes, expected);
                 });
         if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute)) {
@@ -493,16 +493,16 @@ public class TestQuery {
         }
     }
 
-    private Map<String, String> verifyJsonPathExpressions(String targetAttribute, Object originalValue, String updateExpression, Object updatedValue) throws IOException {
+    private Map<String, String> verifyJsonPathExpressions(final String targetAttribute, final Object originalValue, final String updateExpression, final Object updatedValue) throws IOException {
         final Map<String, String> attributes = new HashMap<>();
-        String addressBook = getResourceAsString("/json/address-book.json");
+        final String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
         if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute)) {
             verifyEquals(targetAttribute, attributes, originalValue);
         }
 
-        String addressBookAfterUpdate = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
+        final String addressBookAfterUpdate = Query.evaluateExpressions(updateExpression, attributes, ParameterLookup.EMPTY);
         attributes.clear();
         attributes.put("json", addressBookAfterUpdate);
 
@@ -586,7 +586,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathAddNicknameJimmy() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.nicknames', 'Jimmy')}",
@@ -596,7 +596,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathAddNicknameJimmyAtNonexistantPath() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
@@ -615,7 +615,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutRootLevelMiddlenameTuron() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$','middlename','Turon')}",
@@ -625,7 +625,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutCountryToMap() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$.address','country','US')}",
@@ -635,7 +635,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathPutElementToArray() throws IOException {
-        Map<String, String> attributes = verifyJsonPathExpressions(
+        final Map<String, String> attributes = verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathPut('$.phoneNumbers[1]', 'backup', '212-555-1212')}",
@@ -947,8 +947,8 @@ public class TestQuery {
 
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
 
-        TimeZone current = TimeZone.getDefault();
-        TimeZone defaultTimeZone = TimeZone.getTimeZone("Europe/Kiev");
+        final TimeZone current = TimeZone.getDefault();
+        final TimeZone defaultTimeZone = TimeZone.getTimeZone("Europe/Kiev");
         TimeZone.setDefault(defaultTimeZone);
         try {
             final String result = Query.evaluateExpressions(query, attributes, null);
@@ -984,7 +984,7 @@ public class TestQuery {
 
     @Test
     public void testFormatUsesLocalTimeZoneUnlessIsSpecified() {
-        TimeZone current = TimeZone.getDefault();
+        final TimeZone current = TimeZone.getDefault();
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Kiev"));
         try {
             final String formatWithZoneInvocation = "format(\"yyyy-MM-dd HH:mm:ss\", \"GMT\")";
@@ -997,7 +997,7 @@ public class TestQuery {
         }
     }
 
-    private String evaluateFormatDate(String givenDateStringInGMT, String formatInvocation) {
+    private String evaluateFormatDate(final String givenDateStringInGMT, final String formatInvocation) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("date", String.valueOf(givenDateStringInGMT));
         final String query = "${date:toDate(\"yyyy-MM-dd HH:mm:ss\", \"GMT\"):" + formatInvocation + "}";
@@ -1235,7 +1235,7 @@ public class TestQuery {
 
     @Test
     public void testReplaceShouldReplaceAllLiteralMatches() {
-        int n = 3;
+        final int n = 3;
         final String originalValue = "Hello World";
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
@@ -1243,11 +1243,11 @@ public class TestQuery {
         final String expectedRepeatingResult = StringUtils.repeat(replacementValue, " ", n);
         final String replaceSingleExpression = "${single:replace('" + originalValue + "', '" + replacementValue + "')}";
         final String replaceRepeatingExpression = "${repeating:replace('" + originalValue + "', '" + replacementValue + "')}";
-        Query replaceSingleQuery = Query.compile(replaceSingleExpression);
-        Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
+        final Query replaceSingleQuery = Query.compile(replaceSingleExpression);
+        final Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
 
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
 
         assertEquals(replacementValue, replaceSingleResult.getValue());
         assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
@@ -1257,7 +1257,7 @@ public class TestQuery {
 
     @Test
     public void testReplaceFirstShouldOnlyReplaceFirstRegexMatch() {
-        int n = 3;
+        final int n = 3;
         final String originalValue = "Hello World";
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
@@ -1267,11 +1267,11 @@ public class TestQuery {
         final String replaceOnlyFirstPattern = "\\w+\\s\\w+\\b??";
         final String replaceSingleExpression = "${single:replaceFirst('" + replaceOnlyFirstPattern + "', '" + replacementValue + "')}";
         final String replaceRepeatingExpression = "${repeating:replaceFirst('" + replaceOnlyFirstPattern + "', '" + replacementValue + "')}";
-        Query replaceSingleQuery = Query.compile(replaceSingleExpression);
-        Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
+        final Query replaceSingleQuery = Query.compile(replaceSingleExpression);
+        final Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
 
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
 
         assertEquals(replacementValue, replaceSingleResult.getValue());
         assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
@@ -1281,7 +1281,7 @@ public class TestQuery {
 
     @Test
     public void testReplaceFirstShouldOnlyReplaceFirstLiteralMatch() {
-        int n = 3;
+        final int n = 3;
         final String originalValue = "Hello World";
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
@@ -1289,11 +1289,11 @@ public class TestQuery {
         final String expectedRepeatingResult = replacementValue + " " + StringUtils.repeat(originalValue, " ", n - 1);
         final String replaceSingleExpression = "${single:replaceFirst('" + originalValue + "', '" + replacementValue + "')}";
         final String replaceRepeatingExpression = "${repeating:replaceFirst('" + originalValue + "', '" + replacementValue + "')}";
-        Query replaceSingleQuery = Query.compile(replaceSingleExpression);
-        Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
+        final Query replaceSingleQuery = Query.compile(replaceSingleExpression);
+        final Query replaceRepeatingQuery = Query.compile(replaceRepeatingExpression);
 
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        final QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
 
         assertEquals(replacementValue, replaceSingleResult.getValue());
         assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
@@ -1303,7 +1303,7 @@ public class TestQuery {
 
     @Test
     public void testShouldDemonstrateDifferenceBetweenStringReplaceAndStringReplaceFirst() {
-        int n = 3;
+        final int n = 3;
         final String originalValue = "Hello World";
         final Map<String, String> attributes = Map.of("single", originalValue,
                 "repeating", StringUtils.repeat(originalValue, " ", n));
@@ -1312,12 +1312,12 @@ public class TestQuery {
         final String replaceOnlyFirstPattern = "\\w+\\s\\w+\\b??";
 
         // Execute on both single and repeating with String#replace()
-        String replaceSingleResult = attributes.get("single").replace(replaceOnlyFirstPattern, replacementValue);
-        String replaceRepeatingResult = attributes.get("repeating").replace(replaceOnlyFirstPattern, replacementValue);
+        final String replaceSingleResult = attributes.get("single").replace(replaceOnlyFirstPattern, replacementValue);
+        final String replaceRepeatingResult = attributes.get("repeating").replace(replaceOnlyFirstPattern, replacementValue);
 
         // Execute on both single and repeating with String#replaceFirst()
-        String replaceFirstSingleResult = attributes.get("single").replaceFirst(replaceOnlyFirstPattern, replacementValue);
-        String replaceFirstRepeatingResult = attributes.get("repeating").replaceFirst(replaceOnlyFirstPattern, replacementValue);
+        final String replaceFirstSingleResult = attributes.get("single").replaceFirst(replaceOnlyFirstPattern, replacementValue);
+        final String replaceFirstRepeatingResult = attributes.get("repeating").replaceFirst(replaceOnlyFirstPattern, replacementValue);
 
         assertNotEquals(replacementValue, replaceSingleResult);
         assertNotEquals(expectedRepeatingResult, replaceRepeatingResult);
@@ -2203,7 +2203,7 @@ public class TestQuery {
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
     }
 
-    QueryResult<?> getResult(String expr, Map<String, String> attrs) {
+    QueryResult<?> getResult(final String expr, final Map<String, String> attrs) {
         final Query query = Query.compile(expr);
         return query.evaluate(new StandardEvaluationContext(attrs));
     }
@@ -2468,11 +2468,11 @@ public class TestQuery {
         verifyEquals("${str:repeat(1, 1)}", attributes, "abc");
 
         // Custom verify because the result could be one of multiple options
-        String multipleResultExpression = "${str:repeat(1, 3)}";
-        String multipleResultExpectedResult1 = "abc";
-        String multipleResultExpectedResult2 = "abcabc";
-        String multipleResultExpectedResult3 = "abcabcabc";
-        List<String> multipleResultExpectedResults = Arrays.asList(multipleResultExpectedResult1, multipleResultExpectedResult2, multipleResultExpectedResult3);
+        final String multipleResultExpression = "${str:repeat(1, 3)}";
+        final String multipleResultExpectedResult1 = "abc";
+        final String multipleResultExpectedResult2 = "abcabc";
+        final String multipleResultExpectedResult3 = "abcabcabc";
+        final List<String> multipleResultExpectedResults = Arrays.asList(multipleResultExpectedResult1, multipleResultExpectedResult2, multipleResultExpectedResult3);
         Query.validateExpression(multipleResultExpression, false);
         final String actualResult = Query.evaluateExpressions(multipleResultExpression, attributes, null, null, ParameterLookup.EMPTY);
         assertTrue(multipleResultExpectedResults.contains(actualResult));
@@ -2586,7 +2586,7 @@ public class TestQuery {
         assertInvalid("${getUri('http', 'nifi.apache.org', '/path/data', 'frag1')}");
         assertInvalid("${getUri('https', 'admin:admin@nifi.apache.org:1234', '/path/data ', 'key=value&key2=value2', 'frag1')}");
 
-        AttributeExpressionLanguageException thrown = assertThrows(AttributeExpressionLanguageException.class,
+        final AttributeExpressionLanguageException thrown = assertThrows(AttributeExpressionLanguageException.class,
                 () -> verifyEquals("${getUri('https', 'admin:admin', 'nifi.apache.org', 'notANumber', '/path/data ', 'key=value&key2=value2', 'frag1')}", null, ""));
         Assertions.assertEquals("Could not evaluate 'getUri' function with argument 'notANumber' which is not a number", thrown.getMessage());
     }
@@ -2643,15 +2643,15 @@ public class TestQuery {
         assertEquals("", Query.evaluateExpressions(expression, attributes, null));
     }
 
-    private String getResourceAsString(String resourceName) throws IOException {
+    private String getResourceAsString(final String resourceName) throws IOException {
         try (final Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)))) {
             int n = 0;
-            char[] buf = new char[1024];
-            StringBuilder sb = new StringBuilder();
+            final char[] buf = new char[1024];
+            final StringBuilder sb = new StringBuilder();
             while (n != -1) {
                 try {
                     n = reader.read(buf, 0, buf.length);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException("failed to read resource", e);
                 }
                 if (n > 0) {

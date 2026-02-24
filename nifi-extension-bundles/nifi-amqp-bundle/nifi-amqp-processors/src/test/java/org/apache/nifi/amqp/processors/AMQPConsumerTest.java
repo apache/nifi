@@ -86,7 +86,7 @@ public class AMQPConsumerTest {
     @Test
     public void failOnNullQueueName() {
         assertThrows(IllegalArgumentException.class, () -> {
-            Connection conn = new TestConnection(null, null);
+            final Connection conn = new TestConnection(null, null);
             new AMQPConsumer(conn, null, true, DEFAULT_PREFETCH_COUNT, processorLog);
         });
     }
@@ -94,7 +94,7 @@ public class AMQPConsumerTest {
     @Test
     public void failOnEmptyQueueName() {
         assertThrows(IllegalArgumentException.class, () -> {
-            Connection conn = new TestConnection(null, null);
+            final Connection conn = new TestConnection(null, null);
             new AMQPConsumer(conn, " ", true, DEFAULT_PREFETCH_COUNT, processorLog);
         });
     }
@@ -102,7 +102,7 @@ public class AMQPConsumerTest {
     @Test
     public void failOnNonExistingQueue() {
         assertThrows(IOException.class, () -> {
-            Connection conn = new TestConnection(null, null);
+            final Connection conn = new TestConnection(null, null);
             try (AMQPConsumer consumer = new AMQPConsumer(conn, "hello", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
                 consumer.consume();
             }
@@ -111,29 +111,29 @@ public class AMQPConsumerTest {
 
     @Test
     public void validateSuccessfulConsumeWithEmptyQueueDefaultExchange() throws Exception {
-        Map<String, List<String>> routingMap = new HashMap<>();
+        final Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("queue1", Arrays.asList("queue1"));
-        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+        final Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("", "queue1");
 
-        Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
-            GetResponse response = consumer.consume();
+            final GetResponse response = consumer.consume();
             assertNull(response);
         }
     }
 
     @Test
     public void validateSuccessfulConsumeWithEmptyQueue() throws Exception {
-        Map<String, List<String>> routingMap = new HashMap<>();
+        final Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1"));
-        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+        final Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("myExchange", "key1");
 
-        Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         conn.createChannel().basicPublish("myExchange", "key1", null, "hello Joe".getBytes());
         try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, DEFAULT_PREFETCH_COUNT, processorLog)) {
-            GetResponse response = consumer.consume();
+            final GetResponse response = consumer.consume();
             assertNotNull(response);
         }
     }
@@ -142,9 +142,9 @@ public class AMQPConsumerTest {
     public void validatePrefetchSet() throws Exception {
         final Map<String, List<String>> routingMap = Collections.singletonMap("key1", Arrays.asList("queue1"));
         final Map<String, String> exchangeToRoutingKeymap = Collections.singletonMap("myExchange", "key1");
-        Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection conn = new TestConnection(exchangeToRoutingKeymap, routingMap);
         try (AMQPConsumer consumer = new AMQPConsumer(conn, "queue1", true, 100, processorLog)) {
-            TestChannel channel = (TestChannel) consumer.getChannel();
+            final TestChannel channel = (TestChannel) consumer.getChannel();
             assertEquals(100, channel.getPrefetchCount());
         }
     }

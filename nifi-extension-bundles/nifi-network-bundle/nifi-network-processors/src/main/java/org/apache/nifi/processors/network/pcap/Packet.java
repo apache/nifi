@@ -30,19 +30,19 @@ public class Packet {
     private byte[] rawBody;
     private String invalidityReason;
 
-    public Packet(ByteBufferReader io, PCAP root) {
+    public Packet(final ByteBufferReader io, final PCAP root) {
         this.root = root;
         this.io = io;
         read();
     }
 
-    public Packet(byte[] headerArray, PCAP root) {
+    public Packet(final byte[] headerArray, final PCAP root) {
         this.root = root;
         this.io = new ByteBufferReader(headerArray);
         read();
     }
 
-    public Packet(long tSSec, long tSUsec, long inclLen, long origLen, byte[] rawBody) {
+    public Packet(final long tSSec, final long tSUsec, final long inclLen, final long origLen, final byte[] rawBody) {
         // packet header properties
         this.tsSec = tSSec;
         this.tsUsec = tSUsec;
@@ -137,7 +137,7 @@ public class Packet {
         return invalidityReason;
     }
 
-    public void setBody(byte[] newBody) {
+    public void setBody(final byte[] newBody) {
         this.rawBody = newBody;
         this.setValidity();
         this.totalLength = PACKET_HEADER_LENGTH + rawBody.length;

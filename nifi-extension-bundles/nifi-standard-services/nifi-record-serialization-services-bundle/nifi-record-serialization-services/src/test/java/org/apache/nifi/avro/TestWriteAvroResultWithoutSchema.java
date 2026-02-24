@@ -78,7 +78,7 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
         final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
 
-        List<GenericRecord> records = new ArrayList<>();
+        final List<GenericRecord> records = new ArrayList<>();
         for (int i = 0; i < recordCount; i++) {
             records.add(reader.read(null, decoder));
         }

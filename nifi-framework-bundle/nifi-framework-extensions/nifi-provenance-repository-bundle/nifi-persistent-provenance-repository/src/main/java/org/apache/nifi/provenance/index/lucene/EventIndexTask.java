@@ -79,7 +79,7 @@ public class EventIndexTask implements Runnable {
         // call #drainTo on the queue. So we call poll, blocking for up to 1 second. If we get any event, then
         // we will call drainTo to gather the rest. If we get no events, then we just return, having gathered
         // no events.
-        StoredDocument firstDoc = documentQueue.poll(10, TimeUnit.MILLISECONDS);
+        final StoredDocument firstDoc = documentQueue.poll(10, TimeUnit.MILLISECONDS);
         if (firstDoc == null) {
             return;
         }
@@ -197,7 +197,7 @@ public class EventIndexTask implements Runnable {
 
         try {
             // Perform the actual indexing.
-            boolean writerIndicatesCommit = indexWriter.index(documents, commitThreshold);
+            final boolean writerIndicatesCommit = indexWriter.index(documents, commitThreshold);
 
             // If we don't need to commit index based on what index writer tells us, we will still want
             // to commit the index if it's assigned to a partition and this is no longer the active index

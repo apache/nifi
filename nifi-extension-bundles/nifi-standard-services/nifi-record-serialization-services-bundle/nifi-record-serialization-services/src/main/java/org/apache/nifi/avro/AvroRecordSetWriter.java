@@ -153,15 +153,15 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("compression-format", COMPRESSION_FORMAT.getName());
         config.renameProperty("encoder-pool-size", ENCODER_POOL_SIZE.getName());
         config.renameProperty("cache-size", CACHE_SIZE.getName());
     }
 
-    private CodecFactory getCodecFactory(String property) {
-        CodecType type = CodecType.valueOf(property);
+    private CodecFactory getCodecFactory(final String property) {
+        final CodecType type = CodecType.valueOf(property);
         return switch (type) {
             case BZIP2 -> CodecFactory.bzip2Codec();
             case DEFLATE -> CodecFactory.deflateCodec(CodecFactory.DEFAULT_DEFLATE_LEVEL);

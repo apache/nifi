@@ -165,7 +165,7 @@ public class GenerateFlowFile extends AbstractProcessor {
                 try (final PrintWriter writer = new PrintWriter(new File(filename))) {
                     writer.println("Failed to commit session:");
                     cause.printStackTrace(writer);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().error("Failed to write to fail on session commit failure", e);
                     throw new RuntimeException(e);
                 }

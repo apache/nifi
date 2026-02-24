@@ -91,7 +91,7 @@ public class ProxiedEntitiesUtils {
      * @param rawProxyEntityGroups the raw proxy entity groups
      * @return the set of group names, or empty set if none exist
      */
-    public static Set<String> tokenizeProxiedEntityGroups(String rawProxyEntityGroups) {
+    public static Set<String> tokenizeProxiedEntityGroups(final String rawProxyEntityGroups) {
         final List<String> elements = tokenizeProxiedEntitiesChain(rawProxyEntityGroups);
         if (elements.isEmpty()) {
             return Collections.emptySet();

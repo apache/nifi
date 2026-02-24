@@ -36,7 +36,7 @@ public class ProcessorTypesEntity extends Entity {
         return processorTypes;
     }
 
-    public void setProcessorTypes(Set<DocumentedTypeDTO> processorTypes) {
+    public void setProcessorTypes(final Set<DocumentedTypeDTO> processorTypes) {
         this.processorTypes = processorTypes;
     }
 

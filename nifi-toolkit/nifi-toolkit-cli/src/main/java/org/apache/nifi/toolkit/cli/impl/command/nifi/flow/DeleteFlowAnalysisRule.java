@@ -56,7 +56,7 @@ public class DeleteFlowAnalysisRule extends AbstractNiFiCommand<FlowAnalysisRule
         final String flowAnalysisRuleId = getRequiredArg(properties, CommandOption.FAR_ID);
 
         final ControllerClient controllerClient = client.getControllerClient();
-        FlowAnalysisRuleEntity flowAnalysisRule = controllerClient.getFlowAnalysisRule(flowAnalysisRuleId);
+        final FlowAnalysisRuleEntity flowAnalysisRule = controllerClient.getFlowAnalysisRule(flowAnalysisRuleId);
         final FlowAnalysisRuleEntity deletedFlowAnalysisRuleEntity = controllerClient.deleteFlowAnalysisRule(flowAnalysisRule);
 
         return new FlowAnalysisRuleResult(getResultType(properties), deletedFlowAnalysisRuleEntity);

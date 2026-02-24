@@ -64,14 +64,14 @@ public class ListGoogleDriveSimpleTest {
 
         testSubject = new ListGoogleDrive() {
             @Override
-            protected List<GoogleDriveFileInfo> performListing(ProcessContext context, Long minTimestamp, ListingMode ignoredListingMode) throws IOException {
-                ListingMode acquiredListingMode = ListingMode.valueOf(listingModeAsString);
+            protected List<GoogleDriveFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode ignoredListingMode) throws IOException {
+                final ListingMode acquiredListingMode = ListingMode.valueOf(listingModeAsString);
 
                 return super.performListing(context, minTimestamp, acquiredListingMode);
             }
 
             @Override
-            public Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
+            public Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
                 return mockDriverService;
             }
         };
@@ -79,7 +79,7 @@ public class ListGoogleDriveSimpleTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(ListGoogleDrive.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(ListGoogleDrive.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListGoogleDrive.TRACKING_STATE_CACHE.getName()),
                 Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListGoogleDrive.TRACKING_TIME_WINDOW.getName()),
@@ -109,26 +109,26 @@ public class ListGoogleDriveSimpleTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"drive_id"})
-    void testCreatedListableEntityContainsCorrectData(String driveId) throws Exception {
+    void testCreatedListableEntityContainsCorrectData(final String driveId) throws Exception {
         // GIVEN
-        Long minTimestamp = 0L;
+        final Long minTimestamp = 0L;
         listingModeAsString = "EXECUTION";
 
-        String folderId = "folder_id";
-        String folderName = "folder_name";
+        final String folderId = "folder_id";
+        final String folderName = "folder_name";
 
-        String driveName = driveId != null ? "drive_name" : null;
+        final String driveName = driveId != null ? "drive_name" : null;
 
-        String id = "id_1";
-        String filename = "file_name_1";
-        long size = 125L;
-        long createdTime = 123456L;
-        long modifiedTime = 234567L;
-        String mimeType = "mime_type_1";
-        String owner = "user1";
-        String lastModifyingUser = "user2";
-        String webViewLink = "http://web.view";
-        String webContentLink = "http://web.content";
+        final String id = "id_1";
+        final String filename = "file_name_1";
+        final long size = 125L;
+        final long createdTime = 123456L;
+        final long modifiedTime = 234567L;
+        final String mimeType = "mime_type_1";
+        final String owner = "user1";
+        final String lastModifyingUser = "user2";
+        final String webViewLink = "http://web.view";
+        final String webContentLink = "http://web.content";
 
         when(mockProcessContext.getProperty(ListGoogleDrive.FOLDER_ID)
                 .evaluateAttributeExpressions()
@@ -176,7 +176,7 @@ public class ListGoogleDriveSimpleTest {
                 )
         ));
 
-        List<GoogleDriveFileInfo> expected = singletonList(
+        final List<GoogleDriveFileInfo> expected = singletonList(
                 new GoogleDriveFileInfo.Builder()
                         .id(id)
                         .fileName(filename)
@@ -202,10 +202,10 @@ public class ListGoogleDriveSimpleTest {
         testSubject.onScheduled(mockProcessContext);
 
         // WHEN
-        List<GoogleDriveFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
+        final List<GoogleDriveFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
         // THEN
-        List<Function<GoogleDriveFileInfo, Object>> propertyProviders = asList(
+        final List<Function<GoogleDriveFileInfo, Object>> propertyProviders = asList(
                 GoogleDriveFileInfo::getId,
                 GoogleDriveFileInfo::getIdentifier,
                 GoogleDriveFileInfo::getName,
@@ -228,24 +228,24 @@ public class ListGoogleDriveSimpleTest {
                 GoogleDriveFileInfo::getSharedDriveName
         );
 
-        List<EqualsWrapper<GoogleDriveFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
-        List<EqualsWrapper<GoogleDriveFileInfo>> actualWrapper = wrapList(actual, propertyProviders);
+        final List<EqualsWrapper<GoogleDriveFileInfo>> expectedWrapper = wrapList(expected, propertyProviders);
+        final List<EqualsWrapper<GoogleDriveFileInfo>> actualWrapper = wrapList(actual, propertyProviders);
 
         assertEquals(expectedWrapper, actualWrapper);
     }
 
     private File createFile(
-            String id,
-            String name,
-            Long size,
-            DateTime createdTime,
-            DateTime modifiedTime,
-            String mimeType,
-            String owner,
-            String lastModifyingUser,
-            String webViewLink,
-            String webContentLink) {
-        File file = new File();
+            final String id,
+            final String name,
+            final Long size,
+            final DateTime createdTime,
+            final DateTime modifiedTime,
+            final String mimeType,
+            final String owner,
+            final String lastModifyingUser,
+            final String webViewLink,
+            final String webContentLink) {
+        final File file = new File();
 
         file
                 .setId(id)

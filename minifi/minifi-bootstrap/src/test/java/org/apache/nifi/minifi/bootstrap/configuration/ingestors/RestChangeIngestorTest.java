@@ -41,7 +41,7 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 
     @BeforeAll
     public static void setUp() throws InterruptedException, MalformedURLException {
-        BootstrapProperties properties = mock(BootstrapProperties.class);
+        final BootstrapProperties properties = mock(BootstrapProperties.class);
         when(properties.getProperty(PullHttpChangeIngestor.OVERRIDE_SECURITY)).thenReturn("true");
         when(properties.getProperty(PULL_HTTP_BASE_KEY + ".override.core")).thenReturn("true");
         when(properties.getProperty(eq(PORT_KEY), any())).thenReturn("0");
@@ -50,7 +50,7 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 
         testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
-        ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
+        final ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
 
         restChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);

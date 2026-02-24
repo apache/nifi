@@ -35,7 +35,7 @@ public class NiFiUserDetails implements UserDetails {
      *
      * @param user user
      */
-    public NiFiUserDetails(NiFiUser user) {
+    public NiFiUserDetails(final NiFiUser user) {
         this.user = user;
     }
 

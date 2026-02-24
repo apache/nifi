@@ -19,7 +19,7 @@ package org.apache.nifi.record.path.math;
 public class MathEvaluator<T extends MathOperator> {
     protected final T op;
 
-    public MathEvaluator(T op) {
+    public MathEvaluator(final T op) {
         this.op = op;
     }
 }

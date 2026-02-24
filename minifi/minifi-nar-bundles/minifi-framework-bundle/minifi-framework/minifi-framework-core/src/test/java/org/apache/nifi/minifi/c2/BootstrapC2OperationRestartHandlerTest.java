@@ -48,14 +48,14 @@ public class BootstrapC2OperationRestartHandlerTest {
 
     @Test
     void shouldReturnNotAppliedWhenBootstrapCommunicatorReturnsFalse() throws IOException {
-        C2Operation inputOperation = new C2Operation();
+        final C2Operation inputOperation = new C2Operation();
         inputOperation.setOperation(START);
-        BootstrapCommunicator bootstrapCommunicator = mock(BootstrapCommunicator.class);
+        final BootstrapCommunicator bootstrapCommunicator = mock(BootstrapCommunicator.class);
         when(bootstrapCommunicator.sendCommand(START.name())).thenReturn(FAILURE);
-        long bootstrapAcknowledgeTimeoutMs = 0;
+        final long bootstrapAcknowledgeTimeoutMs = 0;
 
-        BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
-        Optional<OperationState> result = testHandler.handleRestart(inputOperation);
+        final BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
+        final Optional<OperationState> result = testHandler.handleRestart(inputOperation);
 
         assertTrue(result.isPresent());
         assertEquals(NOT_APPLIED, result.get());
@@ -63,14 +63,14 @@ public class BootstrapC2OperationRestartHandlerTest {
 
     @Test
     void shouldReturnNotAppliedWhenBootstrapCommunicatorThrowsException() throws IOException {
-        C2Operation inputOperation = new C2Operation();
+        final C2Operation inputOperation = new C2Operation();
         inputOperation.setOperation(START);
-        BootstrapCommunicator bootstrapCommunicator = mock(BootstrapCommunicator.class);
+        final BootstrapCommunicator bootstrapCommunicator = mock(BootstrapCommunicator.class);
         when(bootstrapCommunicator.sendCommand(START.name())).thenThrow(new IOException());
-        long bootstrapAcknowledgeTimeoutMs = 0;
+        final long bootstrapAcknowledgeTimeoutMs = 0;
 
-        BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
-        Optional<OperationState> result = testHandler.handleRestart(inputOperation);
+        final BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
+        final Optional<OperationState> result = testHandler.handleRestart(inputOperation);
 
         assertTrue(result.isPresent());
         assertEquals(NOT_APPLIED, result.get());
@@ -78,17 +78,17 @@ public class BootstrapC2OperationRestartHandlerTest {
 
     @Test
     void shouldReturnStateAcknowledgedByBootstrapCommunicator() {
-        C2Operation inputOperation = new C2Operation();
+        final C2Operation inputOperation = new C2Operation();
         inputOperation.setOperation(START);
-        long bootstrapAcknowledgeTimeoutMs = 1000;
-        long waitBeforeAcknowledgeMs = 100;
-        String[] callbackResult = new String[] {FULLY_APPLIED.name()};
-        BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
+        final long bootstrapAcknowledgeTimeoutMs = 1000;
+        final long waitBeforeAcknowledgeMs = 100;
+        final String[] callbackResult = new String[] {FULLY_APPLIED.name()};
+        final BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
 
-        BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
+        final BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
         try (ExecutorService executorService = newVirtualThreadPerTaskExecutor()) {
             executorService.execute(bootstrapCommunicator);
-            Optional<OperationState> result = testHandler.handleRestart(inputOperation);
+            final Optional<OperationState> result = testHandler.handleRestart(inputOperation);
 
             assertTrue(result.isPresent());
             assertEquals(FULLY_APPLIED, result.get());
@@ -97,17 +97,17 @@ public class BootstrapC2OperationRestartHandlerTest {
 
     @Test
     void shouldReturnNotAppliedWhenBootstrapAcknowledgeTimesOut() {
-        C2Operation inputOperation = new C2Operation();
+        final C2Operation inputOperation = new C2Operation();
         inputOperation.setOperation(START);
-        String[] callbackResult = new String[] {FULLY_APPLIED.name()};
-        long bootstrapAcknowledgeTimeoutMs = 1000;
-        long waitBeforeAcknowledgeMs = 2000;
-        BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
+        final String[] callbackResult = new String[] {FULLY_APPLIED.name()};
+        final long bootstrapAcknowledgeTimeoutMs = 1000;
+        final long waitBeforeAcknowledgeMs = 2000;
+        final BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
 
-        BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
+        final BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
         try (ExecutorService executorService = newVirtualThreadPerTaskExecutor()) {
             executorService.execute(bootstrapCommunicator);
-            Optional<OperationState> result = testHandler.handleRestart(inputOperation);
+            final Optional<OperationState> result = testHandler.handleRestart(inputOperation);
 
             assertTrue(result.isPresent());
             assertEquals(NOT_APPLIED, result.get());
@@ -116,17 +116,17 @@ public class BootstrapC2OperationRestartHandlerTest {
 
     @Test
     void shouldReturnNotAppliedWhenBootstrapSendInvalidResponse() {
-        C2Operation inputOperation = new C2Operation();
+        final C2Operation inputOperation = new C2Operation();
         inputOperation.setOperation(START);
-        String[] callbackResult = new String[] {};
-        long bootstrapAcknowledgeTimeoutMs = 1000;
-        long waitBeforeAcknowledgeMs = 100;
-        BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
+        final String[] callbackResult = new String[] {};
+        final long bootstrapAcknowledgeTimeoutMs = 1000;
+        final long waitBeforeAcknowledgeMs = 100;
+        final BootstrapCommunicatorStub bootstrapCommunicator = new BootstrapCommunicatorStub(SUCCESS, callbackResult, waitBeforeAcknowledgeMs);
 
-        BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
+        final BootstrapC2OperationRestartHandler testHandler = new BootstrapC2OperationRestartHandler(bootstrapCommunicator, bootstrapAcknowledgeTimeoutMs);
         try (ExecutorService executorService = newVirtualThreadPerTaskExecutor()) {
             executorService.execute(bootstrapCommunicator);
-            Optional<OperationState> result = testHandler.handleRestart(inputOperation);
+            final Optional<OperationState> result = testHandler.handleRestart(inputOperation);
 
             assertTrue(result.isPresent());
             assertEquals(NOT_APPLIED, result.get());
@@ -140,7 +140,7 @@ public class BootstrapC2OperationRestartHandlerTest {
         private final long waitBeforeAcknowledgeMs;
         private BiConsumer<String[], OutputStream> handler;
 
-        BootstrapCommunicatorStub(CommandResult sendCommandResult, String[] callbackResult, long waitBeforeAcknowledgeMs) {
+        BootstrapCommunicatorStub(final CommandResult sendCommandResult, final String[] callbackResult, final long waitBeforeAcknowledgeMs) {
             this.sendCommandResult = sendCommandResult;
             this.callbackResult = callbackResult;
             this.waitBeforeAcknowledgeMs = waitBeforeAcknowledgeMs;
@@ -150,18 +150,18 @@ public class BootstrapC2OperationRestartHandlerTest {
         public void run() {
             try {
                 sleep(waitBeforeAcknowledgeMs);
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
             handler.accept(callbackResult, null);
         }
 
         @Override
-        public CommandResult sendCommand(String command, String... args) {
+        public CommandResult sendCommand(final String command, final String... args) {
             return sendCommandResult;
         }
 
         @Override
-        public void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler) {
+        public void registerMessageHandler(final String command, final BiConsumer<String[], OutputStream> handler) {
             this.handler = handler;
         }
     }

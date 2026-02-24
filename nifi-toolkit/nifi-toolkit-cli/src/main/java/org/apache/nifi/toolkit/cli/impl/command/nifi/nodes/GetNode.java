@@ -44,16 +44,16 @@ public class GetNode extends AbstractNiFiCommand<NodeResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.NIFI_NODE_ID.createOption());
     }
 
     @Override
-    public NodeResult doExecute(NiFiClient client, Properties properties) throws NiFiClientException, IOException, MissingOptionException {
+    public NodeResult doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException, MissingOptionException {
         final String nodeId = getRequiredArg(properties, CommandOption.NIFI_NODE_ID);
         final ControllerClient controllerClient = client.getControllerClient();
 
-        NodeEntity nodeEntityResult = controllerClient.getNode(nodeId);
+        final NodeEntity nodeEntityResult = controllerClient.getNode(nodeId);
         return new NodeResult(getResultType(properties), nodeEntityResult);
     }
 }

@@ -57,7 +57,7 @@ public class UsersEndpointMerger implements EndpointResponseMerger {
             userEntities.retainAll(nodeUserEntities);
 
             for (final UserEntity nodeUserEntity : nodeUserEntities) {
-                Map<NodeIdentifier, UserEntity> innerMap = entityMap.computeIfAbsent(nodeUserEntity.getId(), k -> new HashMap<>());
+                final Map<NodeIdentifier, UserEntity> innerMap = entityMap.computeIfAbsent(nodeUserEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeUserEntity);
             }
         }

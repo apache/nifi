@@ -75,7 +75,7 @@ public class DataSourceFactory {
             throw new IllegalStateException(NiFiRegistryProperties.DATABASE_USERNAME + " is required");
         }
 
-        String databasePassword = properties.getDatabasePassword();
+        final String databasePassword = properties.getDatabasePassword();
         if (StringUtils.isBlank(databasePassword)) {
             throw new IllegalStateException(NiFiRegistryProperties.DATABASE_PASSWORD + " is required");
         }

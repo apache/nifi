@@ -34,7 +34,7 @@ public class AgentRepositoryStatus implements Serializable {
         return size;
     }
 
-    public void setSize(Long size) {
+    public void setSize(final Long size) {
         this.size = size;
     }
 
@@ -43,7 +43,7 @@ public class AgentRepositoryStatus implements Serializable {
         return sizeMax;
     }
 
-    public void setSizeMax(Long sizeMax) {
+    public void setSizeMax(final Long sizeMax) {
         this.sizeMax = sizeMax;
     }
 
@@ -52,7 +52,7 @@ public class AgentRepositoryStatus implements Serializable {
         return dataSize;
     }
 
-    public void setDataSize(Long dataSize) {
+    public void setDataSize(final Long dataSize) {
         this.dataSize = dataSize;
     }
 
@@ -61,7 +61,7 @@ public class AgentRepositoryStatus implements Serializable {
         return dataSizeMax;
     }
 
-    public void setDataSizeMax(Long dataSizeMax) {
+    public void setDataSizeMax(final Long dataSizeMax) {
         this.dataSizeMax = dataSizeMax;
     }
 

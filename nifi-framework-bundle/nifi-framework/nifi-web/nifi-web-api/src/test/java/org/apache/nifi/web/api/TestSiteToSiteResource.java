@@ -71,7 +71,7 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade);
         final Response response = resource.getSiteToSiteDetails(req);
 
-        ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
+        final ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertNull(resultEntity.getController().getRemoteSiteHttpListeningPort(), "remoteSiteHttpListeningPort should be null since older version doesn't recognize this field" +
@@ -96,7 +96,7 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade);
         final Response response = resource.getSiteToSiteDetails(req);
 
-        ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
+        final ControllerEntity resultEntity = (ControllerEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(Integer.valueOf(8080), resultEntity.getController().getRemoteSiteHttpListeningPort(), "remoteSiteHttpListeningPort should be retained");
@@ -119,7 +119,7 @@ public class TestSiteToSiteResource {
 
         final Response response = resource.getPeers(req);
 
-        PeersEntity resultEntity = (PeersEntity) response.getEntity();
+        final PeersEntity resultEntity = (PeersEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(1, resultEntity.getPeers().size());
@@ -139,7 +139,7 @@ public class TestSiteToSiteResource {
 
         final Response response = resource.getPeers(req);
 
-        PeersEntity resultEntity = (PeersEntity) response.getEntity();
+        final PeersEntity resultEntity = (PeersEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(1, resultEntity.getPeers().size());
@@ -178,7 +178,7 @@ public class TestSiteToSiteResource {
 
         final Response response = resource.getPeers(req);
 
-        PeersEntity resultEntity = (PeersEntity) response.getEntity();
+        final PeersEntity resultEntity = (PeersEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(3, resultEntity.getPeers().size());
@@ -200,7 +200,7 @@ public class TestSiteToSiteResource {
 
         final Response response = resource.getPeers(req);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
         assertEquals(400, response.getStatus());
         assertEquals(ResponseCode.ABORT.getCode(), resultEntity.getResponseCode());
     }
@@ -216,7 +216,7 @@ public class TestSiteToSiteResource {
 
         final Response response = resource.getPeers(req);
 
-        PeersEntity resultEntity = (PeersEntity) response.getEntity();
+        final PeersEntity resultEntity = (PeersEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(1, resultEntity.getPeers().size());

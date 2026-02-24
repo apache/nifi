@@ -23,7 +23,7 @@ public interface Record {
 
     Object getFieldValue(String fieldName);
 
-    default Object getFieldValue(RecordField field) {
+    default Object getFieldValue(final RecordField field) {
         return getFieldValue(field.getFieldName());
     }
 

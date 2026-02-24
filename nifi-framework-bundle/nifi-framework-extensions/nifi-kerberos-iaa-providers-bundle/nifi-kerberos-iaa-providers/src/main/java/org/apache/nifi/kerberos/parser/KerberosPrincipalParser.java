@@ -33,7 +33,7 @@ public class KerberosPrincipalParser {
      * @param principal the principal for which the realm will be determined
      * @return the realm of the given principal
      */
-    public static String getRealm(String principal) {
+    public static String getRealm(final String principal) {
         if (StringUtils.isBlank(principal)) {
             throw new IllegalArgumentException("principal can not be null or empty");
         }
@@ -42,7 +42,7 @@ public class KerberosPrincipalParser {
         int realmDelimiterIndex = -1;
         char currentChar;
         boolean realmDelimiterFound = false;
-        int principalLength = principal.length();
+        final int principalLength = principal.length();
 
         // find the last non-escaped occurrence of the realm delimiter
         for (int i = 0; i < principalLength; ++i) {
@@ -54,7 +54,7 @@ public class KerberosPrincipalParser {
             previousChar = currentChar;
         }
 
-        String principalAfterLastRealmDelimiter = principal.substring(realmDelimiterIndex + 1);
+        final String principalAfterLastRealmDelimiter = principal.substring(realmDelimiterIndex + 1);
         return realmDelimiterFound && realmDelimiterIndex + 1 < principalLength ? principalAfterLastRealmDelimiter : null;
     }
 }

@@ -172,25 +172,25 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
-    private File asFile(String f) {
+    private File asFile(final String f) {
         if (f == null || f.isEmpty()) {
             return null;
         }
         return new File(f);
     }
 
-    private void callScriptStatic(String method, final ProcessContext context) throws IllegalAccessException, java.lang.reflect.InvocationTargetException {
+    private void callScriptStatic(final String method, final ProcessContext context) throws IllegalAccessException, java.lang.reflect.InvocationTargetException {
         if (compiled != null) {
             Method m = null;
             try {
                 m = compiled.getDeclaredMethod(method, ProcessContext.class);
-            } catch (NoSuchMethodException ignored) {
+            } catch (final NoSuchMethodException ignored) {
                 // The method will not be invoked if it does not exist
             }
             if (m == null) {
                 try {
                     m = compiled.getDeclaredMethod(method, Object.class);
-                } catch (NoSuchMethodException ignored) {
+                } catch (final NoSuchMethodException ignored) {
                     // The method will not be invoked if it does not exist
                 }
             }
@@ -273,13 +273,13 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         try {
             //compile if needed
             getGroovyScript();
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             getLogger().error("Load script failed", t);
             throw new ProcessException("Load script failed: " + t, t);
         }
         try {
             callScriptStatic("onStart", context);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             getLogger().error("onStart failed", t);
             throw new ProcessException("onStart failed: " + t, t);
         }
@@ -288,7 +288,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     public void onUnscheduled(final ProcessContext context) {
         try {
             callScriptStatic("onUnscheduled", context);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw new ProcessException("onUnscheduled failed: " + t, t);
         }
     }
@@ -297,7 +297,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     public void onStopped(final ProcessContext context) {
         try {
             callScriptStatic("onStop", context);
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw new ProcessException("Failed to finalize groovy script:\n" + t, t);
         }
         //reset of compiled script not needed here because we did it onPropertyModified
@@ -315,11 +315,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
 
         if (shell == null) {
-            CompilerConfiguration conf = new CompilerConfiguration();
+            final CompilerConfiguration conf = new CompilerConfiguration();
             conf.setDebug(true);
             shell = new GroovyShell(conf);
             if (addClasspath != null && !addClasspath.isEmpty()) {
-                for (File fcp : Files.listPathsFiles(addClasspath, getLogger())) {
+                for (final File fcp : Files.listPathsFiles(addClasspath, getLogger())) {
                     if (!fcp.exists()) {
                         throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
                     }
@@ -337,8 +337,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             compiled = null;
         }
         if (compiled == null) {
-            String scriptName;
-            String scriptText;
+            final String scriptName;
+            final String scriptText;
             if (scriptFile != null) {
                 scriptName = scriptFile.getName();
                 scriptLastModified = scriptFile.lastModified();
@@ -358,7 +358,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("groovyx-script-file", SCRIPT_FILE.getName());
         config.renameProperty("groovyx-script-body", SCRIPT_BODY.getName());
         config.renameProperty("groovyx-failure-strategy", FAIL_STRATEGY.getName());
@@ -368,20 +368,20 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    private void onInitSQL(Map<String, Object> SQL, Map<String, String> attributes) throws SQLException {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
-            DBCPService s = (DBCPService) e.getValue();
-            OSql sql = new OSql(s.getConnection(attributes));
+    private void onInitSQL(final Map<String, Object> SQL, final Map<String, String> attributes) throws SQLException {
+        for (final Map.Entry<String, Object> e : SQL.entrySet()) {
+            final DBCPService s = (DBCPService) e.getValue();
+            final OSql sql = new OSql(s.getConnection(attributes));
             //try to set autocommit to false
             try {
                 if (sql.getConnection().getAutoCommit()) {
                     try {
                         sql.getConnection().setAutoCommit(false);
-                    } catch (SQLFeatureNotSupportedException sfnse) {
+                    } catch (final SQLFeatureNotSupportedException sfnse) {
                         getLogger().debug("setAutoCommit(false) not supported by this driver");
                     }
                 }
-            } catch (Throwable ei) {
+            } catch (final Throwable ei) {
                 getLogger().warn("Failed to set autocommit=false for `{}`", e.getKey(), ei);
             }
             e.setValue(sql);
@@ -391,9 +391,9 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * before commit SQL services
      */
-    private void onCommitSQL(Map<String, Object> SQL) throws SQLException {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
-            OSql sql = (OSql) e.getValue();
+    private void onCommitSQL(final Map<String, Object> SQL) throws SQLException {
+        for (final Map.Entry<String, Object> e : SQL.entrySet()) {
+            final OSql sql = (OSql) e.getValue();
             if (!sql.getConnection().getAutoCommit()) {
                 sql.commit();
             }
@@ -403,24 +403,24 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * finalize SQL services. no exceptions should be thrown.
      */
-    private void onFinitSQL(Map<String, Object> SQL) {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
+    private void onFinitSQL(final Map<String, Object> SQL) {
+        for (final Map.Entry<String, Object> e : SQL.entrySet()) {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
                     try {
                         sql.getConnection().setAutoCommit(true); //default autocommit value in nifi
-                    } catch (SQLFeatureNotSupportedException sfnse) {
+                    } catch (final SQLFeatureNotSupportedException sfnse) {
                         getLogger().debug("setAutoCommit(true) not supported by this driver");
                     }
                 }
-            } catch (Throwable ei) {
+            } catch (final Throwable ei) {
                 getLogger().warn("Failed to set autocommit=true for `{}`", e.getKey(), ei);
             }
             try {
                 sql.close();
                 sql = null;
-            } catch (Throwable ignored) {
+            } catch (final Throwable ignored) {
                 // Nothing to do
             }
         }
@@ -429,14 +429,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * exception SQL services
      */
-    private void onFailSQL(Map<String, Object> SQL) {
-        for (Map.Entry<String, Object> e : SQL.entrySet()) {
-            OSql sql = (OSql) e.getValue();
+    private void onFailSQL(final Map<String, Object> SQL) {
+        for (final Map.Entry<String, Object> e : SQL.entrySet()) {
+            final OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
                     sql.rollback();
                 }
-            } catch (Throwable ignored) {
+            } catch (final Throwable ignored) {
                 //the rollback error is usually not important, rather it is the DML error that is really important
             }
         }
@@ -444,40 +444,40 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession _session) throws ProcessException {
-        boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
+        final boolean toFailureOnError = VALID_FAIL_STRATEGY[1].equals(context.getProperty(FAIL_STRATEGY).getValue());
         //create wrapped session to control list of newly created and files got from this session.
         //so transfer original input to failure will be possible
-        GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
+        final GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 
-        Map<String, Object> CTL = new AccessMap("CTL");
-        Map<String, Object> SQL = new AccessMap("SQL");
-        Map<String, Object> RECORD_READER = new AccessMap("RecordReader");
-        Map<String, Object> RECORD_SET_WRITER = new AccessMap("RecordSetWriter");
+        final Map<String, Object> CTL = new AccessMap("CTL");
+        final Map<String, Object> SQL = new AccessMap("SQL");
+        final Map<String, Object> RECORD_READER = new AccessMap("RecordReader");
+        final Map<String, Object> RECORD_SET_WRITER = new AccessMap("RecordSetWriter");
 
         try {
-            Script script = getGroovyScript(); //compilation must be moved to validation
-            Map bindings = script.getBinding().getVariables();
+            final Script script = getGroovyScript(); //compilation must be moved to validation
+            final Map bindings = script.getBinding().getVariables();
 
             bindings.clear();
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
 
             // Find the user-added properties and bind them for the script
-            for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+            for (final Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
                 if (property.getKey().isDynamic()) {
                     if (property.getKey().getName().startsWith("CTL.")) {
                         //get controller service
-                        ControllerService ctl = context.getProperty(property.getKey()).asControllerService(ControllerService.class);
+                        final ControllerService ctl = context.getProperty(property.getKey()).asControllerService(ControllerService.class);
                         CTL.put(property.getKey().getName().substring(4), ctl);
                     } else if (property.getKey().getName().startsWith("SQL.")) {
-                        DBCPService dbcp = context.getProperty(property.getKey()).asControllerService(DBCPService.class);
+                        final DBCPService dbcp = context.getProperty(property.getKey()).asControllerService(DBCPService.class);
                         SQL.put(property.getKey().getName().substring(4), dbcp);
                     } else if (property.getKey().getName().startsWith("RecordReader.")) {
                         // Get RecordReaderFactory controller service
-                        RecordReaderFactory recordReader = context.getProperty(property.getKey()).asControllerService(RecordReaderFactory.class);
+                        final RecordReaderFactory recordReader = context.getProperty(property.getKey()).asControllerService(RecordReaderFactory.class);
                         RECORD_READER.put(property.getKey().getName().substring(13), recordReader);
                     } else if (property.getKey().getName().startsWith("RecordWriter.")) {
                         // Get RecordWriterFactory controller service
-                        RecordSetWriterFactory recordWriter = context.getProperty(property.getKey()).asControllerService(RecordSetWriterFactory.class);
+                        final RecordSetWriterFactory recordWriter = context.getProperty(property.getKey()).asControllerService(RecordSetWriterFactory.class);
                         RECORD_SET_WRITER.put(property.getKey().getName().substring(13), recordWriter);
                     } else {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
@@ -505,7 +505,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
             onCommitSQL(SQL);
             session.commitAsync();
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             getLogger().error(t.toString(), t);
             onFailSQL(SQL);
             if (toFailureOnError) {
@@ -580,11 +580,11 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /** simple HashMap with exception on access of non-existent key */
     private static class AccessMap extends HashMap<String, Object> {
         private String parentKey;
-        AccessMap(String parentKey) {
+        AccessMap(final String parentKey) {
             this.parentKey = parentKey;
         }
         @Override
-        public Object get(Object key) {
+        public Object get(final Object key) {
             if (!containsKey(key)) {
                 throw new RuntimeException("The `" + parentKey + "." + key + "` not defined in processor properties");
             }

@@ -27,7 +27,7 @@ public class FlowRegistryClientLogObserver implements LogObserver {
     private final BulletinRepository bulletinRepository;
     private final FlowRegistryClientNode clientNode;
 
-    public FlowRegistryClientLogObserver(BulletinRepository bulletinRepository, FlowRegistryClientNode clientNode) {
+    public FlowRegistryClientLogObserver(final BulletinRepository bulletinRepository, final FlowRegistryClientNode clientNode) {
         this.bulletinRepository = bulletinRepository;
         this.clientNode = clientNode;
     }

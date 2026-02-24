@@ -25,15 +25,15 @@ public class UnknownServiceAddressException extends RuntimeException {
     public UnknownServiceAddressException() {
     }
 
-    public UnknownServiceAddressException(String msg) {
+    public UnknownServiceAddressException(final String msg) {
         super(msg);
     }
 
-    public UnknownServiceAddressException(Throwable cause) {
+    public UnknownServiceAddressException(final Throwable cause) {
         super(cause);
     }
 
-    public UnknownServiceAddressException(String msg, Throwable cause) {
+    public UnknownServiceAddressException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

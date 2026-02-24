@@ -37,7 +37,7 @@ public class ShowKeys extends AbstractCommand<VoidResult> {
     }
 
     @Override
-    public VoidResult execute(CommandLine cli) throws CommandException {
+    public VoidResult execute(final CommandLine cli) throws CommandException {
         println();
         for (final SessionVariable variable : SessionVariable.values()) {
             println("\t" + variable.getVariableName());

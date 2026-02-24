@@ -42,7 +42,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultSchedulingStrategy;
     }
 
-    public void setDefaultSchedulingStrategy(SchedulingStrategy defaultSchedulingStrategy) {
+    public void setDefaultSchedulingStrategy(final SchedulingStrategy defaultSchedulingStrategy) {
         this.defaultSchedulingStrategy = defaultSchedulingStrategy;
     }
 
@@ -51,7 +51,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultSchedulingPeriodMillis;
     }
 
-    public void setDefaultSchedulingPeriodMillis(long defaultSchedulingPeriodMillis) {
+    public void setDefaultSchedulingPeriodMillis(final long defaultSchedulingPeriodMillis) {
         this.defaultSchedulingPeriodMillis = defaultSchedulingPeriodMillis;
     }
 
@@ -60,7 +60,7 @@ public class SchedulingDefaults implements Serializable {
         return penalizationPeriodMillis;
     }
 
-    public void setPenalizationPeriodMillis(long penalizationPeriodMillis) {
+    public void setPenalizationPeriodMillis(final long penalizationPeriodMillis) {
         this.penalizationPeriodMillis = penalizationPeriodMillis;
     }
 
@@ -69,7 +69,7 @@ public class SchedulingDefaults implements Serializable {
         return yieldDurationMillis;
     }
 
-    public void setYieldDurationMillis(long yieldDurationMillis) {
+    public void setYieldDurationMillis(final long yieldDurationMillis) {
         this.yieldDurationMillis = yieldDurationMillis;
     }
 
@@ -78,7 +78,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultRunDurationNanos;
     }
 
-    public void setDefaultRunDurationNanos(long defaultRunDurationNanos) {
+    public void setDefaultRunDurationNanos(final long defaultRunDurationNanos) {
         this.defaultRunDurationNanos = defaultRunDurationNanos;
     }
 
@@ -87,7 +87,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultMaxConcurrentTasks;
     }
 
-    public void setDefaultMaxConcurrentTasks(String defaultMaxConcurrentTasks) {
+    public void setDefaultMaxConcurrentTasks(final String defaultMaxConcurrentTasks) {
         this.defaultMaxConcurrentTasks = defaultMaxConcurrentTasks;
     }
 
@@ -96,7 +96,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultConcurrentTasksBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultConcurrentTasksBySchedulingStrategy) : null;
     }
 
-    public void setDefaultConcurrentTasksBySchedulingStrategy(Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
+    public void setDefaultConcurrentTasksBySchedulingStrategy(final Map<String, Integer> defaultConcurrentTasksBySchedulingStrategy) {
         this.defaultConcurrentTasksBySchedulingStrategy = defaultConcurrentTasksBySchedulingStrategy;
     }
 
@@ -105,7 +105,7 @@ public class SchedulingDefaults implements Serializable {
         return defaultSchedulingPeriodsBySchedulingStrategy != null ? Collections.unmodifiableMap(defaultSchedulingPeriodsBySchedulingStrategy) : null;
     }
 
-    public void setDefaultSchedulingPeriodsBySchedulingStrategy(Map<String, String> defaultSchedulingPeriodsBySchedulingStrategy) {
+    public void setDefaultSchedulingPeriodsBySchedulingStrategy(final Map<String, String> defaultSchedulingPeriodsBySchedulingStrategy) {
         this.defaultSchedulingPeriodsBySchedulingStrategy = defaultSchedulingPeriodsBySchedulingStrategy;
     }
 

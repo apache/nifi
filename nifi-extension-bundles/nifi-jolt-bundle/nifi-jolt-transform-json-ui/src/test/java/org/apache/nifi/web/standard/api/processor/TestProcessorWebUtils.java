@@ -41,17 +41,17 @@ public class TestProcessorWebUtils {
 
     @Test
     public void testGetComponentDetailsForProcessor() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
         when(configurationContext.getComponentDetails(any(HttpServletRequestContext.class))).thenReturn(new ComponentDetails.Builder().build());
-        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext, "1", request);
+        final ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext, "1", request);
         assertNotNull(componentDetails);
 
     }
 
     @Test
     public void testApplyCacheControl() {
-        Response.ResponseBuilder response = mock(Response.ResponseBuilder.class);
+        final Response.ResponseBuilder response = mock(Response.ResponseBuilder.class);
         ProcessorWebUtils.applyCacheControl(response);
         verify(response).cacheControl(any(CacheControl.class));
     }
@@ -59,9 +59,9 @@ public class TestProcessorWebUtils {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetRequestContextForProcessor() throws NoSuchMethodException, IOException, InvocationTargetException, IllegalAccessException {
-        Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, HttpServletRequest.class);
+        final Method method = ProcessorWebUtils.class.getDeclaredMethod("getRequestContext", String.class, HttpServletRequest.class);
         method.setAccessible(true);
-        NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null, "1", mock(HttpServletRequest.class));
+        final NiFiWebRequestContext requestContext = (NiFiWebRequestContext) method.invoke(null, "1", mock(HttpServletRequest.class));
         assertInstanceOf(HttpServletRequestContext.class, requestContext);
         assertEquals("1", requestContext.getId());
 

@@ -57,7 +57,7 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_PROVIDER_ID.createOption());
         addOption(CommandOption.APPLY_PARAMETERS.createOption());

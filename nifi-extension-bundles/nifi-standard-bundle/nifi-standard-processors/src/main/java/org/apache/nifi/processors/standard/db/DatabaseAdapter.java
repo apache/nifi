@@ -58,7 +58,8 @@ public interface DatabaseAdapter {
      * @param columnForPartitioning The (optional) column name that, if provided, the limit and offset values are based on values from the column itself (rather than the row number)
      * @return A String containing a SQL SELECT statement with the given clauses applied
      */
-    default String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    default String getSelectStatement(final String tableName, final String columnNames, final String whereClause,
+            final String orderByClause, final Long limit, final Long offset, final String columnForPartitioning) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset);
     }
 
@@ -91,7 +92,7 @@ public interface DatabaseAdapter {
      * @return A String containing the parameterized jdbc SQL statement.
      * The order and number of parameters are the same as that of the provided column list.
      */
-    default String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    default String getUpsertStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
     }
 
@@ -106,11 +107,11 @@ public interface DatabaseAdapter {
      * @return A String containing the parameterized jdbc SQL statement.
      * The order and number of parameters are the same as that of the provided column list.
      */
-    default String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    default String getInsertIgnoreStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         throw new UnsupportedOperationException("UPSERT is not supported for " + getName());
     }
 
-    default String getTableAliasClause(String tableName) {
+    default String getTableAliasClause(final String tableName) {
         return "AS " + tableName;
     }
 
@@ -123,14 +124,14 @@ public interface DatabaseAdapter {
      * @param tableSchema The table schema including column information
      * @return A String containing DDL to create the specified table
      */
-    default String getCreateTableStatement(TableSchema tableSchema) {
-        StringBuilder createTableStatement = new StringBuilder();
+    default String getCreateTableStatement(final TableSchema tableSchema) {
+        final StringBuilder createTableStatement = new StringBuilder();
 
-        List<ColumnDescription> columns = tableSchema.getColumnsAsList();
-        List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
-        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
-        for (ColumnDescription column : columns) {
-            StringBuilder sb = new StringBuilder()
+        final List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+        final List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
+        final Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
+        for (final ColumnDescription column : columns) {
+            final StringBuilder sb = new StringBuilder()
                     .append(column.getColumnName())
                     .append(" ")
                     .append(getSQLForDataType(column.getDataType()))
@@ -148,12 +149,12 @@ public interface DatabaseAdapter {
         return createTableStatement.toString();
     }
 
-    default String getAlterTableStatement(String tableName, List<ColumnDescription> columnsToAdd) {
-        StringBuilder createTableStatement = new StringBuilder();
+    default String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
+        final StringBuilder createTableStatement = new StringBuilder();
 
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            StringBuilder sb = new StringBuilder()
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final StringBuilder sb = new StringBuilder()
                     .append(column.getColumnName())
                     .append(" ")
                     .append(getSQLForDataType(column.getDataType()));
@@ -177,11 +178,11 @@ public interface DatabaseAdapter {
      * @return Optional.empty() if auto commit mode does not matter and can be left as is.
      *         Return true or false to indicate whether auto commit needs to be true or false for this database.
      */
-    default Optional<Boolean> getAutoCommitForReads(Integer fetchSize) {
+    default Optional<Boolean> getAutoCommitForReads(final Integer fetchSize) {
         return Optional.empty();
     }
 
-    default String getSQLForDataType(int sqlType) {
+    default String getSQLForDataType(final int sqlType) {
         return JDBCType.valueOf(sqlType).getName();
     }
 

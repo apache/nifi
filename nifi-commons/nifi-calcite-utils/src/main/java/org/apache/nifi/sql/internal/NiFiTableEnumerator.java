@@ -160,7 +160,7 @@ public class NiFiTableEnumerator implements Enumerator<Object> {
             if (rowStream != null) {
                 try {
                     rowStream.close();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.warn("Failed to close {}", rowStream, e);
                 }
             }

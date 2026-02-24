@@ -129,10 +129,10 @@ public class FlowFileUnpackagerV2 implements FlowFileUnpackager {
             throw new EOFException();
         }
         if (firstValue == 0xff && secondValue == 0xff) {
-            int ch1 = in.read();
-            int ch2 = in.read();
-            int ch3 = in.read();
-            int ch4 = in.read();
+            final int ch1 = in.read();
+            final int ch2 = in.read();
+            final int ch3 = in.read();
+            final int ch4 = in.read();
             if ((ch1 | ch2 | ch3 | ch4) < 0) {
                 throw new EOFException();
             }

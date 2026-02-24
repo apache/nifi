@@ -39,7 +39,7 @@ public class RemoteProcessGroupPortEntity extends ComponentEntity implements Ope
         return remoteProcessGroupPort;
     }
 
-    public void setRemoteProcessGroupPort(RemoteProcessGroupPortDTO remoteProcessGroupPort) {
+    public void setRemoteProcessGroupPort(final RemoteProcessGroupPortDTO remoteProcessGroupPort) {
         this.remoteProcessGroupPort = remoteProcessGroupPort;
     }
 
@@ -54,7 +54,7 @@ public class RemoteProcessGroupPortEntity extends ComponentEntity implements Ope
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO operatePermissions) {
+    public void setOperatePermissions(final PermissionsDTO operatePermissions) {
         this.operatePermissions = operatePermissions;
     }
 }

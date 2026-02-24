@@ -319,7 +319,7 @@ public class TestAwsSecretsManagerParameterProvider {
 
         mockParameterGroups.forEach(group -> {
             final String groupName = group.getGroupName();
-            for (String secretName : Arrays.asList(secretNames.split(","))) {
+            for (final String secretName : Arrays.asList(secretNames.split(","))) {
                 if (groupName.equalsIgnoreCase(secretName)) {
                     final Map<String, String> keyValues = group.getParameters().stream().collect(Collectors.toMap(
                             param -> param.getDescriptor().getName(),

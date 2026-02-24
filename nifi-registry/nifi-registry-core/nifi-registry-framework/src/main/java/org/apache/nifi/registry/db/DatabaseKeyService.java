@@ -49,7 +49,7 @@ public class DatabaseKeyService implements KeyService {
     }
 
     @Override
-    public Key getKey(String id) {
+    public Key getKey(final String id) {
         if (id == null) {
             throw new IllegalArgumentException("Id cannot be null");
         }
@@ -62,7 +62,7 @@ public class DatabaseKeyService implements KeyService {
             KeyEntity keyEntity;
             try {
                 keyEntity = jdbcTemplate.queryForObject(sql, new KeyEntityRowMapper(), id);
-            } catch (EmptyResultDataAccessException e) {
+            } catch (final EmptyResultDataAccessException e) {
                 keyEntity = null;
             }
 
@@ -78,12 +78,12 @@ public class DatabaseKeyService implements KeyService {
     }
 
     @Override
-    public Key getOrCreateKey(String tenantIdentity) {
+    public Key getOrCreateKey(final String tenantIdentity) {
         if (tenantIdentity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }
 
-        Key key;
+        final Key key;
         writeLock.lock();
         try {
             final String selectSql = "SELECT * FROM SIGNING_KEY WHERE tenant_identity = ?";
@@ -91,7 +91,7 @@ public class DatabaseKeyService implements KeyService {
             KeyEntity existingKeyEntity;
             try {
                 existingKeyEntity = jdbcTemplate.queryForObject(selectSql, new KeyEntityRowMapper(), tenantIdentity);
-            } catch (EmptyResultDataAccessException e) {
+            } catch (final EmptyResultDataAccessException e) {
                 existingKeyEntity = null;
             }
 
@@ -117,7 +117,7 @@ public class DatabaseKeyService implements KeyService {
     }
 
     @Override
-    public void deleteKey(String tenantIdentity) {
+    public void deleteKey(final String tenantIdentity) {
         if (tenantIdentity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }

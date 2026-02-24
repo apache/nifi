@@ -105,14 +105,14 @@ public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
         ) {
             mimeType = recordWriter.getMimeType();
             recordWriter.beginRecordSet();
-            for (FileStatus status : fileStatusIterable) {
+            for (final FileStatus status : fileStatusIterable) {
                 if (determineListable(status)) {
                     recordWriter.write(createRecordForListing(status));
                     fileStatusManager.update(status);
                 }
             }
             writeResult = recordWriter.finishRecordSet();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("An error occurred while writing results", e);
         }
 

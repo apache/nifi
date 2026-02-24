@@ -117,15 +117,15 @@ public class TestRedisConnectionPoolService {
     }
 
     private JedisConnectionFactory getJedisConnectionFactory() {
-        MockProcessContext processContext = ((StandardProcessorTestRunner) testRunner).getProcessContext();
-        MockConfigurationContext configContext = new MockConfigurationContext(processContext.getControllerServices()
+        final MockProcessContext processContext = ((StandardProcessorTestRunner) testRunner).getProcessContext();
+        final MockConfigurationContext configContext = new MockConfigurationContext(processContext.getControllerServices()
                 .get(redisService.getIdentifier()).getProperties(), processContext, null);
         SSLContext providedSslContext = null;
         if (configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
             final SSLContextProvider sslContextProvider = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
             providedSslContext = sslContextProvider.createContext();
         }
-        JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, providedSslContext);
+        final JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, providedSslContext);
         return connectionFactory;
     }
 

@@ -38,7 +38,7 @@ public class TemplateNodeTest extends BxmlNodeTestBase {
     private int dataLength = 102;
     private TemplateNode templateNode;
 
-    public static int putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int nextOffset, String guid, int dataLength) {
+    public static int putNode(final TestBinaryReaderBuilder testBinaryReaderBuilder, final int nextOffset, final String guid, final int dataLength) {
         testBinaryReaderBuilder.putDWord(nextOffset);
         testBinaryReaderBuilder.putGuid(guid);
         testBinaryReaderBuilder.putDWord(dataLength);
@@ -65,7 +65,7 @@ public class TemplateNodeTest extends BxmlNodeTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         templateNode.accept(mock);
         verify(mock).visit(templateNode);
         verifyNoMoreInteractions(mock);

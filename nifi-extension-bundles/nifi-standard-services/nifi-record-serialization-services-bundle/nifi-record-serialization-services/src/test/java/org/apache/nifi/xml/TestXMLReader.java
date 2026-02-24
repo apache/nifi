@@ -336,18 +336,18 @@ class TestXMLReader {
         assertEquals(expectedRenamed, propertiesRenamed);
     }
 
-    private void configureAndEnableXmlReader(Map<PropertyDescriptor, String> xmlReaderProperties) {
-        for (Map.Entry<PropertyDescriptor, String> entry : xmlReaderProperties.entrySet()) {
+    private void configureAndEnableXmlReader(final Map<PropertyDescriptor, String> xmlReaderProperties) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : xmlReaderProperties.entrySet()) {
             runner.setProperty(reader, entry.getKey(), entry.getValue());
         }
         runner.enableControllerService(reader);
     }
 
-    private List<String> getRecords(MockFlowFile flowFile) {
+    private List<String> getRecords(final MockFlowFile flowFile) {
         return Arrays.asList(flowFile.getContent().split("\n"));
     }
 
-    private static String getSchemaText(String schemaPath) throws Exception {
+    private static String getSchemaText(final String schemaPath) throws Exception {
         return Files.readString(Paths.get(schemaPath));
     }
 }

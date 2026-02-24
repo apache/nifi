@@ -27,7 +27,7 @@ public final class DownloadableContent {
     private final String type;
     private final InputStream content;
 
-    public DownloadableContent(String filename, String type, InputStream content) {
+    public DownloadableContent(final String filename, final String type, final InputStream content) {
         this.filename = filename;
         this.type = type;
         this.content = content;

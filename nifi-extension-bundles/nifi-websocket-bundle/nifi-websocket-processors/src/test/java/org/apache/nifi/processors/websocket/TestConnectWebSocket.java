@@ -106,15 +106,15 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
         final Map<Relationship, List<MockFlowFile>> transferredFlowFiles = getAllTransferredFlowFiles(createdSessions, processor);
 
-        List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
+        final List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
         assertEquals(1, connectedFlowFiles.size());
         connectedFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, null));
 
-        List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
+        final List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
         assertEquals(2, textFlowFiles.size());
         textFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT));
 
-        List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
+        final List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
         assertEquals(3, binaryFlowFiles.size());
         binaryFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY));
 
@@ -129,7 +129,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final TestRunner webSocketListener = TestRunners.newTestRunner(ListenWebSocket.class);
 
         final String serverId = "ws-server-service";
-        JettyWebSocketServer server = new JettyWebSocketServer();
+        final JettyWebSocketServer server = new JettyWebSocketServer();
         webSocketListener.addControllerService(serverId, server);
         webSocketListener.setProperty(server, JettyWebSocketServer.PORT, "0");
         webSocketListener.enableControllerService(server);
@@ -145,10 +145,10 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final String clientId = "ws-service";
         final String endpointId = "client-1";
 
-        MockFlowFile flowFile = getFlowFile();
+        final MockFlowFile flowFile = getFlowFile();
         runner.enqueue(flowFile);
 
-        JettyWebSocketClient client = new JettyWebSocketClient();
+        final JettyWebSocketClient client = new JettyWebSocketClient();
 
         runner.addControllerService(clientId, client);
         runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));
@@ -176,10 +176,10 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final String serviceId = "ws-service";
         final String endpointId = "client-1";
 
-        MockFlowFile flowFile = getFlowFile();
+        final MockFlowFile flowFile = getFlowFile();
         runner.enqueue(flowFile);
 
-        JettyWebSocketClient service = new JettyWebSocketClient();
+        final JettyWebSocketClient service = new JettyWebSocketClient();
 
         runner.addControllerService(serviceId, service);
         runner.setProperty(service, JettyWebSocketClient.WS_URI, "ws://localhost/${dynamicUrlPart}");
@@ -205,7 +205,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final TestRunner webSocketListener = TestRunners.newTestRunner(ListenWebSocket.class);
 
         final String serverId = "ws-server-service";
-        JettyWebSocketServer server = new JettyWebSocketServer();
+        final JettyWebSocketServer server = new JettyWebSocketServer();
         webSocketListener.addControllerService(serverId, server);
         webSocketListener.setProperty(server, JettyWebSocketServer.PORT, "0");
         webSocketListener.enableControllerService(server);
@@ -221,10 +221,10 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final String clientId = "ws-service";
         final String endpointId = "client-1";
 
-        MockFlowFile flowFile = getFlowFile();
+        final MockFlowFile flowFile = getFlowFile();
         runner.enqueue(flowFile);
 
-        JettyWebSocketClient client = new JettyWebSocketClient();
+        final JettyWebSocketClient client = new JettyWebSocketClient();
 
         runner.addControllerService(clientId, client);
         runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));
@@ -263,9 +263,9 @@ class TestConnectWebSocket extends TestListenWebSocket {
     }
 
     private MockFlowFile getFlowFile() {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("dynamicUrlPart", "test");
-        MockFlowFile flowFile = new MockFlowFile(1L);
+        final MockFlowFile flowFile = new MockFlowFile(1L);
         flowFile.putAttributes(attributes);
         return flowFile;
     }

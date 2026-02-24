@@ -367,7 +367,7 @@ public class LuceneEventIndex implements EventIndex {
         final EventIndexTask indexTask = new EventIndexTask(documentQueue, indexManager, directoryManager, EventIndexTask.DEFAULT_MAX_EVENTS_PER_COMMIT, eventReporter);
 
         File lastIndexDir = null;
-        long lastEventTime = -2L;
+        final long lastEventTime = -2L;
 
         for (final CachedQuery cachedQuery : cachedQueries) {
             cachedQuery.update(events);
@@ -583,7 +583,7 @@ public class LuceneEventIndex implements EventIndex {
                 logger.debug("Cached Query {} produced {} Event IDs for {}: {}", cachedQuery, eventIds.size(), query, eventIds);
 
                 queryExecutor.submit(() -> {
-                    List<ProvenanceEventRecord> events;
+                    final List<ProvenanceEventRecord> events;
                     try {
                         events = eventStore.getEvents(eventIds, authorizer, EventTransformer.EMPTY_TRANSFORMER);
                         logger.debug("Retrieved {} of {} Events from Event Store", events.size(), eventIds.size());

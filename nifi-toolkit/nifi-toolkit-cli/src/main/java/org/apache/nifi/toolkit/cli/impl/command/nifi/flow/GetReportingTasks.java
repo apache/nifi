@@ -43,7 +43,7 @@ public class GetReportingTasks extends AbstractNiFiCommand<ReportingTasksResult>
     }
 
     @Override
-    public ReportingTasksResult doExecute(NiFiClient client, Properties properties)
+    public ReportingTasksResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final FlowClient flowClient = client.getFlowClient();
         final ReportingTasksEntity tasksEntity = flowClient.getReportingTasks();

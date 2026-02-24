@@ -102,7 +102,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return this.targetUri;
     }
 
-    public void setTargetUris(String targetUris) {
+    public void setTargetUris(final String targetUris) {
         this.targetUris = targetUris;
     }
 
@@ -150,7 +150,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -163,7 +163,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return authorizationIssues;
     }
 
-    public void setAuthorizationIssues(Collection<String> authorizationIssues) {
+    public void setAuthorizationIssues(final Collection<String> authorizationIssues) {
         this.authorizationIssues = authorizationIssues;
     }
 
@@ -176,7 +176,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -189,7 +189,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return targetSecure;
     }
 
-    public void setTargetSecure(Boolean targetSecure) {
+    public void setTargetSecure(final Boolean targetSecure) {
         this.targetSecure = targetSecure;
     }
 
@@ -202,7 +202,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return communicationsTimeout;
     }
 
-    public void setCommunicationsTimeout(String communicationsTimeout) {
+    public void setCommunicationsTimeout(final String communicationsTimeout) {
         this.communicationsTimeout = communicationsTimeout;
     }
 
@@ -215,7 +215,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return yieldDuration;
     }
 
-    public void setYieldDuration(String yieldDuration) {
+    public void setYieldDuration(final String yieldDuration) {
         this.yieldDuration = yieldDuration;
     }
 
@@ -228,7 +228,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return activeRemoteInputPortCount;
     }
 
-    public void setActiveRemoteInputPortCount(Integer activeRemoteInputPortCount) {
+    public void setActiveRemoteInputPortCount(final Integer activeRemoteInputPortCount) {
         this.activeRemoteInputPortCount = activeRemoteInputPortCount;
     }
 
@@ -241,7 +241,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return inactiveRemoteInputPortCount;
     }
 
-    public void setInactiveRemoteInputPortCount(Integer inactiveRemoteInputPortCount) {
+    public void setInactiveRemoteInputPortCount(final Integer inactiveRemoteInputPortCount) {
         this.inactiveRemoteInputPortCount = inactiveRemoteInputPortCount;
     }
 
@@ -254,7 +254,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return activeRemoteOutputPortCount;
     }
 
-    public void setActiveRemoteOutputPortCount(Integer activeRemoteOutputPortCount) {
+    public void setActiveRemoteOutputPortCount(final Integer activeRemoteOutputPortCount) {
         this.activeRemoteOutputPortCount = activeRemoteOutputPortCount;
     }
 
@@ -267,7 +267,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return inactiveRemoteOutputPortCount;
     }
 
-    public void setInactiveRemoteOutputPortCount(Integer inactiveRemoteOutputPortCount) {
+    public void setInactiveRemoteOutputPortCount(final Integer inactiveRemoteOutputPortCount) {
         this.inactiveRemoteOutputPortCount = inactiveRemoteOutputPortCount;
     }
 
@@ -280,7 +280,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return inputPortCount;
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
+    public void setInputPortCount(final Integer inputPortCount) {
         this.inputPortCount = inputPortCount;
     }
 
@@ -293,7 +293,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return outputPortCount;
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
+    public void setOutputPortCount(final Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
     }
 
@@ -306,7 +306,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return contents;
     }
 
-    public void setContents(RemoteProcessGroupContentsDTO contents) {
+    public void setContents(final RemoteProcessGroupContentsDTO contents) {
         this.contents = contents;
     }
 
@@ -321,7 +321,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return flowRefreshed;
     }
 
-    public void setFlowRefreshed(Date flowRefreshed) {
+    public void setFlowRefreshed(final Date flowRefreshed) {
         this.flowRefreshed = flowRefreshed;
     }
 
@@ -329,7 +329,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return transportProtocol;
     }
 
-    public void setTransportProtocol(String transportProtocol) {
+    public void setTransportProtocol(final String transportProtocol) {
         this.transportProtocol = transportProtocol;
     }
 
@@ -338,7 +338,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return localNetworkInterface;
     }
 
-    public void setLocalNetworkInterface(String localNetworkInterface) {
+    public void setLocalNetworkInterface(final String localNetworkInterface) {
         this.localNetworkInterface = localNetworkInterface;
     }
 
@@ -351,7 +351,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -359,7 +359,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return proxyHost;
     }
 
-    public void setProxyHost(String proxyHost) {
+    public void setProxyHost(final String proxyHost) {
         this.proxyHost = proxyHost;
     }
 
@@ -367,7 +367,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return proxyPort;
     }
 
-    public void setProxyPort(Integer proxyPort) {
+    public void setProxyPort(final Integer proxyPort) {
         this.proxyPort = proxyPort;
     }
 
@@ -375,7 +375,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return proxyUser;
     }
 
-    public void setProxyUser(String proxyUser) {
+    public void setProxyUser(final String proxyUser) {
         this.proxyUser = proxyUser;
     }
 
@@ -383,7 +383,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
         return proxyPassword;
     }
 
-    public void setProxyPassword(String proxyPassword) {
+    public void setProxyPassword(final String proxyPassword) {
         this.proxyPassword = proxyPassword;
     }
 }

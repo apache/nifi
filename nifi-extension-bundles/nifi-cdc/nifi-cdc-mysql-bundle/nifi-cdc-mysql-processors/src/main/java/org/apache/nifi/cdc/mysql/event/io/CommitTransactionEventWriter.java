@@ -29,9 +29,9 @@ import java.io.IOException;
 public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<CommitTransactionEventInfo> {
 
     @Override
-    public long writeEvent(ProcessSession session, String transitUri, CommitTransactionEventInfo eventInfo, long currentSequenceId,
-                           Relationship relationship, EventWriterConfiguration eventWriterConfiguration) {
-        long sequenceId = super.writeEvent(session, transitUri, eventInfo, currentSequenceId, relationship, eventWriterConfiguration);
+    public long writeEvent(final ProcessSession session, final String transitUri, final CommitTransactionEventInfo eventInfo, final long currentSequenceId,
+                           final Relationship relationship, final EventWriterConfiguration eventWriterConfiguration) {
+        final long sequenceId = super.writeEvent(session, transitUri, eventInfo, currentSequenceId, relationship, eventWriterConfiguration);
         // If writing one transaction per flowfile, finish the flowfile here before committing the session
         if (oneTransactionPerFlowFile(eventWriterConfiguration)) {
             super.finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, sequenceId, eventInfo, relationship);
@@ -40,7 +40,7 @@ public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<Comm
     }
 
     @Override
-    protected void writeJson(CommitTransactionEventInfo event) throws IOException {
+    protected void writeJson(final CommitTransactionEventInfo event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {
             jsonGenerator.writeStringField("database", event.getDatabaseName());

@@ -35,7 +35,7 @@ public class FlowAnalysisEndpointMerger extends AbstractSingleEntityEndpoint<Flo
     private final FlowAnalysisResultEntityMerger flowAnalysisResultEntityMerger = new FlowAnalysisResultEntityMerger();
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if ("GET".equalsIgnoreCase(method)
             && (GET_ALL_FLOW_ANALYSIS_RESULTS_URI.equals(uri.getPath()) ||  GET_GROUP_FLOW_ANALYSIS_RESULTS_URI_PATTERN.matcher(uri.getPath()).matches())
         ) {
@@ -52,10 +52,10 @@ public class FlowAnalysisEndpointMerger extends AbstractSingleEntityEndpoint<Flo
 
     @Override
     protected void mergeResponses(
-        FlowAnalysisResultEntity clientEntity,
-        Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap,
-        Set<NodeResponse> successfulResponses,
-        Set<NodeResponse> problematicResponses
+        final FlowAnalysisResultEntity clientEntity,
+        final Map<NodeIdentifier, FlowAnalysisResultEntity> entityMap,
+        final Set<NodeResponse> successfulResponses,
+        final Set<NodeResponse> problematicResponses
     ) {
         flowAnalysisResultEntityMerger.merge(clientEntity, entityMap);
     }

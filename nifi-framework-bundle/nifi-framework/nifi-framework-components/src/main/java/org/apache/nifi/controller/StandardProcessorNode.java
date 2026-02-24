@@ -233,7 +233,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
-                DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
+                final DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
                 setSchedulingStrategy(dsc.strategy());
                 setSchedulingPeriod(dsc.period());
                 setMaxConcurrentTasks(dsc.concurrentTasks());
@@ -1173,8 +1173,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     .explanation("Scheduling Period is not a valid cron expression")
                                     .build());
                         }
-                        break;
                     }
+                    break;
                     case TIMER_DRIVEN: {
                         try {
                             final long schedulingNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(evaluatedSchedulingPeriod),
@@ -1199,8 +1199,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     .explanation("Scheduling Period is not a valid time duration")
                                     .build());
                         }
-                        break;
                     }
+                    break;
                 }
             }
         }
@@ -1489,8 +1489,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor, new StandardLoggingContext(StandardProcessorNode.this));
         LOG.debug("Starting {}", this);
 
-        ScheduledState currentState;
-        boolean starting;
+        final ScheduledState currentState;
+        final boolean starting;
         synchronized (this) {
             currentState = this.scheduledState.get();
 
@@ -1722,7 +1722,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 } finally {
                     schedulingAgentCallback.onTaskComplete();
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
                 procLog.error("Failed to properly initialize Processor. If still scheduled to run, NiFi will attempt to "
                     + "initialize and run the Processor again after the 'Administrative Yield Duration' has elapsed. Failure is due to " + cause, cause);
@@ -1758,7 +1758,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try {
             // Trigger the task in a background thread.
             taskFuture = schedulingAgentCallback.scheduleTask(startupTask);
-        } catch (RejectedExecutionException rejectedExecutionException) {
+        } catch (final RejectedExecutionException rejectedExecutionException) {
             final ValidationState validationState = getValidationState();
             LOG.error("Unable to start {}.  Last known validation state was {} : {}", this, validationState, validationState.getValidationErrors(), rejectedExecutionException);
             return;
@@ -1771,7 +1771,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         // itself by placing it into an AtomicReference.
         final AtomicReference<Future<?>> futureRef = new AtomicReference<>();
         final Runnable monitoringTask = () -> {
-            Future<?> monitoringFuture = futureRef.get();
+            final Future<?> monitoringFuture = futureRef.get();
             if (monitoringFuture == null) { // Future is not yet available. Just return and wait for the next invocation.
                 return;
             }
@@ -1967,7 +1967,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setRetryCount(Integer retryCount) {
+    public void setRetryCount(final Integer retryCount) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
@@ -1980,7 +1980,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    public void setRetriedRelationships(final Set<String> retriedRelationships) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
@@ -2002,7 +2002,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+    public void setBackoffMechanism(final BackoffMechanism backoffMechanism) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
@@ -2015,18 +2015,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    public void setMaxBackoffPeriod(final String maxBackoffPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
-        if (maxBackoffPeriod == null) {
-            maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
-        }
-        final long backoffNanos = FormatUtils.getTimeDuration(maxBackoffPeriod, TimeUnit.NANOSECONDS);
+        final String effectiveBackoffPeriod = (maxBackoffPeriod != null) ? maxBackoffPeriod : DEFAULT_MAX_BACKOFF_PERIOD;
+        final long backoffNanos = FormatUtils.getTimeDuration(effectiveBackoffPeriod, TimeUnit.NANOSECONDS);
         if (backoffNanos < 0) {
             throw new IllegalArgumentException("Cannot set Max Backoff Period of " + this + " to negative value: " + backoffNanos + " nanos");
         }
-        this.maxBackoffPeriod = maxBackoffPeriod;
+        this.maxBackoffPeriod = effectiveBackoffPeriod;
     }
 
     @Override

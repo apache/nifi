@@ -33,7 +33,7 @@ public class FlowRegistryClientsEndpointMerger implements EndpointResponseMerger
     public static final String CONTROLLER_REGISTRY_URI = "/nifi-api/controller/registry-clients";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && (FLOW_REGISTRY_URI.equals(uri.getPath()) || CONTROLLER_REGISTRY_URI.equals(uri.getPath()));
     }
 

@@ -122,7 +122,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
@@ -140,13 +140,13 @@ public class ScriptedReportingTask extends AbstractReportingTask {
         scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
-            String scriptPath = scriptingComponentHelper.getScriptPath();
+            final String scriptPath = scriptingComponentHelper.getScriptPath();
             if (scriptToRun == null && scriptPath != null) {
                 try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new ProcessException(ioe);
         }
         scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
@@ -161,15 +161,15 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 scriptingComponentHelper.createResources();
             }
         }
-        ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
-        ComponentLog log = getLogger();
+        final ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+        final ComponentLog log = getLogger();
         if (scriptRunner == null) {
             // No engine available so nothing more to do here
             return;
         }
 
         try {
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             try {
                 Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
                 if (bindings == null) {
@@ -180,7 +180,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 bindings.put("vmMetrics", vmMetrics);
 
                 // Find the user-added properties and set them on the script
-                for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+                for (final Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
                     if (property.getKey().isDynamic()) {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
@@ -191,7 +191,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                 scriptRunner.run(bindings);
                 scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
 
-            } catch (ScriptException e) {
+            } catch (final ScriptException e) {
                 // Create a new ScriptRunner to replace the one that caused an exception
                 scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
 

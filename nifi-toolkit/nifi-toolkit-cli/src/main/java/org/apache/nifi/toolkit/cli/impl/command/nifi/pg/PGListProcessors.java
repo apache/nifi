@@ -50,7 +50,7 @@ public class PGListProcessors extends AbstractNiFiCommand<ProcessorsResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.FILTER.createOption());
     }
@@ -65,11 +65,11 @@ public class PGListProcessors extends AbstractNiFiCommand<ProcessorsResult> {
             throw new CommandException("Filter must be either 'source' or 'destination'");
         }
 
-        ProcessGroupFlowEntity entity = client.getFlowClient().getProcessGroup(pgId);
+        final ProcessGroupFlowEntity entity = client.getFlowClient().getProcessGroup(pgId);
         final FlowDTO flow = entity.getProcessGroupFlow().getFlow();
         final Set<ProcessorEntity> processors = new HashSet<>(getProcessors(client, flow, filter));
 
-        ProcessorsEntity processorsEntity = new ProcessorsEntity();
+        final ProcessorsEntity processorsEntity = new ProcessorsEntity();
         processorsEntity.setProcessors(processors);
 
         return new ProcessorsResult(getResultType(properties), processorsEntity);
@@ -77,10 +77,10 @@ public class PGListProcessors extends AbstractNiFiCommand<ProcessorsResult> {
 
     private Set<ProcessorEntity> getProcessors(final NiFiClient client, final FlowDTO flow, final String filter) throws NiFiClientException, IOException {
         final Set<ProcessorEntity> processors = new HashSet<>();
-        for (ProcessGroupEntity pg : flow.getProcessGroups()) {
+        for (final ProcessGroupEntity pg : flow.getProcessGroups()) {
             processors.addAll(getProcessors(client, pg, filter));
         }
-        for (ProcessorEntity processor : flow.getProcessors()) {
+        for (final ProcessorEntity processor : flow.getProcessors()) {
             addProcessor(processors, flow, processor, filter);
         }
         return processors;

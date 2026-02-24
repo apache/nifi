@@ -177,7 +177,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
     }
 
     @Override
-    protected void addRequiredPropertiesToRunner(TestRunner runner) {
+    protected void addRequiredPropertiesToRunner(final TestRunner runner) {
     }
 
     @Test
@@ -413,7 +413,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
-        MockFlowFile flowFile = successes.get(0);
+        final MockFlowFile flowFile = successes.get(0);
         assertEquals("blob-bucket-2", flowFile.getAttribute(BUCKET_ATTR));
         assertEquals("blob-key-2", flowFile.getAttribute(KEY_ATTR));
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
@@ -455,7 +455,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         final List<MockFlowFile> successes = runner.getFlowFilesForRelationship(ListGCSBucket.REL_SUCCESS);
 
-        MockFlowFile flowFile = successes.get(0);
+        final MockFlowFile flowFile = successes.get(0);
         assertEquals("blob-bucket-1", flowFile.getAttribute(BUCKET_ATTR));
         assertEquals("blob-key-1", flowFile.getAttribute(KEY_ATTR));
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
@@ -814,7 +814,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.enqueue("test");
         runner.run();
 
-        Storage.BlobListOption option = argumentCaptor.getValue();
+        final Storage.BlobListOption option = argumentCaptor.getValue();
         assertEquals(Storage.BlobListOption.versions(true), option);
     }
 
@@ -952,7 +952,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(ListGCSBucket.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(ListGCSBucket.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListGCSBucket.TRACKING_STATE_CACHE.getName()),
                 Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListGCSBucket.TRACKING_TIME_WINDOW.getName()),
@@ -981,14 +981,14 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private void setUpResetTrackingTest(AllowableValue listingStrategy) throws Exception {
+    private void setUpResetTrackingTest(final AllowableValue listingStrategy) throws Exception {
         runner.setProperty(ListGCSBucket.LISTING_STRATEGY, listingStrategy);
         runner.setProperty(ListGCSBucket.PREFIX, "prefix1");
 
         if (listingStrategy == ListGCSBucket.BY_TIMESTAMPS) {
             mockStateManager.setState(Map.of(ListGCSBucket.CURRENT_TIMESTAMP, Long.toString(TIMESTAMP), ListGCSBucket.CURRENT_KEY_PREFIX + "0", "file"), Scope.CLUSTER);
         } else if (listingStrategy == ListGCSBucket.BY_ENTITIES) {
-            String serviceId = "DistributedMapCacheClient";
+            final String serviceId = "DistributedMapCacheClient";
             when(mockCache.getIdentifier()).thenReturn(serviceId);
             runner.addControllerService(serviceId, mockCache);
             runner.enableControllerService(mockCache);

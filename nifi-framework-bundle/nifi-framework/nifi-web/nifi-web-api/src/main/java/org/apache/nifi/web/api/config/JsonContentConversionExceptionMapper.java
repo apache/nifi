@@ -35,7 +35,7 @@ public class JsonContentConversionExceptionMapper implements ExceptionMapper<Inv
     private static final Logger logger = LoggerFactory.getLogger(JsonContentConversionExceptionMapper.class);
 
     @Override
-    public Response toResponse(InvalidFormatException ex) {
+    public Response toResponse(final InvalidFormatException ex) {
         // log the error
         logger.info("{}. Returning {} response.", ex, Response.Status.BAD_REQUEST);
 
@@ -43,24 +43,24 @@ public class JsonContentConversionExceptionMapper implements ExceptionMapper<Inv
             logger.debug(StringUtils.EMPTY, ex);
         }
 
-        String value = ex.getValue().toString();
+        final String value = ex.getValue().toString();
         String propName = "field";
 
         if (ex.getPath() != null && !ex.getPath().isEmpty()) {
-            JsonMappingException.Reference path = ex.getPath().get(ex.getPath().size() - 1);
+            final JsonMappingException.Reference path = ex.getPath().get(ex.getPath().size() - 1);
             if (path != null) {
                 propName = path.getFieldName();
             }
         }
 
-        String errorMessage = "The provided " + propName + " value '" + sanitizeMessage(value) + "' is not of required type " + ex.getTargetType();
+        final String errorMessage = "The provided " + propName + " value '" + sanitizeMessage(value) + "' is not of required type " + ex.getTargetType();
 
         logger.error(errorMessage);
 
         return Response.status(Response.Status.BAD_REQUEST).entity(errorMessage).type("text/plain").build();
     }
 
-    private static String sanitizeMessage(String input) {
+    private static String sanitizeMessage(final String input) {
         return EscapeUtils.escapeHtml(input);
     }
 }

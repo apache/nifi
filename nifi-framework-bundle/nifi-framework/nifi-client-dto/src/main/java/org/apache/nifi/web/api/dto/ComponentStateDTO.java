@@ -40,7 +40,7 @@ public class ComponentStateDTO {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -53,7 +53,7 @@ public class ComponentStateDTO {
         return stateDescription;
     }
 
-    public void setStateDescription(String stateDescription) {
+    public void setStateDescription(final String stateDescription) {
         this.stateDescription = stateDescription;
     }
 
@@ -66,7 +66,7 @@ public class ComponentStateDTO {
         return clusterState;
     }
 
-    public void setClusterState(StateMapDTO clusterState) {
+    public void setClusterState(final StateMapDTO clusterState) {
         this.clusterState = clusterState;
     }
 
@@ -79,7 +79,7 @@ public class ComponentStateDTO {
         return localState;
     }
 
-    public void setLocalState(StateMapDTO localState) {
+    public void setLocalState(final StateMapDTO localState) {
         this.localState = localState;
     }
 

@@ -24,7 +24,7 @@ import org.apache.nifi.minifi.toolkit.schema.common.BaseSchemaWithId;
 import java.util.Map;
 
 public class FunnelSchema extends BaseSchemaWithId {
-    public FunnelSchema(Map map) {
+    public FunnelSchema(final Map map) {
         super(map, "Funnel(id: {id})");
     }
 }

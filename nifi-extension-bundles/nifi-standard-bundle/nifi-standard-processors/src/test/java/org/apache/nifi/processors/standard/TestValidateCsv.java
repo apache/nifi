@@ -50,12 +50,12 @@ public class TestValidateCsv {
         runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
 
-        MockFlowFile validFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).getFirst();
+        final MockFlowFile validFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).getFirst();
         validFF.assertAttributeEquals("count.valid.lines", "2");
         validFF.assertAttributeEquals("count.total.lines", "3");
         validFF.assertContentEquals("2,bar\n3,baz");
 
-        MockFlowFile invalidFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
+        final MockFlowFile invalidFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
         invalidFF.assertAttributeEquals("count.invalid.lines", "1");
         invalidFF.assertAttributeEquals("count.total.lines", "3");
         invalidFF.assertAttributeEquals("validation.error.message", "unexpected end of line while reading quoted column on line 1");
@@ -81,7 +81,7 @@ public class TestValidateCsv {
         runner.assertTransferCount(ValidateCsv.REL_VALID, 0);
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
 
-        MockFlowFile invalidFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
+        final MockFlowFile invalidFF = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
         invalidFF.assertAttributeNotExists("count.invalid.lines");
         invalidFF.assertAttributeNotExists("count.total.lines");
         invalidFF.assertAttributeEquals("validation.error.message", "unexpected end of line while reading quoted column on line 1");
@@ -298,7 +298,7 @@ public class TestValidateCsv {
         runner.enqueue("FlowFile Random Data", attributeMap);
         runner.run();
         runner.assertAllFlowFilesTransferred(ValidateCsv.REL_INVALID, 1);
-        MockFlowFile flowfile = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
+        final MockFlowFile flowfile = runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).getFirst();
         flowfile.assertAttributeEquals("validation.error.message",
                 "No schema or CSV header could be identified.");
         flowfile.assertContentEquals("FlowFile Random Data");
@@ -400,7 +400,7 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
         runner.setProperty(ValidateCsv.HEADER, "false");
 
-        int hashcode = "test".hashCode();
+        final int hashcode = "test".hashCode();
         runner.setProperty(ValidateCsv.SCHEMA, "RequireHashCode(" + hashcode + "), RequireSubStr(\"test\")");
 
         runner.enqueue("test,test");
@@ -450,7 +450,7 @@ public class TestValidateCsv {
         runner.setProperty(ValidateCsv.SCHEMA, "${schema}");
         runner.assertValid();
 
-        int hashcode = "test".hashCode();
+        final int hashcode = "test".hashCode();
         runner.setEnvironmentVariableValue("schema", "RequireHashCode(" + hashcode + "), RequireSubStr(\"test\")");
         runner.setEnvironmentVariableValue("comma", ",");
         runner.setEnvironmentVariableValue("quote", "\"");

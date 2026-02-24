@@ -70,14 +70,14 @@ public class StringUtils {
         if (separator == null) {
             return EMPTY;
         }
-        int pos = str.indexOf(separator);
+        final int pos = str.indexOf(separator);
         if (pos == -1) {
             return EMPTY;
         }
         return str.substring(pos + separator.length());
     }
 
-    public static String join(final Collection<?> collection, String delimiter) {
+    public static String join(final Collection<?> collection, final String delimiter) {
         if (collection == null || collection.isEmpty()) {
             return EMPTY;
         }
@@ -188,30 +188,28 @@ public class StringUtils {
      * @return left padded String or original String if no padding is necessary,
      *  {@code null} if null String input
      */
-    public static String leftPad(final String str, final int size, String padStr) {
+    public static String leftPad(final String str, final int size, final String padStr) {
         if (str == null) {
             return null;
         }
-        if (isEmpty(padStr)) {
-            padStr = SPACE;
-        }
-        final int padLen = padStr.length();
+        final String effectivePadStr = isEmpty(padStr) ? SPACE : padStr;
+        final int padLen = effectivePadStr.length();
         final int strLen = str.length();
         final int pads = size - strLen;
         if (pads <= 0) {
             return str; // returns original String when possible
         }
         if (padLen == 1 && pads <= PAD_LIMIT) {
-            return leftPad(str, size, padStr.charAt(0));
+            return leftPad(str, size, effectivePadStr.charAt(0));
         }
 
         if (pads == padLen) {
-            return padStr.concat(str);
+            return effectivePadStr.concat(str);
         } else if (pads < padLen) {
-            return padStr.substring(0, pads).concat(str);
+            return effectivePadStr.substring(0, pads).concat(str);
         } else {
             final char[] padding = new char[pads];
-            final char[] padChars = padStr.toCharArray();
+            final char[] padChars = effectivePadStr.toCharArray();
             for (int i = 0; i < pads; i++) {
                 padding[i] = padChars[i % padLen];
             }
@@ -300,30 +298,28 @@ public class StringUtils {
      * @return right padded String or original String if no padding is necessary,
      *  {@code null} if null String input
      */
-    public static String rightPad(final String str, final int size, String padStr) {
+    public static String rightPad(final String str, final int size, final String padStr) {
         if (str == null) {
             return null;
         }
-        if (isEmpty(padStr)) {
-            padStr = SPACE;
-        }
-        final int padLen = padStr.length();
+        final String effectivePadStr = isEmpty(padStr) ? SPACE : padStr;
+        final int padLen = effectivePadStr.length();
         final int strLen = str.length();
         final int pads = size - strLen;
         if (pads <= 0) {
             return str; // returns original String when possible
         }
         if (padLen == 1 && pads <= PAD_LIMIT) {
-            return rightPad(str, size, padStr.charAt(0));
+            return rightPad(str, size, effectivePadStr.charAt(0));
         }
 
         if (pads == padLen) {
-            return str.concat(padStr);
+            return str.concat(effectivePadStr);
         } else if (pads < padLen) {
-            return str.concat(padStr.substring(0, pads));
+            return str.concat(effectivePadStr.substring(0, pads));
         } else {
             final char[] padding = new char[pads];
-            final char[] padChars = padStr.toCharArray();
+            final char[] padChars = effectivePadStr.toCharArray();
             for (int i = 0; i < pads; i++) {
                 padding[i] = padChars[i % padLen];
             }
@@ -500,11 +496,11 @@ public class StringUtils {
      * @param input the input string
      * @return the titlecased string
      */
-    public static String toTitleCase(String input) {
+    public static String toTitleCase(final String input) {
         if (input == null || isBlank(input)) {
             return "";
         }
-        List<String> elements = Arrays.asList(input.trim().toLowerCase().split("\\s"));
+        final List<String> elements = Arrays.asList(input.trim().toLowerCase().split("\\s"));
         return elements.stream()
                 .filter(word -> !isBlank(word))
                 .map(word -> Character.toTitleCase(word.charAt(0)) + word.substring(1))

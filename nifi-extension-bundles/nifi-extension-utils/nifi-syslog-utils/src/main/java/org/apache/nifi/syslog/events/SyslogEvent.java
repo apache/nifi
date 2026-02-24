@@ -117,57 +117,57 @@ public class SyslogEvent {
             this.valid = false;
         }
 
-        public Builder priority(String priority) {
+        public Builder priority(final String priority) {
             this.priority = priority;
             return this;
         }
 
-        public Builder severity(String severity) {
+        public Builder severity(final String severity) {
             this.severity = severity;
             return this;
         }
 
-        public Builder facility(String facility) {
+        public Builder facility(final String facility) {
             this.facility = facility;
             return this;
         }
 
-        public Builder version(String version) {
+        public Builder version(final String version) {
             this.version = version;
             return this;
         }
 
-        public Builder timestamp(String timestamp) {
+        public Builder timestamp(final String timestamp) {
             this.timeStamp = timestamp;
             return this;
         }
 
-        public Builder hostname(String hostName) {
+        public Builder hostname(final String hostName) {
             this.hostName = hostName;
             return this;
         }
 
-        public Builder sender(String sender) {
+        public Builder sender(final String sender) {
             this.sender = sender;
             return this;
         }
 
-        public Builder msgBody(String msgBody) {
+        public Builder msgBody(final String msgBody) {
             this.msgBody = msgBody;
             return this;
         }
 
-        public Builder fullMessage(String fullMessage) {
+        public Builder fullMessage(final String fullMessage) {
             this.fullMessage = fullMessage;
             return this;
         }
 
-        public Builder rawMessage(byte[] rawMessage) {
+        public Builder rawMessage(final byte[] rawMessage) {
             this.rawMessage = rawMessage;
             return this;
         }
 
-        public Builder valid(boolean valid) {
+        public Builder valid(final boolean valid) {
             this.valid = valid;
             return this;
         }

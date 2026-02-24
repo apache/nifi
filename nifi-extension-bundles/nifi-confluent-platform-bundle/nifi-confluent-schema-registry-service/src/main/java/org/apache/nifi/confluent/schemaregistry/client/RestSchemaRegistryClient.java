@@ -178,25 +178,25 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
         // GET /schemas/ids/{int: id}/subjects
-        JsonNode subjectsJson;
+        final JsonNode subjectsJson;
         try {
             subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
 
             if (subjectsJson != null) {
                 final ArrayNode subjectsList = (ArrayNode) subjectsJson;
-                for (JsonNode subject: subjectsList) {
+                for (final JsonNode subject: subjectsList) {
                     final String searchName = subject.asText();
                     try {
                         // get complete schema (name + id + version) using the subject name API
                         completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
                         break;
-                    } catch (SchemaNotFoundException e) {
+                    } catch (final SchemaNotFoundException e) {
                         logger.debug("Could not find schema in registry by subject name {}", searchName, e);
                     }
                 }
             }
 
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             logger.debug("Could not find schema metadata in registry by id and subjects in: {}", schemaPath);
         }
 
@@ -204,16 +204,16 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         // GET /schemas/ids/{int: id}/versions
         if (completeSchema == null) {
             try {
-                JsonNode subjectsVersions = fetchJsonResponse(schemaPath + "/versions", "schema name");
+                final JsonNode subjectsVersions = fetchJsonResponse(schemaPath + "/versions", "schema name");
 
                 if (subjectsVersions != null) {
                     final ArrayNode subjectsVersionsList = (ArrayNode) subjectsVersions;
                     // we want to make sure we get the latest version
                     int maxVersion = 0;
                     String subjectName = null;
-                    for (JsonNode subjectVersion: subjectsVersionsList) {
-                        int currentVersion = subjectVersion.get(VERSION_FIELD_NAME).asInt();
-                        String currentSubjectName = subjectVersion.get(SUBJECT_FIELD_NAME).asText();
+                    for (final JsonNode subjectVersion: subjectsVersionsList) {
+                        final int currentVersion = subjectVersion.get(VERSION_FIELD_NAME).asInt();
+                        final String currentSubjectName = subjectVersion.get(SUBJECT_FIELD_NAME).asText();
                         if (currentVersion > maxVersion) {
                             maxVersion = currentVersion;
                             subjectName = currentSubjectName;
@@ -224,7 +224,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                         return createRecordSchema(subjectName, maxVersion, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
                     }
                 }
-            } catch (SchemaNotFoundException e) {
+            } catch (final SchemaNotFoundException e) {
                 logger.debug("Could not find schema metadata in registry by id and versions in: {}", schemaPath);
             }
         }
@@ -234,16 +234,16 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             try {
                 final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
                 final ArrayNode subjectsAllList = (ArrayNode) subjectsAllJson;
-                for (JsonNode subject: subjectsAllList) {
+                for (final JsonNode subject: subjectsAllList) {
                     try {
                         final String searchName = subject.asText();
                         completeSchema = postJsonResponse("/subjects/" + searchName, schemaJson, "schema id: " + schemaId);
                         break;
-                    } catch (SchemaNotFoundException ignored) {
+                    } catch (final SchemaNotFoundException ignored) {
                         // Trying next schema location
                     }
                 }
-            } catch (SchemaNotFoundException e) {
+            } catch (final SchemaNotFoundException e) {
                 logger.debug("Could not find schema metadata in registry by iterating through subjects");
             }
         }
@@ -258,7 +258,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public SchemaDefinition getSchemaDefinition(SchemaIdentifier identifier) throws SchemaNotFoundException {
+    public SchemaDefinition getSchemaDefinition(final SchemaIdentifier identifier) throws SchemaNotFoundException {
         final JsonNode schemaJson;
         String subject = null;
         Integer version = null;
@@ -267,26 +267,26 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         // Using schemaVersionId, because that is what is set by ConfluentEncodedSchemaReferenceReader.
         // probably identifier field should be used, but I'm not changing ConfluentEncodedSchemaReferenceReader for backward compatibility reasons.
         if (identifier.getSchemaVersionId().isPresent()) {
-            long schemaId = identifier.getSchemaVersionId().getAsLong();
-            String schemaPath = getSchemaPath(schemaId);
+            final long schemaId = identifier.getSchemaVersionId().getAsLong();
+            final String schemaPath = getSchemaPath(schemaId);
             schemaJson = fetchJsonResponse(schemaPath, "id " + schemaId);
         } else if (identifier.getName().isPresent()) {
             // If we have a name or (name and version), get the schema by those
             subject = identifier.getName().get();
             version = identifier.getVersion().isPresent() ? identifier.getVersion().getAsInt() : null;
             // if no version was specified, the latest version will be used. See @getSubjectPath method.
-            String pathSuffix = getSubjectPath(subject, version);
+            final String pathSuffix = getSubjectPath(subject, version);
             schemaJson = fetchJsonResponse(pathSuffix, "name " + subject);
         } else {
             throw new SchemaNotFoundException("Schema identifier must contain either a version identifier or a subject name");
         }
 
         // Extract schema information
-        String schemaText = schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText();
-        String schemaTypeText = schemaJson.get(SCHEMA_TYPE_FIELD_NAME).asText();
-        SchemaType schemaType = toSchemaType(schemaTypeText);
+        final String schemaText = schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText();
+        final String schemaTypeText = schemaJson.get(SCHEMA_TYPE_FIELD_NAME).asText();
+        final SchemaType schemaType = toSchemaType(schemaTypeText);
 
-        long schemaId;
+        final long schemaId;
         if (schemaJson.has(ID_FIELD_NAME)) {
             schemaId = schemaJson.get(ID_FIELD_NAME).asLong();
         } else {
@@ -302,27 +302,27 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         }
 
         // Build schema identifier with all available information
-        SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
+        final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
             .id(schemaId)
             .name(subject)
             .version(version)
             .build();
 
         // Process references if present
-        Map<String, SchemaDefinition> references = new HashMap<>();
+        final Map<String, SchemaDefinition> references = new HashMap<>();
         if (schemaJson.has(REFERENCES_FIELD_NAME) && !schemaJson.get(REFERENCES_FIELD_NAME).isNull()) {
-            ArrayNode refsArray = (ArrayNode) schemaJson.get(REFERENCES_FIELD_NAME);
-            for (JsonNode ref : refsArray) {
-                String refName = ref.get(REFERENCE_NAME_FIELD_NAME).asText();
-                String refSubject = ref.get(REFERENCE_SUBJECT_FIELD_NAME).asText();
-                int refVersion = ref.get(REFERENCE_VERSION_FIELD_NAME).asInt();
+            final ArrayNode refsArray = (ArrayNode) schemaJson.get(REFERENCES_FIELD_NAME);
+            for (final JsonNode ref : refsArray) {
+                final String refName = ref.get(REFERENCE_NAME_FIELD_NAME).asText();
+                final String refSubject = ref.get(REFERENCE_SUBJECT_FIELD_NAME).asText();
+                final int refVersion = ref.get(REFERENCE_VERSION_FIELD_NAME).asInt();
 
                 // Recursively get referenced schema
-                SchemaIdentifier refId = SchemaIdentifier.builder()
+                final SchemaIdentifier refId = SchemaIdentifier.builder()
                     .name(refSubject)
                     .version(refVersion)
                     .build();
-                SchemaDefinition refSchema = getSchemaDefinition(refId);
+                final SchemaDefinition refSchema = getSchemaDefinition(refId);
                 references.put(refName, refSchema);
             }
         }
@@ -479,11 +479,11 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                 + " from any of the Confluent Schema Registry URL's provided; failure response message: " + errorMessage);
     }
 
-    private String getTrimmedBase(String baseUrl) {
+    private String getTrimmedBase(final String baseUrl) {
         return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
-    private String getPath(String pathSuffix) {
+    private String getPath(final String pathSuffix) {
         return pathSuffix.startsWith("/") ? pathSuffix : "/" + pathSuffix;
     }
 

@@ -94,7 +94,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("distributed-map-cache-service", PROP_DISTRIBUTED_CACHE_SERVICE.getName());
         config.renameProperty("character-encoding", CHARACTER_ENCODING.getName());
     }
@@ -117,7 +117,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
 
         try {
             return Optional.ofNullable(cache.get(key, keySerializer, valueDeserializer));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Error while trying to get the value from distributed map cache with key = {}", key, e);
             return Optional.empty();
         }

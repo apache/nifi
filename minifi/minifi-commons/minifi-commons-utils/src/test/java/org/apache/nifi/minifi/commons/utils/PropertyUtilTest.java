@@ -38,7 +38,7 @@ class PropertyUtilTest {
 
     @MethodSource("arguments")
     @ParameterizedTest(name = "{index} => requesting {0} from {1} should return {2}")
-    void test(String propertyKey, Map<String, String> propertiesMap, String expectedValue) {
+    void test(final String propertyKey, final Map<String, String> propertiesMap, final String expectedValue) {
         assertEquals(Optional.ofNullable(expectedValue), resolvePropertyValue(propertyKey, propertiesMap));
     }
 

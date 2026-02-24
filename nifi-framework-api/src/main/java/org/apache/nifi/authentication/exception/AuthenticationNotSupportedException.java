@@ -21,11 +21,11 @@ package org.apache.nifi.authentication.exception;
  */
 public class AuthenticationNotSupportedException extends RuntimeException {
 
-    public AuthenticationNotSupportedException(String message, Throwable cause) {
+    public AuthenticationNotSupportedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public AuthenticationNotSupportedException(String message) {
+    public AuthenticationNotSupportedException(final String message) {
         super(message);
     }
 

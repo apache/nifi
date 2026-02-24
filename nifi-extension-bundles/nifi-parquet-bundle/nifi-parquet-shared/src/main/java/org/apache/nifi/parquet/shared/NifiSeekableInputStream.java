@@ -38,7 +38,7 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
     }
 
     @Override
-    public void seek(long newPos) throws IOException {
+    public void seek(final long newPos) throws IOException {
         final long currentPos = getPos();
         if (newPos == currentPos) {
             return;
@@ -60,7 +60,7 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
     }
 
     @Override
-    public synchronized void mark(int readlimit) {
+    public synchronized void mark(final int readlimit) {
         throw new UnsupportedOperationException("Mark/reset is not supported");
     }
 

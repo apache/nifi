@@ -69,7 +69,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+    public long getTotalActiveQueuedDuration(final long fromTimestamp) {
         return priorityQueue.getTotalQueuedDuration(fromTimestamp);
     }
 
@@ -114,7 +114,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
         return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -124,7 +124,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
         return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -134,7 +134,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
         return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -183,7 +183,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public FlowFileQueueContents packageForRebalance(String newPartitionName) {
+    public FlowFileQueueContents packageForRebalance(final String newPartitionName) {
         return priorityQueue.packageForRebalance(newPartitionName);
     }
 

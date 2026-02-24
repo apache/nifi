@@ -120,7 +120,7 @@ public class NarBundleExtractor implements BundleExtractor {
                     final ExtensionManifest extensionManifest = docsParser.parse(docsInputStream);
                     builder.addExtensions(extensionManifest.getExtensions());
                     builder.systemApiVersion(extensionManifest.getSystemApiVersion());
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new BundleException("Unable to obtain extension info for bundle due to: " + e.getMessage(), e);
                 }
             } else {
@@ -140,7 +140,7 @@ public class NarBundleExtractor implements BundleExtractor {
             final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
 
             return new BundleIdentifier(groupId, artifactId, version);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundleException("Unable to obtain bundle coordinate due to: " + e.getMessage(), e);
         }
     }
@@ -158,7 +158,7 @@ public class NarBundleExtractor implements BundleExtractor {
                 dependencyCoordinate = null;
             }
             return dependencyCoordinate;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundleException("Unable to obtain bundle coordinate for dependency due to: " + e.getMessage(), e);
         }
     }
@@ -184,14 +184,14 @@ public class NarBundleExtractor implements BundleExtractor {
             buildInfo.setBuildFlags(NA);
             return buildInfo;
 
-        } catch (DateTimeParseException e) {
+        } catch (final DateTimeParseException e) {
             throw new BundleException("Unable to parse " + NarManifestEntry.BUILD_TIMESTAMP.getManifestName(), e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundleException("Unable to create build info for bundle due to: " + e.getMessage(), e);
         }
     }
 
-    public boolean isBlank(String value) {
+    public boolean isBlank(final String value) {
         return (value == null || value.isBlank());
     }
 
@@ -199,7 +199,7 @@ public class NarBundleExtractor implements BundleExtractor {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
         int nRead;
-        byte[] data = new byte[16384];
+        final byte[] data = new byte[16384];
         while ((nRead = input.read(data, 0, data.length)) != -1) {
             buffer.write(data, 0, nRead);
         }

@@ -103,7 +103,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
     }
 
     @Override
-    public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         if (schemaIdentifier.getName().isPresent()) {
             return retrieveSchemaByName(schemaIdentifier);
         } else {
@@ -128,7 +128,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
                 final DatabaseMetaData databaseMetaData = conn.getMetaData();
                 return getRecordSchemaFromMetadata(databaseMetaData, tableName);
             }
-        } catch (SQLException sqle) {
+        } catch (final SQLException sqle) {
             throw new IOException("Error retrieving schema for table " + schemaName.get(), sqle);
         }
     }
@@ -153,7 +153,7 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         // COLUMN_DEF must be read first to work around Oracle bug, see NIFI-4279 for details
         final String defaultValue = columnResultSet.getString("COLUMN_DEF");
         final String columnName = columnResultSet.getString("COLUMN_NAME");
-        String typeName = columnResultSet.getString("TYPE_NAME");
+        final String typeName = columnResultSet.getString("TYPE_NAME");
         final int dataType;
         if (typeName.equalsIgnoreCase("bool")) {
             dataType = 16;

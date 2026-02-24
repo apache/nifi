@@ -57,7 +57,7 @@ public class ConnectionSchemaV1 extends BaseSchema implements ConvertableSchema<
     private String flowfileExpiration = DEFAULT_FLOWFILE_EXPIRATION;
     private String queuePrioritizerClass;
 
-    public ConnectionSchemaV1(Map map) {
+    public ConnectionSchemaV1(final Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, CONNECTIONS_KEY);
         sourceName = getRequiredKeyAsType(map, SOURCE_NAME_KEY, String.class, CONNECTIONS_KEY);
         sourceRelationshipName = getRequiredKeyAsType(map, SOURCE_RELATIONSHIP_NAME_KEY, String.class, CONNECTIONS_KEY);
@@ -71,7 +71,7 @@ public class ConnectionSchemaV1 extends BaseSchema implements ConvertableSchema<
 
     @Override
     public ConnectionSchema convert() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(NAME_KEY, name);
         if (StringUtil.isNullOrEmpty(sourceRelationshipName)) {
             map.put(SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>());

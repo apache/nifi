@@ -30,7 +30,7 @@ public class CreateActiveRequestEntity extends Entity {
         return processGroupId;
     }
 
-    public void setProcessGroupId(String processGroupId) {
+    public void setProcessGroupId(final String processGroupId) {
         this.processGroupId = processGroupId;
     }
 
@@ -40,7 +40,7 @@ public class CreateActiveRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

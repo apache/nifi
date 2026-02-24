@@ -35,7 +35,7 @@ public class FlowAnalysisRuleUtils {
      * @param group a ProcessGroup
      * @return a map of VersionedComponents indexed by their id
      */
-    public static Map<String, VersionedComponent> gatherComponents(VersionedProcessGroup group) {
+    public static Map<String, VersionedComponent> gatherComponents(final VersionedProcessGroup group) {
         return Stream.of(
                 group.getFunnels().stream(),
                 group.getProcessors().stream(),
@@ -52,7 +52,7 @@ public class FlowAnalysisRuleUtils {
      * @param violations flow analysis violations
      * @return a collection of Flow Analysis Rule GroupAnalysisResult
      */
-    public static Collection<GroupAnalysisResult> convertToGroupAnalysisResults(VersionedProcessGroup pg, Collection<ConnectionViolation> violations) {
+    public static Collection<GroupAnalysisResult> convertToGroupAnalysisResults(final VersionedProcessGroup pg, final Collection<ConnectionViolation> violations) {
         if (!violations.isEmpty()) {
             final Map<String, VersionedComponent> components = FlowAnalysisRuleUtils.gatherComponents(pg);
             final Collection<GroupAnalysisResult> results = new HashSet<>();

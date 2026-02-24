@@ -40,7 +40,7 @@ public class ControllerServicesEntity extends Entity {
         return controllerServices;
     }
 
-    public void setControllerServices(Set<ControllerServiceEntity> controllerServices) {
+    public void setControllerServices(final Set<ControllerServiceEntity> controllerServices) {
         this.controllerServices = controllerServices;
     }
 
@@ -55,7 +55,7 @@ public class ControllerServicesEntity extends Entity {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 

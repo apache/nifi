@@ -59,7 +59,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -72,7 +72,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -85,7 +85,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -100,7 +100,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
     /**
@@ -112,7 +112,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return persistsState;
     }
 
-    public void setPersistsState(Boolean persistsState) {
+    public void setPersistsState(final Boolean persistsState) {
         this.persistsState = persistsState;
     }
 
@@ -125,7 +125,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -138,7 +138,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -151,7 +151,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return isExtensionMissing;
     }
 
-    public void setExtensionMissing(Boolean extensionMissing) {
+    public void setExtensionMissing(final Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
     }
 
@@ -164,7 +164,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return multipleVersionsAvailable;
     }
 
-    public void setMultipleVersionsAvailable(Boolean multipleVersionsAvailable) {
+    public void setMultipleVersionsAvailable(final Boolean multipleVersionsAvailable) {
         this.multipleVersionsAvailable = multipleVersionsAvailable;
     }
 
@@ -191,7 +191,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -204,7 +204,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return enforcementPolicy;
     }
 
-    public void setEnforcementPolicy(String enforcementPolicy) {
+    public void setEnforcementPolicy(final String enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
     }
 
@@ -217,7 +217,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -230,7 +230,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -259,7 +259,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -270,7 +270,7 @@ public class FlowAnalysisRuleDTO extends ComponentDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 

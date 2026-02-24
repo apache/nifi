@@ -85,8 +85,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      * @param remoteProcessGroupEntities groups
      * @return dtos
      */
-    public Set<RemoteProcessGroupEntity> populateRemainingRemoteProcessGroupEntitiesContent(Set<RemoteProcessGroupEntity> remoteProcessGroupEntities) {
-        for (RemoteProcessGroupEntity remoteProcessEntities : remoteProcessGroupEntities) {
+    public Set<RemoteProcessGroupEntity> populateRemainingRemoteProcessGroupEntitiesContent(final Set<RemoteProcessGroupEntity> remoteProcessGroupEntities) {
+        for (final RemoteProcessGroupEntity remoteProcessEntities : remoteProcessGroupEntities) {
             populateRemainingRemoteProcessGroupEntityContent(remoteProcessEntities);
         }
         return remoteProcessGroupEntities;
@@ -98,7 +98,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      * @param remoteProcessGroupEntity groups
      * @return dtos
      */
-    public RemoteProcessGroupEntity populateRemainingRemoteProcessGroupEntityContent(RemoteProcessGroupEntity remoteProcessGroupEntity) {
+    public RemoteProcessGroupEntity populateRemainingRemoteProcessGroupEntityContent(final RemoteProcessGroupEntity remoteProcessGroupEntity) {
         remoteProcessGroupEntity.setUri(generateResourceUri("remote-process-groups", remoteProcessGroupEntity.getId()));
         return remoteProcessGroupEntity;
     }
@@ -427,17 +427,17 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             }
     )
     public Response updateRemoteProcessGroupOutputPort(
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id.",
                     required = true
             )
             @PathParam("id") String id,
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group port id.",
                     required = true
             )
             @PathParam("port-id") String portId,
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group port.",
                     required = true
             ) RemoteProcessGroupPortEntity requestRemoteProcessGroupPortEntity) {
@@ -490,7 +490,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
 
                     // build the response entity
-                    RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
+                    final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
                     entity.setRevision(updatedRevision);
                     entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
@@ -622,17 +622,17 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             }
     )
     public Response updateRemoteProcessGroupOutputPortRunStatus(
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id.",
                     required = true
             )
             @PathParam("id") String id,
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group port id.",
                     required = true
             )
             @PathParam("port-id") String portId,
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group port.",
                     required = true
             ) RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
@@ -673,7 +673,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
 
                     // build the response entity
-                    RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
+                    final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
                     entity.setRevision(updatedRevision);
                     entity.setRemoteProcessGroupPort(controllerResponse.getRemoteProcessGroupPort());
 
@@ -708,7 +708,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             }
     )
     public Response updateRemoteProcessGroup(
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id.",
                     required = true
             )
@@ -753,7 +753,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRemoteProcessGroupEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getRemoteProcessGroup(id);
+                    final Authorizable authorizable = lookup.getRemoteProcessGroup(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroup(requestRemoteProcessGroup),
@@ -827,7 +827,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             }
     )
     public Response updateRemoteProcessGroupRunStatus(
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id.",
                     required = true
             )
@@ -860,7 +860,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRemotePortRunStatusEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getRemoteProcessGroup(id);
+                    final Authorizable authorizable = lookup.getRemoteProcessGroup(id);
                     OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroup(createDTOWithDesiredRunStatus(id, requestRemotePortRunStatusEntity)),
@@ -900,7 +900,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             }
     )
     public Response updateRemoteProcessGroupRunStatuses(
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -943,8 +943,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
 
                     authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
 
-                    Set<Authorizable> remoteProcessGroups = processGroup.getEncapsulatedRemoteProcessGroups();
-                    for (Authorizable remoteProcessGroup : remoteProcessGroups) {
+                    final Set<Authorizable> remoteProcessGroups = processGroup.getEncapsulatedRemoteProcessGroups();
+                    for (final Authorizable remoteProcessGroup : remoteProcessGroups) {
                         OperationAuthorizable.authorizeOperation(remoteProcessGroup, authorizer, NiFiUserUtils.getNiFiUser());
                     }
                 },
@@ -956,9 +956,9 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                         populateRemainingRemoteProcessGroupEntityContent(entity);
                     });
 
-                    RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
+                    final RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
 
-                    Response response = generateOkResponse(remoteProcessGroupsEntity).build();
+                    final Response response = generateOkResponse(remoteProcessGroupsEntity).build();
 
                     return response;
                 }
@@ -1025,17 +1025,17 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         return dto;
     }
 
-    private boolean shouldTransmit(RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
+    private boolean shouldTransmit(final RemotePortRunStatusEntity requestRemotePortRunStatusEntity) {
         return "TRANSMITTING".equals(requestRemotePortRunStatusEntity.getState());
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

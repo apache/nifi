@@ -207,7 +207,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean maxValueColumnNames = validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).isSet();
@@ -242,7 +242,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         if (!setupComplete.get()) {
             super.setup(context);
         }
-        ProcessSession session = sessionFactory.createSession();
+        final ProcessSession session = sessionFactory.createSession();
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
         final ComponentLog logger = getLogger();
@@ -268,7 +268,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 ? context.getProperty(TRANS_ISOLATION_LEVEL).asInteger()
                 : null;
 
-        SqlWriter sqlWriter = configureSqlWriter(session, context);
+        final SqlWriter sqlWriter = configureSqlWriter(session, context);
 
         final StateMap stateMap;
         try {
@@ -286,10 +286,10 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
         //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
         for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
-            String maxPropKey = maxProp.getKey().toLowerCase();
-            String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
+            final String maxPropKey = maxProp.getKey().toLowerCase();
+            final String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
             if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
-                String newMaxPropValue;
+                final String newMaxPropValue;
                 // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
                 // the value has been stored under a key that is only the column name. Fall back to check the column name,
                 // but store the new initial max value under the fully-qualified key.
@@ -303,7 +303,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             }
         }
 
-        List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
+        final List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
 
@@ -357,7 +357,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             if (fetchSize != null && fetchSize > 0) {
                 try {
                     st.setFetchSize(fetchSize);
-                } catch (SQLException se) {
+                } catch (final SQLException se) {
                     // Not all drivers support this, just log the error (at debug level) and move on
                     logger.debug("Cannot set fetch size to {} due to {}", fetchSize, se.getLocalizedMessage(), se);
                 }
@@ -369,11 +369,11 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
             String jdbcURL = "DBCPService";
             try {
-                DatabaseMetaData databaseMetaData = con.getMetaData();
+                final DatabaseMetaData databaseMetaData = con.getMetaData();
                 if (databaseMetaData != null) {
                     jdbcURL = databaseMetaData.getURL();
                 }
-            } catch (SQLException ignored) {
+            } catch (final SQLException ignored) {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
@@ -389,7 +389,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 try {
                     con.setAutoCommit(setAutoCommitValue);
                     logger.debug("Driver connection changed to setAutoCommit({})", setAutoCommitValue);
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     logger.debug("Failed to setAutoCommit({}) due to {}: {}",
                             setAutoCommitValue, ex.getClass().getName(), ex.getMessage());
                 }
@@ -408,11 +408,11 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         fileToProcess = session.write(fileToProcess, out -> {
                             try {
                                 nrOfRows.set(sqlWriter.writeResultSet(resultSet, out, getLogger(), maxValCollector));
-                            } catch (Exception e) {
+                            } catch (final Exception e) {
                                 throw new ProcessException("Error during database query or conversion of records.", e);
                             }
                         });
-                    } catch (ProcessException e) {
+                    } catch (final ProcessException e) {
                         // Add flowfile to results before rethrowing so it will be removed from session in outer catch
                         resultSetFlowFiles.add(fileToProcess);
                         throw e;
@@ -479,10 +479,10 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         final Map<String, String> newAttributesMap = new HashMap<>();
 
                         // Add maximum values as attributes
-                        for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
+                        for (final Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
                             // Get just the column name from the key
-                            String key = entry.getKey();
-                            String colName = key.substring(key.lastIndexOf(NAMESPACE_DELIMITER) + NAMESPACE_DELIMITER.length());
+                            final String key = entry.getKey();
+                            final String colName = key.substring(key.lastIndexOf(NAMESPACE_DELIMITER) + NAMESPACE_DELIMITER.length());
                             newAttributesMap.put("maxvalue." + colName, entry.getValue());
                         }
 
@@ -501,7 +501,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     try {
                         con.setAutoCommit(originalAutoCommit);
                         logger.debug("Driver connection reset to original setAutoCommit({})", originalAutoCommit);
-                    } catch (Exception ex) {
+                    } catch (final Exception ex) {
                         logger.debug("Failed to setAutoCommit({}) due to {}: {}",
                                 originalAutoCommit, ex.getClass().getName(), ex.getMessage());
                     }
@@ -520,7 +520,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             try {
                 // Update the state
                 session.setState(statePropertyMap, Scope.CLUSTER);
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 getLogger().error("{} failed to update State Manager, maximum observed values will not be recorded", this, ioe);
             }
 
@@ -529,7 +529,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         OBSOLETE_MAX_ROWS_PER_FLOW_FILE.forEach(obsoleteName -> config.renameProperty(obsoleteName, MAX_ROWS_PER_FLOW_FILE.getName()));
         config.renameProperty("qdbt-output-batch-size", OUTPUT_BATCH_SIZE.getName());
@@ -567,12 +567,12 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final StringBuilder query = new StringBuilder();
         query.append(statementResponse.sql());
 
-        List<String> whereClauses = new ArrayList<>();
+        final List<String> whereClauses = new ArrayList<>();
         // Check state map for last max values
         if (stateMap != null && !stateMap.isEmpty() && maxValColumnNames != null) {
             IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
-                String colName = maxValColumnNames.get(index);
-                String maxValueKey = getStateKey(tableName, colName);
+                final String colName = maxValColumnNames.get(index);
+                final String maxValueKey = getStateKey(tableName, colName);
                 String maxValue = stateMap.get(maxValueKey);
                 if (StringUtils.isEmpty(maxValue)) {
                     // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
@@ -581,7 +581,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                     maxValue = stateMap.get(colName.toLowerCase());
                 }
                 if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(maxValueKey);
+                    final Integer type = columnTypeMap.get(maxValueKey);
                     if (type == null) {
                         // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled.
                         throw new IllegalArgumentException("No column type found for: " + colName);
@@ -609,7 +609,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final Map<String, String> originalState;
         String tableName;
 
-        public MaxValueResultSetRowCollector(String tableName, Map<String, String> stateMap) {
+        public MaxValueResultSetRowCollector(final String tableName, final Map<String, String> stateMap) {
             this.originalState = stateMap;
 
             this.newColMap = new HashMap<>();
@@ -619,7 +619,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         }
 
         @Override
-        public void processRow(ResultSet resultSet) throws IOException {
+        public void processRow(final ResultSet resultSet) throws IOException {
             if (resultSet == null) {
                 return;
             }
@@ -629,9 +629,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 final int nrOfColumns = meta.getColumnCount();
                 if (nrOfColumns > 0) {
                     for (int i = 1; i <= nrOfColumns; i++) {
-                        String colName = meta.getColumnName(i).toLowerCase();
-                        String fullyQualifiedMaxValueKey = getStateKey(tableName, colName);
-                        Integer type = columnTypeMap.get(fullyQualifiedMaxValueKey);
+                        final String colName = meta.getColumnName(i).toLowerCase();
+                        final String fullyQualifiedMaxValueKey = getStateKey(tableName, colName);
+                        final Integer type = columnTypeMap.get(fullyQualifiedMaxValueKey);
                         // Skip any columns we're not keeping track of or whose value is null
                         if (type == null || resultSet.getObject(i) == null) {
                             continue;
@@ -643,13 +643,13 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         if (StringUtils.isEmpty(maxValueString)) {
                             maxValueString = newColMap.get(colName);
                         }
-                        String newMaxValueString = getMaxValueFromRow(resultSet, i, type, maxValueString);
+                        final String newMaxValueString = getMaxValueFromRow(resultSet, i, type, maxValueString);
                         if (newMaxValueString != null) {
                             newColMap.put(fullyQualifiedMaxValueKey, newMaxValueString);
                         }
                     }
                 }
-            } catch (ParseException | SQLException e) {
+            } catch (final ParseException | SQLException e) {
                 throw new IOException(e);
             }
         }

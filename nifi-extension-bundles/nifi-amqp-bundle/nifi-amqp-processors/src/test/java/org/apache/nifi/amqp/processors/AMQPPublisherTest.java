@@ -46,7 +46,7 @@ public class AMQPPublisherTest {
     @Test
     public void failPublishIfChannelClosed() {
         assertThrows(AMQPRollbackException.class, () -> {
-            Connection conn = new TestConnection(null, null);
+            final Connection conn = new TestConnection(null, null);
             try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
                 conn.close();
                 sender.publish("oleg".getBytes(), null, "foo", "");
@@ -57,7 +57,7 @@ public class AMQPPublisherTest {
     @Test
     public void failPublishIfChannelFails() {
         assertThrows(AMQPException.class, () -> {
-            TestConnection conn = new TestConnection(null, null);
+            final TestConnection conn = new TestConnection(null, null);
             try (AMQPPublisher sender = new AMQPPublisher(conn, mock(ComponentLog.class))) {
                 ((TestChannel) conn.createChannel()).corruptChannel();
                 sender.publish("oleg".getBytes(), null, "foo", "");
@@ -67,12 +67,12 @@ public class AMQPPublisherTest {
 
     @Test
     public void validateSuccessfulPublishingAndRouting() throws Exception {
-        Map<String, List<String>> routingMap = new HashMap<>();
+        final Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1", "queue2"));
-        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+        final Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("myExchange", "key1");
 
-        Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
             sender.publish("hello".getBytes(), null, "key1", "myExchange");
@@ -86,14 +86,14 @@ public class AMQPPublisherTest {
 
     @Test
     public void validateSuccessfulPublishingAndUndeliverableRoutingKey() throws Exception {
-        Map<String, List<String>> routingMap = new HashMap<>();
+        final Map<String, List<String>> routingMap = new HashMap<>();
         routingMap.put("key1", Arrays.asList("queue1", "queue2"));
-        Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
+        final Map<String, String> exchangeToRoutingKeymap = new HashMap<>();
         exchangeToRoutingKeymap.put("myExchange", "key1");
 
-        Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
+        final Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        ReturnListener retListener = mock(ReturnListener.class);
+        final ReturnListener retListener = mock(ReturnListener.class);
         connection.createChannel().addReturnListener(retListener);
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, new MockComponentLog("foo", ""))) {

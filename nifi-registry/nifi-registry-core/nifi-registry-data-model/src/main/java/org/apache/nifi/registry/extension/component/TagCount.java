@@ -31,7 +31,7 @@ public class TagCount implements Comparable<TagCount> {
         return tag;
     }
 
-    public void setTag(String tag) {
+    public void setTag(final String tag) {
         this.tag = tag;
     }
 
@@ -40,24 +40,24 @@ public class TagCount implements Comparable<TagCount> {
         return count;
     }
 
-    public void setCount(int count) {
+    public void setCount(final int count) {
         this.count = count;
     }
 
     @Override
-    public int compareTo(TagCount o) {
+    public int compareTo(final TagCount o) {
         return Comparator.comparing(TagCount::getTag).compare(this, o);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TagCount tagCount = (TagCount) o;
+        final TagCount tagCount = (TagCount) o;
         return count == tagCount.count && Objects.equals(tag, tagCount.tag);
     }
 

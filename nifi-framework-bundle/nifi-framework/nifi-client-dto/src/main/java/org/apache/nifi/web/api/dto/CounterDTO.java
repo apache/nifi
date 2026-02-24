@@ -40,7 +40,7 @@ public class CounterDTO implements Cloneable {
         return context;
     }
 
-    public void setContext(String context) {
+    public void setContext(final String context) {
         this.context = context;
     }
 
@@ -53,7 +53,7 @@ public class CounterDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -66,7 +66,7 @@ public class CounterDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -79,7 +79,7 @@ public class CounterDTO implements Cloneable {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(final String value) {
         this.value = value;
     }
 
@@ -89,7 +89,7 @@ public class CounterDTO implements Cloneable {
         return valueCount;
     }
 
-    public void setValueCount(Long valueCount) {
+    public void setValueCount(final Long valueCount) {
         this.valueCount = valueCount;
     }
 

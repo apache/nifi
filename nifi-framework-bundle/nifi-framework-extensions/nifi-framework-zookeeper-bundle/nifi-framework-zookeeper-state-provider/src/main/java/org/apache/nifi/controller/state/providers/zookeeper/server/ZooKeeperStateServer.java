@@ -116,7 +116,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             final int listenBacklog = quorumPeerConfig.getClientPortListenBacklog();
             connectionFactory.configure(getAvailableSocketAddress(config), config.getMaxClientCnxns(), listenBacklog, quorumPeerConfig.isSslQuorum());
             connectionFactory.startup(embeddedZkServer);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.warn("Embedded ZooKeeper Server interrupted", e);
         } catch (final IOException ioe) {
@@ -179,7 +179,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             if (connectionFactory != null) {
                 try {
                     connectionFactory.shutdown();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.warn("Failed to shutdown Connection Factory", e);
                 }
             }
@@ -187,7 +187,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
             if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
                 try {
                     embeddedZkServer.shutdown();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.warn("Failed to shutdown Embedded Zookeeper", e);
                 }
             }
@@ -235,7 +235,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
      * @throws IOException If configuration files fail to parse.
      * @throws ConfigException If secure configuration is not as expected. Check administration documentation.
      */
-    private static QuorumPeerConfig reconcileProperties(NiFiProperties niFiProperties, Properties zkProperties) throws IOException, ConfigException {
+    private static QuorumPeerConfig reconcileProperties(final NiFiProperties niFiProperties, final Properties zkProperties) throws IOException, ConfigException {
         QuorumPeerConfig peerConfig = new QuorumPeerConfig();
         peerConfig.parseProperties(zkProperties);
 
@@ -279,9 +279,9 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         return peerConfig;
     }
 
-    private static boolean isZooKeeperConfigSecure(QuorumPeerConfig peerConfig) throws ConfigException {
-        InetSocketAddress secureAddress = peerConfig.getSecureClientPortAddress();
-        InetSocketAddress insecureAddress = peerConfig.getClientPortAddress();
+    private static boolean isZooKeeperConfigSecure(final QuorumPeerConfig peerConfig) throws ConfigException {
+        final InetSocketAddress secureAddress = peerConfig.getSecureClientPortAddress();
+        final InetSocketAddress insecureAddress = peerConfig.getClientPortAddress();
 
         if (secureAddress == null && insecureAddress == null) {
             throw new ConfigException("No clientAddress or secureClientAddress is set in zookeeper.properties");
@@ -296,7 +296,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
      * @return True if NiFi has TLS configuration and the property nifi.zookeeper.client.secure=true, otherwise false or configuration exception
      * @throws ConfigException If nifi.zookeeper.client.secure=true but no TLS configuration is present
      */
-    private static boolean isNiFiConfigSecureForZooKeeper(NiFiProperties niFiProperties) throws ConfigException {
+    private static boolean isNiFiConfigSecureForZooKeeper(final NiFiProperties niFiProperties) throws ConfigException {
         final boolean isTlsConfigPresent = niFiProperties.isZooKeeperTlsConfigurationPresent() || niFiProperties.isTlsConfigurationPresent();
         final boolean isZooKeeperClientSecure = niFiProperties.isZooKeeperClientSecure();
 
@@ -307,11 +307,11 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         return (isZooKeeperClientSecure && isTlsConfigPresent);
     }
 
-    private static void ensureOnlySecurePortsAreEnabled(QuorumPeerConfig config, Properties zkProperties) {
+    private static void ensureOnlySecurePortsAreEnabled(final QuorumPeerConfig config, final Properties zkProperties) {
 
         // Remove plaintext client ports and addresses and warn if set, see NIFI-7203:
-        InetSocketAddress clientPort = config.getClientPortAddress();
-        InetSocketAddress secureClientPort = config.getSecureClientPortAddress();
+        final InetSocketAddress clientPort = config.getClientPortAddress();
+        final InetSocketAddress secureClientPort = config.getSecureClientPortAddress();
 
         if (clientPort != null && secureClientPort != null) {
             zkProperties.remove("clientPort");
@@ -321,7 +321,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         }
     }
 
-    private static void setTlsProperties(Properties zooKeeperProperties, X509Util zooKeeperUtil, NiFiProperties niFiProperties) {
+    private static void setTlsProperties(final Properties zooKeeperProperties, final X509Util zooKeeperUtil, final NiFiProperties niFiProperties) {
         zooKeeperProperties.setProperty(zooKeeperUtil.getSslKeystoreLocationProperty(),
                 ZooKeeperClientConfig.getPreferredProperty(niFiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, NiFiProperties.SECURITY_KEYSTORE));
         zooKeeperProperties.setProperty(zooKeeperUtil.getSslKeystorePasswdProperty(),
@@ -336,7 +336,7 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
                 ZooKeeperClientConfig.getPreferredProperty(niFiProperties, NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
     }
 
-    private static String getSecurePort(QuorumPeerConfig peerConfig) throws ConfigException {
+    private static String getSecurePort(final QuorumPeerConfig peerConfig) throws ConfigException {
         final InetSocketAddress secureClientAddress = peerConfig.getSecureClientPortAddress();
         String secureClientPort = null;
 
@@ -352,11 +352,11 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         }
     }
 
-    private static InetSocketAddress getAvailableSocketAddress(ServerConfig config) {
+    private static InetSocketAddress getAvailableSocketAddress(final ServerConfig config) {
         return config.getSecureClientPortAddress() != null ? config.getSecureClientPortAddress() : config.getClientPortAddress();
     }
 
-    private static InetSocketAddress getAvailableSocketAddress(QuorumPeerConfig quorumConfig) {
+    private static InetSocketAddress getAvailableSocketAddress(final QuorumPeerConfig quorumConfig) {
         final ServerConfig serverConfig = new ServerConfig();
         serverConfig.readFrom(quorumConfig);
         return getAvailableSocketAddress(serverConfig);

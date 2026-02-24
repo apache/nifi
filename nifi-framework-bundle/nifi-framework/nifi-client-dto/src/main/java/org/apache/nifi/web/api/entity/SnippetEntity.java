@@ -39,7 +39,7 @@ public class SnippetEntity extends Entity {
         return snippet;
     }
 
-    public void setSnippet(SnippetDTO snippet) {
+    public void setSnippet(final SnippetDTO snippet) {
         this.snippet = snippet;
     }
 
@@ -49,7 +49,7 @@ public class SnippetEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

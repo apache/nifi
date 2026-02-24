@@ -68,7 +68,7 @@ public class SiteInfoProvider {
             controller = apiClient.getController(clusterUrls);
             try {
                 connectedClusterUrl = new URI(apiClient.getBaseUrl());
-            } catch (URISyntaxException e) {
+            } catch (final URISyntaxException e) {
                 // This should not happen since apiClient has successfully communicated with this URL.
                 throw new RuntimeException("Failed to parse connected cluster URL due to " + e);
             }
@@ -204,7 +204,7 @@ public class SiteInfoProvider {
     }
 
     private String getPortIdentifier(final String portName, final Map<String, String> portMap) throws IOException {
-        String identifier;
+        final String identifier;
         remoteInfoReadLock.lock();
         try {
             identifier = portMap.get(portName);
@@ -232,7 +232,7 @@ public class SiteInfoProvider {
      * @return an active cluster URL
      */
     public URI getActiveClusterUrl() throws IOException {
-        URI resultClusterUrl;
+        final URI resultClusterUrl;
         remoteInfoReadLock.lock();
         try {
             resultClusterUrl = this.activeClusterUrl;
@@ -253,7 +253,7 @@ public class SiteInfoProvider {
         }
     }
 
-    public void setClusterUrls(Set<String> clusterUrls) {
+    public void setClusterUrls(final Set<String> clusterUrls) {
         this.clusterUrls = clusterUrls;
     }
 
@@ -261,27 +261,27 @@ public class SiteInfoProvider {
         return clusterUrls;
     }
 
-    public void setSslContext(SSLContext sslContext) {
+    public void setSslContext(final SSLContext sslContext) {
         this.sslContext = sslContext;
     }
 
-    public void setConnectTimeoutMillis(int connectTimeoutMillis) {
+    public void setConnectTimeoutMillis(final int connectTimeoutMillis) {
         this.connectTimeoutMillis = connectTimeoutMillis;
     }
 
-    public void setReadTimeoutMillis(int readTimeoutMillis) {
+    public void setReadTimeoutMillis(final int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
     }
 
-    public void setCachedContentsExpirationMillis(long expirationMillis) {
+    public void setCachedContentsExpirationMillis(final long expirationMillis) {
         this.cachedContentExpirationMillis = expirationMillis;
     }
 
-    public void setProxy(HttpProxy proxy) {
+    public void setProxy(final HttpProxy proxy) {
         this.proxy = proxy;
     }
 
-    public void setLocalAddress(InetAddress localAddress) {
+    public void setLocalAddress(final InetAddress localAddress) {
         this.localAddress = localAddress;
     }
 }

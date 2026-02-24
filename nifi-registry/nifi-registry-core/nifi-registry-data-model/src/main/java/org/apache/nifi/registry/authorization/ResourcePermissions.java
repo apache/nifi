@@ -49,7 +49,7 @@ public class ResourcePermissions {
         return buckets;
     }
 
-    public void setBuckets(Permissions buckets) {
+    public void setBuckets(final Permissions buckets) {
         this.buckets = buckets;
     }
 
@@ -60,7 +60,7 @@ public class ResourcePermissions {
         return tenants;
     }
 
-    public void setTenants(Permissions tenants) {
+    public void setTenants(final Permissions tenants) {
         this.tenants = tenants;
     }
 
@@ -71,7 +71,7 @@ public class ResourcePermissions {
         return policies;
     }
 
-    public void setPolicies(Permissions policies) {
+    public void setPolicies(final Permissions policies) {
         this.policies = policies;
     }
 
@@ -82,12 +82,12 @@ public class ResourcePermissions {
         return proxy;
     }
 
-    public void setProxy(Permissions proxy) {
+    public void setProxy(final Permissions proxy) {
         this.proxy = proxy;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -95,7 +95,7 @@ public class ResourcePermissions {
             return false;
         }
 
-        ResourcePermissions that = (ResourcePermissions) o;
+        final ResourcePermissions that = (ResourcePermissions) o;
 
         if (buckets != null ? !buckets.equals(that.buckets) : that.buckets != null) {
             return false;

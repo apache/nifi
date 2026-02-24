@@ -36,7 +36,7 @@ public class LongRunningTaskMonitor implements Runnable {
     private final EventReporter eventReporter;
     private final long thresholdMillis;
 
-    public LongRunningTaskMonitor(FlowManager flowManager, EventReporter eventReporter, long thresholdMillis) {
+    public LongRunningTaskMonitor(final FlowManager flowManager, final EventReporter eventReporter, final long thresholdMillis) {
         this.flowManager = flowManager;
         this.eventReporter = eventReporter;
         this.thresholdMillis = thresholdMillis;
@@ -50,17 +50,17 @@ public class LongRunningTaskMonitor implements Runnable {
         int activeThreadCount = 0;
         int longRunningThreadCount = 0;
 
-        ThreadDetails threadDetails = captureThreadDetails();
+        final ThreadDetails threadDetails = captureThreadDetails();
 
-        for (ProcessorNode processorNode : flowManager.getRootGroup().findAllProcessors()) {
-            List<ActiveThreadInfo> activeThreads = processorNode.getActiveThreads(threadDetails);
+        for (final ProcessorNode processorNode : flowManager.getRootGroup().findAllProcessors()) {
+            final List<ActiveThreadInfo> activeThreads = processorNode.getActiveThreads(threadDetails);
             activeThreadCount += activeThreads.size();
 
-            for (ActiveThreadInfo activeThread : activeThreads) {
+            for (final ActiveThreadInfo activeThread : activeThreads) {
                 if (activeThread.getActiveMillis() > thresholdMillis) {
                     longRunningThreadCount++;
 
-                    String taskSeconds = String.format("%,d seconds", activeThread.getActiveMillis() / 1000);
+                    final String taskSeconds = String.format("%,d seconds", activeThread.getActiveMillis() / 1000);
 
                     getLogger().warn(String.format("Long running task detected on processor [id=%s, name=%s, type=%s]. Task time: %s. Stack trace:\n%s",
                             processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getStackTrace()));

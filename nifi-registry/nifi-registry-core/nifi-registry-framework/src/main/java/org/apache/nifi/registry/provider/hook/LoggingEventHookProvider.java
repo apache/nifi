@@ -31,7 +31,7 @@ public class LoggingEventHookProvider
     static final Logger LOGGER = LoggerFactory.getLogger(LoggingEventHookProvider.class);
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         // Nothing to do
     }
 

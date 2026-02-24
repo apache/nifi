@@ -36,7 +36,7 @@ public class Restriction {
         return requiredPermission;
     }
 
-    public void setRequiredPermission(String requiredPermission) {
+    public void setRequiredPermission(final String requiredPermission) {
         this.requiredPermission = requiredPermission;
     }
 
@@ -45,7 +45,7 @@ public class Restriction {
         return explanation;
     }
 
-    public void setExplanation(String explanation) {
+    public void setExplanation(final String explanation) {
         this.explanation = explanation;
     }
 

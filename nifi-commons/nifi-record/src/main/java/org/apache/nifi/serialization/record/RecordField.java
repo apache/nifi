@@ -114,7 +114,7 @@ public class RecordField {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -126,7 +126,7 @@ public class RecordField {
             return false;
         }
 
-        RecordField other = (RecordField) obj;
+        final RecordField other = (RecordField) obj;
         return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue)
             && nullable == other.nullable;
     }

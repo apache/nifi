@@ -341,7 +341,7 @@ public class GetShopify extends AbstractProcessor {
                     if (response != null) {
                         response.close();
                     }
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     getLogger().error("Could not close http response", e);
                 }
             }
@@ -350,7 +350,7 @@ public class GetShopify extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("store-domain", STORE_DOMAIN.getName());
         config.renameProperty("access-token", ACCESS_TOKEN.getName());
         config.renameProperty("api-version", API_VERSION.getName());
@@ -362,8 +362,8 @@ public class GetShopify extends AbstractProcessor {
         config.renameProperty("web-client-service-provider", WEB_CLIENT_PROVIDER.getName());
     }
 
-    private String getPageCursor(HttpResponseEntity response) {
-        Optional<String> link = response.headers().getFirstHeader("Link");
+    private String getPageCursor(final HttpResponseEntity response) {
+        final Optional<String> link = response.headers().getFirstHeader("Link");
         String s = null;
         if (link.isPresent()) {
             final Matcher matcher = CURSOR_PATTERN.matcher(link.get());
@@ -396,27 +396,27 @@ public class GetShopify extends AbstractProcessor {
     }
 
     private Map<String, String> getStateMap(final ProcessSession session) {
-        StateMap state;
+        final StateMap state;
         try {
             state = session.getState(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("State retrieval failed", e);
         }
         return state.toMap();
     }
 
-    void updateState(ProcessSession session, Map<String, String> newState) {
+    void updateState(final ProcessSession session, final Map<String, String> newState) {
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("State update failed", e);
         }
     }
 
-    private void clearState(ProcessContext context) {
+    private void clearState(final ProcessContext context) {
         try {
             context.getStateManager().clear(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Clearing state failed", e);
         }
     }

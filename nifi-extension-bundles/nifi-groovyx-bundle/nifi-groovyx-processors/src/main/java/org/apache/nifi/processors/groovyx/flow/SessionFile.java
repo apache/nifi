@@ -39,7 +39,7 @@ public abstract class SessionFile implements FlowFile {
     FlowFile flowFile;
     ProcessSessionWrap session;
 
-    protected SessionFile(ProcessSessionWrap session, FlowFile f) {
+    protected SessionFile(final ProcessSessionWrap session, final FlowFile f) {
         if (f == null || session == null) {
             throw new NullPointerException("Session and FlowFile are mandatory session=" + session + " file=" + f);
         }
@@ -63,7 +63,7 @@ public abstract class SessionFile implements FlowFile {
      * @param cloneContent clone content or not. attributes cloned in any case.
      * @return new flow file
      */
-    public SessionFile clone(boolean cloneContent) {
+    public SessionFile clone(final boolean cloneContent) {
         if (cloneContent) {
             return session.clone(flowFile); //new SessionFile(session, session.clone(flowFile));
         }
@@ -80,7 +80,7 @@ public abstract class SessionFile implements FlowFile {
     /**
      * read flowfile content.
      */
-    public void read(InputStreamCallback c) {
+    public void read(final InputStreamCallback c) {
         session.read(flowFile, c);
     }
 
@@ -89,7 +89,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile write(StreamCallback c) {
+    public SessionFile write(final StreamCallback c) {
         session.write(this, c);
         return this;
     }
@@ -99,7 +99,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile write(OutputStreamCallback c) {
+    public SessionFile write(final OutputStreamCallback c) {
         session.write(this, c);
         return this;
     }
@@ -109,7 +109,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile append(OutputStreamCallback c) {
+    public SessionFile append(final OutputStreamCallback c) {
         session.append(this, c);
         return this;
     }
@@ -119,7 +119,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile putAttribute(String key, String value) {
+    public SessionFile putAttribute(final String key, final String value) {
         session.putAttribute(this, key, value);
         return this;
     }
@@ -129,7 +129,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile putAllAttributes(Map<String, String> m) {
+    public SessionFile putAllAttributes(final Map<String, String> m) {
         session.putAllAttributes(this, m);
         return this;
     }
@@ -139,7 +139,7 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile removeAttribute(String key) {
+    public SessionFile removeAttribute(final String key) {
         session.removeAttribute(this, key);
         return this;
     }
@@ -149,8 +149,8 @@ public abstract class SessionFile implements FlowFile {
      *
      * @return reference to self
      */
-    public SessionFile removeAllAttributes(Collection<String> keys) {
-        Set<String> keySet = (Set<String>) (keys instanceof Set ? keys : new HashSet<>(keys));
+    public SessionFile removeAllAttributes(final Collection<String> keys) {
+        final Set<String> keySet = (Set<String>) (keys instanceof Set ? keys : new HashSet<>(keys));
         session.removeAllAttributes(this, keySet);
         return this;
     }
@@ -158,7 +158,7 @@ public abstract class SessionFile implements FlowFile {
     /**
      * Transfers to defined relationship or to input relationship if parameter is null.
      */
-    public void transfer(Relationship r) {
+    public void transfer(final Relationship r) {
         if (r == null) {
             session.transfer(this);
         } else {
@@ -210,7 +210,7 @@ public abstract class SessionFile implements FlowFile {
     }
 
     @Override
-    public String getAttribute(String key) {
+    public String getAttribute(final String key) {
         return flowFile.getAttribute(key);
     }
 
@@ -229,11 +229,9 @@ public abstract class SessionFile implements FlowFile {
 
     @SuppressWarnings("NullableProblems")
     @Override
-    public int compareTo(FlowFile other) {
-        if (other instanceof SessionFile) {
-            other = ((SessionFile) other).flowFile;
-        }
-        return flowFile.compareTo(other);
+    public int compareTo(final FlowFile other) {
+        final FlowFile compareTarget = other instanceof SessionFile ? ((SessionFile) other).flowFile : other;
+        return flowFile.compareTo(compareTarget);
     }
 
     @Override

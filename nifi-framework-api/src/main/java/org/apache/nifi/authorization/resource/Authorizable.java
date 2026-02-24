@@ -66,7 +66,7 @@ public interface Authorizable {
      * @param action action
      * @return is authorized
      */
-    default boolean isAuthorized(Authorizer authorizer, RequestAction action, NiFiUser user) {
+    default boolean isAuthorized(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
         return Result.Approved.equals(checkAuthorization(authorizer, action, user).getResult());
     }
 
@@ -80,7 +80,7 @@ public interface Authorizable {
      * @param user user
      * @return is authorized
      */
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+    default AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) {
         if (user == null) {
             return AuthorizationResult.denied("Unknown user.");
         }
@@ -179,7 +179,7 @@ public interface Authorizable {
      * @param user user
      * @return is authorized
      */
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user) {
+    default AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
         return checkAuthorization(authorizer, action, user, null);
     }
 
@@ -192,7 +192,7 @@ public interface Authorizable {
      * @param user user
      * @param resourceContext resource context
      */
-    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+    default void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) throws AccessDeniedException {
         if (user == null) {
             throw new AccessDeniedException("Unknown user.");
         }
@@ -294,7 +294,7 @@ public interface Authorizable {
      * @param action action
      * @param user user
      */
-    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user) throws AccessDeniedException {
+    default void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user) throws AccessDeniedException {
         authorize(authorizer, action, user, null);
     }
 }

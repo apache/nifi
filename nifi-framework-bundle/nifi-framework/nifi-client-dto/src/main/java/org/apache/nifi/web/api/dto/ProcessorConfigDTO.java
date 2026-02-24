@@ -69,7 +69,7 @@ public class ProcessorConfigDTO {
         return schedulingPeriod;
     }
 
-    public void setSchedulingPeriod(String setSchedulingPeriod) {
+    public void setSchedulingPeriod(final String setSchedulingPeriod) {
         this.schedulingPeriod = setSchedulingPeriod;
     }
 
@@ -84,7 +84,7 @@ public class ProcessorConfigDTO {
         return schedulingStrategy;
     }
 
-    public void setSchedulingStrategy(String schedulingStrategy) {
+    public void setSchedulingStrategy(final String schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
     }
 
@@ -99,7 +99,7 @@ public class ProcessorConfigDTO {
         return executionNode;
     }
 
-    public void setExecutionNode(String executionNode) {
+    public void setExecutionNode(final String executionNode) {
         this.executionNode = executionNode;
     }
 
@@ -112,7 +112,7 @@ public class ProcessorConfigDTO {
         return penaltyDuration;
     }
 
-    public void setPenaltyDuration(String penaltyDuration) {
+    public void setPenaltyDuration(final String penaltyDuration) {
         this.penaltyDuration = penaltyDuration;
     }
 
@@ -125,7 +125,7 @@ public class ProcessorConfigDTO {
         return yieldDuration;
     }
 
-    public void setYieldDuration(String yieldDuration) {
+    public void setYieldDuration(final String yieldDuration) {
         this.yieldDuration = yieldDuration;
     }
 
@@ -138,7 +138,7 @@ public class ProcessorConfigDTO {
         return bulletinLevel;
     }
 
-    public void setBulletinLevel(String bulletinLevel) {
+    public void setBulletinLevel(final String bulletinLevel) {
         this.bulletinLevel = bulletinLevel;
     }
 
@@ -153,7 +153,7 @@ public class ProcessorConfigDTO {
         return concurrentlySchedulableTaskCount;
     }
 
-    public void setConcurrentlySchedulableTaskCount(Integer concurrentlySchedulableTaskCount) {
+    public void setConcurrentlySchedulableTaskCount(final Integer concurrentlySchedulableTaskCount) {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
@@ -179,7 +179,7 @@ public class ProcessorConfigDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -195,7 +195,7 @@ public class ProcessorConfigDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -208,7 +208,7 @@ public class ProcessorConfigDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -236,7 +236,7 @@ public class ProcessorConfigDTO {
         return annotationData;
     }
 
-    public void setAnnotationData(String annotationData) {
+    public void setAnnotationData(final String annotationData) {
         this.annotationData = annotationData;
     }
 
@@ -249,7 +249,7 @@ public class ProcessorConfigDTO {
         return customUiUrl;
     }
 
-    public void setCustomUiUrl(String customUiUrl) {
+    public void setCustomUiUrl(final String customUiUrl) {
         this.customUiUrl = customUiUrl;
     }
 
@@ -277,7 +277,7 @@ public class ProcessorConfigDTO {
         return defaultConcurrentTasks;
     }
 
-    public void setDefaultConcurrentTasks(Map<String, String> defaultConcurrentTasks) {
+    public void setDefaultConcurrentTasks(final Map<String, String> defaultConcurrentTasks) {
         this.defaultConcurrentTasks = defaultConcurrentTasks;
     }
 
@@ -290,7 +290,7 @@ public class ProcessorConfigDTO {
         return runDurationMillis;
     }
 
-    public void setRunDurationMillis(Long runDurationMillis) {
+    public void setRunDurationMillis(final Long runDurationMillis) {
         this.runDurationMillis = runDurationMillis;
     }
 
@@ -303,7 +303,7 @@ public class ProcessorConfigDTO {
         return defaultSchedulingPeriod;
     }
 
-    public void setDefaultSchedulingPeriod(Map<String, String> defaultSchedulingPeriod) {
+    public void setDefaultSchedulingPeriod(final Map<String, String> defaultSchedulingPeriod) {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
     }
 
@@ -313,7 +313,7 @@ public class ProcessorConfigDTO {
         return retryCount;
     }
 
-    public void setRetryCount(Integer retryCount) {
+    public void setRetryCount(final Integer retryCount) {
         this.retryCount = retryCount;
     }
 
@@ -323,7 +323,7 @@ public class ProcessorConfigDTO {
         return retriedRelationships;
     }
 
-    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    public void setRetriedRelationships(final Set<String> retriedRelationships) {
         this.retriedRelationships = retriedRelationships;
     }
 
@@ -334,7 +334,7 @@ public class ProcessorConfigDTO {
         return backoffMechanism;
     }
 
-    public void setBackoffMechanism(String backoffMechanism) {
+    public void setBackoffMechanism(final String backoffMechanism) {
         this.backoffMechanism = backoffMechanism;
     }
 
@@ -344,7 +344,7 @@ public class ProcessorConfigDTO {
         return maxBackoffPeriod;
     }
 
-    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    public void setMaxBackoffPeriod(final String maxBackoffPeriod) {
         this.maxBackoffPeriod = maxBackoffPeriod;
     }
 }

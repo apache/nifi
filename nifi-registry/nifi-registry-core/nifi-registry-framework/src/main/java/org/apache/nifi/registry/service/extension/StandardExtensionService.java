@@ -127,7 +127,7 @@ public class StandardExtensionService implements ExtensionService {
         this.extensionsWorkingDir = Objects.requireNonNull(properties.getExtensionsWorkingDirectory());
     }
 
-    private <T>  void validate(T t, String invalidMessage) {
+    private <T>  void validate(final T t, final String invalidMessage) {
         final Set<ConstraintViolation<T>> violations = validator.validate(t);
         if (!violations.isEmpty()) {
             throw new ConstraintViolationException(invalidMessage, violations);
@@ -277,7 +277,7 @@ public class StandardExtensionService implements ExtensionService {
             if (extensionWorkingFile.exists()) {
                 try {
                     extensionWorkingFile.delete();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     LOGGER.warn("Error removing temporary extension bundle file at {}", extensionWorkingFile.getAbsolutePath());
                 }
             }
@@ -660,7 +660,7 @@ public class StandardExtensionService implements ExtensionService {
         return getExtensionMetadata(extensionEntities);
     }
 
-    private SortedSet<ExtensionMetadata> getExtensionMetadata(List<ExtensionEntity> extensionEntities) {
+    private SortedSet<ExtensionMetadata> getExtensionMetadata(final List<ExtensionEntity> extensionEntities) {
         // map to extension metadata and sort by extension name
         final SortedSet<ExtensionMetadata> extensions = new TreeSet<>();
         extensionEntities.forEach(e -> {

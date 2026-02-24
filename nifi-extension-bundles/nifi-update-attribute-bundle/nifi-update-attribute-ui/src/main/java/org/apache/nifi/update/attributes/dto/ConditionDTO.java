@@ -34,7 +34,7 @@ public class ConditionDTO implements Comparable<ConditionDTO> {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -42,12 +42,12 @@ public class ConditionDTO implements Comparable<ConditionDTO> {
         return expression;
     }
 
-    public void setExpression(String expression) {
+    public void setExpression(final String expression) {
         this.expression = expression;
     }
 
     @Override
-    public int compareTo(ConditionDTO that) {
+    public int compareTo(final ConditionDTO that) {
         // including the id in the comparison so that the TreeSet that this
         // is stored in does not discard any entries just because their expressions
         // are equal

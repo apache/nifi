@@ -35,42 +35,42 @@ public class DefaultProcessorStateStrategy implements ProcessorStateStrategy {
 
     private final FlowController flowController;
 
-    public DefaultProcessorStateStrategy(FlowController flowController) {
+    public DefaultProcessorStateStrategy(final FlowController flowController) {
         this.flowController = flowController;
     }
 
     @Override
-    public OperationState startProcessor(String processorId) {
+    public OperationState startProcessor(final String processorId) {
         return changeState(processorId, this::start);
     }
 
     @Override
-    public OperationState stopProcessor(String processorId) {
+    public OperationState stopProcessor(final String processorId) {
         return changeState(processorId, this::stop);
     }
 
-    private OperationState changeState(String processorId, BiConsumer<String, String> action) {
+    private OperationState changeState(final String processorId, final BiConsumer<String, String> action) {
         try {
-            ProcessorNode node = flowController.getFlowManager().getProcessorNode(processorId);
+            final ProcessorNode node = flowController.getFlowManager().getProcessorNode(processorId);
             if (node == null) {
                 LOGGER.warn("Processor with id {} not found", processorId);
                 return NOT_APPLIED;
             }
-            String parentGroupId = node.getProcessGroupIdentifier();
+            final String parentGroupId = node.getProcessGroupIdentifier();
             action.accept(processorId, parentGroupId);
             return FULLY_APPLIED;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to change state for processor {}", processorId, e);
             return NOT_APPLIED;
         }
     }
 
-    private void start(String processorId, String parentGroupId) {
+    private void start(final String processorId, final String parentGroupId) {
         flowController.startProcessor(parentGroupId, processorId, true);
         LOGGER.info("Started processor {} (group={})", processorId, parentGroupId);
     }
 
-    private void stop(String processorId, String parentGroupId) {
+    private void stop(final String processorId, final String parentGroupId) {
         flowController.stopProcessor(parentGroupId, processorId);
         LOGGER.info("Stopped processor {} (group={})", processorId, parentGroupId);
     }

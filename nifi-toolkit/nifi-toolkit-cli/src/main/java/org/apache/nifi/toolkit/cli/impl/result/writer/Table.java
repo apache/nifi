@@ -36,7 +36,7 @@ public class Table {
         }
     }
 
-    public void addRow(String... values) {
+    public void addRow(final String... values) {
         if (values == null) {
             throw new IllegalArgumentException("Values cannot be null");
         }
@@ -79,7 +79,7 @@ public class Table {
             return this;
         }
 
-        public Builder column(final String name, int minLength, int maxLength, boolean abbreviate) {
+        public Builder column(final String name, final int minLength, final int maxLength, final boolean abbreviate) {
             final TableColumn column = new TableColumn(name, minLength, maxLength, abbreviate);
             return column(column);
         }

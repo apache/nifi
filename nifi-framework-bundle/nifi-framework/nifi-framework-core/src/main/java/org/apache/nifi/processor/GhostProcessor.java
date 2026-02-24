@@ -64,7 +64,7 @@ public class GhostProcessor implements Processor {
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
     }
 
     @Override
@@ -88,7 +88,7 @@ public class GhostProcessor implements Processor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         // Should never get this far.
         throw new ProcessException("Unable to instantiate Processor class");
     }

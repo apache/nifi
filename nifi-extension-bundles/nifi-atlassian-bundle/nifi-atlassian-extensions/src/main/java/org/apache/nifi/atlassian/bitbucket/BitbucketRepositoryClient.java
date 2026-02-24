@@ -260,7 +260,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             final JsonNode values = jsonResponse.get(FIELD_VALUES);
             final Set<String> result = new HashSet<>();
             if (values != null && values.isArray()) {
-                for (JsonNode branch : values) {
+                for (final JsonNode branch : values) {
                     final String branchName = branch.path(FIELD_NAME).asText(EMPTY_STRING);
                     if (!branchName.isEmpty()) {
                         result.add(branchName);
@@ -287,7 +287,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             final JsonNode values = jsonResponse.get(FIELD_VALUES);
             final Set<String> result = new HashSet<>();
             if (values != null && values.isArray()) {
-                for (JsonNode branch : values) {
+                for (final JsonNode branch : values) {
                     final String displayId = branch.path(FIELD_DISPLAY_ID).asText(EMPTY_STRING);
                     if (!displayId.isEmpty()) {
                         result.add(displayId);
@@ -309,7 +309,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
         final Set<String> result = new HashSet<>();
         while (files.hasNext()) {
-            JsonNode file = files.next();
+            final JsonNode file = files.next();
             if (isDirectoryEntry(file)) {
                 final String entryPath = getEntryPath(file);
                 if (!entryPath.isEmpty()) {
@@ -331,7 +331,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
         final Set<String> result = new HashSet<>();
         while (files.hasNext()) {
-            JsonNode file = files.next();
+            final JsonNode file = files.next();
             if (isFileEntry(file)) {
                 final String entryPath = getEntryPath(file);
                 if (!entryPath.isEmpty()) {
@@ -349,11 +349,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final String resolvedPath = getResolvedPath(path);
         logger.debug("Getting commits for path [{}] on branch [{}] in repository [{}]", resolvedPath, branch, repoName);
 
-        Iterator<JsonNode> commits = getListCommits(branch, resolvedPath);
+        final Iterator<JsonNode> commits = getListCommits(branch, resolvedPath);
 
         final List<GitCommit> result = new ArrayList<>();
         while (commits.hasNext()) {
-            JsonNode commit = commits.next();
+            final JsonNode commit = commits.next();
             result.add(toGitCommit(commit));
         }
 
@@ -785,7 +785,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     }
 
     private Optional<String> getLatestCommit(final String branch, final String path) throws FlowRegistryException {
-        Iterator<JsonNode> commits = getListCommits(branch, path);
+        final Iterator<JsonNode> commits = getListCommits(branch, path);
         if (commits.hasNext()) {
             return Optional.ofNullable(getCommitHash(commits.next())).filter(hash -> !hash.isEmpty());
         } else {
@@ -810,7 +810,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         return commit.path(FIELD_HASH).asText(EMPTY_STRING);
     }
 
-    private String checkRepoPermissions(BitbucketAuthenticationType authenticationType) throws FlowRegistryException {
+    private String checkRepoPermissions(final BitbucketAuthenticationType authenticationType) throws FlowRegistryException {
         if (formFactor == BitbucketFormFactor.DATA_CENTER) {
             return checkReadByListingBranches();
         }
@@ -868,7 +868,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try {
             getBranches();
             return "admin";
-        } catch (FlowRegistryException e) {
+        } catch (final FlowRegistryException e) {
             return "none";
         }
     }
@@ -946,11 +946,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         }
     }
 
-    private String getErrorMessage(HttpResponseEntity response) throws FlowRegistryException {
+    private String getErrorMessage(final HttpResponseEntity response) throws FlowRegistryException {
         final JsonNode jsonResponse;
         try {
             jsonResponse = this.objectMapper.readTree(response.body());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowRegistryException("Could not parse response from Bitbucket API", e);
         }
         if (jsonResponse == null) {
@@ -1136,7 +1136,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         try (inputStream; ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             StreamUtils.copy(inputStream, outputStream);
             return outputStream.toByteArray();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowRegistryException("Failed to prepare multipart request", e);
         }
     }

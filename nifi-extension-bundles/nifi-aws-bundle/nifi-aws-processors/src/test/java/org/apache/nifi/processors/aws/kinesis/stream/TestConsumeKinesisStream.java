@@ -366,7 +366,7 @@ public class TestConsumeKinesisStream {
             for (int runs = 0; runs < 10; runs++) {
                 try {
                     mockConsumeKinesisStreamRunner.run(1, false, false);
-                } catch (AssertionError e) {
+                } catch (final AssertionError e) {
                     assertInstanceOf(ProcessException.class, e.getCause());
                     assertTrue(((MockProcessContext) mockConsumeKinesisStreamRunner.getProcessContext()).isYieldCalled());
                     break;

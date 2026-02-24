@@ -56,7 +56,7 @@ public class PutGridFSIT extends GridFSITTestBase {
     @Test
     public void testSimplePut() {
         final String fileName = "simple_test.txt";
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
 
         runner.enqueue("12345", attrs);
@@ -92,8 +92,8 @@ public class PutGridFSIT extends GridFSITTestBase {
 
     @Test
     public void testNoUniqueness() {
-        String fileName = "test_duplicates.txt";
-        Map<String, String> attrs = new HashMap<>();
+        final String fileName = "test_duplicates.txt";
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
 
         for (int x = 0; x < 10; x++) {
@@ -103,26 +103,26 @@ public class PutGridFSIT extends GridFSITTestBase {
 
         runner.assertTransferCount(PutGridFS.REL_SUCCESS, 10);
 
-        String bucketName = String.format("%s.files", BUCKET);
-        MongoCollection files = client.getDatabase(DB).getCollection(bucketName);
-        Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
+        final String bucketName = String.format("%s.files", BUCKET);
+        final MongoCollection files = client.getDatabase(DB).getCollection(bucketName);
+        final Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
 
-        long count = files.countDocuments(query);
+        final long count = files.countDocuments(query);
         assertTrue(count == 10, "Wrong count");
     }
 
     @Test
     public void testFileNameUniqueness() {
-        String fileName = "test_duplicates.txt";
-        Map<String, String> attrs = new HashMap<>();
+        final String fileName = "test_duplicates.txt";
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
         testUniqueness(attrs, "Hello, world", PutGridFS.UNIQUE_NAME);
     }
 
     @Test
     public void testChunkSize() {
-        String[] chunkSizes = new String[] {"128 KB", "256 KB", "384 KB", "512KB", "768KB", "1024 KB"};
-        StringBuilder sb = new StringBuilder();
+        final String[] chunkSizes = new String[] {"128 KB", "256 KB", "384 KB", "512KB", "768KB", "1024 KB"};
+        final StringBuilder sb = new StringBuilder();
         for (int x = 0; x < 10000; x++) {
             sb.append("This is a test string used to build up a largish text file.");
         }
@@ -130,7 +130,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), "big-putgridfs-test-file.txt");
 
-        for (String chunkSize : chunkSizes) {
+        for (final String chunkSize : chunkSizes) {
             runner.setProperty(PutGridFS.CHUNK_SIZE, chunkSize);
             runner.enqueue(testData, attrs);
             runner.run();
@@ -150,18 +150,18 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.assertTransferCount(PutGridFS.REL_SUCCESS, 1);
     }
 
-    private void testHashUniqueness(AllowableValue value) {
-        String hashAttr = "hash.value";
-        String fileName = "test_duplicates.txt";
-        String content  = "Hello, world";
-        String hash     = DigestUtils.md5Hex(content);
-        Map<String, String> attrs = new HashMap<>();
+    private void testHashUniqueness(final AllowableValue value) {
+        final String hashAttr = "hash.value";
+        final String fileName = "test_duplicates.txt";
+        final String content  = "Hello, world";
+        final String hash     = DigestUtils.md5Hex(content);
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), fileName);
         attrs.put(hashAttr, hash);
         testUniqueness(attrs, content, value);
     }
 
-    private void testUniqueness(Map<String, String> attrs, String content, AllowableValue param) {
+    private void testUniqueness(final Map<String, String> attrs, final String content, final AllowableValue param) {
         runner.setProperty(PutGridFS.ENFORCE_UNIQUENESS, param);
         for (int x = 0; x < 5; x++) {
             runner.enqueue(content, attrs);

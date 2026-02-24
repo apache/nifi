@@ -32,7 +32,7 @@ public class ContainsRegex extends FunctionFilter {
 
     private final Pattern compiledPattern;
 
-    public ContainsRegex(RecordPathSegment recordPath, final RecordPathSegment regexPath) {
+    public ContainsRegex(final RecordPathSegment recordPath, final RecordPathSegment regexPath) {
         super(recordPath);
         this.regexPath = regexPath;
 

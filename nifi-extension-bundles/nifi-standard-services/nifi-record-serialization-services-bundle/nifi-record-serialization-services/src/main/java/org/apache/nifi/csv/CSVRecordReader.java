@@ -120,7 +120,7 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
 
                 return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MalformedRecordException("Error while getting next record", e);
         }
 

@@ -28,7 +28,7 @@ public class NodeBulletins {
     private final NodeIdentifier nodeIdentifier;
     private final byte[] payload;
 
-    public NodeBulletins(NodeIdentifier nodeIdentifier, byte[] payload) {
+    public NodeBulletins(final NodeIdentifier nodeIdentifier, final byte[] payload) {
         this.nodeIdentifier = nodeIdentifier;
         this.payload = payload;
     }

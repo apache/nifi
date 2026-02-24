@@ -248,7 +248,7 @@ public class MonitorActivity extends AbstractProcessor {
             final StateManager stateManager = context.getStateManager();
             try {
                 stateManager.clear(Scope.CLUSTER);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Failed to clear cluster state", e);
             }
         }
@@ -326,17 +326,17 @@ public class MonitorActivity extends AbstractProcessor {
         return localFlowActivityInfo.getLastSuccessfulTransfer();
     }
 
-    private String tryLoadLastSuccessfulTransfer(ProcessContext context) {
+    private String tryLoadLastSuccessfulTransfer(final ProcessContext context) {
         final StateManager stateManager = context.getStateManager();
         try {
             final StateMap localStateMap = stateManager.getState(Scope.LOCAL);
             return localStateMap.get(STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to load local state due to " + e, e);
         }
     }
 
-    private void synchronizeState(ProcessContext context) {
+    private void synchronizeState(final ProcessContext context) {
         final ComponentLog logger = getLogger();
         final boolean isConnectedToCluster = context.isConnectedToCluster();
 
@@ -359,7 +359,7 @@ public class MonitorActivity extends AbstractProcessor {
         }
     }
 
-    private void onTriggerInactiveFlow(ProcessContext context, ProcessSession session, boolean isClusterScope, long lastActivity) {
+    private void onTriggerInactiveFlow(final ProcessContext context, final ProcessSession session, final boolean isClusterScope, final long lastActivity) {
         final ComponentLog logger = getLogger();
         final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, context);
 
@@ -370,8 +370,8 @@ public class MonitorActivity extends AbstractProcessor {
         setInactivityFlag(context.getStateManager());
     }
 
-    private void onTriggerActiveFlow(ProcessContext context, ProcessSession session, boolean wasActive, boolean isClusterScope,
-            long inactivityStartMillis) {
+    private void onTriggerActiveFlow(final ProcessContext context, final ProcessSession session, final boolean wasActive, final boolean isClusterScope,
+            final long inactivityStartMillis) {
         final ComponentLog logger = getLogger();
         final boolean shouldThisNodeReport = shouldThisNodeReport(isClusterScope, context);
 
@@ -384,26 +384,26 @@ public class MonitorActivity extends AbstractProcessor {
         }
     }
 
-    private void setInactivityFlag(StateManager stateManager) {
+    private void setInactivityFlag(final StateManager stateManager) {
         try {
             stateManager.setState(singletonMap(
                     STATE_KEY_LOCAL_FLOW_ACTIVITY_INFO,
                     String.valueOf(localFlowActivityInfo.getLastActivity())
             ), Scope.LOCAL);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to set local state", e);
         }
     }
 
-    private void clearInactivityFlag(StateManager stateManager) {
+    private void clearInactivityFlag(final StateManager stateManager) {
         try {
             stateManager.clear(Scope.LOCAL);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to clear local state due to " + e, e);
         }
     }
 
-    private boolean isClusterScope(final ProcessContext context, boolean logInvalidConfig) {
+    private boolean isClusterScope(final ProcessContext context, final boolean logInvalidConfig) {
         if (SCOPE_CLUSTER.getValue().equals(context.getProperty(MONITORING_SCOPE).getValue())) {
             if (getNodeTypeProvider().isConfiguredForClustering()) {
                 return true;
@@ -415,7 +415,7 @@ public class MonitorActivity extends AbstractProcessor {
         return false;
     }
 
-    private boolean shouldReportOnlyOnPrimary(boolean isClusterScope, final ProcessContext context) {
+    private boolean shouldReportOnlyOnPrimary(final boolean isClusterScope, final ProcessContext context) {
         if (REPORT_NODE_PRIMARY.getValue().equals(context.getProperty(REPORTING_NODE).getValue())) {
             return isClusterScope;
         }
@@ -448,8 +448,8 @@ public class MonitorActivity extends AbstractProcessor {
         return reportingNode.equals(REPORT_NODE_ALL.getValue()) || getNodeTypeProvider().isPrimary();
     }
 
-    private void sendInactivityMarker(ProcessContext context, ProcessSession session, long inactivityStartMillis,
-            ComponentLog logger) {
+    private void sendInactivityMarker(final ProcessContext context, final ProcessSession session, final long inactivityStartMillis,
+            final ComponentLog logger) {
         FlowFile inactiveFlowFile = session.create();
         inactiveFlowFile = session.putAttribute(
                 inactiveFlowFile,
@@ -470,8 +470,8 @@ public class MonitorActivity extends AbstractProcessor {
         logger.info("Transferred {} to 'inactive'", inactiveFlowFile);
     }
 
-    private void sendActivationMarker(ProcessContext context, ProcessSession session, Map<String, String> attributes,
-            long inactivityStartMillis, ComponentLog logger) {
+    private void sendActivationMarker(final ProcessContext context, final ProcessSession session, final Map<String, String> attributes,
+            final long inactivityStartMillis, final ComponentLog logger) {
         FlowFile activityRestoredFlowFile = session.create();
         // don't copy the UUID
         attributes.remove(CoreAttributes.UUID.key());
@@ -504,14 +504,14 @@ public class MonitorActivity extends AbstractProcessor {
         private long lastSuccessfulTransfer = NO_VALUE;
         private Map<String, String> lastSuccessfulTransferAttributes = new HashMap<>();
 
-        public LocalFlowActivityInfo(long startupTimeMillis, long thresholdMillis, boolean saveAttributes) {
+        public LocalFlowActivityInfo(final long startupTimeMillis, final long thresholdMillis, final boolean saveAttributes) {
             this.startupTimeMillis = startupTimeMillis;
             this.thresholdMillis = thresholdMillis;
             this.saveAttributes = saveAttributes;
             this.syncPeriodMillis = thresholdMillis / TIMES_SYNC_WITHIN_THRESHOLD;
         }
 
-        public LocalFlowActivityInfo(long startupTimeMillis, long thresholdMillis, boolean saveAttributes, long initialLastSuccessfulTransfer) {
+        public LocalFlowActivityInfo(final long startupTimeMillis, final long thresholdMillis, final boolean saveAttributes, final long initialLastSuccessfulTransfer) {
             this(startupTimeMillis, thresholdMillis, saveAttributes);
             lastSuccessfulTransfer = initialLastSuccessfulTransfer;
         }
@@ -556,7 +556,7 @@ public class MonitorActivity extends AbstractProcessor {
             return lastSuccessfulTransferAttributes;
         }
 
-        public void update(FlowFile flowFile) {
+        public void update(final FlowFile flowFile) {
             final long now = nowMillis();
             if ((now - this.getLastActivity()) > syncPeriodMillis) {
                 this.forceSync(); // Immediate synchronization if FlowFiles are infrequent, to mitigate false reports
@@ -568,7 +568,7 @@ public class MonitorActivity extends AbstractProcessor {
             }
         }
 
-        public void update(CommonFlowActivityInfo commonFlowActivityInfo) {
+        public void update(final CommonFlowActivityInfo commonFlowActivityInfo) {
             if (!commonFlowActivityInfo.hasSuccessfulTransfer()) {
                 return;
             }
@@ -591,11 +591,11 @@ public class MonitorActivity extends AbstractProcessor {
         private final StateMap storedState;
         private final Map<String, String> newState = new HashMap<>();
 
-        public CommonFlowActivityInfo(ProcessContext context) {
+        public CommonFlowActivityInfo(final ProcessContext context) {
             this.stateManager = context.getStateManager();
             try {
                 storedState = stateManager.getState(Scope.CLUSTER);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException("Cannot load common flow activity info.", e);
             }
         }
@@ -614,7 +614,7 @@ public class MonitorActivity extends AbstractProcessor {
             return result;
         }
 
-        public void update(LocalFlowActivityInfo localFlowActivityInfo) {
+        public void update(final LocalFlowActivityInfo localFlowActivityInfo) {
             if (!localFlowActivityInfo.hasSuccessfulTransfer()) {
                 return;
             }
@@ -631,7 +631,7 @@ public class MonitorActivity extends AbstractProcessor {
             final boolean wasSuccessful;
             try {
                 wasSuccessful = stateManager.replace(storedState, newState, Scope.CLUSTER);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new SaveSharedFlowStateException("Caught exception while saving state.", e);
             }
 
@@ -642,11 +642,11 @@ public class MonitorActivity extends AbstractProcessor {
     }
 
     private static class SaveSharedFlowStateException extends ProcessException {
-        public SaveSharedFlowStateException(String message) {
+        public SaveSharedFlowStateException(final String message) {
             super(message);
         }
 
-        public SaveSharedFlowStateException(String message, Throwable cause) {
+        public SaveSharedFlowStateException(final String message, final Throwable cause) {
             super(message, cause);
         }
     }

@@ -118,9 +118,9 @@ public class DocsReader {
         final Map<String, List<Document>> byStorageNameDocGroups = LuceneUtil.groupDocsByStorageFileName(docs);
 
         int eventsReadThisFile = 0;
-        int logFileCount = 0;
+        final int logFileCount = 0;
 
-        for (String storageFileName : byStorageNameDocGroups.keySet()) {
+        for (final String storageFileName : byStorageNameDocGroups.keySet()) {
             final File provenanceEventFile = LuceneUtil.getProvenanceLogFile(storageFileName, allProvenanceLogFiles);
             if (provenanceEventFile == null) {
                 logger.warn("Could not find Provenance Log File with "

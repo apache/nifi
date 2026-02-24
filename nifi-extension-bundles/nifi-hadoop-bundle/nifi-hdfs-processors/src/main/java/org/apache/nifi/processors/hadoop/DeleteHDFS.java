@@ -130,7 +130,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile originalFlowFile = session.get();
 
         // If this processor has an incoming connection, then do not run unless a
@@ -149,11 +149,11 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             FlowFile flowFile = finalFlowFile;
             try {
                 // Check if the user has supplied a file or directory pattern
-                List<Path> pathList = new ArrayList<>();
+                final List<Path> pathList = new ArrayList<>();
                 if (GLOB_MATCHER.reset(fileOrDirectoryName).find()) {
-                    FileStatus[] fileStatuses = fileSystem.globStatus(new Path(fileOrDirectoryName));
+                    final FileStatus[] fileStatuses = fileSystem.globStatus(new Path(fileOrDirectoryName));
                     if (fileStatuses != null) {
-                        for (FileStatus fileStatus : fileStatuses) {
+                        for (final FileStatus fileStatus : fileStatuses) {
                             pathList.add(fileStatus.getPath());
                         }
                     }
@@ -162,15 +162,15 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                 }
 
                 int failedPath = 0;
-                for (Path path : pathList) {
+                for (final Path path : pathList) {
                     if (fileSystem.exists(path)) {
                         try {
-                            Map<String, String> attributes = new HashMap<>(2);
+                            final Map<String, String> attributes = new HashMap<>(2);
                             attributes.put(getAttributePrefix() + ".filename", path.getName());
                             attributes.put(getAttributePrefix() + ".path", path.getParent().toString());
                             flowFile = session.putAllAttributes(flowFile, attributes);
 
-                            boolean success = fileSystem.delete(path, isRecursive(context, session));
+                            final boolean success = fileSystem.delete(path, isRecursive(context, session));
 
                             if (success) {
                                 getLogger().debug("For flowfile {} Deleted file at path {} with name {}", originalFlowFile, path.getParent(), path.getName());
@@ -183,7 +183,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                                 session.transfer(session.putAllAttributes(session.clone(flowFile), attributes), getFailureRelationship());
                                 failedPath++;
                             }
-                        } catch (IOException ioe) {
+                        } catch (final IOException ioe) {
                             if (handleAuthErrors(ioe, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                                 return null;
                             } else {
@@ -191,7 +191,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                                 // external HDFS authorization tool (Ranger, Sentry, etc). Local ACLs could be checked but the operation would be expensive.
                                 getLogger().warn("Failed to delete file or directory", ioe);
 
-                                Map<String, String> attributes = new HashMap<>(1);
+                                final Map<String, String> attributes = new HashMap<>(1);
                                 // The error message is helpful in understanding at a flowfile level what caused the IOException (which ACL is denying the operation, e.g.)
                                 attributes.put(getAttributePrefix() + ".error.message", ioe.getMessage());
 
@@ -208,7 +208,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                     // If any path has been failed to be deleted, remove the FlowFile as it's been cloned and sent to failure.
                     session.remove(flowFile);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 if (handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                     return null;
                 } else {
@@ -223,7 +223,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("file_or_directory", FILE_OR_DIRECTORY.getName());
         config.renameProperty("recursive", RECURSIVE.getName());

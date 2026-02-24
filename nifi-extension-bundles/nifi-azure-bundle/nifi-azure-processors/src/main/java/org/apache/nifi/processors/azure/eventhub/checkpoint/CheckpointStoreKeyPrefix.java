@@ -23,7 +23,7 @@ public enum CheckpointStoreKeyPrefix {
 
     private final String keyPrefix;
 
-    CheckpointStoreKeyPrefix(String keyPrefix) {
+    CheckpointStoreKeyPrefix(final String keyPrefix) {
         this.keyPrefix = keyPrefix;
     }
 

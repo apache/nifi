@@ -24,7 +24,7 @@ import org.apache.nifi.util.TestRunner;
 
 public class MqttTestUtil {
 
-    public static String createJsonRecordSetReaderService(TestRunner testRunner) throws InitializationException {
+    public static String createJsonRecordSetReaderService(final TestRunner testRunner) throws InitializationException {
         final String id = "record-reader";
         final JsonTreeReader jsonReader = new JsonTreeReader();
         testRunner.addControllerService(id, jsonReader);
@@ -33,7 +33,7 @@ public class MqttTestUtil {
         return id;
     }
 
-    public static String createJsonRecordSetWriterService(TestRunner testRunner) throws InitializationException {
+    public static String createJsonRecordSetWriterService(final TestRunner testRunner) throws InitializationException {
         final String id = "record-writer";
         final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
         testRunner.addControllerService(id, jsonWriter);

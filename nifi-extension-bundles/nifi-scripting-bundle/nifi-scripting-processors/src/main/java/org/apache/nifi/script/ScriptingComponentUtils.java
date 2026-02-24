@@ -97,7 +97,7 @@ public class ScriptingComponentUtils {
         } else if (StringUtils.isBlank(script)) {
             try (final InputStream in = scriptFile.read()) {
                 script = IOUtils.toString(in, StandardCharsets.UTF_8);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Could not read from path {}", scriptFile, e);
                 return results;
             }
@@ -124,7 +124,7 @@ public class ScriptingComponentUtils {
         final List<ScriptEngineFactory> scriptEngineFactories = scriptEngineManager.getEngineFactories();
         final Set<String> engines = new TreeSet<>();
 
-        for (ScriptEngineFactory factory : scriptEngineFactories) {
+        for (final ScriptEngineFactory factory : scriptEngineFactories) {
             engines.add(factory.getLanguageName());
         }
 

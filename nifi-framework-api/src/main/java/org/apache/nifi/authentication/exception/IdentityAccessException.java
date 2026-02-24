@@ -22,11 +22,11 @@ package org.apache.nifi.authentication.exception;
  */
 public class IdentityAccessException extends RuntimeException {
 
-    public IdentityAccessException(String message, Throwable cause) {
+    public IdentityAccessException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public IdentityAccessException(String message) {
+    public IdentityAccessException(final String message) {
         super(message);
     }
 

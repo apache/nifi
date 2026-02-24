@@ -34,7 +34,7 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
 
     @Override
     @SuppressWarnings("unchecked")
-    public Iterator<BerType> iterator(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass, String recordField, Field seqOfField) {
+    public Iterator<BerType> iterator(final InputStream inputStream, final ComponentLog logger, final Class<? extends BerType> rootClass, final String recordField, final Field seqOfField) {
         if (StringUtils.isEmpty(recordField)) {
             return new Iterator<>() {
                 @Override
@@ -43,7 +43,7 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
 
                     try {
                         hasNext = inputStream.available() > 0;
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         hasNext = false;
                     }
 
@@ -70,7 +70,7 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
                 } else {
                     recordModels = Collections.singletonList(readPointModel);
                 }
-            } catch (ReflectiveOperationException e) {
+            } catch (final ReflectiveOperationException e) {
                 throw new RuntimeException("Failed to get record models due to " + e, e);
             }
 
@@ -78,19 +78,19 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
         }
     }
 
-    private BerType decode(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass) {
+    private BerType decode(final InputStream inputStream, final ComponentLog logger, final Class<? extends BerType> rootClass) {
         final BerType model;
 
         try {
             model = rootClass.getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
+        } catch (final ReflectiveOperationException e) {
             throw new RuntimeException("Failed to instantiate " + rootClass.getCanonicalName(), e);
         }
 
         try {
             final int decode = model.decode(inputStream);
             logger.debug("Decoded {} bytes into {}", decode, model.getClass());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Failed to decode " + rootClass.getCanonicalName(), e);
         }
 

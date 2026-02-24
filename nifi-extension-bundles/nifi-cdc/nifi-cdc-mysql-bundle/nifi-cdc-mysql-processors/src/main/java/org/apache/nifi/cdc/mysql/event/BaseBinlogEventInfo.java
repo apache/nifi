@@ -27,13 +27,13 @@ public class BaseBinlogEventInfo extends BaseEventInfo implements BinlogEventInf
     private Long binlogPosition;
     private String binlogGtidSet;
 
-    public BaseBinlogEventInfo(String eventType, Long timestamp, String binlogFilename, Long binlogPosition) {
+    public BaseBinlogEventInfo(final String eventType, final Long timestamp, final String binlogFilename, final Long binlogPosition) {
         super(eventType, timestamp);
         this.binlogFilename = binlogFilename;
         this.binlogPosition = binlogPosition;
     }
 
-    public BaseBinlogEventInfo(String eventType, Long timestamp, String binlogGtidSet) {
+    public BaseBinlogEventInfo(final String eventType, final Long timestamp, final String binlogGtidSet) {
         super(eventType, timestamp);
         this.binlogGtidSet = binlogGtidSet;
     }

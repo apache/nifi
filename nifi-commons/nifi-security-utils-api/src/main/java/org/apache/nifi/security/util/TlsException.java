@@ -27,15 +27,15 @@ public class TlsException extends GeneralSecurityException {
     public TlsException() {
     }
 
-    public TlsException(String message) {
+    public TlsException(final String message) {
         super(message);
     }
 
-    public TlsException(String message, Throwable cause) {
+    public TlsException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public TlsException(Throwable cause) {
+    public TlsException(final Throwable cause) {
         super(cause);
     }
 }

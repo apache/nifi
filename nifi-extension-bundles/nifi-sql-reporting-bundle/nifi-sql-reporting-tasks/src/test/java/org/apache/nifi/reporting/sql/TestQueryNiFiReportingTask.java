@@ -115,21 +115,21 @@ class TestQueryNiFiReportingTask {
         status.setActiveThreadCount(5);
 
         // create a processor status with processing time
-        ProcessorStatus procStatus = new ProcessorStatus();
+        final ProcessorStatus procStatus = new ProcessorStatus();
         procStatus.setId("proc");
         procStatus.setName("Processor 1");
         procStatus.setProcessingNanos(123456789);
 
-        Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
+        final Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
         processorStatuses.add(procStatus);
         status.setProcessorStatus(processorStatuses);
 
-        ConnectionStatus root1ConnectionStatus = new ConnectionStatus();
+        final ConnectionStatus root1ConnectionStatus = new ConnectionStatus();
         root1ConnectionStatus.setId("root1");
         root1ConnectionStatus.setQueuedCount(1000);
         root1ConnectionStatus.setBackPressureObjectThreshold(1000);
         // Set backpressure predictions
-        ConnectionStatusPredictions connectionStatusPredictions1 = new ConnectionStatusPredictions();
+        final ConnectionStatusPredictions connectionStatusPredictions1 = new ConnectionStatusPredictions();
         connectionStatusPredictions1.setPredictedTimeToCountBackpressureMillis(2000);
         connectionStatusPredictions1.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions1.setNextPredictedQueuedBytes(1024);
@@ -138,12 +138,12 @@ class TestQueryNiFiReportingTask {
         connectionStatusPredictions1.setPredictedPercentCount(30);
         root1ConnectionStatus.setPredictions(connectionStatusPredictions1);
 
-        ConnectionStatus root2ConnectionStatus = new ConnectionStatus();
+        final ConnectionStatus root2ConnectionStatus = new ConnectionStatus();
         root2ConnectionStatus.setId("root2");
         root2ConnectionStatus.setQueuedCount(500);
         root2ConnectionStatus.setBackPressureObjectThreshold(1000);
         // Set backpressure predictions
-        ConnectionStatusPredictions connectionStatusPredictions2 = new ConnectionStatusPredictions();
+        final ConnectionStatusPredictions connectionStatusPredictions2 = new ConnectionStatusPredictions();
         connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions2.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions2.setNextPredictedQueuedBytes(1024);
@@ -152,25 +152,25 @@ class TestQueryNiFiReportingTask {
         connectionStatusPredictions2.setPredictedPercentCount(30);
         root2ConnectionStatus.setPredictions(connectionStatusPredictions2);
 
-        Collection<ConnectionStatus> rootConnectionStatuses = new ArrayList<>();
+        final Collection<ConnectionStatus> rootConnectionStatuses = new ArrayList<>();
         rootConnectionStatuses.add(root1ConnectionStatus);
         rootConnectionStatuses.add(root2ConnectionStatus);
         status.setConnectionStatus(rootConnectionStatuses);
 
         // create a group status with processing time
-        ProcessGroupStatus groupStatus1 = new ProcessGroupStatus();
+        final ProcessGroupStatus groupStatus1 = new ProcessGroupStatus();
         groupStatus1.setProcessorStatus(processorStatuses);
         groupStatus1.setBytesRead(1234L);
 
         // Create a nested group status with a connection
-        ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
+        final ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
         groupStatus2.setProcessorStatus(processorStatuses);
         groupStatus2.setBytesRead(12345L);
-        ConnectionStatus nestedConnectionStatus = new ConnectionStatus();
+        final ConnectionStatus nestedConnectionStatus = new ConnectionStatus();
         nestedConnectionStatus.setId("nested");
         nestedConnectionStatus.setQueuedCount(1001);
         // Set backpressure predictions
-        ConnectionStatusPredictions connectionStatusPredictions3 = new ConnectionStatusPredictions();
+        final ConnectionStatusPredictions connectionStatusPredictions3 = new ConnectionStatusPredictions();
         connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions3.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions3.setNextPredictedQueuedBytes(1024);
@@ -178,20 +178,20 @@ class TestQueryNiFiReportingTask {
         connectionStatusPredictions3.setPredictedPercentBytes(55);
         connectionStatusPredictions3.setPredictedPercentCount(30);
         nestedConnectionStatus.setPredictions(connectionStatusPredictions3);
-        Collection<ConnectionStatus> nestedConnectionStatuses = new ArrayList<>();
+        final Collection<ConnectionStatus> nestedConnectionStatuses = new ArrayList<>();
         nestedConnectionStatuses.add(nestedConnectionStatus);
         groupStatus2.setConnectionStatus(nestedConnectionStatuses);
-        Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
+        final Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
         nestedGroupStatuses.add(groupStatus2);
         groupStatus1.setProcessGroupStatus(nestedGroupStatuses);
 
-        ProcessGroupStatus groupStatus3 = new ProcessGroupStatus();
+        final ProcessGroupStatus groupStatus3 = new ProcessGroupStatus();
         groupStatus3.setBytesRead(1L);
-        ConnectionStatus nestedConnectionStatus2 = new ConnectionStatus();
+        final ConnectionStatus nestedConnectionStatus2 = new ConnectionStatus();
         nestedConnectionStatus2.setId("nested2");
         nestedConnectionStatus2.setQueuedCount(3);
         // Set backpressure predictions
-        ConnectionStatusPredictions connectionStatusPredictions4 = new ConnectionStatusPredictions();
+        final ConnectionStatusPredictions connectionStatusPredictions4 = new ConnectionStatusPredictions();
         connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions4.setPredictedTimeToBytesBackpressureMillis(2000);
         connectionStatusPredictions4.setNextPredictedQueuedBytes(1024);
@@ -199,17 +199,17 @@ class TestQueryNiFiReportingTask {
         connectionStatusPredictions4.setPredictedPercentBytes(55);
         connectionStatusPredictions4.setPredictedPercentCount(30);
         nestedConnectionStatus2.setPredictions(connectionStatusPredictions4);
-        Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
+        final Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
         nestedConnectionStatuses2.add(nestedConnectionStatus2);
         groupStatus3.setConnectionStatus(nestedConnectionStatuses2);
 
-        Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
+        final Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
         groupStatuses.add(groupStatus1);
         groupStatuses.add(groupStatus3);
         status.setProcessGroupStatus(groupStatuses);
 
         // Populate flow config history
-        FlowChangeAction action1 = new FlowChangeAction();
+        final FlowChangeAction action1 = new FlowChangeAction();
         action1.setId(123);
         action1.setTimestamp(new Date());
         action1.setUserIdentity("test");
@@ -217,7 +217,7 @@ class TestQueryNiFiReportingTask {
         action1.setSourceName("Processor 1");
         action1.setSourceType(Component.Processor);
         action1.setOperation(Operation.Configure);
-        FlowChangeConfigureDetails configureDetails1 = new FlowChangeConfigureDetails();
+        final FlowChangeConfigureDetails configureDetails1 = new FlowChangeConfigureDetails();
         configureDetails1.setName("property1");
         configureDetails1.setPreviousValue("1");
         configureDetails1.setValue("2");
@@ -233,7 +233,7 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(4, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.getFirst();
@@ -272,13 +272,13 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(4, rows.size());
     }
 
     @Test
     void testBulletinIsInTimeWindow() throws InitializationException {
-        String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
+        final String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, query);
@@ -286,7 +286,7 @@ class TestQueryNiFiReportingTask {
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(3, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
@@ -295,13 +295,13 @@ class TestQueryNiFiReportingTask {
 
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(1, sameRows.size());
     }
 
     @Test
     void testBulletinIsOutOfTimeWindow() throws InitializationException {
-        String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
+        final String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, query);
@@ -309,7 +309,7 @@ class TestQueryNiFiReportingTask {
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(3, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin("input port", "ERROR", "test bulletin 3", "testFlowFileUuid");
@@ -318,7 +318,7 @@ class TestQueryNiFiReportingTask {
 
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(0, sameRows.size());
     }
 
@@ -330,11 +330,11 @@ class TestQueryNiFiReportingTask {
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1001, rows.size());
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1002L);
-        ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
+        final MockFlowFile mockFlowFile = new MockFlowFile(1002L);
+        final ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
                 .setEventType(ProvenanceEventType.CREATE)
                 .fromFlowFile(mockFlowFile)
                 .setComponentId("12345")
@@ -352,7 +352,7 @@ class TestQueryNiFiReportingTask {
         currentTime.set(prov1002.getEventTime());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(1, sameRows.size());
     }
 
@@ -365,11 +365,11 @@ class TestQueryNiFiReportingTask {
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1001, rows.size());
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1002L);
-        ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
+        final MockFlowFile mockFlowFile = new MockFlowFile(1002L);
+        final ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
                 .setEventType(ProvenanceEventType.CREATE)
                 .fromFlowFile(mockFlowFile)
                 .setComponentId("12345")
@@ -387,7 +387,7 @@ class TestQueryNiFiReportingTask {
         currentTime.set(prov1002.getEventTime() - 1);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(0, sameRows.size());
     }
 
@@ -401,14 +401,14 @@ class TestQueryNiFiReportingTask {
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(10, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
 
-        MockFlowFile mockFlowFile = new MockFlowFile(1002L);
-        ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
+        final MockFlowFile mockFlowFile = new MockFlowFile(1002L);
+        final ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
                 .setEventType(ProvenanceEventType.CREATE)
                 .fromFlowFile(mockFlowFile)
                 .setComponentId("12345")
@@ -421,7 +421,7 @@ class TestQueryNiFiReportingTask {
         currentTime.set(bulletin.getTimestamp().toInstant().plusSeconds(1).toEpochMilli());
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(1, sameRows.size());
     }
 
@@ -434,8 +434,8 @@ class TestQueryNiFiReportingTask {
                 "and timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
 
-        long testBulletinStartTime = 1609538145L;
-        long testProvenanceStartTime = 1641074145L;
+        final long testBulletinStartTime = 1609538145L;
+        final long testProvenanceStartTime = 1641074145L;
         final Map<String, String> stateMap = new HashMap<>();
         stateMap.put(TrackedQueryTime.BULLETIN_START_TIME.name(), String.valueOf(testBulletinStartTime));
         stateMap.put(TrackedQueryTime.PROVENANCE_START_TIME.name(), String.valueOf(testProvenanceStartTime));
@@ -479,9 +479,9 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1, rows.size());
-        Map<String, Object> row = rows.getFirst();
+        final Map<String, Object> row = rows.getFirst();
         assertEquals(11, row.size());
 
         assertInstanceOf(Integer.class, row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")));
@@ -496,7 +496,7 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(4, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.getFirst();
@@ -521,7 +521,7 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(0, rows.size());
     }
 
@@ -533,7 +533,7 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1001, rows.size());
         // Validate the first row
         Map<String, Object> row = rows.getFirst();
@@ -548,11 +548,11 @@ class TestQueryNiFiReportingTask {
 
         Object o = row.get("previousAttributes");
         assertInstanceOf(Map.class, o);
-        Map<String, String> previousAttributes = (Map<String, String>) o;
+        final Map<String, String> previousAttributes = (Map<String, String>) o;
         assertEquals("A", previousAttributes.get("test.value"));
         o = row.get("updatedAttributes");
         assertInstanceOf(Map.class, o);
-        Map<String, String> updatedAttributes = (Map<String, String>) o;
+        final Map<String, String> updatedAttributes = (Map<String, String>) o;
         assertEquals("B", updatedAttributes.get("test.value"));
 
         // Verify some fields in the second row
@@ -620,10 +620,10 @@ class TestQueryNiFiReportingTask {
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
 
-        List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(1, rows.size());
         // Validate the first row
-        Map<String, Object> row = rows.getFirst();
+        final Map<String, Object> row = rows.getFirst();
         assertEquals(22, row.size());
         // Verify the first row contents
         assertEquals(123, row.get("actionId"));
@@ -665,7 +665,7 @@ class TestQueryNiFiReportingTask {
         Mockito.when(context.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
         Mockito.when(pValue.asControllerService(RecordSinkService.class)).thenReturn(mockRecordSinkService);
 
-        ConfigurationContext configContext = mock(ConfigurationContext.class);
+        final ConfigurationContext configContext = mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
 
         Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
@@ -673,20 +673,20 @@ class TestQueryNiFiReportingTask {
         reportingTask.setup(configContext);
 
         mockProvenanceRepository = new MockProvenanceRepository();
-        long currentTimeMillis = System.currentTimeMillis();
-        Map<String, String> previousAttributes = new HashMap<>();
+        final long currentTimeMillis = System.currentTimeMillis();
+        final Map<String, String> previousAttributes = new HashMap<>();
         previousAttributes.put("mime.type", "application/json");
         previousAttributes.put("test.value", "A");
-        Map<String, String> updatedAttributes = new HashMap<>(previousAttributes);
+        final Map<String, String> updatedAttributes = new HashMap<>(previousAttributes);
         updatedAttributes.put("test.value", "B");
 
         // Generate provenance events and put them in a repository
-        Processor processor = mock(Processor.class);
-        SharedSessionState sharedState = new SharedSessionState(processor, new AtomicLong(0));
-        MockProcessSession processSession = new MockProcessSession(sharedState, processor);
+        final Processor processor = mock(Processor.class);
+        final SharedSessionState sharedState = new SharedSessionState(processor, new AtomicLong(0));
+        final MockProcessSession processSession = new MockProcessSession(sharedState, processor);
         MockFlowFile mockFlowFile = processSession.createFlowFile("Test content".getBytes());
 
-        ProvenanceEventRecord prov1 = mockProvenanceRepository.eventBuilder()
+        final ProvenanceEventRecord prov1 = mockProvenanceRepository.eventBuilder()
                 .setEventType(ProvenanceEventType.CREATE)
                 .fromFlowFile(mockFlowFile)
                 .setComponentId("12345")
@@ -703,9 +703,9 @@ class TestQueryNiFiReportingTask {
         mockProvenanceRepository.registerEvent(prov1);
 
         for (int i = 1; i < 1001; i++) {
-            String indexString = Integer.toString(i);
+            final String indexString = Integer.toString(i);
             mockFlowFile = processSession.createFlowFile(("Test content " + indexString).getBytes());
-            ProvenanceEventRecord prov = mockProvenanceRepository.eventBuilder()
+            final ProvenanceEventRecord prov = mockProvenanceRepository.eventBuilder()
                     .fromFlowFile(mockFlowFile)
                     .setEventType(ProvenanceEventType.DROP)
                     .setComponentId(indexString)
@@ -759,13 +759,13 @@ class TestQueryNiFiReportingTask {
         Map<String, List<Bulletin>> bulletins = new HashMap<>();
 
         @Override
-        public void addBulletin(Bulletin bulletin) {
+        public void addBulletin(final Bulletin bulletin) {
             bulletins.computeIfAbsent(bulletin.getCategory(), __ -> new ArrayList<>())
                     .add(bulletin);
         }
 
         @Override
-        public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+        public List<Bulletin> findBulletins(final BulletinQuery bulletinQuery) {
             if (bulletinQuery.getSourceType() == null) {
                 final List<Bulletin> allBulletins = new ArrayList<>();
                 for (final List<Bulletin> bulletins : bulletins.values()) {

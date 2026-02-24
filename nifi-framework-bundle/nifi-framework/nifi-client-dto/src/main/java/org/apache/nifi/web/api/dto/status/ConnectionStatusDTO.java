@@ -47,7 +47,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -56,7 +56,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -65,7 +65,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -74,7 +74,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -83,7 +83,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -92,7 +92,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -101,7 +101,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return destinationName;
     }
 
-    public void setDestinationName(String destinationName) {
+    public void setDestinationName(final String destinationName) {
         this.destinationName = destinationName;
     }
 
@@ -110,7 +110,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(ConnectionStatusSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final ConnectionStatusSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -119,7 +119,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeConnectionStatusSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeConnectionStatusSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 
@@ -131,7 +131,7 @@ public class ConnectionStatusDTO implements Cloneable {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 

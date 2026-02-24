@@ -32,7 +32,7 @@ public class ExtensionRestrictionEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -40,7 +40,7 @@ public class ExtensionRestrictionEntity {
         return extensionId;
     }
 
-    public void setExtensionId(String extensionId) {
+    public void setExtensionId(final String extensionId) {
         this.extensionId = extensionId;
     }
 
@@ -48,7 +48,7 @@ public class ExtensionRestrictionEntity {
         return requiredPermission;
     }
 
-    public void setRequiredPermission(String requiredPermission) {
+    public void setRequiredPermission(final String requiredPermission) {
         this.requiredPermission = requiredPermission;
     }
 
@@ -56,19 +56,19 @@ public class ExtensionRestrictionEntity {
         return explanation;
     }
 
-    public void setExplanation(String explanation) {
+    public void setExplanation(final String explanation) {
         this.explanation = explanation;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ExtensionRestrictionEntity that = (ExtensionRestrictionEntity) o;
+        final ExtensionRestrictionEntity that = (ExtensionRestrictionEntity) o;
         return Objects.equals(id, that.id)
                 && Objects.equals(extensionId, that.extensionId)
                 && Objects.equals(requiredPermission, that.requiredPermission)

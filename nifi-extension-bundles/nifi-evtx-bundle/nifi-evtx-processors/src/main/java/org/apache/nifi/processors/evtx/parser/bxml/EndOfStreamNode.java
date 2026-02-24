@@ -29,7 +29,7 @@ import java.util.List;
  * Node denoting the end of a template
  */
 public class EndOfStreamNode extends BxmlNodeWithToken {
-    public EndOfStreamNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public EndOfStreamNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
     }
@@ -40,7 +40,7 @@ public class EndOfStreamNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

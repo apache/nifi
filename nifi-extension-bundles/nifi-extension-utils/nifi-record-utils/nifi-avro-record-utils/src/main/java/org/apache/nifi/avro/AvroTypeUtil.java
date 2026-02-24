@@ -204,7 +204,7 @@ public class AvroTypeUtil {
         return sb.toString();
     }
 
-    private static Schema buildAvroSchema(final DataType dataType, final String fieldName, String fieldNamePrefix, final boolean nullable) {
+    private static Schema buildAvroSchema(final DataType dataType, final String fieldName, final String fieldNamePrefix, final boolean nullable) {
         Schema schema = null;
 
         switch (dataType.getFieldType()) {
@@ -286,7 +286,7 @@ public class AvroTypeUtil {
 
                 final List<Field> childFields = new ArrayList<>(childSchema.getFieldCount());
                 for (final RecordField field : childSchema.getFields()) {
-                    String childFieldNamePrefix = StringUtils.isBlank(fieldNamePrefix) ? fieldName + "_" : fieldNamePrefix + fieldName + "_";
+                    final String childFieldNamePrefix = StringUtils.isBlank(fieldNamePrefix) ? fieldName + "_" : fieldNamePrefix + fieldName + "_";
                     childFields.add(buildAvroField(field, childFieldNamePrefix));
                 }
 
@@ -348,7 +348,7 @@ public class AvroTypeUtil {
         return determineDataType(avroSchema, new HashMap<>());
     }
 
-    public static DataType determineDataType(final Schema avroSchema, Map<String, DataType> knownRecordTypes) {
+    public static DataType determineDataType(final Schema avroSchema, final Map<String, DataType> knownRecordTypes) {
 
         if (knownRecordTypes == null) {
             throw new IllegalArgumentException("'knownRecordTypes' cannot be null.");
@@ -399,15 +399,15 @@ public class AvroTypeUtil {
             case LONG:
                 return RecordFieldType.LONG.getDataType();
             case RECORD: {
-                String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
+                final String schemaFullName = avroSchema.getNamespace() + "." + avroSchema.getName();
 
                 if (knownRecordTypes.containsKey(schemaFullName)) {
                     return knownRecordTypes.get(schemaFullName);
                 } else {
-                    SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+                    final SimpleRecordSchema recordSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
                     recordSchema.setSchemaName(avroSchema.getName());
                     recordSchema.setSchemaNamespace(avroSchema.getNamespace());
-                    DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
+                    final DataType recordSchemaType = RecordFieldType.RECORD.getRecordDataType(recordSchema);
                     knownRecordTypes.put(schemaFullName, recordSchemaType);
 
                     final List<Field> avroFields = avroSchema.getFields();
@@ -477,7 +477,7 @@ public class AvroTypeUtil {
             throw new IllegalArgumentException("Avro Schema cannot be null");
         }
 
-        SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(avroSchema.getName()).build();
+        final SchemaIdentifier identifier = new StandardSchemaIdentifier.Builder().name(avroSchema.getName()).build();
         return createSchema(avroSchema, includeText ? avroSchema.toString() : null, identifier);
     }
 
@@ -839,9 +839,9 @@ public class AvroTypeUtil {
                     } else {
                         throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer");
                     }
-                } catch (IllegalTypeConversionException itce) {
+                } catch (final IllegalTypeConversionException itce) {
                     throw itce;
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a ByteBuffer", e);
                 }
             case MAP:
@@ -922,7 +922,7 @@ public class AvroTypeUtil {
             case NULL:
                 return null;
             case ENUM:
-                List<String> enums = fieldSchema.getEnumSymbols();
+                final List<String> enums = fieldSchema.getEnumSymbols();
                 if (enums != null && enums.contains(rawValue)) {
                     return new GenericData.EnumSymbol(fieldSchema, rawValue);
                 } else {
@@ -982,7 +982,7 @@ public class AvroTypeUtil {
                 final Object coercedValue = DataTypeUtils.convertType(rawValue, desiredType, fieldName, charset);
 
                 values.put(fieldName, coercedValue);
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 logger.debug("fail to convert field {}", fieldName, ex);
                 throw ex;
             }
@@ -1021,7 +1021,7 @@ public class AvroTypeUtil {
         if (matchingFixed.isPresent()) {
             try {
                 return conversion.apply(matchingFixed.get());
-            } catch (IllegalTypeConversionException e) {
+            } catch (final IllegalTypeConversionException e) {
                 logger.debug("Failed to convert value {} to fixed schema {}", originalValue, matchingFixed.get(), e);
             }
         }
@@ -1035,7 +1035,7 @@ public class AvroTypeUtil {
         if (mostSuitableType.isPresent()) {
             try {
                 return conversion.apply(mostSuitableType.get());
-            } catch (IllegalTypeConversionException e) {
+            } catch (final IllegalTypeConversionException e) {
                 logger.debug("Failed to convert value {} to most suitable schema {}", originalValue, mostSuitableType.get(), e);
             }
         }
@@ -1058,7 +1058,7 @@ public class AvroTypeUtil {
                 if (subSchema.getLogicalType() != null && DataTypeUtils.isCompatibleDataType(originalValue, desiredDataType)) {
                     return convertedValue;
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // If failed with one of possible types, continue with the next available option.
                 if (logger.isDebugEnabled()) {
                     logger.debug("Cannot convert value {} to type {}", originalValue, desiredDataType, e);

@@ -42,7 +42,7 @@ public enum KustoIngestDataFormat implements DescribedValue {
     private final String kustoValue;
     private final String description;
 
-    KustoIngestDataFormat(String kustoValue, String description) {
+    KustoIngestDataFormat(final String kustoValue, final String description) {
         this.kustoValue = kustoValue;
         this.description = description;
     }

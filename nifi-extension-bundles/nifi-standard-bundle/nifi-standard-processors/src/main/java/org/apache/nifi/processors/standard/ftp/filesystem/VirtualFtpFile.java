@@ -30,7 +30,7 @@ public class VirtualFtpFile implements FtpFile {
     private final VirtualFileSystem fileSystem;
     private long lastModified;
 
-    public VirtualFtpFile(VirtualPath path, VirtualFileSystem fileSystem) throws IllegalArgumentException {
+    public VirtualFtpFile(final VirtualPath path, final VirtualFileSystem fileSystem) throws IllegalArgumentException {
         if (path == null || fileSystem == null) {
             throw new IllegalArgumentException("File path and fileSystem cannot be null");
         }
@@ -105,7 +105,7 @@ public class VirtualFtpFile implements FtpFile {
     }
 
     @Override
-    public boolean setLastModified(long l) throws UnsupportedOperationException {
+    public boolean setLastModified(final long l) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("VirtualFtpFile.setLastModified()");
     }
 
@@ -130,39 +130,39 @@ public class VirtualFtpFile implements FtpFile {
     }
 
     @Override
-    public boolean move(FtpFile ftpFile) throws UnsupportedOperationException {
+    public boolean move(final FtpFile ftpFile) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("VirtualFtpFile.move()");
     }
 
     @Override
     public List<? extends FtpFile> listFiles() {
-        List<VirtualPath> paths = fileSystem.listChildren(path);
-        List<VirtualFtpFile> files = new ArrayList<>();
-        for (VirtualPath path : paths) {
+        final List<VirtualPath> paths = fileSystem.listChildren(path);
+        final List<VirtualFtpFile> files = new ArrayList<>();
+        for (final VirtualPath path : paths) {
             files.add(new VirtualFtpFile(path, fileSystem));
         }
         return files;
     }
 
     @Override
-    public OutputStream createOutputStream(long l) throws UnsupportedOperationException {
+    public OutputStream createOutputStream(final long l) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("VirtualFtpFile.createOutputStream()");
     }
 
     @Override
-    public InputStream createInputStream(long l) throws UnsupportedOperationException {
+    public InputStream createInputStream(final long l) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("VirtualFtpFile.createInputStream()");
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
         }
         if (!(o instanceof VirtualFtpFile)) {
             return false;
         }
-        VirtualFtpFile other = (VirtualFtpFile) o;
+        final VirtualFtpFile other = (VirtualFtpFile) o;
         return fileSystem.equals(other.fileSystem) && path.equals(other.path);
     }
 

@@ -42,7 +42,7 @@ class ReportingTaskEntityMergerTest {
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneReportingTaskEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoReportingTaskEntity);
 
-        ReportingTaskEntityMerger merger = new ReportingTaskEntityMerger();
+        final ReportingTaskEntityMerger merger = new ReportingTaskEntityMerger();
         merger.merge(nodeOneReportingTaskEntity, entityMap);
         assertEquals(2, nodeOneReportingTaskEntity.getStatus().getActiveThreadCount());
         assertEquals(ReportingTaskStatusDTO.RUNNING, nodeOneReportingTaskEntity.getStatus().getRunStatus());

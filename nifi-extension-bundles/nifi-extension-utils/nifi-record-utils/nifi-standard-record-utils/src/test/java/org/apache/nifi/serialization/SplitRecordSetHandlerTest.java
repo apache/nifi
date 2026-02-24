@@ -189,11 +189,11 @@ public class SplitRecordSetHandlerTest {
         testSubject.setUpHandleChunkResults(false);
     }
 
-    private void setHandlerToSequence(Boolean... sequence) {
+    private void setHandlerToSequence(final Boolean... sequence) {
         testSubject.setUpHandleChunkResults(sequence);
     }
 
-    private RecordSet getRecordSet(int size) {
+    private RecordSet getRecordSet(final int size) {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("payload", RecordFieldType.STRING.getDataType()));

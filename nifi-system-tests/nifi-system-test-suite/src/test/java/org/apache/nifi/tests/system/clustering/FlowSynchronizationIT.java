@@ -570,7 +570,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         ProcessorEntity countFlowFiles = getClientUtil().createProcessor("CountFlowFiles");
         ControllerServiceEntity countA = getClientUtil().createControllerService("StandardCountService");
         ControllerServiceEntity countB = getClientUtil().createControllerService("StandardCountService");
-        ControllerServiceEntity countC = getClientUtil().createControllerService("StandardCountService");
+        final ControllerServiceEntity countC = getClientUtil().createControllerService("StandardCountService");
 
         getClientUtil().setAutoTerminatedRelationships(countFlowFiles, "success");
         final ConnectionEntity connection = getClientUtil().createConnection(generateFlowFile, countFlowFiles, "success");
@@ -808,7 +808,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         // Buffer into memory so that it's easy to set breakpoints & debug when necessary
         final byte[] bytes;
         try (final InputStream fis = new FileInputStream(flow);
-             final InputStream in = new GZIPInputStream(fis);
+             InputStream in = new GZIPInputStream(fis);
              final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             StreamUtils.copy(in, baos);
             bytes = baos.toByteArray();

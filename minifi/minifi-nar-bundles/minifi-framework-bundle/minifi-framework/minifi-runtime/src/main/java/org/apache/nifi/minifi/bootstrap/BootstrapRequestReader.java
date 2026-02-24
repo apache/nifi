@@ -26,28 +26,28 @@ import java.util.Arrays;
 public class BootstrapRequestReader {
     private final String secretKey;
 
-    public BootstrapRequestReader(String secretKey) {
+    public BootstrapRequestReader(final String secretKey) {
         this.secretKey = secretKey;
     }
 
     // we don't want to close the stream, as the caller will do that
-    public BootstrapRequest readRequest(InputStream in) throws IOException {
+    public BootstrapRequest readRequest(final InputStream in) throws IOException {
         // We want to ensure that we don't try to read data from an InputStream directly
         // by a BufferedReader because any user on the system could open a socket and send
         // a multi-gigabyte file without any new lines in order to crash the MiNiFi instance
         // (or at least cause OutOfMemoryErrors, which can wreak havoc on the running instance).
         // So we will limit the Input Stream to only 4 KB, which should be plenty for any request.
-        LimitingInputStream limitingIn = new LimitingInputStream(in, 4096);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(limitingIn));
+        final LimitingInputStream limitingIn = new LimitingInputStream(in, 4096);
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(limitingIn));
 
-        String line = reader.readLine();
-        String[] splits = line.split(" ");
+        final String line = reader.readLine();
+        final String[] splits = line.split(" ");
         if (splits.length < 1) {
             throw new IOException("Received invalid request from Bootstrap: " + line);
         }
 
-        String requestType = splits[0];
-        String[] args;
+        final String requestType = splits[0];
+        final String[] args;
         if (splits.length == 1) {
             throw new IOException("Received invalid request from Bootstrap; request did not have a secret key; request type = " + requestType);
         } else if (splits.length == 2) {
@@ -56,14 +56,14 @@ public class BootstrapRequestReader {
             args = Arrays.copyOfRange(splits, 2, splits.length);
         }
 
-        String requestKey = splits[1];
+        final String requestKey = splits[1];
         if (!secretKey.equals(requestKey)) {
             throw new IOException("Received invalid Secret Key for request type " + requestType);
         }
 
         try {
             return new BootstrapRequest(requestType, args);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Received invalid request from Bootstrap; request type = " + requestType);
         }
     }

@@ -87,7 +87,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
     public void teardown() {
         try {
             client.close();
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
 
         }
     }
@@ -116,7 +116,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
         try {
             bucketClient.create(bucket);
             fail("Shouldn't have been able to create a bucket");
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
 
         }
     }
@@ -133,35 +133,35 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
         try {
             proxiedFlowClient.get("1");
             fail("Shouldn't have been able to retrieve flow");
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getLatest("1");
             fail("Shouldn't have been able to retrieve flow");
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getLatestMetadata("1");
             fail("Shouldn't have been able to retrieve flow");
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.get("1", 1);
             fail("Shouldn't have been able to retrieve flow");
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 
         try {
             proxiedFlowSnapshotClient.getSnapshotMetadata("1");
             fail("Shouldn't have been able to retrieve flow");
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             assertInstanceOf(ForbiddenException.class, e.getCause());
         }
 

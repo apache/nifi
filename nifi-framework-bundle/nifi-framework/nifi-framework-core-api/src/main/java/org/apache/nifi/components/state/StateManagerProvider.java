@@ -34,7 +34,7 @@ public interface StateManagerProvider {
      * @return the StateManager for the component with the given ID, or <code>null</code> if no State Manager
      *         exists for the component with the given ID
      */
-    default StateManager getStateManager(String componentId) {
+    default StateManager getStateManager(final String componentId) {
         return getStateManager(componentId, false);
     }
 

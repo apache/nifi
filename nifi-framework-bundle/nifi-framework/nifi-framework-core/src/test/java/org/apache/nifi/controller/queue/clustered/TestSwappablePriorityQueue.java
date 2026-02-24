@@ -455,7 +455,7 @@ public class TestSwappablePriorityQueue {
         prioritizers.add((o1, o2) -> Long.compare(o1.getSize(), o2.getSize()));
         queue.setPriorities(prioritizers);
 
-        long maxSize = 20000;
+        final long maxSize = 20000;
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord(maxSize - i));
         }
@@ -487,7 +487,7 @@ public class TestSwappablePriorityQueue {
         prioritizers.add((o1, o2) -> Long.compare(o1.getSize(), o2.getSize()));
         queue.setPriorities(prioritizers);
 
-        int maxSize = 9999;
+        final int maxSize = 9999;
         for (int i = 1; i <= maxSize; i++) {
             queue.put(new MockFlowFileRecord(maxSize - i));
         }
@@ -745,13 +745,13 @@ public class TestSwappablePriorityQueue {
     // The purpose of this test is to populate a SwappablePriorityQueue and to ensure that the minLastQueueDate and TotalQueueDuration are correct.
     // To truly test this we need to get both the in-memory swap queue and swap "on disk" involved.
     public void testLastQueueDateMetrics() throws IOException {
-        Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
+        final Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
         queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, "testGetMinLastQueueDate");
         long minQueueDate = Long.MAX_VALUE;
         long totalQueueDate = 0L;
         // Put enough files in the queue to swap to disk
         for (int i = 1; i <= 11001; i++) {
-            FlowFileRecord flowFileRecord = new MockFlowFileRecord();
+            final FlowFileRecord flowFileRecord = new MockFlowFileRecord();
             queue.put(flowFileRecord);
             flowFileRecords.add(flowFileRecord);
             totalQueueDate += flowFileRecord.getLastQueueDate();
@@ -770,7 +770,7 @@ public class TestSwappablePriorityQueue {
         assertEquals(totalNow - totalQueueDate, queue.getTotalQueuedDuration(now));
         assertEquals(minQueueDate, queue.getMinLastQueueDate());
 
-        List<FlowFileRecord> polledRecords = queue.poll(1000, Collections.emptySet(), -1);
+        final List<FlowFileRecord> polledRecords = queue.poll(1000, Collections.emptySet(), -1);
         polledRecords.addAll(queue.poll(2, Collections.emptySet(), -1));
 
         // Assert that the lone swap file was recovered into memory and that all numbers are as we still expect them to be.

@@ -39,7 +39,7 @@ public class RuntimeManifest implements Serializable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -48,7 +48,7 @@ public class RuntimeManifest implements Serializable {
         return agentType;
     }
 
-    public void setAgentType(String agentType) {
+    public void setAgentType(final String agentType) {
         this.agentType = agentType;
     }
 
@@ -57,7 +57,7 @@ public class RuntimeManifest implements Serializable {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -66,7 +66,7 @@ public class RuntimeManifest implements Serializable {
         return buildInfo;
     }
 
-    public void setBuildInfo(BuildInfo buildInfo) {
+    public void setBuildInfo(final BuildInfo buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -75,7 +75,7 @@ public class RuntimeManifest implements Serializable {
         return (bundles != null ? Collections.unmodifiableList(bundles) : null);
     }
 
-    public void setBundles(List<Bundle> bundles) {
+    public void setBundles(final List<Bundle> bundles) {
         this.bundles = bundles;
     }
 
@@ -84,12 +84,12 @@ public class RuntimeManifest implements Serializable {
         return schedulingDefaults;
     }
 
-    public void setSchedulingDefaults(SchedulingDefaults schedulingDefaults) {
+    public void setSchedulingDefaults(final SchedulingDefaults schedulingDefaults) {
         this.schedulingDefaults = schedulingDefaults;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

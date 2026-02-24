@@ -100,7 +100,7 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("websocket-server-controller-service", PROP_WEBSOCKET_SERVER_SERVICE.getName());
         config.renameProperty("server-url-path", PROP_SERVER_URL_PATH.getName());
     }

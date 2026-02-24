@@ -38,7 +38,7 @@ public class NodeStatusDTO {
         return node;
     }
 
-    public void setNode(NodeDTO node) {
+    public void setNode(final NodeDTO node) {
         this.node = node;
     }
 
@@ -51,7 +51,7 @@ public class NodeStatusDTO {
         return controllerStatus;
     }
 
-    public void setControllerStatus(ProcessGroupStatusDTO controllerStatus) {
+    public void setControllerStatus(final ProcessGroupStatusDTO controllerStatus) {
         this.controllerStatus = controllerStatus;
     }
 

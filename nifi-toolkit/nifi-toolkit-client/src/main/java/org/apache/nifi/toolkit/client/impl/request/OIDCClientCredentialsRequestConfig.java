@@ -52,7 +52,7 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
     private final String oidcClientId;
     private final String oidcClientSecret;
 
-    public OIDCClientCredentialsRequestConfig(NiFiClientConfig niFiClientConfig, final String oidcTokenUrl, final String oidcClientId, final String oidcClientSecret) {
+    public OIDCClientCredentialsRequestConfig(final NiFiClientConfig niFiClientConfig, final String oidcTokenUrl, final String oidcClientId, final String oidcClientSecret) {
         Objects.requireNonNull(oidcTokenUrl);
         Objects.requireNonNull(oidcClientId);
         Objects.requireNonNull(oidcClientSecret);
@@ -97,7 +97,7 @@ public class OIDCClientCredentialsRequestConfig implements RequestConfig {
 
         try {
             this.token = OBJECT_MAPPER.readValue(response, AccessToken.class);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }

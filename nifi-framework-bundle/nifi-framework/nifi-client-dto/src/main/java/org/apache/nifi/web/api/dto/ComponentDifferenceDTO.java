@@ -36,7 +36,7 @@ public class ComponentDifferenceDTO {
         return componentType;
     }
 
-    public void setComponentType(String componentType) {
+    public void setComponentType(final String componentType) {
         this.componentType = componentType;
     }
 
@@ -45,7 +45,7 @@ public class ComponentDifferenceDTO {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -54,7 +54,7 @@ public class ComponentDifferenceDTO {
         return componentName;
     }
 
-    public void setComponentName(String componentName) {
+    public void setComponentName(final String componentName) {
         this.componentName = componentName;
     }
 
@@ -63,7 +63,7 @@ public class ComponentDifferenceDTO {
         return processGroupId;
     }
 
-    public void setProcessGroupId(String processGroupId) {
+    public void setProcessGroupId(final String processGroupId) {
         this.processGroupId = processGroupId;
     }
 
@@ -72,7 +72,7 @@ public class ComponentDifferenceDTO {
         return differences;
     }
 
-    public void setDifferences(List<DifferenceDTO> differences) {
+    public void setDifferences(final List<DifferenceDTO> differences) {
         this.differences = differences;
     }
 

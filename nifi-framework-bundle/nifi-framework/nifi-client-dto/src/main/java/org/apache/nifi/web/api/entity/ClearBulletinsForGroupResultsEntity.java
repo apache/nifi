@@ -35,7 +35,7 @@ public class ClearBulletinsForGroupResultsEntity extends Entity {
         return bulletinsCleared;
     }
 
-    public void setBulletinsCleared(int bulletinsCleared) {
+    public void setBulletinsCleared(final int bulletinsCleared) {
         this.bulletinsCleared = bulletinsCleared;
     }
 }

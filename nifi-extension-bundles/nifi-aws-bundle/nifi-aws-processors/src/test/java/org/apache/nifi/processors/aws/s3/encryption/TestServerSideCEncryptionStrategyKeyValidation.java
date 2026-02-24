@@ -35,45 +35,45 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
     @Test
     public void testValid256BitKey() {
-        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
+        final S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
 
-        ValidationResult result = strategy.validateKeySpec(keySpec);
+        final ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertTrue(result.isValid());
     }
 
     @Test
     public void testNotSupportedKeySize() {
-        S3EncryptionKeySpec keySpec = createCustomerKeySpec(512);
+        final S3EncryptionKeySpec keySpec = createCustomerKeySpec(512);
 
-        ValidationResult result = strategy.validateKeySpec(keySpec);
+        final ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testNullKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null, null);
+        final S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null, null);
 
-        ValidationResult result = strategy.validateKeySpec(keySpec);
+        final ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testEmptyKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "", null, null);
+        final S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "", null, null);
 
-        ValidationResult result = strategy.validateKeySpec(keySpec);
+        final ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testNotBase64EncodedKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "NotBase64EncodedKey", null, null);
+        final S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "NotBase64EncodedKey", null, null);
 
-        ValidationResult result = strategy.validateKeySpec(keySpec);
+        final ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }

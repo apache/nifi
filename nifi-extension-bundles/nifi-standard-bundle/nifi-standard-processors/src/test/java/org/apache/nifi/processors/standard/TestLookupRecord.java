@@ -64,7 +64,7 @@ public class TestLookupRecord {
     @BeforeEach
     public void setup() throws InitializationException {
         recordReader = new MockRecordParser();
-        MockRecordWriter recordWriter = new MockRecordWriter(null, false);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         lookupService = new MapLookup();
 
         runner = TestRunners.newTestRunner(LookupRecord.class);
@@ -389,11 +389,11 @@ public class TestLookupRecord {
 
     @Test
     public void testFlowfileAttributesPassed() {
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "person");
         attrs.put("something_something", "test");
 
-        Map<String, Object> expected = new HashMap<>(attrs);
+        final Map<String, Object> expected = new HashMap<>(attrs);
 
         lookupService.setExpectedContext(expected);
 
@@ -449,7 +449,7 @@ public class TestLookupRecord {
 
         out.assertAttributeEquals("record.count", "1");
         out.assertAttributeEquals("mime.type", "text/plain");
-        String contents = out.getContent();
+        final String contents = out.getContent();
         assertTrue(contents.matches("Jason Doe,15,Bowling,19[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\n"));
     }
 
@@ -779,7 +779,7 @@ public class TestLookupRecord {
 
     @Test
     public void testLookupArray() throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -821,7 +821,7 @@ public class TestLookupRecord {
 
     @Test
     public void testLookupEmptyArray() throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -875,7 +875,7 @@ public class TestLookupRecord {
 
     @Test
     public void testLookupMissingJsonField() throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -915,7 +915,7 @@ public class TestLookupRecord {
 
     @Test
     public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
         final MapLookup lookupService = new MapLookupForInPlaceReplacement();
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
@@ -997,7 +997,7 @@ public class TestLookupRecord {
         }
 
         @Override
-        public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
+        public Optional<String> lookup(final Map<String, Object> coordinates, final Map<String, String> context) {
             validateContext(context);
             return lookup(coordinates);
         }
@@ -1021,13 +1021,13 @@ public class TestLookupRecord {
             return Collections.singleton("lookup");
         }
 
-        public void setExpectedContext(Map<String, Object> expectedContext) {
+        public void setExpectedContext(final Map<String, Object> expectedContext) {
             this.expectedContext = expectedContext;
         }
 
-        private void validateContext(Map<String, String> context) {
+        private void validateContext(final Map<String, String> context) {
             if (expectedContext != null) {
-                for (Map.Entry<String, Object> entry : expectedContext.entrySet()) {
+                for (final Map.Entry<String, Object> entry : expectedContext.entrySet()) {
                     assertTrue(context.containsKey(entry.getKey()),
                             String.format("%s was not in coordinates.", entry.getKey()));
                     assertEquals(entry.getValue(), context.get(entry.getKey()), "Wrong value");

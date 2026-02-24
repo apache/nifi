@@ -154,7 +154,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Geo Database File", GEO_DATABASE_FILE.getName());
     }
 

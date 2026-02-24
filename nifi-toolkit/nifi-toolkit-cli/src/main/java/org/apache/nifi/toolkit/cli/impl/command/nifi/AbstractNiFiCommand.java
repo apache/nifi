@@ -61,7 +61,7 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         final ClientFactory<NiFiClient> clientFactory = getContext().getNiFiClientFactory();
         try (final NiFiClient client = clientFactory.createClient(properties)) {
             return doExecute(client, properties);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CommandException("Error executing command '" + getName() + "' : " + e.getMessage(), e);
         }
     }
@@ -100,8 +100,8 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         final String[] userArray = csvParser.parseLine(users);
         final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
 
-        for (String user : userArray) {
-            Optional<UserEntity> existingUser = existingUsers.getUsers()
+        for (final String user : userArray) {
+            final Optional<UserEntity> existingUser = existingUsers.getUsers()
                     .stream()
                     .filter(entity -> user.equals(entity.getComponent().getIdentity()))
                     .findAny();
@@ -122,8 +122,8 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         final String[] groupArray = csvParser.parseLine(groups);
         final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
 
-        for (String group : groupArray) {
-            Optional<UserGroupEntity> existingGroup = existingGroups.getUserGroups()
+        for (final String group : groupArray) {
+            final Optional<UserGroupEntity> existingGroup = existingGroups.getUserGroups()
                     .stream()
                     .filter(entity -> group.equals(entity.getComponent().getIdentity()))
                     .findAny();
@@ -143,11 +143,11 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
     }
 
     private static TenantEntity createTenantEntity(final String id, final String identity) {
-        TenantEntity tenantEntity = new TenantEntity();
+        final TenantEntity tenantEntity = new TenantEntity();
         tenantEntity.setId(id);
 
         if (StringUtils.isNotBlank(identity)) {
-            TenantDTO tenantDTO = new TenantDTO();
+            final TenantDTO tenantDTO = new TenantDTO();
             tenantDTO.setIdentity(identity);
             tenantEntity.setComponent(tenantDTO);
         }

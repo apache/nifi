@@ -27,27 +27,27 @@ public class MockFlowPersistenceProvider implements FlowPersistenceProvider {
     private Map<String, String> properties;
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+    public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
         properties = configurationContext.getProperties();
     }
 
     @Override
-    public void saveFlowContent(FlowSnapshotContext context, byte[] content) throws FlowPersistenceException {
+    public void saveFlowContent(final FlowSnapshotContext context, final byte[] content) throws FlowPersistenceException {
 
     }
 
     @Override
-    public byte[] getFlowContent(String bucketId, String flowId, int version) throws FlowPersistenceException {
+    public byte[] getFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
         return new byte[0];
     }
 
     @Override
-    public void deleteAllFlowContent(String bucketId, String flowId) throws FlowPersistenceException {
+    public void deleteAllFlowContent(final String bucketId, final String flowId) throws FlowPersistenceException {
 
     }
 
     @Override
-    public void deleteFlowContent(String bucketId, String flowId, int version) throws FlowPersistenceException {
+    public void deleteFlowContent(final String bucketId, final String flowId, final int version) throws FlowPersistenceException {
 
     }
 

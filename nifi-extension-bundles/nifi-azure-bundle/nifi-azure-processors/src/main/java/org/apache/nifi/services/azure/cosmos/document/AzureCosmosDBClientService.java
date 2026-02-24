@@ -68,7 +68,7 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
         if (this.cosmosClient != null) {
             try {
                 cosmosClient.close();
-            } catch (CosmosException e) {
+            } catch (final CosmosException e) {
                 getLogger().error("Closing cosmosClient Failed", e);
             } finally {
                 this.cosmosClient = null;
@@ -113,19 +113,19 @@ public class AzureCosmosDBClientService extends AbstractControllerService implem
     public CosmosClient getCosmosClient() {
         return this.cosmosClient;
     }
-    public void setCosmosClient(CosmosClient client) {
+    public void setCosmosClient(final CosmosClient client) {
         this.cosmosClient = client;
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureCosmosDBUtils.OLD_URI_DESCRIPTOR_NAME, AzureCosmosDBUtils.URI.getName());
         config.renameProperty(AzureCosmosDBUtils.OLD_DB_ACCESS_KEY_DESCRIPTOR_NAME, AzureCosmosDBUtils.DB_ACCESS_KEY.getName());
         config.renameProperty(AzureCosmosDBUtils.OLD_CONSISTENCY_DESCRIPTOR_NAME, AzureCosmosDBUtils.CONSISTENCY.getName());
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
         final String uri = validationContext.getProperty(AzureCosmosDBUtils.URI).getValue();

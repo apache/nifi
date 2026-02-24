@@ -160,7 +160,7 @@ class ConsumeBoxEnterpriseEventsTest extends AbstractBoxFileTest {
         }
 
         @Override
-        EventLog getEventLog(String position) {
+        EventLog getEventLog(final String position) {
             return fakeEventLog.apply(position);
         }
     }

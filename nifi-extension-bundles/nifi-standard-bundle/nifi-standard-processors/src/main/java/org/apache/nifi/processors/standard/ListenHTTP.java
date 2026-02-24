@@ -368,7 +368,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference = new AtomicReference<>();
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         validatePortsAreNotEqual(validationContext, validationResults);
@@ -376,18 +376,18 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         return validationResults;
     }
 
-    private void validatePortsAreNotEqual(ValidationContext context, Collection<ValidationResult> validationResults) {
-        Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
+    private void validatePortsAreNotEqual(final ValidationContext context, final Collection<ValidationResult> validationResults) {
+        final Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
         if (healthCheckPort != null) {
-            Integer port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+            final Integer port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
             if (port.equals(healthCheckPort)) {
-                String explanation = String.format("'%s' and '%s' cannot have the same value.", PORT.getDisplayName(), HEALTH_CHECK_PORT.getDisplayName());
+                final String explanation = String.format("'%s' and '%s' cannot have the same value.", PORT.getDisplayName(), HEALTH_CHECK_PORT.getDisplayName());
                 validationResults.add(createValidationResult(HEALTH_CHECK_PORT.getDisplayName(), explanation));
             }
         }
     }
 
-    private ValidationResult createValidationResult(String subject, String explanation) {
+    private ValidationResult createValidationResult(final String subject, final String explanation) {
         return new ValidationResult.Builder().subject(subject).valid(false).explanation(explanation).build();
     }
 
@@ -402,7 +402,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         if (config.removeProperty("Max Data to Receive per Second")) {
             getLogger().warn("ListenHTTP rate limit feature was removed. Please see ListenHTTP documentation for alternatives.");
         }
@@ -475,7 +475,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         return this.server;
     }
 
-    private void shutdownHttpServer(Server toShutdown) {
+    private void shutdownHttpServer(final Server toShutdown) {
         try {
             toShutdown.stop();
             toShutdown.destroy();
@@ -572,7 +572,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         server.setHandler(contextHandler);
         try {
             server.start();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             shutdownHttpServer(server);
             throw e;
         }
@@ -692,7 +692,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
             if (!initialized.get()) {
                 createHttpServerFromService(context);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Failed to start http server during initialization", e);
             context.yield();
             throw new ProcessException("Failed to initialize the server", e);

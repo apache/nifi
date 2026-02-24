@@ -69,7 +69,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> someProps = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        final List<PropertyDescriptor> someProps = new ArrayList<>(super.getSupportedPropertyDescriptors());
         someProps.add(FLOWFILE_CONTENT);
         return Collections.unmodifiableList(someProps);
     }
@@ -82,10 +82,10 @@ public class GetHDFSSequenceFile extends GetHDFS {
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         if (bufferSizeProp != null) {
-            int bufferSize = bufferSizeProp.intValue();
+            final int bufferSize = bufferSizeProp.intValue();
             conf.setInt(BUFFER_SIZE_KEY, bufferSize);
         }
-        ComponentLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final SequenceFileReader<Set<FlowFile>> reader;
         if (flowFileContentValue.equalsIgnoreCase(VALUE_ONLY)) {
             reader = new ValueReader(session);
@@ -109,7 +109,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 if (!keepSourceFiles && !hdfs.delete(file, false)) {
                     logger.warn("Unable to delete path {} from HDFS.  Will likely be picked up over and over...", file);
                 }
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 final String errorString = "Error retrieving file {} from HDFS due to {}";
                 if (!handleAuthErrors(t, session, context, new GSSExceptionRollbackYieldSessionHandler())) {
                     logger.error(errorString, file, t);
@@ -121,7 +121,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
             } finally {
                 stopWatch.stop();
                 long totalSize = 0;
-                for (FlowFile flowFile : flowFiles) {
+                for (final FlowFile flowFile : flowFiles) {
                     totalSize += flowFile.getSize();
                     session.getProvenanceReporter().receive(flowFile, file.toString());
                 }
@@ -137,8 +137,8 @@ public class GetHDFSSequenceFile extends GetHDFS {
     }
 
     protected Set<FlowFile> getFlowFiles(final Configuration conf, final FileSystem hdfs, final SequenceFileReader<Set<FlowFile>> reader, final Path file) throws Exception {
-        PrivilegedExceptionAction<Set<FlowFile>> privilegedExceptionAction = () -> reader.readSequenceFile(file, conf, hdfs);
-        UserGroupInformation userGroupInformation = getUserGroupInformation();
+        final PrivilegedExceptionAction<Set<FlowFile>> privilegedExceptionAction = () -> reader.readSequenceFile(file, conf, hdfs);
+        final UserGroupInformation userGroupInformation = getUserGroupInformation();
         if (userGroupInformation == null) {
             return privilegedExceptionAction.run();
         } else {

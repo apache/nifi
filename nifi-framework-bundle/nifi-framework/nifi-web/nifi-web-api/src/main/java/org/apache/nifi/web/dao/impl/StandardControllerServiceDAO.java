@@ -260,7 +260,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                     final ConfigurableComponent tempComponent = extensionManager.getTempComponent(controllerService.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = controllerService.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     flowController.getReloadComponent().reload(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate, additionalUrls);
-                } catch (ControllerServiceInstantiationException e) {
+                } catch (final ControllerServiceInstantiationException e) {
                     throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
                             controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
                 }

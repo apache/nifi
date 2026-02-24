@@ -43,10 +43,10 @@ public class ScriptRunnerFactory {
         return INSTANCE;
     }
 
-    public ScriptRunner createScriptRunner(ScriptEngineFactory scriptEngineFactory, String scriptToRun, String[] modulePaths)
+    public ScriptRunner createScriptRunner(final ScriptEngineFactory scriptEngineFactory, final String scriptToRun, final String[] modulePaths)
             throws ScriptException {
-        ScriptEngine scriptEngine = scriptEngineFactory.getScriptEngine();
-        String scriptEngineName = scriptEngineFactory.getLanguageName();
+        final ScriptEngine scriptEngine = scriptEngineFactory.getScriptEngine();
+        final String scriptEngineName = scriptEngineFactory.getLanguageName();
         if ("Groovy".equals(scriptEngineName)) {
             return new GroovyScriptRunner(scriptEngine, scriptToRun, null);
         }
@@ -67,26 +67,26 @@ public class ScriptRunnerFactory {
      * @param log         A logger for the calling component, to provide feedback for missing files, e.g.
      * @return An array of URLs corresponding to all modules determined from the input set of module paths.
      */
-    public URL[] getModuleURLsForClasspath(String scriptEngineName, String[] modulePaths, ComponentLog log) {
+    public URL[] getModuleURLsForClasspath(final String scriptEngineName, final String[] modulePaths, final ComponentLog log) {
 
         if (!"Clojure".equals(scriptEngineName)
                 && !"Groovy".equals(scriptEngineName)) {
             return new URL[0];
         }
 
-        List<URL> additionalClasspath = new LinkedList<>();
+        final List<URL> additionalClasspath = new LinkedList<>();
 
         if (modulePaths == null) {
             return new URL[0];
         }
-        for (String modulePathString : modulePaths) {
-            File modulePath = new File(modulePathString);
+        for (final String modulePathString : modulePaths) {
+            final File modulePath = new File(modulePathString);
 
             if (modulePath.exists()) {
                 // Add the URL of this path
                 try {
                     additionalClasspath.add(modulePath.toURI().toURL());
-                } catch (MalformedURLException mue) {
+                } catch (final MalformedURLException mue) {
                     log.warn("{} is not a valid file/folder, ignoring", modulePath.getAbsolutePath(), mue);
                 }
 
@@ -94,17 +94,17 @@ public class ScriptRunnerFactory {
                 if (!modulePath.isDirectory()) {
                     continue;
                 }
-                File[] jarFiles = modulePath.listFiles((dir, name) -> (name != null && name.endsWith(".jar")));
+                final File[] jarFiles = modulePath.listFiles((dir, name) -> (name != null && name.endsWith(".jar")));
 
                 if (jarFiles == null) {
                     continue;
                 }
                 // Add each to the classpath
-                for (File jarFile : jarFiles) {
+                for (final File jarFile : jarFiles) {
                     try {
                         additionalClasspath.add(jarFile.toURI().toURL());
 
-                    } catch (MalformedURLException mue) {
+                    } catch (final MalformedURLException mue) {
                         log.warn("{} is not a valid file/folder, ignoring", modulePath.getAbsolutePath(), mue);
                     }
                 }

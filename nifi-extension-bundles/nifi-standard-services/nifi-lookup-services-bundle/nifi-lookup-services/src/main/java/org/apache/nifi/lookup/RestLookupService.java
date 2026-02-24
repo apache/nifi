@@ -244,14 +244,14 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 .asControllerService(ProxyConfigurationService.class);
 
         if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+            final OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
             oauth2AccessTokenProvider.getAccessDetails();
             oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
         } else {
             oauth2AccessTokenProviderOptional = Optional.empty();
         }
 
-        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        final OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
         setAuthenticator(builder, context);
 
@@ -273,7 +273,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         client = builder.build();
 
-        String path = context.getProperty(RECORD_PATH).isSet() ? context.getProperty(RECORD_PATH).getValue() : null;
+        final String path = context.getProperty(RECORD_PATH).isSet() ? context.getProperty(RECORD_PATH).getValue() : null;
         if (!StringUtils.isBlank(path)) {
             recordPath = RecordPath.compile(path);
         }
@@ -291,9 +291,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         this.urlTemplate = null;
     }
 
-    private void buildHeaders(ConfigurationContext context) {
+    private void buildHeaders(final ConfigurationContext context) {
         headers = new HashMap<>();
-        for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
                 headers.put(
                     descriptor.getDisplayName(),
@@ -303,8 +303,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    private void setProxy(OkHttpClient.Builder builder) {
-        ProxyConfiguration config = proxyConfigurationService.getConfiguration();
+    private void setProxy(final OkHttpClient.Builder builder) {
+        final ProxyConfiguration config = proxyConfigurationService.getConfiguration();
         if (!config.getProxyType().equals(Proxy.Type.DIRECT)) {
             final Proxy proxy = config.createProxy();
             builder.proxy(proxy);
@@ -321,12 +321,12 @@ public class RestLookupService extends AbstractControllerService implements Reco
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates, final Map<String, String> context) throws LookupFailureException {
         final String endpoint = determineEndpoint(coordinates, context);
         final String mimeType = (String) coordinates.get(MIME_TYPE_KEY);
         final String method   = ((String) coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
@@ -348,9 +348,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
         }
 
-        Request request = buildRequest(mimeType, method, body, endpoint, context);
+        final Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
-            Response response = executeRequest(request);
+            final Response response = executeRequest(request);
             final ResponseBody responseBody = response.body();
 
             if (getLogger().isDebugEnabled()) {
@@ -375,7 +375,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
 
             return Optional.ofNullable(record);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Could not execute lookup.", e);
             throw new LookupFailureException(e);
         }
@@ -402,20 +402,20 @@ public class RestLookupService extends AbstractControllerService implements Reco
         config.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
     }
 
-    protected void validateVerb(String method) throws LookupFailureException {
+    protected void validateVerb(final String method) throws LookupFailureException {
         if (!VALID_VERBS.contains(method)) {
             throw new LookupFailureException(String.format("%s is not a supported HTTP verb.", method));
         }
     }
 
-    protected String determineEndpoint(Map<String, Object> coordinates, Map<String, String> context) {
-        Map<String, String> converted = coordinates.entrySet().stream()
+    protected String determineEndpoint(final Map<String, Object> coordinates, final Map<String, String> context) {
+        final Map<String, String> converted = coordinates.entrySet().stream()
                 .filter(e -> e.getValue() != null)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> e.getValue().toString()
                 ));
-        Map<String, String> contextConverted = (context == null) ? Collections.emptyMap()
+        final Map<String, String> contextConverted = (context == null) ? Collections.emptyMap()
                 : context.entrySet().stream()
                 .filter(e -> e.getValue() != null)
                 .collect(Collectors.toMap(
@@ -437,30 +437,30 @@ public class RestLookupService extends AbstractControllerService implements Reco
             .build();
     }
 
-    protected Response executeRequest(Request request) throws IOException {
+    protected Response executeRequest(final Request request) throws IOException {
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private Record handleResponse(final InputStream is, final long inputLength, final Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
 
         try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
 
             Record record = reader.nextRecord();
 
             if (recordPath != null) {
-                Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
+                final Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
                 if (fv.isPresent()) {
-                    FieldValue fieldValue = fv.get();
-                    RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(fieldValue.getField()));
+                    final FieldValue fieldValue = fv.get();
+                    final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(fieldValue.getField()));
 
-                    Record temp;
-                    Object value = fieldValue.getValue();
+                    final Record temp;
+                    final Object value = fieldValue.getValue();
                     if (value instanceof Record) {
                         temp = (Record) value;
                     } else if (value instanceof Map) {
                         temp = new MapRecord(schema, (Map<String, Object>) value);
                     } else {
-                        Map<String, Object> val = new HashMap<>();
+                        final Map<String, Object> val = new HashMap<>();
                         val.put(fieldValue.getField().getFieldName(), value);
                         temp = new MapRecord(schema, val);
                     }
@@ -472,7 +472,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
 
             return record;
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             is.close();
             throw ex;
         }
@@ -506,14 +506,14 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
 
         if (headers != null) {
-            for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
+            for (final Map.Entry<String, PropertyValue> header : headers.entrySet()) {
                 request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
             }
         }
 
         if (!isDigest) {
             if (!basicUser.isEmpty()) {
-                String credential = Credentials.basic(basicUser, basicPass);
+                final String credential = Credentials.basic(basicUser, basicPass);
                 request.header("Authorization", credential);
             } else {
                 oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
@@ -525,7 +525,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return request.build();
     }
 
-    private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ConfigurationContext context) {
+    private void setAuthenticator(final OkHttpClient.Builder okHttpClientBuilder, final ConfigurationContext context) {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue());
         this.basicUser = authUser;
 
@@ -541,7 +541,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
              * [1] https://github.com/square/okhttp/issues/205#issuecomment-154047052
              */
             final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
-            com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
+            final com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
 
             okHttpClientBuilder.interceptors().add(new AuthenticationCacheInterceptor(authCache));

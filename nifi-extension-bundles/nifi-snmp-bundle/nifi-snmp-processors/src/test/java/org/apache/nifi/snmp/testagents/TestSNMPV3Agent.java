@@ -42,7 +42,7 @@ public class TestSNMPV3Agent extends TestAgent {
 
     @Override
     protected void addUsmUser(final USM usm) {
-        UsmUser user = new UsmUser(new OctetString("HMAC384SHA512"),
+        final UsmUser user = new UsmUser(new OctetString("HMAC384SHA512"),
                 AuthHMAC384SHA512.ID,
                 new OctetString("SHAAES128AuthPassword"),
                 PrivAES128.ID,

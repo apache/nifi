@@ -226,7 +226,7 @@ public class EnforceOrder extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final Long waitTimeoutMillis = validationContext.getProperty(WAIT_TIMEOUT).asTimePeriod(TimeUnit.MICROSECONDS);
@@ -297,7 +297,7 @@ public class EnforceOrder extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("group-id", GROUP_IDENTIFIER.getName());
         config.renameProperty("order-attribute", ORDER_ATTRIBUTE.getName());
         config.renameProperty("initial-order", INITIAL_ORDER.getName());

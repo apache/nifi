@@ -28,7 +28,7 @@ public enum ProxySpec {
     private Proxy.Type proxyType;
     private String displayName;
 
-    ProxySpec(Proxy.Type type, String displayName) {
+    ProxySpec(final Proxy.Type type, final String displayName) {
         this.proxyType = type;
         this.displayName = displayName;
     }

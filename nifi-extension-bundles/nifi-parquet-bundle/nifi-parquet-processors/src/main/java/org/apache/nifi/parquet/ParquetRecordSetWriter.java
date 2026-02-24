@@ -132,7 +132,7 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("cache-size", CACHE_SIZE.getName());
         config.renameProperty("int96-fields", INT96_FIELDS.getName());

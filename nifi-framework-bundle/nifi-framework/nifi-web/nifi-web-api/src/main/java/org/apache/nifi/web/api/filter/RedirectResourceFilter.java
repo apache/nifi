@@ -39,15 +39,15 @@ public class RedirectResourceFilter implements ContainerRequestFilter {
      * @param requestContext request to be modified
      */
     @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
+    public void filter(final ContainerRequestContext requestContext) throws IOException {
         final UriInfo uriInfo = requestContext.getUriInfo();
 
         if (uriInfo.getPath().equals("controller")) {
-            UriBuilder builder = UriBuilder.fromUri(uriInfo.getBaseUri())
+            final UriBuilder builder = UriBuilder.fromUri(uriInfo.getBaseUri())
                     .path(SiteToSiteResource.class)
                     .replaceQuery(uriInfo.getRequestUri().getRawQuery());
 
-            URI redirectTo = builder.build();
+            final URI redirectTo = builder.build();
             requestContext.setRequestUri(uriInfo.getBaseUri(), redirectTo);
         }
     }

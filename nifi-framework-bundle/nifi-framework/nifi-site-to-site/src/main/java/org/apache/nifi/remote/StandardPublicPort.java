@@ -196,7 +196,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // nothing to do here -- we will never get called because we override onTrigger(ProcessContext, ProcessSessionFactory)
     }
 
@@ -270,7 +270,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     @Override
     public boolean isValid() {
         if (getConnectableType() == ConnectableType.INPUT_PORT) {
-            Set<Connection> availableConnections = getConnections(Relationship.ANONYMOUS);
+            final Set<Connection> availableConnections = getConnections(Relationship.ANONYMOUS);
             return !availableConnections.isEmpty();
         }
         return true;
@@ -356,7 +356,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
     }
 
     @Override
-    public PortAuthorizationResult checkUserAuthorization(NiFiUser user) {
+    public PortAuthorizationResult checkUserAuthorization(final NiFiUser user) {
         if (!secure) {
             return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
         }
@@ -584,7 +584,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             }
 
             // Get a response from the response queue but don't wait forever if the port is stopped
-            ProcessingResult result;
+            final ProcessingResult result;
 
             // wait for the request to start getting serviced... and time out if it doesn't happen
             // before the request expires

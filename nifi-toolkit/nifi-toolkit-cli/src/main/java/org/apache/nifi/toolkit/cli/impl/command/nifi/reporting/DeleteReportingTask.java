@@ -56,7 +56,7 @@ public class DeleteReportingTask extends AbstractNiFiCommand<ReportingTaskResult
         final String reportingTaskId = getRequiredArg(properties, CommandOption.RT_ID);
 
         final ReportingTasksClient reportingTasksClient = client.getReportingTasksClient();
-        ReportingTaskEntity reportingTask = reportingTasksClient.getReportingTask(reportingTaskId);
+        final ReportingTaskEntity reportingTask = reportingTasksClient.getReportingTask(reportingTaskId);
         final ReportingTaskEntity deletedReportingTaskEntity = reportingTasksClient.deleteReportingTask(reportingTask);
 
         return new ReportingTaskResult(getResultType(properties), deletedReportingTaskEntity);

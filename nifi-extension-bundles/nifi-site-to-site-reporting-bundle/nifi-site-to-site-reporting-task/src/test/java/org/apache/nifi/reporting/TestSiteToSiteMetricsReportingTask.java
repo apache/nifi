@@ -80,26 +80,26 @@ public class TestSiteToSiteMetricsReportingTask {
         status.setActiveThreadCount(5);
 
         // create a processor status with processing time
-        ProcessorStatus procStatus = new ProcessorStatus();
+        final ProcessorStatus procStatus = new ProcessorStatus();
         procStatus.setProcessingNanos(123456789);
 
-        Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
+        final Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
         processorStatuses.add(procStatus);
         status.setProcessorStatus(processorStatuses);
 
         // create a group status with processing time
-        ProcessGroupStatus groupStatus = new ProcessGroupStatus();
+        final ProcessGroupStatus groupStatus = new ProcessGroupStatus();
         groupStatus.setProcessorStatus(processorStatuses);
 
-        Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
+        final Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
         groupStatuses.add(groupStatus);
         status.setProcessGroupStatus(groupStatuses);
     }
 
-    MockSiteToSiteMetricsReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
+    MockSiteToSiteMetricsReportingTask initTask(final Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
 
         final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
@@ -117,7 +117,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
 
         final PropertyValue pValue = Mockito.mock(StandardPropertyValue.class);
-        MockRecordWriter writer = new MockRecordWriter();
+        final MockRecordWriter writer = new MockRecordWriter();
         Mockito.when(context.getProperty(MockSiteToSiteMetricsReportingTask.RECORD_WRITER)).thenReturn(pValue);
         Mockito.when(pValue.asControllerService(RecordSetWriterFactory.class)).thenReturn(writer);
 
@@ -132,12 +132,12 @@ public class TestSiteToSiteMetricsReportingTask {
 
     @Test
     public void testValidationBothAmbariFormatRecordWriter() throws IOException {
-        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         final String urlEL = "http://${hostname(true)}:8080/nifi";
         final String url = "http://localhost:8080/nifi";
 
         final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
@@ -163,19 +163,19 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.when(pValue.isSet()).thenReturn(true);
 
         // should be invalid because both ambari format and record writer are set
-        Collection<ValidationResult> list = task.validate(validationContext);
+        final Collection<ValidationResult> list = task.validate(validationContext);
         assertEquals(1, list.size());
         assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
 
     @Test
     public void testValidationRecordFormatNoRecordWriter() throws IOException {
-        ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         final String urlEL = "http://${hostname(true)}:8080/nifi";
         final String url = "http://localhost:8080/nifi";
 
         final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
@@ -201,7 +201,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.when(pValue.isSet()).thenReturn(false);
 
         // should be invalid because both ambari format and record writer are set
-        Collection<ValidationResult> list = task.validate(validationContext);
+        final Collection<ValidationResult> list = task.validate(validationContext);
         assertEquals(1, list.size());
         assertEquals(SiteToSiteMetricsReportingTask.RECORD_WRITER.getDisplayName(), list.iterator().next().getInput());
     }
@@ -212,19 +212,19 @@ public class TestSiteToSiteMetricsReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
 
-        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        final MockSiteToSiteMetricsReportingTask task = initTask(properties);
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonArray array = jsonReader.readObject().getJsonArray("metrics");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for (int i = 0; i < array.size(); i++) {
-            JsonObject object = array.getJsonObject(i);
+            final JsonObject object = array.getJsonObject(i);
             assertEquals("nifi", object.getString("appid"));
             assertEquals("1234", object.getString("instanceid"));
             if (object.getString("metricname").equals("FlowFilesQueued")) {
-                for (Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+                for (final Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
                     assertEquals("\"100\"", kv.getValue().toString());
                 }
                 return;
@@ -240,19 +240,19 @@ public class TestSiteToSiteMetricsReportingTask {
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
         properties.put(SiteToSiteMetricsReportingTask.ALLOW_NULL_VALUES, "true");
 
-        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        final MockSiteToSiteMetricsReportingTask task = initTask(properties);
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonArray array = jsonReader.readObject().getJsonArray("metrics");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for (int i = 0; i < array.size(); i++) {
-            JsonObject object = array.getJsonObject(i);
+            final JsonObject object = array.getJsonObject(i);
             assertEquals("nifi", object.getString("appid"));
             assertEquals("1234", object.getString("instanceid"));
             if (object.getString("metricname").equals("BytesReadLast5Minutes")) {
-                for (Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+                for (final Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
                     assertEquals("\"null\"", kv.getValue().toString());
                 }
                 return;
@@ -266,12 +266,12 @@ public class TestSiteToSiteMetricsReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
         properties.put(SiteToSiteMetricsReportingTask.RECORD_WRITER, "record-writer");
-        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        final MockSiteToSiteMetricsReportingTask task = initTask(properties);
 
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
-        String[] data = new String(task.dataSent.getFirst()).split(",");
+        final String[] data = new String(task.dataSent.getFirst()).split(",");
         assertEquals("\"nifi\"", data[0]);
         assertEquals("\"1234\"", data[1]);
         assertEquals("\"100\"", data[10]); // FlowFilesQueued
@@ -285,7 +285,7 @@ public class TestSiteToSiteMetricsReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        public void setup(PropertyContext reportContext) {
+        public void setup(final PropertyContext reportContext) {
             if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);

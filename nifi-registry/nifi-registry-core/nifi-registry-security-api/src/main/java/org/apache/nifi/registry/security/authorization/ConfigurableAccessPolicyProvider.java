@@ -71,7 +71,7 @@ public interface ConfigurableAccessPolicyProvider extends AccessPolicyProvider {
      * @param accessPolicy the access policy
      * @return is configurable
      */
-    default boolean isConfigurable(AccessPolicy accessPolicy) {
+    default boolean isConfigurable(final AccessPolicy accessPolicy) {
         if (accessPolicy == null) {
             throw new IllegalArgumentException("Access policy cannot be null");
         }

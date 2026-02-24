@@ -108,7 +108,7 @@ public class ScriptingComponentHelper {
         return scriptEngineName;
     }
 
-    public void setScriptEngineName(String scriptEngineName) {
+    public void setScriptEngineName(final String scriptEngineName) {
         this.scriptEngineName = scriptEngineName;
     }
 
@@ -116,7 +116,7 @@ public class ScriptingComponentHelper {
         return scriptPath;
     }
 
-    public void setScriptPath(String scriptPath) {
+    public void setScriptPath(final String scriptPath) {
         this.scriptPath = scriptPath;
     }
 
@@ -124,7 +124,7 @@ public class ScriptingComponentHelper {
         return scriptBody;
     }
 
-    public void setScriptBody(String scriptBody) {
+    public void setScriptBody(final String scriptBody) {
         this.scriptBody = scriptBody;
     }
 
@@ -144,7 +144,7 @@ public class ScriptingComponentHelper {
         return engineAllowableValues;
     }
 
-    public void setDescriptors(List<PropertyDescriptor> descriptors) {
+    public void setDescriptors(final List<PropertyDescriptor> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -156,11 +156,11 @@ public class ScriptingComponentHelper {
      *                          for operating on those values
      * @return A collection of validation results
      */
-    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
+    public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Set<ValidationResult> results = new HashSet<>();
 
         // Verify that exactly one of "script file" or "script body" is set
-        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
+        final Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
         if (StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_BODY))) {
             results.add(new ValidationResult.Builder().subject("Script Body or Script File").valid(false).explanation(
                     "exactly one of Script File or Script Body must be set").build());
@@ -181,12 +181,12 @@ public class ScriptingComponentHelper {
         descriptors = new ArrayList<>();
 
         // Create list of available engines
-        ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-        List<ScriptEngineFactory> scriptEngineFactories = scriptEngineManager.getEngineFactories();
+        final ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+        final List<ScriptEngineFactory> scriptEngineFactories = scriptEngineManager.getEngineFactories();
         if (scriptEngineFactories != null) {
             scriptEngineFactoryMap = new HashMap<>(scriptEngineFactories.size());
-            List<AllowableValue> engineList = new LinkedList<>();
-            for (ScriptEngineFactory factory : scriptEngineFactories) {
+            final List<AllowableValue> engineList = new LinkedList<>();
+            for (final ScriptEngineFactory factory : scriptEngineFactories) {
                 if (!requireInvocable || factory.getScriptEngine() instanceof Invocable) {
                     final AllowableValue scriptEngineAllowableValue = getScriptLanguageAllowableValue(factory);
                     engineList.add(scriptEngineAllowableValue);
@@ -206,7 +206,7 @@ public class ScriptingComponentHelper {
             });
 
             engineAllowableValues = engineList;
-            AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
+            final AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
 
             final PropertyDescriptor.Builder enginePropertyBuilder = getScriptEnginePropertyBuilder();
             if (engineList.isEmpty()) {
@@ -253,7 +253,7 @@ public class ScriptingComponentHelper {
         if (newQ) {
             scriptRunnerQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
         }
-        ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
+        final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             if (StringUtils.isBlank(scriptEngineName)) {
                 throw new IllegalArgumentException("The script engine name cannot be null");
@@ -265,7 +265,7 @@ public class ScriptingComponentHelper {
 
             // Need the right classloader when the engine is created. This ensures the NAR's execution class loader
             // (plus the module path) becomes the parent for the script engine
-            ClassLoader scriptEngineModuleClassLoader = additionalClasspathURLs != null
+            final ClassLoader scriptEngineModuleClassLoader = additionalClasspathURLs != null
                     ? new URLClassLoader(additionalClasspathURLs, originalContextClassLoader)
                     : originalContextClassLoader;
             if (scriptEngineModuleClassLoader != null) {
@@ -275,13 +275,13 @@ public class ScriptingComponentHelper {
             try {
                 for (int i = 0; i < numberOfScriptEngines; i++) {
                     //
-                    ScriptEngineFactory factory = scriptEngineFactoryMap.get(scriptEngineName);
-                    ScriptRunner scriptRunner = ScriptRunnerFactory.getInstance().createScriptRunner(factory, scriptToRun, locations);
+                    final ScriptEngineFactory factory = scriptEngineFactoryMap.get(scriptEngineName);
+                    final ScriptRunner scriptRunner = ScriptRunnerFactory.getInstance().createScriptRunner(factory, scriptToRun, locations);
                     if (!scriptRunnerQ.offer(scriptRunner)) {
                         log.error("Error adding script engine {}", scriptRunner.getScriptEngineName());
                     }
                 }
-            } catch (ScriptException se) {
+            } catch (final ScriptException se) {
                 throw new ProcessException("Could not instantiate script engines", se);
             }
         } finally {

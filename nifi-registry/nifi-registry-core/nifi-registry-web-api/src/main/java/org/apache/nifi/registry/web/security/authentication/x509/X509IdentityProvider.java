@@ -73,7 +73,7 @@ public class X509IdentityProvider implements IdentityProvider {
     private X509CertificateExtractor certificateExtractor;
 
     @Autowired
-    public X509IdentityProvider(X509PrincipalExtractor principalExtractor, X509CertificateExtractor certificateExtractor) {
+    public X509IdentityProvider(final X509PrincipalExtractor principalExtractor, final X509CertificateExtractor certificateExtractor) {
         this.principalExtractor = principalExtractor;
         this.certificateExtractor = certificateExtractor;
     }
@@ -95,7 +95,7 @@ public class X509IdentityProvider implements IdentityProvider {
      * @return a populated AuthenticationRequest or null if the credentials could not be found.
      */
     @Override
-    public AuthenticationRequest extractCredentials(HttpServletRequest servletRequest) {
+    public AuthenticationRequest extractCredentials(final HttpServletRequest servletRequest) {
 
         // only support x509 login when running securely
         if (!servletRequest.isSecure()) {
@@ -131,22 +131,22 @@ public class X509IdentityProvider implements IdentityProvider {
      * @param authenticationRequest the request, containing identity claim credentials for the IdentityProvider to authenticate and determine an identity
      */
     @Override
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) throws InvalidCredentialsException {
+    public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws InvalidCredentialsException {
 
         if (authenticationRequest == null || authenticationRequest.getUsername() == null) {
             return null;
         }
 
-        String principal = authenticationRequest.getUsername();
+        final String principal = authenticationRequest.getUsername();
 
         try {
-            X509Certificate clientCertificate = (X509Certificate) authenticationRequest.getCredentials();
+            final X509Certificate clientCertificate = (X509Certificate) authenticationRequest.getCredentials();
             validateClientCertificate(clientCertificate);
-        } catch (CertificateExpiredException cee) {
+        } catch (final CertificateExpiredException cee) {
             final String message = String.format("Client certificate for (%s) is expired.", principal);
             logger.warn(message, cee);
             throw new InvalidCredentialsException(message, cee);
-        } catch (CertificateNotYetValidException cnyve) {
+        } catch (final CertificateNotYetValidException cnyve) {
             final String message = String.format("Client certificate for (%s) is not yet valid.", principal);
             logger.warn(message, cnyve);
             throw new InvalidCredentialsException(message, cnyve);
@@ -159,7 +159,7 @@ public class X509IdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
         throw new SecurityProviderCreationException(X509IdentityProvider.class.getSimpleName() +
                 " does not currently support being loaded via IdentityProviderFactory");
     }
@@ -167,7 +167,7 @@ public class X509IdentityProvider implements IdentityProvider {
     @Override
     public void preDestruction() throws SecurityProviderDestructionException { }
 
-    private void validateClientCertificate(X509Certificate certificate) throws CertificateExpiredException, CertificateNotYetValidException {
+    private void validateClientCertificate(final X509Certificate certificate) throws CertificateExpiredException, CertificateNotYetValidException {
         certificate.checkValidity();
     }
 

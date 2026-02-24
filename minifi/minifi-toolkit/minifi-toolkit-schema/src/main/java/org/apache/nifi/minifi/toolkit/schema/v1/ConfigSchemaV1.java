@@ -86,7 +86,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
 
     private ProvenanceRepositorySchema provenanceRepositorySchema;
 
-    public ConfigSchemaV1(Map map) {
+    public ConfigSchemaV1(final Map map) {
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
         coreProperties = getMapAsType(map, CORE_PROPS_KEY, CorePropertiesSchema.class, TOP_LEVEL_NAME, false);
@@ -117,21 +117,21 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         addIssuesIfNotNull(connections);
         addIssuesIfNotNull(remoteProcessingGroups);
 
-        List<String> processorNames = processors.stream().map(ProcessorSchemaV1::getName).collect(Collectors.toList());
+        final List<String> processorNames = processors.stream().map(ProcessorSchemaV1::getName).collect(Collectors.toList());
 
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_NAMES, processorNames);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_NAMES, connections.stream().map(ConnectionSchemaV1::getName).collect(Collectors.toList()));
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESSING_GROUP_NAMES, remoteProcessingGroups.stream().map(RemoteProcessGroupSchemaV1::getName)
                 .collect(Collectors.toList()));
 
-        Set<String> connectableNames = new HashSet<>(processorNames);
+        final Set<String> connectableNames = new HashSet<>(processorNames);
         connectableNames.addAll(remoteProcessingGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList()));
         connections.forEach(c -> {
-            String destinationName = c.getDestinationName();
+            final String destinationName = c.getDestinationName();
             if (!StringUtil.isNullOrEmpty(destinationName) && !connectableNames.contains(destinationName)) {
                 addValidationIssue(CONNECTION_WITH_NAME + c.getName() + HAS_INVALID_DESTINATION_NAME + destinationName);
             }
-            String sourceName = c.getSourceName();
+            final String sourceName = c.getSourceName();
             if (!StringUtil.isNullOrEmpty(sourceName) && !connectableNames.contains(sourceName)) {
                 addValidationIssue(CONNECTION_WITH_NAME + c.getName() + HAS_INVALID_SOURCE_NAME + sourceName);
             }
@@ -139,11 +139,11 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     protected List<ProcessorSchema> getProcessorSchemas() {
-        Set<UUID> ids = new HashSet<>();
-        List<ProcessorSchema> processorSchemas = new ArrayList<>(processors.size());
+        final Set<UUID> ids = new HashSet<>();
+        final List<ProcessorSchema> processorSchemas = new ArrayList<>(processors.size());
 
-        for (ProcessorSchemaV1 processor : processors) {
-            ProcessorSchema processorSchema = processor.convert();
+        for (final ProcessorSchemaV1 processor : processors) {
+            final ProcessorSchema processorSchema = processor.convert();
             processorSchema.setId(getUniqueId(ids, processorSchema.getName()));
             processorSchemas.add(processorSchema);
         }
@@ -151,10 +151,10 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         return processorSchemas;
     }
 
-    protected List<ConnectionSchema> getConnectionSchemas(List<ProcessorSchema> processors, List<String> validationIssues) {
-        Set<UUID> ids = new HashSet<>();
+    protected List<ConnectionSchema> getConnectionSchemas(final List<ProcessorSchema> processors, final List<String> validationIssues) {
+        final Set<UUID> ids = new HashSet<>();
 
-        Map<String, String> processorNameToIdMap = new HashMap<>();
+        final Map<String, String> processorNameToIdMap = new HashMap<>();
 
         // We can't look up id by name for names that appear more than once
         Set<String> duplicateProcessorNames = new HashSet<>();
@@ -164,40 +164,40 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
             duplicateProcessorNames = new CollectionOverlap<>(processors.stream().map(ProcessorSchema::getName)).getDuplicates();
         }
 
-        Set<String> remoteInputPortIds = new HashSet<>();
+        final Set<String> remoteInputPortIds = new HashSet<>();
         if (remoteProcessingGroups != null) {
             remoteInputPortIds.addAll(remoteProcessingGroups.stream().filter(r -> r.getInputPorts() != null)
                     .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toSet()));
         }
 
-        Set<String> problematicDuplicateNames = new HashSet<>();
+        final Set<String> problematicDuplicateNames = new HashSet<>();
 
-        List<ConnectionSchema> connectionSchemas = new ArrayList<>(connections.size());
-        for (ConnectionSchemaV1 connection : connections) {
-            ConnectionSchema convert = connection.convert();
+        final List<ConnectionSchema> connectionSchemas = new ArrayList<>(connections.size());
+        for (final ConnectionSchemaV1 connection : connections) {
+            final ConnectionSchema convert = connection.convert();
             convert.setId(getUniqueId(ids, convert.getName()));
 
-            String sourceName = connection.getSourceName();
+            final String sourceName = connection.getSourceName();
             if (remoteInputPortIds.contains(sourceName)) {
                 convert.setSourceId(sourceName);
             } else {
                 if (duplicateProcessorNames.contains(sourceName)) {
                     problematicDuplicateNames.add(sourceName);
                 }
-                String sourceId = processorNameToIdMap.get(sourceName);
+                final String sourceId = processorNameToIdMap.get(sourceName);
                 if (!StringUtil.isNullOrEmpty(sourceId)) {
                     convert.setSourceId(sourceId);
                 }
             }
 
-            String destinationName = connection.getDestinationName();
+            final String destinationName = connection.getDestinationName();
             if (remoteInputPortIds.contains(destinationName)) {
                 convert.setDestinationId(destinationName);
             } else {
                 if (duplicateProcessorNames.contains(destinationName)) {
                     problematicDuplicateNames.add(destinationName);
                 }
-                String destinationId = processorNameToIdMap.get(destinationName);
+                final String destinationId = processorNameToIdMap.get(destinationName);
                 if (!StringUtil.isNullOrEmpty(destinationId)) {
                     convert.setDestinationId(destinationId);
                 }
@@ -213,11 +213,11 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     protected List<RemoteProcessGroupSchema> getRemoteProcessGroupSchemas() {
-        Set<UUID> ids = new HashSet<>();
-        List<RemoteProcessGroupSchema> rpgSchemas = new ArrayList<>(remoteProcessingGroups.size());
+        final Set<UUID> ids = new HashSet<>();
+        final List<RemoteProcessGroupSchema> rpgSchemas = new ArrayList<>(remoteProcessingGroups.size());
 
-        for (RemoteProcessGroupSchemaV1 rpg : remoteProcessingGroups) {
-            RemoteProcessGroupSchema rpgSchema = rpg.convert();
+        for (final RemoteProcessGroupSchemaV1 rpg : remoteProcessingGroups) {
+            final RemoteProcessGroupSchema rpgSchema = rpg.convert();
             rpgSchema.setId(getUniqueId(ids, rpgSchema.getName()));
             rpgSchemas.add(rpgSchema);
         }
@@ -227,7 +227,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
     @Override
     public ConfigSchema convert() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(VERSION, getVersion());
         putIfNotNull(map, FLOW_CONTROLLER_PROPS_KEY, flowControllerProperties);
         putIfNotNull(map, CORE_PROPS_KEY, coreProperties);
@@ -236,9 +236,9 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         putIfNotNull(map, PROVENANCE_REPO_KEY, provenanceRepositorySchema);
         putIfNotNull(map, COMPONENT_STATUS_REPO_KEY, componentStatusRepositoryProperties);
         putIfNotNull(map, SECURITY_PROPS_KEY, securityProperties);
-        List<ProcessorSchema> processorSchemas = getProcessorSchemas();
+        final List<ProcessorSchema> processorSchemas = getProcessorSchemas();
         putListIfNotNull(map, PROCESSORS_KEY, processorSchemas);
-        List<String> validationIssues = getValidationIssues();
+        final List<String> validationIssues = getValidationIssues();
         putListIfNotNull(map, CONNECTIONS_KEY, getConnectionSchemas(processorSchemas, validationIssues));
         putListIfNotNull(map, REMOTE_PROCESS_GROUPS_KEY, getRemoteProcessGroupSchemas());
         putIfNotNull(map, PROVENANCE_REPORTING_KEY, provenanceReportingProperties);
@@ -252,7 +252,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
      * @param name the name
      * @return a UUID string
      */
-    public static String getUniqueId(Set<UUID> ids, String name) {
+    public static String getUniqueId(final Set<UUID> ids, final String name) {
         UUID id = UUID.nameUUIDFromBytes(name == null ? EMPTY_NAME.getBytes(StandardCharsets.UTF_8) : name.getBytes(StandardCharsets.UTF_8));
         while (ids.contains(id)) {
             id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() + 1);

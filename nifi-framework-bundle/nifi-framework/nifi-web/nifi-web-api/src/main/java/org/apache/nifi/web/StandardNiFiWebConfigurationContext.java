@@ -131,7 +131,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
 
-        Component componentType = switch (requestContext.getExtensionType()) {
+        final Component componentType = switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration -> {
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
@@ -240,7 +240,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         // get the component facade for interacting directly with that type of object
-        ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
+        final ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration -> new ProcessorFacade();
             case ControllerServiceConfiguration -> new ControllerServiceFacade();
             case ReportingTaskConfiguration -> new ReportingTaskFacade();
@@ -257,7 +257,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, Map<String, String> properties)
+    public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, final Map<String, String> properties)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException {
 
         final String id = requestContext.getId();
@@ -272,7 +272,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         // get the component facade for interacting directly with that type of object
-        ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
+        final ComponentFacade componentFacade = switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration -> new ProcessorFacade();
             case ControllerServiceConfiguration -> new ControllerServiceFacade();
             case ReportingTaskConfiguration -> new ReportingTaskFacade();
@@ -378,7 +378,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ProcessorEntity entity;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
                     final String path = "/nifi-api/processors/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
@@ -390,7 +390,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
                 } catch (final InterruptedException e) {
@@ -414,7 +414,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         @Override
-        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, Map<String, String> properties) {
+        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, final Map<String, String> properties) {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
@@ -433,7 +433,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ProcessorEntity entity;
             if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
                     final String path = "/nifi-api/processors/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
@@ -451,7 +451,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 processorEntity.setRevision(revisionDto);
 
                 // create the processor dto
-                ProcessorDTO processorDto = buildProcessorDto(id, annotationData, properties);
+                final ProcessorDTO processorDto = buildProcessorDto(id, annotationData, properties);
                 processorEntity.setComponent(processorDto);
 
                 // set the content type to json
@@ -459,7 +459,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.PUT, requestUrl, processorEntity, headers);
                 } catch (final InterruptedException e) {
@@ -476,7 +476,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
             } else {
                 // update processor within write lock
-                ProcessorDTO processorDTO = buildProcessorDto(id, annotationData, properties);
+                final ProcessorDTO processorDTO = buildProcessorDto(id, annotationData, properties);
                 entity = serviceFacade.updateProcessor(revision, processorDTO);
             }
 
@@ -484,10 +484,10 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             return getComponentConfiguration(entity);
         }
 
-        private ProcessorDTO buildProcessorDto(String id, final String annotationData, Map<String, String> properties) {
-            ProcessorDTO processorDto = new ProcessorDTO();
+        private ProcessorDTO buildProcessorDto(final String id, final String annotationData, final Map<String, String> properties) {
+            final ProcessorDTO processorDto = new ProcessorDTO();
             processorDto.setId(id);
-            ProcessorConfigDTO configDto = new ProcessorConfigDTO();
+            final ProcessorConfigDTO configDto = new ProcessorConfigDTO();
             processorDto.setConfig(configDto);
             configDto.setAnnotationData(annotationData);
             configDto.setProperties(properties);
@@ -513,20 +513,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             final Map<String, ComponentDescriptor> descriptors = new HashMap<>();
 
-            for (String key : processorConfig.getDescriptors().keySet()) {
+            for (final String key : processorConfig.getDescriptors().keySet()) {
 
-                PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
-                List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
-                Map<String, String> allowableValues = new HashMap<>();
+                final PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
+                final List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
+                final Map<String, String> allowableValues = new HashMap<>();
 
                 if (allowableValuesEntity != null) {
-                    for (AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
+                    for (final AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
                         final AllowableValueDTO allowableValueDTO = allowableValueEntity.getAllowableValue();
                         allowableValues.put(allowableValueDTO.getValue(), allowableValueDTO.getDisplayName());
                     }
                 }
 
-                ComponentDescriptor componentDescriptor = new ComponentDescriptor.Builder()
+                final ComponentDescriptor componentDescriptor = new ComponentDescriptor.Builder()
                         .name(descriptor.getName())
                         .displayName(descriptor.getDisplayName())
                         .defaultValue(descriptor.getDefaultValue())
@@ -559,9 +559,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ControllerServiceEntity entity;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -571,7 +571,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
                 } catch (final InterruptedException e) {
@@ -595,7 +595,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         @Override
-        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, Map<String, String> properties) {
+        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, final Map<String, String> properties) {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
@@ -614,9 +614,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ControllerServiceEntity entity;
             if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/controller-services/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -643,7 +643,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.PUT, requestUrl, controllerServiceEntity, headers);
                 } catch (final InterruptedException e) {
@@ -704,9 +704,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ReportingTaskEntity entity;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -716,7 +716,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
                 } catch (final InterruptedException e) {
@@ -740,7 +740,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         @Override
-        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, Map<String, String> properties) {
+        public ComponentDetails updateComponent(final NiFiWebConfigurationRequestContext requestContext, final String annotationData, final Map<String, String> properties) {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
@@ -757,9 +757,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ReportingTaskEntity entity;
             if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/reporting-tasks/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -786,7 +786,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.PUT, requestUrl, reportingTaskEntity, headers);
                 } catch (final InterruptedException e) {
@@ -848,9 +848,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ParameterProviderEntity entity;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -860,7 +860,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
                 } catch (final InterruptedException e) {
@@ -901,9 +901,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             ParameterProviderEntity entity;
             if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/parameter-providers/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -930,7 +930,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.PUT, requestUrl, parameterProviderEntity, headers);
                 } catch (final InterruptedException e) {
@@ -991,9 +991,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             FlowRegistryClientEntity entity;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -1003,7 +1003,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final MultivaluedMap<String, String> parameters = new MultivaluedHashMap<>();
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
                 } catch (final InterruptedException e) {
@@ -1044,9 +1044,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             FlowRegistryClientEntity entity;
             if (StandardNiFiWebConfigurationContext.this.properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
-                URI requestUrl;
+                final URI requestUrl;
                 try {
-                    String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+                    final String path = "/nifi-api/controller/registry-clients/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
                     requestUrl = new URI(requestContext.getScheme(), null, "localhost", 0, path, null, null);
                 } catch (final URISyntaxException use) {
                     throw new ClusterRequestException(use);
@@ -1073,7 +1073,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse;
+                final NodeResponse nodeResponse;
                 try {
                     nodeResponse = replicate(HttpMethod.PUT, requestUrl, flowRegistryClientEntity, headers);
                 } catch (final InterruptedException e) {

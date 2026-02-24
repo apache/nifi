@@ -34,9 +34,9 @@ public class RemotePortSchema extends BaseSchemaWithIdAndName {
     private Number maxConcurrentTasks = DEFAULT_MAX_CONCURRENT_TASKS;
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
 
-    public RemotePortSchema(Map map) {
+    public RemotePortSchema(final Map map) {
         super(map, "RemoteInputPort(id: {id}, name: {name})");
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
 
         comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, wrapperName, DEFAULT_COMMENT);
         maxConcurrentTasks = getOptionalKeyAsType(map, MAX_CONCURRENT_TASKS_KEY, Number.class, wrapperName, DEFAULT_MAX_CONCURRENT_TASKS);
@@ -45,7 +45,7 @@ public class RemotePortSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(COMMENT_KEY, comment);
         result.put(MAX_CONCURRENT_TASKS_KEY, maxConcurrentTasks);
         result.put(USE_COMPRESSION_KEY, useCompression);

@@ -52,8 +52,8 @@ public class HashService {
      */
     public static AllowableValue[] buildHashAlgorithmAllowableValues() {
         final HashAlgorithm[] hashAlgorithms = HashAlgorithm.values();
-        List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
-        for (HashAlgorithm algorithm : hashAlgorithms) {
+        final List<AllowableValue> allowableValues = new ArrayList<>(hashAlgorithms.length);
+        for (final HashAlgorithm algorithm : hashAlgorithms) {
             allowableValues.add(new AllowableValue(algorithm.getName(), algorithm.getName(), algorithm.buildAllowableValueDescription()));
         }
 
@@ -99,7 +99,7 @@ public class HashService {
      * @param value     the value to hash (cannot be {@code null} but can be an empty stream)
      * @return the hash value in hex
      */
-    public static String hashValueStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
+    public static String hashValueStreaming(final HashAlgorithm algorithm, final InputStream value) throws IOException {
         if (algorithm == null) {
             throw new IllegalArgumentException("The hash algorithm cannot be null");
         }
@@ -122,8 +122,8 @@ public class HashService {
      * @param charset   the charset to use
      * @return the hash value in hex
      */
-    public static String hashValue(HashAlgorithm algorithm, String value, Charset charset) {
-        byte[] rawHash = hashValueRaw(algorithm, value, charset);
+    public static String hashValue(final HashAlgorithm algorithm, final String value, final Charset charset) {
+        final byte[] rawHash = hashValueRaw(algorithm, value, charset);
         return HexFormat.of().formatHex(rawHash);
     }
 
@@ -134,7 +134,7 @@ public class HashService {
      * @param value     the value to hash (cannot be {@code null} but can be an empty String)
      * @return the hash value in hex
      */
-    public static String hashValue(HashAlgorithm algorithm, String value) {
+    public static String hashValue(final HashAlgorithm algorithm, final String value) {
         return hashValue(algorithm, value, StandardCharsets.UTF_8);
     }
 
@@ -146,16 +146,19 @@ public class HashService {
      * @param charset   the charset to use
      * @return the hash value in bytes
      */
-    public static byte[] hashValueRaw(HashAlgorithm algorithm, String value, Charset charset) {
+    public static byte[] hashValueRaw(final HashAlgorithm algorithm, final String value, final Charset charset) {
         if (value == null) {
             throw new IllegalArgumentException("The value cannot be null");
         }
         // See the note on HashServiceTest#testHashValueShouldHandleUTF16BOMIssue()
+        final Charset resolvedCharset;
         if (charset == StandardCharsets.UTF_16) {
             logger.warn("The charset provided was UTF-16, but Java will insert a Big Endian BOM in the decoded message before hashing, so switching to UTF-16BE");
-            charset = StandardCharsets.UTF_16BE;
+            resolvedCharset = StandardCharsets.UTF_16BE;
+        } else {
+            resolvedCharset = charset;
         }
-        return hashValueRaw(algorithm, value.getBytes(charset));
+        return hashValueRaw(algorithm, value.getBytes(resolvedCharset));
     }
 
     /**
@@ -165,7 +168,7 @@ public class HashService {
      * @param value     the value to hash (cannot be {@code null} but can be an empty String)
      * @return the hash value in bytes
      */
-    public static byte[] hashValueRaw(HashAlgorithm algorithm, String value) {
+    public static byte[] hashValueRaw(final HashAlgorithm algorithm, final String value) {
         return hashValueRaw(algorithm, value, StandardCharsets.UTF_8);
     }
 
@@ -176,7 +179,7 @@ public class HashService {
      * @param value     the value to hash
      * @return the hash value in bytes
      */
-    public static byte[] hashValueRaw(HashAlgorithm algorithm, byte[] value) {
+    public static byte[] hashValueRaw(final HashAlgorithm algorithm, final byte[] value) {
         if (algorithm == null) {
             throw new IllegalArgumentException("The hash algorithm cannot be null");
         }
@@ -190,11 +193,11 @@ public class HashService {
         }
     }
 
-    private static byte[] traditionalHash(HashAlgorithm algorithm, byte[] value) {
+    private static byte[] traditionalHash(final HashAlgorithm algorithm, final byte[] value) {
         return getMessageDigest(algorithm).digest(value);
     }
 
-    private static byte[] traditionalHashStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
+    private static byte[] traditionalHashStreaming(final HashAlgorithm algorithm, final InputStream value) throws IOException {
         final MessageDigest messageDigest = getMessageDigest(algorithm);
 
         final byte[] buffer = new byte[BUFFER_SIZE];
@@ -215,19 +218,19 @@ public class HashService {
         }
     }
 
-    private static byte[] blake2Hash(HashAlgorithm algorithm, byte[] value) {
-        int digestLengthBytes = algorithm.getDigestBytesLength();
-        Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
-        byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
+    private static byte[] blake2Hash(final HashAlgorithm algorithm, final byte[] value) {
+        final int digestLengthBytes = algorithm.getDigestBytesLength();
+        final Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
+        final byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
         blake2bDigest.update(value, 0, value.length);
         blake2bDigest.doFinal(rawHash, 0);
         return rawHash;
     }
 
-    private static byte[] blake2HashStreaming(HashAlgorithm algorithm, InputStream value) throws IOException {
-        int digestLengthBytes = algorithm.getDigestBytesLength();
-        Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
-        byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
+    private static byte[] blake2HashStreaming(final HashAlgorithm algorithm, final InputStream value) throws IOException {
+        final int digestLengthBytes = algorithm.getDigestBytesLength();
+        final Blake2bDigest blake2bDigest = new Blake2bDigest(digestLengthBytes * 8);
+        final byte[] rawHash = new byte[blake2bDigest.getDigestSize()];
 
         final byte[] buffer = new byte[BUFFER_SIZE];
         int read = value.read(buffer, 0, BUFFER_SIZE);

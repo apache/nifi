@@ -51,7 +51,7 @@ public class ProtoSchemaParser {
 
     private final Schema schema;
 
-    public ProtoSchemaParser(Schema schema) {
+    public ProtoSchemaParser(final Schema schema) {
         this.schema = schema;
     }
 
@@ -60,7 +60,7 @@ public class ProtoSchemaParser {
      * @param messageTypeName proto message type
      * @return record schema
      */
-    public RecordSchema createSchema(String messageTypeName) {
+    public RecordSchema createSchema(final String messageTypeName) {
         final MessageType messageType = (MessageType) schema.getType(messageTypeName);
         Objects.requireNonNull(messageType, String.format("Message type with name [%s] not found in the provided proto files", messageTypeName));
 
@@ -71,7 +71,7 @@ public class ProtoSchemaParser {
             final SimpleRecordSchema recordSchema = new SimpleRecordSchema(identifier);
             parsedRecordSchemas.put(messageTypeName, recordSchema);
 
-            List<RecordField> recordFields = new ArrayList<>();
+            final List<RecordField> recordFields = new ArrayList<>();
             recordFields.addAll(processFields(messageType.getDeclaredFields()));
             recordFields.addAll(processFields(messageType.getExtensionFields()));
             recordFields.addAll(processOneOfFields(messageType));
@@ -86,11 +86,11 @@ public class ProtoSchemaParser {
      * @param messageType message type
      * @return generated {@link RecordSchema} list from the OneOf fields
      */
-    private List<RecordField> processOneOfFields(MessageType messageType) {
-        List<RecordField> recordFields = new ArrayList<>();
+    private List<RecordField> processOneOfFields(final MessageType messageType) {
+        final List<RecordField> recordFields = new ArrayList<>();
         for (final OneOf oneOf : messageType.getOneOfs()) {
 
-            for (Field field : oneOf.getFields()) {
+            for (final Field field : oneOf.getFields()) {
                 final DataType dataType = getDataTypeForField(field.getType());
                 recordFields.add(new RecordField(field.getName(), dataType, field.getDefault(), true));
             }
@@ -103,8 +103,8 @@ public class ProtoSchemaParser {
      * Iterates through and process fields in the given message type.
      * @return generated {@link RecordSchema} list from the provided fields
      */
-    private List<RecordField> processFields(List<Field> fields) {
-        List<RecordField> recordFields = new ArrayList<>();
+    private List<RecordField> processFields(final List<Field> fields) {
+        final List<RecordField> recordFields = new ArrayList<>();
         for (final Field field : fields) {
             DataType dataType = getDataTypeForField(field.getType());
 
@@ -123,7 +123,7 @@ public class ProtoSchemaParser {
      * @param protoType field's type
      * @return data type
      */
-    private DataType getDataTypeForField(ProtoType protoType) {
+    private DataType getDataTypeForField(final ProtoType protoType) {
         if (protoType.isScalar()) {
             return getDataTypeForScalarField(protoType);
         } else {
@@ -136,7 +136,7 @@ public class ProtoSchemaParser {
      * @param protoType field's type
      * @return data type
      */
-    private DataType getDataTypeForCompositeField(ProtoType protoType) {
+    private DataType getDataTypeForCompositeField(final ProtoType protoType) {
         if (protoType.isMap()) {
             final DataType valueType = getDataTypeForField(protoType.getValueType());
             return new MapDataType(valueType);
@@ -159,7 +159,7 @@ public class ProtoSchemaParser {
      * @param protoType field's type
      * @return data type
      */
-    private DataType getDataTypeForScalarField(ProtoType protoType) {
+    private DataType getDataTypeForScalarField(final ProtoType protoType) {
         return switch (FieldType.findValue(protoType.getSimpleName())) {
             case DOUBLE -> RecordFieldType.DOUBLE.getDataType();
             case FLOAT -> RecordFieldType.FLOAT.getDataType();

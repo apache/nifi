@@ -73,8 +73,8 @@ final class BoxMetadataJsonArrayWriter implements Closeable {
     private JsonObject toRecord(final Map<String, Object> templateFields) {
         final JsonObject json = Json.object();
 
-        for (Map.Entry<String, Object> entry : templateFields.entrySet()) {
-            Object value = entry.getValue();
+        for (final Map.Entry<String, Object> entry : templateFields.entrySet()) {
+            final Object value = entry.getValue();
             if (value == null) {
                 json.add(entry.getKey(), Json.NULL);
             } else {

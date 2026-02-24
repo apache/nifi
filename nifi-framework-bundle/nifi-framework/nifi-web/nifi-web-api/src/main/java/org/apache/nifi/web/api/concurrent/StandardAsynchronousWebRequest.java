@@ -114,7 +114,7 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
             return "Complete";
         }
 
-        String failureReason = getFailureReason();
+        final String failureReason = getFailureReason();
         if (failureReason != null) {
             return "Failed: " + failureReason;
         }

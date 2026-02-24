@@ -33,7 +33,7 @@ public class IsNullEvaluator extends BooleanEvaluator {
 
     @Override
     public Boolean evaluate(final Map<String, Object> objectMap) {
-        Object subjectValue = subjectEvaluator.evaluate(objectMap);
+        final Object subjectValue = subjectEvaluator.evaluate(objectMap);
         if (subjectValue == null) {
             return true;
         }
@@ -41,17 +41,15 @@ public class IsNullEvaluator extends BooleanEvaluator {
         return isNull(subjectValue);
     }
 
-    private boolean isNull(Object subjectValue) {
+    private boolean isNull(final Object subjectValue) {
         if (subjectValue == null) {
             return true;
         }
 
-        if (subjectValue instanceof HL7Component) {
-            subjectValue = ((HL7Component) subjectValue).getValue();
-        }
+        final Object resolvedValue = (subjectValue instanceof HL7Component) ? ((HL7Component) subjectValue).getValue() : subjectValue;
 
-        if (subjectValue instanceof Collection) {
-            final Collection<?> collection = (Collection<?>) subjectValue;
+        if (resolvedValue instanceof Collection) {
+            final Collection<?> collection = (Collection<?>) resolvedValue;
             if (collection.isEmpty()) {
                 return true;
             }
@@ -65,6 +63,6 @@ public class IsNullEvaluator extends BooleanEvaluator {
             return true;
         }
 
-        return subjectValue == null;
+        return resolvedValue == null;
     }
 }

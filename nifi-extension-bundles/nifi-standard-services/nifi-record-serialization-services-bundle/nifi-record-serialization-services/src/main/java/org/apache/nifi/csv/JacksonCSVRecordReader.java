@@ -79,10 +79,10 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
         }
         allowDuplicateHeaderNames = csvFormat.getDuplicateHeaderMode() == DuplicateHeaderMode.ALLOW_ALL;
 
-        CsvSchema csvSchema = csvSchemaBuilder.build();
+        final CsvSchema csvSchema = csvSchemaBuilder.build();
 
         // Add remaining config options to the mapper
-        List<CsvParser.Feature> features = new ArrayList<>();
+        final List<CsvParser.Feature> features = new ArrayList<>();
         features.add(CsvParser.Feature.INSERT_NULLS_FOR_MISSING_COLUMNS);
         if (csvFormat.getIgnoreEmptyLines()) {
             features.add(CsvParser.Feature.SKIP_EMPTY_LINES);
@@ -91,7 +91,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
             features.add(CsvParser.Feature.TRIM_SPACES);
         }
 
-        ObjectReader objReader = mapper.readerFor(String[].class)
+        final ObjectReader objReader = mapper.readerFor(String[].class)
                 .with(csvSchema)
                 .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
@@ -161,7 +161,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
             final int numFieldNames = rawFieldNames.size();
             for (int i = 0; i < csvRecord.length; i++) {
                 final String rawFieldName = numFieldNames <= i ? "unknown_field_index_" + i : rawFieldNames.get(i);
-                String rawValue = (i >= csvRecord.length) ? null : csvRecord[i];
+                final String rawValue = (i >= csvRecord.length) ? null : csvRecord[i];
 
                 final Optional<DataType> dataTypeOption = schema.getDataType(rawFieldName);
 

@@ -24,7 +24,7 @@ public class ProcessGroupNameDTO {
     private String id;
     private String name;
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -33,7 +33,7 @@ public class ProcessGroupNameDTO {
         return id;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 

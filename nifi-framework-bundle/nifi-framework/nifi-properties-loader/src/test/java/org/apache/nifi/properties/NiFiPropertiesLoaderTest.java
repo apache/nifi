@@ -49,13 +49,13 @@ class NiFiPropertiesLoaderTest {
 
         final NiFiPropertiesLoader loader = new NiFiPropertiesLoader();
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+        final Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             final NiFiProperties properties = loader.get();
             assertNotNull(properties);
         });
 
-        String expectedMessage = "Duplicate property keys with different values were detected in the properties file: another.duplicate, nifi.flow.configuration.file";
-        String actualMessage = exception.getMessage();
+        final String expectedMessage = "Duplicate property keys with different values were detected in the properties file: another.duplicate, nifi.flow.configuration.file";
+        final String actualMessage = exception.getMessage();
 
         assertTrue(actualMessage.contains(expectedMessage));
     }

@@ -27,7 +27,7 @@ public class KeyEntityRowMapper implements RowMapper<KeyEntity> {
 
     @Nullable
     @Override
-    public KeyEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public KeyEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final KeyEntity keyEntity = new KeyEntity();
         keyEntity.setId(rs.getString("ID"));
         keyEntity.setTenantIdentity(rs.getString("TENANT_IDENTITY"));

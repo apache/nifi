@@ -45,7 +45,7 @@ public class VersionedComponentCollectionSerializer extends StdSerializer<Collec
         }
 
         // only sort if these are VersionedComponent instances
-        List<?> list = new ArrayList<>(value);
+        final List<?> list = new ArrayList<>(value);
         if (list.get(0) instanceof VersionedComponent) {
             list.sort(Comparator.comparing(c -> ((VersionedComponent) c).getIdentifier()));
         } else if (list.get(0) instanceof VersionedParameter) {
@@ -54,7 +54,7 @@ public class VersionedComponentCollectionSerializer extends StdSerializer<Collec
 
         // now write the (possibly sorted) list
         gen.writeStartArray();
-        for (Object e : list) {
+        for (final Object e : list) {
             serializers.defaultSerializeValue(e, gen);
         }
         gen.writeEndArray();

@@ -90,7 +90,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
     }
 
     @Override
-    public void onTrigger(ReportingContext context) {
+    public void onTrigger(final ReportingContext context) {
         final StopWatch stopWatch = new StopWatch(true);
         String sql = context.getProperty(QueryMetricsUtil.QUERY).evaluateAttributeExpressions().getValue();
         try {
@@ -117,7 +117,7 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
                 attributes.put("reporting.task.uuid", getIdentifier());
                 attributes.put("reporting.task.type", this.getClass().getSimpleName());
                 recordSinkService.sendData(recordSet, attributes, context.getProperty(QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS).asBoolean());
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Error during transmission of query results due to {}", e.getMessage(), e);
                 return;
             } finally {
@@ -125,13 +125,13 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
             }
             final long elapsedMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
             getLogger().debug("Successfully queried and sent in {} millis", elapsedMillis);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error processing the query due to {}", e.getMessage(), e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(QueryMetricsUtil.OLD_QUERY_PROPERTY_NAME, QueryMetricsUtil.QUERY.getName());
         config.renameProperty(QueryMetricsUtil.OLD_RECORD_SINK_PROPERTY_NAME, QueryMetricsUtil.RECORD_SINK.getName());
         config.renameProperty(QueryMetricsUtil.OLD_INCLUDE_ZERO_RECORD_RESULTS_PROPERTY_NAME, QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS.getName());

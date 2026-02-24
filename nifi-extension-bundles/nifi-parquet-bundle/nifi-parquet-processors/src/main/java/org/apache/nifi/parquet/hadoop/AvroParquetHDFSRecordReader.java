@@ -76,7 +76,7 @@ public class AvroParquetHDFSRecordReader implements HDFSRecordReader {
         if ((recordsToRead != null) && (recordsRead == recordsToRead)) {
             return null;
         }
-        GenericRecord result = parquetReader.read();
+        final GenericRecord result = parquetReader.read();
         recordsRead++;
         return result;
     }

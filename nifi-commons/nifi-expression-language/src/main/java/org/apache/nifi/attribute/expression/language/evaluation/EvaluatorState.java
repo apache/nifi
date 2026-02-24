@@ -37,7 +37,7 @@ public class EvaluatorState {
      * @param <T> type Type of the value
      * @return the state for the given Evaluator, or <code>null</code> if no state has been stored
      */
-    public <T> T getState(Evaluator<?> evaluator, Class<T> clazz) {
+    public <T> T getState(final Evaluator<?> evaluator, final Class<T> clazz) {
         return clazz.cast(statePerEvaluator.get(evaluator));
     }
 
@@ -46,7 +46,7 @@ public class EvaluatorState {
      * @param evaluator the Evaluator to store state for
      * @param state the state to store
      */
-    public void putState(Evaluator<?> evaluator, Object state) {
+    public void putState(final Evaluator<?> evaluator, final Object state) {
         statePerEvaluator.put(evaluator, state);
     }
 

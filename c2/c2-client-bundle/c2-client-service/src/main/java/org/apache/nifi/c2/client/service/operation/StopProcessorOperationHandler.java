@@ -39,7 +39,7 @@ public class StopProcessorOperationHandler implements C2OperationHandler {
 
     private final ProcessorStateStrategy processorStateStrategy;
 
-    public StopProcessorOperationHandler(ProcessorStateStrategy processorStateStrategy) {
+    public StopProcessorOperationHandler(final ProcessorStateStrategy processorStateStrategy) {
         this.processorStateStrategy = processorStateStrategy;
     }
 
@@ -59,17 +59,17 @@ public class StopProcessorOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
-        String processorId = ofNullable(operation.getArgs()).map(a -> a.get(PROCESSOR_ID_ARG)).map(Object::toString).orElse(null);
-        C2OperationState.OperationState opState;
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+        final String processorId = ofNullable(operation.getArgs()).map(a -> a.get(PROCESSOR_ID_ARG)).map(Object::toString).orElse(null);
+        final C2OperationState.OperationState opState;
         if (processorId == null) {
             opState = NOT_APPLIED;
         } else {
             opState = processorStateStrategy.stopProcessor(processorId);
         }
 
-        String details = switch (opState) {
+        final String details = switch (opState) {
             case NOT_APPLIED -> NOT_APPLIED_DETAILS;
             case FULLY_APPLIED -> FULLY_APPLIED_DETAILS;
             case PARTIALLY_APPLIED -> PARTIALLY_APPLIED_DETAILS;

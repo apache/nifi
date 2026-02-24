@@ -53,7 +53,7 @@ public class TestFlowFileAccessInputStream {
             private int count = 0;
 
             @Override
-            public Integer answer(InvocationOnMock invocation) {
+            public Integer answer(final InvocationOnMock invocation) {
                 if (count == 0) {
                     count++;
                     return 16;
@@ -64,9 +64,9 @@ public class TestFlowFileAccessInputStream {
         // Flow file total size is 32
         Mockito.when(flowFile.getSize()).thenReturn(32L);
 
-        FlowFileAccessInputStream flowFileAccessInputStream = new FlowFileAccessInputStream(in, flowFile, claim);
+        final FlowFileAccessInputStream flowFileAccessInputStream = new FlowFileAccessInputStream(in, flowFile, claim);
 
-        ContentNotFoundException contentNotFoundException =
+        final ContentNotFoundException contentNotFoundException =
                 assertThrows(ContentNotFoundException.class, () -> {
                     while (flowFileAccessInputStream.read(data) != -1) { }
                 });

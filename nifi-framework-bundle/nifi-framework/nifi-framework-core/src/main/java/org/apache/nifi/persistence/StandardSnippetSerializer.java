@@ -33,8 +33,8 @@ public final class StandardSnippetSerializer {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final BufferedOutputStream bos = new BufferedOutputStream(baos);
 
-            JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
-            Marshaller marshaller = context.createMarshaller();
+            final JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
+            final Marshaller marshaller = context.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             marshaller.marshal(snippet, bos);
 

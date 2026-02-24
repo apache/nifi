@@ -45,22 +45,22 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public boolean hasFunnel(String funnelId) {
+    public boolean hasFunnel(final String funnelId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findFunnel(funnelId) != null;
     }
 
     @Override
-    public Funnel createFunnel(String groupId, FunnelDTO funnelDTO) {
+    public Funnel createFunnel(final String groupId, final FunnelDTO funnelDTO) {
         if (funnelDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, funnelDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Funnel is being added.");
         }
 
         // get the desired group
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // create the funnel
-        Funnel funnel = flowController.getFlowManager().createFunnel(funnelDTO.getId());
+        final Funnel funnel = flowController.getFlowManager().createFunnel(funnelDTO.getId());
         if (funnelDTO.getPosition() != null) {
             funnel.setPosition(new Position(funnelDTO.getPosition().getX(), funnelDTO.getPosition().getY()));
         }
@@ -72,20 +72,20 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public Funnel getFunnel(String funnelId) {
+    public Funnel getFunnel(final String funnelId) {
         return locateFunnel(funnelId);
     }
 
     @Override
-    public Set<Funnel> getFunnels(String groupId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Set<Funnel> getFunnels(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getFunnels();
     }
 
     @Override
-    public Funnel updateFunnel(FunnelDTO funnelDTO) {
+    public Funnel updateFunnel(final FunnelDTO funnelDTO) {
         // get the funnel being updated
-        Funnel funnel = locateFunnel(funnelDTO.getId());
+        final Funnel funnel = locateFunnel(funnelDTO.getId());
 
         // update the label state
         if (isNotNull(funnelDTO.getPosition())) {
@@ -100,22 +100,22 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
     }
 
     @Override
-    public void verifyDelete(String funnelId) {
-        Funnel funnel = locateFunnel(funnelId);
+    public void verifyDelete(final String funnelId) {
+        final Funnel funnel = locateFunnel(funnelId);
         funnel.verifyCanDelete();
     }
 
     @Override
-    public void deleteFunnel(String funnelId) {
+    public void deleteFunnel(final String funnelId) {
         // get the funnel
-        Funnel funnel = locateFunnel(funnelId);
+        final Funnel funnel = locateFunnel(funnelId);
 
         // remove the funnel
         funnel.getProcessGroup().removeFunnel(funnel);
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 }

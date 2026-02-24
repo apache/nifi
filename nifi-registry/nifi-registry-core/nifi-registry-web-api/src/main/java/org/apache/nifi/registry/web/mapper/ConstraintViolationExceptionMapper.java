@@ -34,7 +34,7 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
     private static final Logger logger = LoggerFactory.getLogger(ConstraintViolationExceptionMapper.class);
 
     @Override
-    public Response toResponse(ConstraintViolationException exception) {
+    public Response toResponse(final ConstraintViolationException exception) {
         // start with the overall message which will be something like "Cannot create xyz"
         final StringBuilder errorMessage = new StringBuilder(exception.getMessage()).append(" - ");
 

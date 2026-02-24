@@ -71,11 +71,11 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
 
     private Map<String, String> nifiPropertiesOverrides;
 
-    public ConfigSchema(Map map) {
+    public ConfigSchema(final Map map) {
         this(map, Collections.emptyList());
     }
 
-    public ConfigSchema(Map map, List<String> validationIssues) {
+    public ConfigSchema(final Map map, final List<String> validationIssues) {
         validationIssues.stream().forEach(this::addValidationIssue);
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
@@ -107,21 +107,21 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         addIssuesIfNotNull(reportingTasks);
         addIssuesIfNotNull(provenanceRepositorySchema);
 
-        List<ProcessGroupSchema> allProcessGroups = getAllProcessGroups(processGroupSchema);
-        List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
-        List<RemoteProcessGroupSchema> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
+        final List<ProcessGroupSchema> allProcessGroups = getAllProcessGroups(processGroupSchema);
+        final List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
+        final List<RemoteProcessGroupSchema> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
 
-        List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
-        List<String> allControllerServiceIds = allProcessGroups.stream().flatMap(p -> p.getControllerServices().stream()).map(ControllerServiceSchema::getId).collect(Collectors.toList());
-        List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
-        List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
-        List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
+        final List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
+        final List<String> allControllerServiceIds = allProcessGroups.stream().flatMap(p -> p.getControllerServices().stream()).map(ControllerServiceSchema::getId).collect(Collectors.toList());
+        final List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
+        final List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
+        final List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
                 .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList());
-        List<String> allRemoteOutputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getOutputPorts() != null)
+        final List<String> allRemoteOutputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getOutputPorts() != null)
                 .flatMap(r -> r.getOutputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList());
-        List<String> allInputPortIds = allProcessGroups.stream().flatMap(p -> p.getInputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
-        List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
-        List<String> allReportingIds = reportingTasks.stream().map(ReportingSchema::getId).collect(Collectors.toList());
+        final List<String> allInputPortIds = allProcessGroups.stream().flatMap(p -> p.getInputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
+        final List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
+        final List<String> allReportingIds = reportingTasks.stream().map(ReportingSchema::getId).collect(Collectors.toList());
 
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_IDS, allProcessorIds);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_CONTROLLER_SERVICE_IDS, allControllerServiceIds);
@@ -132,38 +132,38 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_REPORTING_IDS, allReportingIds);
 
         // Potential connection sources and destinations need to have unique ids
-        CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allRemoteOutputPortIds),
+        final CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allRemoteOutputPortIds),
                 new HashSet<>(allInputPortIds), new HashSet<>(allOutputPortIds), new HashSet<>(allFunnelIds));
         if (!overlapResults.getDuplicates().isEmpty()) {
             addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.getDuplicates().stream().sorted().collect(Collectors.joining(", ")));
         }
 
         allConnectionSchemas.forEach(c -> {
-            String destinationId = c.getDestinationId();
+            final String destinationId = c.getDestinationId();
             if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.getElements().contains(destinationId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_DESTINATION_ID + destinationId);
             }
-            String sourceId = c.getSourceId();
+            final String sourceId = c.getSourceId();
             if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.getElements().contains(sourceId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_SOURCE_ID + sourceId);
             }
         });
     }
 
-    public static List<ProcessGroupSchema> getAllProcessGroups(ProcessGroupSchema processGroupSchema) {
-        List<ProcessGroupSchema> result = new ArrayList<>();
+    public static List<ProcessGroupSchema> getAllProcessGroups(final ProcessGroupSchema processGroupSchema) {
+        final List<ProcessGroupSchema> result = new ArrayList<>();
         addProcessGroups(processGroupSchema, result);
         return result;
     }
 
-    private static void addProcessGroups(ProcessGroupSchema processGroupSchema, List<ProcessGroupSchema> result) {
+    private static void addProcessGroups(final ProcessGroupSchema processGroupSchema, final List<ProcessGroupSchema> result) {
         result.add(processGroupSchema);
         processGroupSchema.getProcessGroupSchemas().forEach(p -> addProcessGroups(p, result));
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(VERSION, getVersion());
         putIfNotNull(result, FLOW_CONTROLLER_PROPS_KEY, flowControllerProperties);
         putIfNotNull(result, CORE_PROPS_KEY, coreProperties);
@@ -218,7 +218,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return securityProperties;
     }
 
-    public void setSecurityProperties(SecurityPropertiesSchema securityProperties) {
+    public void setSecurityProperties(final SecurityPropertiesSchema securityProperties) {
         this.securityProperties = securityProperties;
     }
 
@@ -234,7 +234,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return provenanceReportingProperties;
     }
 
-    public void setProvenanceReportingProperties(ProvenanceReportingSchema provenanceReportingProperties) {
+    public void setProvenanceReportingProperties(final ProvenanceReportingSchema provenanceReportingProperties) {
         this.provenanceReportingProperties = provenanceReportingProperties;
     }
 

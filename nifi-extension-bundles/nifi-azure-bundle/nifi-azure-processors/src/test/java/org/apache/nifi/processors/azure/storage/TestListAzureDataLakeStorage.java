@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestListAzureDataLakeStorage {
     @Test
     void testMigration() {
-        TestRunner runner = TestRunners.newTestRunner(ListAzureDataLakeStorage.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed = Map.of(
                 AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName(),

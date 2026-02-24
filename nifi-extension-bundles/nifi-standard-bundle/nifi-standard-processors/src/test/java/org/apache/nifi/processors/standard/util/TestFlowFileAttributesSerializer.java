@@ -33,39 +33,39 @@ public class TestFlowFileAttributesSerializer {
 
     @Test
     public void testBothWays() throws SerializationException, IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("a", "1");
         attributes.put("b", "2");
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
         serializer.serialize(attributes, output);
         output.flush();
 
-        Map<String, String> result = serializer.deserialize(output.toByteArray());
+        final Map<String, String> result = serializer.deserialize(output.toByteArray());
         assertEquals(attributes, result);
     }
 
     @Test
     public void testEmptyIsNull() throws SerializationException, IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
         serializer.serialize(attributes, output);
         output.flush();
 
-        Map<String, String> result = serializer.deserialize(output.toByteArray());
+        final Map<String, String> result = serializer.deserialize(output.toByteArray());
         assertNull(result);
     }
 
     @Test
     public void testEmptyIsNull2() throws SerializationException, IOException {
-        Map<String, String> result = serializer.deserialize("".getBytes());
+        final Map<String, String> result = serializer.deserialize("".getBytes());
         assertNull(result);
     }
 
     @Test
     public void testNullIsNull() throws SerializationException, IOException {
-        Map<String, String> result = serializer.deserialize(null);
+        final Map<String, String> result = serializer.deserialize(null);
         assertNull(result);
     }
 }

@@ -118,7 +118,7 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
     }
 
     @Override
-    public ProcessorEntity runProcessorOnce(ProcessorEntity processorEntity) throws NiFiClientException, IOException {
+    public ProcessorEntity runProcessorOnce(final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
         return runProcessorOnce(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
     }
 
@@ -300,7 +300,7 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
     }
 
     @Override
-    public ComponentStateEntity getProcessorState(String processorId) throws NiFiClientException, IOException {
+    public ComponentStateEntity getProcessorState(final String processorId) throws NiFiClientException, IOException {
         Objects.requireNonNull(processorId, "Processor ID required");
 
         return executeAction("Error getting state of the Processor", () -> {

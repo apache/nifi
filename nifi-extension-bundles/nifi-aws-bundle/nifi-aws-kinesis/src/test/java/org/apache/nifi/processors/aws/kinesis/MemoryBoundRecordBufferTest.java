@@ -654,7 +654,7 @@ class MemoryBoundRecordBufferTest {
                 "Checkpointer should be called after finishConsumption unblocks");
     }
 
-    private List<KinesisClientRecord> createTestRecords(int count) {
+    private List<KinesisClientRecord> createTestRecords(final int count) {
         return IntStream.range(0, count)
                 .mapToObj(i -> {
                     final String data = "test-record-" + i;
@@ -667,7 +667,7 @@ class MemoryBoundRecordBufferTest {
                 .toList();
     }
 
-    private KinesisClientRecord createRecordWithSize(int sizeBytes) {
+    private KinesisClientRecord createRecordWithSize(final int sizeBytes) {
         final byte[] data = new byte[sizeBytes];
         Arrays.fill(data, (byte) 'X');
 
@@ -708,17 +708,17 @@ class MemoryBoundRecordBufferTest {
         }
 
         @Override
-        public void checkpoint(Record record) {
+        public void checkpoint(final Record record) {
             throw notImplemented();
         }
 
         @Override
-        public void checkpoint(String sequenceNumber) {
+        public void checkpoint(final String sequenceNumber) {
             throw notImplemented();
         }
 
         @Override
-        public void checkpoint(String sequenceNumber, long subSequenceNumber) throws ShutdownException, InvalidStateException {
+        public void checkpoint(final String sequenceNumber, final long subSequenceNumber) throws ShutdownException, InvalidStateException {
             doCheckpoint(sequenceNumber);
         }
 
@@ -742,37 +742,37 @@ class MemoryBoundRecordBufferTest {
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(byte[] applicationState) {
+        public PreparedCheckpointer prepareCheckpoint(final byte[] applicationState) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(Record record) {
+        public PreparedCheckpointer prepareCheckpoint(final Record record) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(Record record, byte[] applicationState) {
+        public PreparedCheckpointer prepareCheckpoint(final Record record, final byte[] applicationState) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(String sequenceNumber) {
+        public PreparedCheckpointer prepareCheckpoint(final String sequenceNumber) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(String sequenceNumber, byte[] applicationState) {
+        public PreparedCheckpointer prepareCheckpoint(final String sequenceNumber, final byte[] applicationState) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(String sequenceNumber, long subSequenceNumber) {
+        public PreparedCheckpointer prepareCheckpoint(final String sequenceNumber, final long subSequenceNumber) {
             throw notImplemented();
         }
 
         @Override
-        public PreparedCheckpointer prepareCheckpoint(String sequenceNumber, long subSequenceNumber, byte[] applicationState) {
+        public PreparedCheckpointer prepareCheckpoint(final String sequenceNumber, final long subSequenceNumber, final byte[] applicationState) {
             throw notImplemented();
         }
 

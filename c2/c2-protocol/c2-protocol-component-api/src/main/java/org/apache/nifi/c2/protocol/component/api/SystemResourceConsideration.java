@@ -28,7 +28,7 @@ public class SystemResourceConsideration {
         return resource;
     }
 
-    public void setResource(String resource) {
+    public void setResource(final String resource) {
         this.resource = resource;
     }
 
@@ -37,7 +37,7 @@ public class SystemResourceConsideration {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 

@@ -33,7 +33,7 @@ public enum OperandType {
     PROCESSOR,
     FLOW;
 
-    public static Optional<OperandType> fromString(String value) {
+    public static Optional<OperandType> fromString(final String value) {
         return Arrays.stream(values())
             .filter(operandType -> operandType.name().equalsIgnoreCase(value))
             .findAny();

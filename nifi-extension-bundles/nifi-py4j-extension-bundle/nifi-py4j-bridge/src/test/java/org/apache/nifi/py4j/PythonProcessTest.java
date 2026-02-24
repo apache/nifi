@@ -128,7 +128,7 @@ class PythonProcessTest {
         assertThrows(IOException.class, () -> this.pythonProcess.resolvePythonCommand());
     }
 
-    private String getExpectedBinaryPath(String binarySubDirectoryName) {
+    private String getExpectedBinaryPath(final String binarySubDirectoryName) {
         return this.virtualEnvHome.getAbsolutePath() + File.separator + binarySubDirectoryName + File.separator + PYTHON_CMD;
     }
 

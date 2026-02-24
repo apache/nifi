@@ -36,7 +36,7 @@ public class PrioritizerTypesEntity extends Entity {
         return prioritizerTypes;
     }
 
-    public void setPrioritizerTypes(Set<DocumentedTypeDTO> prioritizerTypes) {
+    public void setPrioritizerTypes(final Set<DocumentedTypeDTO> prioritizerTypes) {
         this.prioritizerTypes = prioritizerTypes;
     }
 

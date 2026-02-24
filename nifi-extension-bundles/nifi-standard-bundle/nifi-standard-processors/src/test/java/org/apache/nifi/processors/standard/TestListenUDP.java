@@ -88,7 +88,7 @@ public class TestListenUDP {
         run(new DatagramSocket(), messages, expectedTransferred);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, messages.size());
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
         verifyFlowFiles(mockFlowFiles);
         verifyProvenance(expectedTransferred);
     }
@@ -103,7 +103,7 @@ public class TestListenUDP {
         run(new DatagramSocket(), messages, maxQueueSize);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, maxQueueSize);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
         verifyFlowFiles(mockFlowFiles);
         verifyProvenance(maxQueueSize);
     }
@@ -120,12 +120,12 @@ public class TestListenUDP {
         run(new DatagramSocket(), messages, expectedTransferred);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, expectedTransferred);
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
 
-        MockFlowFile mockFlowFile1 = mockFlowFiles.get(0);
+        final MockFlowFile mockFlowFile1 = mockFlowFiles.get(0);
         mockFlowFile1.assertContentEquals("This is message 1" + delimiter + "This is message 2" + delimiter + "This is message 3");
 
-        MockFlowFile mockFlowFile2 = mockFlowFiles.get(1);
+        final MockFlowFile mockFlowFile2 = mockFlowFiles.get(1);
         mockFlowFile2.assertContentEquals("This is message 4" + delimiter + "This is message 5");
 
         verifyProvenance(expectedTransferred);
@@ -145,7 +145,7 @@ public class TestListenUDP {
         mockEvents.add(new StandardEvent<>(sender2, senderPort2, message, responder));
         mockEvents.add(new StandardEvent<>(sender2, senderPort2, message, responder));
 
-        MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
+        final MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenUDP);
         runner.setProperty(ListenUDP.PORT, "1");
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
@@ -161,7 +161,7 @@ public class TestListenUDP {
     public void testRunWhenNoEventsAvailable() {
         final List<StandardEvent<DatagramChannel>> mockEvents = new ArrayList<>();
 
-        MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
+        final MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenUDP);
         runner.setProperty(ListenUDP.PORT, "1");
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
@@ -193,12 +193,12 @@ public class TestListenUDP {
         run(socket, messages, expectedTransferred);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, messages.size());
 
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenUDP.REL_SUCCESS);
         verifyFlowFiles(mockFlowFiles);
         verifyProvenance(expectedTransferred);
     }
 
-    private List<String> getMessages(int numMessages) {
+    private List<String> getMessages(final int numMessages) {
         final List<String> messages = new ArrayList<>();
         for (int i = 0; i < numMessages; i++) {
             messages.add("This is message " + (i + 1));
@@ -206,11 +206,11 @@ public class TestListenUDP {
         return messages;
     }
 
-    private void verifyFlowFiles(List<MockFlowFile> mockFlowFiles) {
+    private void verifyFlowFiles(final List<MockFlowFile> mockFlowFiles) {
         final int port = ((ListenUDP) runner.getProcessor()).getListeningPort();
 
         for (int i = 0; i < mockFlowFiles.size(); i++) {
-            MockFlowFile flowFile = mockFlowFiles.get(i);
+            final MockFlowFile flowFile = mockFlowFiles.get(i);
             flowFile.assertContentEquals("This is message " + (i + 1));
             assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
             assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
@@ -218,11 +218,11 @@ public class TestListenUDP {
         }
     }
 
-    private void verifyProvenance(int expectedNumEvents) {
-        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+    private void verifyProvenance(final int expectedNumEvents) {
+        final List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
         assertEquals(expectedNumEvents, provEvents.size());
 
-        for (ProvenanceEventRecord event : provEvents) {
+        for (final ProvenanceEventRecord event : provEvents) {
             assertEquals(ProvenanceEventType.RECEIVE, event.getEventType());
             assertTrue(event.getTransitUri().startsWith("udp://"));
         }
@@ -256,19 +256,19 @@ public class TestListenUDP {
 
         private final List<StandardEvent<DatagramChannel>> mockEvents;
 
-        public MockListenUDP(List<StandardEvent<DatagramChannel>> mockEvents) {
+        public MockListenUDP(final List<StandardEvent<DatagramChannel>> mockEvents) {
             this.mockEvents = mockEvents;
         }
 
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) throws IOException {
+        public void onScheduled(final ProcessContext context) throws IOException {
             super.onScheduled(context);
             events.addAll(mockEvents);
         }
 
         @Override
-        protected ChannelDispatcher createDispatcher(ProcessContext context, BlockingQueue<StandardEvent> events) {
+        protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<StandardEvent> events) {
             return Mockito.mock(ChannelDispatcher.class);
         }
     }

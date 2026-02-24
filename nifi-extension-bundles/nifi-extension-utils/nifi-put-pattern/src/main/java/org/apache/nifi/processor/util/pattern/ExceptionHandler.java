@@ -49,7 +49,7 @@ public class ExceptionHandler<C> {
     public interface OnError<C, I> {
         void apply(C context, I input, Result result, Exception e);
 
-        default OnError<C, I> andThen(OnError<C, I> after) {
+        default OnError<C, I> andThen(final OnError<C, I> after) {
             return (c, i, r, e) -> {
                 apply(c, i, r, e);
                 after.apply(c, i, r, e);
@@ -75,7 +75,7 @@ public class ExceptionHandler<C> {
     /**
      * Specify a function that maps an Exception to certain ErrorType.
      */
-    public void mapException(Function<Exception, ErrorTypes> mapException) {
+    public void mapException(final Function<Exception, ErrorTypes> mapException) {
         this.mapException = mapException;
     }
 
@@ -84,14 +84,14 @@ public class ExceptionHandler<C> {
      * <p>For example, {@link RollbackOnFailure#createAdjustError(ComponentLog)} decides
      * whether a process session should rollback or transfer input to failure or retry.
      */
-    public void adjustError(BiFunction<C, ErrorTypes, Result> adjustError) {
+    public void adjustError(final BiFunction<C, ErrorTypes, Result> adjustError) {
         this.adjustError = adjustError;
     }
 
     /**
      * <p>Specify a default OnError function that will be called if one is not explicitly specified when {@link #execute(Object, Object, Procedure)} is called.
      */
-    public void onError(OnError<C, ?> onError) {
+    public void onError(final OnError<C, ?> onError) {
         this.onError = onError;
     }
 
@@ -107,7 +107,7 @@ public class ExceptionHandler<C> {
      * without processing any further input
      */
     @SuppressWarnings("unchecked")
-    public <I> boolean execute(C context, I input, Procedure<I> procedure) throws ProcessException, DiscontinuedException {
+    public <I> boolean execute(final C context, final I input, final Procedure<I> procedure) throws ProcessException, DiscontinuedException {
         return execute(context, input, procedure, (OnError<C, I>) onError);
     }
 
@@ -122,11 +122,11 @@ public class ExceptionHandler<C> {
      * @throws DiscontinuedException Indicating the exception was handled by {@link OnError} but process should stop immediately
      * without processing any further input
      */
-    public <I> boolean execute(C context, I input, Procedure<I> procedure, OnError<C, I> onError) throws ProcessException, DiscontinuedException {
+    public <I> boolean execute(final C context, final I input, final Procedure<I> procedure, final OnError<C, I> onError) throws ProcessException, DiscontinuedException {
         try {
             procedure.apply(input);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
 
             if (mapException == null) {
                 throw new ProcessException("An exception was thrown: " + e, e);
@@ -221,7 +221,7 @@ public class ExceptionHandler<C> {
                         throw new ProcessException(String.format("Failed to process %s due to %s", inputs, e), e);
                     }
             }
-            for (FlowFile f : g.getFlowFiles()) {
+            for (final FlowFile f : g.getFlowFiles()) {
                 final FlowFile maybePenalized = penalize(context, session, f, r.penalty());
                 routingResult.routeTo(maybePenalized, routeTo);
             }

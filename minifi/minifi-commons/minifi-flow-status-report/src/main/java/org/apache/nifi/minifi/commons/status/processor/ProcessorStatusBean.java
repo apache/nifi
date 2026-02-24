@@ -32,7 +32,7 @@ public class ProcessorStatusBean extends AbstractStatusBean {
         return processorHealth;
     }
 
-    public void setProcessorHealth(ProcessorHealth processorHealth) {
+    public void setProcessorHealth(final ProcessorHealth processorHealth) {
         this.processorHealth = processorHealth;
     }
 
@@ -40,7 +40,7 @@ public class ProcessorStatusBean extends AbstractStatusBean {
         return processorStats;
     }
 
-    public void setProcessorStats(ProcessorStats processorStats) {
+    public void setProcessorStats(final ProcessorStats processorStats) {
         this.processorStats = processorStats;
     }
 
@@ -48,12 +48,12 @@ public class ProcessorStatusBean extends AbstractStatusBean {
         return bulletinList;
     }
 
-    public void setBulletinList(List<BulletinStatus> bulletinList) {
+    public void setBulletinList(final List<BulletinStatus> bulletinList) {
         this.bulletinList = bulletinList;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -61,7 +61,7 @@ public class ProcessorStatusBean extends AbstractStatusBean {
             return false;
         }
 
-        ProcessorStatusBean that = (ProcessorStatusBean) o;
+        final ProcessorStatusBean that = (ProcessorStatusBean) o;
 
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
             return false;

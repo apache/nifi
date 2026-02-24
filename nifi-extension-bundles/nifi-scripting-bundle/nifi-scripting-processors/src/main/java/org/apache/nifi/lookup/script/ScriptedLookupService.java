@@ -62,7 +62,7 @@ public class ScriptedLookupService extends BaseScriptedLookupService implements 
 
     @Override
     @SuppressWarnings("unchecked")
-    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Object> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         // Delegate the lookup() call to the scripted LookupService
         return lookupService.get().lookup(coordinates);
     }

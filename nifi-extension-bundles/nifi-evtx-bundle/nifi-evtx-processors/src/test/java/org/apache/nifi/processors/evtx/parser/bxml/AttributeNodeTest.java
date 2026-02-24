@@ -57,16 +57,16 @@ public class AttributeNodeTest extends BxmlNodeWithTokenAndStringTestBase {
     @Test
     public void testInit() {
         assertEquals(ATTRIBUTE_NAME, attributeNode.getAttributeName());
-        BxmlNode attributeNodeValue = attributeNode.getValue();
+        final BxmlNode attributeNodeValue = attributeNode.getValue();
         assertInstanceOf(ValueNode.class, attributeNodeValue);
-        List<BxmlNode> children = ((ValueNode) attributeNodeValue).getChildren();
+        final List<BxmlNode> children = ((ValueNode) attributeNodeValue).getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(NullTypeNode.class, children.get(0));
     }
 
     @Test
     public void testVisit() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         attributeNode.accept(mock);
         verify(mock).visit(attributeNode);
         verifyNoMoreInteractions(mock);

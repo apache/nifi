@@ -231,7 +231,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 final BlobContainerClient sourceContainerClient = sourceServiceClient.getBlobContainerClient(sourceContainerName);
                 final BlobClient sourceBlobClient = sourceContainerClient.getBlobClient(sourceBlobName);
 
-                AzureStorageCredentialsDetails_v12 sourceCredentialsDetails = sourceCredentialsService.getCredentialsDetails(flowFile.getAttributes());
+                final AzureStorageCredentialsDetails_v12 sourceCredentialsDetails = sourceCredentialsService.getCredentialsDetails(flowFile.getAttributes());
                 String sourceUrl = sourceBlobClient.getBlobUrl();
                 final BlobProperties sourceBlobProperties = sourceBlobClient.getProperties();
                 final long blobSize = sourceBlobProperties.getBlobSize();
@@ -256,7 +256,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 if (ignoreStrategyEnabled) {
                     attributes.put(ATTR_NAME_IGNORED, Boolean.FALSE.toString());
                 }
-            } catch (BlobStorageException e) {
+            } catch (final BlobStorageException e) {
                 final BlobErrorCode errorCode = e.getErrorCode();
                 flowFile = session.putAttribute(flowFile, ATTR_NAME_ERROR_CODE, e.getErrorCode().toString());
 
@@ -271,10 +271,10 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().send(flowFile, transitUri, transferMillis);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to create blob on Azure Blob Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -282,7 +282,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, DESTINATION_BLOB_NAME.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME, AzureStorageUtils.CONFLICT_RESOLUTION.getName());
@@ -318,7 +318,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
         // Upload each block in sequential chunks
         while (true) {
-            long count = Math.min(blobSize - offset, MAX_STAGE_BLOCK_BYTES_LONG);
+            final long count = Math.min(blobSize - offset, MAX_STAGE_BLOCK_BYTES_LONG);
             if (count == 0) {
                 break;
             }
@@ -327,7 +327,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             final String zeroPadded = df.format(blockId);
             final String base64BlockId = Base64.getEncoder().encodeToString(zeroPadded.getBytes());
 
-            BlockBlobStageBlockFromUrlOptions blockBlobStageBlockFromUrlOptions = new BlockBlobStageBlockFromUrlOptions(base64BlockId, sourceUrl);
+            final BlockBlobStageBlockFromUrlOptions blockBlobStageBlockFromUrlOptions = new BlockBlobStageBlockFromUrlOptions(base64BlockId, sourceUrl);
             blockBlobStageBlockFromUrlOptions.setSourceRange(new BlobRange(offset, count));
 
             if (httpAuthorization != null) {
@@ -360,7 +360,7 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         return sourceContainerClient.generateSas(signatureValues);
     }
 
-    private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(ProcessContext context) {
+    private static AzureStorageCredentialsService_v12 getCopyFromCredentialsService(final ProcessContext context) {
         return context.getProperty(SOURCE_STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
     }
 

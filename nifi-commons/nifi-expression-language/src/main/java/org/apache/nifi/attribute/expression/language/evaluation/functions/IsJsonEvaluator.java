@@ -29,12 +29,12 @@ public class IsJsonEvaluator extends BooleanEvaluator {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private final Evaluator<String> subject;
 
-    public IsJsonEvaluator(Evaluator<String> subject) {
+    public IsJsonEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(EvaluationContext evaluationContext) {
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue != null) {
             final String trimmedSubjectValue = subjectValue.trim();
@@ -42,7 +42,7 @@ public class IsJsonEvaluator extends BooleanEvaluator {
                 try {
                     MAPPER.readTree(trimmedSubjectValue);
                     return new BooleanQueryResult(true);
-                } catch (IOException ignored) {
+                } catch (final IOException ignored) {
                     //IOException ignored
                 }
             }
@@ -50,11 +50,11 @@ public class IsJsonEvaluator extends BooleanEvaluator {
         return new BooleanQueryResult(false);
     }
 
-    private boolean isPossibleJsonArray(String subject) {
+    private boolean isPossibleJsonArray(final String subject) {
         return subject.startsWith("[") && subject.endsWith("]");
     }
 
-    private boolean isPossibleJsonObject(String subject) {
+    private boolean isPossibleJsonObject(final String subject) {
         return subject.startsWith("{") && subject.endsWith("}");
     }
 

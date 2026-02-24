@@ -30,7 +30,7 @@ public class NarAutoUnloader {
     private NarAutoUnloaderTask narAutoUnLoaderTask;
     private boolean started = false;
 
-    public NarAutoUnloader(NarAutoUnloaderTaskFactory narAutoUnloaderTaskFactory) {
+    public NarAutoUnloader(final NarAutoUnloaderTaskFactory narAutoUnloaderTaskFactory) {
         this.narAutoUnloaderTaskFactory = requireNonNull(narAutoUnloaderTaskFactory);
     }
 

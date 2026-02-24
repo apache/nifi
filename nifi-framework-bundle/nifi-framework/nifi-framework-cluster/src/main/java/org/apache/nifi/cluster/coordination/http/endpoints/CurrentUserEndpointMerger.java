@@ -32,7 +32,7 @@ public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<Curr
     public static final Pattern CURRENT_USER_URI_PATTERN = Pattern.compile("/nifi-api/flow/current-user");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CURRENT_USER_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -74,7 +74,7 @@ public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<Curr
         }
     }
 
-    private void mergePermissions(PermissionsDTO clientPermissions, PermissionsDTO permissions) {
+    private void mergePermissions(final PermissionsDTO clientPermissions, final PermissionsDTO permissions) {
         clientPermissions.setCanRead(clientPermissions.getCanRead() && permissions.getCanRead());
         clientPermissions.setCanWrite(clientPermissions.getCanWrite() && permissions.getCanWrite());
     }

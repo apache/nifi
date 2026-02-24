@@ -33,7 +33,7 @@ public class IllegalClusterResourceRequestExceptionMapper implements ExceptionMa
     private static final Logger logger = LoggerFactory.getLogger(IllegalClusterResourceRequestExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalClusterResourceRequestException exception) {
+    public Response toResponse(final IllegalClusterResourceRequestException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.NOT_FOUND);
 

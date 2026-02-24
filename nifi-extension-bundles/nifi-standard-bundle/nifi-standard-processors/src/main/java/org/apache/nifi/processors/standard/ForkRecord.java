@@ -193,15 +193,15 @@ public class ForkRecord extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        Validator validator = new RecordPathValidator();
+        final Validator validator = new RecordPathValidator();
 
-        Map<PropertyDescriptor, String> processorProperties = validationContext.getProperties();
+        final Map<PropertyDescriptor, String> processorProperties = validationContext.getProperties();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
-            PropertyDescriptor property = entry.getKey();
+            final PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
-                String dynamicValue = validationContext.getProperty(property).getValue();
+                final String dynamicValue = validationContext.getProperty(property).getValue();
                 if (!validationContext.isExpressionLanguagePresent(dynamicValue)) {
                     results.add(validator.validate(property.getDisplayName(), dynamicValue, validationContext));
                 }
@@ -214,17 +214,17 @@ public class ForkRecord extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         final List<RecordPath> recordPaths = new ArrayList<>();
-        Map<PropertyDescriptor, String> processorProperties = context.getProperties();
+        final Map<PropertyDescriptor, String> processorProperties = context.getProperties();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
-            PropertyDescriptor property = entry.getKey();
+            final PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
-                String path = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
+                final String path = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
                 if (StringUtils.isNotBlank(path)) {
                     recordPaths.add(recordPathCache.getCompiled(context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue()));
                 }
@@ -309,7 +309,7 @@ public class ForkRecord extends AbstractProcessor {
 
                     final Map<String, RecordField> fieldMap = new LinkedHashMap<>();
 
-                    for (RecordPath recordPath : recordPaths) {
+                    for (final RecordPath recordPath : recordPaths) {
                         final Iterator<FieldValue> iterator = recordPath.evaluate(firstRecord).getSelectedFields().iterator();
                         while (iterator.hasNext()) {
                             final FieldValue fieldValue = iterator.next();
@@ -377,13 +377,13 @@ public class ForkRecord extends AbstractProcessor {
                         }
 
                         addParentFieldSchemas(fieldMap, parentField);
-                    } catch (NoSuchElementException e) {
+                    } catch (final NoSuchElementException e) {
                         return; // No parent field, nothing to do. NOTE: A return statement is needed to ensure this method does not recurse infinitely.
                     }
                 }
 
                 private void writeForkedRecords(final Record record, final RecordSetWriter recordSetWriter, final RecordSchema writeSchema) throws IOException {
-                    for (RecordPath recordPath : recordPaths) {
+                    for (final RecordPath recordPath : recordPaths) {
                         final Iterator<FieldValue> it = recordPath.evaluate(record).getSelectedFields().iterator();
 
                         while (it.hasNext()) {
@@ -458,14 +458,14 @@ public class ForkRecord extends AbstractProcessor {
                     }
                 }
 
-                private void recursivelyAddParentFields(Record recordToWrite, FieldValue fieldValue) {
+                private void recursivelyAddParentFields(final Record recordToWrite, final FieldValue fieldValue) {
                     try {
                         // we get the parent data
-                        FieldValue parentField = fieldValue.getParent().get();
-                        Record parentRecord = fieldValue.getParentRecord().get();
+                        final FieldValue parentField = fieldValue.getParent().get();
+                        final Record parentRecord = fieldValue.getParentRecord().get();
 
                         // for each field of the parent
-                        for (String field : parentRecord.getSchema().getFieldNames()) {
+                        for (final String field : parentRecord.getSchema().getFieldNames()) {
                             // if and only if there is not an already existing field with this name
                             // (we want to give priority to the deeper existing fields)
                             if (recordToWrite.getValue(field) == null) {
@@ -477,13 +477,13 @@ public class ForkRecord extends AbstractProcessor {
 
                         // recursive call
                         recursivelyAddParentFields(recordToWrite, parentField);
-                    } catch (NoSuchElementException e) {
+                    } catch (final NoSuchElementException e) {
                         return; // NOTE: A return statement is needed to ensure this method does not recurse infinitely.
                     }
                 }
             });
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to fork {}", flowFile, e);
             session.remove(outFlowFile);
             session.transfer(original, REL_FAILURE);
@@ -497,7 +497,7 @@ public class ForkRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("fork-mode", MODE.getName());

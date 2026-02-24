@@ -36,7 +36,7 @@ public class ControllerServiceTypesEntity extends Entity {
         return controllerServiceTypes;
     }
 
-    public void setControllerServiceTypes(Set<DocumentedTypeDTO> controllerServiceTypes) {
+    public void setControllerServiceTypes(final Set<DocumentedTypeDTO> controllerServiceTypes) {
         this.controllerServiceTypes = controllerServiceTypes;
     }
 

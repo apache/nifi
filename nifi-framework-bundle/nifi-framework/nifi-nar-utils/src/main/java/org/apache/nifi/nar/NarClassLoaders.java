@@ -97,11 +97,11 @@ public final class NarClassLoaders {
      * @throws IllegalStateException already initialized with a given pair of
      * directories cannot reinitialize or use a different pair of directories.
      */
-    public void init(File frameworkWorkingDir, File extensionsWorkingDir, final String frameworkNarId) throws IOException, ClassNotFoundException {
+    public void init(final File frameworkWorkingDir, final File extensionsWorkingDir, final String frameworkNarId) throws IOException, ClassNotFoundException {
         init(ClassLoader.getSystemClassLoader(), frameworkWorkingDir, extensionsWorkingDir, frameworkNarId, true);
     }
 
-    public void init(File frameworkWorkingDir, File extensionsWorkingDir) throws IOException, ClassNotFoundException {
+    public void init(final File frameworkWorkingDir, final File extensionsWorkingDir) throws IOException, ClassNotFoundException {
         init(frameworkWorkingDir, extensionsWorkingDir, FRAMEWORK_NAR_ID);
     }
 
@@ -136,8 +136,7 @@ public final class NarClassLoaders {
             synchronized (this) {
                 ic = initContext;
                 if (ic == null) {
-                    ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir, frameworkNarId, logDetails);
-                    initContext = ic;
+                    initContext = ic = load(rootClassloader, frameworkWorkingDir, extensionsWorkingDir, frameworkNarId, logDetails);
                 }
             }
         }
@@ -182,7 +181,7 @@ public final class NarClassLoaders {
                 BundleDetails narDetail = null;
                 try {
                     narDetail = getNarDetails(unpackedNar);
-                } catch (IllegalStateException e) {
+                } catch (final IllegalStateException e) {
                     logger.warn("Unable to load NAR {} due to {}, skipping...", unpackedNar.getAbsolutePath(), e.getMessage());
                     continue;
                 }
@@ -221,7 +220,7 @@ public final class NarClassLoaders {
             }
 
             // Keep track of NiFiServer implementations
-            Map<NiFiServer, String> niFiServers = new HashMap<>();
+            final Map<NiFiServer, String> niFiServers = new HashMap<>();
             int narCount;
             do {
                 // record the number of nars to be loaded
@@ -272,12 +271,12 @@ public final class NarClassLoaders {
                     final ClassLoader bundleClassLoader = narClassLoader;
                     if (bundleClassLoader != null) {
                         narDirectoryBundleLookup.put(narDetail.getWorkingDirectory().getCanonicalPath(), new Bundle(narDetail, bundleClassLoader));
-                        String coordinate = narDetail.getCoordinate().getCoordinate();
+                        final String coordinate = narDetail.getCoordinate().getCoordinate();
                         narCoordinateClassLoaderLookup.put(coordinate, narClassLoader);
                         narDetailsIter.remove();
                         // Search for a NiFiServer implementation
-                        ServiceLoader<NiFiServer> niFiServerServiceLoader = ServiceLoader.load(NiFiServer.class, narClassLoader);
-                        for (NiFiServer server : niFiServerServiceLoader) {
+                        final ServiceLoader<NiFiServer> niFiServerServiceLoader = ServiceLoader.load(NiFiServer.class, narClassLoader);
+                        for (final NiFiServer server : niFiServerServiceLoader) {
                             niFiServers.put(server, coordinate);
                         }
                     }
@@ -289,11 +288,11 @@ public final class NarClassLoaders {
             if (niFiServers.isEmpty()) {
                 serverInstance = null;
             } else if (niFiServers.size() > 1) {
-                String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
+                final String sb = "Expected exactly one implementation of NiFiServer but found " + niFiServers.size() + ": " +
                         niFiServers.entrySet().stream().map((entry) -> entry.getKey().getClass().getName() + " from " + entry.getValue()).collect(Collectors.joining(", "));
                 throw new IOException(sb);
             } else {
-                Map.Entry<NiFiServer, String> nifiServer = niFiServers.entrySet().iterator().next();
+                final Map.Entry<NiFiServer, String> nifiServer = niFiServers.entrySet().iterator().next();
                 serverInstance = nifiServer.getKey();
                 logger.info("Found NiFiServer implementation {} in {}", serverInstance.getClass().getName(), nifiServer.getValue());
             }
@@ -394,7 +393,7 @@ public final class NarClassLoaders {
         final BundleCoordinate bundleDependencyCoordinate = bundleDetail.getDependencyCoordinate();
         if (bundleDependencyCoordinate == null) {
             final ClassLoader parentClassLoader;
-            Bundle jettyBundle = getJettyBundle();
+            final Bundle jettyBundle = getJettyBundle();
             if (jettyBundle != null) {
                 parentClassLoader = jettyBundle.getClassLoader();
             } else {
@@ -438,7 +437,7 @@ public final class NarClassLoaders {
         return bundleClassLoader;
     }
 
-    private List<BundleDetails> loadBundleDetails(List<File> unpackedNars) {
+    private List<BundleDetails> loadBundleDetails(final List<File> unpackedNars) {
         final List<BundleDetails> narDetails = new ArrayList<>();
         for (final File unpackedNar : unpackedNars) {
             try {
@@ -458,7 +457,7 @@ public final class NarClassLoaders {
                     narDetails.add(narDetail);
                 }
 
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Unable to load NAR {} due to {}, skipping...", unpackedNar.getAbsolutePath(), e.getMessage());
             }
         }

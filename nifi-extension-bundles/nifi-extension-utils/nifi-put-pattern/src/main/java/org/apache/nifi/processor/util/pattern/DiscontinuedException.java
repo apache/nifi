@@ -21,11 +21,11 @@ package org.apache.nifi.processor.util.pattern;
  * When a method throws this exception, its caller should stop processing further inputs and stop immediately.
  */
 public class DiscontinuedException extends RuntimeException {
-    public DiscontinuedException(String message) {
+    public DiscontinuedException(final String message) {
         super(message);
     }
 
-    public DiscontinuedException(String message, Throwable cause) {
+    public DiscontinuedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

@@ -98,7 +98,7 @@ public class TestGetHDFSFileInfo {
         );
     }
 
-    private void testValidateBatchSize(AllowableValue destination, AllowableValue grouping, String batchSize, boolean expectedValid) {
+    private void testValidateBatchSize(final AllowableValue destination, final AllowableValue grouping, final String batchSize, final boolean expectedValid) {
         runner.clearProperties();
 
         runner.setIncomingConnection(false);
@@ -180,7 +180,7 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
-        ProcessContext context = runner.getProcessContext();
+        final ProcessContext context = runner.getProcessContext();
 
         assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
         assertEquals(context.getProperty(GetHDFSFileInfo.DIR_FILTER).evaluateAttributeExpressions(mff).getValue(), "^(dir.*)$");
@@ -193,7 +193,7 @@ public class TestGetHDFSFileInfo {
 
         setFileSystemBasicTree(proc.fileSystem);
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("input.dir", "/some/home/mydir");
 
         runner.setIncomingConnection(true);
@@ -209,7 +209,7 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
-        ProcessContext context = runner.getProcessContext();
+        final ProcessContext context = runner.getProcessContext();
 
         assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
     }
@@ -697,7 +697,7 @@ public class TestGetHDFSFileInfo {
         checkContentSizes(List.of(9));
     }
 
-    private void testBatchSize(String batchSize, AllowableValue destination, AllowableValue grouping, int expectedNrTransferredToSuccess) {
+    private void testBatchSize(final String batchSize, final AllowableValue destination, final AllowableValue grouping, final int expectedNrTransferredToSuccess) {
         setFileSystemBasicTree(proc.fileSystem);
 
         runner.setIncomingConnection(false);
@@ -750,8 +750,8 @@ public class TestGetHDFSFileInfo {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private void checkContentSizes(List<Integer> expectedNumberOfRecords) {
-        List<Integer> actualNumberOfRecords = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).stream()
+    private void checkContentSizes(final List<Integer> expectedNumberOfRecords) {
+        final List<Integer> actualNumberOfRecords = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).stream()
                 .map(MockFlowFile::toByteArray)
                 .map(String::new)
                 .map(
@@ -795,7 +795,7 @@ public class TestGetHDFSFileInfo {
         fs.addFileStatus(fs.newDir("/some/home/mydir/.dir3"), fs.newDir("/some/home/mydir/.dir3/regDir3"));
     }
 
-    static FsPermission perms(short p) {
+    static FsPermission perms(final short p) {
         return new FsPermission(p);
     }
 

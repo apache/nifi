@@ -34,7 +34,7 @@ public abstract class AvroRecordReader implements RecordReader {
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         try {
-            GenericRecord record = nextAvroRecord();
+            final GenericRecord record = nextAvroRecord();
             if (record == null) {
                 return null;
             }
@@ -42,9 +42,9 @@ public abstract class AvroRecordReader implements RecordReader {
             final RecordSchema schema = getSchema();
             final Map<String, Object> values = AvroTypeUtil.convertAvroRecordToMap(record, schema);
             return new MapRecord(schema, values);
-        } catch (IOException | MalformedRecordException e) {
+        } catch (final IOException | MalformedRecordException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MalformedRecordException("Error while getting next record", e);
         }
     }

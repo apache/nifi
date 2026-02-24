@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestFreeFormTextRecordSetWriter {
 
-    private TestRunner setup(FreeFormTextRecordSetWriter writer) throws InitializationException, IOException {
-        TestRunner runner = TestRunners.newTestRunner(TestFreeFormTextRecordSetWriterProcessor.class);
+    private TestRunner setup(final FreeFormTextRecordSetWriter writer) throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestFreeFormTextRecordSetWriterProcessor.class);
 
         runner.addControllerService("writer", writer);
         runner.setProperty(TestFreeFormTextRecordSetWriterProcessor.WRITER, "writer");
@@ -42,11 +42,11 @@ public class TestFreeFormTextRecordSetWriter {
 
     @Test
     public void testDefault() throws IOException, InitializationException {
-        FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.enableControllerService(writer);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("my.user.name", "jdoe64");
         runner.enqueue("", attributes);
         runner.run();
@@ -55,20 +55,20 @@ public class TestFreeFormTextRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestFreeFormTextRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "ID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: jdoe64\nID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: jdoe64\n";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestFreeFormTextRecordSetWriterProcessor.SUCCESS).get(0)));
+        final String expected = "ID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: jdoe64\nID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: jdoe64\n";
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestFreeFormTextRecordSetWriterProcessor.SUCCESS).get(0)));
         assertEquals(expected, actual);
     }
 
     @Test
     public void testDefaultSingleRecord() throws IOException, InitializationException {
-        FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
-        TestRunner runner = setup(writer);
+        final FreeFormTextRecordSetWriter writer = new FreeFormTextRecordSetWriter();
+        final TestRunner runner = setup(writer);
 
         runner.setProperty(TestFreeFormTextRecordSetWriterProcessor.MULTIPLE_RECORDS, "false");
 
         runner.enableControllerService(writer);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         // Test ID field value does not get overridden
         attributes.put("ID", "jdoe64");
         runner.enqueue("", attributes);
@@ -78,8 +78,8 @@ public class TestFreeFormTextRecordSetWriter {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(TestFreeFormTextRecordSetWriterProcessor.SUCCESS, 1);
 
-        String expected = "ID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: \n";
-        String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestFreeFormTextRecordSetWriterProcessor.SUCCESS).get(0)));
+        final String expected = "ID: ABC123, Name: John Doe, Age: 22, Country: USA, Username: \n";
+        final String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestFreeFormTextRecordSetWriterProcessor.SUCCESS).get(0)));
         assertEquals(expected, actual);
     }
 

@@ -64,7 +64,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
-        List<ConfigVerificationResult> results = new ArrayList<>();
+        final List<ConfigVerificationResult> results = new ArrayList<>();
 
         KerberosUser kerberosUser = null;
 
@@ -118,14 +118,14 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                         .build());
             }
         } catch (final Exception e) {
-            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            final StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
             verificationLogger.error(messageBuilder.toString(), e);
 
             final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
 
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
-                List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
+                final List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
                     messageBuilder.append(String.format(" Driver class [%s] not found in provided resources. Available driver classes found: %s",
                             driverName, String.join(", ", availableDrivers)));
@@ -180,11 +180,11 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         dataSource.setDatabasePasswordProvider(passwordProvider, passwordRequestContext);
     }
 
-    private void loginKerberos(KerberosUser kerberosUser) throws InitializationException {
+    private void loginKerberos(final KerberosUser kerberosUser) throws InitializationException {
         if (kerberosUser != null) {
             try {
                 kerberosUser.login();
-            } catch (KerberosLoginException e) {
+            } catch (final KerberosLoginException e) {
                 throw new InitializationException("Unable to authenticate Kerberos principal", e);
             }
         }
@@ -283,7 +283,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         try {
             final Connection con;
             if (kerberosUser != null) {
-                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
+                final KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
@@ -295,7 +295,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 try {
                     getLogger().info("Error getting connection, performing Kerberos re-login");
                     kerberosUser.login();
-                } catch (KerberosLoginException le) {
+                } catch (final KerberosLoginException le) {
                     throw new ProcessException("Unable to authenticate Kerberos principal", le);
                 }
             }

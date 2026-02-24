@@ -63,7 +63,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 public class NiFiWebApiResourceConfig extends ResourceConfig {
 
-    public NiFiWebApiResourceConfig(@Context ServletContext servletContext) {
+    public NiFiWebApiResourceConfig(final @Context ServletContext servletContext) {
         // get the application context to register the rest endpoints
         final ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(servletContext);
 

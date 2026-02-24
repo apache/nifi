@@ -130,7 +130,7 @@ public class ScanContent extends AbstractProcessor {
     }
 
     private boolean reloadDictionary(final ProcessContext context, final boolean force, final ComponentLog logger) throws IOException {
-        boolean obtainedLock;
+        final boolean obtainedLock;
         if (force) {
             dictionaryUpdateLock.lock();
             obtainedLock = true;

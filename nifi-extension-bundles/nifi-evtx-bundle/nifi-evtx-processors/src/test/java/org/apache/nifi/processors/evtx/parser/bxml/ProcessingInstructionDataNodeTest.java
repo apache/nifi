@@ -49,7 +49,7 @@ public class ProcessingInstructionDataNodeTest extends BxmlNodeWithTokenTestBase
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         processingInstructionDataNode.accept(mock);
         verify(mock).visit(processingInstructionDataNode);
         verifyNoMoreInteractions(mock);

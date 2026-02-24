@@ -34,7 +34,7 @@ public enum TextractType {
 
     public final String type;
 
-    TextractType(String type) {
+    TextractType(final String type) {
         this.type = type;
     }
 
@@ -42,7 +42,7 @@ public enum TextractType {
         return type;
     }
 
-    public static TextractType fromString(String value) {
+    public static TextractType fromString(final String value) {
         return Arrays.stream(values())
                 .filter(type -> type.getType().equalsIgnoreCase(value))
                 .findAny()

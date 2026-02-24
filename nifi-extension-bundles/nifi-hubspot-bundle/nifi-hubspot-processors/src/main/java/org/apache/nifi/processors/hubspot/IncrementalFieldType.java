@@ -22,7 +22,7 @@ public enum IncrementalFieldType {
 
     private final String value;
 
-    IncrementalFieldType(String value) {
+    IncrementalFieldType(final String value) {
         this.value = value;
     }
 

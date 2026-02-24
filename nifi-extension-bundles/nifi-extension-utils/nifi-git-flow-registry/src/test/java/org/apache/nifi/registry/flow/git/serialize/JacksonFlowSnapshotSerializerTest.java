@@ -52,11 +52,11 @@ public class JacksonFlowSnapshotSerializerTest {
         versionedParameterContext.setIdentifier("myParamContext");
         versionedParameterContext.setInheritedParameterContexts(List.of("inheritedContext2", "inheritedContext3", "inheritedContext1"));
 
-        VersionedParameter parameter1 = new VersionedParameter();
+        final VersionedParameter parameter1 = new VersionedParameter();
         parameter1.setName("name1");
-        VersionedParameter parameter2 = new VersionedParameter();
+        final VersionedParameter parameter2 = new VersionedParameter();
         parameter2.setName("name2");
-        VersionedParameter parameter3 = new VersionedParameter();
+        final VersionedParameter parameter3 = new VersionedParameter();
         parameter3.setName("name3");
 
         versionedParameterContext.setParameters(Set.of(parameter2, parameter1, parameter3));

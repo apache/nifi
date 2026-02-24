@@ -52,14 +52,14 @@ public abstract class RestChangeIngestorCommonTest {
     @BeforeEach
     public void setListener() {
         Mockito.reset(testNotifier);
-        ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
+        final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
         when(testListener.getDescriptor()).thenReturn("MockChangeListener");
         Mockito.when(testNotifier.notifyListeners(Mockito.any())).thenReturn(Collections.singleton(new ListenerHandleResult(testListener)));
     }
 
     @Test
     public void testGet() throws Exception {
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .url(url)
             .build();
 
@@ -77,7 +77,7 @@ public abstract class RestChangeIngestorCommonTest {
     public void testFileUploadNewConfig() throws Exception {
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
 
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .url(url)
             .post(RequestBody.create(testString, MEDIA_TYPE_MARKDOWN))
             .addHeader("charset", "UTF-8")
@@ -98,7 +98,7 @@ public abstract class RestChangeIngestorCommonTest {
     public void testFileUploadSameConfig() throws Exception {
         when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
 
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .url(url)
             .post(RequestBody.create(testString, MEDIA_TYPE_MARKDOWN))
             .addHeader("charset", "UTF-8")

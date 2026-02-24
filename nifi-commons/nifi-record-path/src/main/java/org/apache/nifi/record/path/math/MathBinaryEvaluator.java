@@ -23,7 +23,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 public class MathBinaryEvaluator extends MathEvaluator<MathBinaryOperator> {
-    public MathBinaryEvaluator(MathBinaryOperator op) {
+    public MathBinaryEvaluator(final MathBinaryOperator op) {
         super(op);
     }
 
@@ -35,12 +35,12 @@ public class MathBinaryEvaluator extends MathEvaluator<MathBinaryOperator> {
         return new MathBinaryEvaluator(new MathMultiplyOperator());
     }
 
-    public FieldValue evaluate(FieldValue lhs, FieldValue rhs) {
+    public FieldValue evaluate(final FieldValue lhs, final FieldValue rhs) {
         final Number lhsValue = MathTypeUtils.coerceNumber(lhs);
         final Number rhsValue = MathTypeUtils.coerceNumber(rhs);
 
-        Number result;
-        DataType resultType;
+        final Number result;
+        final DataType resultType;
 
         if (MathTypeUtils.isLongCompatible(lhsValue) && MathTypeUtils.isLongCompatible(rhsValue)) {
             result = op.operate(lhsValue.longValue(), rhsValue.longValue());

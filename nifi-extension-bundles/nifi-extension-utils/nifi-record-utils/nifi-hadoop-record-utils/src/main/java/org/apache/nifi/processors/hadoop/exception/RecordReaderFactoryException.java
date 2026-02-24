@@ -21,11 +21,11 @@ package org.apache.nifi.processors.hadoop.exception;
  */
 public class RecordReaderFactoryException extends FailureException {
 
-    public RecordReaderFactoryException(String message) {
+    public RecordReaderFactoryException(final String message) {
         super(message);
     }
 
-    public RecordReaderFactoryException(String message, Throwable cause) {
+    public RecordReaderFactoryException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

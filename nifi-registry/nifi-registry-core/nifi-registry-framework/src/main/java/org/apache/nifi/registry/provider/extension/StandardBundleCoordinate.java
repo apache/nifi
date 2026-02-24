@@ -52,7 +52,7 @@ public class StandardBundleCoordinate implements BundleCoordinate {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

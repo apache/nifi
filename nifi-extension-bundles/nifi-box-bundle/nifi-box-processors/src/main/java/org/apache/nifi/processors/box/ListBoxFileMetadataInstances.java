@@ -164,7 +164,7 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
                      final BoxMetadataJsonArrayWriter writer = BoxMetadataJsonArrayWriter.create(out)) {
 
                     // Write each metadata template as a separate JSON object in the array
-                    for (Map<String, Object> templateFields : instanceList) {
+                    for (final Map<String, Object> templateFields : instanceList) {
                         writer.write(templateFields);
                     }
                 }

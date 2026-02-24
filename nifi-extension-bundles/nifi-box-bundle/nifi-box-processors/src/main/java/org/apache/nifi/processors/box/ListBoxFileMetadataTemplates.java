@@ -163,8 +163,8 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
                 // Add all dynamic fields from the metadata
                 for (final String fieldName : metadata.getPropertyPaths()) {
                     if (metadata.getValue(fieldName) != null) {
-                        String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
-                        String fieldValue = metadata.getValue(fieldName).asString();
+                        final String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
+                        final String fieldValue = metadata.getValue(fieldName).asString();
                         templateFields.put(cleanFieldName, fieldValue);
                     }
                 }
@@ -177,7 +177,7 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
                      final BoxMetadataJsonArrayWriter writer = BoxMetadataJsonArrayWriter.create(out)) {
 
                     // Write each metadata template as a separate JSON object in the array
-                    for (Map<String, Object> templateFields : templatesList) {
+                    for (final Map<String, Object> templateFields : templatesList) {
                         writer.write(templateFields);
                     }
                 }

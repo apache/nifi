@@ -267,22 +267,22 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
             .filter(s -> !s.isEmpty())
             .forEach(channels::add);
 
-        Map<String, String> channelMapping = new HashMap<>();
+        final Map<String, String> channelMapping = new HashMap<>();
 
         if (channelIdsProvidedOnly(channels)) {
             //resolve the channel names by the specified channel IDs
-            for (String channelId : channels) {
-                String channelName = client.fetchChannelName(channelId);
+            for (final String channelId : channels) {
+                final String channelName = client.fetchChannelName(channelId);
                 getLogger().info("Resolved Channel ID {} to name {}", channelId, channelName);
                 channelMapping.put(channelId, channelName);
             }
         } else {
             // Fetch all channel ID's to have a name/ID channel mapping
-            Map<String, String> allChannelNameIdMapping = client.fetchChannelIds();
+            final Map<String, String> allChannelNameIdMapping = client.fetchChannelIds();
 
             for (final String channel : channels) {
 
-                String channelName;
+                final String channelName;
                 String channelId;
 
                 final String channelIdOrName = channel.replace("#", "");
@@ -390,7 +390,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         }
     }
 
-    private static boolean channelIdsProvidedOnly(List<String> channels) {
+    private static boolean channelIdsProvidedOnly(final List<String> channels) {
         return channels.stream().noneMatch(channelValue -> channelValue.contains("#"));
     }
 
@@ -496,7 +496,7 @@ public class ConsumeSlack extends AbstractProcessor implements VerifiableProcess
         }
 
         @Override
-        public String fetchChannelName(String channelId) throws SlackApiException, IOException {
+        public String fetchChannelName(final String channelId) throws SlackApiException, IOException {
             final ConversationsInfoRequest request = ConversationsInfoRequest.builder()
                     .channel(channelId)
                     .build();

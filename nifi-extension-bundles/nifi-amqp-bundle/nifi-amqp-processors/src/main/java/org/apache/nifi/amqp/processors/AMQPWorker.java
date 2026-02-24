@@ -43,14 +43,14 @@ abstract class AMQPWorker implements AutoCloseable {
      *
      * @param connection instance of {@link Connection}
      */
-    public AMQPWorker(final Connection connection, ComponentLog processorLog) {
+    public AMQPWorker(final Connection connection, final ComponentLog processorLog) {
         this.processorLog = processorLog;
 
         validateConnection(connection);
 
         try {
             this.channel = connection.createChannel();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             processorLog.error("Failed to create Channel for {}", connection, e);
             throw new IllegalStateException(e);
         }
@@ -87,7 +87,7 @@ abstract class AMQPWorker implements AutoCloseable {
      * @param propertyName the name of the property
      * @param value the value of the property
      */
-    void validateStringProperty(String propertyName, String value) {
+    void validateStringProperty(final String propertyName, final String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("'" + propertyName + "' must not be null or empty");
         }
@@ -98,7 +98,7 @@ abstract class AMQPWorker implements AutoCloseable {
      *
      * @param connection instance of {@link Connection}
      */
-    private void validateConnection(Connection connection) {
+    private void validateConnection(final Connection connection) {
         if (connection == null) {
             throw new IllegalArgumentException("'connection' must not be null!");
         }

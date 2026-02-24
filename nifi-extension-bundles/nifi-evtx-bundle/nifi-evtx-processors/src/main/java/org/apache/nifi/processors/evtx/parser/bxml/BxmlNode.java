@@ -58,7 +58,7 @@ public abstract class BxmlNode extends Block {
     protected List<BxmlNode> children;
     private boolean hasEndOfStream = false;
 
-    protected BxmlNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) {
+    protected BxmlNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) {
         super(binaryReader, chunkHeader.getOffset() + binaryReader.getPosition());
         this.chunkHeader = chunkHeader;
         this.parent = parent;
@@ -66,7 +66,7 @@ public abstract class BxmlNode extends Block {
     }
 
     @Override
-    protected void init(boolean shouldClearBinaryReader) throws IOException {
+    protected void init(final boolean shouldClearBinaryReader) throws IOException {
         super.init(false);
         children = Collections.unmodifiableList(initChildren());
         if (shouldClearBinaryReader) {
@@ -75,22 +75,22 @@ public abstract class BxmlNode extends Block {
     }
 
     protected List<BxmlNode> initChildren() throws IOException {
-        BinaryReader binaryReader = getBinaryReader();
-        List<BxmlNode> result = new ArrayList<>();
-        int maxChildren = getMaxChildren();
-        int[] endTokens = getEndTokens();
+        final BinaryReader binaryReader = getBinaryReader();
+        final List<BxmlNode> result = new ArrayList<>();
+        final int maxChildren = getMaxChildren();
+        final int[] endTokens = getEndTokens();
         for (int i = 0; i < maxChildren; i++) {
             // Masking flags for location of factory
-            int token = binaryReader.peek();
-            int factoryIndex = token & 0x0F;
+            final int token = binaryReader.peek();
+            final int factoryIndex = token & 0x0F;
             if (factoryIndex > factories.length - 1) {
                 throw new IOException("Invalid token " + factoryIndex);
             }
-            BxmlNodeFactory factory = factories[factoryIndex];
+            final BxmlNodeFactory factory = factories[factoryIndex];
             if (factory == null) {
                 throw new IOException("Invalid token " + factoryIndex);
             }
-            BxmlNode bxmlNode = factory.create(binaryReader, chunkHeader, this);
+            final BxmlNode bxmlNode = factory.create(binaryReader, chunkHeader, this);
             result.add(bxmlNode);
             if (bxmlNode.hasEndOfStream() || bxmlNode instanceof EndOfStreamNode) {
                 hasEndOfStream = true;

@@ -33,7 +33,7 @@ public class ServiceBroadcastMessage extends ProtocolMessage {
         return serviceName;
     }
 
-    public void setServiceName(String serviceName) {
+    public void setServiceName(final String serviceName) {
         this.serviceName = serviceName;
     }
 
@@ -41,7 +41,7 @@ public class ServiceBroadcastMessage extends ProtocolMessage {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(final String address) {
         this.address = address;
     }
 
@@ -49,7 +49,7 @@ public class ServiceBroadcastMessage extends ProtocolMessage {
         return port;
     }
 
-    public void setPort(int port) {
+    public void setPort(final int port) {
         this.port = port;
     }
 

@@ -92,7 +92,7 @@ public class TableSchema {
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
                                    final boolean translateColumnNames, final NameNormalizer normalizer,
-                                   final String updateKeys, ComponentLog log) throws SQLException {
+                                   final String updateKeys, final ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 
         try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -104,7 +104,7 @@ public class TableSchema {
             // If no columns are found, check that the table exists
             if (cols.isEmpty()) {
                 try (final ResultSet tblrs = dmd.getTables(catalog, schema, tableName, null)) {
-                    List<String> qualifiedNameSegments = new ArrayList<>();
+                    final List<String> qualifiedNameSegments = new ArrayList<>();
                     if (catalog != null) {
                         qualifiedNameSegments.add(catalog);
                     }

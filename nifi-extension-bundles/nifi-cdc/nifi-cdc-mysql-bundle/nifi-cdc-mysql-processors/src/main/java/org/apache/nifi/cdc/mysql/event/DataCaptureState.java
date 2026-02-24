@@ -28,7 +28,7 @@ public class DataCaptureState {
     public DataCaptureState() {
     }
 
-    public DataCaptureState(String binlogFile, long binlogPosition, boolean useGtid, String gtidSet, long sequenceId) {
+    public DataCaptureState(final String binlogFile, final long binlogPosition, final boolean useGtid, final String gtidSet, final long sequenceId) {
         this.binlogFile = binlogFile;
         this.binlogPosition = binlogPosition;
         this.useGtid = useGtid;
@@ -40,7 +40,7 @@ public class DataCaptureState {
         return binlogFile;
     }
 
-    public void setBinlogFile(String binlogFile) {
+    public void setBinlogFile(final String binlogFile) {
         this.binlogFile = binlogFile;
     }
 
@@ -48,7 +48,7 @@ public class DataCaptureState {
         return binlogPosition;
     }
 
-    public void setBinlogPosition(long binlogPosition) {
+    public void setBinlogPosition(final long binlogPosition) {
         this.binlogPosition = binlogPosition;
     }
 
@@ -56,7 +56,7 @@ public class DataCaptureState {
         return useGtid;
     }
 
-    public void setUseGtid(boolean useGtid) {
+    public void setUseGtid(final boolean useGtid) {
         this.useGtid = useGtid;
     }
 
@@ -64,7 +64,7 @@ public class DataCaptureState {
         return gtidSet;
     }
 
-    public void setGtidSet(String gtidSet) {
+    public void setGtidSet(final String gtidSet) {
         this.gtidSet = gtidSet;
     }
 
@@ -72,7 +72,7 @@ public class DataCaptureState {
         return sequenceId;
     }
 
-    public void setSequenceId(long sequenceId) {
+    public void setSequenceId(final long sequenceId) {
         this.sequenceId = sequenceId;
     }
 

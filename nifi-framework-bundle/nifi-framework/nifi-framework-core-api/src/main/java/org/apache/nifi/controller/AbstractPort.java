@@ -413,7 +413,7 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setLossTolerant(boolean lossTolerant) {
+    public void setLossTolerant(final boolean lossTolerant) {
         this.lossTolerant.set(lossTolerant);
     }
 
@@ -688,7 +688,7 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setRetryCount(Integer retryCount) {
+    public void setRetryCount(final Integer retryCount) {
     }
 
     @Override
@@ -697,11 +697,11 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    public void setRetriedRelationships(final Set<String> retriedRelationships) {
     }
 
     @Override
-    public boolean isRelationshipRetried(Relationship relationship) {
+    public boolean isRelationshipRetried(final Relationship relationship) {
         return false;
     }
 
@@ -711,7 +711,7 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+    public void setBackoffMechanism(final BackoffMechanism backoffMechanism) {
     }
 
     @Override
@@ -720,11 +720,11 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    public void setMaxBackoffPeriod(final String maxBackoffPeriod) {
     }
 
     @Override
-    public String evaluateParameters(String value) {
+    public String evaluateParameters(final String value) {
         return value;
     }
 

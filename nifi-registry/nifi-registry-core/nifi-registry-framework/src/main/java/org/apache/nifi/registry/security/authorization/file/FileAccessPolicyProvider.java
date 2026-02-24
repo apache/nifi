@@ -90,7 +90,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     private static JAXBContext initializeJaxbContext(final String contextPath) {
         try {
             return JAXBContext.newInstance(contextPath, FileAuthorizer.class.getClassLoader());
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.");
         }
     }
@@ -125,7 +125,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         try {
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             authorizationsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(AUTHORIZATIONS_XSD));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SecurityProviderCreationException(e);
         }
     }
@@ -158,7 +158,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             load();
 
             logger.info("Authorizations file loaded at {}", new Date());
-        } catch (JAXBException | SAXException e) {
+        } catch (final JAXBException | SAXException e) {
             throw new SecurityProviderCreationException(e);
         }
     }
@@ -169,7 +169,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     @Override
-    public synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    public synchronized AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         if (accessPolicy == null) {
             throw new IllegalArgumentException("AccessPolicy cannot be null");
         }
@@ -188,7 +188,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
         if (identifier == null) {
             return null;
         }
@@ -198,13 +198,13 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
         return AccessPolicyProviderUtils.getAccessPolicy(
                 resourceIdentifier, action, authorizationsHolder.get().getPoliciesByResource());
     }
 
     @Override
-    public synchronized AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    public synchronized AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         if (accessPolicy == null) {
             throw new IllegalArgumentException("AccessPolicy cannot be null");
         }
@@ -214,7 +214,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
 
         // try to find an existing Authorization that matches the policy id
         Policy updatePolicy = null;
-        for (Policy policy : authorizations.getPolicies().getPolicy()) {
+        for (final Policy policy : authorizations.getPolicies().getPolicy()) {
             if (policy.getIdentifier().equals(accessPolicy.getIdentifier())) {
                 updatePolicy = policy;
                 break;
@@ -234,7 +234,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     @Override
-    public synchronized AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    public synchronized AccessPolicy deleteAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         if (accessPolicy == null) {
             throw new IllegalArgumentException("AccessPolicy cannot be null");
         }
@@ -242,20 +242,20 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         return deleteAccessPolicy(accessPolicy.getIdentifier());
     }
 
-    private synchronized AccessPolicy deleteAccessPolicy(String accessPolicyIdentifer) throws AuthorizationAccessException {
+    private synchronized AccessPolicy deleteAccessPolicy(final String accessPolicyIdentifer) throws AuthorizationAccessException {
         if (accessPolicyIdentifer == null) {
             throw new IllegalArgumentException("Access policy identifier cannot be null");
         }
 
         final AuthorizationsHolder holder = this.authorizationsHolder.get();
-        AccessPolicy deletedPolicy = holder.getPoliciesById().get(accessPolicyIdentifer);
+        final AccessPolicy deletedPolicy = holder.getPoliciesById().get(accessPolicyIdentifer);
         if (deletedPolicy == null) {
             return null;
         }
 
         // find the matching Policy and remove it
         final Authorizations authorizations = holder.getAuthorizations();
-        Iterator<Policy> policyIter = authorizations.getPolicies().getPolicy().iterator();
+        final Iterator<Policy> policyIter = authorizations.getPolicies().getPolicy().iterator();
         while (policyIter.hasNext()) {
             final Policy policy = policyIter.next();
             if (policy.getIdentifier().equals(accessPolicyIdentifer)) {
@@ -278,12 +278,12 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     @Override
-    public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public synchronized void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         parsePolicies(fingerprint).forEach(policy -> addAccessPolicy(policy));
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         try {
             // ensure we can understand the proposed fingerprint
             parsePolicies(proposedFingerprint);
@@ -309,20 +309,20 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             writer.writeStartDocument();
             writer.writeStartElement("accessPolicies");
 
-            for (AccessPolicy policy : policies) {
+            for (final AccessPolicy policy : policies) {
                 writePolicy(writer, policy);
             }
 
             writer.writeEndElement();
             writer.writeEndDocument();
             writer.flush();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         } finally {
             if (writer != null) {
                 try {
                     writer.close();
-                } catch (XMLStreamException ignored) {
+                } catch (final XMLStreamException ignored) {
                     // nothing to do here
                 }
             }
@@ -341,9 +341,9 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             final Element rootElement = document.getDocumentElement();
 
             // parse all the policies and add them to the current access policy provider
-            NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
+            final NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
             for (int i = 0; i < policyNodes.getLength(); i++) {
-                Node policyNode = policyNodes.item(i);
+                final Node policyNode = policyNodes.item(i);
                 policies.add(parsePolicy((Element) policyNode));
             }
         } catch (final ProcessingException | IOException e) {
@@ -369,15 +369,15 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             throw new IllegalStateException("Unknown Policy Action: " + actions);
         }
 
-        NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
+        final NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
         for (int i = 0; i < policyUsers.getLength(); i++) {
-            Element policyUserNode = (Element) policyUsers.item(i);
+            final Element policyUserNode = (Element) policyUsers.item(i);
             builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
         }
 
-        NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
+        final NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
         for (int i = 0; i < policyGroups.getLength(); i++) {
-            Element policyGroupNode = (Element) policyGroups.item(i);
+            final Element policyGroupNode = (Element) policyGroups.item(i);
             builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
         }
 
@@ -386,11 +386,11 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
 
     private void writePolicy(final XMLStreamWriter writer, final AccessPolicy policy) throws XMLStreamException {
         // sort the users for the policy
-        List<String> policyUsers = new ArrayList<>(policy.getUsers());
+        final List<String> policyUsers = new ArrayList<>(policy.getUsers());
         Collections.sort(policyUsers);
 
         // sort the groups for this policy
-        List<String> policyGroups = new ArrayList<>(policy.getGroups());
+        final List<String> policyGroups = new ArrayList<>(policy.getGroups());
         Collections.sort(policyGroups);
 
         writer.writeStartElement(POLICY_ELEMENT);
@@ -398,13 +398,13 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         writer.writeAttribute(RESOURCE_ATTR, policy.getResource());
         writer.writeAttribute(ACTIONS_ATTR, policy.getAction().name());
 
-        for (String policyUser : policyUsers) {
+        for (final String policyUser : policyUsers) {
             writer.writeStartElement(POLICY_USER_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, policyUser);
             writer.writeEndElement();
         }
 
-        for (String policyGroup : policyGroups) {
+        for (final String policyGroup : policyGroups) {
             writer.writeStartElement(POLICY_GROUP_ELEMENT);
             writer.writeAttribute(IDENTIFIER_ATTR, policyGroup);
             writer.writeEndElement();
@@ -490,7 +490,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
      * @param authorizations the overall authorizations
      */
     private void populateNiFiIdentities(final Authorizations authorizations) {
-        for (String nifiIdentity : nifiIdentities) {
+        for (final String nifiIdentity : nifiIdentities) {
             final User nifiUser = getUserGroupProvider().getUserByIdentity(nifiIdentity);
             if (nifiUser == null) {
                 throw new SecurityProviderCreationException("Unable to locate NiFi identities'" + nifiIdentity + "' to seed policies.");
@@ -522,17 +522,17 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     }
 
     private void addGroupToAccessPolicy(final Authorizations authorizations, final String resource, final String groupIdentifier, final String actionCode) {
-        Optional<Policy> policyOptional = authorizations.getPolicies().getPolicy().stream()
+        final Optional<Policy> policyOptional = authorizations.getPolicies().getPolicy().stream()
                 .filter(policy -> policy.getResource().equals(resource))
                 .filter(policy -> policy.getAction().equals(actionCode))
             .findAny();
         if (policyOptional.isPresent()) {
-            Policy policy = policyOptional.get();
-            Policy.Group group = new Policy.Group();
+            final Policy policy = policyOptional.get();
+            final Policy.Group group = new Policy.Group();
             group.setIdentifier(groupIdentifier);
             policy.getGroup().add(group);
         } else {
-            AccessPolicy.Builder accessPolicyBuilder =
+            final AccessPolicy.Builder accessPolicyBuilder =
                     new AccessPolicy.Builder()
                             .identifierGenerateFromSeed(resource + actionCode)
                             .resource(resource)
@@ -554,7 +554,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
     private void addUserToAccessPolicy(final Authorizations authorizations, final String resource, final String userIdentifier, final String actionCode) {
         // first try to find an existing policy for the given resource and action
         Policy foundPolicy = null;
-        for (Policy policy : authorizations.getPolicies().getPolicy()) {
+        for (final Policy policy : authorizations.getPolicies().getPolicy()) {
             if (policy.getResource().equals(resource) && policy.getAction().equals(actionCode)) {
                 foundPolicy = policy;
                 break;
@@ -576,7 +576,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             authorizations.getPolicies().getPolicy().add(jaxbPolicy);
         } else {
             // otherwise add the user to the existing policy
-            Policy.User policyUser = new Policy.User();
+            final Policy.User policyUser = new Policy.User();
             policyUser.setIdentifier(userIdentifier);
             foundPolicy.getUser().add(policyUser);
         }
@@ -617,19 +617,19 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
      * @param accessPolicy the AccessPolicy to transfer state from
      * @param policy the Policy to transfer state to
      */
-    private void transferUsersAndGroups(AccessPolicy accessPolicy, Policy policy) {
+    private void transferUsersAndGroups(final AccessPolicy accessPolicy, final Policy policy) {
         // add users to the policy
         policy.getUser().clear();
-        for (String userIdentifier : accessPolicy.getUsers()) {
-            Policy.User policyUser = new Policy.User();
+        for (final String userIdentifier : accessPolicy.getUsers()) {
+            final Policy.User policyUser = new Policy.User();
             policyUser.setIdentifier(userIdentifier);
             policy.getUser().add(policyUser);
         }
 
         // add groups to the policy
         policy.getGroup().clear();
-        for (String groupIdentifier : accessPolicy.getGroups()) {
-            Policy.Group policyGroup = new Policy.Group();
+        for (final String groupIdentifier : accessPolicy.getGroups()) {
+            final Policy.Group policyGroup = new Policy.Group();
             policyGroup.setIdentifier(groupIdentifier);
             policy.getGroup().add(policyGroup);
         }
@@ -649,7 +649,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
             saveAuthorizations(authorizations);
 
             this.authorizationsHolder.set(new AuthorizationsHolder(authorizations));
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new AuthorizationAccessException("Unable to save Authorizations", e);
         }
     }

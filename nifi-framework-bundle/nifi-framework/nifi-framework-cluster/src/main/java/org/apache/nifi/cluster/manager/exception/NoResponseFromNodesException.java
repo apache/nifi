@@ -28,15 +28,15 @@ public class NoResponseFromNodesException extends ClusterException {
     public NoResponseFromNodesException() {
     }
 
-    public NoResponseFromNodesException(String msg) {
+    public NoResponseFromNodesException(final String msg) {
         super(msg);
     }
 
-    public NoResponseFromNodesException(Throwable cause) {
+    public NoResponseFromNodesException(final Throwable cause) {
         super(cause);
     }
 
-    public NoResponseFromNodesException(String msg, Throwable cause) {
+    public NoResponseFromNodesException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

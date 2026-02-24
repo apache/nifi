@@ -54,7 +54,7 @@ public class TestProcessGroupResource {
     private NiFiServiceFacade serviceFacade;
 
     @Test
-    public void testExportProcessGroup(@Mock RegisteredFlowSnapshot versionedFlowSnapshot, @Mock VersionedProcessGroup versionedProcessGroup) {
+    public void testExportProcessGroup(final @Mock RegisteredFlowSnapshot versionedFlowSnapshot, final @Mock VersionedProcessGroup versionedProcessGroup) {
         final String groupId = UUID.randomUUID().toString();
         when(serviceFacade.getCurrentFlowSnapshotByGroupId(groupId)).thenReturn(versionedFlowSnapshot);
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
@@ -67,7 +67,7 @@ public class TestProcessGroupResource {
     }
 
     @Test
-    public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized(@Mock HttpServletRequest httpServletRequest, @Mock NiFiProperties properties) {
+    public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized(final @Mock HttpServletRequest httpServletRequest, final @Mock NiFiProperties properties) {
         when(httpServletRequest.getHeader(any())).thenReturn(null);
         when(properties.isNode()).thenReturn(Boolean.FALSE);
 

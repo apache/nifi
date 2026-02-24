@@ -48,7 +48,7 @@ public class JerseyItemsClient extends AbstractJerseyClient implements ItemsClie
     @Override
     public List<BucketItem> getAll() throws NiFiRegistryException, IOException {
         return executeAction("", () -> {
-            WebTarget target = itemsTarget;
+            final WebTarget target = itemsTarget;
             final BucketItem[] bucketItems = getRequestBuilder(target).get(BucketItem[].class);
             return bucketItems == null ? Collections.emptyList() : Arrays.asList(bucketItems);
         });
@@ -62,7 +62,7 @@ public class JerseyItemsClient extends AbstractJerseyClient implements ItemsClie
         }
 
         return executeAction("", () -> {
-            WebTarget target = itemsTarget
+            final WebTarget target = itemsTarget
                     .path("/{bucketId}")
                     .resolveTemplate("bucketId", bucketId);
 

@@ -32,7 +32,7 @@ public class CountersEndpointMerger extends AbstractNodeStatusEndpoint<CountersE
     public static final Pattern COUNTERS_URI_PATTERN = Pattern.compile("/nifi-api/counters");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && COUNTERS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -42,12 +42,12 @@ public class CountersEndpointMerger extends AbstractNodeStatusEndpoint<CountersE
     }
 
     @Override
-    protected CountersDTO getDto(CountersEntity entity) {
+    protected CountersDTO getDto(final CountersEntity entity) {
         return entity.getCounters();
     }
 
     @Override
-    protected void mergeResponses(CountersDTO clientDto, Map<NodeIdentifier, CountersDTO> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final CountersDTO clientDto, final Map<NodeIdentifier, CountersDTO> dtoMap, final NodeIdentifier selectedNodeId) {
         final CountersDTO mergedCounters = clientDto;
         mergedCounters.setNodeSnapshots(new ArrayList<>());
 

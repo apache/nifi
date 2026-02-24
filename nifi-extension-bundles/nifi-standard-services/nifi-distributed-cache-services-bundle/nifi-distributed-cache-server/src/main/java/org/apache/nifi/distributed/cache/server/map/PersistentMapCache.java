@@ -50,7 +50,7 @@ public class PersistentMapCache implements MapCache {
     public PersistentMapCache(final String serviceIdentifier, final File persistencePath, final MapCache cacheToWrap) throws IOException {
         try {
             wali = new SequentialAccessWriteAheadLog<>(persistencePath, new SerdeFactory());
-        } catch (OverlappingFileLockException ex) {
+        } catch (final OverlappingFileLockException ex) {
             logger.error("OverlappingFileLockException thrown: Check lock location - possible duplicate persistencePath conflict in PersistentMapCache.");
             // Propagate the exception
             throw ex;
@@ -81,7 +81,7 @@ public class PersistentMapCache implements MapCache {
         return putResult;
     }
 
-    protected void putWriteAheadLog(ByteBuffer key, ByteBuffer value, MapPutResult putResult) throws IOException {
+    protected void putWriteAheadLog(final ByteBuffer key, final ByteBuffer value, final MapPutResult putResult) throws IOException {
         if (putResult.isSuccessful()) {
             // The put was successful.
             final MapWaliRecord record = new MapWaliRecord(UpdateType.CREATE, key, value);
@@ -113,24 +113,24 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
-    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) throws IOException {
+    public Map<ByteBuffer, ByteBuffer> subMap(final List<ByteBuffer> keys) throws IOException {
         if (keys == null) {
             return null;
         }
-        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
-        for (ByteBuffer key : keys) {
+        final Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        for (final ByteBuffer key : keys) {
             results.put(key, wrapped.get(key));
         }
         return results;
     }
 
     @Override
-    public MapCacheRecord fetch(ByteBuffer key) throws IOException {
+    public MapCacheRecord fetch(final ByteBuffer key) throws IOException {
         return wrapped.fetch(key);
     }
 
     @Override
-    public MapPutResult replace(MapCacheRecord record) throws IOException {
+    public MapPutResult replace(final MapCacheRecord record) throws IOException {
         final MapPutResult putResult = wrapped.replace(record);
         putWriteAheadLog(record.getKey(), record.getValue(), putResult);
         return putResult;
@@ -268,22 +268,22 @@ public class PersistentMapCache implements MapCache {
         }
 
         @Override
-        public SerDe<MapWaliRecord> createSerDe(String encodingName) {
+        public SerDe<MapWaliRecord> createSerDe(final String encodingName) {
             return this.serde;
         }
 
         @Override
-        public Object getRecordIdentifier(MapWaliRecord record) {
+        public Object getRecordIdentifier(final MapWaliRecord record) {
             return this.serde.getRecordIdentifier(record);
         }
 
         @Override
-        public UpdateType getUpdateType(MapWaliRecord record) {
+        public UpdateType getUpdateType(final MapWaliRecord record) {
             return this.serde.getUpdateType(record);
         }
 
         @Override
-        public String getLocation(MapWaliRecord record) {
+        public String getLocation(final MapWaliRecord record) {
             return this.serde.getLocation(record);
         }
 

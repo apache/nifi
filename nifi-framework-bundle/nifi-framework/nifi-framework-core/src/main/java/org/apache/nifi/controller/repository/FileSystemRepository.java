@@ -381,7 +381,7 @@ public class FileSystemRepository implements ContentRepository {
             throw new IllegalArgumentException("No container exists with name " + containerName);
         }
 
-        long capacity = FileUtils.getContainerCapacity(path);
+        final long capacity = FileUtils.getContainerCapacity(path);
 
         if (capacity == 0) {
             throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
@@ -392,7 +392,7 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(final String containerName) throws IOException {
         final Path path = containers.get(containerName);
 
         if (path == null) {
@@ -407,7 +407,7 @@ public class FileSystemRepository implements ContentRepository {
         final Path path = containers.get(containerName);
         try {
             return Files.getFileStore(path).name();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return null;
         }
     }
@@ -493,7 +493,7 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     // Visible for testing
-    long getArchiveCount(String containerName) {
+    long getArchiveCount(final String containerName) {
         final ContainerState containerState = containerStateMap.get(containerName);
         if (containerState == null) {
             throw new IllegalArgumentException("No container exists with name " + containerName);
@@ -628,7 +628,7 @@ public class FileSystemRepository implements ContentRepository {
 
     @Override
     public ContentClaim create(final boolean lossTolerant) throws IOException {
-        ResourceClaim resourceClaim;
+        final ResourceClaim resourceClaim;
 
         final long resourceOffset;
         final ClaimLengthPair pair = writableClaimQueue.poll();
@@ -671,7 +671,7 @@ public class FileSystemRepository implements ContentRepository {
                 throw new IOException("Could not determine file to write to for " + resourceClaim);
             }
             final File file = resourceClaimPath.toFile();
-            ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
+            final ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
             writableClaimStreams.put(resourceClaim, claimStream);
 
             incrementClaimantCount(resourceClaim, true);
@@ -959,9 +959,9 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     private OutputStream write(final ContentClaim claim, final boolean append) {
-        StandardContentClaim scc = validateContentClaimForWriting(claim);
+        final StandardContentClaim scc = validateContentClaimForWriting(claim);
 
-        ByteCountingOutputStream claimStream = writableClaimStreams.get(scc.getResourceClaim());
+        final ByteCountingOutputStream claimStream = writableClaimStreams.get(scc.getResourceClaim());
         final int initialLength = append ? (int) Math.max(0, scc.getLength()) : 0;
 
         final ByteCountingOutputStream bcos = claimStream;
@@ -976,7 +976,7 @@ public class FileSystemRepository implements ContentRepository {
         return out;
     }
 
-    public static StandardContentClaim validateContentClaimForWriting(ContentClaim claim) {
+    public static StandardContentClaim validateContentClaimForWriting(final ContentClaim claim) {
         if (claim == null) {
             throw new NullPointerException("ContentClaim cannot be null");
         }
@@ -1154,7 +1154,7 @@ public class FileSystemRepository implements ContentRepository {
         return writableClaimStreams.size();
     }
 
-    protected ByteCountingOutputStream getWritableClaimStreamByResourceClaim(ResourceClaim rc) {
+    protected ByteCountingOutputStream getWritableClaimStreamByResourceClaim(final ResourceClaim rc) {
         return writableClaimStreams.get(rc);
     }
 
@@ -1388,7 +1388,7 @@ public class FileSystemRepository implements ContentRepository {
 
         final long deleteOldestMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - sortRemainingMillis - deleteExpiredMillis;
 
-        long oldestContainerArchive;
+        final long oldestContainerArchive;
         if (notYetExceedingThreshold.isEmpty()) {
             oldestContainerArchive = System.currentTimeMillis();
         } else {
@@ -1752,7 +1752,7 @@ public class FileSystemRepository implements ContentRepository {
         protected boolean recycle;
         protected boolean closed;
 
-        public ContentRepositoryOutputStream(StandardContentClaim scc, ByteCountingOutputStream bcos, int initialLength) {
+        public ContentRepositoryOutputStream(final StandardContentClaim scc, final ByteCountingOutputStream bcos, final int initialLength) {
             this.scc = scc;
             this.bcos = bcos;
             this.initialLength = initialLength;

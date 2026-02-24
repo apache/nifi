@@ -176,8 +176,8 @@ public class SplitExcel extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile originalFlowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile originalFlowFile = session.get();
         if (originalFlowFile == null) {
             return;
         }
@@ -196,7 +196,7 @@ public class SplitExcel extends AbstractProcessor {
                     handleHSSF(session, originalFlowFile, in, password, workbookSplits);
                 }
             });
-        } catch (ExcelRuntimeException | IllegalStateException | ProcessException e) {
+        } catch (final ExcelRuntimeException | IllegalStateException | ProcessException e) {
             getLogger().error("Failed to split {}", originalFlowFile, e);
             session.remove(workbookSplits.stream()
                     .map(WorkbookSplit::content)
@@ -222,7 +222,7 @@ public class SplitExcel extends AbstractProcessor {
         attributes.put(FRAGMENT_ID.key(), fragmentId);
         attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), originalFileName);
 
-        for (WorkbookSplit split : workbookSplits) {
+        for (final WorkbookSplit split : workbookSplits) {
             attributes.put(CoreAttributes.FILENAME.key(), String.format("%s-%s%s", originalFileNameWithoutExtension, split.index(), originalFileNameExtension));
             attributes.put(FRAGMENT_INDEX.key(), Integer.toString(split.index()));
             attributes.put(SHEET_NAME, split.sheetName());
@@ -238,8 +238,8 @@ public class SplitExcel extends AbstractProcessor {
         session.transfer(flowFileSplits, REL_SPLIT);
     }
 
-    private void handleXSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password,
-                            List<WorkbookSplit> workbookSplits) throws IOException {
+    private void handleXSSF(final ProcessSession session, final FlowFile originalFlowFile, final InputStream inputStream, final String password,
+                            final List<WorkbookSplit> workbookSplits) throws IOException {
         final Workbook originalWorkbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
@@ -294,7 +294,7 @@ public class SplitExcel extends AbstractProcessor {
         return rowCount;
     }
 
-    private void handleHSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password, List<WorkbookSplit> workbookSplits) {
+    private void handleHSSF(final ProcessSession session, final FlowFile originalFlowFile, final InputStream inputStream, final String password, final List<WorkbookSplit> workbookSplits) {
         // Providing the password to the HSSFWorkbook is done by setting a thread variable managed by
         // Biff8EncryptionKey. After the workbook is created, the thread variable can be cleared.
         Biff8EncryptionKey.setCurrentUserPassword(password);
@@ -316,12 +316,12 @@ public class SplitExcel extends AbstractProcessor {
                 try (HSSFWorkbook newWorkbook = new HSSFWorkbook()) {
                     final HSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
                     while (originalRowsIterator.hasNext()) {
-                        HSSFRow originalRow = (HSSFRow) originalRowsIterator.next();
-                        HSSFRow newRow = newSheet.createRow(originalRow.getRowNum());
+                        final HSSFRow originalRow = (HSSFRow) originalRowsIterator.next();
+                        final HSSFRow newRow = newSheet.createRow(originalRow.getRowNum());
                         newRow.copyRowFrom(originalRow, HSSF_CELL_COPY_POLICY, cellCopyContext);
                     }
 
-                    FlowFile newFlowFile = session.create(originalFlowFile);
+                    final FlowFile newFlowFile = session.create(originalFlowFile);
 
                     try (final OutputStream out = session.write(newFlowFile)) {
                         newWorkbook.write(out);

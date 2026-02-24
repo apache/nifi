@@ -40,7 +40,7 @@ public class Base64Encode extends RecordPathSegment {
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
 
-                    Object value = fv.getValue();
+                    final Object value = fv.getValue();
                     if (value instanceof String) {
                         return new StandardFieldValue(Base64.getEncoder().encodeToString(value.toString().getBytes(StandardCharsets.UTF_8)), fv.getField(), fv.getParent().orElse(null));
                     } else if (value instanceof byte[]) {

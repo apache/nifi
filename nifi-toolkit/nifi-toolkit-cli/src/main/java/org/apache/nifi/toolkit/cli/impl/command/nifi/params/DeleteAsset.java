@@ -41,7 +41,7 @@ public class DeleteAsset extends AbstractNiFiCommand<VoidResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
         addOption(CommandOption.ASSET_ID.createOption());

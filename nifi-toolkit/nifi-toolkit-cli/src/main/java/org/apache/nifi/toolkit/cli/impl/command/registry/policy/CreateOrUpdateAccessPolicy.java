@@ -75,7 +75,7 @@ public class CreateOrUpdateAccessPolicy extends AbstractNiFiRegistryCommand<Void
         AccessPolicy currentPolicy;
         try {
             currentPolicy = policiesClient.getAccessPolicy(action, resource);
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             currentPolicy = null;
         }
 
@@ -99,23 +99,23 @@ public class CreateOrUpdateAccessPolicy extends AbstractNiFiRegistryCommand<Void
         return VoidResult.getInstance();
     }
 
-    private void setUsers(AccessPolicy accessPolicy, Properties properties, TenantsClient tenantsClient) throws IOException, NiFiRegistryException {
-        String userNames = getArg(properties, CommandOption.USER_NAME_LIST);
-        String userIds = getArg(properties, CommandOption.USER_ID_LIST);
+    private void setUsers(final AccessPolicy accessPolicy, final Properties properties, final TenantsClient tenantsClient) throws IOException, NiFiRegistryException {
+        final String userNames = getArg(properties, CommandOption.USER_NAME_LIST);
+        final String userIds = getArg(properties, CommandOption.USER_ID_LIST);
 
         if (StringUtils.isNotBlank(userNames) || StringUtils.isNotBlank(userIds)) {
-            Set<Tenant> existingUsers = TenantHelper.selectExistingTenants(userNames, userIds, tenantsClient.getUsers());
+            final Set<Tenant> existingUsers = TenantHelper.selectExistingTenants(userNames, userIds, tenantsClient.getUsers());
 
             accessPolicy.setUsers(existingUsers);
         }
     }
 
-    private void setGroups(AccessPolicy accessPolicy, Properties properties, TenantsClient tenantsClient) throws IOException, NiFiRegistryException {
-        String groupNames = getArg(properties, CommandOption.GROUP_NAME_LIST);
-        String groupIds = getArg(properties, CommandOption.GROUP_ID_LIST);
+    private void setGroups(final AccessPolicy accessPolicy, final Properties properties, final TenantsClient tenantsClient) throws IOException, NiFiRegistryException {
+        final String groupNames = getArg(properties, CommandOption.GROUP_NAME_LIST);
+        final String groupIds = getArg(properties, CommandOption.GROUP_ID_LIST);
 
         if (StringUtils.isNotBlank(groupNames) || StringUtils.isNotBlank(groupIds)) {
-            Set<Tenant> existingGroups = TenantHelper.selectExistingTenants(groupNames, groupIds, tenantsClient.getUserGroups());
+            final Set<Tenant> existingGroups = TenantHelper.selectExistingTenants(groupNames, groupIds, tenantsClient.getUserGroups());
 
             accessPolicy.setUserGroups(existingGroups);
         }

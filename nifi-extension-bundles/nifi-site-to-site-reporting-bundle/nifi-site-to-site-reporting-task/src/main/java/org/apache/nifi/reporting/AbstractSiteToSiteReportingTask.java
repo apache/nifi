@@ -150,7 +150,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         return this.siteToSiteClient;
     }
 
-    protected void sendData(final ReportingContext context, final Transaction transaction, Map<String, String> attributes, final JsonArray jsonArray) throws IOException {
+    protected void sendData(final ReportingContext context, final Transaction transaction, final Map<String, String> attributes, final JsonArray jsonArray) throws IOException {
         if (context.getProperty(RECORD_WRITER).isSet()) {
             transaction.send(getData(context, new ByteArrayInputStream(jsonArray.toString().getBytes(StandardCharsets.UTF_8)), attributes), attributes);
         } else {
@@ -158,7 +158,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    protected byte[] getData(final ReportingContext context, InputStream in, Map<String, String> attributes) {
+    protected byte[] getData(final ReportingContext context, final InputStream in, final Map<String, String> attributes) {
         try (final JsonRecordReader reader = new JsonRecordReader(in, recordSchema)) {
 
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -180,7 +180,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
             }
 
             return out.toByteArray();
-        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new ProcessException("Failed to write metrics using record writer: " + e.getMessage(), e);
         }
     }
@@ -193,7 +193,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    protected void addField(final JsonObjectBuilder builder, final String key, final Long value, boolean allowNullValues) {
+    protected void addField(final JsonObjectBuilder builder, final String key, final Long value, final boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
         } else if (allowNullValues) {
@@ -201,7 +201,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    protected void addField(final JsonObjectBuilder builder, final String key, final Integer value, boolean allowNullValues) {
+    protected void addField(final JsonObjectBuilder builder, final String key, final Integer value, final boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
         } else if (allowNullValues) {
@@ -209,7 +209,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    protected void addField(final JsonObjectBuilder builder, final String key, final String value, boolean allowNullValues) {
+    protected void addField(final JsonObjectBuilder builder, final String key, final String value, final boolean allowNullValues) {
         if (value != null) {
             builder.add(key, value);
         } else if (allowNullValues) {
@@ -225,7 +225,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         private final JsonNode firstJsonNode;
         private boolean firstObjectConsumed = false;
 
-        public JsonRecordReader(final InputStream in, RecordSchema recordSchema) throws IOException, MalformedRecordException {
+        public JsonRecordReader(final InputStream in, final RecordSchema recordSchema) throws IOException, MalformedRecordException {
             this.recordSchema = recordSchema;
             try {
                 jsonParser = new JsonFactory().createParser(in);
@@ -253,12 +253,12 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
 
         @Override
-        public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+        public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
             if (firstObjectConsumed && !array) {
                 return null;
             }
 
-            JsonNode nextNode = getNextJsonNode();
+            final JsonNode nextNode = getNextJsonNode();
             if (nextNode == null) {
                 return null;
             }
@@ -414,14 +414,13 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                 }
                 case RECORD: {
                     if (fieldNode.isObject()) {
-                        RecordSchema childSchema;
-                        if (desiredType instanceof RecordDataType) {
-                            childSchema = ((RecordDataType) desiredType).getChildSchema();
-                        } else {
+                        if (!(desiredType instanceof RecordDataType)) {
                             return null;
                         }
 
-                        if (childSchema == null) {
+                        final RecordSchema desiredSchema = ((RecordDataType) desiredType).getChildSchema();
+                        final RecordSchema childSchema;
+                        if (desiredSchema == null) {
                             final List<RecordField> fields = new ArrayList<>();
                             final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                             while (fieldNameItr.hasNext()) {
@@ -429,6 +428,8 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                             }
 
                             childSchema = new SimpleRecordSchema(fields);
+                        } else {
+                            childSchema = desiredSchema;
                         }
 
                         return convertJsonNodeToRecord(fieldNode, childSchema, fieldName + ".", true, dropUnknown);

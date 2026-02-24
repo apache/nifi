@@ -55,7 +55,7 @@ public class TestWriteAvroResultWithSchema extends TestWriteAvroResult {
         final Schema avroSchema = dataFileStream.getSchema();
         GenericData.setStringType(avroSchema, StringType.String);
 
-        List<GenericRecord> records = new ArrayList<>();
+        final List<GenericRecord> records = new ArrayList<>();
         for (int i = 0; i < recordCount; i++) {
             records.add(dataFileStream.next());
         }

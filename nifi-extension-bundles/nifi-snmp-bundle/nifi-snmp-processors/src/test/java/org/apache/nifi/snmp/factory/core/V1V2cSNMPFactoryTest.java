@@ -51,7 +51,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     }
 
     @Override
-    protected SNMPConfiguration getSnmpConfiguration(int managerPort, String targetPort) {
+    protected SNMPConfiguration getSnmpConfiguration(final int managerPort, final String targetPort) {
         return new SNMPConfiguration.Builder()
                 .setRetries(RETRIES)
                 .setManagerPort(managerPort)

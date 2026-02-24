@@ -168,7 +168,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
             final Metadata metadata = new Metadata();
             final List<String> errors = new ArrayList<>();
 
-            Record record = recordReader.nextRecord();
+            final Record record = recordReader.nextRecord();
             if (record != null) {
                 processRecord(record, metadata, errors);
             } else {
@@ -206,7 +206,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
             return;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error processing metadata creation for Box file [{}]", fileId, e);
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
@@ -222,7 +222,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void processRecord(Record record, Metadata metadata, List<String> errors) {
+    private void processRecord(final Record record, final Metadata metadata, final List<String> errors) {
         if (record == null) {
             errors.add("No record found in input");
             return;

@@ -62,14 +62,14 @@ public class C2HttpClient implements C2Client {
     private final C2UrlProvider c2UrlProvider;
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();
 
-    public static C2HttpClient create(C2ClientConfig clientConfig, C2Serializer serializer) {
-        OkHttpClient okHttpClient = new OkHttpClientProvider(clientConfig).okHttpClient();
-        C2UrlProvider c2UrlProvider = new C2UrlProviderFactory(clientConfig).create();
+    public static C2HttpClient create(final C2ClientConfig clientConfig, final C2Serializer serializer) {
+        final OkHttpClient okHttpClient = new OkHttpClientProvider(clientConfig).okHttpClient();
+        final C2UrlProvider c2UrlProvider = new C2UrlProviderFactory(clientConfig).create();
         return new C2HttpClient(clientConfig, serializer, c2UrlProvider, okHttpClient);
     }
 
-    C2HttpClient(C2ClientConfig clientConfig, C2Serializer serializer,
-                 C2UrlProvider c2UrlProvider, OkHttpClient okHttpClient) {
+    C2HttpClient(final C2ClientConfig clientConfig, final C2Serializer serializer,
+                 final C2UrlProvider c2UrlProvider, final OkHttpClient okHttpClient) {
         this.clientConfig = clientConfig;
         this.serializer = serializer;
         this.c2UrlProvider = c2UrlProvider;
@@ -77,13 +77,13 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat) {
+    public Optional<C2HeartbeatResponse> publishHeartbeat(final C2Heartbeat heartbeat) {
         return serializer.serialize(heartbeat).flatMap(this::sendHeartbeat);
     }
 
     @Override
-    public void acknowledgeOperation(C2OperationAck operationAck) {
-        String c2AcknowledgeUrl = c2UrlProvider.getAcknowledgeUrl();
+    public void acknowledgeOperation(final C2OperationAck operationAck) {
+        final String c2AcknowledgeUrl = c2UrlProvider.getAcknowledgeUrl();
         logger.info("Acknowledging Operation {} to C2 server {}", operationAck.getOperationId(), c2AcknowledgeUrl);
         serializer.serialize(operationAck)
             .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
@@ -93,18 +93,18 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public Optional<byte[]> retrieveUpdateConfigurationContent(String callbackUrl) {
+    public Optional<byte[]> retrieveUpdateConfigurationContent(final String callbackUrl) {
         return retrieveContent(callbackUrl, clientConfig.getHttpHeaders());
     }
 
     @Override
-    public Optional<byte[]> retrieveUpdateAssetContent(String callbackUrl) {
+    public Optional<byte[]> retrieveUpdateAssetContent(final String callbackUrl) {
         return retrieveContent(callbackUrl, Map.of());
     }
 
     @Override
-    public Optional<Path> retrieveResourceItem(String callbackUrl, Function<InputStream, Optional<Path>> resourceConsumer) {
-        Request request = new Request.Builder()
+    public Optional<Path> retrieveResourceItem(final String callbackUrl, final Function<InputStream, Optional<Path>> resourceConsumer) {
+        final Request request = new Request.Builder()
             .get()
             .url(callbackUrl)
             .build();
@@ -117,15 +117,15 @@ public class C2HttpClient implements C2Client {
                 .map(ResponseBody::byteStream)
                 .map(resourceConsumer::apply)
                 .orElseThrow(() -> new C2ServerException("Resource content retrieval failed with empty body"));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.warn("Resource item retrieval failed", e);
             return empty();
         }
     }
 
     @Override
-    public Optional<String> uploadBundle(String callbackUrl, byte[] bundle) {
-        Request request = new Request.Builder()
+    public Optional<String> uploadBundle(final String callbackUrl, final byte[] bundle) {
+        final Request request = new Request.Builder()
             .url(callbackUrl)
             .post(new MultipartBody.Builder()
                 .setType(FORM)
@@ -139,7 +139,7 @@ public class C2HttpClient implements C2Client {
                 logger.error("Upload bundle failed to C2 server {} with status code {}", callbackUrl, response.code());
                 return Optional.of("Upload bundle failed to C2 server");
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("Could not upload bundle to C2 server {}", callbackUrl, e);
             return Optional.of("Could not upload bundle to C2 server");
         }
@@ -147,65 +147,65 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public String getCallbackUrl(String absoluteUrl, String relativeUrl) {
+    public String getCallbackUrl(final String absoluteUrl, final String relativeUrl) {
         return c2UrlProvider.getCallbackUrl(absoluteUrl, relativeUrl);
     }
 
-    private Optional<C2HeartbeatResponse> sendHeartbeat(String heartbeat) {
+    private Optional<C2HeartbeatResponse> sendHeartbeat(final String heartbeat) {
         Optional<C2HeartbeatResponse> c2HeartbeatResponse = empty();
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .post(RequestBody.create(heartbeat, MEDIA_TYPE_APPLICATION_JSON))
             .url(c2UrlProvider.getHeartbeatUrl())
             .build();
 
-        Request decoratedRequest = C2RequestCompression.forType(clientConfig.getC2RequestCompression()).compress(request);
+        final Request decoratedRequest = C2RequestCompression.forType(clientConfig.getC2RequestCompression()).compress(request);
 
         try (Response heartbeatResponse = httpClientReference.get().newCall(decoratedRequest).execute()) {
             c2HeartbeatResponse = getResponseBody(heartbeatResponse).flatMap(response -> serializer.deserialize(response, C2HeartbeatResponse.class));
-        } catch (IOException ce) {
+        } catch (final IOException ce) {
             logger.error("Send Heartbeat failed to C2 server {}", c2UrlProvider.getHeartbeatUrl(), ce);
         }
 
         return c2HeartbeatResponse;
     }
 
-    private Optional<String> getResponseBody(Response response) {
+    private Optional<String> getResponseBody(final Response response) {
         String responseBody = null;
 
         try {
             responseBody = response.body().string();
             logger.debug("Received response body {}", responseBody);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("HTTP Request failed", e);
         }
 
         return ofNullable(responseBody);
     }
 
-    private void sendAck(Request request) {
+    private void sendAck(final Request request) {
         try (Response heartbeatResponse = httpClientReference.get().newCall(request).execute()) {
             if (!heartbeatResponse.isSuccessful()) {
                 logger.warn("Acknowledgement was not successful with C2 server {} with status code {}", c2UrlProvider.getAcknowledgeUrl(), heartbeatResponse.code());
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("Could not transmit ack to C2 server {}", c2UrlProvider.getAcknowledgeUrl(), e);
         }
     }
 
-    private Optional<byte[]> retrieveContent(String callbackUrl, Map<String, String> httpHeaders) {
+    private Optional<byte[]> retrieveContent(final String callbackUrl, final Map<String, String> httpHeaders) {
         Optional<byte[]> content = empty();
 
-        Request.Builder requestBuilder = new Request.Builder()
+        final Request.Builder requestBuilder = new Request.Builder()
             .get()
             .headers(Headers.of(httpHeaders))
             .url(callbackUrl);
-        Request request = requestBuilder.build();
+        final Request request = requestBuilder.build();
 
         try (Response response = httpClientReference.get().newCall(request).execute()) {
-            Optional<ResponseBody> body = ofNullable(response.body());
+            final Optional<ResponseBody> body = ofNullable(response.body());
 
             if (!response.isSuccessful()) {
-                StringBuilder messageBuilder = new StringBuilder(format("Update content retrieval failed: HTTP %d", response.code()));
+                final StringBuilder messageBuilder = new StringBuilder(format("Update content retrieval failed: HTTP %d", response.code()));
                 body.map(Object::toString).ifPresent(messageBuilder::append);
                 throw new C2ServerException(messageBuilder.toString());
             }
@@ -215,7 +215,7 @@ public class C2HttpClient implements C2Client {
             } else {
                 logger.warn("No body returned when pulling new content");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.warn("Update content retrieval failed", e);
         }
 

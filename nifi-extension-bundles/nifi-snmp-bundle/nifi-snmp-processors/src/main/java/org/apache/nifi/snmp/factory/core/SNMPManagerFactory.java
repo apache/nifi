@@ -38,7 +38,7 @@ public class SNMPManagerFactory {
             final DefaultUdpTransportMapping transportMapping = new DefaultUdpTransportMapping(udpAddress);
             snmpManager = new Snmp(transportMapping);
             snmpManager.listen();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
         return snmpManager;

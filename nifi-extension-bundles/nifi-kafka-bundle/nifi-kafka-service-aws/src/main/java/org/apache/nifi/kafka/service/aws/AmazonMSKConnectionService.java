@@ -267,7 +267,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             final AwsSessionCredentials currentCredentials = cachedCredentials;
             final Instant currentExpiration = expiration;
 
-            AwsSessionCredentials resolvedCredentials;
+            final AwsSessionCredentials resolvedCredentials;
             if (isCacheValid(now, currentCredentials, currentExpiration)) {
                 resolvedCredentials = currentCredentials;
             } else {

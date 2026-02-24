@@ -128,10 +128,10 @@ public class PartitionedWriteAheadEventStore extends PartitionedEventStore {
         for (final Future<?> future : futures) {
             try {
                 future.get();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Failed to re-index events because Thread was interrupted", e);
-            } catch (ExecutionException e) {
+            } catch (final ExecutionException e) {
                 throw new RuntimeException("Failed to re-index events", e);
             }
         }

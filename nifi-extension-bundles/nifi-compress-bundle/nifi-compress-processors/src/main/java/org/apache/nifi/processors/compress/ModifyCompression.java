@@ -175,7 +175,7 @@ public class ModifyCompression extends AbstractProcessor {
     static {
         final Map<String, CompressionStrategy> mimeTypeMap = new HashMap<>();
         for (final CompressionStrategy compressionStrategy : CompressionStrategy.values()) {
-            String[] mimeTypes = compressionStrategy.getMimeTypes();
+            final String[] mimeTypes = compressionStrategy.getMimeTypes();
             if (mimeTypes == null) {
                 continue;
             }
@@ -269,7 +269,7 @@ public class ModifyCompression extends AbstractProcessor {
         }
     }
 
-    private static Integer getOutputCompressionLevel(ProcessContext context, CompressionStrategy outputCompressionStrategy) {
+    private static Integer getOutputCompressionLevel(final ProcessContext context, final CompressionStrategy outputCompressionStrategy) {
         return switch (outputCompressionStrategy) {
             case MIME_TYPE_ATTRIBUTE,
                  GZIP,
@@ -362,7 +362,7 @@ public class ModifyCompression extends AbstractProcessor {
             }
             case BROTLI -> {
                 Brotli4jLoader.ensureAvailability();
-                Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+                final Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
                 compressionOut = new BrotliOutputStream(parentOutputStream, params);
                 mimeTypeRef.set(CompressionStrategy.BROTLI.getMimeTypes()[0]);
             }

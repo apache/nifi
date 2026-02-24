@@ -138,7 +138,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         final Path path;
         try {
             path = getNormalizedPath(getPath(context, flowFile));
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             getLogger().error("Failed to retrieve content from {} for {}", filenameValue, flowFile, e);
             flowFile = session.putAttribute(flowFile, getAttributePrefix() + ".failure.reason", e.getMessage());
             flowFile = session.penalize(flowFile);
@@ -152,7 +152,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         ugi.doAs((PrivilegedAction<Object>) () -> {
             InputStream stream = null;
             CompressionCodec codec = null;
-            Configuration conf = getConfiguration();
+            final Configuration conf = getConfiguration();
             final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
             final CompressionType compressionType = getCompressionType(context);
             final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
@@ -197,7 +197,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
                     outgoingFlowFile = session.penalize(outgoingFlowFile);
                     session.transfer(outgoingFlowFile, getCommsFailureRelationship());
                 }
-            } catch (FlowFileAccessException ffae) {
+            } catch (final FlowFileAccessException ffae) {
                 getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", outgoingFlowFile, ffae);
                 outgoingFlowFile = session.penalize(outgoingFlowFile);
                 session.transfer(outgoingFlowFile, getCommsFailureRelationship());

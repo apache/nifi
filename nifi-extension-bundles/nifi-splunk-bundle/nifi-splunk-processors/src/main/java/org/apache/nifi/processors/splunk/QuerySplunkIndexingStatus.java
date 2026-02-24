@@ -222,13 +222,13 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("ttl", TTL.getName());
         config.renameProperty("max-query-size", MAX_QUERY_SIZE.getName());
     }
 
-    private RequestMessage createRequestMessage(Map<Long, FlowFile> undetermined) throws IOException {
+    private RequestMessage createRequestMessage(final Map<Long, FlowFile> undetermined) throws IOException {
         final RequestMessage requestMessage = new RequestMessage("POST");
         requestMessage.getHeader().put("Content-Type", "application/json");
         requestMessage.setContent(generateContent(undetermined));

@@ -220,12 +220,12 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                 elementDataType = arrayDataType.getElementType();
             } else if (dataType != null && dataType.getFieldType() == RecordFieldType.CHOICE) {
-                List<DataType> possibleSubTypes = ((ChoiceDataType) dataType).getPossibleSubTypes();
+                final List<DataType> possibleSubTypes = ((ChoiceDataType) dataType).getPossibleSubTypes();
 
-                for (DataType possibleSubType : possibleSubTypes) {
+                for (final DataType possibleSubType : possibleSubTypes) {
                     if (possibleSubType.getFieldType() == RecordFieldType.ARRAY) {
-                        ArrayDataType possibleArrayDataType = (ArrayDataType) possibleSubType;
-                        DataType possibleElementType = possibleArrayDataType.getElementType();
+                        final ArrayDataType possibleArrayDataType = (ArrayDataType) possibleSubType;
+                        final DataType possibleElementType = possibleArrayDataType.getElementType();
 
                         final Object[] possibleArrayElements = new Object[numElements];
                         int elementCounter = 0;
@@ -293,7 +293,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         final Map<String, Object> mapValue = new LinkedHashMap<>();
 
-        for (Map.Entry<String, JsonNode> entry : fieldNode.properties()) {
+        for (final Map.Entry<String, JsonNode> entry : fieldNode.properties()) {
             final String elementName = entry.getKey();
             final JsonNode elementNode = entry.getValue();
 
@@ -312,7 +312,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
             final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
 
-            List<DataType> possibleSubTypes = choiceDataType.getPossibleSubTypes();
+            final List<DataType> possibleSubTypes = choiceDataType.getPossibleSubTypes();
 
             for (final DataType possibleDataType : possibleSubTypes) {
                 final Record record = createOptionalRecord(fieldNode, possibleDataType, true);

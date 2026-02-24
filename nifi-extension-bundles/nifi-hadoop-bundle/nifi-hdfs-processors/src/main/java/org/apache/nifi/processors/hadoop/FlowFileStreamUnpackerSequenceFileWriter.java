@@ -85,8 +85,8 @@ public class FlowFileStreamUnpackerSequenceFileWriter extends SequenceFileWriter
             final Map<String, String> attributes = readAttributes(in);
             final long expectedNumBytes = readLong(in); // read length of payload
             final InputStreamWritable inStreamWritable = new InputStreamWritable(in, (int) expectedNumBytes);
-            String fileName = attributes.get(CoreAttributes.FILENAME.key());
-            Text key = new Text(fileName);
+            final String fileName = attributes.get(CoreAttributes.FILENAME.key());
+            final Text key = new Text(fileName);
             writer.append(key, inStreamWritable);
             nextHeader = readHeader(in);
             haveReadSomething = true;
@@ -154,10 +154,10 @@ public class FlowFileStreamUnpackerSequenceFileWriter extends SequenceFileWriter
                 throw new EOFException();
             }
             if (firstValue == 0xff && secondValue == 0xff) {
-                int ch1 = in.read();
-                int ch2 = in.read();
-                int ch3 = in.read();
-                int ch4 = in.read();
+                final int ch1 = in.read();
+                final int ch2 = in.read();
+                final int ch3 = in.read();
+                final int ch4 = in.read();
                 if ((ch1 | ch2 | ch3 | ch4) < 0) {
                     throw new EOFException();
                 }

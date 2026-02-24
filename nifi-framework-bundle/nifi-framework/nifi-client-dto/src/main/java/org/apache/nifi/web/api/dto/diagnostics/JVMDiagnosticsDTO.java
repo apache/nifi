@@ -34,7 +34,7 @@ public class JVMDiagnosticsDTO {
         return clustered;
     }
 
-    public void setClustered(Boolean clustered) {
+    public void setClustered(final Boolean clustered) {
         this.clustered = clustered;
     }
 
@@ -43,7 +43,7 @@ public class JVMDiagnosticsDTO {
         return connected;
     }
 
-    public void setConnected(Boolean connected) {
+    public void setConnected(final Boolean connected) {
         this.connected = connected;
     }
 
@@ -52,7 +52,7 @@ public class JVMDiagnosticsDTO {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(JVMDiagnosticsSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final JVMDiagnosticsSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -61,7 +61,7 @@ public class JVMDiagnosticsDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeJVMDiagnosticsSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeJVMDiagnosticsSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 }

@@ -233,92 +233,92 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private String sharedDriveId;
         private String sharedDriveName;
 
-        public Builder id(String id) {
+        public Builder id(final String id) {
             this.id = id;
             return this;
         }
 
-        public Builder fileName(String fileName) {
+        public Builder fileName(final String fileName) {
             this.fileName = fileName;
             return this;
         }
 
-        public Builder size(long size) {
+        public Builder size(final long size) {
             this.size = size;
             return this;
         }
 
-        public Builder sizeAvailable(boolean sizeAvailable) {
+        public Builder sizeAvailable(final boolean sizeAvailable) {
             this.sizeAvailable = sizeAvailable;
             return this;
         }
 
-        public Builder createdTime(long createdTime) {
+        public Builder createdTime(final long createdTime) {
             this.createdTime = createdTime;
             return this;
         }
 
-        public Builder modifiedTime(long modifiedTime) {
+        public Builder modifiedTime(final long modifiedTime) {
             this.modifiedTime = modifiedTime;
             return this;
         }
 
-        public Builder mimeType(String mimeType) {
+        public Builder mimeType(final String mimeType) {
             this.mimeType = mimeType;
             return this;
         }
 
-        public Builder path(String path) {
+        public Builder path(final String path) {
             this.path = path;
             return this;
         }
 
-        public Builder owner(String owner) {
+        public Builder owner(final String owner) {
             this.owner = owner;
             return this;
         }
 
-        public Builder lastModifyingUser(String lastModifyingUser) {
+        public Builder lastModifyingUser(final String lastModifyingUser) {
             this.lastModifyingUser = lastModifyingUser;
             return this;
         }
 
-        public Builder webViewLink(String webViewLink) {
+        public Builder webViewLink(final String webViewLink) {
             this.webViewLink = webViewLink;
             return this;
         }
 
-        public Builder webContentLink(String webContentLink) {
+        public Builder webContentLink(final String webContentLink) {
             this.webContentLink = webContentLink;
             return this;
         }
 
-        public Builder parentFolderId(String parentFolderId) {
+        public Builder parentFolderId(final String parentFolderId) {
             this.parentFolderId = parentFolderId;
             return this;
         }
 
-        public Builder parentFolderName(String parentFolderName) {
+        public Builder parentFolderName(final String parentFolderName) {
             this.parentFolderName = parentFolderName;
             return this;
         }
 
-        public Builder listedFolderId(String listedFolderId) {
+        public Builder listedFolderId(final String listedFolderId) {
             this.listedFolderId = listedFolderId;
             return this;
         }
 
-        public Builder listedFolderName(String listedFolderName) {
+        public Builder listedFolderName(final String listedFolderName) {
             this.listedFolderName = listedFolderName;
             return this;
         }
 
-        public Builder sharedDriveId(String sharedDriveId) {
+        public Builder sharedDriveId(final String sharedDriveId) {
             this.sharedDriveId = sharedDriveId;
             return this;
         }
 
-        public Builder sharedDriveName(String sharedDriveName) {
+        public Builder sharedDriveName(final String sharedDriveName) {
             this.sharedDriveName = sharedDriveName;
             return this;
         }
@@ -338,7 +338,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -348,7 +348,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        GoogleDriveFileInfo other = (GoogleDriveFileInfo) obj;
+        final GoogleDriveFileInfo other = (GoogleDriveFileInfo) obj;
         if (id == null) {
             if (other.id != null) {
                 return false;
@@ -392,7 +392,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
     @Override
     public long getTimestamp() {
-        long timestamp = Math.max(getCreatedTime(), getModifiedTime());
+        final long timestamp = Math.max(getCreatedTime(), getModifiedTime());
 
         return timestamp;
     }

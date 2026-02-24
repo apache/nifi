@@ -43,7 +43,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     }
 
     @Override
-    public void setComponent(AffectedComponentDTO component) {
+    public void setComponent(final AffectedComponentDTO component) {
         this.component = component;
     }
 
@@ -52,7 +52,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
         return processGroup;
     }
 
-    public void setProcessGroup(ProcessGroupNameDTO processGroup) {
+    public void setProcessGroup(final ProcessGroupNameDTO processGroup) {
         this.processGroup = processGroup;
     }
 
@@ -64,7 +64,7 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
         return referenceType;
     }
 
-    public void setReferenceType(String referenceType) {
+    public void setReferenceType(final String referenceType) {
         this.referenceType = referenceType;
     }
 

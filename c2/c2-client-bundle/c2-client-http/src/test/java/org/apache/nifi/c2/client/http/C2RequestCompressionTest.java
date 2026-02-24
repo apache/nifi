@@ -53,20 +53,20 @@ public class C2RequestCompressionTest {
 
     @ParameterizedTest
     @MethodSource("compressionTypes")
-    public void testAppropriateCompressionTypeIsGivenBackForType(String compressionType, C2RequestCompression expectedCompression) {
+    public void testAppropriateCompressionTypeIsGivenBackForType(final String compressionType, final C2RequestCompression expectedCompression) {
         assertEquals(expectedCompression, C2RequestCompression.forType(compressionType));
     }
 
     @Test
     public void testNoneCompressionShouldLeaveRequestBodyIntact() throws IOException {
         // given
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .post(RequestBody.create(DEFAULT_POST_BODY, MEDIA_TYPE_APPLICATION_JSON))
             .url(DEFAULT_C2_SERVER_URL)
             .build();
 
         // when
-        Request result = NONE.compress(request);
+        final Request result = NONE.compress(request);
 
         // then
         assertTrue(result.body().contentType().toString().contains(MEDIA_TYPE_APPLICATION_JSON.toString()));
@@ -76,13 +76,13 @@ public class C2RequestCompressionTest {
     @Test
     public void testGzipCompressionShouldCompressRequestBodyAndAdjustRequestHeader() throws IOException {
         // given
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
             .post(RequestBody.create(DEFAULT_POST_BODY, MEDIA_TYPE_APPLICATION_JSON))
             .url(DEFAULT_C2_SERVER_URL)
             .build();
 
         // when
-        Request result = GZIP.compress(request);
+        final Request result = GZIP.compress(request);
 
         // then
         assertTrue(result.body().contentType().toString().contains(MEDIA_TYPE_APPLICATION_JSON.toString()));
@@ -90,18 +90,18 @@ public class C2RequestCompressionTest {
         assertEquals(DEFAULT_POST_BODY, gzippedRequestBodyToString(result));
     }
 
-    private String uncompressedRequestBodyToString(Request request) throws IOException {
-        Buffer buffer = requestToBuffer(request);
+    private String uncompressedRequestBodyToString(final Request request) throws IOException {
+        final Buffer buffer = requestToBuffer(request);
         return buffer.readUtf8();
     }
 
-    private String gzippedRequestBodyToString(Request request) throws IOException {
-        Buffer buffer = requestToBuffer(request);
+    private String gzippedRequestBodyToString(final Request request) throws IOException {
+        final Buffer buffer = requestToBuffer(request);
         return Okio.buffer(new GzipSource(buffer)).readUtf8();
     }
 
-    private Buffer requestToBuffer(Request request) throws IOException {
-        Buffer buffer = new Buffer();
+    private Buffer requestToBuffer(final Request request) throws IOException {
+        final Buffer buffer = new Buffer();
         request.body().writeTo(buffer);
         return buffer;
     }

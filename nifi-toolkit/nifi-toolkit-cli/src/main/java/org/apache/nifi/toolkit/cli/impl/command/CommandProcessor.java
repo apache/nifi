@@ -60,11 +60,11 @@ public class CommandProcessor {
         this.out = Objects.requireNonNull(context.getOutput());
     }
 
-    public void printBasicUsage(String errorMessage) {
+    public void printBasicUsage(final String errorMessage) {
         printBasicUsage(errorMessage, false);
     }
 
-    public void printBasicUsage(String errorMessage, boolean verbose) {
+    public void printBasicUsage(final String errorMessage, final boolean verbose) {
         out.println();
 
         if (errorMessage != null) {
@@ -132,7 +132,7 @@ public class CommandProcessor {
                         prevArg = prevArg.substring(1);
                     }
 
-                    for (CommandOption opt : CommandOption.values()) {
+                    for (final CommandOption opt : CommandOption.values()) {
                         if (opt.getShortName().equals(prevArg) || opt.getLongName().equals(prevArg)) {
                             option = opt;
                             break;
@@ -147,13 +147,13 @@ public class CommandProcessor {
                     args[i] = resolvedReference.getResolvedValue();
                     resolvedReferences.add(resolvedReference);
                 }
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 // skip
             }
         }
 
         if (context.isInteractive()) {
-            for (ResolvedReference resolvedRef : resolvedReferences) {
+            for (final ResolvedReference resolvedRef : resolvedReferences) {
                 out.println();
                 out.printf("Using a positional back-reference for '%s'%n", resolvedRef.getDisplayName());
                 out.println();
@@ -161,7 +161,7 @@ public class CommandProcessor {
         }
     }
 
-    public int process(String[] args) {
+    public int process(final String[] args) {
         if (args == null || args.length == 0) {
             printBasicUsage(null);
             return -1;
@@ -199,7 +199,7 @@ public class CommandProcessor {
         try {
             final String[] otherArgs = Arrays.copyOfRange(args, 1, args.length, String[].class);
             return processCommand(otherArgs, command);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             command.printUsage(e.getMessage());
             return -1;
         }
@@ -227,7 +227,7 @@ public class CommandProcessor {
         try {
             final String[] otherArgs = Arrays.copyOfRange(args, 2, args.length, String[].class);
             return processCommand(otherArgs, command);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             command.printUsage(e.getMessage());
             return -1;
         }
@@ -267,7 +267,7 @@ public class CommandProcessor {
 
             return 0;
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // CommandExceptions will wrap things like NiFiClientException, NiFiRegistryException, and IOException,
             // so for those we don't need to print the usage every time
             if (e instanceof CommandException) {

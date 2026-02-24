@@ -227,8 +227,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final PropertyValue columnForPartitioning = validationContext.getProperty(COLUMN_FOR_VALUE_PARTITIONING);
         // If no EL is present, ensure it's a single column (i.e. no commas in the property value)
         if (columnForPartitioning.isSet() && !columnForPartitioning.isExpressionLanguagePresent() && columnForPartitioning.getValue().contains(",")) {
@@ -259,7 +259,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         if (!isDynamicTableName && !isDynamicMaxValues && !setupComplete.get()) {
             super.setup(context);
         }
-        ProcessSession session = sessionFactory.createSession();
+        final ProcessSession session = sessionFactory.createSession();
 
         FlowFile fileToProcess = null;
         if (context.hasIncomingConnection()) {
@@ -289,7 +289,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final boolean outputEmptyFlowFileOnZeroResults = context.getProperty(OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS).asBoolean();
 
         final StateMap stateMap;
-        FlowFile finalFileToProcess = fileToProcess;
+        final FlowFile finalFileToProcess = fileToProcess;
 
         try {
             stateMap = session.getState(Scope.CLUSTER);
@@ -307,10 +307,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
             // If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
             for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
-                String maxPropKey = maxProp.getKey().toLowerCase();
-                String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
+                final String maxPropKey = maxProp.getKey().toLowerCase();
+                final String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
                 if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
-                    String newMaxPropValue;
+                    final String newMaxPropValue;
                     // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
                     // the value has been stored under a key that is only the column name. Fall back to check the column name,
                     // but store the new initial max value under the fully-qualified key.
@@ -327,16 +327,16 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // executed SQL query will retrieve the count of all records after the filter(s) have been applied, as well as the new maximum values for the
             // specified columns. This allows the processor to generate the correctly partitioned SQL statements as well as to update the state with the
             // latest observed maximum values.
-            List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
+            final List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                     ? new ArrayList<>(0)
                     : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
             final int numMaxValueColumns = maxValueColumnNameList.size();
 
-            List<String> maxValueClauses = new ArrayList<>(numMaxValueColumns);
+            final List<String> maxValueClauses = new ArrayList<>(numMaxValueColumns);
             Long maxValueForPartitioning = null;
             Long minValueForPartitioning = null;
 
-            List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
+            final List<String> maxValueSelectColumns = new ArrayList<>(numMaxValueColumns + 1);
 
             // replace unnecessary row count with -1 stub value when column values for paging is used, or when partition size is zero.
             if (useColumnValsForPaging || partitionSize == 0) {
@@ -347,16 +347,16 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
             IntStream.range(0, numMaxValueColumns).forEach((index) -> {
-                String colName = maxValueColumnNameList.get(index);
+                final String colName = maxValueColumnNameList.get(index);
 
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                final String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                 if (!StringUtils.isEmpty(maxValue)) {
                     if (columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null) {
                         // This means column type cache is clean after instance reboot. We should re-cache column type
                         super.setup(context, false, finalFileToProcess);
                     }
-                    Integer type = getColumnType(tableName, colName);
+                    final Integer type = getColumnType(tableName, colName);
 
                     // Add a condition for the WHERE clause
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, databaseType));
@@ -384,7 +384,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // Build a SELECT query with maximum-value columns (if present)
             final StatementResponse statementResponse = databaseDialectService.getStatement(queryStatementRequest);
             final String selectQuery = statementResponse.sql();
-            long rowCount;
+            final long rowCount;
 
             try (final Connection con = dbcpService.getConnection(finalFileToProcess == null ? Collections.emptyMap() : finalFileToProcess.getAttributes());
                  final Statement st = con.createStatement()) {
@@ -393,7 +393,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
                 logger.debug("Executing {}", selectQuery);
-                ResultSet resultSet;
+                final ResultSet resultSet;
 
                 resultSet = st.executeQuery(selectQuery);
 
@@ -402,14 +402,14 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     rowCount = resultSet.getLong(1);
 
                     // Update the state map with the newly-observed maximum values
-                    ResultSetMetaData rsmd = resultSet.getMetaData();
+                    final ResultSetMetaData rsmd = resultSet.getMetaData();
                     int i = 2;
                     for (; i <= numMaxValueColumns + 1; i++) {
                         //Some JDBC drivers consider the columns name and label to be very different things.
                         // Since this column has been aliased lets check the label first,
                         // if there is no label we'll use the column name.
-                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
-                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
+                        final String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i)) ? rsmd.getColumnLabel(i) : rsmd.getColumnName(i)).toLowerCase();
+                        final String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
                             // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
@@ -418,17 +418,17 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                             resultColumnCurrentMax = statePropertyMap.get(resultColumnName);
                         }
 
-                        int type = rsmd.getColumnType(i);
+                        final int type = rsmd.getColumnType(i);
                         if (isDynamicTableName) {
                             // We haven't pre-populated the column type map if the table name is dynamic, so do it here
                             columnTypeMap.put(fullyQualifiedStateKey, type);
                         }
                         try {
-                            String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax);
+                            final String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax);
                             if (newMaxValue != null) {
                                 statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
                             }
-                        } catch (ParseException | IOException | ClassCastException pice) {
+                        } catch (final ParseException | IOException | ClassCastException pice) {
                             // Fail the whole thing here before we start creating FlowFiles and such
                             throw new ProcessException(pice);
                         }
@@ -448,15 +448,15 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 // for each maximum-value column get a right bounding WHERE condition
                 IntStream.range(0, numMaxValueColumns).forEach((index) -> {
-                    String colName = maxValueColumnNameList.get(index);
+                    final String colName = maxValueColumnNameList.get(index);
 
-                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                    final String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                     if (!StringUtils.isEmpty(maxValue)) {
                         if (columnTypeMap.isEmpty() || getColumnType(tableName, colName) == null) {
                             // This means column type cache is clean after instance reboot. We should re-cache column type
                             super.setup(context, false, finalFileToProcess);
                         }
-                        Integer type = getColumnType(tableName, colName);
+                        final Integer type = getColumnType(tableName, colName);
 
                         // Add a condition for the WHERE clause
                         maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, databaseType));
@@ -473,9 +473,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 // Generate SQL statements to read "pages" of data
                 final String fragmentIdentifier = UUID.randomUUID().toString();
-                List<FlowFile> flowFilesToTransfer = new ArrayList<>();
+                final List<FlowFile> flowFilesToTransfer = new ArrayList<>();
 
-                Map<String, String> baseAttributes = new HashMap<>();
+                final Map<String, String> baseAttributes = new HashMap<>();
                 baseAttributes.put("generatetablefetch.tableName", tableName);
                 if (columnNames != null) {
                     baseAttributes.put("generatetablefetch.columnNames", columnNames);
@@ -492,7 +492,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 // If there are no SQL statements to be generated, still output an empty FlowFile if specified by the user
                 if (numberOfFetches == 0 && outputEmptyFlowFileOnZeroResults) {
                     FlowFile emptyFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
-                    Map<String, String> attributesToAdd = new HashMap<>();
+                    final Map<String, String> attributesToAdd = new HashMap<>();
 
                     final String fetchWhereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
                     attributesToAdd.put("generatetablefetch.whereClause", fetchWhereClause);
@@ -518,7 +518,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                         //Update WHERE list to include new right hand boundaries
                         final String whereClause = maxValueClauses.isEmpty() ? "1=1" : StringUtils.join(maxValueClauses, " AND ");
-                        Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
+                        final Long offset = partitionSize == 0 ? null : i * partitionSize + (useColumnValsForPaging ? minValueForPartitioning : 0);
                         // Don't use an ORDER BY clause if there's only one partition
                         final String orderByClause = partitionSize == 0 ? null : (maxColumnNames.isEmpty() ? customOrderByColumn : maxColumnNames);
 
@@ -535,7 +535,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                         FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
                         sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
-                        Map<String, String> attributesToAdd = new HashMap<>();
+                        final Map<String, String> attributesToAdd = new HashMap<>();
 
                         attributesToAdd.put("generatetablefetch.whereClause", whereClause);
                         attributesToAdd.put("generatetablefetch.limit", (limit == null) ? null : limit.toString());
@@ -556,7 +556,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
                 }
-            } catch (SQLException e) {
+            } catch (final SQLException e) {
                 if (fileToProcess != null) {
                     logger.error("Routing {} to failure since unable to execute SQL select query {}", fileToProcess, selectQuery, e);
                     fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", e.getMessage());
@@ -571,7 +571,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             try {
                 // Update the state
                 session.setState(statePropertyMap, Scope.CLUSTER);
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 logger.error("{} failed to update State Manager, observed maximum values will not be recorded. "
                                 + "Also, any generated SQL statements may be duplicated.", this, ioe);
             }
@@ -580,7 +580,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
         } catch (final ProcessException pe) {
             // Log the cause of the ProcessException if it is available
-            Throwable t = (pe.getCause() == null ? pe : pe.getCause());
+            final Throwable t = (pe.getCause() == null ? pe : pe.getCause());
             logger.error("Error during processing: {}", t.getMessage(), t);
             session.rollback();
             context.yield();
@@ -588,7 +588,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gen-table-fetch-partition-size", PARTITION_SIZE.getName());
         config.renameProperty("gen-table-column-for-val-partitioning", COLUMN_FOR_VALUE_PARTITIONING.getName());
@@ -648,7 +648,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         );
     }
 
-    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName) {
+    private String getColumnStateMaxValue(final String tableName, final Map<String, String> statePropertyMap, final String colName) {
         final String fullyQualifiedStateKey = getStateKey(tableName, colName);
         String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
         if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
@@ -659,7 +659,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         return maxValue;
     }
 
-    private Integer getColumnType(String tableName, String colName) {
+    private Integer getColumnType(final String tableName, final String colName) {
         final String fullyQualifiedStateKey = getStateKey(tableName, colName);
         Integer type = columnTypeMap.get(fullyQualifiedStateKey);
         if (type == null && !isDynamicTableName) {

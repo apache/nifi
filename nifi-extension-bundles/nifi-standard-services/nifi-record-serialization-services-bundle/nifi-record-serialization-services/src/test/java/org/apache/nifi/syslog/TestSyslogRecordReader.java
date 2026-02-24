@@ -72,7 +72,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseSingleLine() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_0.getBytes(CHARSET))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
@@ -93,7 +93,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseSingleLineIPV6() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_1.getBytes(CHARSET))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
@@ -113,7 +113,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseSingleLineIPV4() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream(VALID_MESSAGE_RFC3164_2.getBytes(CHARSET))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
@@ -133,7 +133,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseMultipleLine() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream((VALID_MESSAGE_RFC3164_0 + VALID_MESSAGE_RFC3164_1 + VALID_MESSAGE_RFC3164_2).getBytes(CHARSET))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
@@ -151,7 +151,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseMultipleLineWithError() throws IOException, MalformedRecordException {
         try (final InputStream fis = new ByteArrayInputStream((VALID_MESSAGE_RFC3164_0 + "\n" + VALID_MESSAGE_RFC3164_1 + VALID_MESSAGE_RFC3164_2).getBytes(CHARSET))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, false, fis, SyslogReader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
@@ -169,7 +169,7 @@ public class TestSyslogRecordReader {
     @Test
     public void testParseSingleLine5424() throws IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_all.txt"))) {
-            SyslogParser parser = new SyslogParser(CHARSET);
+            final SyslogParser parser = new SyslogParser(CHARSET);
             final SyslogRecordReader deserializer = new SyslogRecordReader(parser, true, fis, SyslogReader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();

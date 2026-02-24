@@ -26,7 +26,7 @@ public class RemoteProcessGroupStats implements java.io.Serializable {
         return activeThreads;
     }
 
-    public void setActiveThreads(int activeThreads) {
+    public void setActiveThreads(final int activeThreads) {
         this.activeThreads = activeThreads;
     }
 
@@ -34,7 +34,7 @@ public class RemoteProcessGroupStats implements java.io.Serializable {
         return sentCount;
     }
 
-    public void setSentCount(int sentCount) {
+    public void setSentCount(final int sentCount) {
         this.sentCount = sentCount;
     }
 
@@ -42,12 +42,12 @@ public class RemoteProcessGroupStats implements java.io.Serializable {
         return sentContentSize;
     }
 
-    public void setSentContentSize(long sentContentSize) {
+    public void setSentContentSize(final long sentContentSize) {
         this.sentContentSize = sentContentSize;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -55,7 +55,7 @@ public class RemoteProcessGroupStats implements java.io.Serializable {
             return false;
         }
 
-        RemoteProcessGroupStats that = (RemoteProcessGroupStats) o;
+        final RemoteProcessGroupStats that = (RemoteProcessGroupStats) o;
 
         if (getActiveThreads() != that.getActiveThreads()) {
             return false;

@@ -109,7 +109,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     private String lookupValueField;
 
     @Override
-    public Optional<Object> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Object> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         /*
          * Unless the user hard-coded schema.name or schema.text into the schema access options, this is going
          * to force schema detection.
@@ -118,41 +118,41 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     }
 
     @Override
-    public Optional<Object> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
-        Map<String, Object> clean = coordinates.entrySet().stream()
+    public Optional<Object> lookup(final Map<String, Object> coordinates, final Map<String, String> context) throws LookupFailureException {
+        final Map<String, Object> clean = coordinates.entrySet().stream()
             .filter(e -> !schemaNameProperty.equals(String.format("${%s}", e.getKey())))
             .collect(Collectors.toMap(
                 e -> e.getKey(),
                 e -> e.getValue()
             ));
-        Document query = new Document(clean);
+        final Document query = new Document(clean);
 
         if (coordinates.isEmpty()) {
             throw new LookupFailureException("No keys were configured. Mongo query would return random documents.");
         }
 
         try {
-            Document result = findOne(query, projection, context);
+            final Document result = findOne(query, projection, context);
 
             if (result == null) {
                 return Optional.empty();
             } else if (!StringUtils.isEmpty(lookupValueField)) {
                 return Optional.ofNullable(result.get(lookupValueField));
             } else {
-                RecordSchema schema = loadSchema(context, result);
+                final RecordSchema schema = loadSchema(context, result);
 
                 return Optional.ofNullable(new MapRecord(schema, result));
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Error during lookup {}", query.toJson(), ex);
             throw new LookupFailureException(ex);
         }
     }
 
-    private RecordSchema loadSchema(Map<String, String> context, Document doc) {
+    private RecordSchema loadSchema(final Map<String, String> context, final Document doc) {
         try {
             return getSchema(context, doc, null);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             return null;
         }
     }
@@ -168,7 +168,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBClientService.class);
 
         this.schemaNameProperty = context.getProperty(LOCAL_SCHEMA_NAME).evaluateAttributeExpressions().getValue();
-        String configuredProjection = context.getProperty(PROJECTION).isSet()
+        final String configuredProjection = context.getProperty(PROJECTION).isSet()
             ? context.getProperty(PROJECTION).getValue()
             : null;
         if (!StringUtils.isBlank(configuredProjection)) {
@@ -188,7 +188,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("mongo-lookup-client-service", CONTROLLER_SERVICE.getName());
         config.renameProperty("mongo-db-name", DATABASE_NAME.getName());
@@ -199,10 +199,10 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        AllowableValue[] strategies = new AllowableValue[] {
+        final AllowableValue[] strategies = new AllowableValue[] {
             SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, INFER_SCHEMA
         };
-        List<PropertyDescriptor> _temp = new ArrayList<>();
+        final List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.add(new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
                 .allowableValues(strategies)
@@ -223,12 +223,12 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         return Collections.unmodifiableList(_temp);
     }
 
-    private Document findOne(Document query, Document projection, Map<String, String> context) {
+    private Document findOne(final Document query, final Document projection, final Map<String, String> context) {
         final String databaseName = getProperty(DATABASE_NAME).evaluateAttributeExpressions(context).getValue();
         final String collection = getProperty(COLLECTION_NAME).evaluateAttributeExpressions(context).getValue();
-        MongoCollection col = controllerService.getDatabase(databaseName).getCollection(collection);
-        MongoCursor<Document> it = (projection != null ? col.find(query).projection(projection) : col.find(query)).iterator();
-        Document retVal = it.hasNext() ? it.next() : null;
+        final MongoCollection col = controllerService.getDatabase(databaseName).getCollection(collection);
+        final MongoCursor<Document> it = (projection != null ? col.find(query).projection(projection) : col.find(query)).iterator();
+        final Document retVal = it.hasNext() ? it.next() : null;
         it.close();
 
         return retVal;

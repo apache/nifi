@@ -161,7 +161,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
@@ -179,12 +179,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
-        byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        final byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
         Arrays.fill(item, (byte) 'a');
-        String document2 = new String(item);
+        final String document2 = new String(item);
         putRunner.enqueue(document2.getBytes());
 
         putRunner.run(2, true, true);
@@ -207,12 +207,12 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         putRunner.setProperty(AbstractDynamoDBProcessor.BATCH_SIZE, "5");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
-        byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        final byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
         Arrays.fill(item, (byte) 'a');
-        String document2 = new String(item);
+        final String document2 = new String(item);
         putRunner.enqueue(document2.getBytes());
 
         putRunner.run(1);
@@ -234,9 +234,9 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
+        final byte[] item = new byte[PutDynamoDB.DYNAMODB_MAX_ITEM_SIZE + 1];
         Arrays.fill(item, (byte) 'a');
-        String document = new String(item);
+        final String document = new String(item);
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
@@ -258,7 +258,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
@@ -279,7 +279,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = createRunner();
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);
@@ -299,7 +299,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         putRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
-        String document = "{\"name\":\"john\"}";
+        final String document = "{\"name\":\"john\"}";
         putRunner.enqueue(document.getBytes());
 
         putRunner.run(1);

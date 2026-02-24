@@ -44,7 +44,7 @@ public class ApplicationStartupContextListener implements ServletContextListener
     private FlowService flowService = null;
 
     @Override
-    public void contextInitialized(ServletContextEvent sce) {
+    public void contextInitialized(final ServletContextEvent sce) {
         final ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext());
         final NiFiProperties properties = ctx.getBean("nifiProperties", NiFiProperties.class);
         try {
@@ -78,7 +78,7 @@ public class ApplicationStartupContextListener implements ServletContextListener
 
                 logger.info("Flow Controller started successfully.");
             }
-        } catch (BeansException | RepositoryPurgeException | IOException e) {
+        } catch (final BeansException | RepositoryPurgeException | IOException e) {
             shutdown();
             throw new NiFiCoreException("Unable to start Flow Controller.", e);
         }
@@ -94,7 +94,7 @@ public class ApplicationStartupContextListener implements ServletContextListener
     }
 
     @Override
-    public void contextDestroyed(ServletContextEvent sce) {
+    public void contextDestroyed(final ServletContextEvent sce) {
         logger.info("Flow Service shutdown started");
         shutdown();
         logger.info("Flow Service shutdown completed");

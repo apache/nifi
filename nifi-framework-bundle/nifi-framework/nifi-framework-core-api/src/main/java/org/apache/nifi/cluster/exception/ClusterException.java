@@ -25,15 +25,15 @@ public class ClusterException extends RuntimeException {
     public ClusterException() {
     }
 
-    public ClusterException(String msg) {
+    public ClusterException(final String msg) {
         super(msg);
     }
 
-    public ClusterException(Throwable cause) {
+    public ClusterException(final Throwable cause) {
         super(cause);
     }
 
-    public ClusterException(String msg, Throwable cause) {
+    public ClusterException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

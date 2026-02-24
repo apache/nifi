@@ -71,8 +71,8 @@ public interface GoogleDriveTrait {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    default Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
-        Drive driveService = new Drive.Builder(
+    default Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
+        final Drive driveService = new Drive.Builder(
                 httpTransport,
                 JSON_FACTORY,
                 createHttpRequestInitializer(
@@ -94,7 +94,7 @@ public interface GoogleDriveTrait {
 
         final HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials) {
             @Override
-            public void initialize(HttpRequest request) throws IOException {
+            public void initialize(final HttpRequest request) throws IOException {
                 super.initialize(request);
 
                 final int connectTimeout = context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -145,7 +145,7 @@ public interface GoogleDriveTrait {
                             .setFields("name")
                             .execute()
                             .getName();
-                } catch (HttpResponseException e) {
+                } catch (final HttpResponseException e) {
                     if (e.getStatusCode() != HttpStatusCodes.STATUS_CODE_NOT_FOUND) {
                         throw e;
                     }
@@ -163,7 +163,7 @@ public interface GoogleDriveTrait {
             }
 
             return new FolderDetails(folderId, folderName, sharedDriveId, sharedDriveName);
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new ProcessException("Error while retrieving folder metadata", ioe);
         }
     }
@@ -174,7 +174,7 @@ public interface GoogleDriveTrait {
         private final String sharedDriveId;
         private final String sharedDriveName;
 
-        FolderDetails(String folderId, String folderName, String sharedDriveId, String sharedDriveName) {
+        FolderDetails(final String folderId, final String folderName, final String sharedDriveId, final String sharedDriveName) {
             this.folderId = folderId;
             this.folderName = folderName;
             this.sharedDriveId = sharedDriveId;

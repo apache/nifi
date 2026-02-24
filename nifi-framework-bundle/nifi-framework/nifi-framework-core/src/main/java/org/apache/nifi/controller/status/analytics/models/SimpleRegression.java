@@ -44,15 +44,15 @@ public class SimpleRegression extends BivariateStatusAnalyticsModel {
         this(true);
     }
 
-    public SimpleRegression(Boolean supportOnlineLearning) {
+    public SimpleRegression(final Boolean supportOnlineLearning) {
         this.regression = new org.apache.commons.math3.stat.regression.SimpleRegression();
         this.supportOnlineLearning = supportOnlineLearning;
     }
 
     @Override
-    public void learn(Stream<Double[]> features, Stream<Double> labels) {
-        double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
-        double[][] featuresMatrix = features.map(feature -> ArrayUtils.toPrimitive(feature)).toArray(double[][]::new);
+    public void learn(final Stream<Double[]> features, final Stream<Double> labels) {
+        final double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
+        final double[][] featuresMatrix = features.map(feature -> ArrayUtils.toPrimitive(feature)).toArray(double[][]::new);
 
         if (!supportOnlineLearning) {
             regression.clear();
@@ -66,12 +66,12 @@ public class SimpleRegression extends BivariateStatusAnalyticsModel {
     }
 
     @Override
-    public Double predictX(Double y) {
+    public Double predictX(final Double y) {
         return (y - regression.getIntercept()) / regression.getSlope();
     }
 
     @Override
-    public Double predictY(Double x) {
+    public Double predictY(final Double x) {
         return regression.getSlope() * x + regression.getIntercept();
     }
 
@@ -80,7 +80,7 @@ public class SimpleRegression extends BivariateStatusAnalyticsModel {
         if (results == null) {
             return null;
         } else {
-            Map<String, Double> scores = new HashMap<>();
+            final Map<String, Double> scores = new HashMap<>();
             scores.put("rSquared", results.getRSquared());
             scores.put("adjustedRSquared", results.getAdjustedRSquared());
             scores.put("residualSumSquares", results.getErrorSumSquares());

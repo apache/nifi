@@ -249,7 +249,7 @@ public class TestExtractText {
 
         final ExtractText processor = new ExtractText();
         TestRunner testRunner;
-        int flags;
+        final int flags;
 
         // NONE
         testRunner = TestRunners.newTestRunner(processor);
@@ -317,7 +317,7 @@ public class TestExtractText {
         testRunner.enqueue("foo".getBytes(StandardCharsets.UTF_8));
         testRunner.run();
 
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(ExtractText.REL_MATCH));
         assertTrue(relationships.contains(ExtractText.REL_NO_MATCH));
         assertEquals(2, relationships.size());

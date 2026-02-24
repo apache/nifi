@@ -143,18 +143,18 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
     }
 
-    protected byte[] readFlowFileContent(ProcessSession session, FlowFile flowFile) {
+    protected byte[] readFlowFileContent(final ProcessSession session, final FlowFile flowFile) {
         final byte[] content = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, content, true));
 
         return content;
     }
 
-    protected String createTransitUri(String serviceLocation, CouchbaseContext context, String documentId) {
+    protected String createTransitUri(final String serviceLocation, final CouchbaseContext context, final String documentId) {
         return String.join("/", serviceLocation, context.bucket(), context.scope(), context.collection(), documentId);
     }
 
-    protected CouchbaseContext getCouchbaseContext(ProcessContext context, FlowFile flowFile) {
+    protected CouchbaseContext getCouchbaseContext(final ProcessContext context, final FlowFile flowFile) {
         final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -163,7 +163,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         return new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
     }
 
-    protected Map<String, String> getFlowfileAttributes(CouchbaseContext context, String documentId, String cas) {
+    protected Map<String, String> getFlowfileAttributes(final CouchbaseContext context, final String documentId, final String cas) {
         return new HashMap<>(Map.of(
                 BUCKET_ATTRIBUTE, context.bucket(),
                 SCOPE_ATTRIBUTE, context.scope(),
@@ -173,8 +173,8 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
         ));
     }
 
-    protected void handleCouchbaseException(CouchbaseClient couchbaseClient, ProcessContext context, ProcessSession session,
-                                            ComponentLog logger, FlowFile flowFile, CouchbaseException e, String errorMessage) {
+    protected void handleCouchbaseException(final CouchbaseClient couchbaseClient, final ProcessContext context, final ProcessSession session,
+                                            final ComponentLog logger, final FlowFile flowFile, final CouchbaseException e, final String errorMessage) {
         final Throwable throwable = (e.getCause() != null) ? e.getCause() : e;
         logger.error(errorMessage, throwable);
         final ExceptionCategory exceptionCategory = couchbaseClient.getExceptionCategory(throwable);

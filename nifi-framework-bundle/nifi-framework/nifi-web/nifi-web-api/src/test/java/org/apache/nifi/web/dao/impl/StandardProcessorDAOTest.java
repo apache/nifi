@@ -106,7 +106,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_NormalStateChange() {
         // Processor in STOPPED state, trying to change to RUNNING
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("RUNNING");
 
@@ -119,7 +119,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_StopStartingProcessor() {
         // Processor in STOPPED logical state but STARTING physical state
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("STOPPED");
 
@@ -134,7 +134,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_StopStartingProcessor_NoPermission() {
         // Processor in STARTING physical state but no permission to stop
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("STOPPED");
 
@@ -149,7 +149,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_NoSpecialCaseForDisabled() {
         // Processor in DISABLED physical state (not STARTING)
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("STOPPED");
 
@@ -163,7 +163,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_TransitionStatesNotAllowed() {
         // User trying to set state to STARTING (internal transition state)
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("STARTING");
 
@@ -174,7 +174,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_StoppingStateNotAllowed() {
         // User trying to set state to STOPPING (internal transition state)
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("test-processor-id");
         processorDTO.setState("STOPPING");
 
@@ -185,7 +185,7 @@ class StandardProcessorDAOTest {
     @Test
     void testVerifyUpdate_ProcessorNotFound() {
         // ProcessorDTO with ID that doesn't exist
-        ProcessorDTO processorDTO = new ProcessorDTO();
+        final ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setId("non-existent-id");
         processorDTO.setState("RUNNING");
 

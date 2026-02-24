@@ -94,7 +94,7 @@ public class TestNodeClusterCoordinator {
 
         coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
+            void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes, final boolean waitForCoordinator) {
                 nodeStatuses.add(updatedStatus);
             }
         };
@@ -150,7 +150,7 @@ public class TestNodeClusterCoordinator {
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
                 null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
+            void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes, final boolean waitForCoordinator) {
             }
         };
 
@@ -189,7 +189,7 @@ public class TestNodeClusterCoordinator {
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
                 null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
+            void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes, final boolean waitForCoordinator) {
             }
         };
 
@@ -514,7 +514,7 @@ public class TestNodeClusterCoordinator {
         }
 
         @Override
-        public synchronized DataFlow castVote(DataFlow candidate, NodeIdentifier nodeIdentifier) {
+        public synchronized DataFlow castVote(final DataFlow candidate, final NodeIdentifier nodeIdentifier) {
             if (dataFlow == null) {
                 dataFlow = candidate;
                 voter = nodeIdentifier;
@@ -534,7 +534,7 @@ public class TestNodeClusterCoordinator {
         }
 
         @Override
-        public boolean isVoteCounted(NodeIdentifier nodeIdentifier) {
+        public boolean isVoteCounted(final NodeIdentifier nodeIdentifier) {
             return voter != null && voter.equals(nodeIdentifier);
         }
     }

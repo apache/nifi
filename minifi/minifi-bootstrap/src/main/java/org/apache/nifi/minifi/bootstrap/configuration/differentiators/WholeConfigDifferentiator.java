@@ -34,16 +34,16 @@ public abstract class WholeConfigDifferentiator {
 
     protected volatile ConfigurationFileHolder configurationFileHolder;
 
-    public void initialize(ConfigurationFileHolder configurationFileHolder) {
+    public void initialize(final ConfigurationFileHolder configurationFileHolder) {
         this.configurationFileHolder = configurationFileHolder;
     }
 
     public static class ByteBufferInputDifferentiator extends WholeConfigDifferentiator implements Differentiator<ByteBuffer> {
         @Override
-        public boolean isNew(ByteBuffer newFlowConfig) {
-            AtomicReference<ByteBuffer> currentFlowConfigReference = configurationFileHolder.getConfigFileReference();
-            ByteBuffer currentFlowConfig = currentFlowConfigReference.get();
-            boolean compareResult = ofNullable(currentFlowConfig)
+        public boolean isNew(final ByteBuffer newFlowConfig) {
+            final AtomicReference<ByteBuffer> currentFlowConfigReference = configurationFileHolder.getConfigFileReference();
+            final ByteBuffer currentFlowConfig = currentFlowConfigReference.get();
+            final boolean compareResult = ofNullable(currentFlowConfig)
                 .map(newFlowConfig::compareTo)
                 .map(result -> result != 0)
                 .orElse(Boolean.TRUE);

@@ -28,7 +28,7 @@ public class ConnectionStatusBean extends AbstractStatusBean {
         return connectionHealth;
     }
 
-    public void setConnectionHealth(ConnectionHealth connectionHealth) {
+    public void setConnectionHealth(final ConnectionHealth connectionHealth) {
         this.connectionHealth = connectionHealth;
     }
 
@@ -36,12 +36,12 @@ public class ConnectionStatusBean extends AbstractStatusBean {
         return connectionStats;
     }
 
-    public void setConnectionStats(ConnectionStats connectionStats) {
+    public void setConnectionStats(final ConnectionStats connectionStats) {
         this.connectionStats = connectionStats;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -49,7 +49,7 @@ public class ConnectionStatusBean extends AbstractStatusBean {
             return false;
         }
 
-        ConnectionStatusBean that = (ConnectionStatusBean) o;
+        final ConnectionStatusBean that = (ConnectionStatusBean) o;
 
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
             return false;

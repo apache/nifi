@@ -35,7 +35,7 @@ public class ExtensionRepoArtifact extends LinkableEntity implements Comparable<
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -44,7 +44,7 @@ public class ExtensionRepoArtifact extends LinkableEntity implements Comparable<
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -53,7 +53,7 @@ public class ExtensionRepoArtifact extends LinkableEntity implements Comparable<
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -71,7 +71,7 @@ public class ExtensionRepoArtifact extends LinkableEntity implements Comparable<
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

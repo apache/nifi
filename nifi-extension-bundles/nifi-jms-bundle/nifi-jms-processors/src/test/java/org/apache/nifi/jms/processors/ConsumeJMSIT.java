@@ -93,15 +93,15 @@ public class ConsumeJMSIT {
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
         final String destinationName = "cooQueue";
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
+            final JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
             final Map<String, String> senderAttributes = new HashMap<>();
             senderAttributes.put("filename", "message.txt");
             senderAttributes.put("attribute_from_sender", "some value");
             sender.publish(destinationName, "Hey dude!".getBytes(), senderAttributes);
-            TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
             runner.addControllerService("cfProvider", cs);
@@ -124,7 +124,7 @@ public class ConsumeJMSIT {
             successFF.assertAttributeExists("jms.messagetype");
             successFF.assertAttributeEquals("jms.messagetype", "BytesMessage");
             successFF.assertContentEquals("Hey dude!".getBytes());
-            String sourceDestination = successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME);
+            final String sourceDestination = successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME);
             assertNotNull(sourceDestination);
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
@@ -151,13 +151,13 @@ public class ConsumeJMSIT {
         testValidateErrorQueue(ConsumeJMS.QUEUE, null, true);
     }
 
-    private void testValidateErrorQueue(String destinationType, String errorQueue, boolean expectedValid) throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+    private void testValidateErrorQueue(final String destinationType, final String errorQueue, final boolean expectedValid) throws Exception {
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         try {
-            TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+            final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
 
-            JMSConnectionFactoryProviderDefinition cfService = mock(JMSConnectionFactoryProviderDefinition.class);
+            final JMSConnectionFactoryProviderDefinition cfService = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cfService.getIdentifier()).thenReturn("cfService");
             when(cfService.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
 
@@ -193,7 +193,7 @@ public class ConsumeJMSIT {
 
     @Test
     public void testObjectMessageTypeAttribute() throws Exception {
-        String destinationName = "testObjectMessage";
+        final String destinationName = "testObjectMessage";
 
         testMessageTypeAttribute(destinationName, Session::createObjectMessage, ObjectMessage.class.getSimpleName());
     }
@@ -210,14 +210,14 @@ public class ConsumeJMSIT {
 
     @Test
     public void testUnsupportedMessage() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+            final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
             jmsTemplate.send("testMapMessage", __ -> createUnsupportedMessage("unsupportedMessagePropertyKey", "unsupportedMessagePropertyValue"));
 
-            TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
             runner.addControllerService("cfProvider", cs);
@@ -229,8 +229,8 @@ public class ConsumeJMSIT {
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
             runner.run(1, false);
 
-            JmsTemplate jmst = new JmsTemplate(cf);
-            Message message = jmst.receive("errorQueue");
+            final JmsTemplate jmst = new JmsTemplate(cf);
+            final Message message = jmst.receive("errorQueue");
 
             assertNotNull(message);
             assertEquals(message.getStringProperty("unsupportedMessagePropertyKey"), "unsupportedMessagePropertyValue");
@@ -239,13 +239,13 @@ public class ConsumeJMSIT {
         }
     }
 
-    private void testMessageTypeAttribute(String destinationName, final MessageCreator messageCreator, String expectedJmsMessageTypeAttribute) throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+    private void testMessageTypeAttribute(final String destinationName, final MessageCreator messageCreator, final String expectedJmsMessageTypeAttribute) throws Exception {
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destinationName, messageCreator);
 
-            TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
             runner.addControllerService("cfProvider", cs);
@@ -266,8 +266,8 @@ public class ConsumeJMSIT {
         }
     }
 
-    public ActiveMQMessage createUnsupportedMessage(String propertyKey, String propertyValue) throws JMSException {
-        ActiveMQMessage message = new ActiveMQMessage();
+    public ActiveMQMessage createUnsupportedMessage(final String propertyKey, final String propertyValue) throws JMSException {
+        final ActiveMQMessage message = new ActiveMQMessage();
 
         message.setStringProperty(propertyKey, propertyValue);
 
@@ -292,17 +292,17 @@ public class ConsumeJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNifi6915() throws Exception {
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
             broker.setBrokerName("broker1");
             broker.start();
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://broker1");
+            final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://broker1");
             final String destinationName = "validateNifi6915";
 
-            TestRunner c1Consumer = createNonSharedDurableConsumer(cf, destinationName);
+            final TestRunner c1Consumer = createNonSharedDurableConsumer(cf, destinationName);
             // 1. Start a durable non-shared consumer C1 with client id client1 subscribed to topic T.
-            boolean stopConsumer = true;
+            final boolean stopConsumer = true;
             c1Consumer.run(1, stopConsumer);
             List<MockFlowFile> flowFiles = c1Consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertTrue(flowFiles.isEmpty(), "Expected no messages");
@@ -320,7 +320,7 @@ public class ConsumeJMSIT {
             successFF.assertAttributeEquals(JmsHeaders.DESTINATION, destinationName);
             successFF.assertContentEquals("Hi buddy!!".getBytes());
             assertEquals(destinationName, successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw e;
         } finally {
             if (broker != null) {
@@ -332,7 +332,7 @@ public class ConsumeJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void validateNifi6915OnlyOneThreadAllowed() {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
         final String destinationName = "validateNifi6915";
 
         TestRunner runner = createNonSharedDurableConsumer(cf, destinationName);
@@ -363,33 +363,33 @@ public class ConsumeJMSIT {
     public void validateNIFI7034() throws Exception {
         class ConsumeJMSForNifi7034 extends ConsumeJMS {
             @Override
-            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSConsumer consumer) throws ProcessException {
+            protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
                 super.rendezvousWithJms(context, processSession, consumer);
                 consumer.setValid(false);
             }
         }
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
             broker.setBrokerName("nifi7034consumer");
-            TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
-            int port = connector.getServer().getSocketAddress().getPort();
+            final TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
+            final int port = connector.getServer().getSocketAddress().getPort();
             broker.start();
 
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("validateNIFI7034://127.0.0.1:" + port);
+            final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("validateNIFI7034://127.0.0.1:" + port);
             final String destinationName = "nifi7034";
             final AtomicReference<TcpTransport> tcpTransport = new AtomicReference<>();
             TcpTransportFactory.registerTransportFactory("validateNIFI7034", new TcpTransportFactory() {
                 @Override
-                protected TcpTransport createTcpTransport(WireFormat wf, SocketFactory socketFactory, URI location, URI localLocation) throws IOException {
-                    TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
+                protected TcpTransport createTcpTransport(final WireFormat wf, final SocketFactory socketFactory, final URI location, final URI localLocation) throws IOException {
+                    final TcpTransport transport = super.createTcpTransport(wf, socketFactory, location, localLocation);
                     tcpTransport.set(transport);
                     return transport;
                 }
             });
 
-            TestRunner runner = TestRunners.newTestRunner(new ConsumeJMSForNifi7034());
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMSForNifi7034());
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(cf);
             runner.addControllerService("cfProvider", cs);
@@ -413,9 +413,9 @@ public class ConsumeJMSIT {
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void whenExceptionIsRaisedTheProcessorShouldBeYielded() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://invalidhost:9999?soTimeout=3");
+        final TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://invalidhost:9999?soTimeout=3");
 
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -435,10 +435,10 @@ public class ConsumeJMSIT {
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() throws Exception {
         final String nonExistentClassName = "DummyJMSConnectionFactoryClass";
 
-        TestRunner runner = TestRunners.newTestRunner(ConsumeJMS.class);
+        final TestRunner runner = TestRunners.newTestRunner(ConsumeJMS.class);
 
         // using (non-JNDI) JMS Connection Factory via controller service
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, nonExistentClassName);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "DummyBrokerUri");
@@ -461,19 +461,19 @@ public class ConsumeJMSIT {
 
         final ConsumeJMS processor = new ConsumeJMS() {
             @Override
-            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSConsumer consumer) throws ProcessException {
-                ProcessSession spiedSession = spy(processSession);
+            protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
+                final ProcessSession spiedSession = spy(processSession);
                 doThrow(expectedException).when(spiedSession).write(any(FlowFile.class), any(OutputStreamCallback.class));
                 super.rendezvousWithJms(context, spiedSession, consumer);
             }
         };
 
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destination, session -> session.createTextMessage("msg"));
 
-            TestRunner runner = TestRunners.newTestRunner(processor);
-            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            final TestRunner runner = TestRunners.newTestRunner(processor);
+            final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
             when(cs.getIdentifier()).thenReturn("cfProvider");
             when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
             runner.addControllerService("cfProvider", cs);
@@ -493,27 +493,27 @@ public class ConsumeJMSIT {
 
     @Test
     public void testConsumeRecords() throws InitializationException {
-        String destination = "testConsumeRecords";
-        ArrayNode expectedRecordSet = createTestJsonInput();
+        final String destination = "testConsumeRecords";
+        final ArrayNode expectedRecordSet = createTestJsonInput();
 
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(0).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(1).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(2).toString()));
 
-            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            final TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
             testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
 
             testRunner.run(1, false);
 
-            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
             assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.getFirst().toByteArray()));
 
-            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            final List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
             assertEquals(0, parseFailedFlowFiles.size());
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
@@ -522,12 +522,12 @@ public class ConsumeJMSIT {
 
     @Test
     public void testConsumeMalformedRecords() throws InitializationException {
-        String destination = "testConsumeRecords";
-        ArrayNode expectedRecordSet = createTestJsonInput();
-        String expectedParseFailedContent1 = "this is not a json";
-        String expectedParseFailedContent2 = "this is still not a json";
+        final String destination = "testConsumeRecords";
+        final ArrayNode expectedRecordSet = createTestJsonInput();
+        final String expectedParseFailedContent1 = "this is not a json";
+        final String expectedParseFailedContent2 = "this is still not a json";
 
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(0).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedParseFailedContent1));
@@ -535,7 +535,7 @@ public class ConsumeJMSIT {
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedParseFailedContent2));
             jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(2).toString()));
 
-            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            final TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
             testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
@@ -544,12 +544,12 @@ public class ConsumeJMSIT {
             testRunner.run(1, false);
 
             // checking whether the processor was able to construct a valid recordSet from the properly formatted messages
-            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
             assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.getFirst().toByteArray()));
 
             // and checking whether it creates separate FlowFiles for the malformed messages
-            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            final List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
             assertEquals(2, parseFailedFlowFiles.size());
             assertEquals(expectedParseFailedContent1, new String(parseFailedFlowFiles.get(0).toByteArray()));
             assertEquals(expectedParseFailedContent2, new String(parseFailedFlowFiles.get(1).toByteArray()));
@@ -560,16 +560,16 @@ public class ConsumeJMSIT {
 
     @Test
     public void testConsumeRecordsWithAppenderOutputStrategy() throws InitializationException, JsonProcessingException {
-        String destination = "testConsumeRecordsWithAppenderOutputStrategy";
-        ArrayNode inputRecordSet = createTestJsonInput();
+        final String destination = "testConsumeRecordsWithAppenderOutputStrategy";
+        final ArrayNode inputRecordSet = createTestJsonInput();
 
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(0).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(1).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(2).toString()));
 
-            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            final TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
             testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
@@ -577,9 +577,9 @@ public class ConsumeJMSIT {
 
             testRunner.run(1, false);
 
-            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
+            final JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
             // checking that the output contains at least a part of the original input
             assertEquals(inputRecordSet.get(0).get("firstAttribute").asText(), flowFileContentAsJson.get(0).get("firstAttribute").asText());
             assertEquals(inputRecordSet.get(1).get("firstAttribute").asText(), flowFileContentAsJson.get(1).get("firstAttribute").asText());
@@ -591,7 +591,7 @@ public class ConsumeJMSIT {
             assertEquals(destination, flowFileContentAsJson.get(1).get("_" + JMS_DESTINATION_ATTRIBUTE_NAME).asText());
             assertEquals(destination, flowFileContentAsJson.get(2).get("_" + JMS_DESTINATION_ATTRIBUTE_NAME).asText());
 
-            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            final List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
             assertEquals(0, parseFailedFlowFiles.size());
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
@@ -600,18 +600,18 @@ public class ConsumeJMSIT {
 
     @Test
     public void testConsumeRecordsWithWrapperOutputStrategy() throws InitializationException, JsonProcessingException {
-        String destination = "testConsumeRecordsWithWrapperOutputStrategy";
-        String valueKey = "value";
-        String attributeKey = "_";
-        ArrayNode inputRecordSet = createTestJsonInput();
+        final String destination = "testConsumeRecordsWithWrapperOutputStrategy";
+        final String valueKey = "value";
+        final String attributeKey = "_";
+        final ArrayNode inputRecordSet = createTestJsonInput();
 
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        final JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(0).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(1).toString()));
             jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(2).toString()));
 
-            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            final TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
             testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
             testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
             testRunner.setProperty(AbstractJMSProcessor.MAX_BATCH_SIZE, "10");
@@ -619,9 +619,9 @@ public class ConsumeJMSIT {
 
             testRunner.run(1, false);
 
-            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(1, successFlowFiles.size());
-            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
+            final JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.getFirst().toByteArray()));
             // checking that the original json is equal to the leaf
             assertEquals(inputRecordSet.get(0), flowFileContentAsJson.get(0).get(valueKey));
             assertEquals(inputRecordSet.get(1), flowFileContentAsJson.get(1).get(valueKey));
@@ -633,7 +633,7 @@ public class ConsumeJMSIT {
             assertEquals(destination, flowFileContentAsJson.get(1).get(attributeKey).get(JMS_DESTINATION_ATTRIBUTE_NAME).asText());
             assertEquals(destination, flowFileContentAsJson.get(2).get(attributeKey).get(JMS_DESTINATION_ATTRIBUTE_NAME).asText());
 
-            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            final List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
             assertEquals(0, parseFailedFlowFiles.size());
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
@@ -642,15 +642,15 @@ public class ConsumeJMSIT {
 
     @Test
     public void validateConnectionClosedOnPrimaryOnlyNodeChange() throws Exception {
-        BrokerService broker = new BrokerService();
+        final BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
             broker.setBrokerName("broker");
             broker.start();
 
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm:localhost");
+            final ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm:localhost");
             final String destinationName = "validateConnectionClosing";
-            TestRunner consumer = createNonSharedDurableConsumer(cf, destinationName);
+            final TestRunner consumer = createNonSharedDurableConsumer(cf, destinationName);
             consumer.setIsConfiguredForClustering(true);
             consumer.setConnected(true);
             consumer.setClustered(true);
@@ -669,7 +669,7 @@ public class ConsumeJMSIT {
             List<MockFlowFile> flowFiles = consumer.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
             assertEquals(0, flowFiles.size());
 
-            String message = "Hello World";
+            final String message = "Hello World";
             publishAMessage(cf, destinationName, message);
 
             consumer.run(1, false, false);
@@ -709,18 +709,18 @@ public class ConsumeJMSIT {
         ));
     }
 
-    private JsonNode deserializeToJsonNode(String rawJson) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
+    private JsonNode deserializeToJsonNode(final String rawJson) throws JsonProcessingException {
+        final ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.readTree(rawJson);
     }
 
-    private TestRunner initializeTestRunner(ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
+    private TestRunner initializeTestRunner(final ConnectionFactory connectionFactory, final String destinationName) throws InitializationException {
         return initializeTestRunner(new ConsumeJMS(), connectionFactory, destinationName);
     }
 
-    private TestRunner initializeTestRunner(ConsumeJMS processor, ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(processor);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+    private TestRunner initializeTestRunner(final ConsumeJMS processor, final ConnectionFactory connectionFactory, final String destinationName) throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(connectionFactory);
         runner.addControllerService("cfProvider", cs);
@@ -733,7 +733,7 @@ public class ConsumeJMSIT {
         return runner;
     }
 
-    private static void publishAMessage(ActiveMQConnectionFactory cf, final String destinationName, String messageContent) throws JMSException {
+    private static void publishAMessage(final ActiveMQConnectionFactory cf, final String destinationName, final String messageContent) throws JMSException {
         // Publish a message.
         try (Connection conn = cf.createConnection();
                 Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -742,16 +742,16 @@ public class ConsumeJMSIT {
         }
     }
 
-    private static TestRunner createNonSharedDurableConsumer(ActiveMQConnectionFactory cf, final String destinationName) {
-        ConsumeJMS c1 = new ConsumeJMS();
-        TestRunner c1Consumer = TestRunners.newTestRunner(c1);
-        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+    private static TestRunner createNonSharedDurableConsumer(final ActiveMQConnectionFactory cf, final String destinationName) {
+        final ConsumeJMS c1 = new ConsumeJMS();
+        final TestRunner c1Consumer = TestRunners.newTestRunner(c1);
+        final JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
 
         try {
             c1Consumer.addControllerService("cfProvider", cs);
-        } catch (InitializationException e) {
+        } catch (final InitializationException e) {
             throw new IllegalStateException(e);
         }
         c1Consumer.enableControllerService(cs);

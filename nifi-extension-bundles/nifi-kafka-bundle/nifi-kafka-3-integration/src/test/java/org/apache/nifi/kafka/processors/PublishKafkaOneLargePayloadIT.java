@@ -51,7 +51,7 @@ public class PublishKafkaOneLargePayloadIT extends AbstractPublishKafkaIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishKafka.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishKafka.REL_SUCCESS).getFirst();
         assertEquals(MESSAGE_SIZE, flowFile.getSize());
     }
 

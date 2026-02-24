@@ -60,9 +60,9 @@ public class StartGcpVisionAnnotateImagesOperationTest {
 
     @BeforeEach
     public void setUp() throws InitializationException, IOException {
-        String jsonPayloadValue = FileUtils.readFileToString(new File("src/test/resources/vision/annotate-image.json"), StandardCharsets.UTF_8);
-        GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
-        StartGcpVisionAnnotateImagesOperation processor = new StartGcpVisionAnnotateImagesOperation() {
+        final String jsonPayloadValue = FileUtils.readFileToString(new File("src/test/resources/vision/annotate-image.json"), StandardCharsets.UTF_8);
+        final GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
+        final StartGcpVisionAnnotateImagesOperation processor = new StartGcpVisionAnnotateImagesOperation() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
                 return mockVisionClient;

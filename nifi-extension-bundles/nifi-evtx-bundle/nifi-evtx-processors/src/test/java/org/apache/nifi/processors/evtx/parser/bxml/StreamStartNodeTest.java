@@ -48,7 +48,7 @@ public class StreamStartNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         streamStartNode.accept(mock);
         verify(mock).visit(streamStartNode);
         verifyNoMoreInteractions(mock);

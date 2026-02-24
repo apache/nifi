@@ -27,27 +27,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class WStringArrayTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testWStringArrayTypeNodeLengthArg() throws IOException {
-        String[] array = new String[]{"one", "two"};
-        StringBuilder expected = new StringBuilder();
-        for (String s : array) {
+        final String[] array = new String[]{"one", "two"};
+        final StringBuilder expected = new StringBuilder();
+        for (final String s : array) {
             expected.append("<string>");
             expected.append(s);
             expected.append("</string>");
         }
-        String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWString(String.join("\u0000", array)).build(), chunkHeader, parent, 14).getValue();
+        final String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWString(String.join("\u0000", array)).build(), chunkHeader, parent, 14).getValue();
         assertEquals(expected.toString(), actual);
     }
 
     @Test
     public void testWStringArrayTypeNodeNoLengthArg() throws IOException {
-        String[] array = new String[]{"one", "two"};
-        StringBuilder expected = new StringBuilder();
-        for (String s : array) {
+        final String[] array = new String[]{"one", "two"};
+        final StringBuilder expected = new StringBuilder();
+        for (final String s : array) {
             expected.append("<string>");
             expected.append(s);
             expected.append("</string>");
         }
-        String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWord(14).putWString(String.join("\u0000", array)).build(), chunkHeader, parent, -1).getValue();
+        final String actual = new WStringArrayTypeNode(testBinaryReaderBuilder.putWord(14).putWString(String.join("\u0000", array)).build(), chunkHeader, parent, -1).getValue();
         assertEquals(expected.toString(), actual);
     }
 }

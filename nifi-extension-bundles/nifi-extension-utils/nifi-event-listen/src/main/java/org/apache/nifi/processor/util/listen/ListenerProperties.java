@@ -42,7 +42,7 @@ public class ListenerProperties {
                 final NetworkInterface ifc = interfaceEnum.nextElement();
                 interfaceSet.add(ifc.getName());
             }
-        } catch (SocketException ignored) {
+        } catch (final SocketException ignored) {
         }
     }
 
@@ -63,7 +63,7 @@ public class ListenerProperties {
                 String realValue = input;
                 try {
                     if (context.isExpressionLanguagePresent(input)) {
-                        AttributeExpression ae = context.newExpressionLanguageCompiler().compile(input);
+                        final AttributeExpression ae = context.newExpressionLanguageCompiler().compile(input);
                         realValue = ae.evaluate();
                     }
 
@@ -73,7 +73,7 @@ public class ListenerProperties {
 
                     message = realValue + " is not a valid network name. Valid names are " + interfaceSet;
 
-                } catch (IllegalArgumentException e) {
+                } catch (final IllegalArgumentException e) {
                     message = "Not a valid AttributeExpression: " + e.getMessage();
                 }
                 result = new ValidationResult.Builder().subject("Local Network Interface")

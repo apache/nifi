@@ -44,7 +44,7 @@ public interface RecordWriter extends Closeable {
      */
     StorageSummary writeRecord(ProvenanceEventRecord record) throws IOException;
 
-    default Map<ProvenanceEventRecord, StorageSummary> writeRecords(Iterable<ProvenanceEventRecord> events) throws IOException {
+    default Map<ProvenanceEventRecord, StorageSummary> writeRecords(final Iterable<ProvenanceEventRecord> events) throws IOException {
         final Map<ProvenanceEventRecord, StorageSummary> locationMap = new HashMap<>();
 
         for (final ProvenanceEventRecord nextEvent : events) {

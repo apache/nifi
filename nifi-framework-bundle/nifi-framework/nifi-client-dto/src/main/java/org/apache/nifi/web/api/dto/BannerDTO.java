@@ -40,7 +40,7 @@ public class BannerDTO {
         return footerText;
     }
 
-    public void setFooterText(String footerText) {
+    public void setFooterText(final String footerText) {
         this.footerText = footerText;
     }
 
@@ -55,7 +55,7 @@ public class BannerDTO {
         return headerText;
     }
 
-    public void setHeaderText(String headerText) {
+    public void setHeaderText(final String headerText) {
         this.headerText = headerText;
     }
 

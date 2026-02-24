@@ -51,7 +51,7 @@ public class JmxMetricsCollector {
         final Set<ObjectInstance> instances;
         try {
             instances = mBeanServer.queryMBeans(new ObjectName(PATTERN_FOR_ALL_OBJECT_NAMES), null);
-        } catch (MalformedObjectNameException e) {
+        } catch (final MalformedObjectNameException e) {
             throw new RuntimeException("Invalid ObjectName pattern", e);
         }
 
@@ -60,11 +60,11 @@ public class JmxMetricsCollector {
             final MBeanInfo info;
             try {
                 info = mBeanServer.getMBeanInfo(instance.getObjectName());
-            } catch (InstanceNotFoundException | ReflectionException | IntrospectionException e) {
+            } catch (final InstanceNotFoundException | ReflectionException | IntrospectionException e) {
                 continue;
             }
 
-            for (MBeanAttributeInfo attribute : info.getAttributes()) {
+            for (final MBeanAttributeInfo attribute : info.getAttributes()) {
                 try {
                     final String beanName = instance.getObjectName().getCanonicalName();
                     final String attributeName = attribute.getName();

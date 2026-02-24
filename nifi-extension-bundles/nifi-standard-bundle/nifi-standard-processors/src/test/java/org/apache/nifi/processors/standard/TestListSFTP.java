@@ -101,7 +101,7 @@ public class TestListSFTP {
 
     @Test
     public void testRunWithRecordWriter() throws InitializationException {
-        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        final RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.enableControllerService(recordWriter);
@@ -113,7 +113,7 @@ public class TestListSFTP {
 
     @Test
     public void testRunWithRecordWriterNoTracking() throws InitializationException {
-        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        final RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
@@ -125,7 +125,7 @@ public class TestListSFTP {
 
     @Test
     public void testRunWithRecordWriterByTimestamps() throws InitializationException {
-        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        final RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
@@ -137,12 +137,12 @@ public class TestListSFTP {
 
     @Test
     public void testRunWithRecordWriterByEntities() throws InitializationException {
-        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        final RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
         runner.enableControllerService(recordWriter);
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
         runner.enableControllerService(dmc);
@@ -154,12 +154,12 @@ public class TestListSFTP {
 
     @Test
     public void testFilesWithRestart() throws InitializationException {
-        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        final RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
         runner.enableControllerService(recordWriter);
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
         runner.enableControllerService(dmc);

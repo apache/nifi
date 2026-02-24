@@ -24,19 +24,19 @@ public class VirtualPath {
 
     private final Path path; // always normalized
 
-    public VirtualPath(String path) {
-        String absolutePath = File.separator + normalizeSeparator(path);
+    public VirtualPath(final String path) {
+        final String absolutePath = File.separator + normalizeSeparator(path);
         this.path = Paths.get(absolutePath).normalize();
     }
 
-    private String normalizeSeparator(String path) {
-        String pathWithoutStartingSeparator = removeStartingSeparator(path);
+    private String normalizeSeparator(final String path) {
+        final String pathWithoutStartingSeparator = removeStartingSeparator(path);
         String normalizedPath = pathWithoutStartingSeparator.replace(File.separatorChar, '/');
         normalizedPath = normalizedPath.replace('\\', '/');
         return normalizedPath;
     }
 
-    private String removeStartingSeparator(String path) {
+    private String removeStartingSeparator(final String path) {
         int indexOfFirstNonSeparator;
         for (indexOfFirstNonSeparator = 0; indexOfFirstNonSeparator < path.length(); ++indexOfFirstNonSeparator) {
             if (!(path.charAt(indexOfFirstNonSeparator) == File.separatorChar) && !(path.charAt(indexOfFirstNonSeparator) == '/')) {
@@ -66,7 +66,7 @@ public class VirtualPath {
         return path.isAbsolute();
     }
 
-    public VirtualPath resolve(String otherPath) {
+    public VirtualPath resolve(final String otherPath) {
         return new VirtualPath(path.resolve(otherPath).normalize().toString());
     }
 
@@ -80,14 +80,14 @@ public class VirtualPath {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
         }
         if (!(o instanceof VirtualPath)) {
             return false;
         }
-        VirtualPath other = (VirtualPath) o;
+        final VirtualPath other = (VirtualPath) o;
         return path.equals(other.path);
     }
 

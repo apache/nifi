@@ -128,7 +128,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public void onProcessGroupRemoved(final ProcessGroup group) {
-        String identifier = group.getIdentifier();
+        final String identifier = group.getIdentifier();
         allProcessGroups.remove(identifier);
 
         removeRuleViolationsForSubject(identifier);
@@ -207,7 +207,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public void onConnectionRemoved(final Connection connection) {
-        String identifier = connection.getIdentifier();
+        final String identifier = connection.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allConnections.remove(identifier);
 
@@ -370,7 +370,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public void onInputPortRemoved(final Port inputPort) {
-        String identifier = inputPort.getIdentifier();
+        final String identifier = inputPort.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allInputPorts.remove(identifier);
 
@@ -389,7 +389,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public void onOutputPortRemoved(final Port outputPort) {
-        String identifier = outputPort.getIdentifier();
+        final String identifier = outputPort.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allOutputPorts.remove(identifier);
 
@@ -408,7 +408,7 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public void onFunnelRemoved(final Funnel funnel) {
-        String identifier = funnel.getIdentifier();
+        final String identifier = funnel.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allFunnels.remove(identifier);
 
@@ -426,7 +426,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) {
+    public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) {
         return createProcessor(type, id, coordinate, Collections.emptySet(), firstTimeAdded, true, null);
     }
 
@@ -729,7 +729,7 @@ public abstract class AbstractFlowManager implements FlowManager {
         return Optional.ofNullable(ruleViolationsManager);
     }
 
-    private void removeRuleViolationsForSubject(String identifier) {
+    private void removeRuleViolationsForSubject(final String identifier) {
         if (ruleViolationsManager != null) {
             ruleViolationsManager.removeRuleViolationsForSubject(identifier);
         }

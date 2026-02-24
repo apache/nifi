@@ -137,7 +137,7 @@ public abstract class TestWriteAvroResult {
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final int recordCount = 3;
-        List<Record> records = new ArrayList<>();
+        final List<Record> records = new ArrayList<>();
         for (int i = 0; i < recordCount; i++) {
             final Map<String, Object> values = new HashMap<>();
             values.put("msg", "nifi" + i);
@@ -222,7 +222,7 @@ public abstract class TestWriteAvroResult {
         testLogicalTypes(schema);
     }
 
-    private void testLogicalTypes(Schema schema) throws IOException {
+    private void testLogicalTypes(final Schema schema) throws IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final List<RecordField> fields = new ArrayList<>();
@@ -454,7 +454,7 @@ public abstract class TestWriteAvroResult {
                 assertEquals(objectArray.length, bb.remaining(),
                         "For field " + fieldName + ", byte buffer remaining should have been " + objectArray.length + " but was " + bb.remaining());
 
-                for (Object o : objectArray) {
+                for (final Object o : objectArray) {
                     assertEquals(o, bb.get());
                 }
             } else if (recordValue instanceof Object[]) {
@@ -477,7 +477,7 @@ public abstract class TestWriteAvroResult {
                 final Map<?, ?> recordMap = (Map<?, ?>) recordValue;
                 assertEquals(recordMap.size(), avroMap.size(),
                         fieldName + " not equal");
-                for (Object s : avroMap.keySet()) {
+                for (final Object s : avroMap.keySet()) {
                     assertMatch((Record) recordMap.get(s.toString()), (GenericRecord) avroMap.get(s));
                 }
             } else if (recordValue instanceof Record) {

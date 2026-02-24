@@ -26,7 +26,7 @@ public class ExtensionTagEntity {
         return extensionId;
     }
 
-    public void setExtensionId(String extensionId) {
+    public void setExtensionId(final String extensionId) {
         this.extensionId = extensionId;
     }
 
@@ -34,7 +34,7 @@ public class ExtensionTagEntity {
         return tag;
     }
 
-    public void setTag(String tag) {
+    public void setTag(final String tag) {
         this.tag = tag;
     }
 

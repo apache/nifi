@@ -91,7 +91,7 @@ public class MockFlowFileRecord implements FlowFileRecord {
     }
 
     @Override
-    public String getAttribute(String key) {
+    public String getAttribute(final String key) {
         return attributes.get(key);
     }
 
@@ -139,7 +139,7 @@ public class MockFlowFileRecord implements FlowFileRecord {
         return lastQueuedDate;
     }
 
-    public void setLastQueuedDate(long lastQueuedDate) {
+    public void setLastQueuedDate(final long lastQueuedDate) {
         this.lastQueuedDate = lastQueuedDate;
     }
 

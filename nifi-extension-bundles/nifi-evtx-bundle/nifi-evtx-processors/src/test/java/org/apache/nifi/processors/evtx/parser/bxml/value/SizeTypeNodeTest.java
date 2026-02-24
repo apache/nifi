@@ -29,14 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class SizeTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testSizeTypeNodeDWord() throws IOException {
-        UnsignedInteger value = UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 132);
+        final UnsignedInteger value = UnsignedInteger.fromIntBits(Integer.MAX_VALUE + 132);
         assertEquals(value.toString(),
                 new SizeTypeNode(testBinaryReaderBuilder.putDWord(value).build(), chunkHeader, parent, 4).getValue());
     }
 
     @Test
     public void testSizeTypeNodeQWord() throws IOException {
-        UnsignedLong value = UnsignedLong.fromLongBits(Long.MAX_VALUE + 132);
+        final UnsignedLong value = UnsignedLong.fromLongBits(Long.MAX_VALUE + 132);
         assertEquals(value.toString(),
                 new SizeTypeNode(testBinaryReaderBuilder.putQWord(value).build(), chunkHeader, parent, -1).getValue());
     }

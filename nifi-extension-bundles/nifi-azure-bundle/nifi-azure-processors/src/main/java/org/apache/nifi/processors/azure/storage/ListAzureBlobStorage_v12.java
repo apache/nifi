@@ -158,7 +158,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
     }
 
@@ -168,7 +168,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
         config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
@@ -194,12 +194,12 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
     }
 
     @Override
-    protected Integer countUnfilteredListing(ProcessContext context) throws IOException {
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
         return null;
     }
 
     @Override
-    protected String getListingContainerName(ProcessContext context) {
+    protected String getListingContainerName(final ProcessContext context) {
         return String.format("Azure Blob Storage Container [%s]", getPath(context));
     }
 
@@ -244,7 +244,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             final ListBlobsOptions options = new ListBlobsOptions()
                     .setPrefix(prefix);
 
-            for (BlobItem blob : containerClient.listBlobs(options, null)) {
+            for (final BlobItem blob : containerClient.listBlobs(options, null)) {
                 final BlobItemProperties properties = blob.getProperties();
 
                 if (isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, properties.getLastModified().toInstant().toEpochMilli(), properties.getContentLength())) {
@@ -264,14 +264,14 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             }
 
             return listing;
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw new IOException(ExceptionUtils.getRootCause(t));
         }
     }
 
     @Override
-    protected Map<String, String> createAttributes(BlobInfo entity, ProcessContext context) {
-        Map<String, String> attributes = new HashMap<>();
+    protected Map<String, String> createAttributes(final BlobInfo entity, final ProcessContext context) {
+        final Map<String, String> attributes = new HashMap<>();
 
         attributes.put(ATTR_NAME_CONTAINER, entity.getContainerName());
         attributes.put(ATTR_NAME_BLOBNAME, entity.getBlobName());

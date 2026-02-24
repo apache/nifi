@@ -59,7 +59,7 @@ public abstract class NiFiRestApiClient {
     public NiFiRestApiClient(final WebClientService webClientService, final String host, final int port, final boolean secure) {
         try {
             this.baseUri = new URI(secure ? HTTPS_SCHEME : HTTP_SCHEME, null, host, port, null, null, null);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
         this.webClientService = Objects.requireNonNull(webClientService, "WebClientService is required");
@@ -102,7 +102,7 @@ public abstract class NiFiRestApiClient {
             final String responseMessage;
             try {
                 responseMessage = IOUtils.toString(response.body(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new NiFiRestApiRetryableException("Error reading response from %s - %s".formatted(requestUri, statusCode), e);
             }
             if (statusCode == HttpResponseStatus.CONFLICT.getCode()) {

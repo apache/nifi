@@ -26,7 +26,7 @@ public enum AzureStorageConflictResolutionStrategy implements DescribedValue {
     private final String label;
     private final String description;
 
-    AzureStorageConflictResolutionStrategy(String label, String description) {
+    AzureStorageConflictResolutionStrategy(final String label, final String description) {
         this.label = label;
         this.description = description;
     }

@@ -32,7 +32,7 @@ public class ComponentValidationResultEntity extends ComponentEntity implements 
     }
 
     @Override
-    public void setComponent(ComponentValidationResultDTO component) {
+    public void setComponent(final ComponentValidationResultDTO component) {
         this.validationResult = component;
     }
 

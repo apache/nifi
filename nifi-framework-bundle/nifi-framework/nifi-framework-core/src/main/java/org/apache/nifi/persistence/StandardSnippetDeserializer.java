@@ -34,11 +34,11 @@ public class StandardSnippetDeserializer {
 
     public static StandardSnippet deserialize(final InputStream inStream) {
         try {
-            JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
+            final JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
+            final Unmarshaller unmarshaller = context.createUnmarshaller();
             final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-            XMLStreamReader xsr = provider.getStreamReader(new StreamSource(inStream));
-            JAXBElement<StandardSnippet> snippetElement = unmarshaller.unmarshal(xsr, StandardSnippet.class);
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(inStream));
+            final JAXBElement<StandardSnippet> snippetElement = unmarshaller.unmarshal(xsr, StandardSnippet.class);
             return snippetElement.getValue();
         } catch (final JAXBException | ProcessingException e) {
             throw new FlowSerializationException(e);

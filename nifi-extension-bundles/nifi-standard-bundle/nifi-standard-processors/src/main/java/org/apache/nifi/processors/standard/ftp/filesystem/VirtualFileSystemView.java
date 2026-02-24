@@ -29,7 +29,7 @@ public class VirtualFileSystemView implements FileSystemView {
     private final VirtualFileSystem fileSystem;
     private VirtualPath currentDirectory = VirtualFileSystem.ROOT;
 
-    public VirtualFileSystemView(User user, VirtualFileSystem fileSystem) throws IllegalArgumentException {
+    public VirtualFileSystemView(final User user, final VirtualFileSystem fileSystem) throws IllegalArgumentException {
         if (user == null || fileSystem == null) {
             throw new IllegalArgumentException("User and filesystem cannot be null.");
         } else {
@@ -49,8 +49,8 @@ public class VirtualFileSystemView implements FileSystemView {
     }
 
     @Override
-    public boolean changeWorkingDirectory(String targetPath) {
-        VirtualPath targetDirectory = currentDirectory.resolve(targetPath);
+    public boolean changeWorkingDirectory(final String targetPath) {
+        final VirtualPath targetDirectory = currentDirectory.resolve(targetPath);
         if (fileSystem.exists(targetDirectory)) {
             currentDirectory = targetDirectory;
             return true;
@@ -60,9 +60,9 @@ public class VirtualFileSystemView implements FileSystemView {
     }
 
     @Override
-    public FtpFile getFile(String fileName) throws FtpException {
-        VirtualPath filePath = currentDirectory.resolve(fileName);
-        VirtualPath parent = filePath.getParent();
+    public FtpFile getFile(final String fileName) throws FtpException {
+        final VirtualPath filePath = currentDirectory.resolve(fileName);
+        final VirtualPath parent = filePath.getParent();
         if ((parent != null) && !fileSystem.exists(filePath.getParent())) {
             throw new FtpException(String.format("Parent directory does not exist for %s", filePath.toString()));
         }

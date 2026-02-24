@@ -62,7 +62,7 @@ public class ChunkHeaderTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
+        final TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         testBinaryReaderBuilder.putString(ChunkHeader.ELF_CHNK);
         testBinaryReaderBuilder.putQWord(fileFirstRecordNumber);
         testBinaryReaderBuilder.putQWord(fileLastRecordNumber);
@@ -72,7 +72,7 @@ public class ChunkHeaderTest {
         testBinaryReaderBuilder.putDWord(lastRecordOffset);
         testBinaryReaderBuilder.putDWord(nextRecordOffset);
         testBinaryReaderBuilder.putDWord(dataChecksum);
-        byte[] bytes = new byte[67];
+        final byte[] bytes = new byte[67];
         random.nextBytes(bytes);
         testBinaryReaderBuilder.put(bytes);
         testBinaryReaderBuilder.put((byte) 0);
@@ -80,10 +80,10 @@ public class ChunkHeaderTest {
         // Checksum placeholder
         testBinaryReaderBuilder.putDWord(0);
 
-        TestBinaryReaderBuilder dataBuilder = new TestBinaryReaderBuilder();
+        final TestBinaryReaderBuilder dataBuilder = new TestBinaryReaderBuilder();
         int offset = 545;
         for (int i = 0; i < 64; i++) {
-            String string = Integer.toString(i);
+            final String string = Integer.toString(i);
             testBinaryReaderBuilder.putDWord(offset);
             offset += NameStringNodeTest.putNode(dataBuilder, 0, string.hashCode(), string);
         }
@@ -94,9 +94,9 @@ public class ChunkHeaderTest {
             dataBuilder.put((byte) 0x0C);
             dataBuilder.put(new byte[5]);
             dataBuilder.putDWord(offset + 10);
-            byte[] guidBytes = new byte[16];
+            final byte[] guidBytes = new byte[16];
             random.nextBytes(guidBytes);
-            String guid = new TestBinaryReaderBuilder().put(guidBytes).build().readGuid();
+            final String guid = new TestBinaryReaderBuilder().put(guidBytes).build().readGuid();
             guids.add(guid);
             offset += TemplateNodeTest.putNode(dataBuilder, 0, guid, i);
             dataBuilder.put((byte) BxmlNode.END_OF_STREAM_TOKEN);
@@ -107,12 +107,12 @@ public class ChunkHeaderTest {
 
         testBinaryReaderBuilder.put(dataBuilder.toByteArray());
 
-        CRC32 dataChecksum = new CRC32();
+        final CRC32 dataChecksum = new CRC32();
         dataChecksum.update(testBinaryReaderBuilder.toByteArray(), 512, nextRecordOffset - 512);
         testBinaryReaderBuilder.putDWordAt(UnsignedInteger.valueOf(dataChecksum.getValue()).intValue(), 52);
 
-        CRC32 headerChecksum = new CRC32();
-        byte[] array = testBinaryReaderBuilder.toByteArray();
+        final CRC32 headerChecksum = new CRC32();
+        final byte[] array = testBinaryReaderBuilder.toByteArray();
         headerChecksum.update(array, 0, 120);
         headerChecksum.update(array, 128, 384);
         testBinaryReaderBuilder.putDWordAt(UnsignedInteger.valueOf(headerChecksum.getValue()).intValue(), 124);
@@ -122,21 +122,21 @@ public class ChunkHeaderTest {
     @Test
     public void testInit() throws IOException {
         int count = 0;
-        for (Map.Entry<Integer, NameStringNode> integerNameStringNodeEntry : new TreeMap<>(chunkHeader.getNameStrings()).entrySet()) {
+        for (final Map.Entry<Integer, NameStringNode> integerNameStringNodeEntry : new TreeMap<>(chunkHeader.getNameStrings()).entrySet()) {
             assertEquals(Integer.toString(count++), integerNameStringNodeEntry.getValue().getString());
         }
 
-        Iterator<String> iterator = guids.iterator();
-        for (Map.Entry<Integer, TemplateNode> integerTemplateNodeEntry : new TreeMap<>(chunkHeader.getTemplateNodes()).entrySet()) {
+        final Iterator<String> iterator = guids.iterator();
+        for (final Map.Entry<Integer, TemplateNode> integerTemplateNodeEntry : new TreeMap<>(chunkHeader.getTemplateNodes()).entrySet()) {
             assertEquals(iterator.next(), integerTemplateNodeEntry.getValue().getGuid());
         }
 
         assertTrue(chunkHeader.hasNext());
 
-        Record next = chunkHeader.next();
+        final Record next = chunkHeader.next();
         assertEquals(logLastRecordNumber, next.getRecordNum().intValue());
-        RootNode rootNode = next.getRootNode();
-        List<BxmlNode> children = rootNode.getChildren();
+        final RootNode rootNode = next.getRootNode();
+        final List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());
         assertInstanceOf(EndOfStreamNode.class, children.get(0));
         assertEquals(0, rootNode.getSubstitutions().size());

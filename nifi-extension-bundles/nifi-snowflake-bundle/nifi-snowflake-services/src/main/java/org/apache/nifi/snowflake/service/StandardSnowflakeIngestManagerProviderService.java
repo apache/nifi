@@ -163,7 +163,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         final String host = accountIdentifierFormat.getHostname(parameters);
         try {
             ingestManager = new SimpleIngestManager(account, user, fullyQualifiedPipeName, privateKey, "https", host, 443);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (final NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new InitializationException("Failed create Snowflake ingest manager", e);
         }
     }
@@ -187,7 +187,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("account-identifier-format", ACCOUNT_IDENTIFIER_FORMAT.getName());
         config.renameProperty("host-url", HOST_URL.getName());
         config.renameProperty("user-name", USER_NAME.getName());
@@ -202,7 +202,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
     }
 
-    private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {
+    private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(final ConfigurationContext context) {
         return new AccountIdentifierFormatParameters(
                 context.getProperty(HOST_URL).evaluateAttributeExpressions().getValue(),
                 context.getProperty(ORGANIZATION_NAME).evaluateAttributeExpressions().getValue(),

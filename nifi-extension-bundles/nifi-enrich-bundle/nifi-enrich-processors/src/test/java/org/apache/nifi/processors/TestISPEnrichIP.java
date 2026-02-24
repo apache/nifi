@@ -70,8 +70,8 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -95,13 +95,13 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip.isp.name"));
         assertEquals("Apache NiFi - Test Organization", finishedFound.getAttribute("ip.isp.organization"));
@@ -125,13 +125,13 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertNotNull(finishedFound.getAttribute("ip.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip.isp.name"));
@@ -156,13 +156,13 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(0, notFound.size());
         assertEquals(1, found.size());
 
-        FlowFile finishedFound = found.getFirst();
+        final FlowFile finishedFound = found.getFirst();
         assertNotNull(finishedFound.getAttribute("ip0.isp.lookup.micros"));
         assertEquals("Apache NiFi - Test ISP", finishedFound.getAttribute("ip0.isp.name"));
         assertEquals("Apache NiFi - Test Organization", finishedFound.getAttribute("ip0.isp.organization"));
@@ -185,8 +185,8 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -206,8 +206,8 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -227,8 +227,8 @@ public class TestISPEnrichIP {
 
         testRunner.run();
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -251,8 +251,8 @@ public class TestISPEnrichIP {
             testRunner.run();
         }
 
-        List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
-        List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
+        final List<MockFlowFile> notFound = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_NOT_FOUND);
+        final List<MockFlowFile> found = testRunner.getFlowFilesForRelationship(ISPEnrichIP.REL_FOUND);
 
         assertEquals(1, notFound.size());
         assertEquals(0, found.size());
@@ -262,7 +262,7 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponse() throws Exception {
-        String maxMindIspResponse = JSON.std
+        final String maxMindIspResponse = JSON.std
                 .composeString()
                 .startObject()
                 .put("autonomous_system_number", 1337)
@@ -274,8 +274,8 @@ public class TestISPEnrichIP {
                 .end()
                 .finish();
 
-        InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
-        ObjectMapper mapper = new ObjectMapper();
+        final InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
@@ -294,8 +294,8 @@ public class TestISPEnrichIP {
                 .end()
                 .finish();
 
-        InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
-        ObjectMapper mapper = new ObjectMapper();
+        final InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
+        final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
@@ -304,7 +304,7 @@ public class TestISPEnrichIP {
     class TestableIspEnrichIP extends ISPEnrichIP {
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) {
+        public void onScheduled(final ProcessContext context) {
             databaseReaderRef.set(databaseReader);
         }
     }

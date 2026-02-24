@@ -262,7 +262,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     @Override
-    public void onTrigger(ReportingContext context) {
+    public void onTrigger(final ReportingContext context) {
         final boolean isClustered = context.isClustered();
         final String nodeId = context.getClusterNodeIdentifier();
         if (nodeId == null && isClustered) {
@@ -281,7 +281,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("s2s-prov-task-event-filter", FILTER_EVENT_TYPE.getName());
         config.renameProperty("s2s-prov-task-event-filter-exclude", FILTER_EVENT_TYPE_EXCLUDE.getName());
         config.renameProperty("s2s-prov-task-type-filter", FILTER_COMPONENT_TYPE.getName());
@@ -312,10 +312,10 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
         final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
-        URL url;
+        final URL url;
         try {
             url = URI.create(nifiUrl).toURL();
-        } catch (IllegalArgumentException | MalformedURLException e) {
+        } catch (final IllegalArgumentException | MalformedURLException e) {
             throw new AssertionError();
         }
 
@@ -325,7 +325,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         CreateConsumer(context);
         consumer.consumeEvents(context, (mapHolder, events) -> {
-            StringBuilder stringBuilder = new StringBuilder();
+            final StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append('[');
             for (final ProvenanceEventRecord event : events) {
                 final String componentName = mapHolder.getComponentName(event.getComponentId());
@@ -342,7 +342,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 stringBuilder.deleteCharAt(stringBuilder.length() - 1);
             }
             stringBuilder.append(']');
-            String str = stringBuilder.toString();
+            final String str = stringBuilder.toString();
             if (!str.equals("[]")) {
                 final HttpPost httpPost = new HttpPost(dataCollectorEndpoint);
                 httpPost.addHeader("Content-Type", "application/json");
@@ -363,7 +363,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
             final ProvenanceEventRecord event, final String componentName,
             final String processGroupId, final String processGroupName, final String hostname,
             final URL nifiUrl, final String applicationName, final String platform,
-            final String nodeIdentifier, Boolean allowNullValues) {
+            final String nodeIdentifier, final Boolean allowNullValues) {
         addField(builder, "eventId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "eventOrdinal", event.getEventId(), allowNullValues);
         addField(builder, "eventType", event.getEventType().name(), allowNullValues);
@@ -420,7 +420,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     public static void addField(final JsonObjectBuilder builder, final String key, final Object value,
-            boolean allowNullValues) {
+            final boolean allowNullValues) {
         switch (value) {
             case String s -> builder.add(key, s);
             case Integer i -> builder.add(key, i);
@@ -436,7 +436,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     public static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key,
-            final Map<String, String> values, Boolean allowNullValues) {
+            final Map<String, String> values, final Boolean allowNullValues) {
         if (values != null) {
             final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
             for (final Map.Entry<String, String> entry : values.entrySet()) {
@@ -459,7 +459,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     public static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key,
-            final Collection<String> values, Boolean allowNullValues) {
+            final Collection<String> values, final Boolean allowNullValues) {
         if (values != null) {
             builder.add(key, createJsonArray(factory, values));
         } else if (allowNullValues) {
@@ -467,7 +467,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         }
     }
 
-    private static JsonArrayBuilder createJsonArray(JsonBuilderFactory factory, final Collection<String> values) {
+    private static JsonArrayBuilder createJsonArray(final JsonBuilderFactory factory, final Collection<String> values) {
         final JsonArrayBuilder builder = factory.createArrayBuilder();
         for (final String value : values) {
             if (value != null) {

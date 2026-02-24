@@ -24,14 +24,14 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 public class MathTypeUtils {
-    public static FieldValue toNumber(FieldValue fieldValue) {
-        Number result = coerceNumber(fieldValue);
-        DataType resultType = isLongCompatible(result) ? RecordFieldType.LONG.getDataType() : RecordFieldType.DOUBLE.getDataType();
+    public static FieldValue toNumber(final FieldValue fieldValue) {
+        final Number result = coerceNumber(fieldValue);
+        final DataType resultType = isLongCompatible(result) ? RecordFieldType.LONG.getDataType() : RecordFieldType.DOUBLE.getDataType();
 
         return new StandardFieldValue(result, new RecordField("toNumber", resultType), null);
     }
 
-    public static Number coerceNumber(FieldValue fieldValue) {
+    public static Number coerceNumber(final FieldValue fieldValue) {
         final Object value = fieldValue.getValue();
 
         if (value instanceof Number) {
@@ -50,7 +50,7 @@ public class MathTypeUtils {
         throw new IllegalArgumentException("Cannot coerce field '" + fieldName + "' to number");
     }
 
-    public static boolean isLongCompatible(Number value) {
+    public static boolean isLongCompatible(final Number value) {
         return (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte);
     }
 }

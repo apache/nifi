@@ -21,15 +21,15 @@ package org.apache.nifi.admin.service;
  */
 public class AdministrationException extends RuntimeException {
 
-    public AdministrationException(Throwable cause) {
+    public AdministrationException(final Throwable cause) {
         super(cause);
     }
 
-    public AdministrationException(String message, Throwable cause) {
+    public AdministrationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public AdministrationException(String message) {
+    public AdministrationException(final String message) {
         super(message);
     }
 

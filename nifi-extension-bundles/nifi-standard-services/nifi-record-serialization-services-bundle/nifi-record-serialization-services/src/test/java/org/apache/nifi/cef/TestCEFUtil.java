@@ -101,7 +101,7 @@ public class TestCEFUtil {
         return result;
     }
 
-    static List<RecordField> getFieldsWithCustomExtensions(RecordField... customExtensions) {
+    static List<RecordField> getFieldsWithCustomExtensions(final RecordField... customExtensions) {
         final List<RecordField> result = TestCEFUtil.getFieldWithExtensions();
 
         Collections.addAll(result, customExtensions);

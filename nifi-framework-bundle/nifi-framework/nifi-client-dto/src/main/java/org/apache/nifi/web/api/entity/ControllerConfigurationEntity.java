@@ -46,7 +46,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
         }
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
 
@@ -62,7 +62,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
     }
 
     @Override
-    public void setComponent(ControllerConfigurationDTO controllerConfiguration) {
+    public void setComponent(final ControllerConfigurationDTO controllerConfiguration) {
         this.controllerConfiguration = controllerConfiguration;
     }
 
@@ -78,7 +78,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
     }
 
     @Override
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -88,7 +88,7 @@ public class ControllerConfigurationEntity extends Entity implements Permissible
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

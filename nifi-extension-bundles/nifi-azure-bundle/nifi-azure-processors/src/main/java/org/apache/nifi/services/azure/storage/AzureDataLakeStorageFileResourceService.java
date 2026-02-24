@@ -105,7 +105,7 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
     }
 
     @Override
-    public FileResource getFileResource(Map<String, String> attributes) {
+    public FileResource getFileResource(final Map<String, String> attributes) {
         final DataLakeServiceClient client = getStorageClient(attributes);
         try {
             return fetchFile(client, attributes);
@@ -115,13 +115,13 @@ public class AzureDataLakeStorageFileResourceService extends AbstractControllerS
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName());
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
         config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
     }
 
-    protected DataLakeServiceClient getStorageClient(Map<String, String> attributes) {
+    protected DataLakeServiceClient getStorageClient(final Map<String, String> attributes) {
         final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE)
                 .asControllerService(ADLSCredentialsService.class);
         return clientFactory.getStorageClient(credentialsService.getCredentialsDetails(attributes));

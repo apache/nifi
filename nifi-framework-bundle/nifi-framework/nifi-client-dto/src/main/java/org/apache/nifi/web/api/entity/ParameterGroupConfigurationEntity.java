@@ -62,7 +62,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
         return parameterSensitivities;
     }
 
-    public void setParameterSensitivities(Map<String, ParameterSensitivity> parameterSensitivities) {
+    public void setParameterSensitivities(final Map<String, ParameterSensitivity> parameterSensitivities) {
         this.parameterSensitivities = parameterSensitivities;
     }
 
@@ -72,7 +72,7 @@ public class ParameterGroupConfigurationEntity extends Entity implements Compara
         return isSynchronized;
     }
 
-    public void setSynchronized(Boolean aSynchronized) {
+    public void setSynchronized(final Boolean aSynchronized) {
         isSynchronized = aSynchronized;
     }
 

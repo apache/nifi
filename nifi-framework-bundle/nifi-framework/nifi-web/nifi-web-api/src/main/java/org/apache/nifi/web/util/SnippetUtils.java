@@ -97,7 +97,7 @@ public final class SnippetUtils {
      * @return snippet
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
+    public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, final boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
         final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
@@ -236,7 +236,7 @@ public final class SnippetUtils {
         // add any process groups
         final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
         if (!snippet.getProcessGroups().isEmpty()) {
-            Set<String> snippetGroupIds = snippet.getProcessGroups().keySet();
+            final Set<String> snippetGroupIds = snippet.getProcessGroups().keySet();
 
             for (final ProcessGroupDTO group: highestProcessGroupDTO.getContents().getProcessGroups()) {
                 if (snippetGroupIds.contains(group.getId())) {
@@ -251,7 +251,7 @@ public final class SnippetUtils {
                     throw new IllegalStateException("A process group in this snippet could not be found.");
                 }
 
-                ProcessGroupDTO childGroupDto = contentsByGroup.get(childGroupId);
+                final ProcessGroupDTO childGroupDto = contentsByGroup.get(childGroupId);
 
                 // maintain a listing of visited groups starting with each group in the snippet. this is used to determine
                 // whether a referenced controller service should be included in the resulting snippet. if the service is
@@ -342,7 +342,7 @@ public final class SnippetUtils {
                     svc.setParentGroupId(destinationGroupId);
                     final FlowSnippetDTO snippetDto = contentsByGroup.get(destinationGroupId).getContents();
                     if (snippetDto != null) {
-                        Set<ControllerServiceDTO> services = snippetDto.getControllerServices();
+                        final Set<ControllerServiceDTO> services = snippetDto.getControllerServices();
                         if (services == null) {
                             snippetDto.setControllerServices(Collections.singleton(svc));
                         } else {
@@ -354,9 +354,9 @@ public final class SnippetUtils {
         }
 
         // include services referenced by processor group but not by any processors
-        for (ControllerServiceNode csNode : group.getControllerServices(false)) {
+        for (final ControllerServiceNode csNode : group.getControllerServices(false)) {
             if (csNode != null) {
-                ControllerServiceDTO serviceDto = dtoFactory.createControllerServiceDto(csNode);
+                final ControllerServiceDTO serviceDto = dtoFactory.createControllerServiceDto(csNode);
                 if (allServicesReferenced.add(serviceDto)) {
                     contents.getControllerServices().add(serviceDto);
                 }
@@ -399,7 +399,7 @@ public final class SnippetUtils {
         return serviceDtos;
     }
 
-    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, boolean isCopy) {
+    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, final boolean isCopy) {
         final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);
         resolveNameConflicts(snippetCopy, group);
         removeTopLevelVersionedIds(snippetContents);
@@ -501,16 +501,11 @@ public final class SnippetUtils {
     }
 
     private FlowSnippetDTO copyContentsForGroup(final FlowSnippetDTO snippetContents, final String groupId, final Map<String, ConnectableDTO> parentConnectableMap,
-                                                Map<String, String> serviceIdMap, final String idGenerationSeed, boolean isCopy) {
+                                                final Map<String, String> serviceIdMapArg, final String idGenerationSeed, final boolean isCopy) {
 
+        final Map<String, String> serviceIdMap = serviceIdMapArg != null ? serviceIdMapArg : new HashMap<>();
         final FlowSnippetDTO snippetContentsCopy = new FlowSnippetDTO();
         try {
-            //
-            // Copy the Controller Services
-            //
-            if (serviceIdMap == null) {
-                serviceIdMap = new HashMap<>();
-            }
 
             final Set<ControllerServiceDTO> services = new HashSet<>();
             if (snippetContents.getControllerServices() != null) {
@@ -791,7 +786,7 @@ public final class SnippetUtils {
             snippetContentsCopy.setConnections(connections);
 
             return snippetContentsCopy;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // attempt to role back any policies of the copies that were created in preparation for the clone
             rollbackClonedPolicies(snippetContentsCopy);
 
@@ -986,12 +981,12 @@ public final class SnippetUtils {
      * - If seed is NOT provided and 'isCopy' flag is NOT set the new ID will be generated from
      *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'.
      */
-    private String generateId(final String currentId, final String seed, boolean isCopy) {
-        long msb = UUID.fromString(currentId).getMostSignificantBits();
+    private String generateId(final String currentId, final String seed, final boolean isCopy) {
+        final long msb = UUID.fromString(currentId).getMostSignificantBits();
 
-        UUID uuid;
+        final UUID uuid;
         if (StringUtils.isBlank(seed)) {
-            long lsb = randomGenerator.nextLong();
+            final long lsb = randomGenerator.nextLong();
             if (isCopy) {
                 uuid = ComponentIdGenerator.generateId(msb, lsb, true); // will increment msb if necessary
             } else {
@@ -999,7 +994,7 @@ public final class SnippetUtils {
                 uuid = new UUID(msb, lsb);
             }
         } else {
-            UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
+            final UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
             if (isCopy) {
                 // will ensure the type-one semantics for new UUID generated from msb extracted from seedId
                 uuid = ComponentIdGenerator.generateId(seedId.getMostSignificantBits(), seedId.getLeastSignificantBits(), false);
@@ -1020,7 +1015,7 @@ public final class SnippetUtils {
         this.flowController = flowController;
     }
 
-    public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
+    public void setAccessPolicyDAO(final AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
     }
 
@@ -1031,11 +1026,11 @@ public final class SnippetUtils {
      * each component ensuring that coordinates are consistent across export
      * while preserving relative locations set by the user.
      */
-    private void normalizeCoordinates(Collection<? extends ComponentDTO> components) {
+    private void normalizeCoordinates(final Collection<? extends ComponentDTO> components) {
         // determine the smallest x,y coordinates in the collection of components
         double smallestX = Double.MAX_VALUE;
         double smallestY = Double.MAX_VALUE;
-        for (ComponentDTO component : components) {
+        for (final ComponentDTO component : components) {
             // Connections don't have positions themselves but their bendpoints do, so we need
             // to check those bend points for the smallest x,y coordinates
             if (component instanceof ConnectionDTO) {
@@ -1051,7 +1046,7 @@ public final class SnippetUtils {
         }
 
         // position the components accordingly
-        for (ComponentDTO component : components) {
+        for (final ComponentDTO component : components) {
             if (component instanceof ConnectionDTO) {
                 final ConnectionDTO connection = (ConnectionDTO) component;
                 for (final PositionDTO position : connection.getBends()) {

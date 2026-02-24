@@ -39,8 +39,8 @@ public class JsonFileServiceAccountCredentialsStrategy extends AbstractServiceAc
     }
 
     @Override
-    protected InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException {
-        String serviceAccountFile = properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE);
+    protected InputStream getServiceAccountJson(final Map<PropertyDescriptor, String> properties) throws IOException {
+        final String serviceAccountFile = properties.get(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE);
         return new BufferedInputStream(Files.newInputStream(Paths.get(serviceAccountFile)));
     }
 }

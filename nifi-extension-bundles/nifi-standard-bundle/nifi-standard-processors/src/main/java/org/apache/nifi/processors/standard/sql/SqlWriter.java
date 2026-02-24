@@ -57,7 +57,7 @@ public interface SqlWriter {
      * Updates any session counters as a result of processing result sets. The default implementation is empty, no counters will be updated.
      * @param session the session upon which to update counters
      */
-    default void updateCounters(ProcessSession session) {
+    default void updateCounters(final ProcessSession session) {
     }
 
     /**

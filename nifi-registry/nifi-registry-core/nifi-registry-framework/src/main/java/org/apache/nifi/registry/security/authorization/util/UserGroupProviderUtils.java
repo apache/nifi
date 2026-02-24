@@ -39,8 +39,8 @@ public final class UserGroupProviderUtils {
 
     public static Set<String> getInitialUserIdentities(final AuthorizerConfigurationContext configurationContext, final IdentityMapper identityMapper) {
         final Set<String> initialUserIdentities = new HashSet<>();
-        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-            Matcher matcher = UserGroupProviderUtils.INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey());
+        for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            final Matcher matcher = UserGroupProviderUtils.INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 initialUserIdentities.add(identityMapper.mapUser(entry.getValue()));
             }
@@ -55,8 +55,8 @@ public final class UserGroupProviderUtils {
      * @return the Map from user identifier to User
      */
     public static Map<String, User> createUserByIdMap(final Set<User> users) {
-        Map<String, User> usersMap = new HashMap<>();
-        for (User user : users) {
+        final Map<String, User> usersMap = new HashMap<>();
+        for (final User user : users) {
             usersMap.put(user.getIdentifier(), user);
         }
         return usersMap;
@@ -69,8 +69,8 @@ public final class UserGroupProviderUtils {
      * @return the map from user identity to User
      */
     public static Map<String, User> createUserByIdentityMap(final Set<User> users) {
-        Map<String, User> usersMap = new HashMap<>();
-        for (User user : users) {
+        final Map<String, User> usersMap = new HashMap<>();
+        for (final User user : users) {
             usersMap.put(user.getIdentity(), user);
         }
         return usersMap;
@@ -83,8 +83,8 @@ public final class UserGroupProviderUtils {
      * @return the map from group identifier to Group
      */
     public static Map<String, Group> createGroupByIdMap(final Set<Group> groups) {
-        Map<String, Group> groupsMap = new HashMap<>();
-        for (Group group : groups) {
+        final Map<String, Group> groupsMap = new HashMap<>();
+        for (final Group group : groups) {
             groupsMap.put(group.getIdentifier(), group);
         }
         return groupsMap;
@@ -98,12 +98,12 @@ public final class UserGroupProviderUtils {
      * @return a Map from User identity to the set of Groups for that identity
      */
     public static Map<String, Set<Group>> createGroupsByUserIdentityMap(final Set<Group> groups, final Set<User> users) {
-        Map<String, Set<Group>> groupsByUserIdentity = new HashMap<>();
+        final Map<String, Set<Group>> groupsByUserIdentity = new HashMap<>();
 
-        for (User user : users) {
-            Set<Group> userGroups = new HashSet<>();
-            for (Group group : groups) {
-                for (String groupUser : group.getUsers()) {
+        for (final User user : users) {
+            final Set<Group> userGroups = new HashSet<>();
+            for (final Group group : groups) {
+                for (final String groupUser : group.getUsers()) {
                     if (groupUser.equals(user.getIdentifier())) {
                         userGroups.add(group);
                     }

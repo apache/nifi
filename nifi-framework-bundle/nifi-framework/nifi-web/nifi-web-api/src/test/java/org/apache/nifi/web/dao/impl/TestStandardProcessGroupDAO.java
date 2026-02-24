@@ -74,10 +74,10 @@ public class TestStandardProcessGroupDAO {
     @Test
     public void testCreateProcessGroup() {
         //GIVEN
-        ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
+        final ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
         parameterContextReferenceEntity.setId(PARAMETER_CONTEXT_ID);
 
-        ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
+        final ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
         processGroupDTO.setId(PROCESS_GROUP_ID);
         processGroupDTO.setName(PROCESS_GROUP_NAME);
         processGroupDTO.setComments(PROCESS_GROUP_COMMENTS);
@@ -85,7 +85,7 @@ public class TestStandardProcessGroupDAO {
         processGroupDTO.setParameterContext(parameterContextReferenceEntity);
 
         //WHEN
-        ProcessGroup createdProcessGroup = testSubject.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
+        final ProcessGroup createdProcessGroup = testSubject.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
 
         //THEN
         verify(createdProcessGroup).setParent(parentProcessGroup);

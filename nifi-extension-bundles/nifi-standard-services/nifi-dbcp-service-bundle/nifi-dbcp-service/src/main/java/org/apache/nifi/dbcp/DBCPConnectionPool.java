@@ -156,7 +156,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
     }
 
     @Override
-    protected DataSourceConfiguration getDataSourceConfiguration(ConfigurationContext context) {
+    protected DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context) {
         final String url = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
@@ -206,7 +206,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
     }
 
     @Override
-    protected Map<String, String> getConnectionProperties(ConfigurationContext context) {
+    protected Map<String, String> getConnectionProperties(final ConfigurationContext context) {
         return getDynamicProperties(context)
                 .stream()
                 .map(descriptor -> {
@@ -241,13 +241,13 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                 if (getConfigurationContext() != null) {
                     driverResources = getConfigurationContext().getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
                 }
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 // Context might not be available, continue without it
             }
 
             final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? DriverUtils.discoverDriverClasses(driverResources) : List.of();
 
-            StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverName));
+            final StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverName));
 
             if (!availableDrivers.isEmpty()) {
                 errorMessage.append(" Available driver classes found in resources: %s.".formatted(String.join(", ", availableDrivers)));
@@ -297,7 +297,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         try {
             // We need to deregister the driver to allow the InstanceClassLoader to be garbage collected.
             DriverManager.deregisterDriver(registeredDriver);
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             getLogger().warn("Potential memory leak: Driver could not be deregistered [{}]", registeredDriver, e);
         }
     }

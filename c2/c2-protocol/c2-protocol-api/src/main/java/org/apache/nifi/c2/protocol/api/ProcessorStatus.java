@@ -44,7 +44,7 @@ public class ProcessorStatus implements Serializable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -53,7 +53,7 @@ public class ProcessorStatus implements Serializable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -62,7 +62,7 @@ public class ProcessorStatus implements Serializable {
         return bytesRead;
     }
 
-    public void setBytesRead(long bytesRead) {
+    public void setBytesRead(final long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -71,7 +71,7 @@ public class ProcessorStatus implements Serializable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(long bytesWritten) {
+    public void setBytesWritten(final long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -80,7 +80,7 @@ public class ProcessorStatus implements Serializable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(long flowFilesIn) {
+    public void setFlowFilesIn(final long flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -89,7 +89,7 @@ public class ProcessorStatus implements Serializable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(long flowFilesOut) {
+    public void setFlowFilesOut(final long flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -98,7 +98,7 @@ public class ProcessorStatus implements Serializable {
         return bytesIn;
     }
 
-    public void setBytesIn(long bytesIn) {
+    public void setBytesIn(final long bytesIn) {
         this.bytesIn = bytesIn;
     }
 
@@ -107,7 +107,7 @@ public class ProcessorStatus implements Serializable {
         return bytesOut;
     }
 
-    public void setBytesOut(long bytesOut) {
+    public void setBytesOut(final long bytesOut) {
         this.bytesOut = bytesOut;
     }
 
@@ -116,7 +116,7 @@ public class ProcessorStatus implements Serializable {
         return invocations;
     }
 
-    public void setInvocations(int invocations) {
+    public void setInvocations(final int invocations) {
         this.invocations = invocations;
     }
 
@@ -125,7 +125,7 @@ public class ProcessorStatus implements Serializable {
         return processingNanos;
     }
 
-    public void setProcessingNanos(long processingNanos) {
+    public void setProcessingNanos(final long processingNanos) {
         this.processingNanos = processingNanos;
     }
 
@@ -134,7 +134,7 @@ public class ProcessorStatus implements Serializable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(int activeThreadCount) {
+    public void setActiveThreadCount(final int activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -143,7 +143,7 @@ public class ProcessorStatus implements Serializable {
         return terminatedThreadCount;
     }
 
-    public void setTerminatedThreadCount(int terminatedThreadCount) {
+    public void setTerminatedThreadCount(final int terminatedThreadCount) {
         this.terminatedThreadCount = terminatedThreadCount;
     }
 
@@ -152,7 +152,7 @@ public class ProcessorStatus implements Serializable {
         return runStatus;
     }
 
-    public void setRunStatus(RunStatus runStatus) {
+    public void setRunStatus(final RunStatus runStatus) {
         this.runStatus = runStatus;
     }
 }

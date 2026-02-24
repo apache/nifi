@@ -74,7 +74,7 @@ public class RegistryFlowVersionsResult extends AbstractWritableResult<Versioned
                 .build();
 
         for (int i = 0; i < flowVersionsMetadata.size(); i++) {
-            RegisteredFlowSnapshotMetadata vfs = flowVersionsMetadata.get(i);
+            final RegisteredFlowSnapshotMetadata vfs = flowVersionsMetadata.get(i);
             table.addRow(
                     "" + (i + 1),
                     vfs.getVersion(),

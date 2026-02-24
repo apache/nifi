@@ -36,7 +36,7 @@ public class AnalyzeFlowRequestEntity extends Entity {
         return analyzeFlowRequest;
     }
 
-    public void setAnalyzeFlowRequest(AnalyzeFlowRequestDTO analyzeFlowRequest) {
+    public void setAnalyzeFlowRequest(final AnalyzeFlowRequestDTO analyzeFlowRequest) {
         this.analyzeFlowRequest = analyzeFlowRequest;
     }
 

@@ -30,13 +30,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public interface OutputChecker {
     TestRunner getTestRunner();
 
-    default void checkAttributes(Relationship relationship, Set<Map<String, String>> expectedAttributes) {
+    default void checkAttributes(final Relationship relationship, final Set<Map<String, String>> expectedAttributes) {
         getTestRunner().assertTransferCount(relationship, expectedAttributes.size());
-        List<MockFlowFile> flowFiles = getTestRunner().getFlowFilesForRelationship(relationship);
+        final List<MockFlowFile> flowFiles = getTestRunner().getFlowFilesForRelationship(relationship);
 
-        Set<String> checkedAttributeNames = getCheckedAttributeNames();
+        final Set<String> checkedAttributeNames = getCheckedAttributeNames();
 
-        Set<Map<String, String>> actualAttributes = flowFiles.stream()
+        final Set<Map<String, String>> actualAttributes = flowFiles.stream()
                 .map(flowFile -> flowFile.getAttributes().entrySet().stream()
                         .filter(attributeNameAndValue -> checkedAttributeNames.contains(attributeNameAndValue.getKey()))
                         .filter(entry -> entry.getKey() != null && entry.getValue() != null)
@@ -50,11 +50,11 @@ public interface OutputChecker {
 
     Set<String> getCheckedAttributeNames();
 
-    default void checkContent(Relationship relationship, List<String> expectedContent) {
+    default void checkContent(final Relationship relationship, final List<String> expectedContent) {
         getTestRunner().assertTransferCount(relationship, expectedContent.size());
-        List<MockFlowFile> flowFiles = getTestRunner().getFlowFilesForRelationship(relationship);
+        final List<MockFlowFile> flowFiles = getTestRunner().getFlowFilesForRelationship(relationship);
 
-        List<String> actualContent = flowFiles.stream()
+        final List<String> actualContent = flowFiles.stream()
                 .map(flowFile -> flowFile.getContent())
                 .collect(Collectors.toList());
 

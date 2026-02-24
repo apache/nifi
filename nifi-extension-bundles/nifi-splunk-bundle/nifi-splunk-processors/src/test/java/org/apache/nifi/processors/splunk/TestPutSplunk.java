@@ -280,7 +280,7 @@ public class TestPutSplunk {
         runner.setProperty(PutSplunk.PROTOCOL, protocol.name());
         final byte[] delimiter = OUTGOING_MESSAGE_DELIMITER.getBytes(CHARSET);
 
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), 0, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), 0, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
@@ -289,8 +289,8 @@ public class TestPutSplunk {
 
     private void checkReceivedAllData(final String... sentData) throws Exception {
         // check each sent FlowFile was successfully sent and received.
-        for (String item : sentData) {
-            ByteArrayMessage packet = messages.take();
+        for (final String item : sentData) {
+            final ByteArrayMessage packet = messages.take();
             assertNotNull(packet);
             assertArrayEquals(item.getBytes(), packet.getMessage());
         }
@@ -301,7 +301,7 @@ public class TestPutSplunk {
     private InetAddress getListenAddress() {
         try {
             return InetAddress.getByName(LOCALHOST);
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             throw new IllegalArgumentException(e);
         }
     }

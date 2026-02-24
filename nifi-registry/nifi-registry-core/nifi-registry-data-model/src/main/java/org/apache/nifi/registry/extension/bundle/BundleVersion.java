@@ -47,7 +47,7 @@ public class BundleVersion extends LinkableEntity {
         return versionMetadata;
     }
 
-    public void setVersionMetadata(BundleVersionMetadata versionMetadata) {
+    public void setVersionMetadata(final BundleVersionMetadata versionMetadata) {
         this.versionMetadata = versionMetadata;
     }
 
@@ -56,7 +56,7 @@ public class BundleVersion extends LinkableEntity {
         return dependencies;
     }
 
-    public void setDependencies(Set<BundleVersionDependency> dependencies) {
+    public void setDependencies(final Set<BundleVersionDependency> dependencies) {
         this.dependencies = dependencies;
     }
 
@@ -65,7 +65,7 @@ public class BundleVersion extends LinkableEntity {
         return bundle;
     }
 
-    public void setBundle(Bundle bundle) {
+    public void setBundle(final Bundle bundle) {
         this.bundle = bundle;
     }
 
@@ -74,7 +74,7 @@ public class BundleVersion extends LinkableEntity {
         return bucket;
     }
 
-    public void setBucket(Bucket bucket) {
+    public void setBucket(final Bucket bucket) {
         this.bucket = bucket;
     }
 

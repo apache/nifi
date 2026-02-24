@@ -89,7 +89,7 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("delete-gridfs-query", QUERY.getName());
         config.renameProperty("gridfs-file-name", FILE_NAME.getName());
@@ -97,10 +97,10 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        List<ValidationResult> problems = new ArrayList<>();
+        final List<ValidationResult> problems = new ArrayList<>();
 
-        boolean fileName = validationContext.getProperty(FILE_NAME).isSet();
-        boolean query    = validationContext.getProperty(QUERY).isSet();
+        final boolean fileName = validationContext.getProperty(FILE_NAME).isSet();
+        final boolean query    = validationContext.getProperty(QUERY).isSet();
 
         if (fileName && query) {
             problems.add(new ValidationResult.Builder()
@@ -119,10 +119,10 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
         return problems;
     }
 
-    private String getQuery(ProcessContext context, FlowFile input) {
-        String queryString;
+    private String getQuery(final ProcessContext context, final FlowFile input) {
+        final String queryString;
         if (context.getProperty(FILE_NAME).isSet()) {
-            String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
+            final String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
             queryString = String.format("{ \"filename\": \"%s\"}", fileName);
         } else {
             queryString = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
@@ -132,12 +132,12 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
         if (input == null) {
             return;
@@ -147,13 +147,13 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
         final String queryAttribute = context.getProperty(QUERY_ATTRIBUTE).isSet()
                 ? context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue()
                 : null;
-        GridFSBucket bucket = getBucket(input, context);
+        final GridFSBucket bucket = getBucket(input, context);
 
         try {
-            Document query = Document.parse(deleteQuery);
-            MongoCursor cursor = bucket.find(query).iterator();
+            final Document query = Document.parse(deleteQuery);
+            final MongoCursor cursor = bucket.find(query).iterator();
             if (cursor.hasNext()) {
-                GridFSFile file = (GridFSFile) cursor.next();
+                final GridFSFile file = (GridFSFile) cursor.next();
                 bucket.delete(file.getObjectId());
 
                 if (!StringUtils.isEmpty(queryAttribute)) {
@@ -167,7 +167,7 @@ public class DeleteGridFS extends AbstractGridFSProcessor {
             }
 
             cursor.close();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Error deleting using query: {}", deleteQuery, ex);
             session.transfer(input, REL_FAILURE);
         }

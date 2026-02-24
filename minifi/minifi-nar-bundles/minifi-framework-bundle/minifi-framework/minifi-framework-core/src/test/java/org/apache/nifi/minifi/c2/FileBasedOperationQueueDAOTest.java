@@ -64,7 +64,7 @@ class FileBasedOperationQueueDAOTest {
 
     @Test
     void shouldSaveRequestedOperationsToFile() throws IOException {
-        OperationQueue operationQueue = getOperationQueue();
+        final OperationQueue operationQueue = getOperationQueue();
         fileBasedRequestedOperationDAO.save(operationQueue);
 
         verify(objectMapper).writeValue(any(File.class), eq(operationQueue));
@@ -95,20 +95,20 @@ class FileBasedOperationQueueDAOTest {
     void shouldGetRequestedOperations() throws IOException {
         new File(tmpDir.getAbsolutePath() + "/" + REQUESTED_OPERATIONS_FILE_NAME).createNewFile();
 
-        OperationQueue operationQueue = getOperationQueue();
+        final OperationQueue operationQueue = getOperationQueue();
         when(objectMapper.readValue(any(File.class), eq(OperationQueue.class))).thenReturn(operationQueue);
 
         assertEquals(Optional.of(operationQueue), fileBasedRequestedOperationDAO.load());
     }
 
     private OperationQueue getOperationQueue() {
-        C2Operation c2Operation = new C2Operation();
+        final C2Operation c2Operation = new C2Operation();
         c2Operation.setIdentifier("id");
         c2Operation.setOperation(OperationType.TRANSFER);
         c2Operation.setOperand(OperandType.DEBUG);
         c2Operation.setArgs(Collections.singletonMap("key", "value"));
 
-        C2Operation currentOperation = new C2Operation();
+        final C2Operation currentOperation = new C2Operation();
         currentOperation.setIdentifier("id2");
 
         return new OperationQueue(currentOperation, List.of(c2Operation));

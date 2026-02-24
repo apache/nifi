@@ -137,7 +137,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
     @Override
-    public ProtocolMessage handle(final ProtocolMessage msg, Set<String> nodeIds) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage msg, final Set<String> nodeIds) throws ProtocolException {
         return switch (msg.getType()) {
             case HEARTBEAT -> handleHeartbeat((HeartbeatMessage) msg);
             case CLUSTER_WORKLOAD_REQUEST -> handleClusterWorkload((ClusterWorkloadRequestMessage) msg);
@@ -190,7 +190,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         getLatestHeartbeats().values().stream()
             .filter(hb -> NodeConnectionState.CONNECTED.equals(hb.getConnectionStatus().getState()))
             .forEach(hb -> {
-                NodeWorkload wl = new NodeWorkload();
+                final NodeWorkload wl = new NodeWorkload();
                 wl.setReportedTimestamp(hb.getTimestamp());
                 wl.setSystemStartTime(hb.getSystemStartTime());
                 wl.setActiveThreadCount(hb.getActiveThreadCount());
@@ -243,7 +243,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
     @Override
-    public boolean canHandle(ProtocolMessage msg) {
+    public boolean canHandle(final ProtocolMessage msg) {
         return msg.getType() == MessageType.HEARTBEAT || msg.getType() == MessageType.CLUSTER_WORKLOAD_REQUEST || msg.getType() == MessageType.NODE_STATUSES_REQUEST;
     }
 }

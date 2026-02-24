@@ -162,7 +162,7 @@ public class HikariCPConnectionPoolTest {
         runner.setProperty(service, HikariCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
         runner.enableControllerService(service);
         runner.assertValid(service);
-        MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
+        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();
         final ControllerServiceConfiguration configuration = processContext.getConfiguration(service.getIdentifier());
         final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), processContext, Collections.emptyMap());
         final List<ConfigVerificationResult> results = service.verify(configContext, runner.getLogger(), configContext.getAllProperties());

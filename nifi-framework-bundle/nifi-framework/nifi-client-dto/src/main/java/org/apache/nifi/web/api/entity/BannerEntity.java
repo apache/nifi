@@ -36,7 +36,7 @@ public class BannerEntity extends Entity {
         return banners;
     }
 
-    public void setBanners(BannerDTO about) {
+    public void setBanners(final BannerDTO about) {
         this.banners = about;
     }
 

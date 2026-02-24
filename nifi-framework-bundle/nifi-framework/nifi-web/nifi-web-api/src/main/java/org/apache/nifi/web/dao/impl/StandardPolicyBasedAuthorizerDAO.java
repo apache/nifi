@@ -66,12 +66,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+                public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                 }
 
                 @Override
-                public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+                public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                 }
 
@@ -84,12 +84,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                         }
 
                         @Override
-                        public User getUser(String identifier) throws AuthorizationAccessException {
+                        public User getUser(final String identifier) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }
 
                         @Override
-                        public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                        public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }
 
@@ -99,27 +99,27 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                         }
 
                         @Override
-                        public Group getGroup(String identifier) throws AuthorizationAccessException {
+                        public Group getGroup(final String identifier) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }
 
                         @Override
-                        public Group getGroupByName(String name) throws AuthorizationAccessException {
+                        public Group getGroupByName(final String name) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }
 
                         @Override
-                        public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+                        public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
                             throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                         }
 
                         @Override
-                        public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+                        public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
 
                         }
 
                         @Override
-                        public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                        public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
                         }
 
@@ -131,12 +131,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+                public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
 
                 }
 
                 @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
                 }
 
@@ -273,14 +273,14 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
-    public Set<Group> getUserGroupsForUser(String userId) {
+    public Set<Group> getUserGroupsForUser(final String userId) {
         return userGroupProvider.getGroups().stream()
                 .filter(g -> g.getUsers().contains(userId))
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public Set<AccessPolicy> getAccessPoliciesForUser(String userId) {
+    public Set<AccessPolicy> getAccessPoliciesForUser(final String userId) {
         return accessPolicyProvider.getAccessPolicies().stream()
                 .filter(p -> {
                     // policy contains the user
@@ -298,7 +298,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
-    public Set<AccessPolicy> getAccessPoliciesForUserGroup(String userGroupId) {
+    public Set<AccessPolicy> getAccessPoliciesForUserGroup(final String userGroupId) {
         return accessPolicyProvider.getAccessPolicies().stream()
                 .filter(p -> {
                     // policy contains the user group
@@ -337,7 +337,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
             // remove any references to the user group being deleted from policies if possible
             if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-                for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
+                for (final AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
                     final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
 
                     // ensure this policy contains a reference to the user group and this policy is configurable (check proactively to prevent an exception)
@@ -417,7 +417,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
             // remove any references to the user being deleted from policies if possible
             if (accessPolicyProvider instanceof ConfigurableAccessPolicyProvider) {
-                for (AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
+                for (final AccessPolicy policy : accessPolicyProvider.getAccessPolicies()) {
                     final ConfigurableAccessPolicyProvider configurableAccessPolicyProvider = (ConfigurableAccessPolicyProvider) accessPolicyProvider;
 
                     // ensure this policy contains a reference to the user and this policy is configurable (check proactively to prevent an exception)

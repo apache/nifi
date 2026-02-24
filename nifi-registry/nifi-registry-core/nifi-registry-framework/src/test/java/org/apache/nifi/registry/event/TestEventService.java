@@ -83,12 +83,12 @@ public class TestEventService {
         private List<Event> events = new ArrayList<>();
 
         @Override
-        public void onConfigured(ProviderConfigurationContext configurationContext) throws ProviderCreationException {
+        public void onConfigured(final ProviderConfigurationContext configurationContext) throws ProviderCreationException {
 
         }
 
         @Override
-        public void handle(Event event) throws EventHookException {
+        public void handle(final Event event) throws EventHookException {
             events.add(event);
         }
 

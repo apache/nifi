@@ -25,7 +25,7 @@ import java.security.MessageDigest;
 public class CacheKey {
     final String key;
 
-    public CacheKey(String key) {
+    public CacheKey(final String key) {
         this.key = key;
     }
 
@@ -34,7 +34,7 @@ public class CacheKey {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

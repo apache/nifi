@@ -109,7 +109,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
     }
 
     @Override
-    public void setEnforcementPolicy(EnforcementPolicy enforcementPolicy) {
+    public void setEnforcementPolicy(final EnforcementPolicy enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
     }
 
@@ -146,7 +146,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
         if (isEnabled()) {
             throw new IllegalStateException("Cannot reload Flow Analysis Rule while it is enabled");
         }
-        String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
+        final String additionalResourcesFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         setAdditionalResourcesFingerprint(additionalResourcesFingerprint);
         getReloadComponent().reload(this, getCanonicalClassName(), getBundleCoordinate(), additionalUrls);
     }
@@ -249,7 +249,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
 
     @Override
     public String toString() {
-        FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleRef.get().getFlowAnalysisRule();
+        final FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleRef.get().getFlowAnalysisRule();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), flowAnalysisRule.getClass(), flowAnalysisRule.getIdentifier())) {
             return getFlowAnalysisRule().toString();
         }
@@ -270,7 +270,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
         ruleViolationsManager.cleanUp();
     }
 
-    private void setState(FlowAnalysisRuleState newState, Class<? extends Annotation> annotation) {
+    private void setState(final FlowAnalysisRuleState newState, final Class<? extends Annotation> annotation) {
         final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceLookup, null);
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getFlowAnalysisRule().getClass(), getIdentifier())) {
@@ -279,7 +279,7 @@ public abstract class AbstractFlowAnalysisRuleNode extends AbstractComponentNode
             this.state = newState;
 
             log.debug("Successfully {} {}", newState.toString().toLowerCase(), this);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
 
             final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), getFlowAnalysisRule(), new StandardLoggingContext());

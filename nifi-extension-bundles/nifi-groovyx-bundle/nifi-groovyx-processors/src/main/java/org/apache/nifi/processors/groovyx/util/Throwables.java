@@ -25,9 +25,9 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class Throwables {
     /** returns stacktrace as a String */
-    public static String stringStackTrace(Throwable e) {
-        StringWriter sw = new StringWriter(500);
-        PrintWriter pw = new PrintWriter(sw);
+    public static String stringStackTrace(final Throwable e) {
+        final StringWriter sw = new StringWriter(500);
+        final PrintWriter pw = new PrintWriter(sw);
         e.printStackTrace(pw);
         pw.flush();
         sw.flush();
@@ -37,7 +37,7 @@ public class Throwables {
     /**
      * returns error message with one main line from stacktrace
      */
-    public static String getMessage(Throwable e) {
+    public static String getMessage(final Throwable e) {
         return getMessage(e, null, -1);
     }
 
@@ -47,31 +47,29 @@ public class Throwables {
      * To find stacktrace element tries to find `priority`,
      * then any non-standard java/groovy class.
      * @param e throwable to convert to message
-     * @param priority package name, class, or object that could identify the stacktrace element
+     * @param priorityArg package name, class, or object that could identify the stacktrace element
      * @param maxlen the max length of returned string or -1 for unlimited
      */
-    public static String getMessage(Throwable e, Object priority, int maxlen) {
+    public static String getMessage(final Throwable e, final Object priorityArg, final int maxlen) {
 
         if (e == null) {
             return null;
         }
-        e = getRootException(e);
+        final Throwable root = getRootException(e);
 
-        StackTraceElement[] trace = e.getStackTrace();
+        final StackTraceElement[] trace = root.getStackTrace();
         int traceIndex = -1;
 
-        if (priority != null) {
-            if (priority instanceof String) {
+        if (priorityArg != null) {
+            if (priorityArg instanceof String) {
                 for (int i = 0; i < trace.length; i++) {
-                    if (trace[i].getClassName().startsWith((String) priority)) {
+                    if (trace[i].getClassName().startsWith((String) priorityArg)) {
                         traceIndex = i;
                         break;
                     }
                 }
             } else {
-                if (!(priority instanceof Class)) {
-                    priority = priority.getClass();
-                }
+                final Object priority = (priorityArg instanceof Class) ? priorityArg : priorityArg.getClass();
 
                 String cl = ((Class) priority).getName();
                 for (int i = 0; i < trace.length; i++) {
@@ -94,7 +92,7 @@ public class Throwables {
 
         if (traceIndex == -1) {
             for (int i = 0; i < trace.length; i++) {
-                String cl = trace[i].getClassName();
+                final String cl = trace[i].getClassName();
                 if (cl.startsWith("java.") || cl.startsWith("javax.") || cl.startsWith("org.omg.") || cl.startsWith("org.w3c.") || cl.startsWith("org.xml.") || cl.startsWith("groovy.lang.") || cl
                         .startsWith("groovy.util.") || cl.startsWith("org.codehaus.") || cl.startsWith("com.springsource.") || cl.startsWith("org.springframework.") || cl.startsWith("org.apache.")
                         || cl.startsWith("sun.") || cl.startsWith("com.sun.") || cl.startsWith("org.junit.") || cl.startsWith("junit.framework.")) {
@@ -111,7 +109,7 @@ public class Throwables {
         }
 
         //build message text
-        String msg = e.getMessage();
+        String msg = root.getMessage();
         if (msg == null) {
             msg = "";
         }
@@ -122,18 +120,18 @@ public class Throwables {
         }
 
         //exception class name without package
-        String msgSuffix = " " + e.getClass().getName().replaceAll("^.*\\.(\\w+)$", "$1") + " at ";
+        String msgSuffix = " " + root.getClass().getName().replaceAll("^.*\\.(\\w+)$", "$1") + " at ";
         //append callers line
         if (traceIndex < 0 || traceIndex >= trace.length) {
-            System.err.println("Error formatting exception: " + e);
-            e.printStackTrace(System.err);
-            msgSuffix = e.getClass().getName();
+            System.err.println("Error formatting exception: " + root);
+            root.printStackTrace(System.err);
+            msgSuffix = root.getClass().getName();
         } else {
             msgSuffix += trace[traceIndex].toString();
         }
         if (maxlen > 0 && msgSuffix.length() + msg.length() > maxlen) {
             if (maxlen > msgSuffix.length() + 2) {
-                int newlen = maxlen - msgSuffix.length() - 2;
+                final int newlen = maxlen - msgSuffix.length() - 2;
                 if (newlen < msg.length()) {
                     msg = msg.substring(0, newlen);
                 }
@@ -148,8 +146,8 @@ public class Throwables {
         return msg;
     }
 
-    private static Throwable getRootException(Throwable e) {
-        Throwable t;
+    private static Throwable getRootException(final Throwable e) {
+        final Throwable t;
 
         if (e instanceof InvocationTargetException) {
             t = ((InvocationTargetException) e).getTargetException();

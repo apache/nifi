@@ -68,14 +68,14 @@ public class PrioritiesMatcherTest extends AbstractAttributeMatcherTest {
 
     private static class FlowFilePrioritizerOne implements FlowFilePrioritizer {
         @Override
-        public int compare(FlowFile o1, FlowFile o2) {
+        public int compare(final FlowFile o1, final FlowFile o2) {
             return 0;
         }
     }
 
     private static class FlowFilePrioritizerTwo implements FlowFilePrioritizer {
         @Override
-        public int compare(FlowFile o1, FlowFile o2) {
+        public int compare(final FlowFile o1, final FlowFile o2) {
             return 0;
         }
     }

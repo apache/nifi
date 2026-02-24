@@ -26,32 +26,32 @@ public enum DataUnit {
      */
     B {
         @Override
-        public double toB(double value) {
+        public double toB(final double value) {
             return value;
         }
 
         @Override
-        public double toKB(double value) {
+        public double toKB(final double value) {
             return value / POWERS[1];
         }
 
         @Override
-        public double toMB(double value) {
+        public double toMB(final double value) {
             return value / POWERS[2];
         }
 
         @Override
-        public double toGB(double value) {
+        public double toGB(final double value) {
             return value / POWERS[3];
         }
 
         @Override
-        public double toTB(double value) {
+        public double toTB(final double value) {
             return value / POWERS[4];
         }
 
         @Override
-        public double convert(double sourceSize, DataUnit sourceUnit) {
+        public double convert(final double sourceSize, final DataUnit sourceUnit) {
             return sourceUnit.toB(sourceSize);
         }
     },
@@ -60,32 +60,32 @@ public enum DataUnit {
      */
     KB {
         @Override
-        public double toB(double value) {
+        public double toB(final double value) {
             return value * POWERS[1];
         }
 
         @Override
-        public double toKB(double value) {
+        public double toKB(final double value) {
             return value;
         }
 
         @Override
-        public double toMB(double value) {
+        public double toMB(final double value) {
             return value / POWERS[1];
         }
 
         @Override
-        public double toGB(double value) {
+        public double toGB(final double value) {
             return value / POWERS[2];
         }
 
         @Override
-        public double toTB(double value) {
+        public double toTB(final double value) {
             return value / POWERS[3];
         }
 
         @Override
-        public double convert(double sourceSize, DataUnit sourceUnit) {
+        public double convert(final double sourceSize, final DataUnit sourceUnit) {
             return sourceUnit.toKB(sourceSize);
         }
     },
@@ -94,32 +94,32 @@ public enum DataUnit {
      */
     MB {
         @Override
-        public double toB(double value) {
+        public double toB(final double value) {
             return value * POWERS[2];
         }
 
         @Override
-        public double toKB(double value) {
+        public double toKB(final double value) {
             return value * POWERS[1];
         }
 
         @Override
-        public double toMB(double value) {
+        public double toMB(final double value) {
             return value;
         }
 
         @Override
-        public double toGB(double value) {
+        public double toGB(final double value) {
             return value / POWERS[1];
         }
 
         @Override
-        public double toTB(double value) {
+        public double toTB(final double value) {
             return value / POWERS[2];
         }
 
         @Override
-        public double convert(double sourceSize, DataUnit sourceUnit) {
+        public double convert(final double sourceSize, final DataUnit sourceUnit) {
             return sourceUnit.toMB(sourceSize);
         }
     },
@@ -128,32 +128,32 @@ public enum DataUnit {
      */
     GB {
         @Override
-        public double toB(double value) {
+        public double toB(final double value) {
             return value * POWERS[3];
         }
 
         @Override
-        public double toKB(double value) {
+        public double toKB(final double value) {
             return value * POWERS[2];
         }
 
         @Override
-        public double toMB(double value) {
+        public double toMB(final double value) {
             return value * POWERS[1];
         }
 
         @Override
-        public double toGB(double value) {
+        public double toGB(final double value) {
             return value;
         }
 
         @Override
-        public double toTB(double value) {
+        public double toTB(final double value) {
             return value / POWERS[1];
         }
 
         @Override
-        public double convert(double sourceSize, DataUnit sourceUnit) {
+        public double convert(final double sourceSize, final DataUnit sourceUnit) {
             return sourceUnit.toGB(sourceSize);
         }
     },
@@ -162,32 +162,32 @@ public enum DataUnit {
      */
     TB {
         @Override
-        public double toB(double value) {
+        public double toB(final double value) {
             return value * POWERS[4];
         }
 
         @Override
-        public double toKB(double value) {
+        public double toKB(final double value) {
             return value * POWERS[3];
         }
 
         @Override
-        public double toMB(double value) {
+        public double toMB(final double value) {
             return value * POWERS[2];
         }
 
         @Override
-        public double toGB(double value) {
+        public double toGB(final double value) {
             return value * POWERS[1];
         }
 
         @Override
-        public double toTB(double value) {
+        public double toTB(final double value) {
             return value;
         }
 
         @Override
-        public double convert(double sourceSize, DataUnit sourceUnit) {
+        public double convert(final double sourceSize, final DataUnit sourceUnit) {
             return sourceUnit.toTB(sourceSize);
         }
     };
@@ -196,23 +196,23 @@ public enum DataUnit {
         throw new AbstractMethodError();
     }
 
-    public double toB(double size) {
+    public double toB(final double size) {
         throw new AbstractMethodError();
     }
 
-    public double toKB(double size) {
+    public double toKB(final double size) {
         throw new AbstractMethodError();
     }
 
-    public double toMB(double size) {
+    public double toMB(final double size) {
         throw new AbstractMethodError();
     }
 
-    public double toGB(double size) {
+    public double toGB(final double size) {
         throw new AbstractMethodError();
     }
 
-    public double toTB(double size) {
+    public double toTB(final double size) {
         throw new AbstractMethodError();
     }
 

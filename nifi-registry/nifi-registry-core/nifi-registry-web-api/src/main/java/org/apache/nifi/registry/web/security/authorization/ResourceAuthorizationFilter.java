@@ -69,7 +69,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
     private AuthorizationService authorizationService;
     private AuthorizableLookup authorizableLookup;
 
-    ResourceAuthorizationFilter(Builder builder) {
+    ResourceAuthorizationFilter(final Builder builder) {
         if (builder.getAuthorizationService() == null || builder.getResourceTypeAuthorizationRules() == null) {
             throw new IllegalArgumentException("Builder is missing one or more required fields [authorizationService, resourceTypeAuthorizationRules].");
         }
@@ -79,10 +79,10 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain) throws IOException, ServletException {
 
-        HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-        HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+        final HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        final HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
 
         boolean authorizationCheckIsRequired = false;
         String resourcePath = null;
@@ -98,7 +98,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
                 final HttpMethodAuthorizationRules authorizationRules = resourceTypeAuthorizationRules.get(resourceType);
                 if (authorizationRules != null) {
                     final String httpMethodStr = httpServletRequest.getMethod().toUpperCase();
-                    HttpMethod httpMethod = HttpMethod.valueOf(httpMethodStr);
+                    final HttpMethod httpMethod = HttpMethod.valueOf(httpMethodStr);
 
                     // Only require authorization for HTTP methods included in this resource type's rule set
                     if (httpMethod != null && authorizationRules.requiresAuthorization(httpMethod)) {
@@ -118,24 +118,24 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
         try {
             authorizeAccess(resourcePath, action);
             successfulAuthorization(httpServletRequest, httpServletResponse, filterChain);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.debug("Exception occurred while performing authorization check.", e);
             failedAuthorization(httpServletRequest, httpServletResponse, filterChain, e);
         }
     }
 
     private boolean userIsAuthenticated() {
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return (user != null && !user.isAnonymous());
     }
 
-    private void authorizeAccess(String path, RequestAction action) throws AccessDeniedException {
+    private void authorizeAccess(final String path, final RequestAction action) throws AccessDeniedException {
 
         if (path == null || action == null) {
             throw new IllegalArgumentException("Authorization is required, but a required input [resource, action] is absent.");
         }
 
-        Authorizable authorizable = authorizableLookup.getAuthorizableByResource(path);
+        final Authorizable authorizable = authorizableLookup.getAuthorizableByResource(path);
 
         if (authorizable == null) {
             throw new IllegalStateException("Resource Authorization Filter configured for non-authorizable resource: " + path);
@@ -145,21 +145,21 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
         authorizationService.authorize(authorizable, action);
     }
 
-    private void forwardRequestWithoutAuthorizationCheck(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
+    private void forwardRequestWithoutAuthorizationCheck(final HttpServletRequest req, final HttpServletResponse res, final FilterChain chain) throws IOException, ServletException {
         logger.debug("Request filter authorization check is not required for this HTTP Method on this resource. " +
                 "Allowing request to proceed. An additional authorization check might be performed downstream of this filter.");
         chain.doFilter(req, res);
     }
 
-    private void successfulAuthorization(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws IOException, ServletException {
+    private void successfulAuthorization(final HttpServletRequest req, final HttpServletResponse res, final FilterChain chain) throws IOException, ServletException {
         logger.debug("Request filter authorization check passed. Allowing request to proceed.");
         chain.doFilter(req, res);
     }
 
-    private void failedAuthorization(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Exception failure) throws IOException, ServletException {
+    private void failedAuthorization(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain, final Exception failure) throws IOException, ServletException {
         logger.debug("Request filter authorization check failed. Blocking access.");
 
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final String identity = (user != null) ? user.toString() : "<no user found>";
         final int status = !userIsAuthenticated() ? HttpServletResponse.SC_UNAUTHORIZED : HttpServletResponse.SC_FORBIDDEN;
 
@@ -191,7 +191,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
             return authorizationService;
         }
 
-        public Builder setAuthorizationService(AuthorizationService authorizationService) {
+        public Builder setAuthorizationService(final AuthorizationService authorizationService) {
             this.authorizationService = authorizationService;
             return this;
         }
@@ -200,12 +200,12 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
             return resourceTypeAuthorizationRules;
         }
 
-        public Builder addResourceType(ResourceType resourceType) {
+        public Builder addResourceType(final ResourceType resourceType) {
             this.resourceTypeAuthorizationRules.put(resourceType, new HttpMethodAuthorizationRules() { });
             return this;
         }
 
-        public Builder addResourceType(ResourceType resourceType, HttpMethodAuthorizationRules authorizationRules) {
+        public Builder addResourceType(final ResourceType resourceType, final HttpMethodAuthorizationRules authorizationRules) {
             this.resourceTypeAuthorizationRules.put(resourceType, authorizationRules);
             return this;
         }

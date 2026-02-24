@@ -22,7 +22,7 @@ public class SNMPV1V2cConfigurationFactory implements SNMPConfigurationFactory {
 
     private final int snmpVersion;
 
-    public SNMPV1V2cConfigurationFactory(int snmpVersion) {
+    public SNMPV1V2cConfigurationFactory(final int snmpVersion) {
         this.snmpVersion = snmpVersion;
     }
 

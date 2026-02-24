@@ -113,7 +113,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -122,7 +122,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
 
         try {
 
-            long startTime = System.currentTimeMillis();
+            final long startTime = System.currentTimeMillis();
             final AtomicInteger totalRecordCount = new AtomicInteger(0);
 
             final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -133,9 +133,9 @@ public class ConvertAvroToParquet extends AbstractProcessor {
                 try (final InputStream in = new BufferedInputStream(rawIn);
                      final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
-                    Schema avroSchema = dataFileReader.getSchema();
+                    final Schema avroSchema = dataFileReader.getSchema();
                     getLogger().debug(SchemaFormatter.format("json/pretty", avroSchema));
-                    ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema);
+                    final ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema);
 
                     try {
                         int recordCount = 0;
@@ -153,8 +153,8 @@ public class ConvertAvroToParquet extends AbstractProcessor {
             });
 
             // Add attributes and transfer to success
-            StringBuilder newFilename = new StringBuilder();
-            int extensionIndex = fileName.lastIndexOf(".");
+            final StringBuilder newFilename = new StringBuilder();
+            final int extensionIndex = fileName.lastIndexOf(".");
             if (extensionIndex != -1) {
                 newFilename.append(fileName.substring(0, extensionIndex));
             } else {
@@ -162,7 +162,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
             }
             newFilename.append(".parquet");
 
-            Map<String, String> outAttributes = new HashMap<>();
+            final Map<String, String> outAttributes = new HashMap<>();
             outAttributes.put(CoreAttributes.FILENAME.key(), newFilename.toString());
             outAttributes.put(RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()));
 
@@ -178,7 +178,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(ParquetUtils.OLD_ROW_GROUP_SIZE_PROPERTY_NAME, ParquetUtils.ROW_GROUP_SIZE.getName());
         config.renameProperty(ParquetUtils.OLD_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.PAGE_SIZE.getName());
         config.renameProperty(ParquetUtils.OLD_DICTIONARY_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.DICTIONARY_PAGE_SIZE.getName());
@@ -192,7 +192,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
     private ParquetWriter createParquetWriter(final ProcessContext context, final FlowFile flowFile, final OutputStream out, final Schema schema)
             throws IOException {
 
-        NifiParquetOutputFile nifiParquetOutputFile = new NifiParquetOutputFile(out);
+        final NifiParquetOutputFile nifiParquetOutputFile = new NifiParquetOutputFile(out);
 
         final AvroParquetWriter.Builder<GenericRecord> parquetWriter = AvroParquetWriter
                 .<GenericRecord>builder(nifiParquetOutputFile)

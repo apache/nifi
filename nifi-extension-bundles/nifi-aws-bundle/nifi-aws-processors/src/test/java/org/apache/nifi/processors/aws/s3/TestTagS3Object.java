@@ -56,7 +56,7 @@ public class TestTagS3Object {
     public void setUp() {
         mockS3Client = Mockito.mock(S3Client.class);
         Mockito.when(mockS3Client.utilities()).thenReturn(S3Utilities.builder().region(Region.US_WEST_2).build());
-        TagS3Object mockTagS3Object = new TagS3Object() {
+        final TagS3Object mockTagS3Object = new TagS3Object() {
             @Override
             protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
@@ -83,16 +83,16 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        final ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
-        PutObjectTaggingRequest request = captureRequest.getValue();
+        final PutObjectTaggingRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("object-key", request.key());
         assertNull(request.versionId(), "test-version");
         assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "Expected tag not found in request");
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
     }
 
@@ -132,9 +132,9 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        final ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
-        PutObjectTaggingRequest request = captureRequest.getValue();
+        final PutObjectTaggingRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("object-key", request.key());
         assertEquals("test-version", request.versionId());
@@ -144,7 +144,7 @@ public class TestTagS3Object {
     @Test
     public void testTagObjectAppendToExistingTags() {
         //set up existing tags on S3 object
-        Tag currentTag = Tag.builder().key("ck").value("cv").build();
+        final Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
@@ -161,16 +161,16 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        final ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
-        PutObjectTaggingRequest request = captureRequest.getValue();
+        final PutObjectTaggingRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("object-key", request.key());
         assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
         assertTrue(request.tagging().tagSet().contains(currentTag), "Existing tag not found in request");
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
         ff0.assertAttributeEquals("s3.tag." + currentTag.key(), currentTag.value());
     }
@@ -178,8 +178,8 @@ public class TestTagS3Object {
     @Test
     public void testTagObjectAppendUpdatesExistingTagValue() {
         //set up existing tags on S3 object
-        Tag currentTag1 = Tag.builder().key("ck").value("cv").build();
-        Tag currentTag2 = Tag.builder().key("nk").value("ov").build();
+        final Tag currentTag1 = Tag.builder().key("ck").value("cv").build();
+        final Tag currentTag2 = Tag.builder().key("nk").value("ov").build();
         mockGetExistingTags(currentTag1, currentTag2);
 
         final String tagKey = "nk";
@@ -195,9 +195,9 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        final ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
-        PutObjectTaggingRequest request = captureRequest.getValue();
+        final PutObjectTaggingRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("object-key", request.key());
         assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
@@ -208,7 +208,7 @@ public class TestTagS3Object {
     @Test
     public void testTagObjectReplacesExistingTags() {
         //set up existing tags on S3 object
-        Tag currentTag = Tag.builder().key("ck").value("cv").build();
+        final Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
@@ -226,16 +226,16 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        final ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
-        PutObjectTaggingRequest request = captureRequest.getValue();
+        final PutObjectTaggingRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("object-key", request.key());
         assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
         assertFalse(request.tagging().tagSet().contains(currentTag), "Existing tag should be excluded from request");
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
         ff0.assertAttributeNotExists("s3.tag." + currentTag.key());
     }
@@ -243,7 +243,7 @@ public class TestTagS3Object {
     @Test
     public void testTagObjectS3Exception() {
         //set up existing tags on S3 object
-        Tag currentTag = Tag.builder().key("ck").value("cv").build();
+        final Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
@@ -318,8 +318,8 @@ public class TestTagS3Object {
         expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
-    private void mockGetExistingTags(Tag... currentTag) {
-        List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
+    private void mockGetExistingTags(final Tag... currentTag) {
+        final List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
         Mockito.when(mockS3Client.getObjectTagging(Mockito.any(GetObjectTaggingRequest.class))).thenReturn(GetObjectTaggingResponse.builder().tagSet(currentTags).build());
     }
 

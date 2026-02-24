@@ -79,9 +79,9 @@ public abstract class AbstractCompositeCommand<R extends Result> extends Abstrac
             final NiFiRegistryClient registryClient = registryClientFactory.createClient(registryProperties);
 
             return doExecute(cli, nifiClient, nifiProperties, registryClient, registryProperties);
-        } catch (CommandException ce) {
+        } catch (final CommandException ce) {
             throw ce;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CommandException("Error executing command '" + getName() + "' : " + e.getMessage(), e);
         }
     }

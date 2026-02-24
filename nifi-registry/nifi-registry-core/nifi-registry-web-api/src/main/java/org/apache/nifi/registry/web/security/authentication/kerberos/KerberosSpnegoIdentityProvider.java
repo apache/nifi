@@ -74,8 +74,8 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
 
     @Autowired
     public KerberosSpnegoIdentityProvider(
-            @Nullable  KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider,
-            NiFiRegistryProperties properties) {
+            final @Nullable  KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider,
+            final NiFiRegistryProperties properties) {
         this.kerberosServiceAuthenticationProvider = kerberosServiceAuthenticationProvider;
         authenticationDetailsSource = new WebAuthenticationDetailsSource();
 
@@ -91,28 +91,28 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public AuthenticationRequest extractCredentials(HttpServletRequest request) {
+    public AuthenticationRequest extractCredentials(final HttpServletRequest request) {
 
         // Only support Kerberos authentication when running securely
         if (!request.isSecure()) {
             return null;
         }
 
-        String headerValue = request.getHeader(AUTHORIZATION);
+        final String headerValue = request.getHeader(AUTHORIZATION);
 
         if (!isValidKerberosHeader(headerValue)) {
             return null;
         }
 
         logger.debug("Detected 'Authorization: Negotiate header in request {}", request.getRequestURL());
-        byte[] base64Token = headerValue.substring(headerValue.indexOf(" ") + 1).getBytes(StandardCharsets.UTF_8);
-        byte[] kerberosTicket = decoder.decode(base64Token);
+        final byte[] base64Token = headerValue.substring(headerValue.indexOf(" ") + 1).getBytes(StandardCharsets.UTF_8);
+        final byte[] kerberosTicket = decoder.decode(base64Token);
         return new AuthenticationRequest(null, kerberosTicket, authenticationDetailsSource.buildDetails(request));
 
     }
 
     @Override
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
+    public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
 
         if (authenticationRequest == null) {
             logger.info("Cannot authenticate null authenticationRequest, returning null.");
@@ -120,7 +120,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
         }
 
         final Object credentials = authenticationRequest.getCredentials();
-        byte[] kerberosTicket = credentials instanceof byte[] ? (byte[]) authenticationRequest.getCredentials() : null;
+        final byte[] kerberosTicket = credentials instanceof byte[] ? (byte[]) authenticationRequest.getCredentials() : null;
 
         if (credentials == null) {
             logger.info("Kerberos Ticket not found in authenticationRequest credentials, returning null.");
@@ -132,9 +132,9 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
         }
 
         try {
-            KerberosServiceRequestToken kerberosServiceRequestToken = new KerberosServiceRequestToken(kerberosTicket);
+            final KerberosServiceRequestToken kerberosServiceRequestToken = new KerberosServiceRequestToken(kerberosTicket);
             kerberosServiceRequestToken.setDetails(authenticationRequest.getDetails());
-            Authentication authentication = kerberosServiceAuthenticationProvider.authenticate(kerberosServiceRequestToken);
+            final Authentication authentication = kerberosServiceAuthenticationProvider.authenticate(kerberosServiceRequestToken);
             if (authentication == null) {
                 throw new InvalidCredentialsException("Kerberos credentials could not be authenticated.");
             }
@@ -143,8 +143,8 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
 
             return new AuthenticationResponse(kerberosPrincipal, kerberosPrincipal, expiration, issuer);
 
-        } catch (AuthenticationException e) {
-            String authFailedMessage = "Kerberos credentials could not be authenticated.";
+        } catch (final AuthenticationException e) {
+            final String authFailedMessage = "Kerberos credentials could not be authenticated.";
             logger.info(authFailedMessage);
             throw new InvalidCredentialsException(authFailedMessage, e);
         }
@@ -152,7 +152,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
         throw new SecurityProviderCreationException(KerberosSpnegoIdentityProvider.class.getSimpleName() +
                 " does not currently support being loaded via IdentityProviderFactory");
     }
@@ -161,7 +161,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
     public void preDestruction() throws SecurityProviderDestructionException {
     }
 
-    public boolean isValidKerberosHeader(String headerValue) {
+    public boolean isValidKerberosHeader(final String headerValue) {
         return headerValue != null && (headerValue.startsWith(AUTHORIZATION_NEGOTIATE + " ") || headerValue.startsWith("Kerberos "));
     }
 }

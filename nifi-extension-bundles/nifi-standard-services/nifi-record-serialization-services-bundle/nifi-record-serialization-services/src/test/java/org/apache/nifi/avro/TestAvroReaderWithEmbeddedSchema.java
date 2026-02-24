@@ -67,7 +67,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         testLogicalTypes(schema);
     }
 
-    private void testLogicalTypes(Schema schema) throws IOException, MalformedRecordException {
+    private void testLogicalTypes(final Schema schema) throws IOException, MalformedRecordException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         final int epochDay = 17260;

@@ -26,7 +26,7 @@ public class SnowflakeConnectionWrapper implements AutoCloseable {
 
     final Connection connection;
 
-    public SnowflakeConnectionWrapper(Connection connection) {
+    public SnowflakeConnectionWrapper(final Connection connection) {
         this.connection = connection;
     }
 

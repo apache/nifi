@@ -58,8 +58,8 @@ public class TestConsumeTwitter {
     @Test
     @Timeout(60)
     public void testReceiveSingleTweetInStream() {
-        String sampleTweet = "{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}";
-        MockResponse response = new MockResponse.Builder()
+        final String sampleTweet = "{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}";
+        final MockResponse response = new MockResponse.Builder()
                 .code(200)
                 .body(sampleTweet)
                 .addHeader("Content-Type", "application/json")
@@ -84,8 +84,8 @@ public class TestConsumeTwitter {
 
         // there should only be a single FlowFile containing a tweet
         runner.assertTransferCount(ConsumeTwitter.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).getFirst();
-        String expectedTweet = "[{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}]";
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).getFirst();
+        final String expectedTweet = "[{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}]";
         flowFile.assertContentEquals(expectedTweet);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         flowFile.assertAttributeEquals("tweets", "1");

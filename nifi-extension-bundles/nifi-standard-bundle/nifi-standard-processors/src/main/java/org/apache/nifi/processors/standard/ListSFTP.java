@@ -125,7 +125,7 @@ public class ListSFTP extends ListFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         config.removeProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE.getName());
@@ -154,7 +154,7 @@ public class ListSFTP extends ListFileTransfer {
     }
 
     @Override
-    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    protected void customValidate(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         SFTPTransfer.validateProxySpec(validationContext, results);
     }
 

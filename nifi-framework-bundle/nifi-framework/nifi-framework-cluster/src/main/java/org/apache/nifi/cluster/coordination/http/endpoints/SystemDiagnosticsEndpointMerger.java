@@ -32,7 +32,7 @@ public class SystemDiagnosticsEndpointMerger extends AbstractNodeStatusEndpoint<
     public static final Pattern SYSTEM_DIAGNOSTICS_URI_PATTERN = Pattern.compile("/nifi-api/system-diagnostics");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && SYSTEM_DIAGNOSTICS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -42,12 +42,12 @@ public class SystemDiagnosticsEndpointMerger extends AbstractNodeStatusEndpoint<
     }
 
     @Override
-    protected SystemDiagnosticsDTO getDto(SystemDiagnosticsEntity entity) {
+    protected SystemDiagnosticsDTO getDto(final SystemDiagnosticsEntity entity) {
         return entity.getSystemDiagnostics();
     }
 
     @Override
-    protected void mergeResponses(SystemDiagnosticsDTO clientDto, Map<NodeIdentifier, SystemDiagnosticsDTO> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final SystemDiagnosticsDTO clientDto, final Map<NodeIdentifier, SystemDiagnosticsDTO> dtoMap, final NodeIdentifier selectedNodeId) {
         final SystemDiagnosticsDTO mergedSystemDiagnostics = clientDto;
         mergedSystemDiagnostics.setNodeSnapshots(new ArrayList<>());
 

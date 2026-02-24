@@ -35,7 +35,7 @@ public class StatePeerPersistence extends AbstractPeerPersistence {
 
     private final StateManager stateManager;
 
-    public StatePeerPersistence(StateManager stateManager) {
+    public StatePeerPersistence(final StateManager stateManager) {
         this.stateManager = stateManager;
     }
 

@@ -35,7 +35,7 @@ class UsmUserDeserializer extends StdDeserializer<UsmUser> {
     }
 
     @Override
-    public UsmUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public UsmUser deserialize(final JsonParser jp, final DeserializationContext ctxt) throws IOException {
         final JsonNode node = jp.getCodec().readTree(jp);
         final String securityName = node.get("securityName").asText();
 

@@ -34,7 +34,7 @@ public class HeapStatus implements java.io.Serializable {
         return totalHeap;
     }
 
-    public void setTotalHeap(long totalHeap) {
+    public void setTotalHeap(final long totalHeap) {
         this.totalHeap = totalHeap;
     }
 
@@ -42,7 +42,7 @@ public class HeapStatus implements java.io.Serializable {
         return maxHeap;
     }
 
-    public void setMaxHeap(long maxHeap) {
+    public void setMaxHeap(final long maxHeap) {
         this.maxHeap = maxHeap;
     }
 
@@ -50,7 +50,7 @@ public class HeapStatus implements java.io.Serializable {
         return freeHeap;
     }
 
-    public void setFreeHeap(long freeHeap) {
+    public void setFreeHeap(final long freeHeap) {
         this.freeHeap = freeHeap;
     }
 
@@ -58,7 +58,7 @@ public class HeapStatus implements java.io.Serializable {
         return usedHeap;
     }
 
-    public void setUsedHeap(long usedHeap) {
+    public void setUsedHeap(final long usedHeap) {
         this.usedHeap = usedHeap;
     }
 
@@ -66,7 +66,7 @@ public class HeapStatus implements java.io.Serializable {
         return heapUtilization;
     }
 
-    public void setHeapUtilization(int heapUtilization) {
+    public void setHeapUtilization(final int heapUtilization) {
         this.heapUtilization = heapUtilization;
     }
 
@@ -74,7 +74,7 @@ public class HeapStatus implements java.io.Serializable {
         return totalNonHeap;
     }
 
-    public void setTotalNonHeap(long totalNonHeap) {
+    public void setTotalNonHeap(final long totalNonHeap) {
         this.totalNonHeap = totalNonHeap;
     }
 
@@ -82,7 +82,7 @@ public class HeapStatus implements java.io.Serializable {
         return maxNonHeap;
     }
 
-    public void setMaxNonHeap(long maxNonHeap) {
+    public void setMaxNonHeap(final long maxNonHeap) {
         this.maxNonHeap = maxNonHeap;
     }
 
@@ -90,7 +90,7 @@ public class HeapStatus implements java.io.Serializable {
         return freeNonHeap;
     }
 
-    public void setFreeNonHeap(long freeNonHeap) {
+    public void setFreeNonHeap(final long freeNonHeap) {
         this.freeNonHeap = freeNonHeap;
     }
 
@@ -98,7 +98,7 @@ public class HeapStatus implements java.io.Serializable {
         return usedNonHeap;
     }
 
-    public void setUsedNonHeap(long usedNonHeap) {
+    public void setUsedNonHeap(final long usedNonHeap) {
         this.usedNonHeap = usedNonHeap;
     }
 
@@ -106,12 +106,12 @@ public class HeapStatus implements java.io.Serializable {
         return nonHeapUtilization;
     }
 
-    public void setNonHeapUtilization(int nonHeapUtilization) {
+    public void setNonHeapUtilization(final int nonHeapUtilization) {
         this.nonHeapUtilization = nonHeapUtilization;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -119,7 +119,7 @@ public class HeapStatus implements java.io.Serializable {
             return false;
         }
 
-        HeapStatus that = (HeapStatus) o;
+        final HeapStatus that = (HeapStatus) o;
 
         if (getTotalHeap() != that.getTotalHeap()) {
             return false;

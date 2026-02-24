@@ -31,7 +31,7 @@ public class FlowModification {
      * @param revision revision
      * @param lastModifier modifier
      */
-    public FlowModification(Revision revision, String lastModifier) {
+    public FlowModification(final Revision revision, final String lastModifier) {
         this.revision = revision;
         this.lastModifier = lastModifier;
     }

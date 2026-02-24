@@ -71,7 +71,7 @@ public class StandardIndexManager implements IndexManager {
             if (!searchExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
                 searchExecutor.shutdownNow();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             searchExecutor.shutdownNow();
         }
@@ -195,7 +195,7 @@ public class StandardIndexManager implements IndexManager {
         final File absoluteFile = indexDirectory.getAbsoluteFile();
         logger.debug("Attempting to remove index {} from SimpleIndexManager", absoluteFile);
 
-        IndexWriterCount writerCount;
+        final IndexWriterCount writerCount;
         synchronized (countMutex) {
             final Integer numSearchers = searcherCounts.get(absoluteFile);
             if (numSearchers != null && numSearchers > 0) {
@@ -303,7 +303,7 @@ public class StandardIndexManager implements IndexManager {
         logger.trace("Returning Index Writer for {} to IndexManager", indexDirectory);
 
         boolean unused = false;
-        IndexWriterCount count;
+        final IndexWriterCount count;
         boolean close = isCloseable;
         try {
             synchronized (countMutex) {

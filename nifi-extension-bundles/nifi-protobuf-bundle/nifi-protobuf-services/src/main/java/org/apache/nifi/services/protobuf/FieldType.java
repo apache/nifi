@@ -40,7 +40,7 @@ public enum FieldType {
 
     private final String type;
 
-    FieldType(String type) {
+    FieldType(final String type) {
         this.type = type;
     }
 

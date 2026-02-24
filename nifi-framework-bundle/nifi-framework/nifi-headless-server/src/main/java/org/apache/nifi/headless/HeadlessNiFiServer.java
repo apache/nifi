@@ -103,21 +103,21 @@ public class HeadlessNiFiServer implements NiFiServer {
             new FlowParser();
             logger.info("Loading Flow...");
 
-            FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
-            AuditService auditService = new HeadlessAuditService();
-            Authorizer authorizer = new Authorizer() {
+            final FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
+            final AuditService auditService = new HeadlessAuditService();
+            final Authorizer authorizer = new Authorizer() {
                 @Override
-                public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+                public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
                     return AuthorizationResult.approved();
                 }
 
                 @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
                     // do nothing
                 }
 
                 @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
                     // do nothing
                 }
 
@@ -170,7 +170,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             flowService.load(null);
             flowController.onFlowInitialized(true);
             validateFlow();
-            FlowManager flowManager = flowController.getFlowManager();
+            final FlowManager flowManager = flowController.getFlowManager();
             flowManager.getGroup(flowManager.getRootGroupId()).startProcessing();
 
             final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
@@ -186,7 +186,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             narAutoLoader.start();
             logger.info("Flow loaded successfully.");
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // ensure the flow service is terminated
             if (flowService != null && flowService.isRunning()) {
                 flowService.stop(false);
@@ -199,7 +199,7 @@ public class HeadlessNiFiServer implements NiFiServer {
         logger.info("Flow validation not implemented. Proceeding without validating the flow");
     }
 
-    private void startUpFailure(Throwable t) {
+    private void startUpFailure(final Throwable t) {
         System.err.println("Failed to start flow service: " + t.getMessage());
         System.err.println("Shutting down...");
         logger.warn("Failed to start headless server... shutting down.", t);
@@ -219,7 +219,7 @@ public class HeadlessNiFiServer implements NiFiServer {
     }
 
     @Override
-    public void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping) {
+    public void initialize(final NiFiProperties properties, final Bundle systemBundle, final Set<Bundle> bundles, final ExtensionMapping extensionMapping) {
         this.props = properties;
         this.systemBundle = systemBundle;
         this.bundles = bundles;
@@ -263,11 +263,11 @@ public class HeadlessNiFiServer implements NiFiServer {
                     narAutoLoader.stop();
                     narAutoLoader = null;
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn("Failed to stop NAR auto-loader", e);
             }
-        } catch (Exception e) {
-            String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
+        } catch (final Exception e) {
+            final String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
             if (logger.isDebugEnabled()) {
                 logger.warn(msg, e);
             } else {

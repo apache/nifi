@@ -70,7 +70,7 @@ public class ITTagS3Object extends AbstractS3IT {
 
     private void assertTagsCorrect(final boolean expectOldTag) {
         // Verify tag exists on S3 object
-        GetObjectTaggingResponse res = getClient().getObjectTagging(GetObjectTaggingRequest.builder().bucket(BUCKET_NAME).key(TEST_FILE).build());
+        final GetObjectTaggingResponse res = getClient().getObjectTagging(GetObjectTaggingRequest.builder().bucket(BUCKET_NAME).key(TEST_FILE).build());
         assertTrue(res.tagSet().contains(TAG), "Expected tag not found on S3 object");
 
         if (expectOldTag) {
@@ -121,7 +121,7 @@ public class ITTagS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
 
         // Verify flowfile attributes match s3 tags
-        MockFlowFile flowFiles = runner.getFlowFilesForRelationship(TagS3Object.REL_SUCCESS).get(0);
+        final MockFlowFile flowFiles = runner.getFlowFilesForRelationship(TagS3Object.REL_SUCCESS).get(0);
         flowFiles.assertAttributeNotExists(OLD_TAG.key());
         flowFiles.assertAttributeEquals("s3.tag." + TAG_KEY_NIFI, TAG_VALUE_NIFI);
 

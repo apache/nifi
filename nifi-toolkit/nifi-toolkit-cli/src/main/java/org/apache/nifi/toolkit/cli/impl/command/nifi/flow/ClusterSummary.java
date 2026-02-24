@@ -38,7 +38,7 @@ public class ClusterSummary extends AbstractNiFiCommand<ClusterSummaryEntityResu
     }
 
     @Override
-    public ClusterSummaryEntityResult doExecute(NiFiClient client, Properties properties)
+    public ClusterSummaryEntityResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException {
         final FlowClient flowClient = client.getFlowClient();
         final ClusterSummaryEntity clusterSummary = flowClient.getClusterSummary();

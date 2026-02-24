@@ -653,7 +653,7 @@ public class TestFlowResource {
         return outputStream.toString(StandardCharsets.UTF_8);
     }
 
-    private List<CollectorRegistry> getCollectorRegistries(boolean includeProcessorPerfStatus) {
+    private List<CollectorRegistry> getCollectorRegistries(final boolean includeProcessorPerfStatus) {
         final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
         final CollectorRegistry jvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), LABEL_VALUE);
         final CollectorRegistry otherJvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), OTHER_LABEL_VALUE);
@@ -688,8 +688,8 @@ public class TestFlowResource {
     }
 
     private static @NotNull ProcessGroupStatus makeTestProcessGroupStatusWithPerformance() {
-        ProcessGroupStatus status = makeTestProcessGroupStatus();
-        ProcessingPerformanceStatus performanceStatus = new ProcessingPerformanceStatus();
+        final ProcessGroupStatus status = makeTestProcessGroupStatus();
+        final ProcessingPerformanceStatus performanceStatus = new ProcessingPerformanceStatus();
         performanceStatus.setContentReadDuration(1L);
         performanceStatus.setContentWriteDuration(1L);
         performanceStatus.setIdentifier("");
@@ -806,7 +806,7 @@ public class TestFlowResource {
         }
 
         @Override
-        public Sample deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+        public Sample deserialize(final JsonParser jsonParser, final DeserializationContext deserializationContext) throws IOException {
             final JsonNode node = jsonParser.getCodec().readTree(jsonParser);
 
             final String name = node.get("name").asText();

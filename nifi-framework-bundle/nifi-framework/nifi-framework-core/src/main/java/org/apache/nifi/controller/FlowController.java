@@ -728,7 +728,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             }
 
             // Determine score name to use for evaluating model performance
-            String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
+            final String modelScoreName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_SCORE_NAME, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME);
 
             // Determine score threshold to use when evaluating acceptable model
             Double modelScoreThreshold;
@@ -741,21 +741,21 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 modelScoreThreshold = NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD;
             }
 
-            StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
+            final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory = new StatusAnalyticsModelMapFactory(extensionManager, nifiProperties);
 
             analyticsEngine = new CachingConnectionStatusAnalyticsEngine(flowManager, statusHistoryRepository, statusAnalyticsModelMapFactory,
                     predictionIntervalMillis, queryIntervalMillis, modelScoreName, modelScoreThreshold);
 
             timerDrivenEngineRef.get().scheduleWithFixedDelay(() -> {
                 try {
-                    Long startTs = System.currentTimeMillis();
-                    RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
+                    final Long startTs = System.currentTimeMillis();
+                    final RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(startTs);
                     flowManager.findAllConnections().forEach(connection -> {
-                        ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics) analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
+                        final ConnectionStatusAnalytics connectionStatusAnalytics = ((ConnectionStatusAnalytics) analyticsEngine.getStatusAnalytics(connection.getIdentifier()));
                         connectionStatusAnalytics.refresh();
                         connectionStatusAnalytics.loadPredictions(statusReport);
                     });
-                    Long endTs = System.currentTimeMillis();
+                    final Long endTs = System.currentTimeMillis();
                     LOG.debug("Time Elapsed for Prediction for loading all predictions: {}", endTs - startTs);
                 } catch (final Exception e) {
                     LOG.error("Failed to generate predictions", e);
@@ -1189,12 +1189,12 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             LOG.debug("Triggering initial validation of all components");
             final long start = System.nanoTime();
 
-            Supplier<VersionedProcessGroup> rootProcessGroupSupplier = () -> {
-                ProcessGroup rootProcessGroup = getFlowManager().getRootGroup();
+            final Supplier<VersionedProcessGroup> rootProcessGroupSupplier = () -> {
+                final ProcessGroup rootProcessGroup = getFlowManager().getRootGroup();
 
-                NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(getExtensionManager());
+                final NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(getExtensionManager());
 
-                InstantiatedVersionedProcessGroup versionedRootProcessGroup = mapper.mapNonVersionedProcessGroup(
+                final InstantiatedVersionedProcessGroup versionedRootProcessGroup = mapper.mapNonVersionedProcessGroup(
                     rootProcessGroup,
                     controllerServiceProvider
                 );
@@ -1320,7 +1320,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
-    private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
+    private void scheduleBackgroundFlowAnalysis(final Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
         if (flowAnalyzer != null) {
             try {
                 flowAnalysisThreadPool.scheduleWithFixedDelay(
@@ -1329,7 +1329,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     5,
                     TimeUnit.SECONDS
                 );
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);
             }
         }
@@ -1341,15 +1341,15 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_SCHEDULE);
                 final long thresholdMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_THRESHOLD);
 
-                LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(getFlowManager(), createEventReporter(), thresholdMillis);
+                final LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(getFlowManager(), createEventReporter(), thresholdMillis);
                 longRunningTaskMonitorThreadPool.get().scheduleWithFixedDelay(longRunningTaskMonitor, scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOG.warn("Could not initialize LongRunningTaskMonitor.", e);
             }
         });
     }
 
-    private long parseDurationPropertyToMillis(String propertyName) {
+    private long parseDurationPropertyToMillis(final String propertyName) {
         try {
             final String duration = nifiProperties.getProperty(propertyName);
             return (long) FormatUtils.getPreciseTimeDuration(duration, TimeUnit.MILLISECONDS);
@@ -1706,7 +1706,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      *                                    any reason
      */
     public synchronized <T> void serialize(final FlowSerializer<T> serializer, final OutputStream os) throws FlowSerializationException {
-        T flowConfiguration;
+        final T flowConfiguration;
 
         readLock.lock();
         try {
@@ -3502,12 +3502,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     // Flow Analysis
     @Override
-    public FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded) throws FlowAnalysisRuleInstantiationException {
+    public FlowAnalysisRuleNode createFlowAnalysisRule(final String type, final String id, final BundleCoordinate bundleCoordinate,
+            final boolean firstTimeAdded) throws FlowAnalysisRuleInstantiationException {
         return flowManager.createFlowAnalysisRule(type, id, bundleCoordinate, firstTimeAdded);
     }
 
     @Override
-    public FlowAnalysisRuleNode getFlowAnalysisRuleNode(String identifier) {
+    public FlowAnalysisRuleNode getFlowAnalysisRuleNode(final String identifier) {
         return flowManager.getFlowAnalysisRuleNode(identifier);
     }
 
@@ -3517,19 +3518,19 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     @Override
-    public void removeFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+    public void removeFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule) {
         flowManager.removeFlowAnalysisRule(flowAnalysisRule);
     }
 
     @Override
-    public void enableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+    public void enableFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule) {
         flowAnalysisRule.verifyCanEnable();
         flowAnalysisRule.reloadAdditionalResourcesIfNecessary();
         flowAnalysisRule.enable();
     }
 
     @Override
-    public void disableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+    public void disableFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule) {
         flowAnalysisRule.verifyCanDisable();
         flowAnalysisRule.disable();
     }

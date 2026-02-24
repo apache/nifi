@@ -30,7 +30,7 @@ public class ReportingTaskStatus implements java.io.Serializable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -38,7 +38,7 @@ public class ReportingTaskStatus implements java.io.Serializable {
         return reportingTaskHealth;
     }
 
-    public void setReportingTaskHealth(ReportingTaskHealth reportingTaskHealth) {
+    public void setReportingTaskHealth(final ReportingTaskHealth reportingTaskHealth) {
         this.reportingTaskHealth = reportingTaskHealth;
     }
 
@@ -46,12 +46,12 @@ public class ReportingTaskStatus implements java.io.Serializable {
         return bulletinList;
     }
 
-    public void setBulletinList(List<BulletinStatus> bulletinList) {
+    public void setBulletinList(final List<BulletinStatus> bulletinList) {
         this.bulletinList = bulletinList;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -59,7 +59,7 @@ public class ReportingTaskStatus implements java.io.Serializable {
             return false;
         }
 
-        ReportingTaskStatus that = (ReportingTaskStatus) o;
+        final ReportingTaskStatus that = (ReportingTaskStatus) o;
 
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
             return false;

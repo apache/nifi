@@ -31,7 +31,7 @@ public class VersionedFlowSnapshotMetadataEntity extends Entity {
         return versionedFlowSnapshotMetadata;
     }
 
-    public void setVersionedFlowSnapshotMetadata(RegisteredFlowSnapshotMetadata versionedFlowSnapshotMetadata) {
+    public void setVersionedFlowSnapshotMetadata(final RegisteredFlowSnapshotMetadata versionedFlowSnapshotMetadata) {
         this.versionedFlowSnapshotMetadata = versionedFlowSnapshotMetadata;
     }
 
@@ -40,7 +40,7 @@ public class VersionedFlowSnapshotMetadataEntity extends Entity {
         return registryId;
     }
 
-    public void setRegistryId(String registryId) {
+    public void setRegistryId(final String registryId) {
         this.registryId = registryId;
     }
 }

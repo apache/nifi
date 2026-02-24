@@ -44,7 +44,7 @@ abstract class JMSWorker {
      * @param jmsTemplate the instance of {@link JmsTemplate}
      * @param processLog the instance of {@link ComponentLog}
      */
-    public JMSWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
+    public JMSWorker(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate, final ComponentLog processLog) {
         this.connectionFactory = connectionFactory;
         this.jmsTemplate = jmsTemplate;
         this.processLog = processLog;
@@ -64,7 +64,7 @@ abstract class JMSWorker {
         return isValid;
     }
 
-    public void setValid(boolean isValid) {
+    public void setValid(final boolean isValid) {
         this.isValid = isValid;
     }
 }

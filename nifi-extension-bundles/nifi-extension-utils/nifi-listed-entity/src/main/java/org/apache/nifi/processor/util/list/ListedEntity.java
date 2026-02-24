@@ -30,7 +30,7 @@ public class ListedEntity {
     private final long size;
 
     @JsonCreator
-    public ListedEntity(@JsonProperty("timestamp") long timestamp, @JsonProperty("size") long size) {
+    public ListedEntity(final @JsonProperty("timestamp") long timestamp, final @JsonProperty("size") long size) {
         this.timestamp = timestamp;
         this.size = size;
     }

@@ -53,7 +53,7 @@ public class BulletinDTO {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -66,7 +66,7 @@ public class BulletinDTO {
         return nodeAddress;
     }
 
-    public void setNodeAddress(String nodeAddress) {
+    public void setNodeAddress(final String nodeAddress) {
         this.nodeAddress = nodeAddress;
     }
 
@@ -79,7 +79,7 @@ public class BulletinDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -92,7 +92,7 @@ public class BulletinDTO {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(final String category) {
         this.category = category;
     }
 
@@ -105,7 +105,7 @@ public class BulletinDTO {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
@@ -118,7 +118,7 @@ public class BulletinDTO {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -131,7 +131,7 @@ public class BulletinDTO {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -144,7 +144,7 @@ public class BulletinDTO {
         return level;
     }
 
-    public void setLevel(String level) {
+    public void setLevel(final String level) {
         this.level = level;
     }
 
@@ -159,7 +159,7 @@ public class BulletinDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -174,7 +174,7 @@ public class BulletinDTO {
         return timestampIso;
     }
 
-    public void setTimestampIso(Instant timestampIso) {
+    public void setTimestampIso(final Instant timestampIso) {
         this.timestampIso = timestampIso;
     }
 
@@ -184,7 +184,7 @@ public class BulletinDTO {
         return sourceType;
     }
 
-    public void setSourceType(String sourceType) {
+    public void setSourceType(final String sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -193,7 +193,7 @@ public class BulletinDTO {
         return stackTrace;
     }
 
-    public void setStackTrace(String stackTrace) {
+    public void setStackTrace(final String stackTrace) {
         this.stackTrace = stackTrace;
     }
 }

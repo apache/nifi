@@ -301,10 +301,10 @@ public class GitHubFlowRegistryClientTest {
         assertNotNull(resultSnapshot);
 
         // Verify Parameter Context PC1
-        VersionedParameterContext pc1 = resultSnapshot.getParameterContexts().get("PC1");
+        final VersionedParameterContext pc1 = resultSnapshot.getParameterContexts().get("PC1");
         assertNotNull(pc1);
 
-        Map<String, VersionedParameter> pc1Params = pc1.getParameters()
+        final Map<String, VersionedParameter> pc1Params = pc1.getParameters()
                 .stream()
                 .collect(Collectors.toMap(VersionedParameter::getName, Function.identity()));
 
@@ -316,7 +316,7 @@ public class GitHubFlowRegistryClientTest {
         assertEquals("Z", pc1Params.get("Parameter3").getValue());
 
         // Verify Parameter Context PC2
-        VersionedParameterContext pc2 = resultSnapshot.getParameterContexts().get("PC2");
+        final VersionedParameterContext pc2 = resultSnapshot.getParameterContexts().get("PC2");
         assertNull(pc2);
     }
 
@@ -369,7 +369,7 @@ public class GitHubFlowRegistryClientTest {
         return existingSnapshot;
     }
 
-    private RegisteredFlowSnapshot createIncomingSnapshotWithNewParameters(RegisteredFlow incomingFlow) {
+    private RegisteredFlowSnapshot createIncomingSnapshotWithNewParameters(final RegisteredFlow incomingFlow) {
         final RegisteredFlowSnapshot incomingSnapshot = new RegisteredFlowSnapshot();
         incomingSnapshot.setFlow(incomingFlow);
 
@@ -451,10 +451,10 @@ public class GitHubFlowRegistryClientTest {
 
         // Mock asAllowableValue to find the enum constant that matches the string value
         when(propertyValue.asAllowableValue(any())).thenAnswer(invocation -> {
-            Class<?> clazz = invocation.getArgument(0);
+            final Class<?> clazz = invocation.getArgument(0);
             if (clazz.isEnum()) {
-                Object[] enumConstants = clazz.getEnumConstants();
-                for (Object enumConstant : enumConstants) {
+                final Object[] enumConstants = clazz.getEnumConstants();
+                for (final Object enumConstant : enumConstants) {
                     if (value.equals(enumConstant.toString())) {
                         return enumConstant;
                     }

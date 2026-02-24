@@ -276,7 +276,7 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         // if we are changing the protocol, the events that we may have queued up are no longer valid, as they
         // were received using a different protocol and may be from a completely different source
         if (PROTOCOL.equals(descriptor)) {

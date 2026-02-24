@@ -32,7 +32,7 @@ public class JoltSpecificationDTO implements Serializable {
     public JoltSpecificationDTO() {
     }
 
-    public JoltSpecificationDTO(String transform, String specification) {
+    public JoltSpecificationDTO(final String transform, final String specification) {
         this.transform = transform;
         this.specification = specification;
     }
@@ -41,7 +41,7 @@ public class JoltSpecificationDTO implements Serializable {
         return transform;
     }
 
-    public void setTransform(String transform) {
+    public void setTransform(final String transform) {
         this.transform = transform;
     }
 
@@ -49,7 +49,7 @@ public class JoltSpecificationDTO implements Serializable {
         return specification;
     }
 
-    public void setSpecification(String specification) {
+    public void setSpecification(final String specification) {
         this.specification = specification;
     }
 
@@ -57,7 +57,7 @@ public class JoltSpecificationDTO implements Serializable {
         return input;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
@@ -65,7 +65,7 @@ public class JoltSpecificationDTO implements Serializable {
         return modules;
     }
 
-    public void setModules(String modules) {
+    public void setModules(final String modules) {
         this.modules = modules;
     }
 
@@ -73,7 +73,7 @@ public class JoltSpecificationDTO implements Serializable {
         return customClass;
     }
 
-    public void setCustomClass(String customClass) {
+    public void setCustomClass(final String customClass) {
         this.customClass = customClass;
     }
 
@@ -81,7 +81,7 @@ public class JoltSpecificationDTO implements Serializable {
         return expressionLanguageAttributes;
     }
 
-    public void setExpressionLanguageAttributes(Map<String, String> expressionLanguageAttributes) {
+    public void setExpressionLanguageAttributes(final Map<String, String> expressionLanguageAttributes) {
         this.expressionLanguageAttributes = expressionLanguageAttributes;
     }
 }

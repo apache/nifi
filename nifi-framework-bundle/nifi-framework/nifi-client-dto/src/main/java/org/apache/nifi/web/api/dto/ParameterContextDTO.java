@@ -36,7 +36,7 @@ public class ParameterContextDTO {
     private List<ParameterContextReferenceEntity> inheritedParameterContexts;
     private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.identifier = id;
     }
 
@@ -45,7 +45,7 @@ public class ParameterContextDTO {
         return identifier;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -54,7 +54,7 @@ public class ParameterContextDTO {
         return name;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 

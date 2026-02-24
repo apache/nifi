@@ -312,7 +312,7 @@ public class CompressContent extends AbstractProcessor {
 
                         switch (compressionFormat.toLowerCase()) {
                             case COMPRESSION_FORMAT_GZIP: {
-                                int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
+                                final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
                                 compressionOut = new GZIPOutputStream(bufferedOut, compressionLevel);
                                 mimeTypeRef.set("application/gzip");
                                 break;
@@ -356,7 +356,7 @@ public class CompressContent extends AbstractProcessor {
                             case COMPRESSION_FORMAT_BROTLI: {
                                 Brotli4jLoader.ensureAvailability();
                                 final int compressionLevel = context.getProperty(COMPRESSION_LEVEL).asInteger();
-                                Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
+                                final Encoder.Parameters params = new Encoder.Parameters().setQuality(compressionLevel);
                                 compressionOut = new BrotliOutputStream(bufferedOut, params);
                                 mimeTypeRef.set("application/x-brotli");
                                 break;

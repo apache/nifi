@@ -46,7 +46,7 @@ abstract class MessageBodyToBytesConverter {
      * @param message instance of {@link TextMessage}
      * @return  byte array representing the {@link TextMessage}
      */
-    public static byte[] toBytes(TextMessage message) {
+    public static byte[] toBytes(final TextMessage message) {
         return MessageBodyToBytesConverter.toBytes(message, null);
     }
 
@@ -56,7 +56,7 @@ abstract class MessageBodyToBytesConverter {
      * @param charset character set used to interpret the TextMessage
      * @return  byte array representing the {@link TextMessage}
      */
-    public static byte[] toBytes(TextMessage message, Charset charset) {
+    public static byte[] toBytes(final TextMessage message, final Charset charset) {
         try {
             if (message.getText() == null) {
                 return new byte[0];
@@ -66,7 +66,7 @@ abstract class MessageBodyToBytesConverter {
             } else {
                 return message.getText().getBytes(charset);
             }
-        } catch (JMSException e) {
+        } catch (final JMSException e) {
             throw new MessageConversionException("Failed to convert " + TextMessage.class.getSimpleName() + " to byte[]", e);
         }
     }
@@ -76,11 +76,11 @@ abstract class MessageBodyToBytesConverter {
      * @param message instance of {@link BytesMessage}
      * @return byte array representing the {@link BytesMessage}
      */
-    public static byte[] toBytes(BytesMessage message) {
+    public static byte[] toBytes(final BytesMessage message) {
         try {
-            InputStream is = new BytesMessageInputStream(message);
+            final InputStream is = new BytesMessageInputStream(message);
             return IOUtils.toByteArray(is);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MessageConversionException("Failed to convert " + BytesMessage.class.getSimpleName() + " to byte[]", e);
         }
     }
@@ -89,14 +89,14 @@ abstract class MessageBodyToBytesConverter {
      * @param message instance of {@link StreamMessage}
      * @return byte array representing the {@link StreamMessage}
      */
-    public static byte[] toBytes(StreamMessage message) {
+    public static byte[] toBytes(final StreamMessage message) {
         try (
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
         ) {
             while (true) {
                 try {
-                    Object element = message.readObject();
+                    final Object element = message.readObject();
                     if (element instanceof Boolean) {
                         dataOutputStream.writeBoolean((Boolean) element);
                     } else if (element instanceof byte[]) {
@@ -120,17 +120,17 @@ abstract class MessageBodyToBytesConverter {
                     } else {
                         throw new MessageConversionException("Unsupported type in " + StreamMessage.class.getSimpleName() + ": '" + element.getClass() + "'");
                     }
-                } catch (MessageEOFException mEofE) {
+                } catch (final MessageEOFException mEofE) {
                     break;
                 }
             }
 
             dataOutputStream.flush();
 
-            byte[] bytes = byteArrayOutputStream.toByteArray();
+            final byte[] bytes = byteArrayOutputStream.toByteArray();
 
             return bytes;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new MessageConversionException("Failed to convert " + StreamMessage.class.getSimpleName() + " to byte[]", e);
         }
     }
@@ -139,23 +139,23 @@ abstract class MessageBodyToBytesConverter {
      * @param message instance of {@link MapMessage}
      * @return byte array representing the {@link MapMessage}
      */
-    public static byte[] toBytes(MapMessage message) {
-        ObjectMapper objectMapper = new ObjectMapper();
+    public static byte[] toBytes(final MapMessage message) {
+        final ObjectMapper objectMapper = new ObjectMapper();
 
         try (
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ) {
-            Map<String, Object> objectMap = new HashMap<>();
+            final Map<String, Object> objectMap = new HashMap<>();
 
-            Enumeration mapNames = message.getMapNames();
+            final Enumeration mapNames = message.getMapNames();
 
             while (mapNames.hasMoreElements()) {
-                String name = (String) mapNames.nextElement();
-                Object value = message.getObject(name);
+                final String name = (String) mapNames.nextElement();
+                final Object value = message.getObject(name);
                 if (value instanceof byte[]) {
-                    byte[] bytes = (byte[]) value;
-                    List<Byte> byteList = new ArrayList<>(bytes.length);
-                    for (byte aByte : bytes) {
+                    final byte[] bytes = (byte[]) value;
+                    final List<Byte> byteList = new ArrayList<>(bytes.length);
+                    for (final byte aByte : bytes) {
                         byteList.add(aByte);
                     }
                     objectMap.put(name, byteList);
@@ -166,12 +166,12 @@ abstract class MessageBodyToBytesConverter {
 
             objectMapper.writeValue(byteArrayOutputStream, objectMap);
 
-            byte[] jsonAsByteArray = byteArrayOutputStream.toByteArray();
+            final byte[] jsonAsByteArray = byteArrayOutputStream.toByteArray();
 
             return jsonAsByteArray;
-        } catch (JMSException e) {
+        } catch (final JMSException e) {
             throw new MessageConversionException("Couldn't read incoming " + MapMessage.class.getSimpleName(), e);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new MessageConversionException("Couldn't transform incoming " + MapMessage.class.getSimpleName() + " to JSON", e);
         }
     }
@@ -179,44 +179,44 @@ abstract class MessageBodyToBytesConverter {
     private static class BytesMessageInputStream extends InputStream {
         private final BytesMessage message;
 
-        public BytesMessageInputStream(BytesMessage message) {
+        public BytesMessageInputStream(final BytesMessage message) {
             this.message = message;
         }
 
         @Override
         public int read() throws IOException {
             try {
-                int value = Byte.toUnsignedInt(this.message.readByte());
+                final int value = Byte.toUnsignedInt(this.message.readByte());
                 return value;
-            } catch (MessageEOFException eof) {
+            } catch (final MessageEOFException eof) {
                 return -1;
-            } catch (JMSException e) {
+            } catch (final JMSException e) {
                 throw new IOException(e.toString());
             }
         }
 
         @Override
-        public int read(byte[] buffer, int offset, int length) throws IOException {
+        public int read(final byte[] buffer, final int offset, final int length) throws IOException {
             try {
                 if (offset == 0) {
                     return this.message.readBytes(buffer, length);
                 } else {
                     return super.read(buffer, offset, length);
                 }
-            } catch (MessageEOFException eof) {
+            } catch (final MessageEOFException eof) {
                 return -1;
-            } catch (JMSException e) {
+            } catch (final JMSException e) {
                 throw new IOException(e.toString());
             }
         }
 
         @Override
-        public int read(byte[] buffer) throws IOException {
+        public int read(final byte[] buffer) throws IOException {
             try {
                 return this.message.readBytes(buffer);
-            } catch (MessageEOFException eof) {
+            } catch (final MessageEOFException eof) {
                 return -1;
-            } catch (JMSException e) {
+            } catch (final JMSException e) {
                 throw new IOException(e.toString());
             }
         }
@@ -225,11 +225,11 @@ abstract class MessageBodyToBytesConverter {
     static class MessageConversionException extends RuntimeException {
         private static final long serialVersionUID = -1464448549601643887L;
 
-        public MessageConversionException(String msg) {
+        public MessageConversionException(final String msg) {
             super(msg);
         }
 
-        public MessageConversionException(String msg, Throwable cause) {
+        public MessageConversionException(final String msg, final Throwable cause) {
             super(msg, cause);
         }
     }

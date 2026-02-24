@@ -174,11 +174,11 @@ public class TestSecretsManagerParameterValueProvider {
         if (resourceNotFound) {
             when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenThrow(ResourceNotFoundException.builder().message("Not found").build());
         } else {
-            GetSecretValueResponse.Builder builder = GetSecretValueResponse.builder();
+            final GetSecretValueResponse.Builder builder = GetSecretValueResponse.builder();
             if (hasSecretString) {
                 builder.secretString(getSecretString(parameterName, secretValue));
             }
-            GetSecretValueResponse response = builder.build();
+            final GetSecretValueResponse response = builder.build();
             when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(response);
         }
     }

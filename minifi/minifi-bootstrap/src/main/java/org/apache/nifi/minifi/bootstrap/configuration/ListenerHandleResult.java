@@ -22,12 +22,12 @@ public class ListenerHandleResult {
     private final ConfigurationChangeListener configurationChangeListener;
     private final Exception failureCause;
 
-    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener) {
+    public ListenerHandleResult(final ConfigurationChangeListener configurationChangeListener) {
         this.configurationChangeListener = configurationChangeListener;
         failureCause = null;
     }
 
-    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener, Exception failureCause) {
+    public ListenerHandleResult(final ConfigurationChangeListener configurationChangeListener, final Exception failureCause) {
         this.configurationChangeListener = configurationChangeListener;
         this.failureCause = failureCause;
     }

@@ -160,7 +160,7 @@ public class IndexDirectoryManager {
         // start time of index N+1. So we determine the time range of each index and select an index only if
         // its start time is before the given timestamp and its end time is <= the given timestamp.
         for (final List<IndexLocation> locationList : startTimeWithFileByStorageDirectory.values()) {
-            for (IndexLocation indexLoc : locationList) {
+            for (final IndexLocation indexLoc : locationList) {
                 final String partition = indexLoc.getPartitionName();
                 final IndexLocation activeLocation = activeIndices.get(partition);
                 if (indexLoc.equals(activeLocation)) {
@@ -421,7 +421,7 @@ public class IndexDirectoryManager {
         if (destroyOldIndex) {
             try {
                 FileUtils.deleteFile(oldIndexDir, true);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Failed to delete index directory {}; this directory should be cleaned up manually", oldIndexDir, e);
             }
         }

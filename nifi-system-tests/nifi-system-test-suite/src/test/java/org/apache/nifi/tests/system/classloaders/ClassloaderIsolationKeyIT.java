@@ -144,7 +144,7 @@ public class ClassloaderIsolationKeyIT extends NiFiSystemIT {
         waitFor(() -> {
             try {
                 return getCount(file) == expectedValue;
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 return false;
             }
         });

@@ -56,7 +56,7 @@ public class InstantFormatEvaluator extends StringEvaluator {
         final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
         final String tz = tzResult.getValue();
 
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern(format, Locale.US)
+        final DateTimeFormatter dtf = DateTimeFormatter.ofPattern(format, Locale.US)
                 .withZone(ZoneId.of(tz));
 
         return new StringQueryResult(dtf.format(subjectValue));

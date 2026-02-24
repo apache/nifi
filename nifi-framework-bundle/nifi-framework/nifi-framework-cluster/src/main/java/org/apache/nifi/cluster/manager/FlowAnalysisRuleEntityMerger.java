@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 public class FlowAnalysisRuleEntityMerger implements ComponentEntityMerger<FlowAnalysisRuleEntity> {
 
     @Override
-    public void merge(FlowAnalysisRuleEntity clientEntity, Map<NodeIdentifier, FlowAnalysisRuleEntity> entityMap) {
+    public void merge(final FlowAnalysisRuleEntity clientEntity, final Map<NodeIdentifier, FlowAnalysisRuleEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, FlowAnalysisRuleEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, FlowAnalysisRuleEntity> entry : entityMap.entrySet()) {
             final FlowAnalysisRuleEntity entityStatus = entry.getValue();
             if (clientEntity != entityStatus) {
                 StatusMerger.merge(clientEntity.getStatus(), entityStatus.getStatus());
@@ -88,7 +88,7 @@ public class FlowAnalysisRuleEntityMerger implements ComponentEntityMerger<FlowA
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client

@@ -41,7 +41,7 @@ public class FlowAnalysisResultEntity extends Entity {
         return flowAnalysisPending;
     }
 
-    public void setFlowAnalysisPending(boolean flowAnalysisPending) {
+    public void setFlowAnalysisPending(final boolean flowAnalysisPending) {
         this.flowAnalysisPending = flowAnalysisPending;
     }
 
@@ -52,7 +52,7 @@ public class FlowAnalysisResultEntity extends Entity {
         return rules;
     }
 
-    public void setRules(List<FlowAnalysisRuleDTO> rules) {
+    public void setRules(final List<FlowAnalysisRuleDTO> rules) {
         this.rules = rules;
     }
 
@@ -63,7 +63,7 @@ public class FlowAnalysisResultEntity extends Entity {
         return ruleViolations;
     }
 
-    public void setRuleViolations(List<FlowAnalysisRuleViolationDTO> ruleViolations) {
+    public void setRuleViolations(final List<FlowAnalysisRuleViolationDTO> ruleViolations) {
         this.ruleViolations = ruleViolations;
     }
 }

@@ -33,10 +33,10 @@ public class DateTimeParameter {
 
     private final Date dateTimeValue;
 
-    public DateTimeParameter(String rawDateTime) {
+    public DateTimeParameter(final String rawDateTime) {
         try {
             dateTimeValue = parse(rawDateTime);
-        } catch (DateTimeParseException pe) {
+        } catch (final DateTimeParseException pe) {
             throw new IllegalArgumentException(String.format(INVALID_INTEGER_MESSAGE,
                     rawDateTime, DATE_TIME_FORMAT));
         }

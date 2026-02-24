@@ -82,7 +82,7 @@ public class C2HeartbeatManagerTest {
     void shouldSendHeartbeatAndProcessEmptyResponse() {
         when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
-        C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
+        final C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
         when(mockC2Client.publishHeartbeat(mockC2Heartbeat)).thenReturn(empty());
 
@@ -99,9 +99,9 @@ public class C2HeartbeatManagerTest {
     void shouldSendHeartbeatAndProcessResponseWithNoOperation() {
         when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
-        C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
+        final C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
-        C2HeartbeatResponse mockC2HeartbeatResponse = mock(C2HeartbeatResponse.class);
+        final C2HeartbeatResponse mockC2HeartbeatResponse = mock(C2HeartbeatResponse.class);
         when(mockC2HeartbeatResponse.getRequestedOperations()).thenReturn(List.of());
         when(mockC2Client.publishHeartbeat(mockC2Heartbeat)).thenReturn(Optional.of(mockC2HeartbeatResponse));
 
@@ -117,11 +117,11 @@ public class C2HeartbeatManagerTest {
     void shouldSendHeartbeatAndProcessResponseWithMultipleOperation() {
         when(mockRuntimeInfoWrapperSupplier.get()).thenReturn(mockRuntimeInfoWrapper);
         when(mockHeartbeatLock.tryLock()).thenReturn(true);
-        C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
+        final C2Heartbeat mockC2Heartbeat = mock(C2Heartbeat.class);
         when(mockC2HeartbeatFactory.create(mockRuntimeInfoWrapper)).thenReturn(mockC2Heartbeat);
-        C2HeartbeatResponse mockC2HeartbeatResponse = mock(C2HeartbeatResponse.class);
-        C2Operation mockOperation1 = mock(C2Operation.class);
-        C2Operation mockOperation2 = mock(C2Operation.class);
+        final C2HeartbeatResponse mockC2HeartbeatResponse = mock(C2HeartbeatResponse.class);
+        final C2Operation mockOperation1 = mock(C2Operation.class);
+        final C2Operation mockOperation2 = mock(C2Operation.class);
         when(mockC2HeartbeatResponse.getRequestedOperations()).thenReturn(List.of(mockOperation1, mockOperation2));
         when(mockC2Client.publishHeartbeat(mockC2Heartbeat)).thenReturn(ofNullable(mockC2HeartbeatResponse));
 

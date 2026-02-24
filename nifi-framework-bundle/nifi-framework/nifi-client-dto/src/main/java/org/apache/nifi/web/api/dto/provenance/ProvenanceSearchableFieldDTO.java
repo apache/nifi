@@ -39,7 +39,7 @@ public class ProvenanceSearchableFieldDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -52,7 +52,7 @@ public class ProvenanceSearchableFieldDTO {
         return field;
     }
 
-    public void setField(String field) {
+    public void setField(final String field) {
         this.field = field;
     }
 
@@ -65,7 +65,7 @@ public class ProvenanceSearchableFieldDTO {
         return label;
     }
 
-    public void setLabel(String label) {
+    public void setLabel(final String label) {
         this.label = label;
     }
 
@@ -78,7 +78,7 @@ public class ProvenanceSearchableFieldDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 

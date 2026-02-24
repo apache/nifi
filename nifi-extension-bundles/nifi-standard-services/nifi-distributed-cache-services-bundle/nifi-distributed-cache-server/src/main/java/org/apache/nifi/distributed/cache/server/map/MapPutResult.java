@@ -23,7 +23,7 @@ public class MapPutResult {
     private final MapCacheRecord existing;
     private final MapCacheRecord evicted;
 
-    public MapPutResult(boolean successful, MapCacheRecord record, MapCacheRecord existing, MapCacheRecord evicted) {
+    public MapPutResult(final boolean successful, final MapCacheRecord record, final MapCacheRecord existing, final MapCacheRecord evicted) {
         this.successful = successful;
         this.record = record;
         this.existing = existing;

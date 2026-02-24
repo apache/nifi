@@ -50,7 +50,7 @@ public class ProvenanceResultsDTO {
         return errors;
     }
 
-    public void setErrors(Set<String> errors) {
+    public void setErrors(final Set<String> errors) {
         this.errors = errors;
     }
 
@@ -63,7 +63,7 @@ public class ProvenanceResultsDTO {
         return provenanceEvents;
     }
 
-    public void setProvenanceEvents(List<ProvenanceEventDTO> provenanceEvents) {
+    public void setProvenanceEvents(final List<ProvenanceEventDTO> provenanceEvents) {
         this.provenanceEvents = provenanceEvents;
     }
 
@@ -76,7 +76,7 @@ public class ProvenanceResultsDTO {
         return total;
     }
 
-    public void setTotal(String total) {
+    public void setTotal(final String total) {
         this.total = total;
     }
 
@@ -89,7 +89,7 @@ public class ProvenanceResultsDTO {
         return totalCount;
     }
 
-    public void setTotalCount(Long totalCount) {
+    public void setTotalCount(final Long totalCount) {
         this.totalCount = totalCount;
     }
 
@@ -104,7 +104,7 @@ public class ProvenanceResultsDTO {
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 
@@ -119,7 +119,7 @@ public class ProvenanceResultsDTO {
         return oldestEvent;
     }
 
-    public void setOldestEvent(Date oldestEvent) {
+    public void setOldestEvent(final Date oldestEvent) {
         this.oldestEvent = oldestEvent;
     }
 
@@ -132,7 +132,7 @@ public class ProvenanceResultsDTO {
         return timeOffset;
     }
 
-    public void setTimeOffset(Integer timeOffset) {
+    public void setTimeOffset(final Integer timeOffset) {
         this.timeOffset = timeOffset;
     }
 

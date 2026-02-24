@@ -19,15 +19,12 @@ package org.apache.nifi.distributed.cache.server.set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.SetCacheServer;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -40,8 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -79,7 +74,11 @@ public class TestDistributedSetServerAndClient {
     public void testNonPersistentSetServerAndClient() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        final SetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = new SetCacheClientService();
+        runner.addControllerService("client", client);
+        runner.setProperty(client, SetCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, SetCacheClientService.PORT, String.valueOf(server.getPort()));
+        runner.enableControllerService(client);
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -106,7 +105,7 @@ public class TestDistributedSetServerAndClient {
         runner.setProperty(server, SetCacheServer.PERSISTENCE_PATH, dataFile.getAbsolutePath());
         runner.enableControllerService(server);
 
-        final SetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient("client-persistent", server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -139,7 +138,7 @@ public class TestDistributedSetServerAndClient {
         runner.setProperty(server, SetCacheServer.EVICTION_POLICY, SetCacheServer.EVICTION_STRATEGY_LFU);
         runner.enableControllerService(server);
 
-        final SetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient("client-lfu", server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
             final boolean added = client.addIfAbsent("test", serializer);
@@ -177,7 +176,7 @@ public class TestDistributedSetServerAndClient {
         runner.setProperty(server, SetCacheServer.EVICTION_POLICY, SetCacheServer.EVICTION_STRATEGY_FIFO);
         runner.enableControllerService(server);
 
-        final SetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient("client-fifo", server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
 
@@ -217,7 +216,7 @@ public class TestDistributedSetServerAndClient {
     public void testLimitServiceReadSize() throws InitializationException, IOException {
         runner.enableControllerService(server);
 
-        final SetCacheClientService client = createClient(server.getPort());
+        final SetCacheClientService client = createClient("client-limit", server.getPort());
         try {
             final Serializer<String> serializer = new StringSerializer();
 
@@ -242,17 +241,12 @@ public class TestDistributedSetServerAndClient {
         }
     }
 
-    private SetCacheClientService createClient(final int port) throws InitializationException {
+    private SetCacheClientService createClient(final String serviceId, final int port) throws InitializationException {
         final SetCacheClientService client = new SetCacheClientService();
-        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
-        client.initialize(clientInitContext);
-
-        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(SetCacheClientService.HOSTNAME, "localhost");
-        clientProperties.put(SetCacheClientService.PORT, String.valueOf(port));
-        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), null);
-        client.onEnabled(clientContext);
-
+        runner.addControllerService(serviceId, client);
+        runner.setProperty(client, SetCacheClientService.HOSTNAME, "localhost");
+        runner.setProperty(client, SetCacheClientService.PORT, String.valueOf(port));
+        runner.enableControllerService(client);
         return client;
     }
 

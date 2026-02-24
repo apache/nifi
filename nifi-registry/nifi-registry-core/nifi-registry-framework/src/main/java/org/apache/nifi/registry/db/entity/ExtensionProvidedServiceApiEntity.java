@@ -36,7 +36,7 @@ public class ExtensionProvidedServiceApiEntity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -44,7 +44,7 @@ public class ExtensionProvidedServiceApiEntity {
         return extensionId;
     }
 
-    public void setExtensionId(String extensionId) {
+    public void setExtensionId(final String extensionId) {
         this.extensionId = extensionId;
     }
 
@@ -52,7 +52,7 @@ public class ExtensionProvidedServiceApiEntity {
         return className;
     }
 
-    public void setClassName(String className) {
+    public void setClassName(final String className) {
         this.className = className;
     }
 
@@ -60,7 +60,7 @@ public class ExtensionProvidedServiceApiEntity {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -68,7 +68,7 @@ public class ExtensionProvidedServiceApiEntity {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -76,19 +76,19 @@ public class ExtensionProvidedServiceApiEntity {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ExtensionProvidedServiceApiEntity entity = (ExtensionProvidedServiceApiEntity) o;
+        final ExtensionProvidedServiceApiEntity entity = (ExtensionProvidedServiceApiEntity) o;
         return Objects.equals(id, entity.id)
                 && Objects.equals(extensionId, entity.extensionId)
                 && Objects.equals(className, entity.className)

@@ -103,21 +103,21 @@ public abstract class AbstractTestNarLoader {
                 NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
     }
 
-    private void deleteDir(String path) throws IOException {
-        Path directory = Paths.get(path);
+    private void deleteDir(final String path) throws IOException {
+        final Path directory = Paths.get(path);
         if (!directory.toFile().exists()) {
             return;
         }
 
         Files.walkFileTree(directory, new SimpleFileVisitor<>() {
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                 Files.delete(file);
                 return FileVisitResult.CONTINUE;
             }
 
             @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+            public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
                 Files.delete(dir);
                 return FileVisitResult.CONTINUE;
             }

@@ -94,7 +94,7 @@ public class ProvenanceEventDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -107,7 +107,7 @@ public class ProvenanceEventDTO {
         return eventId;
     }
 
-    public void setEventId(Long eventId) {
+    public void setEventId(final Long eventId) {
         this.eventId = eventId;
     }
 
@@ -122,7 +122,7 @@ public class ProvenanceEventDTO {
         return eventTime;
     }
 
-    public void setEventTime(Date eventTime) {
+    public void setEventTime(final Date eventTime) {
         this.eventTime = eventTime;
     }
 
@@ -148,7 +148,7 @@ public class ProvenanceEventDTO {
         return flowFileUuid;
     }
 
-    public void setFlowFileUuid(String flowFileUuid) {
+    public void setFlowFileUuid(final String flowFileUuid) {
         this.flowFileUuid = flowFileUuid;
     }
 
@@ -161,7 +161,7 @@ public class ProvenanceEventDTO {
         return fileSize;
     }
 
-    public void setFileSize(String fileSize) {
+    public void setFileSize(final String fileSize) {
         this.fileSize = fileSize;
     }
 
@@ -174,7 +174,7 @@ public class ProvenanceEventDTO {
         return fileSizeBytes;
     }
 
-    public void setFileSizeBytes(Long fileSizeBytes) {
+    public void setFileSizeBytes(final Long fileSizeBytes) {
         this.fileSizeBytes = fileSizeBytes;
     }
 
@@ -187,7 +187,7 @@ public class ProvenanceEventDTO {
         return eventType;
     }
 
-    public void setEventType(String eventType) {
+    public void setEventType(final String eventType) {
         this.eventType = eventType;
     }
 
@@ -200,7 +200,7 @@ public class ProvenanceEventDTO {
         return attributes;
     }
 
-    public void setAttributes(Collection<AttributeDTO> attributes) {
+    public void setAttributes(final Collection<AttributeDTO> attributes) {
         this.attributes = attributes;
     }
 
@@ -213,7 +213,7 @@ public class ProvenanceEventDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -226,7 +226,7 @@ public class ProvenanceEventDTO {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -239,7 +239,7 @@ public class ProvenanceEventDTO {
         return componentName;
     }
 
-    public void setComponentName(String componentName) {
+    public void setComponentName(final String componentName) {
         this.componentName = componentName;
     }
 
@@ -252,7 +252,7 @@ public class ProvenanceEventDTO {
         return componentType;
     }
 
-    public void setComponentType(String componentType) {
+    public void setComponentType(final String componentType) {
         this.componentType = componentType;
     }
 
@@ -265,7 +265,7 @@ public class ProvenanceEventDTO {
         return transitUri;
     }
 
-    public void setTransitUri(String transitUri) {
+    public void setTransitUri(final String transitUri) {
         this.transitUri = transitUri;
     }
 
@@ -278,7 +278,7 @@ public class ProvenanceEventDTO {
         return alternateIdentifierUri;
     }
 
-    public void setAlternateIdentifierUri(String alternateIdentifierUri) {
+    public void setAlternateIdentifierUri(final String alternateIdentifierUri) {
         this.alternateIdentifierUri = alternateIdentifierUri;
     }
 
@@ -291,7 +291,7 @@ public class ProvenanceEventDTO {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 
@@ -304,7 +304,7 @@ public class ProvenanceEventDTO {
         return clusterNodeAddress;
     }
 
-    public void setClusterNodeAddress(String clusterNodeAddress) {
+    public void setClusterNodeAddress(final String clusterNodeAddress) {
         this.clusterNodeAddress = clusterNodeAddress;
     }
 
@@ -317,7 +317,7 @@ public class ProvenanceEventDTO {
         return parentUuids;
     }
 
-    public void setParentUuids(List<String> parentUuids) {
+    public void setParentUuids(final List<String> parentUuids) {
         this.parentUuids = parentUuids;
     }
 
@@ -330,7 +330,7 @@ public class ProvenanceEventDTO {
         return childUuids;
     }
 
-    public void setChildUuids(List<String> childUuids) {
+    public void setChildUuids(final List<String> childUuids) {
         this.childUuids = childUuids;
     }
 
@@ -343,7 +343,7 @@ public class ProvenanceEventDTO {
         return eventDuration;
     }
 
-    public void setEventDuration(Long eventDuration) {
+    public void setEventDuration(final Long eventDuration) {
         this.eventDuration = eventDuration;
     }
 
@@ -356,7 +356,7 @@ public class ProvenanceEventDTO {
         return lineageDuration;
     }
 
-    public void setLineageDuration(Long lineageDuration) {
+    public void setLineageDuration(final Long lineageDuration) {
         this.lineageDuration = lineageDuration;
     }
 
@@ -369,7 +369,7 @@ public class ProvenanceEventDTO {
         return sourceSystemFlowFileId;
     }
 
-    public void setSourceSystemFlowFileId(String sourceSystemFlowFileId) {
+    public void setSourceSystemFlowFileId(final String sourceSystemFlowFileId) {
         this.sourceSystemFlowFileId = sourceSystemFlowFileId;
     }
 
@@ -382,7 +382,7 @@ public class ProvenanceEventDTO {
         return relationship;
     }
 
-    public void setRelationship(String relationship) {
+    public void setRelationship(final String relationship) {
         this.relationship = relationship;
     }
 
@@ -395,7 +395,7 @@ public class ProvenanceEventDTO {
         return details;
     }
 
-    public void setDetails(String details) {
+    public void setDetails(final String details) {
         this.details = details;
     }
 
@@ -408,7 +408,7 @@ public class ProvenanceEventDTO {
         return contentEqual;
     }
 
-    public void setContentEqual(Boolean contentEqual) {
+    public void setContentEqual(final Boolean contentEqual) {
         this.contentEqual = contentEqual;
     }
 
@@ -421,7 +421,7 @@ public class ProvenanceEventDTO {
         return outputContentAvailable;
     }
 
-    public void setOutputContentAvailable(Boolean outputContentAvailable) {
+    public void setOutputContentAvailable(final Boolean outputContentAvailable) {
         this.outputContentAvailable = outputContentAvailable;
     }
 
@@ -434,7 +434,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimSection;
     }
 
-    public void setOutputContentClaimSection(String contentClaimSection) {
+    public void setOutputContentClaimSection(final String contentClaimSection) {
         this.outputContentClaimSection = contentClaimSection;
     }
 
@@ -447,7 +447,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimContainer;
     }
 
-    public void setOutputContentClaimContainer(String outputContentClaimContainer) {
+    public void setOutputContentClaimContainer(final String outputContentClaimContainer) {
         this.outputContentClaimContainer = outputContentClaimContainer;
     }
 
@@ -460,7 +460,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimIdentifier;
     }
 
-    public void setOutputContentClaimIdentifier(String outputContentClaimIdentifier) {
+    public void setOutputContentClaimIdentifier(final String outputContentClaimIdentifier) {
         this.outputContentClaimIdentifier = outputContentClaimIdentifier;
     }
 
@@ -473,7 +473,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimOffset;
     }
 
-    public void setOutputContentClaimOffset(Long outputContentClaimOffset) {
+    public void setOutputContentClaimOffset(final Long outputContentClaimOffset) {
         this.outputContentClaimOffset = outputContentClaimOffset;
     }
 
@@ -486,7 +486,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimFileSize;
     }
 
-    public void setOutputContentClaimFileSize(String outputContentClaimFileSize) {
+    public void setOutputContentClaimFileSize(final String outputContentClaimFileSize) {
         this.outputContentClaimFileSize = outputContentClaimFileSize;
     }
 
@@ -499,7 +499,7 @@ public class ProvenanceEventDTO {
         return outputContentClaimFileSizeBytes;
     }
 
-    public void setOutputContentClaimFileSizeBytes(Long outputContentClaimFileSizeBytes) {
+    public void setOutputContentClaimFileSizeBytes(final Long outputContentClaimFileSizeBytes) {
         this.outputContentClaimFileSizeBytes = outputContentClaimFileSizeBytes;
     }
 
@@ -512,7 +512,7 @@ public class ProvenanceEventDTO {
         return inputContentAvailable;
     }
 
-    public void setInputContentAvailable(Boolean inputContentAvailable) {
+    public void setInputContentAvailable(final Boolean inputContentAvailable) {
         this.inputContentAvailable = inputContentAvailable;
     }
 
@@ -525,7 +525,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimSection;
     }
 
-    public void setInputContentClaimSection(String inputContentClaimSection) {
+    public void setInputContentClaimSection(final String inputContentClaimSection) {
         this.inputContentClaimSection = inputContentClaimSection;
     }
 
@@ -538,7 +538,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimContainer;
     }
 
-    public void setInputContentClaimContainer(String inputContentClaimContainer) {
+    public void setInputContentClaimContainer(final String inputContentClaimContainer) {
         this.inputContentClaimContainer = inputContentClaimContainer;
     }
 
@@ -551,7 +551,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimIdentifier;
     }
 
-    public void setInputContentClaimIdentifier(String inputContentClaimIdentifier) {
+    public void setInputContentClaimIdentifier(final String inputContentClaimIdentifier) {
         this.inputContentClaimIdentifier = inputContentClaimIdentifier;
     }
 
@@ -564,7 +564,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimOffset;
     }
 
-    public void setInputContentClaimOffset(Long inputContentClaimOffset) {
+    public void setInputContentClaimOffset(final Long inputContentClaimOffset) {
         this.inputContentClaimOffset = inputContentClaimOffset;
     }
 
@@ -577,7 +577,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimFileSize;
     }
 
-    public void setInputContentClaimFileSize(String inputContentClaimFileSize) {
+    public void setInputContentClaimFileSize(final String inputContentClaimFileSize) {
         this.inputContentClaimFileSize = inputContentClaimFileSize;
     }
 
@@ -590,7 +590,7 @@ public class ProvenanceEventDTO {
         return inputContentClaimFileSizeBytes;
     }
 
-    public void setInputContentClaimFileSizeBytes(Long inputContentClaimFileSizeBytes) {
+    public void setInputContentClaimFileSizeBytes(final Long inputContentClaimFileSizeBytes) {
         this.inputContentClaimFileSizeBytes = inputContentClaimFileSizeBytes;
     }
 
@@ -603,7 +603,7 @@ public class ProvenanceEventDTO {
         return replayAvailable;
     }
 
-    public void setReplayAvailable(Boolean replayAvailable) {
+    public void setReplayAvailable(final Boolean replayAvailable) {
         this.replayAvailable = replayAvailable;
     }
 
@@ -616,7 +616,7 @@ public class ProvenanceEventDTO {
         return replayExplanation;
     }
 
-    public void setReplayExplanation(String replayExplanation) {
+    public void setReplayExplanation(final String replayExplanation) {
         this.replayExplanation = replayExplanation;
     }
 
@@ -631,7 +631,7 @@ public class ProvenanceEventDTO {
         return sourceConnectionIdentifier;
     }
 
-    public void setSourceConnectionIdentifier(String sourceConnectionIdentifier) {
+    public void setSourceConnectionIdentifier(final String sourceConnectionIdentifier) {
         this.sourceConnectionIdentifier = sourceConnectionIdentifier;
     }
 }

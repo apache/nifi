@@ -79,7 +79,7 @@ public abstract class AbstractSQSIT {
     }
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
-        TestRunner runner = TestRunners.newTestRunner(processorClass);
+        final TestRunner runner = TestRunners.newTestRunner(processorClass);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
         runner.setProperty(RegionUtil.REGION, localstack.getRegion());
         runner.setProperty(AbstractAwsProcessor.ENDPOINT_OVERRIDE, localstack.getEndpoint().toString());

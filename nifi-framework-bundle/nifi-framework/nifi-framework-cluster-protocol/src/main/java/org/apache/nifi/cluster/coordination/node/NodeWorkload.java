@@ -32,7 +32,7 @@ public class NodeWorkload {
         return reportedTimestamp;
     }
 
-    public void setReportedTimestamp(long reportedTimestamp) {
+    public void setReportedTimestamp(final long reportedTimestamp) {
         this.reportedTimestamp = reportedTimestamp;
     }
 
@@ -40,7 +40,7 @@ public class NodeWorkload {
         return flowFileCount;
     }
 
-    public void setFlowFileCount(int flowFileCount) {
+    public void setFlowFileCount(final int flowFileCount) {
         this.flowFileCount = flowFileCount;
     }
 
@@ -48,7 +48,7 @@ public class NodeWorkload {
         return flowFileBytes;
     }
 
-    public void setFlowFileBytes(long flowFileBytes) {
+    public void setFlowFileBytes(final long flowFileBytes) {
         this.flowFileBytes = flowFileBytes;
     }
 
@@ -56,7 +56,7 @@ public class NodeWorkload {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(int activeThreadCount) {
+    public void setActiveThreadCount(final int activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -64,7 +64,7 @@ public class NodeWorkload {
         return systemStartTime;
     }
 
-    public void setSystemStartTime(long systemStartTime) {
+    public void setSystemStartTime(final long systemStartTime) {
         this.systemStartTime = systemStartTime;
     }
 

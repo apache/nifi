@@ -135,8 +135,8 @@ public class TestSplitXml {
         split2.assertContentEquals(Paths.get("src/test/resources/TestXml/namespaceSplit2.xml"));
     }
 
-    public void parseFlowFiles(List<MockFlowFile> flowfiles) throws Exception {
-        for (MockFlowFile out : flowfiles) {
+    public void parseFlowFiles(final List<MockFlowFile> flowfiles) throws Exception {
+        for (final MockFlowFile out : flowfiles) {
             final byte[] outData = out.toByteArray();
             final String outXml = new String(outData, StandardCharsets.UTF_8);
             saxParser.parse(new InputSource(new StringReader(outXml)), new DefaultHandler());

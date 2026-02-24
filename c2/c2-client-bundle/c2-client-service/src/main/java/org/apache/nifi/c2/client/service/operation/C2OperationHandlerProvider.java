@@ -34,17 +34,17 @@ public class C2OperationHandlerProvider {
 
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> handlerMap = new HashMap<>();
 
-    public C2OperationHandlerProvider(List<C2OperationHandler> handlers) {
-        for (C2OperationHandler handler : handlers) {
+    public C2OperationHandlerProvider(final List<C2OperationHandler> handlers) {
+        for (final C2OperationHandler handler : handlers) {
             handlerMap.computeIfAbsent(handler.getOperationType(), x -> new HashMap<>()).put(handler.getOperandType(), handler);
         }
     }
 
     public Map<OperationType, Map<OperandType, C2OperationHandler>> getHandlers() {
-        Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = new HashMap<>();
+        final Map<OperationType, Map<OperandType, C2OperationHandler>> handlers = new HashMap<>();
         handlerMap.entrySet()
             .forEach(operationEntry -> {
-                Map<OperandType, C2OperationHandler> operands = new HashMap<>();
+                final Map<OperandType, C2OperationHandler> operands = new HashMap<>();
                 operationEntry.getValue()
                     .entrySet()
                     .forEach(o -> operands.put(o.getKey(), o.getValue()));
@@ -53,8 +53,8 @@ public class C2OperationHandlerProvider {
         return Collections.unmodifiableMap(handlers);
     }
 
-    public Optional<C2OperationHandler> getHandlerForOperation(C2Operation operation) {
-        Optional<C2OperationHandler> handler = Optional.ofNullable(handlerMap.get(operation.getOperation())).map(operandMap -> operandMap.get(operation.getOperand()));
+    public Optional<C2OperationHandler> getHandlerForOperation(final C2Operation operation) {
+        final Optional<C2OperationHandler> handler = Optional.ofNullable(handlerMap.get(operation.getOperation())).map(operandMap -> operandMap.get(operation.getOperand()));
         if (!handler.isPresent()) {
             LOGGER.warn("No handler found for {} {} operation", operation.getOperation(), operation.getOperand());
         }

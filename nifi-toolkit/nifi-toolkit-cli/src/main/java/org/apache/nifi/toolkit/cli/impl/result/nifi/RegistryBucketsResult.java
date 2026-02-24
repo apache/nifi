@@ -68,7 +68,7 @@ public class RegistryBucketsResult extends AbstractWritableResult<FlowRegistryBu
                 .build();
 
         for (int i = 0; i < bucketsDTO.size(); i++) {
-            FlowRegistryBucketDTO bucket = bucketsDTO.get(i);
+            final FlowRegistryBucketDTO bucket = bucketsDTO.get(i);
             table.addRow("" + (i + 1), bucket.getName(), bucket.getId(), bucket.getDescription() == null ? "" : bucket.getDescription());
         }
 

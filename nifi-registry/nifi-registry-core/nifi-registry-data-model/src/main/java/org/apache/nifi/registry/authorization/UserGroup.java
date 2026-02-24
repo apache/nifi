@@ -31,7 +31,7 @@ public class UserGroup extends Tenant {
 
     public UserGroup() { }
 
-    public UserGroup(String identifier, String identity) {
+    public UserGroup(final String identifier, final String identity) {
         super(identifier, identity);
     }
 
@@ -43,11 +43,11 @@ public class UserGroup extends Tenant {
         return users;
     }
 
-    public void setUsers(Set<Tenant> users) {
+    public void setUsers(final Set<Tenant> users) {
         this.users = users;
     }
 
-    public void addUsers(Collection<? extends Tenant> users) {
+    public void addUsers(final Collection<? extends Tenant> users) {
         if (users != null) {
             if (this.users == null) {
                 this.users = new HashSet<>();
@@ -56,7 +56,7 @@ public class UserGroup extends Tenant {
         }
     }
 
-    public void addUser(Tenant user) {
+    public void addUser(final Tenant user) {
         if (user != null) {
             if (this.users == null) {
                 this.users = new HashSet<>();

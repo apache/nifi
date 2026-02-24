@@ -74,7 +74,7 @@ class BlobServiceClientFactoryTest {
         assertSame(clientOne, clientThree);
     }
 
-    private AzureStorageCredentialsDetails_v12 createCredentialDetails(String accountName) {
+    private AzureStorageCredentialsDetails_v12 createCredentialDetails(final String accountName) {
         return AzureStorageCredentialsDetails_v12.createWithAccountKey(accountName, "dfs.core.windows.net", "accountKey");
     }
 }

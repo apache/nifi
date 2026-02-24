@@ -66,11 +66,11 @@ public class StopProcessorOperationHandlerTest {
 
     @ParameterizedTest(name = "operationId={0} ackOperationId={1} state={2} details={3}")
     @MethodSource("handleArguments")
-    public void testHandle(String operationId, String expectedAckOperationId, C2OperationState.OperationState state, String expectedDetails) {
+    public void testHandle(final String operationId, final String expectedAckOperationId, final C2OperationState.OperationState state, final String expectedDetails) {
         when(processorStateStrategy.stopProcessor(PROCESSOR_ID)).thenReturn(state);
 
-        C2Operation operation = anOperation(operationId, PROCESSOR_ID);
-        C2OperationAck ack = victim.handle(operation);
+        final C2Operation operation = anOperation(operationId, PROCESSOR_ID);
+        final C2OperationAck ack = victim.handle(operation);
 
         assertEquals(expectedAckOperationId, ack.getOperationId());
         assertEquals(state, ack.getOperationState().getState());
@@ -92,18 +92,18 @@ public class StopProcessorOperationHandlerTest {
 
     @Test
     public void testHandleMissingProcessorId() {
-        C2Operation operation = new C2Operation();
+        final C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
-        C2OperationAck ack = victim.handle(operation);
+        final C2OperationAck ack = victim.handle(operation);
         assertEquals(OPERATION_ID, ack.getOperationId());
         assertEquals(NOT_APPLIED, ack.getOperationState().getState());
         assertEquals(NOT_APPLIED_DETAILS, ack.getOperationState().getDetails());
     }
 
-    private C2Operation anOperation(String operationId, String processorId) {
-        C2Operation operation = new C2Operation();
+    private C2Operation anOperation(final String operationId, final String processorId) {
+        final C2Operation operation = new C2Operation();
         operation.setIdentifier(operationId);
-        Map<String, Object> args = new HashMap<>();
+        final Map<String, Object> args = new HashMap<>();
         args.put(StopProcessorOperationHandler.PROCESSOR_ID_ARG, processorId);
         operation.setArgs(args);
         return operation;

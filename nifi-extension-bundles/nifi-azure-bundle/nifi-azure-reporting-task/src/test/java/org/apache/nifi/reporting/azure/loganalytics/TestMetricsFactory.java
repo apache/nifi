@@ -51,25 +51,25 @@ public class TestMetricsFactory {
 
     @Test
     public void testGetDataFlowMetrics() {
-        ProcessorStatus procStatus = new ProcessorStatus();
-        List<ProcessorStatus> processorStatuses = new ArrayList<>();
+        final ProcessorStatus procStatus = new ProcessorStatus();
+        final List<ProcessorStatus> processorStatuses = new ArrayList<>();
         processorStatuses.add(procStatus);
         status.setProcessorStatus(processorStatuses);
 
-        List<Metric> metrics = AzureLogAnalyticsMetricsFactory.getDataFlowMetrics(status, "testcase");
+        final List<Metric> metrics = AzureLogAnalyticsMetricsFactory.getDataFlowMetrics(status, "testcase");
         TestVerification.assertDatatFlowMetrics(metrics);
     }
 
     @Test
     public void testGetVirtualMachineMetrics() {
-        JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
-        List<Metric> metrics = AzureLogAnalyticsMetricsFactory.getJvmMetrics(virtualMachineMetrics, "testcase", "tests");
+        final JvmMetrics virtualMachineMetrics = JmxJvmMetrics.getInstance();
+        final List<Metric> metrics = AzureLogAnalyticsMetricsFactory.getJvmMetrics(virtualMachineMetrics, "testcase", "tests");
         TestVerification.assertJVMMetrics(metrics);
     }
 
     @Test
     public void  testToJsonWithLongValue() {
-        Metric metric = new Metric("instanceId", "groupId", "groupName");
+        final Metric metric = new Metric("instanceId", "groupId", "groupName");
         metric.setCount(0x7ff8000000000000L);
         gson.toJson(metric);
     }

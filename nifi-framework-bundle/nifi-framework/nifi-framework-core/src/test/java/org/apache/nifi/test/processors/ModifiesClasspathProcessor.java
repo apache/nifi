@@ -34,7 +34,7 @@ public class ModifiesClasspathProcessor extends AbstractProcessor {
 
     }
 
-    public ModifiesClasspathProcessor(List<PropertyDescriptor> properties) {
+    public ModifiesClasspathProcessor(final List<PropertyDescriptor> properties) {
         this.properties = properties;
     }
 
@@ -44,7 +44,7 @@ public class ModifiesClasspathProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
     }
 
 }

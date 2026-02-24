@@ -216,10 +216,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     @Override
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         try {
             publisher = getPublisherBuilder(context).build();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to create Google Cloud PubSub Publisher", e);
         }
     }
@@ -293,7 +293,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final StopWatch stopWatch = new StopWatch(true);
         final MessageDerivationStrategy inputStrategy = MessageDerivationStrategy.valueOf(context.getProperty(MESSAGE_DERIVATION_STRATEGY).getValue());
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
@@ -310,7 +310,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcp-pubsub-topic", TOPIC_NAME.getName());
     }
@@ -355,7 +355,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
             final List<FlowFile> flowFileBatch) throws ProcessException {
         try {
             onTriggerRecordStrategyPublishRecords(context, session, stopWatch, flowFileBatch);
-        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new ProcessException("Record publishing failed", e);
         }
     }
@@ -436,7 +436,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
         }
     }
 
-    protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, Executor executor) {
+    protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, final Executor executor) {
         ApiFutures.addCallback(apiFuture, callback, executor);
     }
 
@@ -450,12 +450,12 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
             if (publisher != null) {
                 publisher.shutdown();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Failed to gracefully shutdown the Google Cloud PubSub Publisher", e);
         }
     }
 
-    private ProjectTopicName getTopicName(ProcessContext context) {
+    private ProjectTopicName getTopicName(final ProcessContext context) {
         final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
 
@@ -466,7 +466,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
         }
     }
 
-    private Map<String, String> getDynamicAttributesMap(ProcessContext context, FlowFile flowFile) {
+    private Map<String, String> getDynamicAttributesMap(final ProcessContext context, final FlowFile flowFile) {
         final Map<String, String> attributes = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             if (entry.getKey().isDynamic()) {
@@ -478,7 +478,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
         return attributes;
     }
 
-    private Publisher.Builder getPublisherBuilder(ProcessContext context) {
+    private Publisher.Builder getPublisherBuilder(final ProcessContext context) {
         final Long batchSizeThreshold = context.getProperty(BATCH_SIZE_THRESHOLD).asLong();
         final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
         final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);

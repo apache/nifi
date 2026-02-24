@@ -59,7 +59,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").description("success").build();
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
 
         final RecordSetWriterFactory writerFactory = context.getProperty(XML_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -69,15 +69,15 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
 
                 final RecordSchema schema = writerFactory.getSchema(null, null);
 
-                boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
-                RecordSet recordSet = getRecordSet(multipleRecords);
+                final boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
+                final RecordSet recordSet = getRecordSet(multipleRecords);
 
                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileRef);
 
                 writer.write(recordSet);
                 writer.flush();
 
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new ProcessException(e.getMessage());
             }
 
@@ -95,17 +95,17 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
         return Set.of(SUCCESS);
     }
 
-    protected static RecordSet getRecordSet(boolean multipleRecords) {
-        Object[] arrayVals = {1, null, 3};
+    protected static RecordSet getRecordSet(final boolean multipleRecords) {
+        final Object[] arrayVals = {1, null, 3};
 
-        Map<String, Object> recordFields = new HashMap<>();
+        final Map<String, Object> recordFields = new HashMap<>();
         recordFields.put("name1", "val1");
         recordFields.put("name2", null);
         recordFields.put("array_field", arrayVals);
 
-        RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
+        final RecordSchema emptySchema = new SimpleRecordSchema(Collections.emptyList());
 
-        List<Record> records = new ArrayList<>();
+        final List<Record> records = new ArrayList<>();
         records.add(new MapRecord(emptySchema, recordFields));
 
         if (multipleRecords) {

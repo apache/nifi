@@ -168,7 +168,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      * @param wEvtApi  event api interface
      * @param kernel32 kernel interface
      */
-    public ConsumeWindowsEventLog(WEvtApi wEvtApi, Kernel32 kernel32) {
+    public ConsumeWindowsEventLog(final WEvtApi wEvtApi, final Kernel32 kernel32) {
         this.wEvtApi = wEvtApi == null ? loadWEvtApi() : wEvtApi;
         this.kernel32 = kernel32 == null ? loadKernel32() : kernel32;
         this.errorLookup = new ErrorLookup(this.kernel32);
@@ -181,7 +181,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("channel", CHANNEL.getName());
         config.renameProperty("query", QUERY.getName());
         config.renameProperty("maxBuffer", MAX_BUFFER_SIZE.getName());
@@ -192,7 +192,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     private WEvtApi loadWEvtApi() {
         try {
             return WEvtApi.INSTANCE;
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             wEvtApiError = e;
             return null;
         }
@@ -201,7 +201,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     private Kernel32 loadKernel32() {
         try {
             return Kernel32.INSTANCE;
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             kernel32Error = e;
             return null;
         }
@@ -212,7 +212,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      *
      * @param context the process context
      */
-    private String subscribe(ProcessContext context) {
+    private String subscribe(final ProcessContext context) {
         final String channel = context.getProperty(CHANNEL).evaluateAttributeExpressions().getValue();
         final String query = context.getProperty(QUERY).evaluateAttributeExpressions().getValue();
 
@@ -220,7 +220,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
 
         try {
             provenanceUri = new URI("winlog", name, "/" + channel, query, null).toASCIIString();
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             getLogger().debug("Failed to construct detailed provenanceUri from channel={}, query={}, use simpler one.", channel, query);
             provenanceUri = String.format("winlog://%s/%s", name, channel);
         }
@@ -230,7 +230,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         evtSubscribeCallback = new EventSubscribeXmlRenderingCallback(getLogger(), s -> {
             try {
                 renderedXMLs.put(s);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new IllegalStateException("Got interrupted while waiting to add to queue.", e);
             }
         }, context.getProperty(MAX_BUFFER_SIZE).asInteger(), wEvtApi, kernel32, errorLookup);
@@ -264,11 +264,11 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws AlreadySubscribedException {
+    public void onScheduled(final ProcessContext context) throws AlreadySubscribedException {
         if (isSubscribed()) {
             throw new AlreadySubscribedException(PROCESSOR_ALREADY_SUBSCRIBED);
         }
-        String errorMessage = subscribe(context);
+        final String errorMessage = subscribe(context);
         if (errorMessage != null) {
             getLogger().error(errorMessage);
         }
@@ -284,7 +284,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         if (!renderedXMLs.isEmpty()) {
             if (sessionFactory != null) {
                 getLogger().info("Finishing processing leftover events");
-                ProcessSession session = sessionFactory.createSession();
+                final ProcessSession session = sessionFactory.createSession();
                 processQueue(session);
             } else {
                 throw new ProcessException("Stopping the processor but there is no ProcessSessionFactory stored and there are messages in the internal queue. Removing the processor now will " +
@@ -306,11 +306,11 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         this.sessionFactory = sessionFactory;
 
         if (!isSubscribed()) {
-            String errorMessage = subscribe(context);
+            final String errorMessage = subscribe(context);
             if (errorMessage != null) {
                 context.yield();
                 getLogger().error(errorMessage);
@@ -336,14 +336,14 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      * Create FlowFiles from received logs.
      * @return the number of created FlowFiles
      */
-    private int processQueue(ProcessSession session) {
+    private int processQueue(final ProcessSession session) {
         final List<String> xmlMessages = new ArrayList<>();
         renderedXMLs.drainTo(xmlMessages);
 
         try {
             for (final String xmlMessage : xmlMessages) {
                 FlowFile flowFile = session.create();
-                byte[] xmlBytes = xmlMessage.getBytes(StandardCharsets.UTF_8);
+                final byte[] xmlBytes = xmlMessage.getBytes(StandardCharsets.UTF_8);
                 flowFile = session.write(flowFile, out -> out.write(xmlBytes));
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
                 session.getProvenanceReporter().receive(flowFile, provenanceUri);
@@ -365,9 +365,9 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         // We need to check to see if the native libraries loaded properly
-        List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
         if (wEvtApiError != null) {
             validationResults.add(new ValidationResult.Builder().valid(false).subject("System Configuration")
                     .explanation("NiFi failed to load wevtapi on this system.  This processor utilizes native Windows APIs and will only work on Windows. ("

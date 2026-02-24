@@ -60,7 +60,7 @@ public interface ProcessorClient {
 
     ProcessorEntity terminateProcessor(String processorId) throws NiFiClientException, IOException;
 
-    default ComponentStateEntity clearProcessorState(String processorId) throws NiFiClientException, IOException {
+    default ComponentStateEntity clearProcessorState(final String processorId) throws NiFiClientException, IOException {
         return clearProcessorState(processorId, null);
     }
 

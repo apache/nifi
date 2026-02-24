@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 public class ReportingTaskEntityMerger implements ComponentEntityMerger<ReportingTaskEntity> {
 
     @Override
-    public void merge(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
+    public void merge(final ReportingTaskEntity clientEntity, final Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
             final ReportingTaskEntity entityStatus = entry.getValue();
             if (clientEntity != entityStatus) {
                 StatusMerger.merge(clientEntity.getStatus(), entityStatus.getStatus());
@@ -93,7 +93,7 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
         }
 
         // merge property descriptors
-        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+        for (final Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
             final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
             if (!nodePropertyDescriptors.isEmpty()) {
                 // get the name of the property descriptor and find that descriptor being returned to the client

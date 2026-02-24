@@ -34,7 +34,7 @@ public class NotFoundExceptionMapper implements ExceptionMapper<NotFoundExceptio
     private static final Logger logger = LoggerFactory.getLogger(NotFoundExceptionMapper.class);
 
     @Override
-    public Response toResponse(NotFoundException exception) {
+    public Response toResponse(final NotFoundException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Status.NOT_FOUND);
 

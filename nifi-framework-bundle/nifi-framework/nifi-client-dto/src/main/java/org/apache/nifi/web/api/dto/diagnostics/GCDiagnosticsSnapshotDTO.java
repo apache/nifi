@@ -33,7 +33,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -42,7 +42,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
         return collectionCount;
     }
 
-    public void setCollectionCount(Long collectionCount) {
+    public void setCollectionCount(final Long collectionCount) {
         this.collectionCount = collectionCount;
     }
 
@@ -51,7 +51,7 @@ public class GCDiagnosticsSnapshotDTO implements Cloneable {
         return collectionMillis;
     }
 
-    public void setCollectionMillis(Long collectionMillis) {
+    public void setCollectionMillis(final Long collectionMillis) {
         this.collectionMillis = collectionMillis;
     }
 

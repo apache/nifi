@@ -28,9 +28,9 @@ import java.util.Set;
 public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, ComponentEntityStatusMerger<PortStatusDTO> {
 
     @Override
-    public void merge(PortEntity clientEntity, Map<NodeIdentifier, PortEntity> entityMap) {
+    public void merge(final PortEntity clientEntity, final Map<NodeIdentifier, PortEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
             final PortEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -45,7 +45,7 @@ public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, Comp
      * @param entityMap all node responses
      */
     @Override
-    public void mergeComponents(PortEntity clientEntity, Map<NodeIdentifier, PortEntity> entityMap) {
+    public void mergeComponents(final PortEntity clientEntity, final Map<NodeIdentifier, PortEntity> entityMap) {
         final PortDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, PortDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
@@ -58,7 +58,7 @@ public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, Comp
     }
 
     @Override
-    public void mergeStatus(PortStatusDTO clientStatus, boolean clientStatusReadablePermission, PortStatusDTO status, boolean statusReadablePermission, NodeIdentifier
+    public void mergeStatus(final PortStatusDTO clientStatus, final boolean clientStatusReadablePermission, final PortStatusDTO status, final boolean statusReadablePermission, final NodeIdentifier
             statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());

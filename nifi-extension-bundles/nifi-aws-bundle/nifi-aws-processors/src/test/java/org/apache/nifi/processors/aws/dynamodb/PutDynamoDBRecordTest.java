@@ -304,7 +304,7 @@ public class PutDynamoDBRecordTest {
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
 
-        Set<String> expectedRemoved = Set.of(
+        final Set<String> expectedRemoved = Set.of(
                 ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
                 ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
                 ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),

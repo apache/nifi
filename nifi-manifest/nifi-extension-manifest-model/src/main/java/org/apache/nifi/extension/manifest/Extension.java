@@ -112,7 +112,7 @@ public class Extension {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -121,7 +121,7 @@ public class Extension {
         return type;
     }
 
-    public void setType(ExtensionType type) {
+    public void setType(final ExtensionType type) {
         this.type = type;
     }
 
@@ -130,7 +130,7 @@ public class Extension {
         return deprecationNotice;
     }
 
-    public void setDeprecationNotice(DeprecationNotice deprecationNotice) {
+    public void setDeprecationNotice(final DeprecationNotice deprecationNotice) {
         this.deprecationNotice = deprecationNotice;
     }
 
@@ -139,7 +139,7 @@ public class Extension {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -148,7 +148,7 @@ public class Extension {
         return tags;
     }
 
-    public void setTags(List<String> tags) {
+    public void setTags(final List<String> tags) {
         this.tags = tags;
     }
 
@@ -157,7 +157,7 @@ public class Extension {
         return properties;
     }
 
-    public void setProperties(List<Property> properties) {
+    public void setProperties(final List<Property> properties) {
         this.properties = properties;
     }
 
@@ -165,7 +165,7 @@ public class Extension {
         return supportsSensitiveDynamicProperties;
     }
 
-    public void setSupportsSensitiveDynamicProperties(boolean supportsSensitiveDynamicProperties) {
+    public void setSupportsSensitiveDynamicProperties(final boolean supportsSensitiveDynamicProperties) {
         this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
@@ -174,7 +174,7 @@ public class Extension {
         return dynamicProperties;
     }
 
-    public void setDynamicProperties(List<DynamicProperty> dynamicProperties) {
+    public void setDynamicProperties(final List<DynamicProperty> dynamicProperties) {
         this.dynamicProperties = dynamicProperties;
     }
 
@@ -183,7 +183,7 @@ public class Extension {
         return relationships;
     }
 
-    public void setRelationships(List<Relationship> relationships) {
+    public void setRelationships(final List<Relationship> relationships) {
         this.relationships = relationships;
     }
 
@@ -192,7 +192,7 @@ public class Extension {
         return dynamicRelationship;
     }
 
-    public void setDynamicRelationship(DynamicRelationship dynamicRelationship) {
+    public void setDynamicRelationship(final DynamicRelationship dynamicRelationship) {
         this.dynamicRelationship = dynamicRelationship;
     }
 
@@ -201,7 +201,7 @@ public class Extension {
         return readsAttributes;
     }
 
-    public void setReadsAttributes(List<Attribute> readsAttributes) {
+    public void setReadsAttributes(final List<Attribute> readsAttributes) {
         this.readsAttributes = readsAttributes;
     }
 
@@ -210,7 +210,7 @@ public class Extension {
         return writesAttributes;
     }
 
-    public void setWritesAttributes(List<Attribute> writesAttributes) {
+    public void setWritesAttributes(final List<Attribute> writesAttributes) {
         this.writesAttributes = writesAttributes;
     }
 
@@ -219,7 +219,7 @@ public class Extension {
         return stateful;
     }
 
-    public void setStateful(Stateful stateful) {
+    public void setStateful(final Stateful stateful) {
         this.stateful = stateful;
     }
 
@@ -228,7 +228,7 @@ public class Extension {
         return restricted;
     }
 
-    public void setRestricted(Restricted restricted) {
+    public void setRestricted(final Restricted restricted) {
         this.restricted = restricted;
     }
 
@@ -237,7 +237,7 @@ public class Extension {
         return inputRequirement;
     }
 
-    public void setInputRequirement(InputRequirement inputRequirement) {
+    public void setInputRequirement(final InputRequirement inputRequirement) {
         this.inputRequirement = inputRequirement;
     }
 
@@ -246,7 +246,7 @@ public class Extension {
         return systemResourceConsiderations;
     }
 
-    public void setSystemResourceConsiderations(List<SystemResourceConsideration> systemResourceConsiderations) {
+    public void setSystemResourceConsiderations(final List<SystemResourceConsideration> systemResourceConsiderations) {
         this.systemResourceConsiderations = systemResourceConsiderations;
     }
 
@@ -255,7 +255,7 @@ public class Extension {
         return seeAlso;
     }
 
-    public void setSeeAlso(List<String> seeAlso) {
+    public void setSeeAlso(final List<String> seeAlso) {
         this.seeAlso = seeAlso;
     }
 
@@ -264,7 +264,7 @@ public class Extension {
         return providedServiceAPIs;
     }
 
-    public void setProvidedServiceAPIs(List<ProvidedServiceAPI> providedServiceAPIs) {
+    public void setProvidedServiceAPIs(final List<ProvidedServiceAPI> providedServiceAPIs) {
         this.providedServiceAPIs = providedServiceAPIs;
     }
 
@@ -273,7 +273,7 @@ public class Extension {
         return defaultSettings;
     }
 
-    public void setDefaultSettings(DefaultSettings defaultSettings) {
+    public void setDefaultSettings(final DefaultSettings defaultSettings) {
         this.defaultSettings = defaultSettings;
     }
 
@@ -282,7 +282,7 @@ public class Extension {
         return defaultSchedule;
     }
 
-    public void setDefaultSchedule(DefaultSchedule defaultSchedule) {
+    public void setDefaultSchedule(final DefaultSchedule defaultSchedule) {
         this.defaultSchedule = defaultSchedule;
     }
 
@@ -291,7 +291,7 @@ public class Extension {
         return triggerSerially;
     }
 
-    public void setTriggerSerially(boolean triggerSerially) {
+    public void setTriggerSerially(final boolean triggerSerially) {
         this.triggerSerially = triggerSerially;
     }
 
@@ -300,7 +300,7 @@ public class Extension {
         return triggerWhenEmpty;
     }
 
-    public void setTriggerWhenEmpty(boolean triggerWhenEmpty) {
+    public void setTriggerWhenEmpty(final boolean triggerWhenEmpty) {
         this.triggerWhenEmpty = triggerWhenEmpty;
     }
 
@@ -309,7 +309,7 @@ public class Extension {
         return triggerWhenAnyDestinationAvailable;
     }
 
-    public void setTriggerWhenAnyDestinationAvailable(boolean triggerWhenAnyDestinationAvailable) {
+    public void setTriggerWhenAnyDestinationAvailable(final boolean triggerWhenAnyDestinationAvailable) {
         this.triggerWhenAnyDestinationAvailable = triggerWhenAnyDestinationAvailable;
     }
 
@@ -318,7 +318,7 @@ public class Extension {
         return supportsBatching;
     }
 
-    public void setSupportsBatching(boolean supportsBatching) {
+    public void setSupportsBatching(final boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
     }
 
@@ -327,7 +327,7 @@ public class Extension {
         return primaryNodeOnly;
     }
 
-    public void setPrimaryNodeOnly(boolean primaryNodeOnly) {
+    public void setPrimaryNodeOnly(final boolean primaryNodeOnly) {
         this.primaryNodeOnly = primaryNodeOnly;
     }
 
@@ -336,7 +336,7 @@ public class Extension {
         return sideEffectFree;
     }
 
-    public void setSideEffectFree(boolean sideEffectFree) {
+    public void setSideEffectFree(final boolean sideEffectFree) {
         this.sideEffectFree = sideEffectFree;
     }
 
@@ -359,14 +359,14 @@ public class Extension {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Extension extension = (Extension) o;
+        final Extension extension = (Extension) o;
         return Objects.equals(name, extension.name);
     }
 

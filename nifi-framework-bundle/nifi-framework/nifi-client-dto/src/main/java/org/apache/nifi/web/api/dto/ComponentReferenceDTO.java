@@ -57,7 +57,7 @@ public class ComponentReferenceDTO extends ComponentDTO {
     }
 
     @Override
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -70,7 +70,7 @@ public class ComponentReferenceDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 }

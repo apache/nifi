@@ -38,7 +38,7 @@ public class DeviceInfo implements Serializable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -46,7 +46,7 @@ public class DeviceInfo implements Serializable {
         return systemInfo;
     }
 
-    public void setSystemInfo(SystemInfo systemInfo) {
+    public void setSystemInfo(final SystemInfo systemInfo) {
         this.systemInfo = systemInfo;
     }
 
@@ -54,19 +54,19 @@ public class DeviceInfo implements Serializable {
         return networkInfo;
     }
 
-    public void setNetworkInfo(NetworkInfo networkInfo) {
+    public void setNetworkInfo(final NetworkInfo networkInfo) {
         this.networkInfo = networkInfo;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DeviceInfo that = (DeviceInfo) o;
+        final DeviceInfo that = (DeviceInfo) o;
         return Objects.equals(identifier, that.identifier) && Objects.equals(systemInfo, that.systemInfo) && Objects.equals(networkInfo, that.networkInfo);
     }
 

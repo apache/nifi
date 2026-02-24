@@ -25,7 +25,7 @@ final class NifiRegistryUtil {
     }
 
     static FlowRegistryBucket convert(final Bucket bucket) {
-        FlowRegistryBucket result = new FlowRegistryBucket();
+        final FlowRegistryBucket result = new FlowRegistryBucket();
         result.setIdentifier(bucket.getIdentifier());
         result.setName(bucket.getName());
         result.setDescription(bucket.getDescription());
@@ -39,7 +39,7 @@ final class NifiRegistryUtil {
             return null;
         }
 
-        Bucket result = new Bucket();
+        final Bucket result = new Bucket();
         result.setIdentifier(bucket.getIdentifier());
         result.setName(bucket.getName());
         result.setDescription(bucket.getDescription());
@@ -60,7 +60,7 @@ final class NifiRegistryUtil {
         return result;
     }
 
-    static Permissions convert(FlowRegistryPermissions permissions) {
+    static Permissions convert(final FlowRegistryPermissions permissions) {
         if (permissions == null) {
             return null;
         }
@@ -116,7 +116,7 @@ final class NifiRegistryUtil {
     }
 
     static RegisteredFlow convert(final VersionedFlow flow) {
-        RegisteredFlow result = new RegisteredFlow();
+        final RegisteredFlow result = new RegisteredFlow();
         result.setIdentifier(flow.getIdentifier());
         result.setName(flow.getName());
         result.setDescription(flow.getDescription());
@@ -150,7 +150,7 @@ final class NifiRegistryUtil {
     }
 
     static RegisteredFlowSnapshot convert(final VersionedFlowSnapshot flowSnapshot) {
-        RegisteredFlowSnapshot result = new RegisteredFlowSnapshot();
+        final RegisteredFlowSnapshot result = new RegisteredFlowSnapshot();
         result.setSnapshotMetadata(convert(flowSnapshot.getSnapshotMetadata()));
         result.setFlow(convert(flowSnapshot.getFlow()));
         result.setBucket(convert(flowSnapshot.getBucket()));
@@ -163,7 +163,7 @@ final class NifiRegistryUtil {
     }
 
     static VersionedFlowSnapshot convert(final RegisteredFlowSnapshot flowSnapshot) {
-        VersionedFlowSnapshot result = new VersionedFlowSnapshot();
+        final VersionedFlowSnapshot result = new VersionedFlowSnapshot();
         result.setSnapshotMetadata(convert(flowSnapshot.getSnapshotMetadata()));
         result.setFlow(convert(flowSnapshot.getFlow()));
         result.setBucket(convert(flowSnapshot.getBucket()));

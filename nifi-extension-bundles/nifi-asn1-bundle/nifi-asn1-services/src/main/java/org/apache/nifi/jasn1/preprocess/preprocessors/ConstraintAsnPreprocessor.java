@@ -31,7 +31,7 @@ public class ConstraintAsnPreprocessor implements AsnPreprocessor {
     public static final Pattern ALLOWED = Pattern.compile("^(\\d+\\))(.*)");
 
     @Override
-    public List<String> preprocessAsn(List<String> lines) {
+    public List<String> preprocessAsn(final List<String> lines) {
         final List<String> preprocessedLines = new ArrayList<>();
 
         final AtomicInteger unclosedCounter = new AtomicInteger(0);

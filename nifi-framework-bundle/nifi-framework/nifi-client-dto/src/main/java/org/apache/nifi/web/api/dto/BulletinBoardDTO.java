@@ -43,7 +43,7 @@ public class BulletinBoardDTO {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinEntity> bulletins) {
+    public void setBulletins(final List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 

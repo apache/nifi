@@ -28,7 +28,7 @@ public enum UsmUserInputMethod implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    UsmUserInputMethod(String value, String displayName, String description) {
+    UsmUserInputMethod(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
@@ -49,8 +49,8 @@ public enum UsmUserInputMethod implements DescribedValue {
         return description;
     }
 
-    public static UsmUserInputMethod fromValue(String value) {
-        for (UsmUserInputMethod source : values()) {
+    public static UsmUserInputMethod fromValue(final String value) {
+        for (final UsmUserInputMethod source : values()) {
             if (source.value.equals(value)) {
                 return source;
             }

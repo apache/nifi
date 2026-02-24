@@ -50,8 +50,8 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
                 // If there are no records, assume the datatypes of all fields are strings
                 if (typeMap.isEmpty()) {
                     if (recordSource instanceof CSVRecordSource) {
-                        CSVRecordSource csvRecordSource = (CSVRecordSource) recordSource;
-                        for (String fieldName : csvRecordSource.getFieldNames()) {
+                        final CSVRecordSource csvRecordSource = (CSVRecordSource) recordSource;
+                        for (final String fieldName : csvRecordSource.getFieldNames()) {
                             typeMap.put(fieldName, new FieldTypeInference());
                         }
                     }
@@ -79,7 +79,7 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
         }
     }
 
-    private String trim(String value) {
+    private String trim(final String value) {
         return (value.length() > 1) && value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
     }
 

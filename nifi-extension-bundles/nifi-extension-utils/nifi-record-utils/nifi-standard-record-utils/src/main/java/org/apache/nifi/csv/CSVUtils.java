@@ -239,10 +239,10 @@ public class CSVUtils {
     }
 
     private static Character getValueSeparatorCharUnescapedJava(final PropertyContext context, final Map<String, String> variables) {
-        String value = context.getProperty(VALUE_SEPARATOR).evaluateAttributeExpressions(variables).getValue();
+        final String value = context.getProperty(VALUE_SEPARATOR).evaluateAttributeExpressions(variables).getValue();
 
         if (value != null) {
-            String unescaped = unescape(value);
+            final String unescaped = unescape(value);
             if (unescaped.length() == 1) {
                 return unescaped.charAt(0);
             }
@@ -254,10 +254,10 @@ public class CSVUtils {
     }
 
     private static Character getCharUnescaped(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
-        String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
+        final String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
 
         if (value != null) {
-            String unescaped = unescape(value);
+            final String unescaped = unescape(value);
             if (unescaped.length() == 1) {
                 return unescaped.charAt(0);
             }
@@ -330,9 +330,9 @@ public class CSVUtils {
         return builder.get();
     }
 
-    public static String unescape(String input) {
+    public static String unescape(final String input) {
         if (input != null && input.length() > 1) {
-            input = StringEscapeUtils.unescapeJava(input);
+            return StringEscapeUtils.unescapeJava(input);
         }
         return input;
     }

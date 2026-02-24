@@ -69,7 +69,7 @@ public class TestPutEmail {
         private final List<Message> messages = new ArrayList<>();
 
         @Override
-        protected void send(Message msg) throws MessagingException {
+        protected void send(final Message msg) throws MessagingException {
             messages.add(msg);
             if (this.e != null) {
                 throw e;
@@ -133,7 +133,7 @@ public class TestPutEmail {
 
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
         assertEquals("Message Body", getMessageText(message, StandardCharsets.UTF_8));
@@ -145,10 +145,10 @@ public class TestPutEmail {
     @Test
     public void testOAuth() throws Exception {
         // GIVEN
-        String oauthServiceID = "oauth-access-token-provider";
-        String access_token = "access_token_123";
+        final String oauthServiceID = "oauth-access-token-provider";
+        final String access_token = "access_token_123";
 
-        OAuth2AccessTokenProvider oauthService = mock(OAuth2AccessTokenProvider.class, RETURNS_DEEP_STUBS);
+        final OAuth2AccessTokenProvider oauthService = mock(OAuth2AccessTokenProvider.class, RETURNS_DEEP_STUBS);
         when(oauthService.getIdentifier()).thenReturn(oauthServiceID);
         when(oauthService.getAccessDetails().getAccessToken()).thenReturn(access_token);
         runner.addControllerService(oauthServiceID, oauthService);
@@ -171,7 +171,7 @@ public class TestPutEmail {
         runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
 
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         assertEquals("XOAUTH2", message.getSession().getProperty("mail.smtp.auth.mechanisms"));
         assertEquals("access_token_123", message.getSession().getProperty("mail.smtp.password"));
     }
@@ -190,7 +190,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.ATTRIBUTE_NAME_REGEX, "Precedence.*");
         runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("from", "test@apache.org <NiFi>");
         attributes.put("message", "the message body");
         attributes.put("to", "to@apache.org");
@@ -208,7 +208,7 @@ public class TestPutEmail {
 
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         assertEquals("\"test@apache.org\" <NiFi>", message.getFrom()[0].toString());
         assertEquals("TestingNíFiNonASCII", MimeUtility.decodeText(message.getHeader("X-Mailer")[0]), "X-Mailer Header");
         assertEquals("the message body", getMessageText(message, StandardCharsets.UTF_8));
@@ -270,7 +270,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
         runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/pdf");
         runner.enqueue("Some text".getBytes(), attributes);
@@ -282,7 +282,7 @@ public class TestPutEmail {
 
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
@@ -315,7 +315,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
         runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("sendContent", "true");
         attributes.put("body", "Message Body");
 
@@ -327,7 +327,7 @@ public class TestPutEmail {
 
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         assertEquals("test@apache.org", message.getFrom()[0].toString());
         assertEquals("from@apache.org", message.getFrom()[1].toString());
         assertEquals("TestingNiFi", message.getHeader("X-Mailer")[0], "X-Mailer Header");
@@ -410,7 +410,7 @@ public class TestPutEmail {
 
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
-        Message message = processor.getMessages().getFirst();
+        final Message message = processor.getMessages().getFirst();
         final String retrievedMessageText = getMessageText(message, StandardCharsets.UTF_8);
         assertNotEquals(rawString, retrievedMessageText);
     }

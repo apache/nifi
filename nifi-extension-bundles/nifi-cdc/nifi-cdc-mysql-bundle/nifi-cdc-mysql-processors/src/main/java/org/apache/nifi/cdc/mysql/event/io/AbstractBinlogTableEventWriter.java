@@ -26,7 +26,7 @@ import java.io.Serializable;
  */
 public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventInfo> extends AbstractBinlogEventWriter<T> {
 
-    protected Object getWritableObject(Integer type, Serializable value) {
+    protected Object getWritableObject(final Integer type, final Serializable value) {
         if (value == null) {
             return null;
         }
@@ -50,7 +50,7 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
     }
 
     @Override
-    protected void writeJson(T event) throws IOException {
+    protected void writeJson(final T event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {
             jsonGenerator.writeStringField("database", event.getDatabaseName());

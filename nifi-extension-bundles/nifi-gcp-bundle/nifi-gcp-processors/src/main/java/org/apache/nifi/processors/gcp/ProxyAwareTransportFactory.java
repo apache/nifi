@@ -38,7 +38,7 @@ public class ProxyAwareTransportFactory implements HttpTransportFactory {
 
     private final ProxyConfiguration proxyConfig;
 
-    public ProxyAwareTransportFactory(ProxyConfiguration proxyConfig) {
+    public ProxyAwareTransportFactory(final ProxyConfiguration proxyConfig) {
         this.proxyConfig = proxyConfig;
     }
 

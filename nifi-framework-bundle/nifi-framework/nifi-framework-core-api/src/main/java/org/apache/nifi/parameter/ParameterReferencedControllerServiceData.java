@@ -28,11 +28,11 @@ public class ParameterReferencedControllerServiceData {
     private final String versionedServiceId;
 
     public ParameterReferencedControllerServiceData(
-        String parameterName,
-        ComponentNode componentNode,
-        PropertyDescriptor descriptor,
-        Class<? extends ControllerService> referencedControllerServiceType,
-        String versionedServiceId
+        final String parameterName,
+        final ComponentNode componentNode,
+        final PropertyDescriptor descriptor,
+        final Class<? extends ControllerService> referencedControllerServiceType,
+        final String versionedServiceId
     ) {
         this.parameterName = parameterName;
         this.componentNode = componentNode;

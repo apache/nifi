@@ -50,13 +50,13 @@ public class StandaloneJsonTest {
 
     @ParameterizedTest(name = "{index}: Name: {0}")
     @MethodSource
-    public void verifyLogEntries(String name) throws Exception {
+    public void verifyLogEntries(final String name) throws Exception {
         setDocker(name);
         LogUtil.verifyLogEntries(getExpectedJson(name), docker.containers().container("minifi"));
     }
 
-    private void setDocker(String name) throws Exception {
-        String dockerComposeYmlFile = "target/test-classes/docker-compose-" + name + "Test.yml";
+    private void setDocker(final String name) throws Exception {
+        final String dockerComposeYmlFile = "target/test-classes/docker-compose-" + name + "Test.yml";
         try (InputStream inputStream = StandaloneJsonTest.class.getClassLoader().getResourceAsStream("docker-compose-standalone.yml");
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
              BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
@@ -75,11 +75,11 @@ public class StandaloneJsonTest {
         docker.before();
     }
 
-    private String getFlowConfigPath(String name) {
+    private String getFlowConfigPath(final String name) {
         return "./standalone/" + name + "/" + name + ".json";
     }
 
-    private String getExpectedJson(String name) {
+    private String getExpectedJson(final String name) {
         return "standalone/" + name + "/expected.json";
     }
 }

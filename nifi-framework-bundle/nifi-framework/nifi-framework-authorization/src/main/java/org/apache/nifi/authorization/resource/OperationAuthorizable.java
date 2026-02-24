@@ -64,7 +64,7 @@ public class OperationAuthorizable implements Authorizable, EnforcePolicyPermiss
     public static void authorizeOperation(final Authorizable baseAuthorizable, final Authorizer authorizer, final NiFiUser user) {
         try {
             baseAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             logger.debug("Authorization failed with {}. Try authorizing with OperationAuthorizable.", baseAuthorizable, e);
             // Always use WRITE action for operation.
             new OperationAuthorizable(baseAuthorizable).authorize(authorizer, RequestAction.WRITE, user);

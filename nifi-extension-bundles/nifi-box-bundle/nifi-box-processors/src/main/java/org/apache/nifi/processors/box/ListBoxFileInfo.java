@@ -182,7 +182,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
 
         try {
             final long startNanos = System.nanoTime();
-            long createdAtMax = Instant.now().toEpochMilli() - minAge;
+            final long createdAtMax = Instant.now().toEpochMilli() - minAge;
             final List<BoxFile.Info> fileInfos = new ArrayList<>();
 
             listFolder(fileInfos, folderId, recursive, createdAtMax);
@@ -268,7 +268,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
                 "path_collection"
         )) {
             if (itemInfo instanceof BoxFile.Info fileInfo) {
-                long createdAt = itemInfo.getCreatedAt().getTime();
+                final long createdAt = itemInfo.getCreatedAt().getTime();
 
                 if (createdAt <= createdAtMax) {
                     fileInfos.add(fileInfo);

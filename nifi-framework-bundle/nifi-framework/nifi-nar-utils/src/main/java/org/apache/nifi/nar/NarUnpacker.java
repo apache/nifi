@@ -102,16 +102,16 @@ public final class NarUnpacker {
 
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
 
-            for (Path narLibraryDir : narLibraryDirs) {
+            for (final Path narLibraryDir : narLibraryDirs) {
 
-                File narDir = narLibraryDir.toFile();
+                final File narDir = narLibraryDir.toFile();
 
                 // Test if the source NARs can be read
                 FileUtils.ensureDirectoryExistAndCanRead(narDir);
 
-                File[] dirFiles = narDir.listFiles(NAR_FILTER);
+                final File[] dirFiles = narDir.listFiles(NAR_FILTER);
                 if (dirFiles != null) {
-                    List<File> fileList = Arrays.asList(dirFiles);
+                    final List<File> fileList = Arrays.asList(dirFiles);
                     narFiles.addAll(fileList);
                 }
             }
@@ -120,7 +120,7 @@ public final class NarUnpacker {
             logger.info("Expanding {} NAR files started", narFiles.size());
 
             if (!narFiles.isEmpty()) {
-                for (File narFile : narFiles) {
+                for (final File narFile : narFiles) {
                     if (!narFile.canRead()) {
                         throw new IllegalStateException("Unable to read NAR file: " + narFile.getAbsolutePath());
                     }
@@ -129,7 +129,7 @@ public final class NarUnpacker {
 
                     // get the manifest for this nar
                     try (final JarFile nar = new JarFile(narFile)) {
-                        BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
+                        final BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
 
                         if (!narFilter.test(bundleCoordinate)) {
                             logger.debug("Will not expand NAR {} because it does not match the provided filter", bundleCoordinate);
@@ -213,7 +213,7 @@ public final class NarUnpacker {
             logger.info("Expanded {} NAR files in {} seconds ({} ns)", narFiles.size(), durationSeconds, duration);
 
             return extensionMapping;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Unable to load NAR bundles. Proceeding without loading any further NAR bundles", e);
         }
 
@@ -225,20 +225,20 @@ public final class NarUnpacker {
      * @param extensionsWorkingDir where to find extensions
      * @return map of coordinates for bundles
      */
-    private static Map<File, BundleCoordinate> createUnpackedNarBundleCoordinateMap(File extensionsWorkingDir) {
-        File[] unpackedDirs = extensionsWorkingDir.listFiles(file -> file.isDirectory() && file.getName().endsWith("nar-unpacked"));
+    private static Map<File, BundleCoordinate> createUnpackedNarBundleCoordinateMap(final File extensionsWorkingDir) {
+        final File[] unpackedDirs = extensionsWorkingDir.listFiles(file -> file.isDirectory() && file.getName().endsWith("nar-unpacked"));
         if (unpackedDirs == null) {
             return Collections.emptyMap();
         }
 
         final Map<File, BundleCoordinate> result = new HashMap<>();
-        for (File unpackedDir : unpackedDirs) {
-            Path mf = Paths.get(unpackedDir.getAbsolutePath(), "META-INF", "MANIFEST.MF");
+        for (final File unpackedDir : unpackedDirs) {
+            final Path mf = Paths.get(unpackedDir.getAbsolutePath(), "META-INF", "MANIFEST.MF");
             try (InputStream is = Files.newInputStream(mf)) {
-                Manifest manifest = new Manifest(is);
-                BundleCoordinate bundleCoordinate = createBundleCoordinate(manifest);
+                final Manifest manifest = new Manifest(is);
+                final BundleCoordinate bundleCoordinate = createBundleCoordinate(manifest);
                 result.put(unpackedDir, bundleCoordinate);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Unable to parse NAR information from unpacked directory [{}]", unpackedDir.getAbsoluteFile(), e);
             }
         }
@@ -246,10 +246,10 @@ public final class NarUnpacker {
     }
 
     private static BundleCoordinate createBundleCoordinate(final Manifest manifest) {
-        Attributes mainAttributes = manifest.getMainAttributes();
-        String groupId = mainAttributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
-        String narId = mainAttributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
-        String version = mainAttributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
+        final Attributes mainAttributes = manifest.getMainAttributes();
+        final String groupId = mainAttributes.getValue(NarManifestEntry.NAR_GROUP.getEntryName());
+        final String narId = mainAttributes.getValue(NarManifestEntry.NAR_ID.getEntryName());
+        final String version = mainAttributes.getValue(NarManifestEntry.NAR_VERSION.getEntryName());
         return new BundleCoordinate(groupId, narId, version);
     }
 
@@ -516,7 +516,7 @@ public final class NarUnpacker {
     }
 
     private static void copy(final InputStream in, final OutputStream out) throws IOException {
-        byte[] buffer = new byte[4096];
+        final byte[] buffer = new byte[4096];
         int len;
         while ((len = in.read(buffer)) > 0) {
             out.write(buffer, 0, len);
@@ -604,7 +604,7 @@ public final class NarUnpacker {
         }
         try (final InputStream in = inputStream;
                 final FileOutputStream fos = new FileOutputStream(file)) {
-            byte[] bytes = new byte[65536];
+            final byte[] bytes = new byte[65536];
             int numRead;
             while ((numRead = in.read(bytes)) != -1) {
                 fos.write(bytes, 0, numRead);

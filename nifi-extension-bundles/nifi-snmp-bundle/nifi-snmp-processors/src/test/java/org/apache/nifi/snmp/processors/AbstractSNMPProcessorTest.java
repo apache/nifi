@@ -77,7 +77,7 @@ class AbstractSNMPProcessorTest {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.getVersion()).thenReturn(SnmpConstants.version2c);
 
-        List<SNMPValue> vbs = Collections.singletonList(new SNMPValue(TEST_OID, "noSuchObject"));
+        final List<SNMPValue> vbs = Collections.singletonList(new SNMPValue(TEST_OID, "noSuchObject"));
         when(mockResponse.getVariableBindings()).thenReturn(vbs);
 
         getSNMP.handleResponse(mockProcessContext, mockProcessSession, mockFlowFile, mockResponse, GetSNMP.REL_SUCCESS, GetSNMP.REL_FAILURE, "provenanceAddress", true);

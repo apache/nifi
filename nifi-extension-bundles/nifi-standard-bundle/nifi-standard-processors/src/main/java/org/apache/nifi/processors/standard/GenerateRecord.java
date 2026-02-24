@@ -263,7 +263,7 @@ public class GenerateRecord extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         final String schemaText = context.getProperty(SCHEMA_TEXT).evaluateAttributeExpressions().getValue();
         final String predefinedSchemaName = context.getProperty(PREDEFINED_SCHEMA).getValue();
@@ -309,9 +309,9 @@ public class GenerateRecord extends AbstractProcessor {
                                 record = new MapRecord(recordSchema, recordEntries);
                             } else {
                                 // Use original logic for Schema Text or dynamic properties
-                                List<RecordField> writeFieldNames = writeSchema.getFields();
-                                Map<String, Object> recordEntries = new HashMap<>();
-                                for (RecordField writeRecordField : writeFieldNames) {
+                                final List<RecordField> writeFieldNames = writeSchema.getFields();
+                                final Map<String, Object> recordEntries = new HashMap<>();
+                                for (final RecordField writeRecordField : writeFieldNames) {
                                     final String writeFieldName = writeRecordField.getFieldName();
                                     final Object writeFieldValue;
                                     if (schemaSource == SchemaSource.SCHEMA_TEXT) {
@@ -362,7 +362,7 @@ public class GenerateRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("number-of-records", NUM_RECORDS.getName());
         config.renameProperty("nullable-fields", NULLABLE_FIELDS.getName());
@@ -370,7 +370,7 @@ public class GenerateRecord extends AbstractProcessor {
         config.renameProperty("schema-text", SCHEMA_TEXT.getName());
     }
 
-    protected Map<String, String> getFields(ProcessContext context) {
+    protected Map<String, String> getFields(final ProcessContext context) {
         return context.getProperties().entrySet().stream()
                 // filter non-null dynamic properties
                 .filter(e -> e.getKey().isDynamic() && e.getValue() != null)
@@ -381,7 +381,7 @@ public class GenerateRecord extends AbstractProcessor {
                 ));
     }
 
-    private Object generateValueFromRecordField(RecordField recordField, Faker faker, int nullPercentage) {
+    private Object generateValueFromRecordField(final RecordField recordField, final Faker faker, final int nullPercentage) {
         if (recordField.isNullable() && faker.number().numberBetween(0, 100) < nullPercentage) {
             return null;
         }
@@ -401,12 +401,12 @@ public class GenerateRecord extends AbstractProcessor {
             case LONG -> faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE);
             case SHORT -> faker.number().numberBetween(Short.MIN_VALUE, Short.MAX_VALUE);
             case ENUM -> {
-                List<String> enums = ((EnumDataType) recordField.getDataType()).getEnums();
+                final List<String> enums = ((EnumDataType) recordField.getDataType()).getEnums();
                 yield enums.get(faker.number().numberBetween(0, enums.size() - 1));
             }
             case TIME -> {
-                Date fakeDate = (Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
-                LocalDate fakeLocalDate = fakeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                final Date fakeDate = (Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker);
+                final LocalDate fakeLocalDate = fakeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                 yield fakeLocalDate.format(DateTimeFormatter.ISO_LOCAL_TIME);
             }
             case TIMESTAMP -> ((Date) FakerUtils.getFakeData(DEFAULT_DATE_PROPERTY_NAME, faker)).getTime();
@@ -415,9 +415,9 @@ public class GenerateRecord extends AbstractProcessor {
                 final ArrayDataType arrayDataType = (ArrayDataType) recordField.getDataType();
                 final DataType elementType = arrayDataType.getElementType();
                 final int numElements = faker.number().numberBetween(0, 10);
-                Object[] returnValue = new Object[numElements];
+                final Object[] returnValue = new Object[numElements];
                 for (int i = 0; i < numElements; i++) {
-                    RecordField tempRecordField = new RecordField(recordField.getFieldName() + "[" + i + "]", elementType, arrayDataType.isElementsNullable());
+                    final RecordField tempRecordField = new RecordField(recordField.getFieldName() + "[" + i + "]", elementType, arrayDataType.isElementsNullable());
                     // If the array elements are non-nullable, use zero as the nullPercentage
                     returnValue[i] = generateValueFromRecordField(tempRecordField, faker, arrayDataType.isElementsNullable() ? nullPercentage : 0);
                 }
@@ -427,7 +427,7 @@ public class GenerateRecord extends AbstractProcessor {
                 final MapDataType mapDataType = (MapDataType) recordField.getDataType();
                 final DataType valueType = mapDataType.getValueType();
                 // Create 4-element fake map
-                Map<String, Object> returnMap = new HashMap<>(4);
+                final Map<String, Object> returnMap = new HashMap<>(4);
                 returnMap.put(KEY1, generateValueFromRecordField(new RecordField(KEY1, valueType), faker, nullPercentage));
                 returnMap.put(KEY2, generateValueFromRecordField(new RecordField(KEY2, valueType), faker, nullPercentage));
                 returnMap.put(KEY3, generateValueFromRecordField(new RecordField(KEY3, valueType), faker, nullPercentage));
@@ -438,7 +438,7 @@ public class GenerateRecord extends AbstractProcessor {
                 final RecordDataType recordType = (RecordDataType) recordField.getDataType();
                 final RecordSchema childSchema = recordType.getChildSchema();
                 final Map<String, Object> recordValues = new HashMap<>();
-                for (RecordField writeRecordField : childSchema.getFields()) {
+                for (final RecordField writeRecordField : childSchema.getFields()) {
                     final String writeFieldName = writeRecordField.getFieldName();
                     final Object writeFieldValue = generateValueFromRecordField(writeRecordField, faker, nullPercentage);
                     recordValues.put(writeFieldName, writeFieldValue);
@@ -447,10 +447,10 @@ public class GenerateRecord extends AbstractProcessor {
             }
             case CHOICE -> {
                 final ChoiceDataType choiceDataType = (ChoiceDataType) recordField.getDataType();
-                List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
+                final List<DataType> subTypes = choiceDataType.getPossibleSubTypes();
                 // Pick one at random and generate a value for it
-                DataType chosenType = subTypes.get(faker.number().numberBetween(0, subTypes.size() - 1));
-                RecordField tempRecordField = new RecordField(recordField.getFieldName(), chosenType);
+                final DataType chosenType = subTypes.get(faker.number().numberBetween(0, subTypes.size() - 1));
+                final RecordField tempRecordField = new RecordField(recordField.getFieldName(), chosenType);
                 yield generateValueFromRecordField(tempRecordField, faker, nullPercentage);
             }
             case STRING -> generateRandomString();
@@ -475,11 +475,11 @@ public class GenerateRecord extends AbstractProcessor {
 
     protected RecordSchema generateRecordSchema(final Map<String, String> fields, final boolean nullable) {
         final List<RecordField> recordFields = new ArrayList<>(fields.size());
-        for (Map.Entry<String, String> field : fields.entrySet()) {
+        for (final Map.Entry<String, String> field : fields.entrySet()) {
             final String fieldName = field.getKey();
             final String fieldType = field.getValue();
             final DataType fieldDataType = FakerUtils.getDataType(fieldType);
-            RecordField recordField = new RecordField(fieldName, fieldDataType, nullable);
+            final RecordField recordField = new RecordField(fieldName, fieldDataType, nullable);
             recordFields.add(recordField);
         }
         return new SimpleRecordSchema(recordFields);

@@ -74,7 +74,7 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("textract-type", TEXTRACT_TYPE.getName());
     }
@@ -86,7 +86,7 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
 
     @Override
     protected TextractResponse sendRequest(final TextractRequest request, final ProcessContext context, final FlowFile flowFile) {
-        TextractType textractType = TextractType.fromString(context.getProperty(TEXTRACT_TYPE.getName()).getValue());
+        final TextractType textractType = TextractType.fromString(context.getProperty(TEXTRACT_TYPE.getName()).getValue());
         return switch (textractType) {
             case DOCUMENT_ANALYSIS -> getClient(context).startDocumentAnalysis((StartDocumentAnalysisRequest) request);
             case DOCUMENT_TEXT_DETECTION -> getClient(context).startDocumentTextDetection((StartDocumentTextDetectionRequest) request);
@@ -115,8 +115,8 @@ public class StartAwsTextractJob extends AbstractAwsMachineLearningJobStarter<
     }
 
     @Override
-    protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, FlowFile flowFile, final TextractResponse response) {
-        flowFile = super.postProcessFlowFile(context, session, flowFile, response);
+    protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFileArg, final TextractResponse response) {
+        final FlowFile flowFile = super.postProcessFlowFile(context, session, flowFileArg, response);
         return session.putAttribute(flowFile, TEXTRACT_TYPE_ATTRIBUTE, context.getProperty(TEXTRACT_TYPE).getValue());
     }
 }

@@ -65,10 +65,10 @@ public abstract class BaseScriptTest {
         scriptingComponent = (AccessibleScriptingComponentHelper) invokeScriptedProcessor;
     }
 
-    public String getFileContentsAsString(String path) {
+    public String getFileContentsAsString(final String path) {
         try {
             return new String(Files.readAllBytes(Paths.get(path)));
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             return null;
         }
     }

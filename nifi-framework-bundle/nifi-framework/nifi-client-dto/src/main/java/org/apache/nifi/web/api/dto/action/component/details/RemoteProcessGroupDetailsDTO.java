@@ -36,7 +36,7 @@ public class RemoteProcessGroupDetailsDTO extends ComponentDetailsDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 }

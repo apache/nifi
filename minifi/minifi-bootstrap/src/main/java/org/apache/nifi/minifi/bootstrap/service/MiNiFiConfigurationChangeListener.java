@@ -55,8 +55,8 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     private final FlowEnrichService flowEnrichService;
     private final FlowSerDeService flowSerDeService;
 
-    public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger, BootstrapFileProvider bootstrapFileProvider,
-                                             FlowEnrichService flowEnrichService, FlowSerDeService flowSerDeService) {
+    public MiNiFiConfigurationChangeListener(final RunMiNiFi runner, final Logger logger, final BootstrapFileProvider bootstrapFileProvider,
+                                             final FlowEnrichService flowEnrichService, final FlowSerDeService flowSerDeService) {
         this.runner = runner;
         this.logger = logger;
         this.bootstrapFileProvider = bootstrapFileProvider;
@@ -65,7 +65,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     }
 
     @Override
-    public void handleChange(InputStream flowConfigInputStream) throws ConfigurationChangeException {
+    public void handleChange(final InputStream flowConfigInputStream) throws ConfigurationChangeException {
         logger.info("Received notification of a change");
 
         if (!handlingLock.tryLock()) {
@@ -77,27 +77,27 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
         Path currentRawFlowConfigFile = null;
         Path backupRawFlowConfigFile = null;
         try {
-            BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+            final BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
             currentFlowConfigFile = Path.of(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
             backupFlowConfigFile = Path.of(currentFlowConfigFile + BACKUP_EXTENSION);
-            String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(currentFlowConfigFile.toString());
+            final String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(currentFlowConfigFile.toString());
             currentRawFlowConfigFile = currentFlowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION);
             backupRawFlowConfigFile = currentFlowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION + BACKUP_EXTENSION);
 
             backup(currentFlowConfigFile, backupFlowConfigFile);
             backup(currentRawFlowConfigFile, backupRawFlowConfigFile);
 
-            byte[] rawFlow = toByteArray(flowConfigInputStream);
-            VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
+            final byte[] rawFlow = toByteArray(flowConfigInputStream);
+            final VersionedDataflow dataFlow = flowSerDeService.deserialize(rawFlow);
             flowEnrichService.enrichFlow(dataFlow);
-            byte[] serializedEnrichedFlow = flowSerDeService.serialize(dataFlow);
+            final byte[] serializedEnrichedFlow = flowSerDeService.serialize(dataFlow);
             persist(serializedEnrichedFlow, currentFlowConfigFile, true);
             restartInstance();
             persist(rawFlow, currentRawFlowConfigFile, false);
             setActiveFlowReference(wrap(rawFlow));
             logger.info("MiNiFi has finished reloading successfully and applied the new flow configuration");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Configuration update failed. Reverting to previous flow", e);
             revert(backupFlowConfigFile, currentFlowConfigFile);
             revert(backupRawFlowConfigFile, currentRawFlowConfigFile);
@@ -115,7 +115,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
         return "MiNiFiConfigurationChangeListener";
     }
 
-    private void setActiveFlowReference(ByteBuffer flowConfig) {
+    private void setActiveFlowReference(final ByteBuffer flowConfig) {
         logger.debug("Setting active flow reference {} with content:\n{}", flowConfig, new String(flowConfig.array(), UTF_8));
         runner.getConfigFileReference().set(flowConfig);
     }
@@ -123,7 +123,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     private void restartInstance() throws IOException {
         try {
             runner.reload();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IOException("Unable to successfully restart MiNiFi instance after configuration change.", e);
         }
     }

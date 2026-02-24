@@ -37,7 +37,7 @@ public class DynamicPropertyValidator implements Validator {
 
     public DynamicPropertyValidator(final Class<?>... kafkaClientClasses) {
         clientPropertyNames = new HashSet<>();
-        for (Class<?> kafkaClientClass : kafkaClientClasses) {
+        for (final Class<?> kafkaClientClass : kafkaClientClasses) {
             final KafkaPropertyNameProvider provider = new StandardKafkaPropertyNameProvider(kafkaClientClass);
             clientPropertyNames.addAll(provider.getPropertyNames());
         }

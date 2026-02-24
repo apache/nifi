@@ -39,7 +39,7 @@ public class ComponentStateEntity extends Entity {
         return componentState;
     }
 
-    public void setComponentState(ComponentStateDTO componentState) {
+    public void setComponentState(final ComponentStateDTO componentState) {
         this.componentState = componentState;
     }
 

@@ -37,7 +37,7 @@ public class ProcessGroupsEntity extends Entity {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<ProcessGroupEntity> processGroups) {
+    public void setProcessGroups(final Set<ProcessGroupEntity> processGroups) {
         this.processGroups = processGroups;
     }
 

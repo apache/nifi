@@ -99,14 +99,14 @@ public class SFTPTransfer implements FileTransfer {
      * @param factorySetNames The set of names
      * @return An alphabetically ordered comma separated value list of names
      */
-    private static String convertFactorySetToString(Set<String> factorySetNames) {
+    private static String convertFactorySetToString(final Set<String> factorySetNames) {
         return factorySetNames
                 .stream()
                 .sorted()
                 .collect(Collectors.joining(", "));
     }
 
-    private static String buildFullPath(String path, String filename) {
+    private static String buildFullPath(final String path, final String filename) {
         if (path == null) {
             return filename;
         }
@@ -301,7 +301,7 @@ public class SFTPTransfer implements FileTransfer {
         }
     }
 
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+    public static void validateProxySpec(final ValidationContext context, final Collection<ValidationResult> results) {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
@@ -488,7 +488,7 @@ public class SFTPTransfer implements FileTransfer {
         return includedDirectory;
     }
 
-    private FileInfo newFileInfo(String path, String filename, final SftpClient.Attributes attributes) {
+    private FileInfo newFileInfo(final String path, final String filename, final SftpClient.Attributes attributes) {
         final File newFullPath = new File(path, filename);
         final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
@@ -709,7 +709,7 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
+    public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, final String filename) throws IOException {
         final SftpClient sftpClient = getSFTPClient(flowFile);
 
         final FileInfo fileInfo;
@@ -836,7 +836,7 @@ public class SFTPTransfer implements FileTransfer {
         }
     }
 
-    protected int numberPermissions(String perms) {
+    protected int numberPermissions(final String perms) {
         int number = -1;
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
         final Pattern numPattern = Pattern.compile("\\d+");
@@ -872,7 +872,7 @@ public class SFTPTransfer implements FileTransfer {
         } else if (numPattern.matcher(perms).matches()) {
             try {
                 number = Integer.parseInt(perms, 8);
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
             }
         }
         return number;

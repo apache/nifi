@@ -35,14 +35,14 @@ public class StateTrackingFlowFileReader implements FlowFileReader {
     private final RecordSupplier recordSupplier;
     private final ComponentLog logger;
 
-    public StateTrackingFlowFileReader(String identifier, RecordSupplier recordSupplier, ComponentLog logger) {
+    public StateTrackingFlowFileReader(final String identifier, final RecordSupplier recordSupplier, final ComponentLog logger) {
         this.identifier = identifier;
         this.recordSupplier = recordSupplier;
         this.logger = logger;
     }
 
     @Override
-    public void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, FlowFileReaderCallback flowFileReaderCallback) {
+    public void read(final ProcessSession session, final FlowFile flowFile, final MessageHandler messageHandler, final FlowFileReaderCallback flowFileReaderCallback) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
@@ -61,7 +61,7 @@ public class StateTrackingFlowFileReader implements FlowFileReader {
             }
 
             flowFileReaderCallback.onSuccess(successFlowFile, processedRecords.get(), isRecover, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("An error happened while processing records. Routing to failure.", e);
 
             final FlowFile failedFlowFile = session.putAttribute(flowFile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));

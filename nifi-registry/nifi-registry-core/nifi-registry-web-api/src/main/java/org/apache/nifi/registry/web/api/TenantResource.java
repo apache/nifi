@@ -107,7 +107,7 @@ public class TenantResource extends ApplicationResource {
         final User createdUser = serviceFacade.createUser(requestUser);
         publish(EventFactory.userCreated(createdUser));
 
-        String locationUri = generateUserUri(createdUser);
+        final String locationUri = generateUserUri(createdUser);
         return generateCreatedResponse(URI.create(locationUri), createdUser).build();
     }
 

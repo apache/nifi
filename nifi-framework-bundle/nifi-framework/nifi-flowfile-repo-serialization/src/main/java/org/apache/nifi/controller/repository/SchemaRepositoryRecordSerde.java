@@ -83,7 +83,7 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         serializeRecord(record, out, schema, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V2);
     }
 
-    protected void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out, RecordSchema schema, RecordSchema repositoryRecordSchema) throws IOException {
+    protected void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out, final RecordSchema schema, final RecordSchema repositoryRecordSchema) throws IOException {
         final RepositoryRecordFieldMap fieldMap = new RepositoryRecordFieldMap(record, schema, contentClaimSchema);
         final RepositoryRecordUpdate update = new RepositoryRecordUpdate(fieldMap, repositoryRecordSchema);
         new SchemaRecordWriter().writeRecord(update, out);

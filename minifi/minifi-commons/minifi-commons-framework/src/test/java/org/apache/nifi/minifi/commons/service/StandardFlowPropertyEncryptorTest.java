@@ -103,8 +103,8 @@ public class StandardFlowPropertyEncryptorTest {
 
     private FlowPropertyEncryptor testEncryptor;
 
-    private static VersionedPropertyDescriptor versionedPropertyDescriptor(String name, boolean isSensitive) {
-        VersionedPropertyDescriptor versionedPropertyDescriptor = new VersionedPropertyDescriptor();
+    private static VersionedPropertyDescriptor versionedPropertyDescriptor(final String name, final boolean isSensitive) {
+        final VersionedPropertyDescriptor versionedPropertyDescriptor = new VersionedPropertyDescriptor();
         versionedPropertyDescriptor.setName(name);
         versionedPropertyDescriptor.setSensitive(isSensitive);
         return versionedPropertyDescriptor;
@@ -118,7 +118,7 @@ public class StandardFlowPropertyEncryptorTest {
 
     @Test
     public void shouldEncryptParameterContextsSensitiveVariables() {
-        VersionedDataflow testFlow = flowWithParameterContexts();
+        final VersionedDataflow testFlow = flowWithParameterContexts();
 
         testEncryptor.encryptSensitiveProperties(testFlow);
 
@@ -135,7 +135,7 @@ public class StandardFlowPropertyEncryptorTest {
 
     @Test
     public void shouldEncryptPropertiesUsingDescriptorsFromFlow() {
-        VersionedDataflow testFlow = flowWithPropertyDescriptors();
+        final VersionedDataflow testFlow = flowWithPropertyDescriptors();
 
         testEncryptor.encryptSensitiveProperties(testFlow);
 
@@ -145,7 +145,7 @@ public class StandardFlowPropertyEncryptorTest {
 
     @Test
     public void shouldEncryptPropertiesUsingDescriptorsFromRuntimeManifest() {
-        VersionedDataflow testFlow = flowWithoutPropertyDescriptors();
+        final VersionedDataflow testFlow = flowWithoutPropertyDescriptors();
         when(mockRunTimeManifest.getBundles()).thenReturn(runTimeManifestBundles());
 
         testEncryptor.encryptSensitiveProperties(testFlow);
@@ -154,7 +154,7 @@ public class StandardFlowPropertyEncryptorTest {
     }
 
     private VersionedDataflow flowWithParameterContexts() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
         versionedDataflow.setRootGroup(new VersionedProcessGroup());
         versionedDataflow.setParameterContexts(
             List.of(
@@ -173,14 +173,14 @@ public class StandardFlowPropertyEncryptorTest {
         return versionedDataflow;
     }
 
-    private VersionedParameterContext parameterContext(VersionedParameter... parameters) {
-        VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
+    private VersionedParameterContext parameterContext(final VersionedParameter... parameters) {
+        final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setParameters(Set.of(parameters));
         return versionedParameterContext;
     }
 
-    private VersionedParameter parameter(String name, String value, boolean sensitive) {
-        VersionedParameter versionedParameter = new VersionedParameter();
+    private VersionedParameter parameter(final String name, final String value, final boolean sensitive) {
+        final VersionedParameter versionedParameter = new VersionedParameter();
         versionedParameter.setName(name);
         versionedParameter.setValue(value);
         versionedParameter.setSensitive(sensitive);
@@ -188,8 +188,8 @@ public class StandardFlowPropertyEncryptorTest {
     }
 
     private VersionedDataflow flowWithPropertyDescriptors() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
-        VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
         versionedProcessGroup.setProcessors(
             Set.of(
                 versionedProcessor(PROCESSOR_TYPE_1, PARAMETERS1, DESCRIPTORS1),
@@ -208,8 +208,8 @@ public class StandardFlowPropertyEncryptorTest {
     }
 
     private VersionedDataflow flowWithoutPropertyDescriptors() {
-        VersionedDataflow versionedDataflow = new VersionedDataflow();
-        VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
+        final VersionedDataflow versionedDataflow = new VersionedDataflow();
+        final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
         versionedProcessGroup.setProcessors(
             Set.of(
                 versionedProcessor(PROCESSOR_TYPE_1, PARAMETERS1, Map.of()),
@@ -227,8 +227,8 @@ public class StandardFlowPropertyEncryptorTest {
         return versionedDataflow;
     }
 
-    private VersionedProcessor versionedProcessor(String processorType, Map<String, String> properties, Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        VersionedProcessor versionedProcessor = new VersionedProcessor();
+    private VersionedProcessor versionedProcessor(final String processorType, final Map<String, String> properties, final Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+        final VersionedProcessor versionedProcessor = new VersionedProcessor();
         versionedProcessor.setIdentifier(randomUUID().toString());
         versionedProcessor.setType(processorType);
         versionedProcessor.setProperties(properties);
@@ -236,9 +236,9 @@ public class StandardFlowPropertyEncryptorTest {
         return versionedProcessor;
     }
 
-    private VersionedControllerService versionedControllerService(String controllerServiceType, Map<String, String> properties,
-                                                                  Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        VersionedControllerService versionedControllerService = new VersionedControllerService();
+    private VersionedControllerService versionedControllerService(final String controllerServiceType, final Map<String, String> properties,
+                                                                  final Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+        final VersionedControllerService versionedControllerService = new VersionedControllerService();
         versionedControllerService.setIdentifier(randomUUID().toString());
         versionedControllerService.setType(controllerServiceType);
         versionedControllerService.setProperties(properties);
@@ -259,17 +259,17 @@ public class StandardFlowPropertyEncryptorTest {
         );
     }
 
-    private Bundle bundle(List<ProcessorDefinition> processorDefinition, List<ControllerServiceDefinition> controllerServiceDefinition) {
-        Bundle bundle = new Bundle();
-        ComponentManifest componentManifest = new ComponentManifest();
+    private Bundle bundle(final List<ProcessorDefinition> processorDefinition, final List<ControllerServiceDefinition> controllerServiceDefinition) {
+        final Bundle bundle = new Bundle();
+        final ComponentManifest componentManifest = new ComponentManifest();
         componentManifest.setProcessors(processorDefinition);
         componentManifest.setControllerServices(controllerServiceDefinition);
         bundle.setComponentManifest(componentManifest);
         return bundle;
     }
 
-    private ProcessorDefinition processorDefinition(String processorType, Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        ProcessorDefinition processorDefinition = new ProcessorDefinition();
+    private ProcessorDefinition processorDefinition(final String processorType, final Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+        final ProcessorDefinition processorDefinition = new ProcessorDefinition();
         processorDefinition.setType(processorType);
         processorDefinition.setPropertyDescriptors(
             convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(propertyDescriptors)
@@ -277,8 +277,8 @@ public class StandardFlowPropertyEncryptorTest {
         return processorDefinition;
     }
 
-    private ControllerServiceDefinition controllerServiceDefinition(String controllerServiceType, Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        ControllerServiceDefinition controllerServiceDefinition = new ControllerServiceDefinition();
+    private ControllerServiceDefinition controllerServiceDefinition(final String controllerServiceType, final Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+        final ControllerServiceDefinition controllerServiceDefinition = new ControllerServiceDefinition();
         controllerServiceDefinition.setType(controllerServiceType);
         controllerServiceDefinition.setPropertyDescriptors(
             convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(propertyDescriptors)
@@ -286,21 +286,21 @@ public class StandardFlowPropertyEncryptorTest {
         return controllerServiceDefinition;
     }
 
-    private Map<String, PropertyDescriptor> convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
+    private Map<String, PropertyDescriptor> convertVersionedPropertyDescriptorMapToPropertyDescriptorMap(final Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
         return propertyDescriptors.values()
             .stream()
             .map(propertyDescriptor -> entry(propertyDescriptor.getName(), convertPropertyDescriptor(propertyDescriptor)))
             .collect(toMap(Entry::getKey, Entry::getValue, (l, r) -> l, LinkedHashMap::new));
     }
 
-    private PropertyDescriptor convertPropertyDescriptor(VersionedPropertyDescriptor versionedPropertyDescriptor) {
-        PropertyDescriptor propertyDescriptor = new PropertyDescriptor();
+    private PropertyDescriptor convertPropertyDescriptor(final VersionedPropertyDescriptor versionedPropertyDescriptor) {
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor();
         propertyDescriptor.setName(versionedPropertyDescriptor.getName());
         propertyDescriptor.setSensitive(versionedPropertyDescriptor.isSensitive());
         return propertyDescriptor;
     }
 
-    private void assertSensitiveFlowComponentPropertiesAreEncoded(VersionedDataflow encryptedFlow) {
+    private void assertSensitiveFlowComponentPropertiesAreEncoded(final VersionedDataflow encryptedFlow) {
         Stream.of(
                 encryptedFlow.getRootGroup().getProcessors(),
                 encryptedFlow.getRootGroup().getControllerServices()

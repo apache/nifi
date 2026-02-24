@@ -216,7 +216,7 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
                 handleDocumentExistsCheckException(ex, documentExistsResult, verificationLogger, index, id);
             }
         } else {
-            String skippedReason;
+            final String skippedReason;
             if (indexExists) {
                 skippedReason = String.format("No %s specified for document existence check", ID.getDisplayName());
             } else {
@@ -287,14 +287,14 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ElasticsearchRestProcessor.super.migrateProperties(config);
         config.renameProperty("get-es-id", ID.getName());
         config.renameProperty("get-es-destination", DESTINATION.getName());
         config.renameProperty("get-es-attribute-name", ATTRIBUTE_NAME.getName());
     }
 
-    private void handleElasticsearchException(final ElasticsearchException ese, FlowFile input, final ProcessSession session,
+    private void handleElasticsearchException(final ElasticsearchException ese, final FlowFile input, final ProcessSession session,
                                               final String index, final String type, final String id) {
         if (ese.isNotFound()) {
             if (input != null) {
@@ -308,8 +308,8 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             getLogger().error(msg, ese);
             if (input != null) {
                 session.penalize(input);
-                input = session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
-                session.transfer(input, ese.isElastic() ? REL_RETRY : REL_FAILURE);
+                final FlowFile updatedInput = session.putAttribute(input, "elasticsearch.get.error", ese.getMessage());
+                session.transfer(updatedInput, ese.isElastic() ? REL_RETRY : REL_FAILURE);
             }
         }
     }

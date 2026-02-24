@@ -33,7 +33,7 @@ public class IllegalNodeOffloadExceptionMapper implements ExceptionMapper<Illega
     private static final Logger logger = LoggerFactory.getLogger(IllegalNodeOffloadExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalNodeOffloadException exception) {
+    public Response toResponse(final IllegalNodeOffloadException exception) {
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 
         if (logger.isDebugEnabled()) {

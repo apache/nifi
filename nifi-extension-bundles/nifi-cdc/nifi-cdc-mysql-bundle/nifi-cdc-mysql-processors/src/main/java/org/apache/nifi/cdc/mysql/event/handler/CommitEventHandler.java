@@ -48,7 +48,7 @@ public class CommitEventHandler implements BinlogEventHandler<EventData, CommitT
         } else {
             // If the COMMIT event is not to be written, the FlowFile should still be finished and the session committed.
             if (session != null) {
-                FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
+                final FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
                 if (flowFile != null) {
                     // Flush the events to the FlowFile when the processor is stopped
                     eventWriter.finishAndTransferFlowFile(session, eventWriterConfiguration, binlogResourceInfo.getTransitUri(), dataCaptureState.getSequenceId(), commitEvent, REL_SUCCESS);

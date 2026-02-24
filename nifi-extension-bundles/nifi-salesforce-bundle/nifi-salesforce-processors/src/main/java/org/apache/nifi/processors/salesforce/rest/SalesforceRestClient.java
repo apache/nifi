@@ -36,49 +36,49 @@ public class SalesforceRestClient {
     private final SalesforceConfiguration configuration;
     private final OkHttpClient httpClient;
 
-    public SalesforceRestClient(SalesforceConfiguration configuration) {
+    public SalesforceRestClient(final SalesforceConfiguration configuration) {
         this.configuration = configuration;
         httpClient = new OkHttpClient.Builder()
                 .readTimeout(configuration.getResponseTimeoutMillis(), TimeUnit.MILLISECONDS)
                 .build();
     }
 
-    public InputStream describeSObject(String sObject) {
-        String url = getUrl("/sobjects/" + sObject + "/describe?maxRecords=1");
-        Request request = buildGetRequest(url);
+    public InputStream describeSObject(final String sObject) {
+        final String url = getUrl("/sobjects/" + sObject + "/describe?maxRecords=1");
+        final Request request = buildGetRequest(url);
         return executeRequest(request);
     }
 
-    public InputStream query(String query) {
-        HttpUrl httpUrl = HttpUrl.get(getUrl("/query")).newBuilder()
+    public InputStream query(final String query) {
+        final HttpUrl httpUrl = HttpUrl.get(getUrl("/query")).newBuilder()
                 .addQueryParameter("q", query)
                 .build();
-        Request request = buildGetRequest(httpUrl.toString());
+        final Request request = buildGetRequest(httpUrl.toString());
         return executeRequest(request);
     }
 
-    public InputStream queryAll(String query) {
-        HttpUrl httpUrl = HttpUrl.get(getUrl("/queryAll")).newBuilder()
+    public InputStream queryAll(final String query) {
+        final HttpUrl httpUrl = HttpUrl.get(getUrl("/queryAll")).newBuilder()
                 .addQueryParameter("q", query)
                 .build();
-        Request request = buildGetRequest(httpUrl.toString());
+        final Request request = buildGetRequest(httpUrl.toString());
         return executeRequest(request);
     }
 
-    public InputStream getNextRecords(String nextRecordsUrl) {
-        HttpUrl httpUrl = HttpUrl.get(configuration.getInstanceUrl() + nextRecordsUrl).newBuilder().build();
-        Request request = buildGetRequest(httpUrl.toString());
+    public InputStream getNextRecords(final String nextRecordsUrl) {
+        final HttpUrl httpUrl = HttpUrl.get(configuration.getInstanceUrl() + nextRecordsUrl).newBuilder().build();
+        final Request request = buildGetRequest(httpUrl.toString());
         return executeRequest(request);
     }
 
-    public void postRecord(String sObjectApiName, String body) {
-        HttpUrl httpUrl = HttpUrl.get(getUrl("/composite/tree/" + sObjectApiName)).newBuilder().build();
-        RequestBody requestBody = RequestBody.create(body, JSON_MEDIA_TYPE);
-        Request request = buildPostRequest(httpUrl.toString(), requestBody);
+    public void postRecord(final String sObjectApiName, final String body) {
+        final HttpUrl httpUrl = HttpUrl.get(getUrl("/composite/tree/" + sObjectApiName)).newBuilder().build();
+        final RequestBody requestBody = RequestBody.create(body, JSON_MEDIA_TYPE);
+        final Request request = buildPostRequest(httpUrl.toString(), requestBody);
         executeRequest(request);
     }
 
-    private InputStream executeRequest(Request request) {
+    private InputStream executeRequest(final Request request) {
         Response response = null;
         try {
             response = httpClient.newCall(request).execute();
@@ -86,7 +86,7 @@ public class SalesforceRestClient {
                 throw new ProcessException(String.format("Invalid response [%s]: %s", response.code(), response.body() == null ? null : response.body().string()));
             }
             return response.body().byteStream();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             if (response != null) {
                 response.close();
             }
@@ -94,7 +94,7 @@ public class SalesforceRestClient {
         }
     }
 
-    private String getUrl(String path) {
+    private String getUrl(final String path) {
         return getVersionedBaseUrl() + path;
     }
 
@@ -102,7 +102,7 @@ public class SalesforceRestClient {
         return configuration.getInstanceUrl() + "/services/data/v" + configuration.getVersion();
     }
 
-    private Request buildGetRequest(String url) {
+    private Request buildGetRequest(final String url) {
         return new Request.Builder()
                 .addHeader("Authorization", "Bearer " + configuration.getAccessTokenProvider().get())
                 .url(url)
@@ -110,7 +110,7 @@ public class SalesforceRestClient {
                 .build();
     }
 
-    private Request buildPostRequest(String url, RequestBody requestBody) {
+    private Request buildPostRequest(final String url, final RequestBody requestBody) {
         return new Request.Builder()
                 .addHeader("Authorization", "Bearer " + configuration.getAccessTokenProvider().get())
                 .url(url)

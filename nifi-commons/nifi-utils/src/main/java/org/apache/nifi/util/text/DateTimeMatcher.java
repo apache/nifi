@@ -58,7 +58,7 @@ public interface DateTimeMatcher {
      */
     boolean matches(String text);
 
-    static DateTimeMatcher compile(String format) {
+    static DateTimeMatcher compile(final String format) {
         if (format == null) {
             return t -> false;
         }

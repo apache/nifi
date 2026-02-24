@@ -24,7 +24,7 @@ public class ToUpperCase extends NoArgStringFunction {
     }
 
     @Override
-    String apply(String value) {
+    String apply(final String value) {
         return value == null ? null : value.toUpperCase();
     }
 }

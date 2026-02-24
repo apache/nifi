@@ -19,12 +19,12 @@ package org.apache.nifi.record.path.functions;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class TrimString extends NoArgStringFunction {
-    public TrimString(RecordPathSegment valuePath, boolean absolute) {
+    public TrimString(final RecordPathSegment valuePath, final boolean absolute) {
         super("trim", valuePath, absolute);
     }
 
     @Override
-    String apply(String value) {
+    String apply(final String value) {
         return value == null ? null : value.trim();
     }
 }

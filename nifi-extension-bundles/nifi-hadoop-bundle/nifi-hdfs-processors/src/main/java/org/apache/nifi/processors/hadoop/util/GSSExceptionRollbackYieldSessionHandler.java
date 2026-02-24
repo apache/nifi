@@ -23,7 +23,7 @@ import java.util.function.BiConsumer;
 
 public class GSSExceptionRollbackYieldSessionHandler implements BiConsumer<ProcessSession, ProcessContext> {
     @Override
-    public void accept(ProcessSession processSession, ProcessContext processContext) {
+    public void accept(final ProcessSession processSession, final ProcessContext processContext) {
         processSession.rollback();
         processContext.yield();
     }

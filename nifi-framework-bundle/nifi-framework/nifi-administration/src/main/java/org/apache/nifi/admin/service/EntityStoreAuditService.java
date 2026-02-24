@@ -154,7 +154,7 @@ public class EntityStoreAuditService implements AuditService, Closeable {
 
             final EntityIterable actionEntities = storeTransaction.find(EntityType.ACTION.getEntityType(), ActionEntity.SOURCE_ID.getProperty(), componentId);
             // Reverse default ordering to return oldest entries before newest entries
-            for (Entity actionEntity : actionEntities.reverse()) {
+            for (final Entity actionEntity : actionEntities.reverse()) {
                 final Entity configureDetails = actionEntity.getLink(ActionLink.CONFIGURE_DETAILS.getProperty());
                 if (configureDetails != null) {
                     final String name = getProperty(configureDetails, ConfigureDetailsEntity.NAME);
@@ -193,7 +193,7 @@ public class EntityStoreAuditService implements AuditService, Closeable {
 
         entityStore.executeInExclusiveTransaction(storeTransaction -> {
             final EntityIterable actionEntities = storeTransaction.find(EntityType.ACTION.getEntityType(), ActionEntity.SOURCE_ID.getProperty(), componentId);
-            for (Entity actionEntity : actionEntities) {
+            for (final Entity actionEntity : actionEntities) {
                 final Entity configureDetails = actionEntity.getLink(ActionLink.CONFIGURE_DETAILS.getProperty());
                 if (configureDetails != null) {
                     final Comparable<?> configureDetailsName = configureDetails.getProperty(ConfigureDetailsEntity.NAME.getProperty());

@@ -310,7 +310,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         getProperties(context);
     }
 
@@ -320,7 +320,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         if (
@@ -343,8 +343,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         return validationResults;
     }
 
-    protected OkHttpClient createHttpClient(ConfigurationContext context) {
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+    protected OkHttpClient createHttpClient(final ConfigurationContext context) {
+        final OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
@@ -384,7 +384,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             } else {
                 try {
                     refreshAccessDetails();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().info("Refresh Access Token request failed [{}]", authorizationServerUrl, e);
                     acquireAccessDetails();
                 }
@@ -401,13 +401,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         } else {
             getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
 
-            FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
+            final FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
                     .add("grant_type", "refresh_token")
                     .add("refresh_token", this.accessDetails.getRefreshToken());
 
             addFormData(refreshTokenBuilder);
 
-            AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
+            final AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
 
             if (newAccessDetails.getRefreshToken() == null) {
                 newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
@@ -417,7 +417,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
     }
 
-    private void getProperties(ConfigurationContext context) {
+    private void getProperties(final ConfigurationContext context) {
         authorizationServerUrl = context.getProperty(AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue();
 
         httpClient = createHttpClient(context);
@@ -433,9 +433,9 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         audience = context.getProperty(AUDIENCE).getValue();
 
         if (context.getProperty(REFRESH_TOKEN).isSet()) {
-            String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
+            final String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
 
-            AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
+            final AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
             accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
             accessDetailsWithRefreshTokenOnly.setExpiresIn(-1L);
 
@@ -445,18 +445,18 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
         defaultExpirationTimeSeconds = context.getProperty(DEFAULT_EXPIRATION_TIME).asTimePeriod(TimeUnit.SECONDS);
 
-        Map<String, String> formParameters = new HashMap<>();
-        for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+        final Map<String, String> formParameters = new HashMap<>();
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (!descriptor.isDynamic() || !descriptor.getName().startsWith(FORM_PREFIX)) {
                 continue;
             }
 
-            String parameterName = descriptor.getName().substring(FORM_PREFIX.length());
+            final String parameterName = descriptor.getName().substring(FORM_PREFIX.length());
             if (parameterName.isEmpty()) {
                 continue;
             }
 
-            String evaluatedValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
+            final String evaluatedValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
             if (evaluatedValue != null) {
                 formParameters.put(parameterName, evaluatedValue);
             }
@@ -478,7 +478,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private void acquireAccessDetails() {
         getLogger().debug("New Access Token request started [{}]", authorizationServerUrl);
 
-        FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
+        final FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
 
         if (grantType.equals(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())) {
             acquireTokenBuilder.add("grant_type", "password")
@@ -493,7 +493,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         this.accessDetails = requestToken(acquireTokenBuilder);
     }
 
-    private void addFormData(FormBody.Builder formBuilder) {
+    private void addFormData(final FormBody.Builder formBuilder) {
         if (clientAuthenticationStrategy == ClientAuthenticationStrategy.REQUEST_BODY && clientId != null) {
             formBuilder.add("client_id", clientId);
             formBuilder.add("client_secret", clientSecret);
@@ -510,10 +510,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         customFormParameters.forEach(formBuilder::add);
     }
 
-    private AccessToken requestToken(FormBody.Builder formBuilder) {
-        RequestBody requestBody = formBuilder.build();
+    private AccessToken requestToken(final FormBody.Builder formBuilder) {
+        final RequestBody requestBody = formBuilder.build();
 
-        Request.Builder requestBuilder = new Request.Builder()
+        final Request.Builder requestBuilder = new Request.Builder()
                 .url(authorizationServerUrl)
                 .post(requestBody);
 
@@ -521,7 +521,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             requestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
         }
 
-        Request request = requestBuilder.build();
+        final Request request = requestBuilder.build();
 
         return getAccessDetails(request);
     }
@@ -543,16 +543,16 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         getProperties(context);
 
-        ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
+        final ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder()
                 .verificationStepName("Can acquire token");
 
         try {
             getAccessDetails();
             builder.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             builder.outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation(ex.getMessage());
         }

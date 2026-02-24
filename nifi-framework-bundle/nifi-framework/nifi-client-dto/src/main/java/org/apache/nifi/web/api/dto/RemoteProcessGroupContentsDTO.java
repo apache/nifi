@@ -39,7 +39,7 @@ public class RemoteProcessGroupContentsDTO {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<RemoteProcessGroupPortDTO> inputPorts) {
+    public void setInputPorts(final Set<RemoteProcessGroupPortDTO> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -52,7 +52,7 @@ public class RemoteProcessGroupContentsDTO {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<RemoteProcessGroupPortDTO> outputPorts) {
+    public void setOutputPorts(final Set<RemoteProcessGroupPortDTO> outputPorts) {
         this.outputPorts = outputPorts;
     }
 }

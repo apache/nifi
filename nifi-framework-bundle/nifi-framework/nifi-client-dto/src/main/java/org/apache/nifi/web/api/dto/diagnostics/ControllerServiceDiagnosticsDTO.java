@@ -35,7 +35,7 @@ public class ControllerServiceDiagnosticsDTO {
         return controllerService;
     }
 
-    public void setClassLoaderDiagnostics(ClassLoaderDiagnosticsDTO classLoaderDiagnostics) {
+    public void setClassLoaderDiagnostics(final ClassLoaderDiagnosticsDTO classLoaderDiagnostics) {
         this.classLoaderDiagnostics = classLoaderDiagnostics;
     }
 

@@ -46,7 +46,7 @@ public class ITApacheCSVRecordReader {
         return createStringFields(new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
     }
 
-    private List<RecordField> createStringFields(String[] fieldNames) {
+    private List<RecordField> createStringFields(final String[] fieldNames) {
         final List<RecordField> fields = new ArrayList<>();
         for (final String fieldName : fieldNames) {
             fields.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
@@ -58,7 +58,7 @@ public class ITApacheCSVRecordReader {
     public void testParserPerformance() throws IOException, MalformedRecordException {
         // Generates about 130MB of data
         final int NUM_LINES = 2500000;
-        String sb = "id,name,balance,address,city,state,zipCode,country\n" + "1,John Doe,4750.89D,123 My Street,My City,MS,11111,USA\n".repeat(NUM_LINES);
+        final String sb = "id,name,balance,address,city,state,zipCode,country\n" + "1,John Doe,4750.89D,123 My Street,My City,MS,11111,USA\n".repeat(NUM_LINES);
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream bais = new ByteArrayInputStream(sb.getBytes());
@@ -77,9 +77,9 @@ public class ITApacheCSVRecordReader {
 
     @Test
     public void testExceptionThrownOnParseProblem() {
-        CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').get();
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').get();
         final int NUM_LINES = 25;
-        StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
+        final StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
         for (int i = 0; i < NUM_LINES; i++) {
             sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", i));
         }
@@ -93,7 +93,7 @@ public class ITApacheCSVRecordReader {
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             while (reader.nextRecord() != null) { }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             assertInstanceOf(MalformedRecordException.class, e);
         }
     }

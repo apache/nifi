@@ -76,9 +76,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      */
     @Test
     public void testScriptDefinedAttribute() {
-        InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
-        MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
+        final InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
+        final MockProcessContext context = new MockProcessContext(processor);
+        final MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
 
         processor.initialize(initContext);
 
@@ -89,11 +89,11 @@ public class TestInvokeGroovy extends BaseScriptTest {
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
-        List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
+        final List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
         assertNotNull(descriptors);
         assertFalse(descriptors.isEmpty());
         boolean found = false;
-        for (PropertyDescriptor descriptor : descriptors) {
+        for (final PropertyDescriptor descriptor : descriptors) {
             if (descriptor.getName().equals("test-attribute")) {
                 found = true;
                 break;
@@ -109,9 +109,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
      */
     @Test
     public void testScriptDefinedRelationship() {
-        InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
-        MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
+        final InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
+        final MockProcessContext context = new MockProcessContext(processor);
+        final MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
 
         processor.initialize(initContext);
 
@@ -121,11 +121,11 @@ public class TestInvokeGroovy extends BaseScriptTest {
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
-        Set<Relationship> relationships = processor.getRelationships();
+        final Set<Relationship> relationships = processor.getRelationships();
         assertNotNull(relationships);
         assertFalse(relationships.isEmpty());
         boolean found = false;
-        for (Relationship relationship : relationships) {
+        for (final Relationship relationship : relationships) {
             if (relationship.getName().equals("test")) {
                 found = true;
                 break;
@@ -236,7 +236,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.assertAllFlowFilesTransferred("success", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
         assertEquals(1, result.size());
-        MockFlowFile ff = result.getFirst();
+        final MockFlowFile ff = result.getFirst();
         ff.assertContentEquals("48\n47\n14\n");
     }
 
@@ -248,7 +248,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/groovy/test_OnPrimaryStateChange.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/groovy");
-        InvokeScriptedProcessor invokeScriptedProcessor = ((InvokeScriptedProcessor) scriptingComponent);
+        final InvokeScriptedProcessor invokeScriptedProcessor = ((InvokeScriptedProcessor) scriptingComponent);
         invokeScriptedProcessor.setup(runner.getProcessContext());
         runner.setIsConfiguredForClustering(true);
         runner.run(1, false, true);
@@ -256,10 +256,10 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.clearTransferState();
         runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred("success");
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
         assertNotNull(flowFiles);
         assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.get(0);
+        final MockFlowFile flowFile = flowFiles.get(0);
         flowFile.assertAttributeEquals("isPrimaryNode", "true");
     }
 
@@ -269,7 +269,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         @OnConfigurationRestored
         @Override
-        public void onConfigurationRestored(ProcessContext context) {
+        public void onConfigurationRestored(final ProcessContext context) {
             super.onConfigurationRestored(context);
             assertEquals(this.getSupportedPropertyDescriptors().size(), numTimesModifiedCalled);
         }

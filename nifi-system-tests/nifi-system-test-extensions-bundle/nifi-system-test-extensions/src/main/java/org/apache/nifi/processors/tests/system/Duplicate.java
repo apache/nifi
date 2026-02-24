@@ -58,7 +58,7 @@ public class Duplicate extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile input = session.get();
+        final FlowFile input = session.get();
         if (input == null) {
             return;
         }

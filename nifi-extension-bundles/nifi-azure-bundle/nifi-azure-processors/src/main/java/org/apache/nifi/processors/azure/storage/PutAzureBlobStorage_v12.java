@@ -125,7 +125,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
     );
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         results.addAll(validateClientSideEncryptionProperties(validationContext));
         return results;
@@ -149,11 +149,11 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         final AzureStorageConflictResolutionStrategy conflictResolution = context.getProperty(AzureStorageUtils.CONFLICT_RESOLUTION).asAllowableValue(AzureStorageConflictResolutionStrategy.class);
         final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
         try {
             final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
-            BlobServiceClient storageClient = getStorageClient(context, flowFile);
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobServiceClient storageClient = getStorageClient(context, flowFile);
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             if (createContainer && !containerClient.exists()) {
                 containerClient.create();
             }
@@ -166,7 +166,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             }
 
             final BlobRequestConditions blobRequestConditions = new BlobRequestConditions();
-            Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new HashMap<>();
             applyStandardBlobAttributes(attributes, blobClient);
             final boolean ignore = conflictResolution == AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION;
 
@@ -194,15 +194,15 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                         blobParallelUploadOptions.setHeaders(blobHttpHeaders);
                     }
 
-                    Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
-                    BlockBlobItem blob = response.getValue();
+                    final Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
+                    final BlockBlobItem blob = response.getValue();
                     applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, transferSize);
                     applyBlobMetadata(attributes, blobClient);
                     if (ignore) {
                         attributes.put(ATTR_NAME_IGNORED, "false");
                     }
                 }
-            } catch (BlobStorageException e) {
+            } catch (final BlobStorageException e) {
                 final BlobErrorCode errorCode = e.getErrorCode();
                 flowFile = session.putAttribute(flowFile, ATTR_NAME_ERROR_CODE, e.getErrorCode().toString());
 
@@ -217,10 +217,10 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().send(flowFile, transitUri, transferMillis);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to create blob on Azure Blob Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -228,7 +228,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME, AzureStorageUtils.CONFLICT_RESOLUTION.getName());

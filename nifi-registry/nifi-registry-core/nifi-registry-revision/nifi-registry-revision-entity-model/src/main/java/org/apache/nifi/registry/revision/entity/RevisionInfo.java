@@ -28,11 +28,11 @@ public class RevisionInfo {
     public RevisionInfo() {
     }
 
-    public RevisionInfo(String clientId, Long version) {
+    public RevisionInfo(final String clientId, final Long version) {
         this(clientId, version, null);
     }
 
-    public RevisionInfo(String clientId, Long version, String lastModifier) {
+    public RevisionInfo(final String clientId, final Long version, final String lastModifier) {
         this.clientId = clientId;
         this.version = version;
         this.lastModifier = lastModifier;

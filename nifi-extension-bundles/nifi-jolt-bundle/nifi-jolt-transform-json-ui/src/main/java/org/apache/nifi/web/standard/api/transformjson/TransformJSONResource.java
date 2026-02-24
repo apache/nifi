@@ -48,13 +48,13 @@ public class TransformJSONResource extends AbstractStandardResource {
 
     private static final String CUSTOM_TRANSFORM_NAME = "jolt-transform-custom";
 
-    protected Object getSpecificationJsonObject(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) {
+    protected Object getSpecificationJsonObject(final JoltSpecificationDTO specificationDTO, final boolean evaluateAttributes) {
         if (!StringUtils.isEmpty(specificationDTO.getSpecification())) {
             final String specification;
 
             if (evaluateAttributes) {
-                PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
-                Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<>())
+                final PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
+                final Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.unmodifiableMap(new HashMap<>())
                         : specificationDTO.getExpressionLanguageAttributes();
                 specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
             } else {
@@ -70,7 +70,7 @@ public class TransformJSONResource extends AbstractStandardResource {
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     @Path("/validate")
-    public Response validateSpec(JoltSpecificationDTO specificationDTO) {
+    public Response validateSpec(final JoltSpecificationDTO specificationDTO) {
         ValidationDTO validation;
 
         try {
@@ -95,10 +95,10 @@ public class TransformJSONResource extends AbstractStandardResource {
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     @Path("/execute")
-    public Response executeSpec(JoltSpecificationDTO specificationDTO) {
+    public Response executeSpec(final JoltSpecificationDTO specificationDTO) {
         try {
-            JoltTransform transform = getTransformation(specificationDTO, true);
-            Object inputJson = JsonUtils.jsonToObject(specificationDTO.getInput());
+            final JoltTransform transform = getTransformation(specificationDTO, true);
+            final Object inputJson = JsonUtils.jsonToObject(specificationDTO.getInput());
             return Response.ok(JsonUtils.toJsonString(TransformUtils.transform(transform, inputJson))).build();
         } catch (final Exception e) {
             logger.warn("Jolt Transform Execute Failed", e);
@@ -106,14 +106,14 @@ public class TransformJSONResource extends AbstractStandardResource {
         }
     }
 
-    private JoltTransform getTransformation(JoltSpecificationDTO specificationDTO, boolean evaluateAttributes) throws Exception {
+    private JoltTransform getTransformation(final JoltSpecificationDTO specificationDTO, final boolean evaluateAttributes) throws Exception {
         final String transformName = specificationDTO.getTransform();
 
         if (CUSTOM_TRANSFORM_NAME.equals(transformName)) {
             throw new IllegalArgumentException("Custom Transform Classes not supported for dynamic evaluation");
         }
 
-        Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
+        final Object specJson = getSpecificationJsonObject(specificationDTO, evaluateAttributes);
         return TransformFactory.getTransform(getClass().getClassLoader(), specificationDTO.getTransform(), specJson);
     }
 }

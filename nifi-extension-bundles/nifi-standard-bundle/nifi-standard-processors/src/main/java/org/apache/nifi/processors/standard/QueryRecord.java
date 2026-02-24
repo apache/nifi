@@ -243,7 +243,7 @@ public class QueryRecord extends AbstractProcessor {
         .build();
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("cache-schema");
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());

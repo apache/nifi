@@ -46,7 +46,7 @@ public class LabelDTO extends ComponentDTO {
         return zIndex;
     }
 
-    public void setzIndex(Long zIndex) {
+    public void setzIndex(final Long zIndex) {
         this.zIndex = zIndex;
     }
 
@@ -74,7 +74,7 @@ public class LabelDTO extends ComponentDTO {
         return style;
     }
 
-    public void setStyle(Map<String, String> style) {
+    public void setStyle(final Map<String, String> style) {
         this.style = style;
     }
 
@@ -87,7 +87,7 @@ public class LabelDTO extends ComponentDTO {
         return height;
     }
 
-    public void setHeight(Double height) {
+    public void setHeight(final Double height) {
         this.height = height;
     }
 
@@ -100,7 +100,7 @@ public class LabelDTO extends ComponentDTO {
         return width;
     }
 
-    public void setWidth(Double width) {
+    public void setWidth(final Double width) {
         this.width = width;
     }
 

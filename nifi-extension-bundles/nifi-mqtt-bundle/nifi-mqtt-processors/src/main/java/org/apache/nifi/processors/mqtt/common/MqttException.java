@@ -18,11 +18,11 @@ package org.apache.nifi.processors.mqtt.common;
 
 public class MqttException extends RuntimeException {
 
-    public MqttException(String message) {
+    public MqttException(final String message) {
         super(message);
     }
 
-    public MqttException(String message, Throwable cause) {
+    public MqttException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

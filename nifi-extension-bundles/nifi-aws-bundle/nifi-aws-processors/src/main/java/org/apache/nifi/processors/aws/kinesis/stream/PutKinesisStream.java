@@ -184,7 +184,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
                         final PutRecordsResultEntry entry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);
 
-                        Map<String, String> attributes = new HashMap<>();
+                        final Map<String, String> attributes = new HashMap<>();
                         attributes.put(AWS_KINESIS_SHARD_ID, entry.shardId());
                         attributes.put(AWS_KINESIS_SEQUENCE_NUMBER, entry.sequenceNumber());
 
@@ -221,7 +221,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("amazon-kinesis-stream-partition-key", KINESIS_PARTITION_KEY.getName());
         config.renameProperty("message-batch-size", BATCH_SIZE.getName());

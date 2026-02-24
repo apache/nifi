@@ -79,8 +79,8 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     public void onEnabled(final ConfigurationContext context) {
         this.dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
-        int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
-        boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
+        final int cacheSize = context.getProperty(CACHE_SIZE).evaluateAttributeExpressions().asInteger();
+        final boolean clearCache = context.getProperty(CLEAR_CACHE_ON_ENABLED).asBoolean();
         final long durationNanos = context.getProperty(CACHE_EXPIRATION).isSet() ? context.getProperty(CACHE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.NANOSECONDS) : 0L;
         if (this.cache == null || (cacheSize > 0 && clearCache)) {
             if (durationNanos > 0) {
@@ -88,17 +88,17 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                         .maximumSize(cacheSize)
                         .expireAfter(new Expiry<Tuple<String, Object>, Object>() {
                             @Override
-                            public long expireAfterCreate(Tuple<String, Object> stringObjectTuple, Object value, long currentTime) {
+                            public long expireAfterCreate(final Tuple<String, Object> stringObjectTuple, final Object value, final long currentTime) {
                                 return durationNanos;
                             }
 
                             @Override
-                            public long expireAfterUpdate(Tuple<String, Object> stringObjectTuple, Object value, long currentTime, long currentDuration) {
+                            public long expireAfterUpdate(final Tuple<String, Object> stringObjectTuple, final Object value, final long currentTime, final long currentDuration) {
                                 return currentDuration;
                             }
 
                             @Override
-                            public long expireAfterRead(Tuple<String, Object> stringObjectTuple, Object value, long currentTime, long currentDuration) {
+                            public long expireAfterRead(final Tuple<String, Object> stringObjectTuple, final Object value, final long currentTime, final long currentDuration) {
                                 return currentDuration;
                             }
                         })
@@ -112,12 +112,12 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     }
 
     @Override
-    public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<String> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
     @Override
-    public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<String> lookup(final Map<String, Object> coordinates, final Map<String, String> context) throws LookupFailureException {
         if (coordinates == null) {
             return Optional.empty();
         }
@@ -130,7 +130,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
         final String tableName = getProperty(TABLE_NAME).evaluateAttributeExpressions(context).getValue();
         final String lookupValueColumn = getProperty(LOOKUP_VALUE_COLUMN).evaluateAttributeExpressions(context).getValue();
 
-        Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
+        final Tuple<String, Object> cacheLookupKey = new Tuple<>(tableName, key);
 
         // Not using the function param of cache.get so we can catch and handle the checked exceptions
         String foundRecord = cache.get(cacheLookupKey, k -> null);
@@ -141,13 +141,13 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                  final PreparedStatement st = con.prepareStatement(selectQuery)) {
 
                 st.setObject(1, key);
-                ResultSet resultSet = st.executeQuery();
+                final ResultSet resultSet = st.executeQuery();
 
                 if (!resultSet.next()) {
                     return Optional.empty();
                 }
 
-                Object o = resultSet.getObject(lookupValueColumn);
+                final Object o = resultSet.getObject(lookupValueColumn);
                 if (o == null) {
                     return Optional.empty();
                 }
@@ -158,7 +158,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
                     cache.put(cacheLookupKey, foundRecord);
                 }
 
-            } catch (SQLException se) {
+            } catch (final SQLException se) {
                 throw new LookupFailureException("Error executing SQL statement: " + selectQuery + "for value " + key.toString()
                         + " : " + (se.getCause() == null ? se.getMessage() : se.getCause().getMessage()), se);
             }
@@ -173,7 +173,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("lookup-value-column", LOOKUP_VALUE_COLUMN.getName());
     }

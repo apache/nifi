@@ -34,7 +34,7 @@ public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<Pr
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlowSnapshot(RegisteredFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(final RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
@@ -48,7 +48,7 @@ public class ProcessGroupReplaceRequestEntity extends FlowUpdateRequestEntity<Pr
     }
 
     @Override
-    public void setRequest(ProcessGroupReplaceRequestDTO request) {
+    public void setRequest(final ProcessGroupReplaceRequestDTO request) {
         this.request = request;
     }
 

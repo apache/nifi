@@ -91,7 +91,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
 
-        MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
+        final MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
         collection.insertMany(DOCUMENTS);
     }
 
@@ -105,7 +105,7 @@ public class GetMongoIT extends AbstractMongoIT {
     @Test
     public void testValidators() {
 
-        TestRunner runner = TestRunners.newTestRunner(GetMongo.class);
+        final TestRunner runner = TestRunners.newTestRunner(GetMongo.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -117,7 +117,7 @@ public class GetMongoIT extends AbstractMongoIT {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(2, results.size());
-        Iterator<ValidationResult> it = results.iterator();
+        final Iterator<ValidationResult> it = results.iterator();
         assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
@@ -177,10 +177,10 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> parsed = mapper.readValue(raw, Map.class);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
+        final ObjectMapper mapper = new ObjectMapper();
+        final Map<String, Object> parsed = mapper.readValue(raw, Map.class);
 
         assertSame(parsed.get("date_field").getClass(), String.class);
     }
@@ -192,7 +192,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         flowFiles.get(0).assertContentEquals(DOCUMENTS.get(2).toJson());
     }
 
@@ -202,7 +202,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         for (int i = 0; i < flowFiles.size(); i++) {
             flowFiles.get(i).assertContentEquals(DOCUMENTS.get(i).toJson());
         }
@@ -215,8 +215,8 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        Document expected = new Document("a", 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final Document expected = new Document("a", 1);
         flowFiles.get(0).assertContentEquals(expected.toJson());
     }
 
@@ -228,7 +228,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         flowFiles.get(0).assertContentEquals(DOCUMENTS.get(2).toJson());
         flowFiles.get(1).assertContentEquals(DOCUMENTS.get(0).toJson());
         flowFiles.get(2).assertContentEquals(DOCUMENTS.get(1).toJson());
@@ -242,7 +242,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         flowFiles.get(0).assertContentEquals(DOCUMENTS.get(0).toJson());
     }
 
@@ -255,7 +255,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         assertTrue(results.get(0).getSize() > 0, "Flowfile was empty");
         assertEquals(results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json", "Wrong mime type");
     }
@@ -270,7 +270,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 2);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
         assertTrue(results.get(0).getSize() > 0, "Flowfile was empty");
         assertEquals(results.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()), "application/json", "Wrong mime type");
     }
@@ -300,10 +300,10 @@ public class GetMongoIT extends AbstractMongoIT {
         assertFalse(json.contains("\n"), "New lines detected");
     }
 
-    private void testQueryAttribute(String attr, String expected) {
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        for (MockFlowFile mff : flowFiles) {
-            String val = mff.getAttribute(attr);
+    private void testQueryAttribute(final String attr, final String expected) {
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (final MockFlowFile mff : flowFiles) {
+            final String val = mff.getAttribute(attr);
             assertNotNull(val, "Missing query attribute");
             assertEquals(expected, val, "Value was wrong");
         }
@@ -361,10 +361,10 @@ public class GetMongoIT extends AbstractMongoIT {
      */
     @Test
     public void testReadQueryFromBodyWithEL() {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("field", "c");
         attributes.put("value", "4");
-        String query = "{ \"${field}\": { \"$gte\": ${value}}}";
+        final String query = "{ \"${field}\": { \"$gte\": ${value}}}";
         runner.setIncomingConnection(true);
         runner.setProperty(GetMongo.QUERY, query);
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "10");
@@ -378,7 +378,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testReadQueryFromBodyNoEL() {
-        String query = "{ \"c\": { \"$gte\": 4 }}";
+        final String query = "{ \"c\": { \"$gte\": 4 }}";
         runner.setIncomingConnection(true);
         runner.removeProperty(GetMongo.QUERY);
         runner.enqueue(query);
@@ -392,7 +392,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testReadQueryFromQueryParamNoConnection() {
-        String query = "{ \"c\": { \"$gte\": 4 }}";
+        final String query = "{ \"c\": { \"$gte\": 4 }}";
         runner.setProperty(GetMongo.QUERY, query);
         runner.setIncomingConnection(false);
         runner.run(1, true, true);
@@ -404,8 +404,8 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testReadQueryFromQueryParamWithConnection() {
-        String query = "{ \"c\": { \"$gte\": ${value} }}";
-        Map<String, String> attrs = new HashMap<>();
+        final String query = "{ \"c\": { \"$gte\": ${value} }}";
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("value", "4");
 
         runner.setProperty(GetMongo.QUERY, query);
@@ -426,7 +426,7 @@ public class GetMongoIT extends AbstractMongoIT {
             runner.setIncomingConnection(false);
             runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "1");
             runner.run(1, true, true);
-        } catch (Exception pe) {
+        } catch (final Exception pe) {
             ex = pe;
         }
 
@@ -438,8 +438,8 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testReadCharsetWithEL() {
-        String query = "{ \"c\": { \"$gte\": 4 }}";
-        Map<String, String> attrs = new HashMap<>();
+        final String query = "{ \"c\": { \"$gte\": 4 }}";
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("charset", "UTF-8");
 
         runner.setProperty(GetMongo.CHARSET, "${charset}");
@@ -470,7 +470,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
         assertTrue(flowFile.getAttributes().containsKey("property.1"));
         flowFile.assertAttributeEquals("property.1", "value-1");
     }
@@ -483,10 +483,10 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
-        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        for (MockFlowFile ff : ffs) {
-            String db = ff.getAttribute(GetMongo.DB_NAME);
-            String col = ff.getAttribute(GetMongo.COL_NAME);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        for (final MockFlowFile ff : ffs) {
+            final String db = ff.getAttribute(GetMongo.DB_NAME);
+            final String col = ff.getAttribute(GetMongo.COL_NAME);
             assertNotNull(db);
             assertNotNull(col);
             assertEquals(DB_NAME, db);
@@ -505,12 +505,12 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
-        MockFlowFile ff = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
-        byte[] content = runner.getContentAsByteArray(ff);
-        String json = new String(content);
-        Map<String, Object> result = new ObjectMapper().readValue(json, Map.class);
+        final MockFlowFile ff = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
+        final byte[] content = runner.getContentAsByteArray(ff);
+        final String json = new String(content);
+        final Map<String, Object> result = new ObjectMapper().readValue(json, Map.class);
 
-        Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
+        final Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
 
         assertTrue(result.containsKey("date_field"));
         assertTrue(format.matcher((String) result.get("date_field")).matches());
@@ -518,7 +518,7 @@ public class GetMongoIT extends AbstractMongoIT {
 
     @Test
     public void testClientService() throws Exception {
-        MongoDBClientService clientService = new MongoDBControllerService();
+        final MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");

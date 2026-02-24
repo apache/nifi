@@ -48,7 +48,7 @@ public class VersionControlInformationDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -93,7 +93,7 @@ public class VersionControlInformationDTO {
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -111,7 +111,7 @@ public class VersionControlInformationDTO {
         return flowName;
     }
 
-    public void setFlowName(String flowName) {
+    public void setFlowName(final String flowName) {
         this.flowName = flowName;
     }
 
@@ -120,7 +120,7 @@ public class VersionControlInformationDTO {
         return flowDescription;
     }
 
-    public void setFlowDescription(String flowDescription) {
+    public void setFlowDescription(final String flowDescription) {
         this.flowDescription = flowDescription;
     }
 
@@ -138,7 +138,7 @@ public class VersionControlInformationDTO {
         return storageLocation;
     }
 
-    public void setStorageLocation(String storageLocation) {
+    public void setStorageLocation(final String storageLocation) {
         this.storageLocation = storageLocation;
     }
 
@@ -158,7 +158,7 @@ public class VersionControlInformationDTO {
         return stateExplanation;
     }
 
-    public void setStateExplanation(String explanation) {
+    public void setStateExplanation(final String explanation) {
         this.stateExplanation = explanation;
     }
 }

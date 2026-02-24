@@ -193,7 +193,7 @@ public class Kafka3ConnectionServiceBaseIT {
     }
 
     protected void initializeContainer() {
-        Map<String, String> environment = getKafkaContainerConfigProperties();
+        final Map<String, String> environment = getKafkaContainerConfigProperties();
         kafkaContainer.withEnv(environment);
 
         // For each property which is a file location, copy the file into the kafka container.
@@ -435,12 +435,12 @@ public class Kafka3ConnectionServiceBaseIT {
         return consumerRecords;
     }
 
-    protected String getJaasConfigKafkaContainer(String userName, String password) {
+    protected String getJaasConfigKafkaContainer(final String userName, final String password) {
         return String.format("%s required user_%s=\"%s\";",
                 PlainLoginModule.class.getName(), userName, password);
     }
 
-    protected String getJaasConfigKafkaClient(String userName, String password) {
+    protected String getJaasConfigKafkaClient(final String userName, final String password) {
         return String.format("%s required username=\"%s\" password=\"%s\";",
                 PlainLoginModule.class.getName(), userName, password);
     }

@@ -62,7 +62,7 @@ public class MiNiFi {
         this(properties, ClassLoader.getSystemClassLoader());
     }
 
-    public MiNiFi(final NiFiProperties properties, ClassLoader rootClassLoader) throws ClassNotFoundException, IOException, IllegalArgumentException {
+    public MiNiFi(final NiFiProperties properties, final ClassLoader rootClassLoader) throws ClassNotFoundException, IOException, IllegalArgumentException {
 
         // There can only be one krb5.conf for the overall Java process so set this globally during
         // start up so that processors and our Kerberos authentication code don't have to set this
@@ -88,7 +88,7 @@ public class MiNiFi {
         // jetty will not attempt to re-extract the war into the directory. by removing
         // the working directory, we can be assured that it will attempt to extract the
         // war every time the application starts.
-        File webWorkingDir = properties.getWebWorkingDirectory();
+        final File webWorkingDir = properties.getWebWorkingDirectory();
         FileUtils.deleteFilesInDirectory(webWorkingDir, null, logger, true, true);
         FileUtils.deleteFile(webWorkingDir, logger, 3);
 
@@ -105,7 +105,7 @@ public class MiNiFi {
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, FRAMEWORK_NAR_ID, systemBundle, unpackMode);
 
         // load the extensions classloaders
-        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
+        final NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
         narClassLoaders.init(rootClassLoader,
                 properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), FRAMEWORK_NAR_ID, true);
 
@@ -148,7 +148,7 @@ public class MiNiFi {
         }
     }
 
-    protected void shutdownHook(boolean isReload) {
+    protected void shutdownHook(final boolean isReload) {
         try {
             this.shutdown = true;
 
@@ -219,10 +219,10 @@ public class MiNiFi {
      *
      * @param args things which are ignored
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         logger.info("Launching MiNiFi...");
         try {
-            NiFiProperties properties = getValidatedMiNifiProperties();
+            final NiFiProperties properties = getValidatedMiNifiProperties();
             new MiNiFi(properties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi", t);
@@ -231,25 +231,25 @@ public class MiNiFi {
     }
 
     protected static NiFiProperties getValidatedMiNifiProperties() {
-        NiFiProperties properties = initializeProperties(createBootstrapClassLoader());
+        final NiFiProperties properties = initializeProperties(createBootstrapClassLoader());
         properties.validate();
         return properties;
     }
 
-    private static NiFiProperties initializeProperties(ClassLoader boostrapLoader) {
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+    private static NiFiProperties initializeProperties(final ClassLoader boostrapLoader) {
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         Thread.currentThread().setContextClassLoader(boostrapLoader);
 
         try {
-            Class<?> propsLoaderClass = Class.forName("org.apache.nifi.minifi.properties.MiNiFiPropertiesLoader", true, boostrapLoader);
-            Constructor<?> constructor = propsLoaderClass.getConstructor();
-            Object loaderInstance = constructor.newInstance();
-            Method getMethod = propsLoaderClass.getMethod("get");
-            NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
+            final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.minifi.properties.MiNiFiPropertiesLoader", true, boostrapLoader);
+            final Constructor<?> constructor = propsLoaderClass.getConstructor();
+            final Object loaderInstance = constructor.newInstance();
+            final Method getMethod = propsLoaderClass.getMethod("get");
+            final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
             logger.info("Application Properties loaded [{}]", properties.size());
             return properties;
-        } catch (InvocationTargetException wrappedException) {
+        } catch (final InvocationTargetException wrappedException) {
             throw new IllegalArgumentException("There was an issue decrypting protected properties", wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
         } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException | InstantiationException reex) {
             throw new IllegalArgumentException("Unable to access properties loader in the expected manner - apparent classpath or build issue", reex);

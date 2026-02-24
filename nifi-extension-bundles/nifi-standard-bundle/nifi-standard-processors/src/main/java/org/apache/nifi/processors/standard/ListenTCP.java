@@ -176,7 +176,7 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
     protected volatile EventBatcher<ByteArrayMessage> eventBatcher;
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("max-receiving-threads");
         config.renameProperty("pool-receive-buffers", POOL_RECV_BUFFERS.getName());
         config.renameProperty("idle-timeout", IDLE_CONNECTION_TIMEOUT.getName());
@@ -185,11 +185,11 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
-        int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
-        int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        int socketBufferSize = context.getProperty(ListenerProperties.MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        Duration idleTimeout = Duration.ofSeconds(context.getProperty(IDLE_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
+    public void onScheduled(final ProcessContext context) throws IOException {
+        final int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
+        final int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int socketBufferSize = context.getProperty(ListenerProperties.MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final Duration idleTimeout = Duration.ofSeconds(context.getProperty(IDLE_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.SECONDS));
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
         final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
@@ -204,8 +204,8 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            ClientAuth clientAuth = ClientAuth.valueOf(clientAuthValue);
-            SSLContext sslContext = sslContextProvider.createContext();
+            final ClientAuth clientAuth = ClientAuth.valueOf(clientAuthValue);
+            final SSLContext sslContext = sslContextProvider.createContext();
             eventFactory.setSslContext(sslContext);
             eventFactory.setClientAuth(clientAuth);
         }
@@ -220,7 +220,7 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
 
         try {
             eventServer = eventFactory.getEventServer();
-        } catch (EventException e) {
+        } catch (final EventException e) {
             getLogger().error("Failed to bind to [{}:{}]", address, port, e);
         }
     }
@@ -250,12 +250,12 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         processTrackingLog();
         final int batchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
-        Map<String, FlowFileEventBatch<ByteArrayMessage>> batches = getEventBatcher().getBatches(session, batchSize, messageDemarcatorBytes);
+        final Map<String, FlowFileEventBatch<ByteArrayMessage>> batches = getEventBatcher().getBatches(session, batchSize, messageDemarcatorBytes);
         processEvents(session, batches);
     }
 
     private void processEvents(final ProcessSession session, final Map<String, FlowFileEventBatch<ByteArrayMessage>> batches) {
-        for (Map.Entry<String, FlowFileEventBatch<ByteArrayMessage>> entry : batches.entrySet()) {
+        for (final Map.Entry<String, FlowFileEventBatch<ByteArrayMessage>> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<ByteArrayMessage> events = entry.getValue().getEvents();
 
@@ -322,7 +322,7 @@ public class ListenTCP extends AbstractProcessor implements ListenComponent {
         if (eventBatcher == null) {
             eventBatcher = new EventBatcher<>(getLogger(), events, errorEvents) {
                 @Override
-                protected String getBatchKey(ByteArrayMessage event) {
+                protected String getBatchKey(final ByteArrayMessage event) {
                     return event.getSender();
                 }
             };

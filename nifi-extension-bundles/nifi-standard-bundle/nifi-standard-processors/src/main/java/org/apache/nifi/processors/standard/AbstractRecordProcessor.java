@@ -177,7 +177,7 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
             // Since we are wrapping the exceptions above there should always be a cause
             // but it's possible it might not have a message. This handles that by logging
             // the name of the class thrown.
-            Throwable c = e.getCause();
+            final Throwable c = e.getCause();
             if (c != null) {
                 session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
             } else {

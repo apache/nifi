@@ -40,7 +40,7 @@ public class ValuePropertyLookup extends PropertyLookup {
     }
 
     @Override
-    public Object getEnclosingObject(Object obj) {
+    public Object getEnclosingObject(final Object obj) {
         return obj;
     }
 }

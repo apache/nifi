@@ -47,7 +47,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
     }
 
     @OnEnabled
-    void onEnabled(ConfigurationContext context) {
+    void onEnabled(final ConfigurationContext context) {
         graph = buildGraph();
     }
 
@@ -56,11 +56,11 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
     }
 
     @Override
-    public Map<String, String> executeQuery(String query, Map<String, Object> parameters, GraphQueryResultCallback graphQueryResultCallback) {
+    public Map<String, String> executeQuery(final String query, final Map<String, Object> parameters, final GraphQueryResultCallback graphQueryResultCallback) {
         if (generateExceptionOnQuery) {
             throw new ProcessException("Generated test exception");
         }
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
+        final ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
         parameters.entrySet().stream().forEach(it -> {
             engine.put(it.getKey(), it.getValue());
         });
@@ -70,32 +70,32 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
         engine.put("graph", graph);
         engine.put("g", graph.traversal());
 
-        Object response;
+        final Object response;
         try {
             response = engine.eval(query);
-        } catch (ScriptException ex) {
+        } catch (final ScriptException ex) {
             throw new ProcessException(ex);
         }
 
         if (response instanceof Map) {
             //The below logic helps with the handling of complex Map<String, Object> relationships
-            Map resultMap = (Map) response;
+            final Map resultMap = (Map) response;
             if (!resultMap.isEmpty()) {
                 // Convertex a resultMap to an entrySet iterator
-                Iterator outerResultSet = resultMap.entrySet().iterator();
+                final Iterator outerResultSet = resultMap.entrySet().iterator();
                 // this loops over the outermost map
                 while (outerResultSet.hasNext()) {
-                    Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
+                    final Map.Entry<String, Object> innerResultSet = (Map.Entry<String, Object>) outerResultSet.next();
                     // this is for edge case handling where innerResultSet is also a Map
                     if (innerResultSet.getValue() instanceof Map) {
-                        Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
+                        final Iterator resultSet = ((Map) innerResultSet.getValue()).entrySet().iterator();
                         // looping over each result in the inner map
                         while (resultSet.hasNext()) {
-                            Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
-                            Map<String, Object> tempRetObject = new HashMap<>();
+                            final Map.Entry<String, Object> tempResult = (Map.Entry<String, Object>) resultSet.next();
+                            final Map<String, Object> tempRetObject = new HashMap<>();
                             tempRetObject.put(tempResult.getKey(), tempResult.getValue());
-                            SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
-                            Map<String, Object> resultReturnMap = new HashMap<>();
+                            final SimpleEntry<String, Object> returnObject = new SimpleEntry<>(tempResult.getKey(), tempRetObject);
+                            final Map<String, Object> resultReturnMap = new HashMap<>();
                             resultReturnMap.put(innerResultSet.getKey(), returnObject);
                             if (getLogger().isDebugEnabled()) {
                                 getLogger().debug("{}", resultReturnMap);
@@ -106,7 +106,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
                     } else {
                         // for non-maps, return objects need to be a map<string, object> this simply converts the object
                         // to a map to be return to the graphQueryResultCallback object
-                        Map<String, Object> resultReturnMap = new HashMap<>();
+                        final Map<String, Object> resultReturnMap = new HashMap<>();
                         resultReturnMap.put(innerResultSet.getKey(), innerResultSet.getValue());
                         graphQueryResultCallback.process(resultReturnMap, false);
                     }

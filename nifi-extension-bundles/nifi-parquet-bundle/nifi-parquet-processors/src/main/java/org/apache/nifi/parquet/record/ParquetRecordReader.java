@@ -102,7 +102,7 @@ public class ParquetRecordReader implements RecordReader {
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException {
         // If null then no more records are available
         if (lastParquetRecord == null) {
             return null;
@@ -139,7 +139,7 @@ public class ParquetRecordReader implements RecordReader {
         if ((recordsToRead != null) && (recordsRead == recordsToRead)) {
             return null;
         }
-        GenericRecord result = parquetReader.read();
+        final GenericRecord result = parquetReader.read();
         recordsRead++;
         return result;
     }

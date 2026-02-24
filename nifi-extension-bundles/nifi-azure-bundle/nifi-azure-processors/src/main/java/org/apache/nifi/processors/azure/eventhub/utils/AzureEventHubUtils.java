@@ -79,12 +79,12 @@ public final class AzureEventHubUtils {
             .required(true)
             .build();
 
-    public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor,
-                                                        PropertyDescriptor policyKeyDescriptor,
-                                                        ValidationContext context) {
-        List<ValidationResult> validationResults = new ArrayList<>();
-        boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
-        boolean policyKeyIsSet = context.getProperty(policyKeyDescriptor).isSet();
+    public static List<ValidationResult> customValidate(final PropertyDescriptor accessPolicyDescriptor,
+                                                        final PropertyDescriptor policyKeyDescriptor,
+                                                        final ValidationContext context) {
+        final List<ValidationResult> validationResults = new ArrayList<>();
+        final boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
+        final boolean policyKeyIsSet = context.getProperty(policyKeyDescriptor).isSet();
         final AzureEventHubAuthenticationStrategy authenticationStrategy = Optional.ofNullable(
                 context.getProperty(AzureEventHubComponent.AUTHENTICATION_STRATEGY).asAllowableValue(AzureEventHubAuthenticationStrategy.class))
                 .orElse(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY);
@@ -115,7 +115,7 @@ public final class AzureEventHubUtils {
         final Map<String, String> properties = new HashMap<>();
 
         if (eventProperties != null) {
-            for (Map.Entry<String, Object> property : eventProperties.entrySet()) {
+            for (final Map.Entry<String, Object> property : eventProperties.entrySet()) {
                 properties.put(String.format("eventhub.property.%s", property.getKey()), property.getValue().toString());
             }
         }
@@ -181,7 +181,7 @@ public final class AzureEventHubUtils {
         return tokenProvider.getCredentials();
     }
 
-    private static Proxy getProxy(ProxyConfiguration proxyConfiguration) {
+    private static Proxy getProxy(final ProxyConfiguration proxyConfiguration) {
         final Proxy.Type type;
         if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
             type = Proxy.Type.HTTP;

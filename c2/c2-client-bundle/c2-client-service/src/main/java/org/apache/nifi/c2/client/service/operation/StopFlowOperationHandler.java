@@ -38,7 +38,7 @@ public class StopFlowOperationHandler implements C2OperationHandler {
 
     private final FlowStateStrategy flowStateStrategy;
 
-    public StopFlowOperationHandler(FlowStateStrategy flowStateStrategy) {
+    public StopFlowOperationHandler(final FlowStateStrategy flowStateStrategy) {
         this.flowStateStrategy = flowStateStrategy;
     }
 
@@ -58,11 +58,11 @@ public class StopFlowOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
-        C2OperationState.OperationState operationState = flowStateStrategy.stop();
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+        final C2OperationState.OperationState operationState = flowStateStrategy.stop();
 
-        C2OperationState resultState = operationState(
+        final C2OperationState resultState = operationState(
                 operationState,
             switch (operationState) {
                 case NOT_APPLIED -> NOT_APPLIED_DETAILS;

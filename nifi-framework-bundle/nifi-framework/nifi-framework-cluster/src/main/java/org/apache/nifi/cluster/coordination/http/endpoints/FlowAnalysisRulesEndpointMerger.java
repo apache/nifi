@@ -33,7 +33,7 @@ public class FlowAnalysisRulesEndpointMerger implements EndpointResponseMerger {
     public static final String FLOW_ANALYSIS_RULES_URI = "/nifi-api/controller/flow-analysis-rules";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && FLOW_ANALYSIS_RULES_URI.equals(uri.getPath());
     }
 

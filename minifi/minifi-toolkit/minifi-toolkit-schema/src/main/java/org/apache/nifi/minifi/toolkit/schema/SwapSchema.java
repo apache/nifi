@@ -49,7 +49,7 @@ public class SwapSchema extends BaseSchema implements WritableSchema {
     public SwapSchema() {
     }
 
-    public SwapSchema(Map map) {
+    public SwapSchema(final Map map) {
         threshold = getOptionalKeyAsType(map, THRESHOLD_KEY, Number.class, SWAP_PROPS_KEY, DEFAULT_THRESHOLD);
         inPeriod = getOptionalKeyAsType(map, IN_PERIOD_KEY, String.class, SWAP_PROPS_KEY, DEFAULT_IN_PERIOD);
         inThreads = getOptionalKeyAsType(map, IN_THREADS_KEY, Number.class, SWAP_PROPS_KEY, DEFAULT_IN_THREADS);
@@ -59,7 +59,7 @@ public class SwapSchema extends BaseSchema implements WritableSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(THRESHOLD_KEY, threshold);
         result.put(IN_PERIOD_KEY, inPeriod);
         result.put(IN_THREADS_KEY, inThreads);

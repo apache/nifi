@@ -29,7 +29,7 @@ public interface TlsConfiguration {
      * @param tlsConfiguration the container object to check
      * @return true if this container is empty or null
      */
-    static boolean isEmpty(TlsConfiguration tlsConfiguration) {
+    static boolean isEmpty(final TlsConfiguration tlsConfiguration) {
         return tlsConfiguration == null || !(tlsConfiguration.isAnyKeystorePopulated() || tlsConfiguration.isAnyTruststorePopulated());
     }
 

@@ -108,7 +108,7 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
             // Kafka's ExpiringCredentialRefreshingLogin calls this method when the current token is about to expire and expects a refreshed token, so forcefully update it
             accessTokenProvider.refreshAccessDetails();
             accessToken = accessTokenProvider.getAccessDetails().getAccessToken();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Could not retrieve access token", e);
             callback.error("service_error", e.getMessage(), null);
             return;
@@ -117,7 +117,7 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         try {
             final OAuthBearerToken token = accessTokenValidator.validate(accessToken);
             callback.token(token);
-        } catch (JwtValidatorException e) {
+        } catch (final JwtValidatorException e) {
             LOGGER.error("Could not validate and parse access token", e);
             callback.error("invalid_token", e.getMessage(), null);
         }

@@ -33,7 +33,7 @@ public class IllegalClusterStateExceptionMapper implements ExceptionMapper<Illeg
     private static final Logger logger = LoggerFactory.getLogger(IllegalClusterStateExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalClusterStateException exception) {
+    public Response toResponse(final IllegalClusterStateException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

@@ -251,7 +251,7 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setup(ProcessContext context) {
+    public void setup(final ProcessContext context) {
         final RoutingStrategy routingStrategy = RoutingStrategy.valueOf(context.getProperty(ROUTING_STRATEGY).getValue());
         switch (routingStrategy) {
             case REQUIRE:
@@ -270,7 +270,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        FlowFile input = session.get();
+        final FlowFile input = session.get();
         if (input == null) {
             return;
         }
@@ -292,10 +292,10 @@ public class GeohashRecord extends AbstractProcessor {
             final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writerFactory.getSchema(input.getAttributes(), reader.getSchema()), os, output);
             final RecordSetWriter notMatchedWriter = routingStrategy == RoutingStrategy.SPLIT ? writerFactory.createWriter(getLogger(), reader.getSchema(), osNotFound, notMatched) : null;
 
-            Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
-            for (PropertyDescriptor descriptor : RECORD_PATH_PROPERTIES) {
-                String rawRecordPath = context.getProperty(descriptor).evaluateAttributeExpressions(input).getValue();
-                RecordPath compiled = cache.getCompiled(rawRecordPath);
+            final Map<PropertyDescriptor, RecordPath> paths = new HashMap<>();
+            for (final PropertyDescriptor descriptor : RECORD_PATH_PROPERTIES) {
+                final String rawRecordPath = context.getProperty(descriptor).evaluateAttributeExpressions(input).getValue();
+                final RecordPath compiled = cache.getCompiled(rawRecordPath);
                 paths.put(descriptor, compiled);
             }
 
@@ -308,29 +308,29 @@ public class GeohashRecord extends AbstractProcessor {
             }
 
             final String rawLatitudePath = context.getProperty(LATITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            RecordPath latitudePath = cache.getCompiled(rawLatitudePath);
+            final RecordPath latitudePath = cache.getCompiled(rawLatitudePath);
             final String rawLongitudePath = context.getProperty(LONGITUDE_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            RecordPath longitudePath = cache.getCompiled(rawLongitudePath);
+            final RecordPath longitudePath = cache.getCompiled(rawLongitudePath);
             final String rawGeohashPath = context.getProperty(GEOHASH_RECORD_PATH).evaluateAttributeExpressions(input).getValue();
-            RecordPath geohashPath = cache.getCompiled(rawGeohashPath);
+            final RecordPath geohashPath = cache.getCompiled(rawGeohashPath);
 
             while ((record = reader.nextRecord()) != null) {
                 boolean updated = false;
 
                 try {
                     if (encode) {
-                        int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
+                        final int level = context.getProperty(GEOHASH_LEVEL).evaluateAttributeExpressions(input).asInteger();
 
-                        Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
+                        final Object encodedGeohash = getEncodedGeohash(latitudePath, longitudePath, record, format, level);
                         updated = updateRecord(GEOHASH_RECORD_PATH, encodedGeohash, record, paths);
                     } else {
-                        WGS84Point decodedPoint = getDecodedPointFromGeohash(geohashPath, record, format);
+                        final WGS84Point decodedPoint = getDecodedPointFromGeohash(geohashPath, record, format);
                         if (decodedPoint != null) {
                             updated = updateRecord(LATITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLatitude()), record, paths)
                                     && updateRecord(LONGITUDE_RECORD_PATH, String.valueOf(decodedPoint.getLongitude()), record, paths);
                         }
                     }
-                } catch (IllegalArgumentException e) {
+                } catch (final IllegalArgumentException e) {
                     //lat/lon/geohash values out of range or is not valid
                     getLogger().warn("Unable to {}", (encode ? "encode" : "decode"), e);
                 }
@@ -342,7 +342,7 @@ public class GeohashRecord extends AbstractProcessor {
             writer.close();
             output = session.putAllAttributes(output, buildAttributes(writeResult.getRecordCount(), writer.getMimeType(), writeResult));
 
-            WriteResult notMatchedWriterResult;
+            final WriteResult notMatchedWriterResult;
 
             if (notMatchedWriter != null) {
                 notMatchedWriterResult = notMatchedWriter.finishRecordSet();
@@ -351,7 +351,7 @@ public class GeohashRecord extends AbstractProcessor {
                     notMatched = session.putAllAttributes(notMatched, buildAttributes(notMatchedWriterResult.getRecordCount(), writer.getMimeType(), notMatchedWriterResult));
                 }
             }
-        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+        } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
             //cannot parse incoming data
             getLogger().error("Cannot parse the incoming data", e);
             session.remove(output);
@@ -367,7 +367,7 @@ public class GeohashRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("mode", MODE.getName());
         config.renameProperty("routing-strategy", ROUTING_STRATEGY.getName());
         config.renameProperty("record-reader", RECORD_READER.getName());
@@ -387,12 +387,12 @@ public class GeohashRecord extends AbstractProcessor {
 
     private class SkipRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
-        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+        public void writeFlowFiles(final Record record, final RecordSetWriter writer, final RecordSetWriter notMatchedWriter, final boolean updated) throws IOException {
             writer.write(record);
         }
 
         @Override
-        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+        public void transferFlowFiles(final ProcessSession session, final FlowFile input, final FlowFile output, final FlowFile notMatched) {
             session.transfer(output, REL_SUCCESS);
             session.transfer(input, REL_ORIGINAL);
         }
@@ -400,7 +400,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     private class SplitRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
-        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+        public void writeFlowFiles(final Record record, final RecordSetWriter writer, final RecordSetWriter notMatchedWriter, final boolean updated) throws IOException {
             if (updated) {
                 enrichedCount++;
                 writer.write(record);
@@ -411,7 +411,7 @@ public class GeohashRecord extends AbstractProcessor {
         }
 
         @Override
-        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+        public void transferFlowFiles(final ProcessSession session, final FlowFile input, final FlowFile output, final FlowFile notMatched) {
             if (unenrichedCount > 0) {
                 session.transfer(notMatched, REL_NOT_MATCHED);
             } else {
@@ -428,7 +428,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     private class RequireRoutingStrategyExecutor implements RoutingStrategyExecutor {
         @Override
-        public void writeFlowFiles(Record record, RecordSetWriter writer, RecordSetWriter notMatchedWriter, boolean updated) throws IOException {
+        public void writeFlowFiles(final Record record, final RecordSetWriter writer, final RecordSetWriter notMatchedWriter, final boolean updated) throws IOException {
             if (updated) {
                 writer.write(record);
             } else {
@@ -437,7 +437,7 @@ public class GeohashRecord extends AbstractProcessor {
         }
 
         @Override
-        public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
+        public void transferFlowFiles(final ProcessSession session, final FlowFile input, final FlowFile output, final FlowFile notMatched) {
             if (unenrichedCount > 0) {
                 session.remove(output);
                 getLogger().error("There exists some records that cannot be enriched or parsed. The original input flowfile is routed to failure using the REQUIRE strategy");
@@ -449,28 +449,28 @@ public class GeohashRecord extends AbstractProcessor {
         }
     }
 
-    private Object getEncodedGeohash(RecordPath latitudePath, RecordPath longitudePath, Record record, GeohashFormat format, int level) {
-        RecordPathResult latitudeResult = latitudePath.evaluate(record);
-        RecordPathResult longitudeResult = longitudePath.evaluate(record);
-        Optional<FieldValue> latitudeField = latitudeResult.getSelectedFields().findFirst();
-        Optional<FieldValue> longitudeField = longitudeResult.getSelectedFields().findFirst();
+    private Object getEncodedGeohash(final RecordPath latitudePath, final RecordPath longitudePath, final Record record, final GeohashFormat format, final int level) {
+        final RecordPathResult latitudeResult = latitudePath.evaluate(record);
+        final RecordPathResult longitudeResult = longitudePath.evaluate(record);
+        final Optional<FieldValue> latitudeField = latitudeResult.getSelectedFields().findFirst();
+        final Optional<FieldValue> longitudeField = longitudeResult.getSelectedFields().findFirst();
 
         if (latitudeField.isEmpty() || longitudeField.isEmpty()) {
             return null;
         }
 
-        FieldValue latitudeValue = latitudeField.get();
-        FieldValue longitudeValue = longitudeField.get();
-        Object latitudeVal = latitudeValue.getValue();
-        Object longitudeVal = longitudeValue.getValue();
+        final FieldValue latitudeValue = latitudeField.get();
+        final FieldValue longitudeValue = longitudeField.get();
+        final Object latitudeVal = latitudeValue.getValue();
+        final Object longitudeVal = longitudeValue.getValue();
 
         if (latitudeVal == null || longitudeVal == null) {
             return null;
         }
 
-        double realLatValue = Double.parseDouble(latitudeVal.toString());
-        double realLongValue = Double.parseDouble(longitudeVal.toString());
-        GeoHash gh = GeoHash.withCharacterPrecision(realLatValue, realLongValue, level);
+        final double realLatValue = Double.parseDouble(latitudeVal.toString());
+        final double realLongValue = Double.parseDouble(longitudeVal.toString());
+        final GeoHash gh = GeoHash.withCharacterPrecision(realLatValue, realLongValue, level);
 
         return switch (format) {
             case BINARY -> gh.toBinaryString();
@@ -479,25 +479,25 @@ public class GeohashRecord extends AbstractProcessor {
         };
     }
 
-    private WGS84Point getDecodedPointFromGeohash(RecordPath geohashPath, Record record, GeohashFormat format) {
-        RecordPathResult geohashResult = geohashPath.evaluate(record);
-        Optional<FieldValue> geohashField = geohashResult.getSelectedFields().findFirst();
+    private WGS84Point getDecodedPointFromGeohash(final RecordPath geohashPath, final Record record, final GeohashFormat format) {
+        final RecordPathResult geohashResult = geohashPath.evaluate(record);
+        final Optional<FieldValue> geohashField = geohashResult.getSelectedFields().findFirst();
 
         if (geohashField.isEmpty()) {
             return null;
         }
 
-        FieldValue geohashFieldValue = geohashField.get();
-        Object geohashVal = geohashFieldValue.getValue();
+        final FieldValue geohashFieldValue = geohashField.get();
+        final Object geohashVal = geohashFieldValue.getValue();
         if (geohashVal == null) {
             return null;
         }
 
-        String geohashString = geohashVal.toString();
-        GeoHash decodedHash = switch (format) {
+        final String geohashString = geohashVal.toString();
+        final GeoHash decodedHash = switch (format) {
             case BINARY -> GeoHash.fromBinaryString(geohashString);
             case LONG -> {
-                String binaryString = Long.toBinaryString(Long.parseLong(geohashString));
+                final String binaryString = Long.toBinaryString(Long.parseLong(geohashString));
                 yield GeoHash.fromBinaryString(binaryString);
             }
             default -> GeoHash.fromGeohashString(geohashString);
@@ -506,12 +506,12 @@ public class GeohashRecord extends AbstractProcessor {
         return decodedHash.getBoundingBoxCenter();
     }
 
-    private boolean updateRecord(PropertyDescriptor descriptor, Object newValue, Record record, Map<PropertyDescriptor, RecordPath> cached) {
+    private boolean updateRecord(final PropertyDescriptor descriptor, final Object newValue, final Record record, final Map<PropertyDescriptor, RecordPath> cached) {
         if (!cached.containsKey(descriptor) || newValue == null) {
             return false;
         }
-        RecordPath path = cached.get(descriptor);
-        RecordPathResult result = path.evaluate(record);
+        final RecordPath path = cached.get(descriptor);
+        final RecordPathResult result = path.evaluate(record);
 
         final Optional<FieldValue> fieldValueOption = result.getSelectedFields().findFirst();
         if (fieldValueOption.isEmpty()) {
@@ -528,8 +528,8 @@ public class GeohashRecord extends AbstractProcessor {
         return true;
     }
 
-    private Map<String, String> buildAttributes(int recordCount, String mimeType, WriteResult writeResult) {
-        Map<String, String> retVal = new HashMap<>();
+    private Map<String, String> buildAttributes(final int recordCount, final String mimeType, final WriteResult writeResult) {
+        final Map<String, String> retVal = new HashMap<>();
         retVal.put(CoreAttributes.MIME_TYPE.key(), mimeType);
         retVal.put("record.count", String.valueOf(recordCount));
         retVal.putAll(writeResult.getAttributes());

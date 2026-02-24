@@ -39,27 +39,27 @@ import java.util.Map.Entry;
  */
 class JMSPublisher extends JMSWorker {
 
-    JMSPublisher(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
+    JMSPublisher(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate, final ComponentLog processLog) {
         super(connectionFactory, jmsTemplate, processLog);
         processLog.debug("Created Message Publisher for {}", jmsTemplate);
     }
 
-    void publish(String destinationName, byte[] messageBytes) {
+    void publish(final String destinationName, final byte[] messageBytes) {
         this.publish(destinationName, messageBytes, null);
     }
 
     void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
         this.jmsTemplate.send(destinationName, session -> {
-            BytesMessage message = session.createBytesMessage();
+            final BytesMessage message = session.createBytesMessage();
             message.writeBytes(messageBytes);
             setMessageHeaderAndProperties(session, message, flowFileAttributes);
             return message;
         });
     }
 
-    void publish(String destinationName, String messageText, final Map<String, String> flowFileAttributes) {
+    void publish(final String destinationName, final String messageText, final Map<String, String> flowFileAttributes) {
         this.jmsTemplate.send(destinationName, session -> {
-            TextMessage message = session.createTextMessage(messageText);
+            final TextMessage message = session.createTextMessage(messageText);
             setMessageHeaderAndProperties(session, message, flowFileAttributes);
             return message;
         });
@@ -68,14 +68,14 @@ class JMSPublisher extends JMSWorker {
     void setMessageHeaderAndProperties(final Session session, final Message message, final Map<String, String> flowFileAttributes) throws JMSException {
         if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
 
-            for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
+            for (final Entry<String, String> entry : flowFileAttributes.entrySet()) {
                 try {
                     if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
                         this.jmsTemplate.setDeliveryMode(Integer.parseInt(entry.getValue()));
                         this.jmsTemplate.setExplicitQosEnabled(true);
                     } else if (entry.getKey().equals(JmsHeaders.EXPIRATION)) {
                         if (NumberUtils.isCreatable(entry.getValue())) { //ignore any non-numeric values
-                            long expiration = Long.parseLong(entry.getValue());
+                            final long expiration = Long.parseLong(entry.getValue());
                             long ttl = 0L;
 
                             // if expiration was set to a positive non-zero value, then calculate the ttl
@@ -105,14 +105,14 @@ class JMSPublisher extends JMSWorker {
                     } else if (entry.getKey().equals(JmsHeaders.TYPE)) {
                         message.setJMSType(entry.getValue());
                     } else if (entry.getKey().equals(JmsHeaders.REPLY_TO)) {
-                        Destination destination = buildDestination(session, entry.getValue());
+                        final Destination destination = buildDestination(session, entry.getValue());
                         if (destination != null) {
                             message.setJMSReplyTo(destination);
                         } else {
                             logUnbuildableDestination(entry.getValue(), JmsHeaders.REPLY_TO);
                         }
                     } else if (entry.getKey().equals(JmsHeaders.DESTINATION)) {
-                        Destination destination = buildDestination(session, entry.getValue());
+                        final Destination destination = buildDestination(session, entry.getValue());
                         if (destination != null) {
                             message.setJMSDestination(destination);
                         } else {
@@ -120,18 +120,18 @@ class JMSPublisher extends JMSWorker {
                         }
                     } else {
                         // not a special attribute handled above, so send it as a property using the specified property type
-                        String type = flowFileAttributes.getOrDefault(entry.getKey().concat(".type"), "unknown").toLowerCase();
+                        final String type = flowFileAttributes.getOrDefault(entry.getKey().concat(".type"), "unknown").toLowerCase();
                         propertySetterMap.getOrDefault(type, JmsPropertySetterEnum.STRING)
                                 .setProperty(message, entry.getKey(), entry.getValue());
                     }
-                } catch (NumberFormatException ne) {
+                } catch (final NumberFormatException ne) {
                     this.processLog.warn("Incompatible value for attribute {} [{}] is not a number. Ignoring this attribute.", entry.getKey(), entry.getValue());
                 }
             }
         }
     }
 
-    private void logUnbuildableDestination(String destinationName, String headerName) {
+    private void logUnbuildableDestination(final String destinationName, final String headerName) {
         this.processLog.warn("Failed to determine destination type from destination name '{}'. The '{}' header will not be set.", destinationName, headerName);
     }
 
@@ -178,12 +178,12 @@ class JMSPublisher extends JMSWorker {
         });
 
         private final JmsPropertySetter setter;
-        JmsPropertySetterEnum(JmsPropertySetter setter) {
+        JmsPropertySetterEnum(final JmsPropertySetter setter) {
             this.setter = setter;
         }
 
         @Override
-        public void setProperty(Message message, String name, String value) throws JMSException, NumberFormatException {
+        public void setProperty(final Message message, final String name, final String value) throws JMSException, NumberFormatException {
             setter.setProperty(message, name, value);
         }
     }

@@ -33,7 +33,7 @@ public final class JaxbProtocolUtils {
     private static JAXBContext initializeJaxbContext() {
         try {
             return JAXBContext.newInstance(JAXB_CONTEXT_PATH);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }

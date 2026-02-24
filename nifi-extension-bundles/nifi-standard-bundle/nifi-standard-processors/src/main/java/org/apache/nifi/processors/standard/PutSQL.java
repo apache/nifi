@@ -219,7 +219,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     private static final String ERROR_SQL_STATE_ATTR = "error.sql.state";
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("putsql-sql-statement", SQL_STATEMENT.getName());
         config.renameProperty("database-session-autocommit", AUTO_COMMIT.getName());
         config.renameProperty(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName());
@@ -231,7 +231,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    protected final Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
         final String support_transactions = context.getProperty(SUPPORT_TRANSACTIONS).getValue();
         final String rollback_on_failure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).getValue();
@@ -269,7 +269,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         private boolean originalAutoCommit = false;
         private final long startNanos = System.nanoTime();
 
-        private FunctionContext(boolean rollbackOnFailure) {
+        private FunctionContext(final boolean rollbackOnFailure) {
             super(rollbackOnFailure, true);
         }
 
@@ -300,11 +300,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             if (fc.originalAutoCommit != autocommit) {
                 try {
                     connection.setAutoCommit(autocommit);
-                } catch (SQLFeatureNotSupportedException sfnse) {
+                } catch (final SQLFeatureNotSupportedException sfnse) {
                     getLogger().debug("setAutoCommit({}) not supported by this driver", autocommit);
                 }
             }
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             throw new ProcessException("Failed to disable auto commit due to " + e, e);
         }
         return connection;
@@ -499,11 +499,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         onGroupError = onGroupError.andThen((ctx, flowFileGroup, errorTypesResult, exception) -> {
             switch (errorTypesResult.destination()) {
                 case Failure:
-                    List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationship(result, REL_FAILURE);
+                    final List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationship(result, REL_FAILURE);
                     result.getRoutedFlowFiles().put(REL_FAILURE, addErrorAttributesToFlowFilesInGroup(session, flowFilesToFailure, flowFileGroup.getFlowFiles(), exception));
                     break;
                 case Retry:
-                    List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationship(result, REL_RETRY);
+                    final List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationship(result, REL_RETRY);
                     result.getRoutedFlowFiles().put(REL_RETRY, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRetry, flowFileGroup.getFlowFiles(), exception));
                     break;
             }
@@ -512,12 +512,13 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return onGroupError;
     }
 
-    private List<FlowFile> getFlowFilesOnRelationship(RoutingResult result, final Relationship relationship) {
+    private List<FlowFile> getFlowFilesOnRelationship(final RoutingResult result, final Relationship relationship) {
         return Optional.ofNullable(result.getRoutedFlowFiles().get(relationship))
                 .orElse(emptyList());
     }
 
-    private List<FlowFile> addErrorAttributesToFlowFilesInGroup(ProcessSession session, List<FlowFile> flowFilesOnRelationship, List<FlowFile> flowFilesInGroup, Exception exception) {
+    private List<FlowFile> addErrorAttributesToFlowFilesInGroup(final ProcessSession session,
+            final List<FlowFile> flowFilesOnRelationship, final List<FlowFile> flowFilesInGroup, final Exception exception) {
         return flowFilesOnRelationship.stream()
                     .map(ff ->  flowFilesInGroup.contains(ff) ? addErrorAttributesToFlowFile(session, ff, exception) : ff)
                     .collect(toList());
@@ -615,7 +616,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (!conn.getAutoCommit()) {
                     conn.commit();
                 }
-            } catch (SQLException e) {
+            } catch (final SQLException e) {
                 // Throw ProcessException to rollback process session.
                 throw new ProcessException("Failed to commit database connection due to " + e, e);
             }
@@ -627,7 +628,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (!conn.getAutoCommit()) {
                     conn.rollback();
                 }
-            } catch (SQLException re) {
+            } catch (final SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
                 getLogger().warn("Failed to rollback database connection due to {}", re, re);
@@ -652,7 +653,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
                             .flatMap(List::stream).collect(toList());
 
-                    Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
+                    final Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
                     r.getRoutedFlowFiles().clear();
                     r.routeTo(transferredFlowFiles, rerouteShip);
                     return true;
@@ -676,7 +677,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final Boolean rollbackOnFailure = context.getProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE).asBoolean();
         final FunctionContext functionContext = new FunctionContext(rollbackOnFailure);
         functionContext.obtainKeys = context.getProperty(OBTAIN_GENERATED_KEYS).asBoolean();
@@ -752,7 +753,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     return null;
                 }
 
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 // Map relationship based on context, and then let default handler to handle.
                 final ErrorTypes.Result adjustedRoute = adjustError.apply(functionContext, ErrorTypes.InvalidInput);
                 onGroupError(context, session, result)
@@ -821,7 +822,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         int selectedNumFragments = 0;
         final BitSet bitSet = new BitSet();
 
-        BiFunction<String, Object[], IllegalArgumentException> illegal = (s, objects) -> new IllegalArgumentException(format(s, objects));
+        final BiFunction<String, Object[], IllegalArgumentException> illegal = (s, objects) -> new IllegalArgumentException(format(s, objects));
 
         for (final FlowFile flowFile : flowFiles) {
             final String fragmentCount = flowFile.getAttribute(FRAGMENT_COUNT_ATTR);
@@ -899,13 +900,13 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return false;  // not enough FlowFiles for this transaction. Return them all to queue.
     }
 
-    private FlowFile addErrorAttributesToFlowFile(final ProcessSession session, FlowFile flowFile, final Exception exception) {
+    private FlowFile addErrorAttributesToFlowFile(final ProcessSession session, final FlowFile flowFile, final Exception exception) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ERROR_MESSAGE_ATTR, exception.getMessage());
 
         if (exception instanceof SQLException) {
-            int errorCode = ((SQLException) exception).getErrorCode();
-            String sqlState = ((SQLException) exception).getSQLState();
+            final int errorCode = ((SQLException) exception).getErrorCode();
+            final String sqlState = ((SQLException) exception).getSQLState();
 
             // Handle positive and negative error codes
             if (errorCode != 0) {
@@ -931,7 +932,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         private int numSelected = 0;
         private boolean ignoreFragmentIdentifiers = false;
 
-        public TransactionalFlowFileFilter(FlowFileFilter nonFragmentedTransactionFilter) {
+        public TransactionalFlowFileFilter(final FlowFileFilter nonFragmentedTransactionFilter) {
             this.nonFragmentedTransactionFilter = nonFragmentedTransactionFilter;
         }
 
@@ -1056,7 +1057,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         private PreparedStatement statement;
         private final List<FlowFile> flowFiles = new ArrayList<>();
 
-        public StatementFlowFileEnclosure(String sql) {
+        public StatementFlowFileEnclosure(final String sql) {
             this.sql = sql;
         }
 

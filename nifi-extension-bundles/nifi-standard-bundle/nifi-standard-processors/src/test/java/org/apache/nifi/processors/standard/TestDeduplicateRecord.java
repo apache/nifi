@@ -202,7 +202,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCNoPutIdentifier() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
@@ -224,7 +224,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCPutIdentifier() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
@@ -247,7 +247,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCAndOneRecordPath() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
@@ -269,7 +269,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCAndMultipleRecordPaths() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
@@ -293,7 +293,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCAndNullField() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.PUT_CACHE_IDENTIFIER, "true");
@@ -315,7 +315,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateNoHashing() throws Exception  {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
@@ -339,7 +339,7 @@ public class TestDeduplicateRecord {
 
     @Test
     public void testDeduplicateWithDMCAndCacheIdentifier() throws Exception {
-        DistributedMapCacheClient dmc = new MockCacheService();
+        final DistributedMapCacheClient dmc = new MockCacheService();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
         runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
@@ -356,7 +356,7 @@ public class TestDeduplicateRecord {
         reader.addRecord("Jack", "Z", "Brown");
         reader.addRecord("Jane", "X", "Doe");
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("user.name", "john.smith");
 
         runner.enqueue("", attrs);
@@ -385,18 +385,18 @@ public class TestDeduplicateRecord {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
+    void doCountTests(final int failure, final int original, final int duplicates, final int notDuplicates, final int notDupeCount, final int dupeCount) {
         runner.assertTransferCount(DeduplicateRecord.REL_FAILURE, failure);
         runner.assertTransferCount(DeduplicateRecord.REL_ORIGINAL, original);
         runner.assertTransferCount(DeduplicateRecord.REL_DUPLICATE, duplicates);
         runner.assertTransferCount(DeduplicateRecord.REL_NON_DUPLICATE, notDuplicates);
 
-        List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_DUPLICATE);
+        final List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_DUPLICATE);
         if (duplicateFlowFile != null) {
             assertEquals(String.valueOf(dupeCount), duplicateFlowFile.getFirst().getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }
 
-        List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_NON_DUPLICATE);
+        final List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_NON_DUPLICATE);
         if (nonDuplicateFlowFile != null) {
             assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.getFirst().getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }

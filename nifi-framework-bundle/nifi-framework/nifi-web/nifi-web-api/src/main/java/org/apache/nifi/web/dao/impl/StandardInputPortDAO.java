@@ -48,13 +48,13 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
     }
 
     @Override
-    public boolean hasPort(String portId) {
+    public boolean hasPort(final String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findInputPort(portId) != null || rootGroup.findOutputPort(portId) != null;
     }
 
     @Override
-    public Port createPort(String groupId, PortDTO portDTO) {
+    public Port createPort(final String groupId, final PortDTO portDTO) {
         if (isNotNull(portDTO.getParentGroupId()) && !flowController.getFlowManager().areGroupsSame(groupId, portDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the InputPort is being added.");
         }
@@ -65,10 +65,10 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
         }
 
         // get the desired group
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // determine if this is the root group
-        Port port;
+        final Port port;
         if (group.getParent() == null || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
             port = flowController.getFlowManager().createPublicInputPort(portDTO.getId(), portDTO.getName());
         } else {
@@ -95,13 +95,13 @@ public class StandardInputPortDAO extends AbstractPortDAO implements PortDAO {
     }
 
     @Override
-    public Port getPort(String portId) {
+    public Port getPort(final String portId) {
         return locatePort(portId);
     }
 
     @Override
-    public Set<Port> getPorts(String groupId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Set<Port> getPorts(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getInputPorts();
     }
 

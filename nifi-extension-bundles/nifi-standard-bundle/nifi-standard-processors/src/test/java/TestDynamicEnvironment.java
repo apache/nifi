@@ -18,9 +18,9 @@
 import java.util.Map;
 
 public class TestDynamicEnvironment {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         // iterate through current environment and print out all properties starting with NIFI
-        for (Map.Entry<String, String> env: System.getenv().entrySet()) {
+        for (final Map.Entry<String, String> env: System.getenv().entrySet()) {
             if (env.getKey().startsWith("NIFI")) {
                 System.out.println(env.getKey() + "=" + env.getValue());
             }

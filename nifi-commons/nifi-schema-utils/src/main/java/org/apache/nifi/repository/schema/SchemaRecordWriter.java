@@ -192,7 +192,7 @@ public class SchemaRecordWriter {
     private void writeUTFLimited(final DataOutputStream out, final String utfString, final String fieldName) throws IOException {
         try {
             out.writeUTF(utfString);
-        } catch (UTFDataFormatException e) {
+        } catch (final UTFDataFormatException e) {
             final String truncated = utfString.substring(0, getCharsInUTF8Limit(utfString, MAX_ALLOWED_UTF_LENGTH));
             logger.warn("Truncating repository record value for field '{}'!  Attempted to write {} chars that encode to a UTF8 byte length greater than "
                             + "supported maximum ({}), truncating to {} chars.",

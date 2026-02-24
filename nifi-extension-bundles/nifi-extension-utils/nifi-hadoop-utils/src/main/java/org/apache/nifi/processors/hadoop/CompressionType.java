@@ -42,7 +42,7 @@ public enum CompressionType {
 
     private final String description;
 
-    CompressionType(String description) {
+    CompressionType(final String description) {
         this.description = description;
     }
 
@@ -65,8 +65,8 @@ public enum CompressionType {
     }
 
     public static AllowableValue[] allowableValues() {
-        List<AllowableValue> values = new ArrayList<>();
-        for (CompressionType type : CompressionType.values()) {
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final CompressionType type : CompressionType.values()) {
             values.add(new AllowableValue(type.name(), type.name(), type.getDescription()));
         }
         return values.toArray(new AllowableValue[values.size()]);

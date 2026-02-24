@@ -245,7 +245,7 @@ public class TestStandardS3EncryptionServiceValidation {
         runner.assertNotValid(service);
     }
 
-    private void configureService(String encryptionStrategy, String keyId, String keyMaterial) {
+    private void configureService(final String encryptionStrategy, final String keyId, final String keyMaterial) {
         runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_STRATEGY, encryptionStrategy);
         if (keyId != null) {
             runner.setProperty(service, StandardS3EncryptionService.KMS_KEY_ID, keyId);
@@ -255,7 +255,7 @@ public class TestStandardS3EncryptionServiceValidation {
         }
     }
 
-    private void configureVariable(String name, String value) {
+    private void configureVariable(final String name, final String value) {
         runner.setEnvironmentVariableValue(name, value);
     }
 }

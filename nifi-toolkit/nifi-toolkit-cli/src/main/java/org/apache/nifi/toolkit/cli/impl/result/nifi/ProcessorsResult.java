@@ -37,7 +37,7 @@ public class ProcessorsResult extends AbstractWritableResult<ProcessorsEntity> {
 
     private final ProcessorsEntity processorsEntity;
 
-    public ProcessorsResult(ResultType resultType, ProcessorsEntity processorsEntity) {
+    public ProcessorsResult(final ResultType resultType, final ProcessorsEntity processorsEntity) {
         super(resultType);
         this.processorsEntity = Objects.requireNonNull(processorsEntity);
     }
@@ -48,7 +48,7 @@ public class ProcessorsResult extends AbstractWritableResult<ProcessorsEntity> {
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
         final Set<ProcessorEntity> processorsEntities = processorsEntity.getProcessors();
         if (processorsEntities == null) {
             return;

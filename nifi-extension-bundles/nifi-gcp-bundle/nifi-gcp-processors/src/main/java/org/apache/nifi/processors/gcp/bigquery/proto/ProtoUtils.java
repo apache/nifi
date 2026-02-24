@@ -33,7 +33,7 @@ import java.util.Map;
 */
 public class ProtoUtils {
 
-    public static DynamicMessage createMessage(Descriptors.Descriptor descriptor, Map<String, Object> valueMap, TableSchema tableSchema) {
+    public static DynamicMessage createMessage(final Descriptors.Descriptor descriptor, final Map<String, Object> valueMap, final TableSchema tableSchema) {
         final DynamicMessage.Builder builder = DynamicMessage.newBuilder(descriptor);
 
         for (final Descriptors.FieldDescriptor field : descriptor.getFields()) {
@@ -117,7 +117,7 @@ public class ProtoUtils {
 
     private static void setField(final Object value, final Descriptors.FieldDescriptor field, final DynamicMessage.Builder builder) {
         if (field.isRepeated()) {
-            Collection collection = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection) value;
+            final Collection collection = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection) value;
             collection.forEach(act -> builder.addRepeatedField(field, act));
         } else {
             builder.setField(field, value);

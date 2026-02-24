@@ -223,7 +223,7 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("qdbtr-record-writer", RECORD_WRITER_FACTORY.getName());
         config.renameProperty("qdbtr-normalize", NORMALIZE_NAMES.getName());
@@ -233,7 +233,7 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
     }
 
     @Override
-    protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context) {
+    protected SqlWriter configureSqlWriter(final ProcessSession session, final ProcessContext context) {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();

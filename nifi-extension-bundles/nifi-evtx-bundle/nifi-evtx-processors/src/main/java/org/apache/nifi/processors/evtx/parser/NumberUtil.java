@@ -37,8 +37,8 @@ public class NumberUtil {
      * @return the value if it was what was expected
      * @throws IOException if the value isn't what was expected
      */
-    public static int intValueExpected(Number number, int expected, String errorMessage, Object... args) throws IOException {
-        int result = number.intValue();
+    public static int intValueExpected(final Number number, final int expected, final String errorMessage, final Object... args) throws IOException {
+        final int result = number.intValue();
         if (result != expected) {
             throw createException(errorMessage, args, expected, result);
         }
@@ -55,14 +55,14 @@ public class NumberUtil {
      * @return the value
      * @throws IOException if the value is greater than max
      */
-    public static int intValueMax(UnsignedInteger unsignedInteger, int max, String errorMessage, Object... args) throws IOException {
+    public static int intValueMax(final UnsignedInteger unsignedInteger, final int max, final String errorMessage, final Object... args) throws IOException {
         if (unsignedInteger.compareTo(UnsignedInteger.valueOf(max)) > 0) {
             throw createException(errorMessage, args, "< " + max, unsignedInteger);
         }
         return unsignedInteger.intValue();
     }
 
-    private static IOException createException(String errorMessage, Object[] args, Object expected, Object actual) {
+    private static IOException createException(final String errorMessage, final Object[] args, final Object expected, final Object actual) {
         return new IOException(String.format(errorMessage, args) + String.format(EXPECTED_TEXT, expected, actual));
     }
 }

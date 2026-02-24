@@ -34,7 +34,7 @@ public class InvalidRevisionExceptionMapper implements ExceptionMapper<InvalidRe
     private static final Logger logger = LoggerFactory.getLogger(InvalidRevisionExceptionMapper.class);
 
     @Override
-    public Response toResponse(InvalidRevisionException exception) {
+    public Response toResponse(final InvalidRevisionException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Status.BAD_REQUEST);
 

@@ -62,7 +62,7 @@ public class ConnectionDTO extends ComponentDTO {
         return source;
     }
 
-    public void setSource(ConnectableDTO source) {
+    public void setSource(final ConnectableDTO source) {
         this.source = source;
     }
 
@@ -77,7 +77,7 @@ public class ConnectionDTO extends ComponentDTO {
         return destination;
     }
 
-    public void setDestination(ConnectableDTO destination) {
+    public void setDestination(final ConnectableDTO destination) {
         this.destination = destination;
     }
 
@@ -90,7 +90,7 @@ public class ConnectionDTO extends ComponentDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -103,7 +103,7 @@ public class ConnectionDTO extends ComponentDTO {
         return bends;
     }
 
-    public void setBends(List<PositionDTO> bends) {
+    public void setBends(final List<PositionDTO> bends) {
         this.bends = bends;
     }
 
@@ -116,7 +116,7 @@ public class ConnectionDTO extends ComponentDTO {
         return labelIndex;
     }
 
-    public void setLabelIndex(Integer labelIndex) {
+    public void setLabelIndex(final Integer labelIndex) {
         this.labelIndex = labelIndex;
     }
 
@@ -129,7 +129,7 @@ public class ConnectionDTO extends ComponentDTO {
         return zIndex;
     }
 
-    public void setzIndex(Long zIndex) {
+    public void setzIndex(final Long zIndex) {
         this.zIndex = zIndex;
     }
 
@@ -144,7 +144,7 @@ public class ConnectionDTO extends ComponentDTO {
         return selectedRelationships;
     }
 
-    public void setSelectedRelationships(Set<String> relationships) {
+    public void setSelectedRelationships(final Set<String> relationships) {
         this.selectedRelationships = relationships;
     }
 
@@ -158,7 +158,7 @@ public class ConnectionDTO extends ComponentDTO {
         return availableRelationships;
     }
 
-    public void setAvailableRelationships(Set<String> availableRelationships) {
+    public void setAvailableRelationships(final Set<String> availableRelationships) {
         this.availableRelationships = availableRelationships;
     }
 
@@ -172,7 +172,7 @@ public class ConnectionDTO extends ComponentDTO {
         return retriedRelationships;
     }
 
-    public void setRetriedRelationships(Set<String> retriedRelationships) {
+    public void setRetriedRelationships(final Set<String> retriedRelationships) {
         this.retriedRelationships = retriedRelationships;
     }
 
@@ -189,7 +189,7 @@ public class ConnectionDTO extends ComponentDTO {
         return backPressureObjectThreshold;
     }
 
-    public void setBackPressureObjectThreshold(Long backPressureObjectThreshold) {
+    public void setBackPressureObjectThreshold(final Long backPressureObjectThreshold) {
         this.backPressureObjectThreshold = backPressureObjectThreshold;
     }
 
@@ -206,7 +206,7 @@ public class ConnectionDTO extends ComponentDTO {
         return backPressureDataSizeThreshold;
     }
 
-    public void setBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+    public void setBackPressureDataSizeThreshold(final String backPressureDataSizeThreshold) {
         this.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
     }
 
@@ -223,7 +223,7 @@ public class ConnectionDTO extends ComponentDTO {
         return flowFileExpiration;
     }
 
-    public void setFlowFileExpiration(String flowFileExpiration) {
+    public void setFlowFileExpiration(final String flowFileExpiration) {
         this.flowFileExpiration = flowFileExpiration;
     }
 
@@ -238,7 +238,7 @@ public class ConnectionDTO extends ComponentDTO {
         return prioritizers;
     }
 
-    public void setPrioritizers(List<String> prioritizers) {
+    public void setPrioritizers(final List<String> prioritizers) {
         this.prioritizers = prioritizers;
     }
 
@@ -249,7 +249,7 @@ public class ConnectionDTO extends ComponentDTO {
         return loadBalanceStrategy;
     }
 
-    public void setLoadBalanceStrategy(String loadBalanceStrategy) {
+    public void setLoadBalanceStrategy(final String loadBalanceStrategy) {
         this.loadBalanceStrategy = loadBalanceStrategy;
     }
 
@@ -258,7 +258,7 @@ public class ConnectionDTO extends ComponentDTO {
         return loadBalancePartitionAttribute;
     }
 
-    public void setLoadBalancePartitionAttribute(String partitionAttribute) {
+    public void setLoadBalancePartitionAttribute(final String partitionAttribute) {
         this.loadBalancePartitionAttribute = partitionAttribute;
     }
 
@@ -269,7 +269,7 @@ public class ConnectionDTO extends ComponentDTO {
         return loadBalanceCompression;
     }
 
-    public void setLoadBalanceCompression(String compression) {
+    public void setLoadBalanceCompression(final String compression) {
         this.loadBalanceCompression = compression;
     }
 
@@ -281,7 +281,7 @@ public class ConnectionDTO extends ComponentDTO {
         return loadBalanceStatus;
     }
 
-    public void setLoadBalanceStatus(String status) {
+    public void setLoadBalanceStatus(final String status) {
         this.loadBalanceStatus = status;
     }
 

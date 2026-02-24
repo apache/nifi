@@ -223,7 +223,7 @@ public interface JvmMetrics {
         private final long runs;
         private final long timeMS;
 
-        GarbageCollectorStats(long runs, long timeMS) {
+        GarbageCollectorStats(final long runs, final long timeMS) {
             this.runs = runs;
             this.timeMS = timeMS;
         }
@@ -243,7 +243,7 @@ public interface JvmMetrics {
          * @param unit    the time unit for the return value
          * @return the amount of time in the given unit the garbage collector
          */
-        public long getTime(TimeUnit unit) {
+        public long getTime(final TimeUnit unit) {
             return unit.convert(timeMS, TimeUnit.MILLISECONDS);
         }
     }
@@ -258,7 +258,7 @@ public interface JvmMetrics {
         private final long memoryUsed;
         private final long totalCapacity;
 
-        BufferPoolStats(long count, long memoryUsed, long totalCapacity) {
+        BufferPoolStats(final long count, final long memoryUsed, final long totalCapacity) {
             this.count = count;
             this.memoryUsed = memoryUsed;
             this.totalCapacity = totalCapacity;
@@ -283,7 +283,7 @@ public interface JvmMetrics {
          *         pool in bytes, or {@code -1L} if an estimate of the memory usage is not
          *         available
          */
-        public long getMemoryUsed(DataUnit dataUnit) {
+        public long getMemoryUsed(final DataUnit dataUnit) {
             return (long) dataUnit.convert(memoryUsed, DataUnit.B);
         }
 
@@ -294,7 +294,7 @@ public interface JvmMetrics {
          *
          * @return An estimate of the total capacity of the buffers in this pool in bytes
          */
-        public long getTotalCapacity(DataUnit dataUnit) {
+        public long getTotalCapacity(final DataUnit dataUnit) {
             return totalCapacity;
         }
     }

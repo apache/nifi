@@ -35,7 +35,7 @@ public class FlowRegistryClientEntity extends ComponentEntity implements Permiss
     }
 
     @Override
-    public void setComponent(FlowRegistryClientDTO component) {
+    public void setComponent(final FlowRegistryClientDTO component) {
         this.registry = component;
     }
 
@@ -45,7 +45,7 @@ public class FlowRegistryClientEntity extends ComponentEntity implements Permiss
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO operatePermissions) {
+    public void setOperatePermissions(final PermissionsDTO operatePermissions) {
         this.operatePermissions = operatePermissions;
     }
 }

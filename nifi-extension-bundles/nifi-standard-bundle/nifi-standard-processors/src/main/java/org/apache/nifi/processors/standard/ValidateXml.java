@@ -162,38 +162,35 @@ public class ValidateXml extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final boolean attributeContainsXML = context.getProperty(XML_SOURCE_ATTRIBUTE).isSet();
 
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile originalFlowFile : flowFiles) {
             final AtomicBoolean valid = new AtomicBoolean(true);
             final AtomicReference<Exception> exception = new AtomicReference<>(null);
 
             try {
                 if (attributeContainsXML) {
-                    // If XML source attribute is set, validate attribute value
-                    String xml = flowFile.getAttribute(context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
-                    ByteArrayInputStream inputStream = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+                    final String xml = originalFlowFile.getAttribute(context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
+                    final ByteArrayInputStream inputStream = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
 
                     validate(inputStream);
                 } else {
-                    // If XML source attribute is not set, validate flowfile content
-                    session.read(flowFile, this::validate);
+                    session.read(originalFlowFile, this::validate);
                 }
             } catch (final RuntimeException e) {
                 valid.set(false);
                 exception.set(e);
             }
 
-            // determine source location of XML for logging purposes
-            String xmlSource = attributeContainsXML ? "attribute '" + context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue() + "'" : "content";
+            final String xmlSource = attributeContainsXML ? "attribute '" + context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue() + "'" : "content";
             if (valid.get()) {
                 if (context.getProperty(SCHEMA_FILE).isSet()) {
-                    logger.debug("Successfully validated XML in {} of {} against schema; routing to 'valid'", xmlSource, flowFile);
+                    logger.debug("Successfully validated XML in {} of {} against schema; routing to 'valid'", xmlSource, originalFlowFile);
                 } else {
-                    logger.debug("Successfully validated XML is well-formed in {} of {}; routing to 'valid'", xmlSource, flowFile);
+                    logger.debug("Successfully validated XML is well-formed in {} of {}; routing to 'valid'", xmlSource, originalFlowFile);
                 }
-                session.getProvenanceReporter().route(flowFile, REL_VALID);
-                session.transfer(flowFile, REL_VALID);
+                session.getProvenanceReporter().route(originalFlowFile, REL_VALID);
+                session.transfer(originalFlowFile, REL_VALID);
             } else {
-                flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, exception.get().getLocalizedMessage());
+                final FlowFile flowFile = session.putAttribute(originalFlowFile, ERROR_ATTRIBUTE_KEY, exception.get().getLocalizedMessage());
                 if (context.getProperty(SCHEMA_FILE).isSet()) {
                     logger.info("Failed to validate XML in {} of {} against schema due to {}; routing to 'invalid'", xmlSource, flowFile, exception.get().getLocalizedMessage());
                 } else {

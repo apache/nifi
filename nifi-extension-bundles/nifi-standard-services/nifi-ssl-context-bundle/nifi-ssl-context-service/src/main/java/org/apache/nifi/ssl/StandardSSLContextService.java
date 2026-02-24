@@ -177,13 +177,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         resetValidationCache();
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("key-password", KEY_PASSWORD.getName());
         config.renameProperty("SSL Protocol", SSL_ALGORITHM.getName());
     }
@@ -194,7 +194,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         if (isValidated) {
@@ -387,7 +387,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public String getTrustStorePassword() {
-        PropertyValue truststorePassword = configContext.getProperty(TRUSTSTORE_PASSWORD);
+        final PropertyValue truststorePassword = configContext.getProperty(TRUSTSTORE_PASSWORD);
         return truststorePassword.isSet() ? truststorePassword.getValue() : "";
     }
 
@@ -437,7 +437,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      */
     private static Collection<ValidationResult> validateStore(final Map<PropertyDescriptor, String> properties,
                                                               final KeystoreValidationGroup keyStoreOrTrustStore) {
-        List<ValidationResult> results;
+        final List<ValidationResult> results;
 
         if (keyStoreOrTrustStore == KeystoreValidationGroup.KEYSTORE) {
             results = validateKeystore(properties);
@@ -452,11 +452,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return results;
     }
 
-    private static boolean keystorePropertiesEmpty(Map<PropertyDescriptor, String> properties) {
+    private static boolean keystorePropertiesEmpty(final Map<PropertyDescriptor, String> properties) {
         return StringUtils.isBlank(properties.get(KEYSTORE)) && StringUtils.isBlank(properties.get(KEYSTORE_PASSWORD)) && StringUtils.isBlank(properties.get(KEYSTORE_TYPE));
     }
 
-    private static boolean truststorePropertiesEmpty(Map<PropertyDescriptor, String> properties) {
+    private static boolean truststorePropertiesEmpty(final Map<PropertyDescriptor, String> properties) {
         return StringUtils.isBlank(properties.get(TRUSTSTORE)) && StringUtils.isBlank(properties.get(TRUSTSTORE_PASSWORD)) && StringUtils.isBlank(properties.get(TRUSTSTORE_TYPE));
     }
 
@@ -466,7 +466,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @param objects a variable array of objects, some of which can be null
      * @return the count of provided objects which were null
      */
-    private static int countNulls(Object... objects) {
+    private static int countNulls(final Object... objects) {
         int count = 0;
         for (final Object x : objects) {
             if (x == null) {
@@ -498,7 +498,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                     .subject("Keystore Properties").build());
         } else if (nulls == 0) {
             // all properties were filled in.
-            List<ValidationResult> fileValidationResults = validateKeystoreFile(filename, password, keyPassword, type);
+            final List<ValidationResult> fileValidationResults = validateKeystoreFile(filename, password, keyPassword, type);
             results.addAll(fileValidationResults);
         }
 
@@ -516,11 +516,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateTruststore(final Map<PropertyDescriptor, String> properties) {
-        String filename = properties.get(TRUSTSTORE);
-        String password = properties.get(TRUSTSTORE_PASSWORD);
-        String type = properties.get(TRUSTSTORE_TYPE);
+        final String filename = properties.get(TRUSTSTORE);
+        final String password = properties.get(TRUSTSTORE_PASSWORD);
+        final String type = properties.get(TRUSTSTORE_TYPE);
 
-        List<ValidationResult> results = new ArrayList<>();
+        final List<ValidationResult> results = new ArrayList<>();
 
         if (!StringUtils.isBlank(filename) && !StringUtils.isBlank(type)) {
             // In this case both the filename and type are populated, which is sufficient
@@ -544,8 +544,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @param type         the truststore type
      * @return the list of validation results (empty is valid)
      */
-    private static List<ValidationResult> validateTruststoreFile(String filename, String password, String type) {
-        List<ValidationResult> results = new ArrayList<>();
+    private static List<ValidationResult> validateTruststoreFile(final String filename, final String password, final String type) {
+        final List<ValidationResult> results = new ArrayList<>();
 
         final File file = new File(filename);
         if (!file.exists() || !file.canRead()) {
@@ -584,8 +584,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      * @param type         the keystore type
      * @return the list of validation results (empty is valid)
      */
-    private static List<ValidationResult> validateKeystoreFile(String filename, String password, String keyPassword, String type) {
-        List<ValidationResult> results = new ArrayList<>();
+    private static List<ValidationResult> validateKeystoreFile(final String filename, final String password, final String keyPassword, final String type) {
+        final List<ValidationResult> results = new ArrayList<>();
 
         final File file = new File(filename);
         if (!file.exists() || !file.canRead()) {
@@ -622,7 +622,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 keyPasswordChars = keyPassword.toCharArray();
             }
             if (keyStore != null) {
-                boolean keyPasswordValid = isKeyPasswordValid(keyStore, keyPasswordChars);
+                final boolean keyPasswordValid = isKeyPasswordValid(keyStore, keyPasswordChars);
                 if (!keyPasswordValid) {
                     results.add(new ValidationResult.Builder()
                             .subject("Keystore Properties")

@@ -36,7 +36,7 @@ public class ArrayDataType extends DataType {
         this(elementType, DEFAULT_NULLABLE);
     }
 
-    public ArrayDataType(final DataType elementType, boolean elementsNullable) {
+    public ArrayDataType(final DataType elementType, final boolean elementsNullable) {
         super(RecordFieldType.ARRAY, null);
         this.elementType = elementType;
         this.elementsNullable = elementsNullable;
@@ -70,7 +70,7 @@ public class ArrayDataType extends DataType {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -80,7 +80,7 @@ public class ArrayDataType extends DataType {
         if (!super.equals(o)) {
             return false;
         }
-        ArrayDataType that = (ArrayDataType) o;
+        final ArrayDataType that = (ArrayDataType) o;
         return isElementsNullable() == that.isElementsNullable()
                 && Objects.equals(getElementType(), that.getElementType());
     }

@@ -117,7 +117,7 @@ public class JoinClusterWithMissingConnectionWithDataIT extends NiFiSystemIT {
         try {
             return getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
                 .noneMatch(dto -> dto.getApiPort() == apiPort);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }
@@ -130,7 +130,7 @@ public class JoinClusterWithMissingConnectionWithDataIT extends NiFiSystemIT {
                 .get();
 
             return "DISCONNECTED".equals(nodeDto.getStatus());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }

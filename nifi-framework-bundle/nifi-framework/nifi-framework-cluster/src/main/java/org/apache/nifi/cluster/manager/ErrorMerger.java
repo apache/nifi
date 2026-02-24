@@ -50,7 +50,7 @@ public final class ErrorMerger {
      * @param totalNodes total number of nodes
      * @return the normalized validation errors
      */
-    public static Set<String> normalizedMergedErrors(final Map<String, Set<NodeIdentifier>> errorMap, int totalNodes) {
+    public static Set<String> normalizedMergedErrors(final Map<String, Set<NodeIdentifier>> errorMap, final int totalNodes) {
         final Set<String> normalizedErrors = new HashSet<>();
         for (final Map.Entry<String, Set<NodeIdentifier>> validationEntry : errorMap.entrySet()) {
             final String msg = validationEntry.getKey();

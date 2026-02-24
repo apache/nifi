@@ -40,17 +40,17 @@ public class UUID5 extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         return recordPath.evaluate(context).map(fv -> {
-            Optional<String> nameOpt = getName(context);
+            final Optional<String> nameOpt = getName(context);
 
             if (fv.getValue() == null) {
                 return new StandardFieldValue(EMPTY_UUID, fv.getField(), fv.getParent().orElse(null));
             }
 
-            String fieldValue = fv.getValue().toString();
+            final String fieldValue = fv.getValue().toString();
 
-            String v5Uuid = fromString(fieldValue, nameOpt.orElse(null));
+            final String v5Uuid = fromString(fieldValue, nameOpt.orElse(null));
 
             return new StandardFieldValue(v5Uuid, fv.getField(), fv.getParent().orElse(null));
         });
@@ -61,13 +61,13 @@ public class UUID5 extends RecordPathSegment {
             return Optional.empty();
         }
 
-        Optional<FieldValue> opt = nameSegment.evaluate(context).findFirst();
+        final Optional<FieldValue> opt = nameSegment.evaluate(context).findFirst();
         if (!opt.isPresent()) {
             return Optional.empty();
         }
 
-        FieldValue value = opt.get();
-        Object rawValue = value.getValue();
+        final FieldValue value = opt.get();
+        final Object rawValue = value.getValue();
 
         if (rawValue instanceof String) {
             return Optional.of((String) rawValue);

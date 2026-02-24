@@ -60,7 +60,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         addSchemaField(fieldName, type, RecordField.DEFAULT_NULLABLE);
     }
 
-    public void addSchemaField(final String fieldName, final RecordFieldType type, boolean isNullable) {
+    public void addSchemaField(final String fieldName, final RecordFieldType type, final boolean isNullable) {
         fields.add(new RecordField(fieldName, type.getDataType(), isNullable));
     }
 
@@ -68,7 +68,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
         fields.add(recordField);
     }
 
-    public void addRecord(Object... values) {
+    public void addRecord(final Object... values) {
         records.add(values);
     }
 

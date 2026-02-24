@@ -113,7 +113,7 @@ public abstract class AsynchronousRequestDTO<T extends UpdateStepDTO> {
         return updateSteps;
     }
 
-    public void setUpdateSteps(List<T> updateSteps) {
+    public void setUpdateSteps(final List<T> updateSteps) {
         this.updateSteps = updateSteps;
     }
 }

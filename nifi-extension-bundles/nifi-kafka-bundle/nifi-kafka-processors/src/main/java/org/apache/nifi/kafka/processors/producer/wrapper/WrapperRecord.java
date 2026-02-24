@@ -74,7 +74,7 @@ public class WrapperRecord extends MapRecord {
         final Record recordMetadata = new MapRecord(SCHEMA_METADATA, valuesMetadata);
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
-        for (RecordHeader header : headers) {
+        for (final RecordHeader header : headers) {
             valuesHeaders.put(header.key(), new String(header.value(), headerCharset));
         }
 

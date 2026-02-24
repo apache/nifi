@@ -201,7 +201,7 @@ public class ExtractGrok extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        Collection<ValidationResult> problems = new ArrayList<>();
+        final Collection<ValidationResult> problems = new ArrayList<>();
 
         // validate the grok expression against configuration
         // if there is a GROK_PATTERN_FILE set we must be sure to register that so that it's
@@ -212,9 +212,9 @@ public class ExtractGrok extends AbstractProcessor {
             namedCaptures = validationContext.getProperty(NAMED_CAPTURES_ONLY).asBoolean();
         }
 
-        GrokCompiler grokCompiler = GrokCompiler.newInstance();
-        String subject = GROK_EXPRESSION.getName();
-        String input = validationContext.getProperty(GROK_EXPRESSION).getValue();
+        final GrokCompiler grokCompiler = GrokCompiler.newInstance();
+        final String subject = GROK_EXPRESSION.getName();
+        final String input = validationContext.getProperty(GROK_EXPRESSION).getValue();
 
         try {
 
@@ -305,8 +305,8 @@ public class ExtractGrok extends AbstractProcessor {
         final ObjectMapper objectMapper = new ObjectMapper();
         switch (context.getProperty(DESTINATION).getValue()) {
             case FLOWFILE_ATTRIBUTE:
-                Map<String, String> grokResults = new HashMap<>();
-                for (Map.Entry<String, Object> entry : captureMap.entrySet()) {
+                final Map<String, String> grokResults = new HashMap<>();
+                for (final Map.Entry<String, Object> entry : captureMap.entrySet()) {
                     if (null != entry.getValue()) {
                         grokResults.put("grok." + entry.getKey(), entry.getValue().toString());
                     }
@@ -329,7 +329,7 @@ public class ExtractGrok extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Grok Pattern file", GROK_PATTERNS.getName());
         config.renameProperty("Named captures only", NAMED_CAPTURES_ONLY.getName());
     }

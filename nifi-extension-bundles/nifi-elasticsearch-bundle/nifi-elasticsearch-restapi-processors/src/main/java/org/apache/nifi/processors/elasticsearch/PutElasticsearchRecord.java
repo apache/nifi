@@ -598,7 +598,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             outputs.values().forEach(o -> {
                 try {
                     o.remove(session);
-                } catch (IOException ioe) {
+                } catch (final IOException ioe) {
                     getLogger().warn("Error closing RecordSetWriter for FlowFile", ioe);
                 }
             });
@@ -612,7 +612,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private String getErrorType(final Map<String, Object> errorInner) {
         try {
             return (String) ((Map<String, Object>) errorInner.get("error")).get("type");
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             return OUTPUT_TYPE_UNKNOWN_EXCEPTION;
         }
     }
@@ -845,7 +845,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             if (errorType != null && exampleError == null && error != null) {
                 try {
                     exampleError = mapper.writeValueAsString(error);
-                } catch (JsonProcessingException e) {
+                } catch (final JsonProcessingException e) {
                     exampleError = String.format(
                             "{\"error\": {\"type\": \"elasticsearch_response_parse_error\", \"reason\": \"%s\"}}",
                             e.getMessage().replace("\"", "\\\"")

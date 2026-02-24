@@ -40,7 +40,7 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
     }
 
     @Override
-    public NodeResponse merge(final URI uri, final String method, Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
+    public NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         final FlowEntity responseEntity = clientResponse.getClientResponse().readEntity(FlowEntity.class);
         final FlowDTO flowDto = responseEntity.getFlow();
 
@@ -55,12 +55,12 @@ public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
                 final FlowDTO nodeContents = nodeResponseEntity.getFlow();
 
                 for (final ProcessorEntity nodeProcessor : nodeContents.getProcessors()) {
-                    Map<NodeIdentifier, ProcessorEntity> innerMap = processorMap.computeIfAbsent(nodeProcessor.getId(), id -> new HashMap<>());
+                    final Map<NodeIdentifier, ProcessorEntity> innerMap = processorMap.computeIfAbsent(nodeProcessor.getId(), id -> new HashMap<>());
                     innerMap.put(nodeResponse.getNodeId(), nodeProcessor);
                 }
 
                 for (final RemoteProcessGroupEntity nodeRemoteProcessGroup : nodeContents.getRemoteProcessGroups()) {
-                    Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = remoteProcessGroupMap.computeIfAbsent(nodeRemoteProcessGroup.getId(), id -> new HashMap<>());
+                    final Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = remoteProcessGroupMap.computeIfAbsent(nodeRemoteProcessGroup.getId(), id -> new HashMap<>());
                     innerMap.put(nodeResponse.getNodeId(), nodeRemoteProcessGroup);
                 }
             }

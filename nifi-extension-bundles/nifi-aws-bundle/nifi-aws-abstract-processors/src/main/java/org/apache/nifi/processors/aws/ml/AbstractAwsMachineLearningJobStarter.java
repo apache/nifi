@@ -107,7 +107,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null && !context.getProperty(JSON_PAYLOAD).isSet()) {
             return;
         }

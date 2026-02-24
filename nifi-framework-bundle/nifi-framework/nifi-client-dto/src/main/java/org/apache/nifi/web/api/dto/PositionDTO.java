@@ -31,7 +31,7 @@ public class PositionDTO {
     public PositionDTO() {
     }
 
-    public PositionDTO(Double x, Double y) {
+    public PositionDTO(final Double x, final Double y) {
         this.x = x;
         this.y = y;
     }
@@ -46,7 +46,7 @@ public class PositionDTO {
         return x;
     }
 
-    public void setX(Double x) {
+    public void setX(final Double x) {
         this.x = x;
     }
 
@@ -59,7 +59,7 @@ public class PositionDTO {
         return y;
     }
 
-    public void setY(Double y) {
+    public void setY(final Double y) {
         this.y = y;
     }
 

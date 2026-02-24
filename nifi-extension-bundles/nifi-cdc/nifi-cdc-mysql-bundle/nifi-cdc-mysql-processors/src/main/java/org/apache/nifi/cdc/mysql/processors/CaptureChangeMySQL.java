@@ -491,7 +491,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("capture-change-mysql-state-update-interval");
         config.renameProperty("capture-change-mysql-db-name-pattern", DATABASE_NAME_PATTERN.getName());
         config.renameProperty("capture-change-mysql-name-pattern", TABLE_NAME_PATTERN.getName());
@@ -548,7 +548,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    public void setup(ProcessContext context) {
+    public void setup(final ProcessContext context) {
 
         final ComponentLog logger = getLogger();
 
@@ -573,13 +573,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 ? context.getProperty(NUMBER_OF_EVENTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger() : 1;
         eventWriterConfiguration = new EventWriterConfiguration(flowFileEventWriteStrategy, numberOfEventsPerFlowFile);
 
-        PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
+        final PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
         databaseNamePattern = dbNameValue.isSet() ? Pattern.compile(dbNameValue.getValue()) : null;
 
-        PropertyValue tableNameValue = context.getProperty(TABLE_NAME_PATTERN);
+        final PropertyValue tableNameValue = context.getProperty(TABLE_NAME_PATTERN);
         tableNamePattern = tableNameValue.isSet() ? Pattern.compile(tableNameValue.getValue()) : null;
 
-        boolean getAllRecords = context.getProperty(RETRIEVE_ALL_RECORDS).asBoolean();
+        final boolean getAllRecords = context.getProperty(RETRIEVE_ALL_RECORDS).asBoolean();
 
         if (binlogResourceInfo == null) {
             binlogResourceInfo = new BinlogResourceInfo();
@@ -631,10 +631,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         // Get current sequence ID from state
-        String seqIdString = stateMap.get(SEQUENCE_ID_KEY);
+        final String seqIdString = stateMap.get(SEQUENCE_ID_KEY);
         if (StringUtils.isEmpty(seqIdString)) {
             // Use Initial Sequence ID property if none is found in state
-            PropertyValue seqIdProp = context.getProperty(INIT_SEQUENCE_ID);
+            final PropertyValue seqIdProp = context.getProperty(INIT_SEQUENCE_ID);
             if (seqIdProp.isSet()) {
                 currentDataCaptureState.setSequenceId(seqIdProp.evaluateAttributeExpressions().asInteger());
             }
@@ -647,9 +647,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         // Save off MySQL cluster and JDBC driver information, will be used to connect for event enrichment as well as for the binlog connector
         try {
-            List<InetSocketAddress> hosts = getHosts(context.getProperty(HOSTS).evaluateAttributeExpressions().getValue());
+            final List<InetSocketAddress> hosts = getHosts(context.getProperty(HOSTS).evaluateAttributeExpressions().getValue());
 
-            String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
+            final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
             String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
             // BinaryLogClient expects a non-null password, so set it to the empty string if it is not provided
@@ -657,15 +657,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 password = "";
             }
 
-            long connectTimeout = context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+            final long connectTimeout = context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
 
-            String driverLocation = context.getProperty(DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
-            String driverName = context.getProperty(DRIVER_NAME).evaluateAttributeExpressions().getValue();
+            final String driverLocation = context.getProperty(DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
+            final String driverName = context.getProperty(DRIVER_NAME).evaluateAttributeExpressions().getValue();
 
-            Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
+            final Long serverId = context.getProperty(SERVER_ID).evaluateAttributeExpressions().asLong();
 
             connect(hosts, username, password, serverId, driverLocation, driverName, connectTimeout, sslContextService, sslMode);
-        } catch (IOException | IllegalStateException e) {
+        } catch (final IOException | IllegalStateException e) {
             if (eventListener != null) {
                 eventListener.stop();
                 if (binlogClient != null) {
@@ -679,9 +679,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public synchronized void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public synchronized void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
 
-        ComponentLog log = getLogger();
+        final ComponentLog log = getLogger();
 
         // Create a client if we don't have one
         if (binlogClient == null) {
@@ -695,14 +695,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         // If the client has been disconnected, try to reconnect
         if (!binlogClient.isConnected()) {
-            Exception e = lifecycleListener.getException();
+            final Exception e = lifecycleListener.getException();
             // If there's no exception, the listener callback might not have been executed yet, so try again later. Otherwise clean up and start over next time
             if (e != null) {
                 // Communications failure, disconnect and try next time
                 log.error("Binlog connector communications failure", e);
                 try {
                     stop();
-                } catch (CDCException ioe) {
+                } catch (final CDCException ioe) {
                     throw new ProcessException(ioe);
                 }
             }
@@ -718,13 +718,13 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         try {
             outputEvents(currentSession, context, log);
-        } catch (Exception eventException) {
+        } catch (final Exception eventException) {
             getLogger().error("Exception during event processing at file={} pos={}", currentDataCaptureState.getBinlogFile(), currentDataCaptureState.getBinlogPosition(), eventException);
             try {
                 // Perform some processor-level "rollback", then rollback the session
                 binlogResourceInfo.setInTransaction(false);
                 stop();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // Not much we can recover from here
                 log.error("Error stopping CDC client", e);
             } finally {
@@ -741,16 +741,16 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param hostsString A comma-separated list of hosts (host:port,host2:port2, etc.)
      * @return List of InetSocketAddresses for the hosts
      */
-    private List<InetSocketAddress> getHosts(String hostsString) {
+    private List<InetSocketAddress> getHosts(final String hostsString) {
 
         if (hostsString == null) {
             return null;
         }
         final String[] hostsSplit = hostsString.split(",");
-        List<InetSocketAddress> hostsList = new ArrayList<>();
+        final List<InetSocketAddress> hostsList = new ArrayList<>();
 
-        for (String item : hostsSplit) {
-            String[] addresses = item.split(":");
+        for (final String item : hostsSplit) {
+            final String[] addresses = item.split(":");
             if (addresses.length > 2 || addresses.length == 0) {
                 throw new ArrayIndexOutOfBoundsException("Not in host:port format");
             } else if (addresses.length > 1) {
@@ -763,8 +763,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         return hostsList;
     }
 
-    protected void connect(List<InetSocketAddress> hosts, String username, String password, Long serverId,
-                           String driverLocation, String driverName, long connectTimeout,
+    protected void connect(final List<InetSocketAddress> hosts, final String username, final String password, final Long serverId,
+                           final String driverLocation, final String driverName, final long connectTimeoutArg,
                            final SSLContextService sslContextService, final SSLMode sslMode) throws IOException {
 
         int connectionAttempts = 0;
@@ -778,7 +778,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // Actual JDBC connection is created after binlog client gets started, because we need
             // the connect-able host same as the binlog client.
             registerDriver(driverLocation, driverName);
-        } catch (InitializationException e) {
+        } catch (final InitializationException e) {
             throw new RuntimeException("Failed to register JDBC driver. Ensure MySQL Driver Location(s)" +
                     " and MySQL Driver Class Name are configured correctly. " + e, e);
         }
@@ -822,13 +822,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             try {
-                if (connectTimeout == 0) {
-                    connectTimeout = Long.MAX_VALUE;
-                }
+                final long connectTimeout = connectTimeoutArg == 0 ? Long.MAX_VALUE : connectTimeoutArg;
                 binlogClient.connect(connectTimeout);
                 binlogResourceInfo.setTransitUri("mysql://" + connectedHost.getHostString() + ":" + connectedHost.getPort());
 
-            } catch (IOException | TimeoutException te) {
+            } catch (final IOException | TimeoutException te) {
                 // Try the next host
                 connectedHost = null;
                 binlogResourceInfo.setTransitUri("<unknown>");
@@ -852,11 +850,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         final TlsConfiguration tlsConfiguration = sslContextService == null ? null : sslContextService.createTlsConfiguration();
         final ConnectionPropertiesProvider connectionPropertiesProvider = new StandardConnectionPropertiesProvider(sslMode, tlsConfiguration);
         final Map<String, String> jdbcConnectionProperties = connectionPropertiesProvider.getConnectionProperties();
-        jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, jdbcConnectionProperties, connectTimeout);
+        jdbcConnectionHolder = new JDBCConnectionHolder(connectedHost, username, password, jdbcConnectionProperties, connectTimeoutArg);
         try {
             // Ensure connection can be created.
             getJdbcConnection();
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             getLogger().error("Error creating binlog enrichment JDBC connection to any of the specified hosts", e);
             if (eventListener != null) {
                 eventListener.stop();
@@ -874,18 +872,18 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         gtidSet = new GtidSet(binlogClient.getGtidSet());
     }
 
-    public void outputEvents(ProcessSession session, ProcessContext context, ComponentLog log) throws IOException {
+    public void outputEvents(final ProcessSession session, final ProcessContext context, final ComponentLog log) throws IOException {
         RawBinlogEvent rawBinlogEvent;
-        DataCaptureState dataCaptureState = currentDataCaptureState.copy();
+        final DataCaptureState dataCaptureState = currentDataCaptureState.copy();
         final boolean includeBeginCommit = context.getProperty(INCLUDE_BEGIN_COMMIT).asBoolean();
         final boolean includeDDLEvents = context.getProperty(INCLUDE_DDL_EVENTS).asBoolean();
 
         // Drain the queue
         while (isScheduled() && (rawBinlogEvent = queue.poll()) != null) {
-            Event event = rawBinlogEvent.getEvent();
-            EventHeaderV4 header = event.getHeader();
-            long timestamp = header.getTimestamp();
-            EventType eventType = header.getEventType();
+            final Event event = rawBinlogEvent.getEvent();
+            final EventHeaderV4 header = event.getHeader();
+            final long timestamp = header.getTimestamp();
+            final EventType eventType = header.getEventType();
             // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume at the event about to be processed.
             // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
             // advance the position if it is not that type of event. ROTATE events don't generate output CDC events and have the current binlog position in a special field, which
@@ -897,21 +895,21 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             switch (eventType) {
                 case TABLE_MAP:
                     // This is sent to inform which table is about to be changed by subsequent events
-                    TableMapEventData data = event.getData();
+                    final TableMapEventData data = event.getData();
 
                     // Should we skip this table? Yes if we've specified a DB or table name pattern and they don't match
                     skipTable = (databaseNamePattern != null && !databaseNamePattern.matcher(data.getDatabase()).matches())
                             || (tableNamePattern != null && !tableNamePattern.matcher(data.getTable()).matches());
 
                     if (!skipTable) {
-                        TableInfoCacheKey key = new TableInfoCacheKey(this.getIdentifier(), data.getDatabase(), data.getTable(), data.getTableId());
+                        final TableInfoCacheKey key = new TableInfoCacheKey(this.getIdentifier(), data.getDatabase(), data.getTable(), data.getTableId());
                         binlogResourceInfo.setCurrentTable(tableInfoCache.get(key));
                         if (binlogResourceInfo.getCurrentTable() == null) {
                             // We don't have an entry for this table yet, so fetch the info from the database and populate the cache
                             try {
                                 binlogResourceInfo.setCurrentTable(loadTableInfo(key));
                                 tableInfoCache.put(key, binlogResourceInfo.getCurrentTable());
-                            } catch (SQLException se) {
+                            } catch (final SQLException se) {
                                 // Propagate the error up, so things like rollback and logging/bulletins can be handled
                                 throw new IOException(se.getMessage(), se);
                             }
@@ -922,10 +920,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     }
                     break;
                 case QUERY:
-                    QueryEventData queryEventData = event.getData();
+                    final QueryEventData queryEventData = event.getData();
                     binlogResourceInfo.setCurrentDatabase(queryEventData.getDatabase());
 
-                    String sql = queryEventData.getSql();
+                    final String sql = queryEventData.getSql();
 
                     // Is this the start of a transaction?
                     if ("BEGIN".equals(sql)) {
@@ -967,7 +965,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         binlogResourceInfo.setCurrentDatabase(null);
                     } else {
                         // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
-                        String normalizedQuery = normalizeQuery(sql);
+                        final String normalizedQuery = normalizeQuery(sql);
 
                         if (isQueryDDL(normalizedQuery)) {
                             if (databaseNamePattern == null || databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches()) {
@@ -986,7 +984,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 updateState(session, dataCaptureState);
                                 if (FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy())) {
                                     if (currentSession != null) {
-                                        FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
+                                        final FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
                                         if (flowFile != null && binlogEventState.getCurrentEventWriter() != null) {
                                             // Flush the events to the FlowFile when the processor is stopped
                                             binlogEventState.getCurrentEventWriter().finishAndTransferFlowFile(currentSession, eventWriterConfiguration, binlogResourceInfo.getTransitUri(),
@@ -1071,7 +1069,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 case ROTATE:
                     if (!currentDataCaptureState.isUseGtid()) {
                         // Update current binlog filename
-                        RotateEventData rotateEventData = event.getData();
+                        final RotateEventData rotateEventData = event.getData();
                         dataCaptureState.setBinlogFile(rotateEventData.getBinlogFilename());
                         dataCaptureState.setBinlogPosition(rotateEventData.getBinlogPosition());
                     }
@@ -1081,8 +1079,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 case GTID:
                     if (currentDataCaptureState.isUseGtid()) {
                         // Update current binlog gtid
-                        GtidEventData gtidEventData = event.getData();
-                        MySqlGtid mySqlGtid = gtidEventData.getMySqlGtid();
+                        final GtidEventData gtidEventData = event.getData();
+                        final MySqlGtid mySqlGtid = gtidEventData.getMySqlGtid();
                         if (mySqlGtid != null) {
                             gtidSet.add(mySqlGtid.toString());
                             dataCaptureState.setGtidSet(gtidSet.toString());
@@ -1104,7 +1102,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private boolean isQueryDDL(String sql) {
+    private boolean isQueryDDL(final String sql) {
         return sql.startsWith("alter table")
                 || sql.startsWith("alter ignore table")
                 || sql.startsWith("create table")
@@ -1122,7 +1120,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         currentSession.clearState(Scope.CLUSTER);
     }
 
-    protected String normalizeQuery(String sql) {
+    protected String normalizeQuery(final String sql) {
         String normalizedQuery = sql.toLowerCase().trim().replaceAll(" {2,}", " ");
 
         //Remove comments from the query
@@ -1146,7 +1144,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             if (currentSession != null) {
-                FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
+                final FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
                 if (flowFile != null && binlogEventState.getCurrentEventWriter() != null) {
                     // Flush the events to the FlowFile when the processor is stopped
                     binlogEventState.getCurrentEventWriter().finishAndTransferFlowFile(
@@ -1159,7 +1157,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             currentDataCaptureState.setBinlogPosition(-1);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new CDCException("Error closing CDC connection", e);
         } finally {
             binlogClient = null;
@@ -1170,11 +1168,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
     }
 
-    private void updateState(ProcessSession session, DataCaptureState dataCaptureState) throws IOException {
+    private void updateState(final ProcessSession session, final DataCaptureState dataCaptureState) throws IOException {
         updateState(session, dataCaptureState, binlogResourceInfo.isInTransaction());
     }
 
-    private void updateState(ProcessSession session, DataCaptureState dataCaptureState, boolean inTransaction) throws IOException {
+    private void updateState(final ProcessSession session, final DataCaptureState dataCaptureState, final boolean inTransaction) throws IOException {
         // Update state with latest values
         final Map<String, String> newStateMap = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
 
@@ -1204,7 +1202,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param q      A queue used to communicate events between the listener and the NiFi processor thread.
      * @return A BinlogEventListener instance, which will be notified of events associated with the specified client
      */
-    BinlogEventListener createBinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q) {
+    BinlogEventListener createBinlogEventListener(final BinaryLogClient client, final BlockingQueue<RawBinlogEvent> q) {
         return new BinlogEventListener(client, q);
     }
 
@@ -1217,7 +1215,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         return new BinlogLifecycleListener();
     }
 
-    protected BinaryLogClient createBinlogClient(String hostname, int port, String username, String password) {
+    protected BinaryLogClient createBinlogClient(final String hostname, final int port, final String username, final String password) {
         return new BinaryLogClient(hostname, port, username, password);
     }
 
@@ -1227,19 +1225,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param key A TableInfoCacheKey reference, which contains the database and table names
      * @return A TableInfo instance with the ColumnDefinitions provided (if retrieved successfully from the database)
      */
-    protected TableInfo loadTableInfo(TableInfoCacheKey key) throws SQLException {
+    protected TableInfo loadTableInfo(final TableInfoCacheKey key) throws SQLException {
         TableInfo tableInfo = null;
         if (jdbcConnectionHolder != null) {
 
             try (Statement s = getJdbcConnection().createStatement()) {
                 s.execute("USE `" + key.getDatabaseName() + "`");
-                ResultSet rs = s.executeQuery("SELECT * FROM `" + key.getTableName() + "` LIMIT 0");
-                ResultSetMetaData rsmd = rs.getMetaData();
-                int numCols = rsmd.getColumnCount();
-                List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+                final ResultSet rs = s.executeQuery("SELECT * FROM `" + key.getTableName() + "` LIMIT 0");
+                final ResultSetMetaData rsmd = rs.getMetaData();
+                final int numCols = rsmd.getColumnCount();
+                final List<ColumnDefinition> columnDefinitions = new ArrayList<>();
                 for (int i = 1; i <= numCols; i++) {
                     // Use the column label if it exists, otherwise use the column name. We're not doing aliasing here, but it's better practice.
-                    String columnLabel = rsmd.getColumnLabel(i);
+                    final String columnLabel = rsmd.getColumnLabel(i);
                     columnDefinitions.add(new ColumnDefinition(rsmd.getColumnType(i), columnLabel != null ? columnLabel : rsmd.getColumnName(i)));
                 }
 
@@ -1261,7 +1259,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         private Connection connection;
 
-        private JDBCConnectionHolder(InetSocketAddress host, String username, String password, Map<String, String> customProperties, long connectionTimeoutMillis) {
+        private JDBCConnectionHolder(final InetSocketAddress host, final String username, final String password, final Map<String, String> customProperties, final long connectionTimeoutMillis) {
             this.connectionUrl = "jdbc:mysql://" + host.getHostString() + ":" + host.getPort();
             connectionProps.putAll(customProperties);
             if (username != null) {
@@ -1293,7 +1291,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 try {
                     getLogger().trace("Closing the pooled JDBC connection.");
                     connection.close();
-                } catch (SQLException e) {
+                } catch (final SQLException e) {
                     getLogger().warn("Failed to close JDBC connection", e);
                 }
             }
@@ -1305,7 +1303,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      *
      * @throws InitializationException if there is a problem obtaining the ClassLoader
      */
-    protected void registerDriver(String locationString, String drvName) throws InitializationException {
+    protected void registerDriver(final String locationString, final String drvName) throws InitializationException {
         if (locationString != null && locationString.length() > 0) {
             try {
                 final Class<?> clazz = Class.forName(drvName);
@@ -1326,17 +1324,17 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private static class DriverShim implements Driver {
         private final Driver driver;
 
-        DriverShim(Driver d) {
+        DriverShim(final Driver d) {
             this.driver = d;
         }
 
         @Override
-        public boolean acceptsURL(String u) throws SQLException {
+        public boolean acceptsURL(final String u) throws SQLException {
             return this.driver.acceptsURL(u);
         }
 
         @Override
-        public Connection connect(String u, Properties p) throws SQLException {
+        public Connection connect(final String u, final Properties p) throws SQLException {
             return this.driver.connect(u, p);
         }
 
@@ -1351,7 +1349,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         @Override
-        public DriverPropertyInfo[] getPropertyInfo(String u, Properties p) throws SQLException {
+        public DriverPropertyInfo[] getPropertyInfo(final String u, final Properties p) throws SQLException {
             return this.driver.getPropertyInfo(u, p);
         }
 
@@ -1374,7 +1372,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return currentEventInfo;
         }
 
-        public void setCurrentEventInfo(BinlogEventInfo currentEventInfo) {
+        public void setCurrentEventInfo(final BinlogEventInfo currentEventInfo) {
             this.currentEventInfo = currentEventInfo;
         }
 
@@ -1382,7 +1380,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return currentEventWriter;
         }
 
-        public void setCurrentEventWriter(AbstractBinlogEventWriter<? extends BinlogEventInfo> currentEventWriter) {
+        public void setCurrentEventWriter(final AbstractBinlogEventWriter<? extends BinlogEventInfo> currentEventWriter) {
             this.currentEventWriter = currentEventWriter;
         }
     }
@@ -1399,7 +1397,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return currentTable;
         }
 
-        public void setCurrentTable(TableInfo currentTable) {
+        public void setCurrentTable(final TableInfo currentTable) {
             this.currentTable = currentTable;
         }
 
@@ -1407,7 +1405,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return currentDatabase;
         }
 
-        public void setCurrentDatabase(String currentDatabase) {
+        public void setCurrentDatabase(final String currentDatabase) {
             this.currentDatabase = currentDatabase;
         }
 
@@ -1415,7 +1413,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return inTransaction;
         }
 
-        public void setInTransaction(boolean inTransaction) {
+        public void setInTransaction(final boolean inTransaction) {
             this.inTransaction = inTransaction;
         }
 
@@ -1423,7 +1421,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return transitUri;
         }
 
-        public void setTransitUri(String transitUri) {
+        public void setTransitUri(final String transitUri) {
             this.transitUri = transitUri;
         }
     }

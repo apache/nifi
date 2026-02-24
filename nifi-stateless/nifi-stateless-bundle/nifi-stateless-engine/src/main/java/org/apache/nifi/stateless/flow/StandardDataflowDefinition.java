@@ -140,7 +140,7 @@ public class StandardDataflowDefinition implements DataflowDefinition {
             return this;
         }
 
-        public Builder parameterContexts(List<ParameterContextDefinition> parameterContexts) {
+        public Builder parameterContexts(final List<ParameterContextDefinition> parameterContexts) {
             this.parameterContexts = parameterContexts;
             return this;
         }

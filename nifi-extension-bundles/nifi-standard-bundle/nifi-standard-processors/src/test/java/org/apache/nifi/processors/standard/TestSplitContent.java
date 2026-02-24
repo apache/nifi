@@ -376,7 +376,7 @@ public class TestSplitContent {
     @Test
     public void testNoSplitterInString() {
 
-        String content = "UVAT";
+        final String content = "UVAT";
 
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
         runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.getValue());
@@ -388,7 +388,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
-        MockFlowFile splitResult = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS).get(0);
+        final MockFlowFile splitResult = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS).get(0);
         splitResult.assertAttributeExists(FRAGMENT_ID);
         splitResult.assertAttributeExists(SEGMENT_ORIGINAL_FILENAME);
         splitResult.assertAttributeEquals(FRAGMENT_COUNT, "1");

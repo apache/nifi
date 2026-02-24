@@ -52,7 +52,7 @@ public enum ZendeskResource implements DescribedValue {
     private final List<ZendeskExportMethod> supportedExportMethods;
     private final String description;
 
-    ZendeskResource(String value, String displayName, String responseFieldName, List<ZendeskExportMethod> supportedExportMethods, String description) {
+    ZendeskResource(final String value, final String displayName, final String responseFieldName, final List<ZendeskExportMethod> supportedExportMethods, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.responseFieldName = responseFieldName;
@@ -60,7 +60,7 @@ public enum ZendeskResource implements DescribedValue {
         this.description = description;
     }
 
-    public static ZendeskResource forName(String resourceName) {
+    public static ZendeskResource forName(final String resourceName) {
         return Stream.of(values()).filter(r -> r.getValue().equalsIgnoreCase(resourceName)).findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Zendesk resource: " + resourceName));
     }
@@ -88,11 +88,11 @@ public enum ZendeskResource implements DescribedValue {
         return supportedExportMethods;
     }
 
-    public boolean supportsExportMethod(ZendeskExportMethod exportMethod) {
+    public boolean supportsExportMethod(final ZendeskExportMethod exportMethod) {
         return supportedExportMethods.contains(exportMethod);
     }
 
-    public String apiPath(ZendeskExportMethod exportMethod) {
+    public String apiPath(final ZendeskExportMethod exportMethod) {
         return format(exportMethod.getExportApiPathTemplate(), value);
     }
 }

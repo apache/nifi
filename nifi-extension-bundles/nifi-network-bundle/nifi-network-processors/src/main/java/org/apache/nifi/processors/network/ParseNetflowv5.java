@@ -116,7 +116,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -133,7 +133,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             if (logger.isDebugEnabled()) {
                 logger.debug("Parsed {} records from the packet", processedRecord);
             }
-        } catch (Throwable e) {
+        } catch (final Throwable e) {
             logger.error("Routing to failure since while processing {}, parser returned unexpected Exception", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -155,7 +155,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(multipleRecords, REL_SUCCESS);
             session.adjustCounter("Records Processed", processedRecord, false);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // The flowfile has failed parsing & validation, routing to failure
             logger.error("Routing to failure since failed to parse {} as a netflowv5 message", flowFile, e);
 
@@ -165,7 +165,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("FIELDS_DESTINATION", FIELDS_DESTINATION.getName());
     }
 
@@ -175,7 +175,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
         FlowFile recordFlowFile = flowFile;
         int record = 0;
         while (numberOfRecords-- > 0) {
-            ObjectNode results = MAPPER.createObjectNode();
+            final ObjectNode results = MAPPER.createObjectNode();
             // Add Port number and message format
             results.set("port", MAPPER.valueToTree(parser.getPortNumber()));
             results.set("format", MAPPER.valueToTree("netflowv5"));
@@ -216,8 +216,8 @@ public class ParseNetflowv5 extends AbstractProcessor {
     }
 
     private OptionalInt resolvePort(final FlowFile flowFile) {
-        final String port = flowFile.getAttribute("udp.port");
-        if (port != null) {
+        final String port;
+        if ((port = flowFile.getAttribute("udp.port")) != null) {
             return OptionalInt.of(Integer.parseInt(port));
         }
         return OptionalInt.empty();

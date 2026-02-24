@@ -202,7 +202,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * @param e the exception thrown connecting to the remote instance
      * @return true if the error is due to a connection timeout
      */
-    private boolean isConnectionTimeoutError(Exception e) {
+    private boolean isConnectionTimeoutError(final Exception e) {
         return e instanceof CommunicationsException && e.getLocalizedMessage().contains("connect timed out");
     }
 
@@ -235,7 +235,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public void reinitialize(boolean isClustered) {
+    public void reinitialize(final boolean isClustered) {
         backgroundThreadExecutor.submit(new InitializationTask());
     }
 
@@ -306,7 +306,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public void setProxyHost(String proxyHost) {
+    public void setProxyHost(final String proxyHost) {
         this.proxyHost = proxyHost;
     }
 
@@ -316,7 +316,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public void setProxyPort(Integer proxyPort) {
+    public void setProxyPort(final Integer proxyPort) {
         this.proxyPort = proxyPort;
     }
 
@@ -326,7 +326,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public void setProxyUser(String proxyUser) {
+    public void setProxyUser(final String proxyUser) {
         this.proxyUser = proxyUser;
     }
 
@@ -336,7 +336,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
-    public void setProxyPassword(String proxyPassword) {
+    public void setProxyPassword(final String proxyPassword) {
         this.proxyPassword = proxyPassword;
     }
 
@@ -627,7 +627,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             if (pruneUnusedPorts) {
                 final Iterator<StandardRemoteGroupPort> itr = outputPorts.values().iterator();
 
-                int prunedCount = 0;
+                final int prunedCount = 0;
                 while (itr.hasNext()) {
                     final StandardRemoteGroupPort port = itr.next();
                     if (!newPortTargetIds.contains(port.getTargetIdentifier())) {
@@ -894,7 +894,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             final ControllerDTO dto;
             try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 dto = apiClient.getController(targetUris);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + targetUris + " due to: " + e.getMessage());
             }
 
@@ -1013,7 +1013,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private SiteToSiteRestApiClient getSiteToSiteRestApiClient() {
         final SiteToSiteEventReporter eventReporter = (severity, category, message) -> getEventReporter().reportEvent(severity, category, message);
 
-        SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), eventReporter);
+        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), eventReporter);
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setLocalAddress(getLocalAddress());

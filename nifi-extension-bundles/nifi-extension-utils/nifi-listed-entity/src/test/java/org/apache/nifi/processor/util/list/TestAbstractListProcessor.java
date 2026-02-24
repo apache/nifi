@@ -154,8 +154,8 @@ public class TestAbstractListProcessor {
 
         // Firstly, choose Timestamp Strategy lists 2 entities and set state.
         // After that choose No Tracking Strategy to test if this strategy remove the state.
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
-        ProcessContext context = runner.getProcessContext();
+        final ProcessSession session = runner.getProcessSessionFactory().createSession();
+        final ProcessContext context = runner.getProcessContext();
 
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
 
@@ -360,28 +360,28 @@ public class TestAbstractListProcessor {
         private final Map<Object, Object> stored = new HashMap<>();
 
         @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
             return false;
         }
 
         @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) {
+        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) {
             return null;
         }
 
         @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
             return false;
         }
 
         @Override
-        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             stored.put(key, value);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             return (V) stored.get(key);
         }
 
@@ -390,7 +390,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             final Object value = stored.remove(key);
             return value != null;
         }
@@ -434,7 +434,7 @@ public class TestAbstractListProcessor {
             addEntity(name, identifier, timestamp, 0);
         }
 
-        public void addEntity(final String name, final String identifier, final long timestamp, long size) {
+        public void addEntity(final String name, final String identifier, final long timestamp, final long size) {
             final ListableEntity entity = new ListableEntity() {
                 @Override
                 public String getName() {
@@ -483,9 +483,9 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp, ListingMode listingMode) {
+        protected List<ListableEntity> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) {
             final PropertyValue listingFilter = context.getProperty(LISTING_FILTER);
-            Predicate<ListableEntity> filter = listingFilter.isSet()
+            final Predicate<ListableEntity> filter = listingFilter.isSet()
                     ? entity -> entity.getName().matches(listingFilter.getValue())
                     : entity -> true;
             return getEntityList().stream().filter(filter).collect(Collectors.toList());
@@ -501,7 +501,7 @@ public class TestAbstractListProcessor {
         }
 
         @Override
-        protected boolean isListingResetNecessary(PropertyDescriptor property) {
+        protected boolean isListingResetNecessary(final PropertyDescriptor property) {
             return RESET_STATE.equals(property);
         }
 

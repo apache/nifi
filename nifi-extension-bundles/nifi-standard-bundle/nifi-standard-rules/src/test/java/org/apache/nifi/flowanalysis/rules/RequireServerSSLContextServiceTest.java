@@ -49,7 +49,7 @@ public class RequireServerSSLContextServiceTest extends AbstractFlowAnalaysisRul
     public void testViolations() throws Exception {
         setProperty(SSL_CONTEXT_SERVICE, null);
 
-        ComponentAnalysisResult expectedResult = new ComponentAnalysisResult("b5734be4-0195-1000-0e75-bc0f150d06bd", "'ListenHTTP' is not allowed");
+        final ComponentAnalysisResult expectedResult = new ComponentAnalysisResult("b5734be4-0195-1000-0e75-bc0f150d06bd", "'ListenHTTP' is not allowed");
         testAnalyzeProcessors(
                 "src/test/resources/RequireServerSSLContextService/RequireServerSSLContextService.json",
                 List.of(

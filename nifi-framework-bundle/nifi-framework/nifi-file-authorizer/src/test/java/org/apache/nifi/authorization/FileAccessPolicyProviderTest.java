@@ -183,10 +183,10 @@ public class FileAccessPolicyProviderTest {
         flow = new File("src/test/resources/flow.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
 
-        File flowNoPorts = new File("src/test/resources/flow-no-ports.json.gz");
+        final File flowNoPorts = new File("src/test/resources/flow-no-ports.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
-        File flowWithDns = new File("src/test/resources/flow-with-dns.json.gz");
+        final File flowWithDns = new File("src/test/resources/flow-with-dns.json.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowWithDns.getParentFile());
 
         properties = mock(NiFiProperties.class);
@@ -340,7 +340,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -380,7 +380,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -420,7 +420,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -453,7 +453,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -494,7 +494,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -535,7 +535,7 @@ public class FileAccessPolicyProviderTest {
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
         boolean foundRootGroupPolicy = false;
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getResource().equals(rootGroupResource)) {
                 foundRootGroupPolicy = true;
                 break;
@@ -633,10 +633,10 @@ public class FileAccessPolicyProviderTest {
         userGroupProvider.onConfigured(configurationContext);
         accessPolicyProvider.onConfigured(configurationContext);
 
-        User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
-        User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
+        final User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
+        final User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
 
-        AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+        final AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
@@ -669,10 +669,10 @@ public class FileAccessPolicyProviderTest {
         userGroupProvider.onConfigured(configurationContext);
         accessPolicyProvider.onConfigured(configurationContext);
 
-        User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
-        User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
+        final User nodeUser1 = userGroupProvider.getUserByIdentity(nodeIdentity1);
+        final User nodeUser2 = userGroupProvider.getUserByIdentity(nodeIdentity2);
 
-        AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+        final AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
@@ -701,7 +701,7 @@ public class FileAccessPolicyProviderTest {
         assertNotNull(userGroupProvider.getUserByIdentity(nodeIdentity1));
         assertNotNull(userGroupProvider.getUserByIdentity(nodeIdentity2));
 
-        AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+        final AccessPolicy proxyWritePolicy = accessPolicyProvider.getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getGroups().contains(nodeGroupIdentifier));
@@ -820,7 +820,7 @@ public class FileAccessPolicyProviderTest {
         boolean foundPolicy1 = false;
         boolean foundPolicy2 = false;
 
-        for (AccessPolicy policy : policies) {
+        for (final AccessPolicy policy : policies) {
             if (policy.getIdentifier().equals("policy-1")
                     && policy.getResource().equals("/flow")
                     && policy.getAction() == RequestAction.READ
@@ -1069,7 +1069,7 @@ public class FileAccessPolicyProviderTest {
     }
 
     private static void writeFile(final File file, final String content) throws Exception {
-        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(bytes);
         }

@@ -24,15 +24,15 @@ public class ProviderFactoryException extends RuntimeException {
     public ProviderFactoryException() {
     }
 
-    public ProviderFactoryException(String message) {
+    public ProviderFactoryException(final String message) {
         super(message);
     }
 
-    public ProviderFactoryException(String message, Throwable cause) {
+    public ProviderFactoryException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public ProviderFactoryException(Throwable cause) {
+    public ProviderFactoryException(final Throwable cause) {
         super(cause);
     }
 }

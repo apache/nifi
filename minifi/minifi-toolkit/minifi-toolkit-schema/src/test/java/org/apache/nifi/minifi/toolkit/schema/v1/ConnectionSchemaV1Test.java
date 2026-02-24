@@ -57,18 +57,18 @@ public class ConnectionSchemaV1Test {
         testQueuePrioritizerClass = "testQueuePrioritizerClass";
     }
 
-    private ConnectionSchemaV1 createSchema(int expectedValidationIssues) {
+    private ConnectionSchemaV1 createSchema(final int expectedValidationIssues) {
         return createSchema(createMap(), expectedValidationIssues);
     }
 
-    private ConnectionSchemaV1 createSchema(Map<String, Object> map, int expectedValidationIssues) {
-        ConnectionSchemaV1 connectionSchema = new ConnectionSchemaV1(map);
+    private ConnectionSchemaV1 createSchema(final Map<String, Object> map, final int expectedValidationIssues) {
+        final ConnectionSchemaV1 connectionSchema = new ConnectionSchemaV1(map);
         assertEquals(expectedValidationIssues, connectionSchema.getValidationIssues().size());
         return connectionSchema;
     }
 
     private Map<String, Object> createMap() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(ConnectionSchemaV1.SOURCE_RELATIONSHIP_NAME_KEY, testSourceRelationship);
         map.put(ConnectionSchemaV1.SOURCE_NAME_KEY, testSourceName);
@@ -82,34 +82,34 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testName() {
-        ConnectionSchemaV1 schema = createSchema(0);
+        final ConnectionSchemaV1 schema = createSchema(0);
         assertEquals(testName, schema.getName());
         assertEquals(schema.getName(), schema.convert().getName());
     }
 
     @Test
     public void testNoName() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(CommonPropertyKeys.NAME_KEY);
-        ConnectionSchemaV1 schema = createSchema(map, 1);
+        final ConnectionSchemaV1 schema = createSchema(map, 1);
         assertNull(schema.getName());
         assertEquals("", schema.convert().getName());
     }
 
     @Test
     public void testSourceRelationShipName() {
-        ConnectionSchemaV1 schema = createSchema(0);
-        List<String> sourceRelationshipNames = schema.convert().getSourceRelationshipNames();
+        final ConnectionSchemaV1 schema = createSchema(0);
+        final List<String> sourceRelationshipNames = schema.convert().getSourceRelationshipNames();
         assertEquals(1, sourceRelationshipNames.size());
         assertEquals(testSourceRelationship, sourceRelationshipNames.get(0));
     }
 
     @Test
     public void testNoSourceRelationshipName() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchemaV1.SOURCE_RELATIONSHIP_NAME_KEY);
-        ConnectionSchemaV1 schema = createSchema(map, 1);
-        List<String> sourceRelationshipNames = schema.convert().getSourceRelationshipNames();
+        final ConnectionSchemaV1 schema = createSchema(map, 1);
+        final List<String> sourceRelationshipNames = schema.convert().getSourceRelationshipNames();
         assertEquals(0, sourceRelationshipNames.size());
     }
 
@@ -120,7 +120,7 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testNoDestinationName() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchemaV1.DESTINATION_NAME_KEY);
         assertNull(createSchema(map, 1).getDestinationName());
     }
@@ -132,7 +132,7 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testNoMaxWorkQueueSize() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY);
         assertEquals(ConnectionSchema.DEFAULT_MAX_WORK_QUEUE_SIZE, createSchema(map, 0).convert().getMaxWorkQueueSize());
     }
@@ -144,7 +144,7 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testNoMaxWorkQueueDataSize() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY);
         assertEquals(ConnectionSchema.DEFAULT_MAX_QUEUE_DATA_SIZE, createSchema(map, 0).convert().getMaxWorkQueueDataSize());
     }
@@ -156,7 +156,7 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testNoFlowFileExpiration() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchema.FLOWFILE_EXPIRATION__KEY);
         assertEquals(ConnectionSchema.DEFAULT_FLOWFILE_EXPIRATION, createSchema(map, 0).convert().getFlowfileExpiration());
     }
@@ -168,18 +168,18 @@ public class ConnectionSchemaV1Test {
 
     @Test
     public void testNoQueuePrioritizer() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(ConnectionSchema.QUEUE_PRIORITIZER_CLASS_KEY);
         assertEquals("", createSchema(map, 0).convert().getQueuePrioritizerClass());
     }
 
     @Test
     public void testConnectionGeneratedIds() {
-        List<Map<String, Object>> listWithKeyValues = getListWithKeyValues(CommonPropertyKeys.NAME_KEY, "test", "test", "test_2", "test", "test_2");
+        final List<Map<String, Object>> listWithKeyValues = getListWithKeyValues(CommonPropertyKeys.NAME_KEY, "test", "test", "test_2", "test", "test_2");
 
-        ConfigSchema configSchema = new ConfigSchemaV1(Collections.singletonMap(CommonPropertyKeys.CONNECTIONS_KEY, listWithKeyValues)).convert();
+        final ConfigSchema configSchema = new ConfigSchemaV1(Collections.singletonMap(CommonPropertyKeys.CONNECTIONS_KEY, listWithKeyValues)).convert();
         assertMessageDoesNotExist(configSchema, ConfigSchema.FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_IDS);
-        List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
+        final List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
         assertEquals(5, connections.size());
 
         // Generated unique ids

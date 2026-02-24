@@ -31,7 +31,7 @@ public class InstanceStatus implements java.io.Serializable {
         return instanceHealth;
     }
 
-    public void setInstanceHealth(InstanceHealth instanceHealth) {
+    public void setInstanceHealth(final InstanceHealth instanceHealth) {
         this.instanceHealth = instanceHealth;
     }
 
@@ -39,7 +39,7 @@ public class InstanceStatus implements java.io.Serializable {
         return bulletinList;
     }
 
-    public void setBulletinList(List<BulletinStatus> bulletinList) {
+    public void setBulletinList(final List<BulletinStatus> bulletinList) {
         this.bulletinList = bulletinList;
     }
 
@@ -47,12 +47,12 @@ public class InstanceStatus implements java.io.Serializable {
         return instanceStats;
     }
 
-    public void setInstanceStats(InstanceStats instanceStats) {
+    public void setInstanceStats(final InstanceStats instanceStats) {
         this.instanceStats = instanceStats;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -60,7 +60,7 @@ public class InstanceStatus implements java.io.Serializable {
             return false;
         }
 
-        InstanceStatus that = (InstanceStatus) o;
+        final InstanceStatus that = (InstanceStatus) o;
 
         if (getInstanceHealth() != null ? !getInstanceHealth().equals(that.getInstanceHealth()) : that.getInstanceHealth() != null) {
             return false;

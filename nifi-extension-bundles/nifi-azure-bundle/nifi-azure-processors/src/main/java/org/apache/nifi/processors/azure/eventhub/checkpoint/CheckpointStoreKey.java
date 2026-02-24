@@ -23,7 +23,7 @@ public enum CheckpointStoreKey {
 
     private final String key;
 
-    CheckpointStoreKey(String key) {
+    CheckpointStoreKey(final String key) {
         this.key = key;
     }
 

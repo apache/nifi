@@ -34,19 +34,19 @@ public class Metric {
     @SerializedName("CategoryName") private String categoryName;
     @SerializedName("Tags") private String tags;
 
-    public Metric(String instanceId, String processGroupId, String processGroupName) {
+    public Metric(final String instanceId, final String processGroupId, final String processGroupName) {
         this.computer = instanceId;
         this.processGroupName = processGroupName;
         this.processGroupId = processGroupId;
     }
 
-    public void setCount(long value) {
+    public void setCount(final long value) {
         this.count = (long) value;
     }
-    public void setCount(double value) {
+    public void setCount(final double value) {
         this.count = (long) value;
     }
-    public void setCount(int value) {
+    public void setCount(final int value) {
         this.count = (long) value;
     }
 
@@ -57,56 +57,56 @@ public class Metric {
     public String getComputer() {
         return computer;
     }
-    public void setCoumputer(String computer) {
+    public void setCoumputer(final String computer) {
         this.computer = computer;
     }
 
     public String getProcessGroupId() {
         return processGroupId;
     }
-    public void setProcessGroupId(String processGroupId) {
+    public void setProcessGroupId(final String processGroupId) {
         this.processGroupId = processGroupId;
     }
 
     public String getProcessGroupName() {
         return processGroupName;
     }
-    public void setProcessGroupName(String processGroupName) {
+    public void setProcessGroupName(final String processGroupName) {
         this.processGroupName = processGroupName;
     }
 
     public String getProcessorId() {
         return processorId;
     }
-    public void setProcessorId(String processorId) {
+    public void setProcessorId(final String processorId) {
         this.processorId = processorId;
     }
 
     public String getProcessorName() {
         return processorName;
     }
-    public void setProcessorName(String processorName) {
+    public void setProcessorName(final String processorName) {
         this.processorName = processorName;
     }
 
     public String getName() {
         return name;
     }
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
     public String getCategoryName() {
         return categoryName;
     }
-    public void setCategoryName(String categoryName) {
+    public void setCategoryName(final String categoryName) {
         this.categoryName = categoryName;
     }
 
     public String getTags() {
         return tags;
     }
-    public void setTags(String tags) {
+    public void setTags(final String tags) {
         this.tags = tags;
     }
 }

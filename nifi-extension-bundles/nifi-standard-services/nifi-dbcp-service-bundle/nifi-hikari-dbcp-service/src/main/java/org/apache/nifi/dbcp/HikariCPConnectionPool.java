@@ -259,7 +259,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         configureDataSource(context, dataSource);
     }
 
-    private long extractMillisWithInfinite(PropertyValue prop) {
+    private long extractMillisWithInfinite(final PropertyValue prop) {
         return "-1".equals(prop.getValue()) ? INFINITE_MILLISECONDS : prop.asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
@@ -294,7 +294,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         try {
             final Connection con;
             if (kerberosUser != null) {
-                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
+                final KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
@@ -312,7 +312,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
 
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
-        List<ConfigVerificationResult> results = new ArrayList<>();
+        final List<ConfigVerificationResult> results = new ArrayList<>();
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
         KerberosUser kerberosUser = null;
         try {
@@ -359,14 +359,14 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                         .build());
             }
         } catch (final Exception e) {
-            StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
+            final StringBuilder messageBuilder = new StringBuilder("Failed to configure Data Source.");
             verificationLogger.error(messageBuilder.toString(), e);
 
             final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
             final ResourceReferences driverResources = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
 
             if (StringUtils.isNotBlank(driverName) && driverResources.getCount() != 0) {
-                List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
+                final List<String> availableDrivers = DriverUtils.findDriverClassNames(driverResources);
                 if (!availableDrivers.isEmpty() && !availableDrivers.contains(driverName)) {
                     messageBuilder.append(" Driver class [%s] not found in provided resources. Available driver classes found: %s".formatted(driverName, String.join(", ", availableDrivers)));
                 } else if (e.getCause() instanceof ClassNotFoundException && availableDrivers.contains(driverName)) {
@@ -394,7 +394,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("hikaricp-connection-url", DATABASE_URL.getName());
         config.renameProperty("hikaricp-driver-classname", DB_DRIVERNAME.getName());
         config.renameProperty("hikaricp-driver-locations", DB_DRIVER_LOCATION.getName());
@@ -452,7 +452,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                 .filter(PropertyDescriptor::isDynamic)
                 .toList();
 
-        Properties properties = dataSource.getDataSourceProperties();
+        final Properties properties = dataSource.getDataSourceProperties();
         dynamicProperties.forEach((descriptor) -> {
             final PropertyValue propertyValue = context.getProperty(descriptor);
             if (descriptor.isSensitive()) {
@@ -470,7 +470,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         try {
             final Connection con;
             if (kerberosUser != null) {
-                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
+                final KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
@@ -482,7 +482,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                 try {
                     getLogger().info("Error getting connection, performing Kerberos re-login", e);
                     kerberosUser.login();
-                } catch (KerberosLoginException le) {
+                } catch (final KerberosLoginException le) {
                     throw new ProcessException("Unable to authenticate Kerberos principal", le);
                 }
             }
@@ -515,13 +515,13 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                 if (getConfigurationContext() != null) {
                     driverResources = getConfigurationContext().getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
                 }
-            } catch (Exception ignored) {
+            } catch (final Exception ignored) {
                 // Context might not be available, continue without it
             }
 
             final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? DriverUtils.discoverDriverClasses(driverResources) : List.of();
 
-            StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverClassName));
+            final StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverClassName));
 
             if (!availableDrivers.isEmpty()) {
                 errorMessage.append(" Available driver classes found in resources: %s.".formatted(String.join(", ", availableDrivers)));

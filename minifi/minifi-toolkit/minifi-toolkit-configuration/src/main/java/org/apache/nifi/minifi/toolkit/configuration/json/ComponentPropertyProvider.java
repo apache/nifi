@@ -58,20 +58,20 @@ public class ComponentPropertyProvider {
     private final Map<String, String> componentIdToParentIdMap;
     private final Map<String, ConnectableComponentType> componentTypeMap;
 
-    public ComponentPropertyProvider(ConfigSchema configSchema) {
+    public ComponentPropertyProvider(final ConfigSchema configSchema) {
         this.componentIdToParentIdMap = createComponentIdToParentIdMap(configSchema);
         this.componentTypeMap = createComponentTypeMap(configSchema);
     }
 
-    public String parentId(String componentId) {
+    public String parentId(final String componentId) {
         return componentIdToParentIdMap.get(componentId);
     }
 
-    public ConnectableComponentType connectableComponentType(String componentId) {
+    public ConnectableComponentType connectableComponentType(final String componentId) {
         return componentTypeMap.get(componentId);
     }
 
-    private Map<String, String> createComponentIdToParentIdMap(ConfigSchema configSchema) {
+    private Map<String, String> createComponentIdToParentIdMap(final ConfigSchema configSchema) {
         return concat(
             fetchControllerServicesProperties(configSchema.getProcessGroupSchema()),
             concat(
@@ -81,7 +81,7 @@ public class ComponentPropertyProvider {
             .collect(toMap(Pair::getLeft, Pair::getRight));
     }
 
-    private Map<String, ConnectableComponentType> createComponentTypeMap(ConfigSchema configSchema) {
+    private Map<String, ConnectableComponentType> createComponentTypeMap(final ConfigSchema configSchema) {
         return concat(
             fetchProcessGroupComponentProperties(configSchema.getProcessGroupSchema()),
             fetchRemoteProcessGroupComponentsProperties(configSchema.getProcessGroupSchema()))
@@ -89,7 +89,7 @@ public class ComponentPropertyProvider {
             .collect(toMap(Triple::getLeft, Triple::getRight));
     }
 
-    private Stream<Triple<String, String, ConnectableComponentType>> fetchProcessGroupComponentProperties(ProcessGroupSchema processGroupSchema) {
+    private Stream<Triple<String, String, ConnectableComponentType>> fetchProcessGroupComponentProperties(final ProcessGroupSchema processGroupSchema) {
         return
             concat(
                 concat(
@@ -111,15 +111,15 @@ public class ComponentPropertyProvider {
             );
     }
 
-    private Stream<Triple<String, String, ConnectableComponentType>> getProcessGroupComponentsProperties(ProcessGroupSchema processGroupSchema,
-                                                                                                         Function<ProcessGroupSchema, List<? extends BaseSchemaWithId>> schemaAccessor,
-                                                                                                         ConnectableComponentType componentType) {
+    private Stream<Triple<String, String, ConnectableComponentType>> getProcessGroupComponentsProperties(final ProcessGroupSchema processGroupSchema,
+                                                                                                         final Function<ProcessGroupSchema, List<? extends BaseSchemaWithId>> schemaAccessor,
+                                                                                                         final ConnectableComponentType componentType) {
         return ofNullable(schemaAccessor.apply(processGroupSchema)).orElse(List.of())
             .stream()
             .map(component -> Triple.of(component.getId(), processGroupSchema.getId(), componentType));
     }
 
-    private Stream<Triple<String, String, ConnectableComponentType>> fetchRemoteProcessGroupComponentsProperties(ProcessGroupSchema processGroupSchema) {
+    private Stream<Triple<String, String, ConnectableComponentType>> fetchRemoteProcessGroupComponentsProperties(final ProcessGroupSchema processGroupSchema) {
         return concat(
             concat(
                 // adding remote process groups to component property map
@@ -142,15 +142,16 @@ public class ComponentPropertyProvider {
         );
     }
 
-    private Stream<Triple<String, String, ConnectableComponentType>> getRemoteProcessGroupComponentsProperties(RemoteProcessGroupSchema remoteProcessGroupSchema,
-                                                                                                               Function<RemoteProcessGroupSchema, List<? extends BaseSchemaWithId>> schemaAccessor,
-                                                                                                               ConnectableComponentType componentType) {
+    private Stream<Triple<String, String, ConnectableComponentType>> getRemoteProcessGroupComponentsProperties(
+            final RemoteProcessGroupSchema remoteProcessGroupSchema,
+            final Function<RemoteProcessGroupSchema, List<? extends BaseSchemaWithId>> schemaAccessor,
+            final ConnectableComponentType componentType) {
         return ofNullable(schemaAccessor.apply(remoteProcessGroupSchema)).orElse(List.of())
             .stream()
             .map(component -> Triple.of(component.getId(), remoteProcessGroupSchema.getId(), componentType));
     }
 
-    private Stream<Pair<String, String>> fetchControllerServicesProperties(ProcessGroupSchema processGroupSchema) {
+    private Stream<Pair<String, String>> fetchControllerServicesProperties(final ProcessGroupSchema processGroupSchema) {
         return concat(
             // adding controller services id and parent id for this process group
             ofNullable(processGroupSchema.getControllerServices()).orElse(List.of())

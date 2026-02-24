@@ -38,8 +38,8 @@ public class FlowRegistryClientInitializer implements ConfigurableComponentIniti
 
     @Override
     public void initialize(final ConfigurableComponent component) throws InitializationException {
-        FlowRegistryClient flowRegistryClient = (FlowRegistryClient) component;
-        FlowRegistryClientInitializationContext context = new MockFlowRegistryClientInitializationContext();
+        final FlowRegistryClient flowRegistryClient = (FlowRegistryClient) component;
+        final FlowRegistryClientInitializationContext context = new MockFlowRegistryClientInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             flowRegistryClient.initialize(context);
         }

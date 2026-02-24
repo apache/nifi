@@ -89,7 +89,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validateNotValidForNonExistingLibPath() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
@@ -103,7 +103,7 @@ public class JMSConnectionFactoryProviderTest {
     public void validateELExpression() throws InitializationException {
         runner.setValidateExpressionUsage(true);
 
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setEnvironmentVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
@@ -120,7 +120,7 @@ public class JMSConnectionFactoryProviderTest {
     public void testClientLibResourcesLoaded() throws InitializationException {
         runner.setValidateExpressionUsage(true);
 
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setEnvironmentVariableValue("broker.uri", SINGLE_TEST_BROKER_WITH_SCHEME_AND_IP);
@@ -132,7 +132,7 @@ public class JMSConnectionFactoryProviderTest {
 
         runner.assertValid(cfProvider);
 
-        ClassLoader loader = runner.getClass().getClassLoader();
+        final ClassLoader loader = runner.getClass().getClassLoader();
         assertNotNull(loader.getResource(DUMMY_CONF));
         assertNotNull(loader.getResource(DUMMY_JAR_1));
         assertNotNull(loader.getResource(DUMMY_JAR_2));
@@ -140,7 +140,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validateGetConnectionFactoryFailureIfServiceNotConfigured() {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider() {
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider() {
             @Override
             protected ComponentLog getLogger() {
                 return new MockComponentLog("cfProvider", this);
@@ -152,7 +152,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleTestBroker() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
@@ -164,7 +164,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleTestBrokerWithScheme() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
@@ -176,7 +176,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleTestBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TEST_BROKERS);
@@ -188,7 +188,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleActiveMqBroker() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
@@ -200,7 +200,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleActiveMqBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
@@ -212,7 +212,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleTibcoBroker() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TIBCO_BROKER);
@@ -224,7 +224,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleTibcoBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TIBCO_BROKERS);
@@ -236,7 +236,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleIbmMqBroker() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_IBM_MQ_BROKER);
@@ -248,7 +248,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleIbmMqBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
@@ -260,7 +260,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleIbmMqMixedBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
@@ -272,7 +272,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithMultipleIbmMqColorPairBrokers() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
@@ -284,7 +284,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validWithSingleQpidJmsBroker() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_QPID_JMS_BROKER);
@@ -296,7 +296,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleTestBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
@@ -310,7 +310,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleTestBrokerWithSchemaConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER_WITH_SCHEME);
@@ -324,7 +324,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleTestBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TEST_BROKERS);
@@ -338,7 +338,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleActiveMqBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
@@ -352,7 +352,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleActiveMqBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_ACTIVEMQ_BROKERS);
@@ -366,22 +366,22 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleActiveMqBrokerWithSslConnectionFactory() throws Exception {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ACTIVEMQ_BROKER);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ACTIVEMQ_CONNECTION_FACTORY_IMPL);
 
-        String trustStoreFile = "/path/to/truststore";
-        String trustStorePassword = "truststore_password";
-        String trustStoreType = "JKS";
-        String keyStoreFile = "/path/to/keystore";
-        String keyStorePassword = "keystore_password";
-        String keyPassword = "key_password";
-        String keyStoreType = "PKCS12";
+        final String trustStoreFile = "/path/to/truststore";
+        final String trustStorePassword = "truststore_password";
+        final String trustStoreType = "JKS";
+        final String keyStoreFile = "/path/to/keystore";
+        final String keyStorePassword = "keystore_password";
+        final String keyPassword = "key_password";
+        final String keyStoreType = "PKCS12";
 
-        SSLContextService sslContextService = mock(SSLContextService.class);
+        final SSLContextService sslContextService = mock(SSLContextService.class);
         when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
         when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
         when(sslContextService.getTrustStoreFile()).thenReturn(trustStoreFile);
@@ -413,7 +413,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleTibcoBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TIBCO_BROKER);
@@ -427,7 +427,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleTibcoBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_TIBCO_BROKERS);
@@ -441,7 +441,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleIbmMqBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_IBM_MQ_BROKER);
@@ -455,7 +455,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleIbmMqBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_BROKERS);
@@ -469,7 +469,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleIbmMqMixedBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_MIXED_BROKERS);
@@ -483,7 +483,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnMultipleIbmMqColonPairBrokersConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, MULTIPLE_IBM_MQ_COLON_PAIR_BROKERS);
@@ -497,7 +497,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleIbmMqColonSeparatedPairBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_TEST_BROKER);
@@ -511,7 +511,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void dynamicPropertiesSetOnSingleTestBrokerConnectionFactory() throws InitializationException {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setEnvironmentVariableValue("test", "dynamicValue");
@@ -528,7 +528,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleQpidJmsConnectionFactory() throws Exception {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_QPID_JMS_BROKER);
@@ -542,15 +542,15 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void propertiesSetOnSingleQpidJmsWithSslConnectionFactory() throws Exception {
-        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
         runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
 
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_QPID_JMS_BROKER);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, QPID_JMS_CONNECTION_FACTORY_IMPL);
 
-        SSLContext sslContext = SSLContext.getDefault();
-        SSLContextService sslContextService = mock(SSLContextService.class);
+        final SSLContext sslContext = SSLContext.getDefault();
+        final SSLContextService sslContextService = mock(SSLContextService.class);
         when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
         when(sslContextService.createContext()).thenReturn(sslContext);
 

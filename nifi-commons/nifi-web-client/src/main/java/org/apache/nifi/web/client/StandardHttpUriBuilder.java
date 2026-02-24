@@ -96,7 +96,7 @@ public class StandardHttpUriBuilder implements HttpUriBuilder {
     }
 
     @Override
-    public HttpUriBuilder port(int port) {
+    public HttpUriBuilder port(final int port) {
         if (port < UNKNOWN_PORT || port > MAXIMUM_PORT) {
             throw new IllegalArgumentException("Port [%d] not valid".formatted(port));
         }

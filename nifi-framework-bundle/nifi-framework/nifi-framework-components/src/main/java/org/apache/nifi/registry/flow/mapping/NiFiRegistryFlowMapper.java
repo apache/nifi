@@ -916,7 +916,7 @@ public class NiFiRegistryFlowMapper {
         parameterContexts.put(versionedContext.getName(), versionedContext);
     }
 
-    private Set<VersionedParameter> mapParameters(ParameterContext parameterContext) {
+    private Set<VersionedParameter> mapParameters(final ParameterContext parameterContext) {
         final Set<VersionedParameter> parameters = parameterContext.getParameters().entrySet().stream()
                 .map(descriptorAndParameter -> mapParameter(
                     parameterContext,
@@ -927,11 +927,11 @@ public class NiFiRegistryFlowMapper {
         return parameters;
     }
 
-    private VersionedParameter mapParameter(ParameterContext parameterContext, ParameterDescriptor parameterDescriptor, Parameter parameter) {
-        VersionedParameter versionedParameter;
+    private VersionedParameter mapParameter(final ParameterContext parameterContext, final ParameterDescriptor parameterDescriptor, final Parameter parameter) {
+        final VersionedParameter versionedParameter;
 
         if (this.flowMappingOptions.isMapControllerServiceReferencesToVersionedId()) {
-            List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
+            final List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
                 .getParameterReferenceManager()
                 .getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName());
 

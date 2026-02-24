@@ -45,7 +45,7 @@ public class FileHeaderTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
+        final TestBinaryReaderBuilder testBinaryReaderBuilder = new TestBinaryReaderBuilder();
         testBinaryReaderBuilder.putString(FileHeader.ELF_FILE);
         testBinaryReaderBuilder.putQWord(oldestChunk);
         testBinaryReaderBuilder.putQWord(currentChunkNumber);
@@ -55,12 +55,12 @@ public class FileHeaderTest {
         testBinaryReaderBuilder.putWord(majorVersion);
         testBinaryReaderBuilder.putWord(headerChunkSize);
         testBinaryReaderBuilder.putWord(chunkCount);
-        byte[] unused = new byte[75];
+        final byte[] unused = new byte[75];
         random.nextBytes(unused);
         testBinaryReaderBuilder.put(unused);
         testBinaryReaderBuilder.put((byte) 0);
 
-        CRC32 crc32 = new CRC32();
+        final CRC32 crc32 = new CRC32();
         crc32.update(testBinaryReaderBuilder.toByteArray());
 
         testBinaryReaderBuilder.putDWord(flags);

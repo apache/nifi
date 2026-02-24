@@ -116,7 +116,7 @@ class VerifyContentMACTest {
 
     @ParameterizedTest(name = "macAlgorithm={0} secretKeyEncoding={1} secretKey={2} inputMac={3}")
     @MethodSource("invalidConstructorArguments")
-    void testFlowFileTransferredToSuccessWhenMacMatch(String macAlgorithm, Encoding secretKeyEncoding, String secretKey, String inputMac, Encoding macEncoding) {
+    void testFlowFileTransferredToSuccessWhenMacMatch(final String macAlgorithm, final Encoding secretKeyEncoding, final String secretKey, final String inputMac, final Encoding macEncoding) {
         runner.setProperty(VerifyContentMAC.MAC_ALGORITHM, macAlgorithm);
         runner.setProperty(VerifyContentMAC.SECRET_KEY, secretKey);
         runner.setProperty(VerifyContentMAC.SECRET_KEY_ENCODING, secretKeyEncoding.name());
@@ -128,7 +128,7 @@ class VerifyContentMACTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(SUCCESS);
-        Map<String, String> expectedAttributes = new HashMap<>();
+        final Map<String, String> expectedAttributes = new HashMap<>();
         expectedAttributes.put(MAC_CALCULATED_ATTRIBUTE, inputMac);
         expectedAttributes.put(MAC_ALGORITHM_ATTRIBUTE, macAlgorithm);
         expectedAttributes.put(MAC_ENCODING_ATTRIBUTE, macEncoding.name());

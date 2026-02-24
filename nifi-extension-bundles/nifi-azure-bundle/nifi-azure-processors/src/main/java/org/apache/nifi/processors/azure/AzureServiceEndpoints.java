@@ -26,11 +26,11 @@ public class AzureServiceEndpoints {
     private AzureServiceEndpoints() {
     }
 
-    public static String getAzureBlobStorageEndpoint(String accountName, String endpointSuffix) {
+    public static String getAzureBlobStorageEndpoint(final String accountName, final String endpointSuffix) {
         return String.format("https://%s.%s", accountName, endpointSuffix != null ? endpointSuffix : DEFAULT_BLOB_ENDPOINT_SUFFIX);
     }
 
-    public static String getAzureDataLakeStorageEndpoint(String accountName, String endpointSuffix) {
+    public static String getAzureDataLakeStorageEndpoint(final String accountName, final String endpointSuffix) {
         return String.format("https://%s.%s", accountName, endpointSuffix != null ? endpointSuffix : DEFAULT_ADLS_ENDPOINT_SUFFIX);
     }
 }

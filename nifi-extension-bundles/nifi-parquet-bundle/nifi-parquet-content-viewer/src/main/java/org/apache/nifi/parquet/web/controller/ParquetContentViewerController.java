@@ -151,7 +151,7 @@ public class ParquetContentViewerController extends HttpServlet {
             }
             case Collection<?> coll -> {
                 final List<Object> list = new ArrayList<>();
-                for (Object elem : coll) {
+                for (final Object elem : coll) {
                     list.add(recordToMap(elem));
                 }
                 return list;
@@ -174,7 +174,7 @@ public class ParquetContentViewerController extends HttpServlet {
             long totalRead = 0;
 
             while (totalRead < MAX_CONTENT_SIZE) {
-                int bytesRead = inputStream.read(buffer, 0, BUFFER_SIZE);
+                final int bytesRead = inputStream.read(buffer, 0, BUFFER_SIZE);
                 if (bytesRead == -1) {
                     break;
                 }

@@ -195,7 +195,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             }
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to create file on Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -203,7 +203,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
         config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
@@ -256,7 +256,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
             // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
             // if there are more available bytes in the stream after reading the chunk
-            BoundedInputStream boundedIn = BoundedInputStream.builder()
+            final BoundedInputStream boundedIn = BoundedInputStream.builder()
                     .setInputStream(in)
                     .setMaxCount(chunkSize)
                     .get();
@@ -279,13 +279,13 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
      * @return the file client of the uploaded file or {@code null} if the file already exists and conflict resolution strategy is 'ignore'
      * @throws ProcessException if the file already exists and the conflict resolution strategy is 'fail'; also in case of other errors
      */
-    private DataLakeFileClient createFile(DataLakeDirectoryClient directoryClient, final String fileName, final String conflictResolution) {
+    private DataLakeFileClient createFile(final DataLakeDirectoryClient directoryClient, final String fileName, final String conflictResolution) {
         final String destinationPath = createPath(directoryClient.getDirectoryPath(), fileName);
 
         try {
             final boolean overwrite = conflictResolution.equals(REPLACE_RESOLUTION);
             return directoryClient.createFile(fileName, overwrite);
-        } catch (DataLakeStorageException dataLakeStorageException) {
+        } catch (final DataLakeStorageException dataLakeStorageException) {
             return handleDataLakeStorageException(dataLakeStorageException, destinationPath, conflictResolution);
         }
     }
@@ -313,7 +313,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 destinationCondition.setIfNoneMatch("*");
             }
             return sourceFileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
-        } catch (DataLakeStorageException dataLakeStorageException) {
+        } catch (final DataLakeStorageException dataLakeStorageException) {
             removeFile(sourceFileClient);
 
             return handleDataLakeStorageException(dataLakeStorageException, destinationPath, conflictResolution);
@@ -342,7 +342,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     private void removeFile(final DataLakeFileClient fileClient) {
         try {
             fileClient.delete();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), e);
         }
     }

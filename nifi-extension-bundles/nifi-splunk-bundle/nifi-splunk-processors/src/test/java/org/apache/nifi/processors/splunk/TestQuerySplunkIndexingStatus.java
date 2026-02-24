@@ -61,13 +61,13 @@ public class TestQuerySplunkIndexingStatus {
     private ArgumentCaptor<RequestMessage> request;
 
     public void setUpMocks() {
-        MockedQuerySplunkIndexingStatus processor = new MockedQuerySplunkIndexingStatus(service);
+        final MockedQuerySplunkIndexingStatus processor = new MockedQuerySplunkIndexingStatus(service);
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(SplunkAPICall.SCHEME, "http");
         testRunner.setProperty(SplunkAPICall.TOKEN, "Splunk 888c5a81-8777-49a0-a3af-f76e050ab5d9");
         testRunner.setProperty(SplunkAPICall.REQUEST_CHANNEL, "22bd7414-0d77-4c73-936d-c8f5d1b21862");
 
-        ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
         request = ArgumentCaptor.forClass(RequestMessage.class);
         Mockito.when(service.send(path.capture(), request.capture())).thenReturn(response);
     }
@@ -147,7 +147,7 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(QuerySplunkIndexingStatus.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(QuerySplunkIndexingStatus.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("ttl", QuerySplunkIndexingStatus.TTL.getName()),
                 Map.entry("max-query-size", QuerySplunkIndexingStatus.MAX_QUERY_SIZE.getName()),
@@ -161,7 +161,7 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     private void givenSplunkReturns(final Map<Integer, Boolean> acks) {
-        String responseContent = "{\"acks\":{" +
+        final String responseContent = "{\"acks\":{" +
                 acks.entrySet().stream().map(e -> "\"" + e.getKey() + "\": " + e.getValue()).collect(Collectors.joining(", ")) +
                 "}}";
 
@@ -177,7 +177,7 @@ public class TestQuerySplunkIndexingStatus {
     private MockFlowFile givenFlowFile(final int ackId, final long sentAt) {
         final MockFlowFile result = new MockFlowFile(ackId);
         result.setData(EVENT.getBytes(StandardCharsets.UTF_8));
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("splunk.acknowledgement.id", String.valueOf(ackId));
         attributes.put("splunk.responded.at", String.valueOf(sentAt));
         result.putAttributes(attributes);

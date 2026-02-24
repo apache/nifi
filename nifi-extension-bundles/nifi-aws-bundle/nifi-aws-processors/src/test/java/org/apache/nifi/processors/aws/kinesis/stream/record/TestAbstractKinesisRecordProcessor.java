@@ -73,7 +73,7 @@ public class TestAbstractKinesisRecordProcessor {
         fixture = new AbstractKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
                 "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER, NOOP_RECORD_PROCESSOR_BLOCKER) {
             @Override
-            void processRecord(KinesisClientRecord kinesisRecord, BatchProcessingContext batchProcessingContext) {
+            void processRecord(final KinesisClientRecord kinesisRecord, final BatchProcessingContext batchProcessingContext) {
                 // intentionally blank
             }
         };

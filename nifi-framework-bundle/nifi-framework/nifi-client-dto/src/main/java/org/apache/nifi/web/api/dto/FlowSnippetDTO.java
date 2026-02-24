@@ -54,7 +54,7 @@ public class FlowSnippetDTO {
         this(false);
     }
 
-    public FlowSnippetDTO(boolean newTemplate) {
+    public FlowSnippetDTO(final boolean newTemplate) {
         this.newTemplate = newTemplate;
     }
     /**
@@ -66,7 +66,7 @@ public class FlowSnippetDTO {
         return connections;
     }
 
-    public void setConnections(Set<ConnectionDTO> connections) {
+    public void setConnections(final Set<ConnectionDTO> connections) {
         this.removeInstanceIdentifierIfNecessary(connections);
         this.connections = this.orderedById(connections);
     }
@@ -80,7 +80,7 @@ public class FlowSnippetDTO {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<PortDTO> inputPorts) {
+    public void setInputPorts(final Set<PortDTO> inputPorts) {
         this.removeInstanceIdentifierIfNecessary(inputPorts);
         this.inputPorts = this.orderedById(inputPorts);
     }
@@ -94,7 +94,7 @@ public class FlowSnippetDTO {
         return labels;
     }
 
-    public void setLabels(Set<LabelDTO> labels) {
+    public void setLabels(final Set<LabelDTO> labels) {
         this.removeInstanceIdentifierIfNecessary(labels);
         this.labels = this.orderedById(labels);
     }
@@ -108,7 +108,7 @@ public class FlowSnippetDTO {
         return funnels;
     }
 
-    public void setFunnels(Set<FunnelDTO> funnels) {
+    public void setFunnels(final Set<FunnelDTO> funnels) {
         this.removeInstanceIdentifierIfNecessary(funnels);
         this.funnels = this.orderedById(funnels);
     }
@@ -122,7 +122,7 @@ public class FlowSnippetDTO {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<PortDTO> outputPorts) {
+    public void setOutputPorts(final Set<PortDTO> outputPorts) {
         this.removeInstanceIdentifierIfNecessary(outputPorts);
         this.outputPorts = this.orderedById(outputPorts);
     }
@@ -136,7 +136,7 @@ public class FlowSnippetDTO {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<ProcessGroupDTO> processGroups) {
+    public void setProcessGroups(final Set<ProcessGroupDTO> processGroups) {
         this.removeInstanceIdentifierIfNecessary(processGroups);
         this.processGroups = this.orderedById(processGroups);
     }
@@ -150,7 +150,7 @@ public class FlowSnippetDTO {
         return processors;
     }
 
-    public void setProcessors(Set<ProcessorDTO> processors) {
+    public void setProcessors(final Set<ProcessorDTO> processors) {
         this.removeInstanceIdentifierIfNecessary(processors);
         this.processors = this.orderedById(processors);
     }
@@ -164,7 +164,7 @@ public class FlowSnippetDTO {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Set<RemoteProcessGroupDTO> remoteProcessGroups) {
         this.removeInstanceIdentifierIfNecessary(remoteProcessGroups);
         this.remoteProcessGroups = this.orderedById(remoteProcessGroups);
     }
@@ -178,18 +178,18 @@ public class FlowSnippetDTO {
         return controllerServices;
     }
 
-    public void setControllerServices(Set<ControllerServiceDTO> controllerServices) {
+    public void setControllerServices(final Set<ControllerServiceDTO> controllerServices) {
         this.removeInstanceIdentifierIfNecessary(controllerServices);
         this.controllerServices = this.orderedById(controllerServices);
     }
 
-    private <T extends ComponentDTO> Set<T> orderedById(Set<T> dtos) {
-        Set<T> components = new TreeSet<>(Comparator.comparing(ComponentDTO::getId));
+    private <T extends ComponentDTO> Set<T> orderedById(final Set<T> dtos) {
+        final Set<T> components = new TreeSet<>(Comparator.comparing(ComponentDTO::getId));
         components.addAll(dtos);
         return components;
     }
 
-    private long generateMsb(String id) {
+    private long generateMsb(final String id) {
         final UUID temp;
         if (convertedUuids.contains(id)) {
             temp = UUID.fromString(id);
@@ -202,40 +202,40 @@ public class FlowSnippetDTO {
         return temp.getMostSignificantBits();
     }
 
-    private void removeInstanceIdentifierIfNecessary(Set<? extends ComponentDTO> componentDtos) {
+    private void removeInstanceIdentifierIfNecessary(final Set<? extends ComponentDTO> componentDtos) {
         if (this.newTemplate) {
-            for (ComponentDTO componentDto : componentDtos) {
+            for (final ComponentDTO componentDto : componentDtos) {
                 UUID id = new UUID(this.generateMsb(componentDto.getId()), LSB);
                 componentDto.setId(id.toString());
 
                 id = new UUID(this.generateMsb(componentDto.getParentGroupId()), LSB);
                 componentDto.setParentGroupId(id.toString());
                 if (componentDto instanceof ControllerServiceDTO) {
-                    ControllerServiceDTO csDTO = (ControllerServiceDTO) componentDto;
-                    Map<String, PropertyDescriptorDTO> map = csDTO.getDescriptors();
-                    Map<String, String> props = csDTO.getProperties();
-                    for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
+                    final ControllerServiceDTO csDTO = (ControllerServiceDTO) componentDto;
+                    final Map<String, PropertyDescriptorDTO> map = csDTO.getDescriptors();
+                    final Map<String, String> props = csDTO.getProperties();
+                    for (final Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
                         if (entry.getValue().getIdentifiesControllerService() != null && props.get(entry.getKey()) != null) {
-                            String key = entry.getKey();
-                            String value = props.get(key);
+                            final String key = entry.getKey();
+                            final String value = props.get(key);
                             id = new UUID(this.generateMsb(value), LSB);
                             props.put(key, id.toString());
                         }
                     }
                 } else if (componentDto instanceof ProcessorDTO) {
-                    ProcessorDTO processorDTO = (ProcessorDTO) componentDto;
-                    Map<String, PropertyDescriptorDTO> map = processorDTO.getConfig().getDescriptors();
-                    Map<String, String> props = processorDTO.getConfig().getProperties();
-                    for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
+                    final ProcessorDTO processorDTO = (ProcessorDTO) componentDto;
+                    final Map<String, PropertyDescriptorDTO> map = processorDTO.getConfig().getDescriptors();
+                    final Map<String, String> props = processorDTO.getConfig().getProperties();
+                    for (final Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
                         if (entry.getValue().getIdentifiesControllerService() != null && props.get(entry.getKey()) != null) {
-                            String key = entry.getKey();
-                            String value = props.get(key);
+                            final String key = entry.getKey();
+                            final String value = props.get(key);
                             id = new UUID(this.generateMsb(value), LSB);
                             props.put(key, id.toString());
                         }
                     }
                 } else if (componentDto instanceof ConnectionDTO) {
-                    ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
+                    final ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
 
                     ConnectableDTO cdto = connectionDTO.getSource();
                     if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
@@ -255,7 +255,7 @@ public class FlowSnippetDTO {
                     id = new UUID(this.generateMsb(cdto.getGroupId()), LSB);
                     cdto.setGroupId(id.toString());
                 } else if (componentDto instanceof ProcessGroupDTO) {
-                    FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();
+                    final FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();
 
                     this.removeInstanceIdentifierIfNecessary(fsDTO.getConnections());
                     fsDTO.connections = this.orderedById(fsDTO.getConnections());
@@ -284,7 +284,7 @@ public class FlowSnippetDTO {
                     this.removeInstanceIdentifierIfNecessary(fsDTO.getRemoteProcessGroups());
                     fsDTO.remoteProcessGroups = this.orderedById(fsDTO.getRemoteProcessGroups());
                 } else if (componentDto instanceof RemoteProcessGroupDTO) {
-                    RemoteProcessGroupContentsDTO contentsDTO = ((RemoteProcessGroupDTO) componentDto).getContents();
+                    final RemoteProcessGroupContentsDTO contentsDTO = ((RemoteProcessGroupDTO) componentDto).getContents();
                     contentsDTO.setInputPorts(this.orderedRemotePortsById(contentsDTO.getInputPorts()));
                     contentsDTO.setOutputPorts(this.orderedRemotePortsById(contentsDTO.getOutputPorts()));
                 }
@@ -292,8 +292,8 @@ public class FlowSnippetDTO {
         }
     }
 
-    private <T extends RemoteProcessGroupPortDTO> Set<T> orderedRemotePortsById(Set<T> dtos) {
-        Set<T> components = new TreeSet<>(Comparator.comparing((RemoteProcessGroupPortDTO c) -> UUID.fromString(c.getId())));
+    private <T extends RemoteProcessGroupPortDTO> Set<T> orderedRemotePortsById(final Set<T> dtos) {
+        final Set<T> components = new TreeSet<>(Comparator.comparing((RemoteProcessGroupPortDTO c) -> UUID.fromString(c.getId())));
         components.addAll(dtos);
         return components;
     }

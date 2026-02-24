@@ -153,7 +153,7 @@ public class TestFlowContentSerializer {
             try {
                 serializer.readDataModelVersion(is);
                 fail("Should fail");
-            } catch (SerializationException e) {
+            } catch (final SerializationException e) {
                 assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
             }
         }
@@ -166,7 +166,7 @@ public class TestFlowContentSerializer {
             try {
                 serializer.readDataModelVersion(is);
                 fail("Should fail");
-            } catch (SerializationException e) {
+            } catch (final SerializationException e) {
                 assertEquals("Unable to read the data model version for the flow content.", e.getMessage());
             }
         }
@@ -250,14 +250,14 @@ public class TestFlowContentSerializer {
             try {
                 serializer.deserializeFlowContent(version, is);
                 fail("Should fail");
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 assertEquals("No FlowContent serializer exists for data model version: " + version, e.getMessage());
             }
 
             try {
                 serializer.deserializeProcessGroup(version, is);
                 fail("Should fail");
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 assertEquals("No VersionedProcessGroup serializer exists for data model version: " + version, e.getMessage());
             }
         }

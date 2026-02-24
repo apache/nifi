@@ -530,7 +530,7 @@ public class TestControlRate {
     private void createFlowFile(final TestRunner runner, final int value) {
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("count", String.valueOf(value));
-        byte[] data = "0123456789".getBytes();
+        final byte[] data = "0123456789".getBytes();
         runner.enqueue(data, attributeMap);
     }
     private void createFlowFileWithGroup(final TestRunner runner, final String group) {

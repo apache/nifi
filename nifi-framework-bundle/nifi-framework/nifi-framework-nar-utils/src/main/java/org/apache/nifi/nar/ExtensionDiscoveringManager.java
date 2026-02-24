@@ -43,7 +43,7 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
      *
      * @param narBundles the bundles to use for discovering extensions
      */
-    default void discoverExtensions(Set<Bundle> narBundles) {
+    default void discoverExtensions(final Set<Bundle> narBundles) {
         discoverExtensions(narBundles, true);
     }
 

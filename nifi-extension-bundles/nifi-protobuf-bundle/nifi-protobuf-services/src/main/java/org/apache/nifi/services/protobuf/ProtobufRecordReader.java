@@ -33,7 +33,7 @@ public class ProtobufRecordReader implements RecordReader {
     private RecordSchema recordSchema;
     private boolean inputProcessed;
 
-    public ProtobufRecordReader(Schema protoSchema, String messageType, InputStream inputStream, RecordSchema recordSchema) {
+    public ProtobufRecordReader(final Schema protoSchema, final String messageType, final InputStream inputStream, final RecordSchema recordSchema) {
         this.protoSchema = protoSchema;
         this.messageType = messageType;
         this.inputStream = inputStream;
@@ -41,7 +41,7 @@ public class ProtobufRecordReader implements RecordReader {
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException {
         if (!inputProcessed) {
             final ProtobufDataConverter dataConverter = new ProtobufDataConverter(protoSchema, messageType, recordSchema, coerceTypes, dropUnknownFields);
             final Record record = dataConverter.createRecord(inputStream);

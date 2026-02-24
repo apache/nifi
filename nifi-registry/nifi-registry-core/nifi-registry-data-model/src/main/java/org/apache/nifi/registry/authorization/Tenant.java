@@ -39,7 +39,7 @@ public class Tenant implements RevisableEntity {
 
     public Tenant() { }
 
-    public Tenant(String identifier, String identity) {
+    public Tenant(final String identifier, final String identity) {
         this.identifier = identifier;
         this.identity = identity;
     }
@@ -56,7 +56,7 @@ public class Tenant implements RevisableEntity {
     }
 
     @Override
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -70,7 +70,7 @@ public class Tenant implements RevisableEntity {
         return identity;
     }
 
-    public void setIdentity(String identity) {
+    public void setIdentity(final String identity) {
         this.identity = identity;
     }
 
@@ -81,7 +81,7 @@ public class Tenant implements RevisableEntity {
         return configurable;
     }
 
-    public void setConfigurable(Boolean configurable) {
+    public void setConfigurable(final Boolean configurable) {
         this.configurable = configurable;
     }
 
@@ -93,7 +93,7 @@ public class Tenant implements RevisableEntity {
         return resourcePermissions;
     }
 
-    public void setResourcePermissions(ResourcePermissions resourcePermissions) {
+    public void setResourcePermissions(final ResourcePermissions resourcePermissions) {
         this.resourcePermissions = resourcePermissions;
     }
 
@@ -105,11 +105,11 @@ public class Tenant implements RevisableEntity {
         return accessPolicies;
     }
 
-    public void setAccessPolicies(Set<AccessPolicySummary> accessPolicies) {
+    public void setAccessPolicies(final Set<AccessPolicySummary> accessPolicies) {
         this.accessPolicies = accessPolicies;
     }
 
-    public void addAccessPolicies(Collection<AccessPolicySummary> accessPolicies) {
+    public void addAccessPolicies(final Collection<AccessPolicySummary> accessPolicies) {
         if (accessPolicies != null) {
             if (this.accessPolicies == null) {
                 this.accessPolicies = new HashSet<>();
@@ -128,7 +128,7 @@ public class Tenant implements RevisableEntity {
     }
 
     @Override
-    public void setRevision(RevisionInfo revision) {
+    public void setRevision(final RevisionInfo revision) {
         this.revision = revision;
     }
 }

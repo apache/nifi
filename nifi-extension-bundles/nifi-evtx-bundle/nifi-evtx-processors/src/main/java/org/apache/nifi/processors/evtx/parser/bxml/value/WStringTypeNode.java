@@ -29,12 +29,12 @@ import java.io.IOException;
 public class WStringTypeNode extends VariantTypeNode {
     private final String value;
 
-    public WStringTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public WStringTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         if (length >= 0) {
             value = binaryReader.readWString(length / 2);
         } else {
-            int characters = binaryReader.readWord();
+            final int characters = binaryReader.readWord();
             value = binaryReader.readWString(characters);
         }
     }

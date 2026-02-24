@@ -35,7 +35,7 @@ public class ProxyAwareC2ProviderTest {
 
     @MethodSource("testInsufficientProviderConstructorArguments")
     @ParameterizedTest(name = "{index} => c2RestApi={0}, c2RestPathHeartbeat={1}, c2RestPathAcknowledge={2}")
-    public void testExceptionIsThrownWhenUrlsCanNotBeCreatedFromInputParameters(String c2RestApi, String c2RestPathHeartbeat, String c2RestPathAcknowledge) {
+    public void testExceptionIsThrownWhenUrlsCanNotBeCreatedFromInputParameters(final String c2RestApi, final String c2RestPathHeartbeat, final String c2RestPathAcknowledge) {
         assertThrowsExactly(IllegalArgumentException.class, () -> new ProxyAwareC2UrlProvider(c2RestApi, c2RestPathHeartbeat, c2RestPathAcknowledge));
     }
 
@@ -60,17 +60,17 @@ public class ProxyAwareC2ProviderTest {
 
     @MethodSource("testValidProviderConstructorArguments")
     @ParameterizedTest(name = "{index} => c2RestApi={0}, c2RestPathHeartbeat={1}, c2RestPathAcknowledge={2}, expectedHeartbeatUrl={3}, expectedAcknowledgeUrl={4}")
-    public void testUrlProviderIsCreatedAndHeartbeatAndAcknowledgeUrlsAreReturnedCorrectly(String c2RestApi, String c2RestPathHeartbeat, String c2RestPathAcknowledge,
-                                                                                           String expectedHeartbeatUrl, String expectedAcknowledgeUrl) {
-        ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestApi, c2RestPathHeartbeat, c2RestPathAcknowledge);
+    public void testUrlProviderIsCreatedAndHeartbeatAndAcknowledgeUrlsAreReturnedCorrectly(final String c2RestApi, final String c2RestPathHeartbeat, final String c2RestPathAcknowledge,
+                                                                                           final String expectedHeartbeatUrl, final String expectedAcknowledgeUrl) {
+        final ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestApi, c2RestPathHeartbeat, c2RestPathAcknowledge);
 
         assertEquals(expectedHeartbeatUrl, testProvider.getHeartbeatUrl());
         assertEquals(expectedAcknowledgeUrl, testProvider.getAcknowledgeUrl());
     }
 
     private static Stream<Arguments> testValidProviderConstructorArguments() {
-        String expectedHearbeatUrl = "http://c2/api/path1";
-        String expectedAckUrl = "http://c2/api/path2";
+        final String expectedHearbeatUrl = "http://c2/api/path1";
+        final String expectedAckUrl = "http://c2/api/path2";
         return Stream.of(
             Arguments.of("http://c2/api", "path1", "path2", expectedHearbeatUrl, expectedAckUrl),
             Arguments.of("http://c2/api", "/path1", "path2", expectedHearbeatUrl, expectedAckUrl),
@@ -85,23 +85,23 @@ public class ProxyAwareC2ProviderTest {
 
     @MethodSource("testCallbackUrlProvidedArguments")
     @ParameterizedTest(name = "{index} => c2RestBase={0}, absoluteUrl={1}, relativeUrl={2}, expectedCallbackUrl={3}")
-    public void testCallbackUrlProvidedForValidInputs(String c2RestBase, String absoluteUrl, String relativeUrl, String expectedCallbackUrl) {
-        ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
+    public void testCallbackUrlProvidedForValidInputs(final String c2RestBase, final String absoluteUrl, final String relativeUrl, final String expectedCallbackUrl) {
+        final ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
         assertEquals(expectedCallbackUrl, testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
     }
 
     @MethodSource("testCallbackUrlProvidedInvalidArguments")
     @ParameterizedTest(name = "{index} => c2RestBase={0}, absoluteUrl={1}, relativeUrl={2}, expectedCallbackUrl={3}")
-    public void testCallbackUrlProvidedForInvalidInputs(String c2RestBase, String absoluteUrl, String relativeUrl) {
-        ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
+    public void testCallbackUrlProvidedForInvalidInputs(final String c2RestBase, final String absoluteUrl, final String relativeUrl) {
+        final ProxyAwareC2UrlProvider testProvider = new ProxyAwareC2UrlProvider(c2RestBase, "any_path", "any_path");
         assertThrows(IllegalArgumentException.class, () -> testProvider.getCallbackUrl(absoluteUrl, relativeUrl));
     }
 
     private static Stream<Arguments> testCallbackUrlProvidedArguments() {
-        String c2RestBaseNoTrailingSlash = "http://c2/api";
-        String c2RestBaseWithTrailingSlash = "http://c2/api/";
-        String path = "path/endpoint";
-        String absoluteUrl = "http://c2-other/api/path/endpoint";
+        final String c2RestBaseNoTrailingSlash = "http://c2/api";
+        final String c2RestBaseWithTrailingSlash = "http://c2/api/";
+        final String path = "path/endpoint";
+        final String absoluteUrl = "http://c2-other/api/path/endpoint";
         return Stream.of(
             Arguments.of(c2RestBaseNoTrailingSlash, null, path, c2RestBaseWithTrailingSlash + path),
             Arguments.of(c2RestBaseNoTrailingSlash, "", "/" + path, c2RestBaseWithTrailingSlash + path),
@@ -113,8 +113,8 @@ public class ProxyAwareC2ProviderTest {
     }
 
     private static Stream<Arguments> testCallbackUrlProvidedInvalidArguments() {
-        String c2RestBaseNoTrailingSlash = "http://c2/api";
-        String c2RestBaseWithTrailingSlash = "http://c2/api/";
+        final String c2RestBaseNoTrailingSlash = "http://c2/api";
+        final String c2RestBaseWithTrailingSlash = "http://c2/api/";
         return Stream.of(
             Arguments.of(c2RestBaseNoTrailingSlash, null, null, Optional.empty()),
             Arguments.of(c2RestBaseNoTrailingSlash, "", null, Optional.empty()),

@@ -27,7 +27,7 @@ public class MalformedChunkException extends Exception {
     private final int chunkNum;
     private byte[] badChunk;
 
-    public MalformedChunkException(String message, Throwable cause, long offset, int chunkNum, byte[] badChunk) {
+    public MalformedChunkException(final String message, final Throwable cause, final long offset, final int chunkNum, final byte[] badChunk) {
         super(message, cause);
         this.offset = offset;
         this.chunkNum = chunkNum;

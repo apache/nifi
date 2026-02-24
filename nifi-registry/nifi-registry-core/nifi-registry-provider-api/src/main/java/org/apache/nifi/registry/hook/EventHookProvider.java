@@ -46,7 +46,7 @@ public interface EventHookProvider extends Provider {
      * @return
      *  True if the hook provider should be 'handled' and false otherwise.
      */
-    default boolean shouldHandle(EventType eventType) {
+    default boolean shouldHandle(final EventType eventType) {
         return true;
     }
 

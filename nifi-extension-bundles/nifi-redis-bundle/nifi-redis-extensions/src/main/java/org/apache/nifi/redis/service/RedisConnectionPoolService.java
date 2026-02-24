@@ -53,7 +53,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return RedisUtils.validate(validationContext);
     }
 

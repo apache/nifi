@@ -109,9 +109,9 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     @Override
-    public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+    public <K> Set<K> keySet(final Deserializer<K> keyDeserializer) throws IOException {
         final Set<K> keySet = new HashSet<>();
-        for (String key : cache.keySet()) {
+        for (final String key : cache.keySet()) {
             keySet.add(parseCacheEntryKey(key, keyDeserializer));
         }
         return keySet;
@@ -189,7 +189,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("hazelcast-cache-manager", HAZELCAST_CACHE_MANAGER.getName());
         config.renameProperty("hazelcast-cache-name", HAZELCAST_CACHE_NAME.getName());
         config.renameProperty("hazelcast-entry-ttl", HAZELCAST_ENTRY_TTL.getName());

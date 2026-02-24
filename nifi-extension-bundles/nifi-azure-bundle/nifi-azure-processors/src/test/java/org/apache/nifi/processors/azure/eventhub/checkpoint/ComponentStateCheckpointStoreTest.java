@@ -69,10 +69,10 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     void testOwnershipStoredInState() throws IOException {
         checkpointStore.claimOwnership(Collections.singletonList(partitionOwnership1)).blockLast();
 
-        String expectedOwnershipKey = "ownership/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
+        final String expectedOwnershipKey = "ownership/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
         stateManager.assertStateSet(expectedOwnershipKey, Scope.CLUSTER);
 
-        String ownershipValue = stateManager.getState(Scope.CLUSTER).get(expectedOwnershipKey);
+        final String ownershipValue = stateManager.getState(Scope.CLUSTER).get(expectedOwnershipKey);
         assertTrue(ownershipValue.matches("client-id-1/\\d+/.+"));
     }
 
@@ -80,8 +80,8 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     void testCheckpointStoredInState() {
         checkpointStore.updateCheckpoint(checkpoint1).block();
 
-        String expectedCheckpointKey = "checkpoint/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
-        String expectedCheckpointValue = "10/1";
+        final String expectedCheckpointKey = "checkpoint/my-event-hub-namespace/my-event-hub-name/my-consumer-group/1";
+        final String expectedCheckpointValue = "10/1";
         stateManager.assertStateEquals(expectedCheckpointKey, expectedCheckpointValue, Scope.CLUSTER);
     }
 
@@ -95,17 +95,17 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @ParameterizedTest
     @EnumSource(ExecutionMode.class)
-    void testCleanUp(ExecutionMode executionMode) throws IOException {
+    void testCleanUp(final ExecutionMode executionMode) throws IOException {
         setExecutionMode(executionMode);
 
         initStateWithAllItems();
 
-        int expectedBefore = executionMode == ExecutionMode.CLUSTERED ? 10 : 12;
+        final int expectedBefore = executionMode == ExecutionMode.CLUSTERED ? 10 : 12;
         assertEquals(expectedBefore, stateManager.getState(Scope.CLUSTER).toMap().size());
 
         checkpointStore.cleanUp(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP);
 
-        int expectedAfter = executionMode == ExecutionMode.CLUSTERED ? 4 : 6;
+        final int expectedAfter = executionMode == ExecutionMode.CLUSTERED ? 4 : 6;
         assertEquals(expectedAfter, stateManager.getState(Scope.CLUSTER).toMap().size());
 
         testListOwnerships(partitionOwnership1, partitionOwnership2);
@@ -116,21 +116,21 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @ParameterizedTest
     @EnumSource(ExecutionMode.class)
-    void testClaimOwnership(ExecutionMode executionMode) throws IOException {
+    void testClaimOwnership(final ExecutionMode executionMode) throws IOException {
         setExecutionMode(executionMode);
 
         addToState(partitionOwnership1);
 
         addToState(checkpoint1);
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        final List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
 
         assertNotNull(claimedOwnerships);
         assertEquals(1, claimedOwnerships.size());
 
-        PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
+        final PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
         assertClaimedOwnership(partitionOwnership2, claimedOwnership);
 
         assertStoredOwnerships(partitionOwnership1, convertToTestable(claimedOwnership));
@@ -147,14 +147,14 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         addToState(checkpoint1);
         addToState(checkpoint2);
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        final List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
 
         assertNotNull(claimedOwnerships);
         assertEquals(1, claimedOwnerships.size());
 
-        PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
+        final PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
         assertClaimedOwnership(partitionOwnership2, claimedOwnership);
 
         assertStoredOwnerships(partitionOwnership1, convertToTestable(claimedOwnership));
@@ -167,17 +167,17 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         addToState(checkpoint1);
 
-        PartitionOwnership newOwnership = copy(partitionOwnership1)
+        final PartitionOwnership newOwnership = copy(partitionOwnership1)
                 .setOwnerId(CLIENT_ID_2);
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(newOwnership);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(newOwnership);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        final List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
 
         assertNotNull(claimedOwnerships);
         assertEquals(1, claimedOwnerships.size());
 
-        PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
+        final PartitionOwnership claimedOwnership = claimedOwnerships.get(0);
         assertClaimedOwnership(newOwnership, claimedOwnership);
 
         assertStoredOwnerships(convertToTestable(claimedOwnership));
@@ -188,15 +188,15 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
     void testClaimMultipleOwnerships() {
         partitionOwnership2.setOwnerId(CLIENT_ID_1);
 
-        List<PartitionOwnership> requestedOwnerships = Arrays.asList(partitionOwnership1, partitionOwnership2);
+        final List<PartitionOwnership> requestedOwnerships = Arrays.asList(partitionOwnership1, partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        final List<PartitionOwnership> claimedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
 
         assertNotNull(claimedOwnerships);
         assertEquals(2, claimedOwnerships.size());
 
-        PartitionOwnership claimedOwnership1;
-        PartitionOwnership claimedOwnership2;
+        final PartitionOwnership claimedOwnership1;
+        final PartitionOwnership claimedOwnership2;
 
         if (claimedOwnerships.get(0).getPartitionId().equals(PARTITION_ID_1)) {
             claimedOwnership1 = claimedOwnerships.get(0);
@@ -214,12 +214,12 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @Test
     void testClaimOwnershipUnsuccessful() {
-        List<PartitionOwnership> requestedOwnershipsA = Collections.singletonList(partitionOwnership1);
-        List<PartitionOwnership> requestedOwnershipsB = Collections.singletonList(partitionOwnership1);
+        final List<PartitionOwnership> requestedOwnershipsA = Collections.singletonList(partitionOwnership1);
+        final List<PartitionOwnership> requestedOwnershipsB = Collections.singletonList(partitionOwnership1);
 
-        List<PartitionOwnership> claimedOwnershipsA = checkpointStore.claimOwnership(requestedOwnershipsA).collectList().block();
+        final List<PartitionOwnership> claimedOwnershipsA = checkpointStore.claimOwnership(requestedOwnershipsA).collectList().block();
 
-        List<PartitionOwnership> claimedOwnershipsB = checkpointStore.claimOwnership(requestedOwnershipsB).collectList().block();
+        final List<PartitionOwnership> claimedOwnershipsB = checkpointStore.claimOwnership(requestedOwnershipsB).collectList().block();
 
         assertNotNull(claimedOwnershipsB);
         assertEquals(0, claimedOwnershipsB.size());
@@ -229,12 +229,12 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @Test
     void testClaimMultipleOwnershipsPartialSuccess() {
-        List<PartitionOwnership> requestedOwnershipsA = Collections.singletonList(partitionOwnership1);
-        List<PartitionOwnership> requestedOwnershipsB = Arrays.asList(partitionOwnership1, partitionOwnership2);
+        final List<PartitionOwnership> requestedOwnershipsA = Collections.singletonList(partitionOwnership1);
+        final List<PartitionOwnership> requestedOwnershipsB = Arrays.asList(partitionOwnership1, partitionOwnership2);
 
-        List<PartitionOwnership> claimedOwnershipsA = checkpointStore.claimOwnership(requestedOwnershipsA).collectList().block();
+        final List<PartitionOwnership> claimedOwnershipsA = checkpointStore.claimOwnership(requestedOwnershipsA).collectList().block();
 
-        List<PartitionOwnership> claimedOwnershipsB = checkpointStore.claimOwnership(requestedOwnershipsB).collectList().block();
+        final List<PartitionOwnership> claimedOwnershipsB = checkpointStore.claimOwnership(requestedOwnershipsB).collectList().block();
 
         assertNotNull(claimedOwnershipsB);
         assertEquals(1, claimedOwnershipsB.size());
@@ -248,17 +248,17 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         addToState(checkpoint1);
 
-        PartitionOwnership ownershipToUnclaim = copy(partitionOwnership1)
+        final PartitionOwnership ownershipToUnclaim = copy(partitionOwnership1)
                 .setOwnerId("");
 
-        List<PartitionOwnership> requestedOwnerships = Collections.singletonList(ownershipToUnclaim);
+        final List<PartitionOwnership> requestedOwnerships = Collections.singletonList(ownershipToUnclaim);
 
-        List<PartitionOwnership> returnedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
+        final List<PartitionOwnership> returnedOwnerships = checkpointStore.claimOwnership(requestedOwnerships).collectList().block();
 
         assertNotNull(returnedOwnerships);
         assertEquals(1, returnedOwnerships.size());
 
-        PartitionOwnership unclaimedOwnership = returnedOwnerships.get(0);
+        final PartitionOwnership unclaimedOwnership = returnedOwnerships.get(0);
         assertClaimedOwnership(ownershipToUnclaim, unclaimedOwnership);
 
         assertStoredOwnerships(convertToTestable(unclaimedOwnership));
@@ -267,7 +267,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
     @ParameterizedTest
     @EnumSource(ExecutionMode.class)
-    void testNewCheckpoint(ExecutionMode executionMode) throws IOException {
+    void testNewCheckpoint(final ExecutionMode executionMode) throws IOException {
         setExecutionMode(executionMode);
 
         addToState(partitionOwnership1);
@@ -275,7 +275,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
 
         addToState(checkpoint1);
 
-        Checkpoint newCheckpoint = createCheckpoint(PARTITION_ID_2, "20", 2L);
+        final Checkpoint newCheckpoint = createCheckpoint(PARTITION_ID_2, "20", 2L);
 
         checkpointStore.updateCheckpoint(newCheckpoint).block();
 
@@ -293,7 +293,7 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         addToState(checkpoint1);
         addToState(checkpoint2);
 
-        Checkpoint updatedCheckpoint = copy(checkpoint2)
+        final Checkpoint updatedCheckpoint = copy(checkpoint2)
                 .setOffsetString("20")
                 .setSequenceNumber(2L);
 
@@ -330,13 +330,13 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         assertThrows(ClusterNodeDisconnectedException.class, () -> checkpointStore.updateCheckpoint(checkpoint1).block());
     }
 
-    private void setExecutionMode(ExecutionMode executionMode) throws IOException {
+    private void setExecutionMode(final ExecutionMode executionMode) throws IOException {
         stateManager.setExecutionMode(executionMode);
         addToState(CLUSTERED.key(), Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
     }
 
-    private void testListOwnerships(PartitionOwnership... expectedPartitionOwnerships) {
-        List<PartitionOwnership> partitionOwnerships = checkpointStore.listOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP).collectList().block();
+    private void testListOwnerships(final PartitionOwnership... expectedPartitionOwnerships) {
+        final List<PartitionOwnership> partitionOwnerships = checkpointStore.listOwnership(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP).collectList().block();
 
         assertNotNull(partitionOwnerships);
         assertEquals(expectedPartitionOwnerships.length, partitionOwnerships.size());
@@ -344,39 +344,39 @@ class ComponentStateCheckpointStoreTest extends AbstractComponentStateCheckpoint
         assertTrue(convertToTestablePartitionOwnerships(partitionOwnerships).containsAll(Arrays.asList(expectedPartitionOwnerships)));
     }
 
-    private void testListCheckpoints(Checkpoint... expectedCheckpoints) {
-        List<Checkpoint> checkpoints = checkpointStore.listCheckpoints(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP).collectList().block();
+    private void testListCheckpoints(final Checkpoint... expectedCheckpoints) {
+        final List<Checkpoint> checkpoints = checkpointStore.listCheckpoints(EVENT_HUB_NAMESPACE, EVENT_HUB_NAME, CONSUMER_GROUP).collectList().block();
 
         assertNotNull(checkpoints);
         assertEquals(expectedCheckpoints.length, checkpoints.size());
         assertTrue(convertToTestableCheckpoints(checkpoints).containsAll(Arrays.asList(expectedCheckpoints)));
     }
 
-    private void assertStoredOwnerships(PartitionOwnership... expectedPartitionOwnerships) {
+    private void assertStoredOwnerships(final PartitionOwnership... expectedPartitionOwnerships) {
         testListOwnerships(expectedPartitionOwnerships);
     }
 
-    private void assertStoredCheckpoints(Checkpoint... expectedCheckpoints) {
+    private void assertStoredCheckpoints(final Checkpoint... expectedCheckpoints) {
         testListCheckpoints(expectedCheckpoints);
     }
 
-    private void assertLocalScope(ExecutionMode executionMode) {
+    private void assertLocalScope(final ExecutionMode executionMode) {
         stateManager.assertStateEquals(CLIENT_ID.key(), CLIENT_ID_1, Scope.LOCAL);
         stateManager.assertStateEquals(CLUSTERED.key(), Boolean.toString(executionMode == ExecutionMode.CLUSTERED), Scope.LOCAL);
     }
 
-    private void addToState(PartitionOwnership partitionOwnership) throws IOException {
+    private void addToState(final PartitionOwnership partitionOwnership) throws IOException {
         setETagAndLastModified(partitionOwnership);
 
         addToState(createOwnershipKey(partitionOwnership), createOwnershipValue(partitionOwnership), Scope.CLUSTER);
     }
 
-    private void addToState(Checkpoint checkpoint) throws IOException {
+    private void addToState(final Checkpoint checkpoint) throws IOException {
         addToState(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint), Scope.CLUSTER);
     }
 
-    private void addToState(String key, String value, Scope scope) throws IOException {
-        Map<String, String> map = new HashMap<>(stateManager.getState(scope).toMap());
+    private void addToState(final String key, final String value, final Scope scope) throws IOException {
+        final Map<String, String> map = new HashMap<>(stateManager.getState(scope).toMap());
 
         map.put(key, value);
 

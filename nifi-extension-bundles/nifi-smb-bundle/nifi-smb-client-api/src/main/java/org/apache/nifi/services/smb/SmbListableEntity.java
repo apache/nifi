@@ -53,9 +53,9 @@ public class SmbListableEntity implements ListableEntity {
     private final long allocationSize;
     private final URI serviceLocation;
 
-    private SmbListableEntity(String name, String shortName, String path, long lastModifiedTime, long creationTime,
-            long lastAccessTime, long changeTime, boolean directory,
-            long size, long allocationSize, URI serviceLocation) {
+    private SmbListableEntity(final String name, final String shortName, final String path, final long lastModifiedTime, final long creationTime,
+            final long lastAccessTime, final long changeTime, final boolean directory,
+            final long size, final long allocationSize, final URI serviceLocation) {
         this.name = name;
         this.shortName = shortName;
         this.path = path;
@@ -70,7 +70,7 @@ public class SmbListableEntity implements ListableEntity {
     }
 
     public static SimpleRecordSchema getRecordSchema() {
-        List<RecordField> fields = Arrays.asList(
+        final List<RecordField> fields = Arrays.asList(
                 new RecordField("filename", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("shortName", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("path", RecordFieldType.STRING.getDataType(), false),
@@ -145,14 +145,14 @@ public class SmbListableEntity implements ListableEntity {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        SmbListableEntity that = (SmbListableEntity) o;
+        final SmbListableEntity that = (SmbListableEntity) o;
         return getPathWithName().equals(that.getPathWithName());
     }
 
@@ -200,57 +200,57 @@ public class SmbListableEntity implements ListableEntity {
         private long allocationSize = 0;
         private URI serviceLocation;
 
-        public SmbListableEntityBuilder setName(String name) {
+        public SmbListableEntityBuilder setName(final String name) {
             this.name = name;
             return this;
         }
 
-        public SmbListableEntityBuilder setShortName(String shortName) {
+        public SmbListableEntityBuilder setShortName(final String shortName) {
             this.shortName = shortName;
             return this;
         }
 
-        public SmbListableEntityBuilder setPath(String path) {
+        public SmbListableEntityBuilder setPath(final String path) {
             this.path = path;
             return this;
         }
 
-        public SmbListableEntityBuilder setLastModifiedTime(long lastModifiedTime) {
+        public SmbListableEntityBuilder setLastModifiedTime(final long lastModifiedTime) {
             this.lastModifiedTime = lastModifiedTime;
             return this;
         }
 
-        public SmbListableEntityBuilder setCreationTime(long creationTime) {
+        public SmbListableEntityBuilder setCreationTime(final long creationTime) {
             this.creationTime = creationTime;
             return this;
         }
 
-        public SmbListableEntityBuilder setLastAccessTime(long lastAccessTime) {
+        public SmbListableEntityBuilder setLastAccessTime(final long lastAccessTime) {
             this.lastAccessTime = lastAccessTime;
             return this;
         }
 
-        public SmbListableEntityBuilder setChangeTime(long changeTime) {
+        public SmbListableEntityBuilder setChangeTime(final long changeTime) {
             this.changeTime = changeTime;
             return this;
         }
 
-        public SmbListableEntityBuilder setDirectory(boolean directory) {
+        public SmbListableEntityBuilder setDirectory(final boolean directory) {
             this.directory = directory;
             return this;
         }
 
-        public SmbListableEntityBuilder setSize(long size) {
+        public SmbListableEntityBuilder setSize(final long size) {
             this.size = size;
             return this;
         }
 
-        public SmbListableEntityBuilder setAllocationSize(long allocationSize) {
+        public SmbListableEntityBuilder setAllocationSize(final long allocationSize) {
             this.allocationSize = allocationSize;
             return this;
         }
 
-        public SmbListableEntityBuilder setServiceLocation(URI serviceLocation) {
+        public SmbListableEntityBuilder setServiceLocation(final URI serviceLocation) {
             this.serviceLocation = serviceLocation;
             return this;
         }

@@ -24,19 +24,19 @@ public class CDCException extends Exception {
     public CDCException() {
     }
 
-    public CDCException(String message) {
+    public CDCException(final String message) {
         super(message);
     }
 
-    public CDCException(String message, Throwable cause) {
+    public CDCException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public CDCException(Throwable cause) {
+    public CDCException(final Throwable cause) {
         super(cause);
     }
 
-    public CDCException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public CDCException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

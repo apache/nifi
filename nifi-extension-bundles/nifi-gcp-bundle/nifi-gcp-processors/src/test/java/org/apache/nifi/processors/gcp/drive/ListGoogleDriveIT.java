@@ -43,17 +43,17 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
     @Override
     public ListGoogleDrive createTestSubject() {
-        ListGoogleDrive testSubject = new ListGoogleDrive();
+        final ListGoogleDrive testSubject = new ListGoogleDrive();
 
         return testSubject;
     }
 
     @Test
     void listFilesFrom3LayerDeepDirectoryTree() throws Exception {
-        File main_sub1 = createFolder("main_sub1", mainFolderId);
-        File main_sub2 = createFolder("main_sub2", mainFolderId);
+        final File main_sub1 = createFolder("main_sub1", mainFolderId);
+        final File main_sub2 = createFolder("main_sub2", mainFolderId);
 
-        File main_sub1_sub1 = createFolder("main_sub1_sub1", main_sub1.getId());
+        final File main_sub1_sub1 = createFolder("main_sub1_sub1", main_sub1.getId());
 
         createFileWithDefaultContent("main_file1", mainFolderId);
         createFileWithDefaultContent("main_file2", mainFolderId);
@@ -133,7 +133,7 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
         Thread.sleep(10000);
 
-        Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
+        final Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
                 "main_file"
         ));
 

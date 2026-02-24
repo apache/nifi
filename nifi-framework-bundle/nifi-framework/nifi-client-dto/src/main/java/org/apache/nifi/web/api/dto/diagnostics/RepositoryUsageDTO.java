@@ -36,7 +36,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -47,7 +47,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return fileStoreHash;
     }
 
-    public void setFileStoreHash(String fileStore) {
+    public void setFileStoreHash(final String fileStore) {
         this.fileStoreHash = fileStore;
     }
 
@@ -56,7 +56,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return freeSpace;
     }
 
-    public void setFreeSpace(String freeSpace) {
+    public void setFreeSpace(final String freeSpace) {
         this.freeSpace = freeSpace;
     }
 
@@ -65,7 +65,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return totalSpace;
     }
 
-    public void setTotalSpace(String totalSpace) {
+    public void setTotalSpace(final String totalSpace) {
         this.totalSpace = totalSpace;
     }
 
@@ -74,7 +74,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return utilization;
     }
 
-    public void setUtilization(String utilization) {
+    public void setUtilization(final String utilization) {
         this.utilization = utilization;
     }
 
@@ -83,7 +83,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return freeSpaceBytes;
     }
 
-    public void setFreeSpaceBytes(Long freeSpaceBytes) {
+    public void setFreeSpaceBytes(final Long freeSpaceBytes) {
         this.freeSpaceBytes = freeSpaceBytes;
     }
 
@@ -92,7 +92,7 @@ public class RepositoryUsageDTO implements Cloneable {
         return totalSpaceBytes;
     }
 
-    public void setTotalSpaceBytes(Long totalSpaceBytes) {
+    public void setTotalSpaceBytes(final Long totalSpaceBytes) {
         this.totalSpaceBytes = totalSpaceBytes;
     }
 

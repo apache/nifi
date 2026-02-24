@@ -56,7 +56,7 @@ public class TestSequentialAccessWriteAheadLog {
     private static final Logger logger = LoggerFactory.getLogger(TestSequentialAccessWriteAheadLog.class);
 
     @Test
-    public void testUpdateWithExternalFile(TestInfo testInfo) throws IOException {
+    public void testUpdateWithExternalFile(final TestInfo testInfo) throws IOException {
         final DummyRecordSerde serde = new DummyRecordSerde();
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo, serde);
 
@@ -80,7 +80,7 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     @Test
-    public void testUpdateWithExternalFileFollowedByInlineUpdate(TestInfo testInfo) throws IOException {
+    public void testUpdateWithExternalFileFollowedByInlineUpdate(final TestInfo testInfo) throws IOException {
         final DummyRecordSerde serde = new DummyRecordSerde();
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo, serde);
 
@@ -109,7 +109,7 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     @Test
-    public void testRecoverWithNoCheckpoint(TestInfo testInfo) throws IOException {
+    public void testRecoverWithNoCheckpoint(final TestInfo testInfo) throws IOException {
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo);
 
         final List<DummyRecord> records = new ArrayList<>();
@@ -130,7 +130,7 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     @Test
-    public void testRecoverWithNoJournalUpdates(TestInfo testInfo) throws IOException {
+    public void testRecoverWithNoJournalUpdates(final TestInfo testInfo) throws IOException {
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo);
 
         final List<DummyRecord> records = new ArrayList<>();
@@ -152,7 +152,7 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     @Test
-    public void testRecoverWithMultipleCheckpointsBetweenJournalUpdate(TestInfo testInfo) throws IOException {
+    public void testRecoverWithMultipleCheckpointsBetweenJournalUpdate(final TestInfo testInfo) throws IOException {
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo);
 
         final List<DummyRecord> records = new ArrayList<>();
@@ -187,7 +187,7 @@ public class TestSequentialAccessWriteAheadLog {
         assertEquals(expected, new HashSet<>(recovered));
     }
 
-    private SequentialAccessWriteAheadLog<DummyRecord> createRecoveryRepo(TestInfo testInfo) throws IOException {
+    private SequentialAccessWriteAheadLog<DummyRecord> createRecoveryRepo(final TestInfo testInfo) throws IOException {
         final File targetDir = new File("target");
         final File storageDir = new File(targetDir, testInfo.getTestMethod().get().getName());
 
@@ -198,7 +198,7 @@ public class TestSequentialAccessWriteAheadLog {
         return repo;
     }
 
-    private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo(TestInfo testInfo) throws IOException {
+    private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo(final TestInfo testInfo) throws IOException {
         return createWriteRepo(testInfo, new DummyRecordSerde());
     }
 
@@ -224,7 +224,7 @@ public class TestSequentialAccessWriteAheadLog {
      * are able to checkpoint, then update journals, and then recover updates to both the checkpoint and the journals.
      */
     @Test
-    public void testUpdateThenRecover(TestInfo testInfo) throws IOException {
+    public void testUpdateThenRecover(final TestInfo testInfo) throws IOException {
         final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(testInfo);
 
         final DummyRecord firstCreate = new DummyRecord("0", UpdateType.CREATE);

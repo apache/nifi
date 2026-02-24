@@ -48,7 +48,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public enum TransportProtocolOptions {
         RAW, HTTP;
 
-        public static boolean valid(String input) {
+        public static boolean valid(final String input) {
             return RAW.name().equals(input) || HTTP.name().equals(input);
         }
     }
@@ -77,9 +77,9 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     private String proxyPassword = DEFAULT_PROXY_PASSWORD;
     private String localNetworkInterface = DEFAULT_NETWORK_INTERFACE;
 
-    public RemoteProcessGroupSchema(Map map) {
+    public RemoteProcessGroupSchema(final Map map) {
         super(map, "RemoteProcessGroup(id: {id}, name: {name})");
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
         // This is either a singular URL or a comma separated list
         urls = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
 
@@ -132,7 +132,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(URL_KEY, urls);
         result.put(COMMENT_KEY, comment);
         result.put(TIMEOUT_KEY, timeout);
@@ -176,23 +176,23 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         return transportProtocol;
     }
 
-    public void setProxyHost(String proxyHost) {
+    public void setProxyHost(final String proxyHost) {
         this.proxyHost = proxyHost;
     }
 
-    public void setProxyPort(Integer proxyPort) {
+    public void setProxyPort(final Integer proxyPort) {
         this.proxyPort = proxyPort;
     }
 
-    public void setProxyUser(String proxyUser) {
+    public void setProxyUser(final String proxyUser) {
         this.proxyUser = proxyUser;
     }
 
-    public void setProxyPassword(String proxyPassword) {
+    public void setProxyPassword(final String proxyPassword) {
         this.proxyPassword = proxyPassword;
     }
 
-    public void setTransportProtocol(String transportProtocol) {
+    public void setTransportProtocol(final String transportProtocol) {
         this.transportProtocol = transportProtocol;
     }
 
@@ -212,7 +212,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         return proxyPassword;
     }
 
-    public void setLocalNetworkInterface(String LocalNetworkInterface) {
+    public void setLocalNetworkInterface(final String LocalNetworkInterface) {
         this.localNetworkInterface = LocalNetworkInterface;
     }
 

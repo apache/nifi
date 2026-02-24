@@ -92,7 +92,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     }
 
     @Override
-    public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription) throws IOException {
+    public Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException {
         // Each node should have the same URL structure and network reachability with the proxy configuration
         // Construct API client and provide to retrieval method
         try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter())) {
@@ -114,7 +114,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         return String.join(",", siteInfoProvider.getClusterUrls());
     }
 
-    private Set<PeerStatus> fetchRemotePeerStatuses(SiteToSiteRestApiClient apiClient) throws IOException {
+    private Set<PeerStatus> fetchRemotePeerStatuses(final SiteToSiteRestApiClient apiClient) throws IOException {
         // Each node should have the same URL structure and network reachability with the proxy configuration
         final Collection<PeerDTO> peers = apiClient.getPeers();
         logger.debug("Retrieved {} peers from {}: {}", peers.size(), apiClient.getBaseUrl(), peers);

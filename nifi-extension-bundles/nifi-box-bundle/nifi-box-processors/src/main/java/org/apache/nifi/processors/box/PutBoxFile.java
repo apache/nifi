@@ -234,7 +234,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
                 if (uploadedFileInfo == null) {
                     uploadedFileInfo = createBoxFile(parentFolder, filename, rawIn, size, chunkUploadThreshold);
                 }
-            } catch (BoxAPIResponseException e) {
+            } catch (final BoxAPIResponseException e) {
                 if (e.getResponseCode() == CONFLICT_RESPONSE_CODE) {
                     handleConflict(conflictResolution, filename, fullPath, e);
                 } else {
@@ -251,17 +251,17 @@ public class PutBoxFile extends AbstractBoxProcessor {
             }
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (BoxAPIResponseException e) {
+        } catch (final BoxAPIResponseException e) {
             getLogger().error("Upload failed: File [{}] Folder [{}] Response Code [{}]", filename, fullPath, e.getResponseCode(), e);
             handleExpectedError(session, flowFile, e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Upload failed: File [{}], Folder [{}]", filename, fullPath, e);
             handleUnexpectedError(session, flowFile, e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("box-folder-id", FOLDER_ID.getName());
         config.renameProperty("file-name", FILE_NAME.getName());
@@ -271,11 +271,11 @@ public class PutBoxFile extends AbstractBoxProcessor {
         config.renameProperty("chunked-upload-threshold", CHUNKED_UPLOAD_THRESHOLD.getName());
     }
 
-    BoxFolder getFolder(String folderId) {
+    BoxFolder getFolder(final String folderId) {
         return new BoxFolder(boxAPIConnection, folderId);
     }
 
-    private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile) {
+    private BoxFolder getOrCreateDirectParentFolder(final ProcessContext context, final FlowFile flowFile) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         BoxFolder parentFolder = getFolderById(folderId);
@@ -290,7 +290,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         return parentFolder;
     }
 
-    private BoxFile.Info replaceBoxFileIfExists(BoxFolder parentFolder, String filename, final InputStream inputStream, final long size, final long chunkUploadThreshold)
+    private BoxFile.Info replaceBoxFileIfExists(final BoxFolder parentFolder, final String filename, final InputStream inputStream, final long size, final long chunkUploadThreshold)
             throws IOException, InterruptedException {
         final Optional<BoxFile> existingBoxFileInfo = getFileByName(filename, parentFolder);
         if (existingBoxFileInfo.isPresent()) {
@@ -305,7 +305,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         return null;
     }
 
-    private BoxFile.Info createBoxFile(BoxFolder parentFolder, String filename, InputStream inputStream, long size, final long chunkUploadThreshold)
+    private BoxFile.Info createBoxFile(final BoxFolder parentFolder, final String filename, final InputStream inputStream, final long size, final long chunkUploadThreshold)
             throws IOException, InterruptedException {
         if (size > chunkUploadThreshold) {
             return parentFolder.uploadLargeFile(inputStream, filename, size);
@@ -314,13 +314,13 @@ public class PutBoxFile extends AbstractBoxProcessor {
         }
     }
 
-    private Queue<String> getSubFolderNames(String subfolderPath)  {
+    private Queue<String> getSubFolderNames(final String subfolderPath)  {
         final Queue<String> subfolderNames = new LinkedList<>();
         Collections.addAll(subfolderNames, subfolderPath.split("/"));
         return subfolderNames;
     }
 
-    private BoxFolder getOrCreateSubfolders(Queue<String> subFolderNames, BoxFolder parentFolder, boolean createFolder) {
+    private BoxFolder getOrCreateSubfolders(final Queue<String> subFolderNames, final BoxFolder parentFolder, final boolean createFolder) {
         final BoxFolder newParentFolder = getOrCreateFolder(subFolderNames.poll(), parentFolder, createFolder);
 
         if (!subFolderNames.isEmpty()) {
@@ -330,7 +330,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         }
     }
 
-    private BoxFolder getOrCreateFolder(String folderName, BoxFolder parentFolder, boolean createFolder) {
+    private BoxFolder getOrCreateFolder(final String folderName, final BoxFolder parentFolder, final boolean createFolder) {
         final Optional<BoxFolder> existingFolder = getFolderByName(folderName, parentFolder);
 
         if (existingFolder.isPresent()) {
@@ -350,11 +350,11 @@ public class PutBoxFile extends AbstractBoxProcessor {
 
         try {
             return parentFolder.createFolder(folderName).getResource();
-        } catch (BoxAPIResponseException e) {
+        } catch (final BoxAPIResponseException e) {
             if (e.getResponseCode() != CONFLICT_RESPONSE_CODE) {
                 throw e;
             } else {
-                Optional<BoxFolder> createdFolder = waitForOngoingFolderCreationToFinish(folderName, parentFolder);
+                final Optional<BoxFolder> createdFolder = waitForOngoingFolderCreationToFinish(folderName, parentFolder);
                 return createdFolder.orElseThrow(() -> new ProcessException(format("Created subfolder [%s] can not be found under [%s]",
                         folderName, parentFolder.getID())));
             }
@@ -372,7 +372,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
                 createdFolder = getFolderByName(folderName, parentFolder);
             }
             return createdFolder;
-        } catch (InterruptedException ie) {
+        } catch (final InterruptedException ie) {
             throw new RuntimeException(format("Waiting for creation of subfolder [%s] under [%s] was interrupted",
                     folderName, parentFolder.getID()), ie);
         }
@@ -383,7 +383,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         try {
             //Error is returned for nonexistent folder only when a method is called on BoxFolder.
             folder.getInfo();
-        } catch (BoxAPIResponseException e) {
+        } catch (final BoxAPIResponseException e) {
             if (e.getResponseCode() == NOT_FOUND_RESPONSE_CODE) {
                 throw new ProcessException(format("The Folder [%s] specified by [%s] does not exist", folderId, FOLDER_ID.getDisplayName()));
             }
@@ -401,7 +401,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
                 .map(BoxFile.Info::getResource);
     }
 
-    private <T extends BoxItem.Info> Optional<T> getItemByName(final String itemName, final BoxFolder parentFolder, Class<T> type) {
+    private <T extends BoxItem.Info> Optional<T> getItemByName(final String itemName, final BoxFolder parentFolder, final Class<T> type) {
         return StreamSupport.stream(parentFolder.getChildren("name").spliterator(), false)
                 .filter(type::isInstance)
                 .map(type::cast)
@@ -409,7 +409,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
                 .findAny();
     }
 
-    private void handleConflict(final ConflictResolutionStrategy conflictResolution, final String filename, String path, final BoxAPIException e) {
+    private void handleConflict(final ConflictResolutionStrategy conflictResolution, final String filename, final String path, final BoxAPIException e) {
         if (conflictResolution == IGNORE) {
             getLogger().info("File with the same name [{}] already exists in [{}]. Remote file is not modified due to [{}] being set to [{}]",
                     filename, path, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution.getDisplayName());
@@ -418,16 +418,16 @@ public class PutBoxFile extends AbstractBoxProcessor {
         }
     }
 
-    private void handleUnexpectedError(final ProcessSession session, FlowFile flowFile, final Exception e) {
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+    private void handleUnexpectedError(final ProcessSession session, final FlowFile flowFile, final Exception e) {
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 
-    private void handleExpectedError(final ProcessSession session, FlowFile flowFile, final BoxAPIResponseException e) {
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
-        flowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_CODE, valueOf(e.getResponseCode()));
-        flowFile = session.penalize(flowFile);
-        session.transfer(flowFile, REL_FAILURE);
+    private void handleExpectedError(final ProcessSession session, final FlowFile flowFile, final BoxAPIResponseException e) {
+        FlowFile updatedFlowFile = session.putAttribute(flowFile, BoxFileAttributes.ERROR_MESSAGE, e.getMessage());
+        updatedFlowFile = session.putAttribute(updatedFlowFile, BoxFileAttributes.ERROR_CODE, valueOf(e.getResponseCode()));
+        updatedFlowFile = session.penalize(updatedFlowFile);
+        session.transfer(updatedFlowFile, REL_FAILURE);
     }
 }

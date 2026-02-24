@@ -39,8 +39,8 @@ public class ListUserGroups extends AbstractListTenants<UserGroup, UserGroupsRes
     }
 
     @Override
-    protected UserGroupsResult getTenants(Properties properties, TenantsClient tenantsClient) throws NiFiRegistryException, IOException {
-        List<UserGroup> userGroups = tenantsClient.getUserGroups();
+    protected UserGroupsResult getTenants(final Properties properties, final TenantsClient tenantsClient) throws NiFiRegistryException, IOException {
+        final List<UserGroup> userGroups = tenantsClient.getUserGroups();
 
         return new UserGroupsResult(getResultType(properties), userGroups);
     }

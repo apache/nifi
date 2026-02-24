@@ -250,7 +250,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         addAttribute(attributes, AMQP_ROUTING_KEY_ATTRIBUTE, envelope.getRoutingKey());
         addAttribute(attributes, AMQP_EXCHANGE_ATTRIBUTE, envelope.getExchange());
 
-        Map<String, Object> headers = properties.getHeaders();
+        final Map<String, Object> headers = properties.getHeaders();
         if (headers != null) {
             final OutputHeaderFormat headerFormat = context.getProperty(HEADER_FORMAT).asAllowableValue(OutputHeaderFormat.class);
 
@@ -279,7 +279,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
                 String headerString = null;
                 try {
                     headerString = convertMapToJSONString(headers);
-                } catch (JsonProcessingException e) {
+                } catch (final JsonProcessingException e) {
                     getLogger().warn("Header formatting as JSON failed", e);
                 }
                 addAttribute(attributes, AMQP_HEADERS_ATTRIBUTE, headerString);
@@ -305,12 +305,12 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         attributes.put(attributeName, value.toString());
     }
 
-    private static String convertMapToString(Map<String, Object> headers, String valueSeparatorForHeaders) {
+    private static String convertMapToString(final Map<String, Object> headers, final String valueSeparatorForHeaders) {
         return headers.entrySet().stream().map(e -> (e.getValue() != null) ? e.getKey() + "=" + e.getValue() : e.getKey())
                 .collect(Collectors.joining(valueSeparatorForHeaders));
     }
 
-    private static String convertMapToJSONString(Map<String, Object> headers) throws JsonProcessingException {
+    private static String convertMapToJSONString(final Map<String, Object> headers) throws JsonProcessingException {
         return OBJECT_MAPPER.writeValueAsString(headers);
     }
 
@@ -347,7 +347,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         private final String displayName;
         private final String description;
 
-        OutputHeaderFormat(String value, String displayName, String description) {
+        OutputHeaderFormat(final String value, final String displayName, final String description) {
 
             this.value = value;
             this.displayName = displayName;

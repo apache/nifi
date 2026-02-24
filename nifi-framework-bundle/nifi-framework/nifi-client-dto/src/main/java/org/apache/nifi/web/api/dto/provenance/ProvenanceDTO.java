@@ -50,7 +50,7 @@ public class ProvenanceDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -63,7 +63,7 @@ public class ProvenanceDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -78,7 +78,7 @@ public class ProvenanceDTO {
         return submissionTime;
     }
 
-    public void setSubmissionTime(Date submissionTime) {
+    public void setSubmissionTime(final Date submissionTime) {
         this.submissionTime = submissionTime;
     }
 
@@ -93,7 +93,7 @@ public class ProvenanceDTO {
         return expiration;
     }
 
-    public void setExpiration(Date expiration) {
+    public void setExpiration(final Date expiration) {
         this.expiration = expiration;
     }
 
@@ -106,7 +106,7 @@ public class ProvenanceDTO {
         return percentCompleted;
     }
 
-    public void setPercentCompleted(Integer percentCompleted) {
+    public void setPercentCompleted(final Integer percentCompleted) {
         this.percentCompleted = percentCompleted;
     }
 
@@ -119,7 +119,7 @@ public class ProvenanceDTO {
         return finished;
     }
 
-    public void setFinished(Boolean finished) {
+    public void setFinished(final Boolean finished) {
         this.finished = finished;
     }
 
@@ -132,7 +132,7 @@ public class ProvenanceDTO {
         return request;
     }
 
-    public void setRequest(ProvenanceRequestDTO request) {
+    public void setRequest(final ProvenanceRequestDTO request) {
         this.request = request;
     }
 
@@ -145,7 +145,7 @@ public class ProvenanceDTO {
         return results;
     }
 
-    public void setResults(ProvenanceResultsDTO results) {
+    public void setResults(final ProvenanceResultsDTO results) {
         this.results = results;
     }
 

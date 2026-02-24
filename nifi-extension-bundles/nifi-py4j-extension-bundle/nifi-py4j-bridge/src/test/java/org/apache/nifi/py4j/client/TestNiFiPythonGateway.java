@@ -38,7 +38,7 @@ public class TestNiFiPythonGateway {
     static {
         try {
             NOP_METHOD = TestNiFiPythonGateway.class.getMethod("nop", Object[].class);
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
     }
@@ -147,6 +147,6 @@ public class TestNiFiPythonGateway {
         assertNull(gateway.getObject(objectId));
     }
 
-    public void nop(Object... args) {
+    public void nop(final Object... args) {
     }
 }

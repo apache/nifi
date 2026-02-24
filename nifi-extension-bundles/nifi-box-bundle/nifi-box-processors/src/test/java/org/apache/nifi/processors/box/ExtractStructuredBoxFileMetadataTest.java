@@ -50,12 +50,12 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     // Simple mock RecordReaderFactory for testing
     private static class MockJsonRecordReaderFactory extends AbstractControllerService implements RecordReaderFactory {
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long l, ComponentLog componentLog) {
+        public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long l, final ComponentLog componentLog) {
             return mock(RecordReader.class);
         }
 
         @Override
-        public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog componentLog) {
+        public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog componentLog) {
             return mock(RecordReader.class);
         }
     }
@@ -125,7 +125,7 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         lenient().when(mockAIResponse.getCompletionReason()).thenReturn(COMPLETION_REASON);
         lenient().when(mockAIResponse.getCreatedAt()).thenReturn(CREATED_AT);
         // Prepare a sample JSON answer.
-        JsonObject jsonAnswer = new JsonObject();
+        final JsonObject jsonAnswer = new JsonObject();
         jsonAnswer.add("title", "Sample Document");
         jsonAnswer.add("author", "John Doe");
         lenient().when(mockAIResponse.getAnswer()).thenReturn(jsonAnswer);

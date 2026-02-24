@@ -25,15 +25,15 @@ public class UriConstructionException extends RuntimeException {
     public UriConstructionException() {
     }
 
-    public UriConstructionException(String msg) {
+    public UriConstructionException(final String msg) {
         super(msg);
     }
 
-    public UriConstructionException(Throwable cause) {
+    public UriConstructionException(final Throwable cause) {
         super(cause);
     }
 
-    public UriConstructionException(String msg, Throwable cause) {
+    public UriConstructionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

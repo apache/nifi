@@ -26,7 +26,7 @@ import java.io.IOException;
 public class BeginTransactionEventWriter extends AbstractBinlogEventWriter<BeginTransactionEventInfo> {
 
     @Override
-    protected void writeJson(BeginTransactionEventInfo event) throws IOException {
+    protected void writeJson(final BeginTransactionEventInfo event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {
             jsonGenerator.writeStringField("database", event.getDatabaseName());

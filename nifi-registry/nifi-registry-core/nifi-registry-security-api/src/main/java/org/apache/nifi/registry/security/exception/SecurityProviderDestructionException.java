@@ -24,15 +24,15 @@ public class SecurityProviderDestructionException extends RuntimeException {
     public SecurityProviderDestructionException() {
     }
 
-    public SecurityProviderDestructionException(String msg) {
+    public SecurityProviderDestructionException(final String msg) {
         super(msg);
     }
 
-    public SecurityProviderDestructionException(Throwable cause) {
+    public SecurityProviderDestructionException(final Throwable cause) {
         super(cause);
     }
 
-    public SecurityProviderDestructionException(String msg, Throwable cause) {
+    public SecurityProviderDestructionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

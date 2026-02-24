@@ -177,7 +177,7 @@ public class GenerateFlowFile extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
         final boolean isUnique = validationContext.getProperty(UNIQUE_FLOWFILES).asBoolean();
         final boolean isText = validationContext.getProperty(DATA_FORMAT).getValue().equals(DATA_FORMAT_TEXT);
@@ -223,12 +223,12 @@ public class GenerateFlowFile extends AbstractProcessor {
             }
         }
 
-        Map<PropertyDescriptor, String> processorProperties = context.getProperties();
-        Map<String, String> generatedAttributes = new HashMap<>();
+        final Map<PropertyDescriptor, String> processorProperties = context.getProperties();
+        final Map<String, String> generatedAttributes = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
-            PropertyDescriptor property = entry.getKey();
+            final PropertyDescriptor property = entry.getKey();
             if (property.isDynamic() && property.isExpressionLanguageSupported()) {
-                String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
+                final String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
                 generatedAttributes.put(property.getName(), dynamicValue);
             }
         }
@@ -251,7 +251,7 @@ public class GenerateFlowFile extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("generate-ff-custom-text", CUSTOM_TEXT.getName());
         config.renameProperty("character-set", CHARSET.getName());
         config.renameProperty("mime-type", MIME_TYPE.getName());

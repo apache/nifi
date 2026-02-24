@@ -27,15 +27,15 @@ public class NodeDisconnectionException extends ClusterException {
     public NodeDisconnectionException() {
     }
 
-    public NodeDisconnectionException(String msg) {
+    public NodeDisconnectionException(final String msg) {
         super(msg);
     }
 
-    public NodeDisconnectionException(Throwable cause) {
+    public NodeDisconnectionException(final Throwable cause) {
         super(cause);
     }
 
-    public NodeDisconnectionException(String msg, Throwable cause) {
+    public NodeDisconnectionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

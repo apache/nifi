@@ -30,13 +30,13 @@ public class JMSConnectionFactoryHandlerForTest extends JMSConnectionFactoryHand
 
     private final Map<String, Object> configuredProperties = new HashMap<>();
 
-    public JMSConnectionFactoryHandlerForTest(ConfigurationContext context, ComponentLog logger) {
+    public JMSConnectionFactoryHandlerForTest(final ConfigurationContext context, final ComponentLog logger) {
         super(context, logger);
         setConnectionFactoryProperties(null);
     }
 
     @Override
-    void setProperty(ConnectionFactory connectionFactory, String propertyName, Object propertyValue) {
+    void setProperty(final ConnectionFactory connectionFactory, final String propertyName, final Object propertyValue) {
         configuredProperties.put(propertyName, propertyValue);
     }
 

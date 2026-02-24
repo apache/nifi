@@ -107,7 +107,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             // Try getting configuration to see if there is any issue, for example wrong file format.
             // Then throw InitializationException to keep this service in 'Enabling' state.
             builder.getConfiguration();
-        } catch (ConfigurationException e) {
+        } catch (final ConfigurationException e) {
             throw new InitializationException(e);
         }
     }
@@ -140,7 +140,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("configuration-file", CONFIGURATION_FILE.getName());
     }
 }

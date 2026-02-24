@@ -25,10 +25,10 @@ public class LongParameter {
 
     private Long longValue;
 
-    public LongParameter(String rawLongValue) {
+    public LongParameter(final String rawLongValue) {
         try {
             longValue = Long.parseLong(rawLongValue);
-        } catch (NumberFormatException nfe) {
+        } catch (final NumberFormatException nfe) {
             throw new IllegalArgumentException(String.format(INVALID_LONG_MESSAGE, rawLongValue));
         }
     }

@@ -58,12 +58,12 @@ public class SafeXMLConfiguration extends XMLConfiguration {
     public SafeXMLConfiguration() {
     }
 
-    public SafeXMLConfiguration(HierarchicalConfiguration<ImmutableNode> c) {
+    public SafeXMLConfiguration(final HierarchicalConfiguration<ImmutableNode> c) {
         super(c);
     }
 
     @Override
-    public void initFileLocator(FileLocator loc) {
+    public void initFileLocator(final FileLocator loc) {
         super.initFileLocator(loc);
     }
 
@@ -105,7 +105,7 @@ public class SafeXMLConfiguration extends XMLConfiguration {
             // register an error handler which detects validation errors
             result.setErrorHandler(new DefaultHandler() {
                 @Override
-                public void error(SAXParseException ex) throws SAXException {
+                public void error(final SAXParseException ex) throws SAXException {
                     throw ex;
                 }
             });
@@ -115,23 +115,23 @@ public class SafeXMLConfiguration extends XMLConfiguration {
     }
 
     @Override
-    public void read(Reader in) throws ConfigurationException, IOException {
+    public void read(final Reader in) throws ConfigurationException, IOException {
         delegateRead(() -> {
             super.read(in);
         });
     }
 
     @Override
-    public void read(InputStream in) throws ConfigurationException, IOException {
+    public void read(final InputStream in) throws ConfigurationException, IOException {
         delegateRead(() -> {
             super.read(in);
         });
     }
 
-    private void delegateRead(XMLReader superRead) throws ConfigurationException, IOException {
+    private void delegateRead(final XMLReader superRead) throws ConfigurationException, IOException {
         try {
             superRead.read();
-        } catch (ConfigurationException e) {
+        } catch (final ConfigurationException e) {
             if (isXXERelatedException(e)) {
                 // Wrap this exception to tell the user their XML should not contain XXEs
                 throw new ConfigurationException(XXE_ERROR_MESSAGE, e);
@@ -148,7 +148,7 @@ public class SafeXMLConfiguration extends XMLConfiguration {
      * @param e A ConfigurationException that was thrown when parsing the XML configuration file.
      * @return true if the ConfigurationException was a result of attempting to parse an external entity (which is not allowed for security reasons). Returns false otherwise.
      */
-    private boolean isXXERelatedException(ConfigurationException e) {
+    private boolean isXXERelatedException(final ConfigurationException e) {
         return (e.getCause() instanceof SAXParseException && e.getCause().getMessage().contains("DOCTYPE is disallowed"));
     }
 

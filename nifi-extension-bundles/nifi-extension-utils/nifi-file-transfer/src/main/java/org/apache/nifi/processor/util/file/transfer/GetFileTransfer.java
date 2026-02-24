@@ -176,7 +176,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     sharableTransferLock.unlock();
                 }
 
-                File relativeFile = new File(file.getFullPathFileName());
+                final File relativeFile = new File(file.getFullPathFileName());
                 final String parentRelativePath = (null == relativeFile.getParent()) ? "" : relativeFile.getParent();
                 final String parentRelativePathString = parentRelativePath + "/";
 
@@ -210,7 +210,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     logger.error("Unable to retrieve file {}", file.getFullPathFileName(), e);
                     try {
                         transfer.close();
-                    } catch (IOException e1) {
+                    } catch (final IOException e1) {
                         logger.warn("Unable to close connection to remote host", e1);
                     }
 
@@ -222,7 +222,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
 
                     try {
                         transfer.close();
-                    } catch (IOException e1) {
+                    } catch (final IOException e1) {
                         logger.warn("Unable to close connection to remote host due to {}", e1);
                     }
 
@@ -269,8 +269,8 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         }
     }
 
-    protected Map<String, String> getAttributesFromFile(FileInfo info) {
-        Map<String, String> attributes = new HashMap<>();
+    protected Map<String, String> getAttributesFromFile(final FileInfo info) {
+        final Map<String, String> attributes = new HashMap<>();
         if (info != null) {
             attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(info.getLastModifiedTime()).atZone(ZoneId.systemDefault())));
             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, info.getPermissions());

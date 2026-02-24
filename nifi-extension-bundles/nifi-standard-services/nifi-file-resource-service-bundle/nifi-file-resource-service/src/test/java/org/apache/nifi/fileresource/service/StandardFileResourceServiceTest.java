@@ -171,7 +171,7 @@ class StandardFileResourceServiceTest {
 
     private Map<String, String> setUpServiceWithEL(final Path filePath) {
         final String attributeName = "file.path";
-        Map<String, String> attributes = Collections.singletonMap(attributeName, filePath.toString());
+        final Map<String, String> attributes = Collections.singletonMap(attributeName, filePath.toString());
 
         setUpService(String.format("${%s}", attributeName));
 

@@ -36,7 +36,7 @@ public class FlowEntity extends Entity {
         return flow;
     }
 
-    public void setFlow(FlowDTO flow) {
+    public void setFlow(final FlowDTO flow) {
         this.flow = flow;
     }
 

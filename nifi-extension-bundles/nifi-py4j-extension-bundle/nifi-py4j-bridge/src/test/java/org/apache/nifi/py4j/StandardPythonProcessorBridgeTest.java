@@ -122,7 +122,7 @@ class StandardPythonProcessorBridgeTest {
         final CountDownLatch cancelLatch = new CountDownLatch(1);
         final AtomicBoolean canceledFromThread = new AtomicBoolean(false);
 
-        Thread cancelThread = new Thread(() -> {
+        final Thread cancelThread = new Thread(() -> {
             bridge.cancel();
             canceledFromThread.set(bridge.isCanceled());
             cancelLatch.countDown();
@@ -156,7 +156,7 @@ class StandardPythonProcessorBridgeTest {
                 try {
                     startLatch.await();
                     bridge.cancel();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     exception.set(e);
                 } finally {
                     doneLatch.countDown();

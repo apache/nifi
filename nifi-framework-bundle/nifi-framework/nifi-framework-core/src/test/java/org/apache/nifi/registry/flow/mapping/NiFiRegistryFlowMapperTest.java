@@ -421,7 +421,7 @@ public class NiFiRegistryFlowMapperTest {
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         final Set<VersionedParameter> versionedParameters = versionedParameterContext.getParameters();
         // parameter order is not deterministic - use unique names to map up matching parameters
-        for (Parameter parameter : parameters) {
+        for (final Parameter parameter : parameters) {
             final Iterator<VersionedParameter> versionedParameterIterator = versionedParameters.iterator();
             while (versionedParameterIterator.hasNext()) {
                 final VersionedParameter versionedParameter = versionedParameterIterator.next();
@@ -752,7 +752,7 @@ public class NiFiRegistryFlowMapperTest {
             // first verify the number of processors matches
             assertEquals(processorNodes.size(), versionedProcessors.size());
             // processor order is not deterministic - use unique names to map up matching processors
-            for (ProcessorNode processorNode : processorNodes) {
+            for (final ProcessorNode processorNode : processorNodes) {
                 final Iterator<VersionedProcessor> versionedProcessorIterator = versionedProcessors.iterator();
                 while (versionedProcessorIterator.hasNext()) {
                     final VersionedProcessor versionedProcessor = versionedProcessorIterator.next();

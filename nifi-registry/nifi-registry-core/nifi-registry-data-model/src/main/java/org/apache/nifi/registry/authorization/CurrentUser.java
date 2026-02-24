@@ -31,7 +31,7 @@ public class CurrentUser {
         return identity;
     }
 
-    public void setIdentity(String identity) {
+    public void setIdentity(final String identity) {
         this.identity = identity;
     }
 
@@ -40,7 +40,7 @@ public class CurrentUser {
         return anonymous;
     }
 
-    public void setAnonymous(boolean anonymous) {
+    public void setAnonymous(final boolean anonymous) {
         this.anonymous = anonymous;
     }
 
@@ -54,11 +54,11 @@ public class CurrentUser {
         return oidcLoginSupported;
     }
 
-    public void setLoginSupported(boolean loginSupported) {
+    public void setLoginSupported(final boolean loginSupported) {
         this.loginSupported = loginSupported;
     }
 
-    public void setOIDCLoginSupported(boolean oidcLoginSupported) {
+    public void setOIDCLoginSupported(final boolean oidcLoginSupported) {
         this.oidcLoginSupported = oidcLoginSupported;
     }
 
@@ -67,7 +67,7 @@ public class CurrentUser {
         return resourcePermissions;
     }
 
-    public void setResourcePermissions(ResourcePermissions resourcePermissions) {
+    public void setResourcePermissions(final ResourcePermissions resourcePermissions) {
         this.resourcePermissions = resourcePermissions;
     }
 }

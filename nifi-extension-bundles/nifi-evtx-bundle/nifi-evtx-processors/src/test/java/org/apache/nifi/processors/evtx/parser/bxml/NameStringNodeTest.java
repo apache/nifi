@@ -36,7 +36,7 @@ public class NameStringNodeTest extends BxmlNodeTestBase {
     private String string = "test string";
     private NameStringNode nameStringNode;
 
-    public static int putNode(TestBinaryReaderBuilder testBinaryReaderBuilder, int nextOffset, int hash, String string) throws IOException {
+    public static int putNode(final TestBinaryReaderBuilder testBinaryReaderBuilder, final int nextOffset, final int hash, final String string) throws IOException {
         testBinaryReaderBuilder.putDWord(nextOffset);
         testBinaryReaderBuilder.putWord(hash);
         testBinaryReaderBuilder.putWord(string.length());
@@ -61,7 +61,7 @@ public class NameStringNodeTest extends BxmlNodeTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         nameStringNode.accept(mock);
         verify(mock).visit(nameStringNode);
         verifyNoMoreInteractions(mock);

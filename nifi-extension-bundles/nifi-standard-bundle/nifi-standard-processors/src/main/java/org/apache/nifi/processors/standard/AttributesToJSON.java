@@ -65,7 +65,7 @@ public class AttributesToJSON extends AbstractProcessor {
         ESCAPED("Escaped", "Escapes JSON attribute values to strings"),
         NESTED("Nested", "Handles JSON attribute values as nested structured objects or arrays");
 
-        JsonHandlingStrategy(String displayName, String description) {
+        JsonHandlingStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
@@ -208,15 +208,15 @@ public class AttributesToJSON extends AbstractProcessor {
      * @return
      *  Map of values that are feed to a Jackson ObjectMapper
      */
-    protected Map<String, Object> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove,
-            boolean nullValForEmptyString, Pattern attPattern) {
-        Map<String, Object> result;
+    protected Map<String, Object> buildAttributesMapForFlowFile(final FlowFile ff, final Set<String> attributes, final Set<String> attributesToRemove,
+            final boolean nullValForEmptyString, final Pattern attPattern) {
+        final Map<String, Object> result;
         //If list of attributes specified get only those attributes. Otherwise, write them all
         if (attributes != null || attPattern != null) {
             result = new LinkedHashMap<>();
             if (attributes != null) {
-                for (String attribute : attributes) {
-                    String val = ff.getAttribute(attribute);
+                for (final String attribute : attributes) {
+                    final String val = ff.getAttribute(attribute);
                     if (val != null || nullValForEmptyString) {
                         result.put(attribute, val);
                     } else {
@@ -225,16 +225,16 @@ public class AttributesToJSON extends AbstractProcessor {
                 }
             }
             if (attPattern != null) {
-                for (Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
+                for (final Map.Entry<String, String> e : ff.getAttributes().entrySet()) {
                     if (attPattern.matcher(e.getKey()).matches()) {
                         result.put(e.getKey(), e.getValue());
                     }
                 }
             }
         } else {
-            Map<String, String> ffAttributes = ff.getAttributes();
+            final Map<String, String> ffAttributes = ff.getAttributes();
             result = new LinkedHashMap<>(ffAttributes.size());
-            for (Map.Entry<String, String> e : ffAttributes.entrySet()) {
+            for (final Map.Entry<String, String> e : ffAttributes.entrySet()) {
                 if (!attributesToRemove.contains(e.getKey())) {
                     result.put(e.getKey(), e.getValue());
                 }
@@ -243,13 +243,13 @@ public class AttributesToJSON extends AbstractProcessor {
         return result;
     }
 
-    private Set<String> buildAtrs(String atrList) {
+    private Set<String> buildAtrs(final String atrList) {
         //If list of attributes specified get only those attributes. Otherwise, write them all
         if (StringUtils.isNotBlank(atrList)) {
-            String[] ats = StringUtils.split(atrList, AT_LIST_SEPARATOR);
+            final String[] ats = StringUtils.split(atrList, AT_LIST_SEPARATOR);
             if (ats != null) {
-                Set<String> result = new HashSet<>(ats.length);
-                for (String str : ats) {
+                final Set<String> result = new HashSet<>(ats.length);
+                for (final String str : ats) {
                     result.add(str.trim());
                 }
                 return result;
@@ -259,7 +259,7 @@ public class AttributesToJSON extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         attributesToRemove = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean() ? Set.of() : Arrays.stream(CoreAttributes.values())
                 .map(CoreAttributes::key)
                 .collect(Collectors.toSet());
@@ -276,7 +276,7 @@ public class AttributesToJSON extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {
             return;
@@ -295,28 +295,28 @@ public class AttributesToJSON extends AbstractProcessor {
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
                 session.transfer(conFlowfile, REL_SUCCESS);
             } else {
-                FlowFile atFlowfile = session.putAttribute(original, JSON_ATTRIBUTE_NAME, OBJECT_MAPPER.writeValueAsString(formattedAttributes));
+                final FlowFile atFlowfile = session.putAttribute(original, JSON_ATTRIBUTE_NAME, OBJECT_MAPPER.writeValueAsString(formattedAttributes));
                 session.transfer(atFlowfile, REL_SUCCESS);
             }
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             getLogger().error(e.getMessage());
             session.transfer(original, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("attributes-to-json-regex", ATTRIBUTES_REGEX.getName());
     }
 
-    private Map<String, Object> getFormattedAttributes(Map<String, Object> flowFileAttributes) throws JsonProcessingException {
+    private Map<String, Object> getFormattedAttributes(final Map<String, Object> flowFileAttributes) throws JsonProcessingException {
         if (JsonHandlingStrategy.ESCAPED == jsonHandlingStrategy) {
             return flowFileAttributes;
         }
 
-        Map<String, Object> formattedAttributes = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : flowFileAttributes.entrySet()) {
-            String value = (String) entry.getValue();
+        final Map<String, Object> formattedAttributes = new LinkedHashMap<>();
+        for (final Map.Entry<String, Object> entry : flowFileAttributes.entrySet()) {
+            final String value = (String) entry.getValue();
             if (value != null) {
                 final String trimmedValue = value.trim();
                 if (isPossibleJsonArray(trimmedValue) || isPossibleJsonObject(trimmedValue)) {
@@ -330,11 +330,11 @@ public class AttributesToJSON extends AbstractProcessor {
         return formattedAttributes;
     }
 
-    private boolean isPossibleJsonArray(String value) {
+    private boolean isPossibleJsonArray(final String value) {
         return value.startsWith("[") && value.endsWith("]");
     }
 
-    private boolean isPossibleJsonObject(String value) {
+    private boolean isPossibleJsonObject(final String value) {
         return value.startsWith("{") && value.endsWith("}");
     }
 }

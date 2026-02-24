@@ -36,7 +36,7 @@ public class ITPutCloudWatchMetric {
     @Test
     public void ifCredentialsThenTestPublish() {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
-        File credsFile = new File(CREDENTIALS_FILE);
+        final File credsFile = new File(CREDENTIALS_FILE);
         assumeTrue(credsFile.exists());
 
         AuthUtils.enableCredentialsFile(runner, CREDENTIALS_FILE);
@@ -54,7 +54,7 @@ public class ITPutCloudWatchMetric {
     @Test
     public void ifCredentialsThenTestPublishWithCredentialsProviderService() {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
-        File credsFile = new File(CREDENTIALS_FILE);
+        final File credsFile = new File(CREDENTIALS_FILE);
         assumeTrue(credsFile.exists());
 
         AuthUtils.enableCredentialsFile(runner, credsFile.getAbsolutePath());

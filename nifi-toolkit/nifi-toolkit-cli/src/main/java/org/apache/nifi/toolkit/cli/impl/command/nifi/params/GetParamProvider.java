@@ -44,7 +44,7 @@ public class GetParamProvider extends AbstractNiFiCommand<ParamProviderResult> {
     }
 
     @Override
-    protected void doInitialize(Context provider) {
+    protected void doInitialize(final Context provider) {
         addOption(CommandOption.PARAM_PROVIDER_ID.createOption());
     }
 

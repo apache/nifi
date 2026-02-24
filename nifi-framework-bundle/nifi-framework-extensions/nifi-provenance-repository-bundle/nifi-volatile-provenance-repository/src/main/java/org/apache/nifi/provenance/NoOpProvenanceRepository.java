@@ -66,8 +66,8 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * Initializes the repository but does not actually store events.
      */
     @Override
-    public void initialize(EventReporter eventReporter, Authorizer authorizer,
-                           ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup) throws IOException {
+    public void initialize(final EventReporter eventReporter, final Authorizer authorizer,
+                           final ProvenanceAuthorizableFactory factory, final IdentifierLookup identifierLookup) throws IOException {
         eventReporter.reportEvent(Severity.INFO, "Provenance", "Initialized NoOpProvenanceRepository - Provenance tracking is disabled");
     }
 
@@ -91,7 +91,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * Returns null since no events are stored.
      */
     @Override
-    public ProvenanceEventRecord getEvent(long id) {
+    public ProvenanceEventRecord getEvent(final long id) {
         return null;
     }
 
@@ -107,7 +107,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return an empty list since no events are stored
      */
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords) {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) {
         return emptyList();
     }
 
@@ -115,7 +115,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return an empty list since no events are stored
      */
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords, NiFiUser user) {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) {
         return emptyList();
     }
 
@@ -132,7 +132,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * No-op. Events are not stored.
      */
     @Override
-    public void registerEvent(ProvenanceEventRecord records) {
+    public void registerEvent(final ProvenanceEventRecord records) {
 
     }
 
@@ -140,7 +140,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * No-op. Events are not stored.
      */
     @Override
-    public void registerEvents(Iterable<ProvenanceEventRecord> records) {
+    public void registerEvents(final Iterable<ProvenanceEventRecord> records) {
 
     }
 
@@ -153,7 +153,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return a stub query submission that returns an empty result
      */
     @Override
-    public QuerySubmission submitQuery(Query query, NiFiUser user) {
+    public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
         return new NoOpQuerySubmission(query, user.getIdentity());
     }
 
@@ -169,7 +169,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return a stub query submission with an empty result
      */
     @Override
-    public QuerySubmission retrieveQuerySubmission(String queryIdentifier, NiFiUser user) {
+    public QuerySubmission retrieveQuerySubmission(final String queryIdentifier, final NiFiUser user) {
         return new NoOpQuerySubmission(queryIdentifier, user.getIdentity());
     }
 
@@ -177,7 +177,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return a stub lineage computation result with no events
      */
     @Override
-    public ComputeLineageSubmission submitLineageComputation(String s, NiFiUser user) {
+    public ComputeLineageSubmission submitLineageComputation(final String s, final NiFiUser user) {
         return new NoOpComputeLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, null, singleton(s), user.getIdentity());
     }
 
@@ -185,7 +185,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return a stub lineage computation result with an error message
      */
     @Override
-    public ComputeLineageSubmission submitLineageComputation(long eventId, NiFiUser user) {
+    public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user) {
         final NoOpComputeLineageSubmission result = new NoOpComputeLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, emptySet(), user.getIdentity());
         result.getResult().setError("Could not find event with ID " + eventId);
         return result;
@@ -227,7 +227,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return 0 as this implementation does not store data
      */
     @Override
-    public long getContainerCapacity(String s) {
+    public long getContainerCapacity(final String s) {
         return 0;
     }
 
@@ -235,7 +235,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return "noOp" as the file store name
      */
     @Override
-    public String getContainerFileStoreName(String containerName) {
+    public String getContainerFileStoreName(final String containerName) {
         return "noOp";
     }
 
@@ -243,7 +243,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
      * @return 0 as this implementation does not store data
      */
     @Override
-    public long getContainerUsableSpace(String containerName) {
+    public long getContainerUsableSpace(final String containerName) {
         return 0;
     }
 
@@ -265,7 +265,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
 
     private static class NoOpComputeLineageSubmission extends AsyncLineageSubmission {
 
-        public NoOpComputeLineageSubmission(LineageComputationType computationType, Long eventId, Collection<String> lineageFlowFileUuids, String submitterId) {
+        public NoOpComputeLineageSubmission(final LineageComputationType computationType, final Long eventId, final Collection<String> lineageFlowFileUuids, final String submitterId) {
             super(computationType, eventId, lineageFlowFileUuids, 1, submitterId);
         }
 
@@ -313,7 +313,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
         }
 
         @Override
-        public boolean awaitCompletion(long time, TimeUnit unit) {
+        public boolean awaitCompletion(final long time, final TimeUnit unit) {
             return false;
         }
     };

@@ -57,7 +57,7 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
         sensitiveProps = new SensitivePropsSchema();
     }
 
-    public SecurityPropertiesSchema(Map map) {
+    public SecurityPropertiesSchema(final Map map) {
         keystore = getOptionalKeyAsType(map, KEYSTORE_KEY, String.class, SECURITY_PROPS_KEY, "");
 
         keystoreType = getOptionalKeyAsType(map, KEYSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, "");
@@ -125,7 +125,7 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(KEYSTORE_KEY, keystore);
         result.put(KEYSTORE_TYPE_KEY, keystoreType);
         result.put(KEYSTORE_PASSWORD_KEY, keystorePassword);
@@ -138,7 +138,7 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
         return result;
     }
 
-    private boolean validateStoreType(String store) {
+    private boolean validateStoreType(final String store) {
         return !store.isEmpty() && !KeystoreType.isValidKeystoreType(store);
     }
 

@@ -21,7 +21,7 @@ import org.apache.nifi.processors.standard.db.NameNormalizer;
 public class RemoveSpaceNormalizer implements NameNormalizer {
 
     @Override
-    public String getNormalizedName(String colName) {
+    public String getNormalizedName(final String colName) {
         return colName.replace(" ", "");
     }
 }

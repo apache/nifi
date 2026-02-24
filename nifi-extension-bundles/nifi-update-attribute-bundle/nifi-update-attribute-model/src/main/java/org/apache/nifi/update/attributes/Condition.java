@@ -31,7 +31,7 @@ public class Condition {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -39,11 +39,8 @@ public class Condition {
         return expression;
     }
 
-    public void setExpression(String expression) {
-        if (expression != null) {
-            expression = expression.trim();
-        }
-        this.expression = expression;
+    public void setExpression(final String expression) {
+        this.expression = expression != null ? expression.trim() : null;
     }
 
 }

@@ -88,13 +88,13 @@ public class S3BundlePersistenceProviderIT {
     public void teardown() {
         try {
             provider.preDestruction();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 
         try {
             s3Client.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
     }
@@ -151,7 +151,7 @@ public class S3BundlePersistenceProviderIT {
         try {
             provider.getBundleVersionContent(versionCoordinate1, outputStream2);
             fail("Should have thrown exception");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 

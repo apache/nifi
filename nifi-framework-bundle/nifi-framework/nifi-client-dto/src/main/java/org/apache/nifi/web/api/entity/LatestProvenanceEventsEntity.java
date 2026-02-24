@@ -31,7 +31,7 @@ public class LatestProvenanceEventsEntity extends Entity {
         return latestProvenanceEvents;
     }
 
-    public void setLatestProvenanceEvents(LatestProvenanceEventsDTO latestProvenanceEvents) {
+    public void setLatestProvenanceEvents(final LatestProvenanceEventsDTO latestProvenanceEvents) {
         this.latestProvenanceEvents = latestProvenanceEvents;
     }
 }

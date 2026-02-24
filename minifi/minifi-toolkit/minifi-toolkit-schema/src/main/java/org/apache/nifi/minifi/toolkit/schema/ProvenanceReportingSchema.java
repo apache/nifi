@@ -57,12 +57,12 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     private Number batchSize = DEFAULT_BATCH_SIZE;
     private String SSL;
 
-    public ProvenanceReportingSchema(Map map) {
+    public ProvenanceReportingSchema(final Map map) {
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, PROVENANCE_REPORTING_KEY);
         if (schedulingStrategy != null) {
             try {
                 SchedulingStrategy.valueOf(schedulingStrategy);
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 addValidationIssue(SCHEDULING_STRATEGY_KEY, PROVENANCE_REPORTING_KEY, "it is not a valid scheduling strategy");
             }
         }
@@ -78,7 +78,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
     }
 
     public ReportingSchema convert() {
-        Map<String, Object> properties = new HashMap<>();
+        final Map<String, Object> properties = new HashMap<>();
         properties.put("Destination URL", destinationUrl);
         properties.put("Input Port Name", portName);
         properties.put("Instance URL", originatingUrl);
@@ -87,20 +87,20 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
         properties.put("Communications Timeout", timeout);
         properties.put("SSL Context Service", SSL);
 
-        Map<String, Object> target = super.mapSupplier.get();
+        final Map<String, Object> target = super.mapSupplier.get();
         target.put(CLASS_KEY, DEFAULT_PROV_REPORTING_TASK_CLASS);
         target.put(COMMENT_KEY, comment);
         target.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);
         target.put(SCHEDULING_PERIOD_KEY, schedulingPeriod);
         target.put(PROPERTIES_KEY, properties);
 
-        ReportingSchema provenance = new ReportingSchema(target);
+        final ReportingSchema provenance = new ReportingSchema(target);
         return provenance;
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(COMMENT_KEY, comment);
         result.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);
         result.put(SCHEDULING_PERIOD_KEY, schedulingPeriod);
@@ -113,7 +113,7 @@ public class ProvenanceReportingSchema extends BaseSchema implements WritableSch
         return result;
     }
 
-    public void setSSL(boolean useSSL) {
+    public void setSSL(final boolean useSSL) {
         SSL = useSSL ? "SSL-Context-Service" : "";
     }
 

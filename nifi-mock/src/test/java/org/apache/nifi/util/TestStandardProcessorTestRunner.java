@@ -72,7 +72,7 @@ public class TestStandardProcessorTestRunner {
 
     @Test
     public void testAllConditionsMet() {
-        TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
+        final TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("GROUP_ATTRIBUTE_KEY", "1");
@@ -89,7 +89,7 @@ public class TestStandardProcessorTestRunner {
 
     @Test
     public void testAllConditionsMetComplex() {
-        TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
+        final TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("GROUP_ATTRIBUTE_KEY", "1");
@@ -103,8 +103,8 @@ public class TestStandardProcessorTestRunner {
         runner.run();
         runner.assertAllFlowFilesTransferred(GoodProcessor.REL_SUCCESS, 2);
 
-        Predicate<MockFlowFile> firstPredicate = mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1");
-        Predicate<MockFlowFile> either = firstPredicate.or(mff -> mff.isAttributeEqual("age", "34"));
+        final Predicate<MockFlowFile> firstPredicate = mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1");
+        final Predicate<MockFlowFile> either = firstPredicate.or(mff -> mff.isAttributeEqual("age", "34"));
 
         runner.assertAllConditionsMet("success", either);
     }
@@ -180,19 +180,19 @@ public class TestStandardProcessorTestRunner {
         final String pdValue = "exampleName";
         try {
             runner.addControllerService(serviceIdentifier, testService);
-        } catch (InitializationException e) {
+        } catch (final InitializationException e) {
             fail(e.getMessage());
         }
 
         assertFalse(testService.isOpmCalled(), "onPropertyModified has been called");
 
-        ValidationResult vr = runner.setProperty(testService, pdName, pdValue);
+        final ValidationResult vr = runner.setProperty(testService, pdName, pdValue);
 
         assertTrue(vr.isValid());
 
-        ControllerServiceConfiguration csConf = ((MockProcessContext) runner.getProcessContext()).getConfiguration(serviceIdentifier);
-        PropertyDescriptor propertyDescriptor = testService.getPropertyDescriptor(pdName);
-        String retrievedPDValue = csConf.getProperties().get(propertyDescriptor);
+        final ControllerServiceConfiguration csConf = ((MockProcessContext) runner.getProcessContext()).getConfiguration(serviceIdentifier);
+        final PropertyDescriptor propertyDescriptor = testService.getPropertyDescriptor(pdName);
+        final String retrievedPDValue = csConf.getProperties().get(propertyDescriptor);
 
         assertEquals(pdValue, retrievedPDValue);
         assertTrue(testService.isOpmCalled(), "onPropertyModified has not been called");
@@ -214,7 +214,7 @@ public class TestStandardProcessorTestRunner {
         final String pdValue = "exampleName";
         try {
             runner.addControllerService(serviceIdentifier, testService);
-        } catch (InitializationException e) {
+        } catch (final InitializationException e) {
             fail(e.getMessage());
         }
 
@@ -264,7 +264,7 @@ public class TestStandardProcessorTestRunner {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         }
 
     }
@@ -288,7 +288,7 @@ public class TestStandardProcessorTestRunner {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
             FlowFile ff = session.create();
             if (counter % 2 == 0) {
                 ff = session.putAttribute(ff, KEY, "value");
@@ -324,9 +324,9 @@ public class TestStandardProcessorTestRunner {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
-            for (FlowFile incoming : session.get(20)) {
+            for (final FlowFile incoming : session.get(20)) {
                 session.transfer(incoming, REL_SUCCESS);
             }
         }

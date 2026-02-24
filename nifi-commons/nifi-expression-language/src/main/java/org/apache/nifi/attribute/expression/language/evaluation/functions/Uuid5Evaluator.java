@@ -42,7 +42,7 @@ public class Uuid5Evaluator extends StringEvaluator {
         }
         final String nsValue = namespace.evaluate(evaluationContext).getValue();
 
-        String uuid = Uuid5Util.fromString(subjectValue, nsValue);
+        final String uuid = Uuid5Util.fromString(subjectValue, nsValue);
 
         return new StringQueryResult(uuid);
     }

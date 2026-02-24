@@ -88,18 +88,18 @@ public class ProcessorSchemaV1Test {
         testProperties.put(testKey2, testValue2);
     }
 
-    private ProcessorSchemaV1 createSchema(int expectedValidationIssues) {
+    private ProcessorSchemaV1 createSchema(final int expectedValidationIssues) {
         return createSchema(createMap(), expectedValidationIssues);
     }
 
-    private ProcessorSchemaV1 createSchema(Map<String, Object> map, int expectedValidationIssues) {
-        ProcessorSchemaV1 processorSchemaV1 = new ProcessorSchemaV1(map);
+    private ProcessorSchemaV1 createSchema(final Map<String, Object> map, final int expectedValidationIssues) {
+        final ProcessorSchemaV1 processorSchemaV1 = new ProcessorSchemaV1(map);
         assertEquals(expectedValidationIssues, processorSchemaV1.getValidationIssues().size());
         return processorSchemaV1;
     }
 
     private Map<String, Object> createMap() {
-        Map<String, Object> map = new HashMap<>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(NAME_KEY, testName);
         map.put(CLASS_KEY, testProcessorClass);
         map.put(SCHEDULING_STRATEGY_KEY, testSchedulingStrategy);
@@ -120,7 +120,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoName() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(NAME_KEY);
         assertNull(createSchema(map, 1).getName());
     }
@@ -132,7 +132,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoProcessorClass() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(CLASS_KEY);
         assertNull(createSchema(map, 1).convert().getProcessorClass());
     }
@@ -144,7 +144,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoSchedulingStrategy() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(SCHEDULING_STRATEGY_KEY);
         assertNull(createSchema(map, 1).convert().getSchedulingStrategy());
     }
@@ -162,7 +162,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoSchedulingPeriod() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(SCHEDULING_PERIOD_KEY);
         assertNull(createSchema(map, 1).convert().getSchedulingPeriod());
     }
@@ -174,7 +174,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoMaxConcurrentTasks() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(MAX_CONCURRENT_TASKS_KEY);
         assertEquals(DEFAULT_MAX_CONCURRENT_TASKS, createSchema(map, 0).convert().getMaxConcurrentTasks());
     }
@@ -186,7 +186,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoPenalizationPeriod() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(PENALIZATION_PERIOD_KEY);
         assertEquals(DEFAULT_PENALIZATION_PERIOD, createSchema(map, 0).convert().getPenalizationPeriod());
     }
@@ -198,7 +198,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoYieldPeriod() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(YIELD_PERIOD_KEY);
         assertEquals(DEFAULT_YIELD_DURATION, createSchema(map, 0).convert().getYieldPeriod());
     }
@@ -210,7 +210,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoRunDurationNanos() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(RUN_DURATION_NANOS_KEY);
         assertEquals(DEFAULT_RUN_DURATION_NANOS, createSchema(map, 0).convert().getRunDurationNanos());
     }
@@ -222,7 +222,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoAutoTerminatedRelationships() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY);
         assertEquals(DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST, createSchema(map, 0).convert().getAutoTerminatedRelationshipsList());
     }
@@ -234,7 +234,7 @@ public class ProcessorSchemaV1Test {
 
     @Test
     public void testNoProperties() {
-        Map<String, Object> map = createMap();
+        final Map<String, Object> map = createMap();
         map.remove(PROPERTIES_KEY);
         assertEquals(DEFAULT_PROPERTIES, createSchema(map, 0).convert().getProperties());
     }

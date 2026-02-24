@@ -67,9 +67,9 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        final ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
-        DeleteObjectRequest request = captureRequest.getValue();
+        final DeleteObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("delete-key", request.key());
     }
@@ -115,9 +115,9 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        final ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
-        DeleteObjectRequest request = captureRequest.getValue();
+        final DeleteObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("test-key", request.key());
         assertEquals("test-version", request.versionId());
@@ -137,9 +137,9 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        final ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
-        DeleteObjectRequest request = captureRequest.getValue();
+        final DeleteObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
         assertEquals("test-key", request.key());
         assertEquals("test-version", request.versionId());

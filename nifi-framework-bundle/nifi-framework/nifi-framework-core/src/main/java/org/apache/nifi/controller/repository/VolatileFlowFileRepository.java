@@ -147,7 +147,7 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public Set<String> findQueuesWithFlowFiles(FlowFileSwapManager swapManager) throws IOException {
+    public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager swapManager) throws IOException {
         return Collections.emptySet();
     }
 
@@ -177,11 +177,11 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue queue) throws IOException {
+    public void swapFlowFilesIn(final String swapLocation, final List<FlowFileRecord> flowFileRecords, final FlowFileQueue queue) throws IOException {
     }
 
     @Override
-    public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) throws IOException {
+    public void swapFlowFilesOut(final List<FlowFileRecord> swappedOut, final FlowFileQueue queue, final String swapLocation) throws IOException {
     }
 
     @Override

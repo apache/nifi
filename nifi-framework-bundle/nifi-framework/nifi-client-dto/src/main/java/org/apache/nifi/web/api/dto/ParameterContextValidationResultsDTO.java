@@ -24,7 +24,7 @@ import java.util.List;
 public class ParameterContextValidationResultsDTO {
     private List<ComponentValidationResultDTO> componentValidationResults;
 
-    public void setComponentValidationResults(List<ComponentValidationResultDTO> componentValidationResults) {
+    public void setComponentValidationResults(final List<ComponentValidationResultDTO> componentValidationResults) {
         this.componentValidationResults = componentValidationResults;
     }
 

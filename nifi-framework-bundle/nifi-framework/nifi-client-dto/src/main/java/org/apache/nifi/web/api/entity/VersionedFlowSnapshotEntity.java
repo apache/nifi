@@ -35,7 +35,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         return versionedFlowSnapshot;
     }
 
-    public void setVersionedFlow(RegisteredFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlow(final RegisteredFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
@@ -53,7 +53,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         return registryId;
     }
 
-    public void setRegistryId(String registryId) {
+    public void setRegistryId(final String registryId) {
         this.registryId = registryId;
     }
 
@@ -63,7 +63,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         return updateDescendantVersionedFlows;
     }
 
-    public void setUpdateDescendantVersionedFlows(Boolean update) {
+    public void setUpdateDescendantVersionedFlows(final Boolean update) {
         this.updateDescendantVersionedFlows = update;
     }
 
@@ -73,7 +73,7 @@ public class VersionedFlowSnapshotEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

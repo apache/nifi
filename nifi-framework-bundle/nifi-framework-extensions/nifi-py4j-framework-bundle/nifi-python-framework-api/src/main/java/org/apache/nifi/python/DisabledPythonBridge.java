@@ -74,7 +74,7 @@ public class DisabledPythonBridge implements PythonBridge {
     }
 
     @Override
-    public void onProcessorRemoved(final String identifier, final String type, String version) {
+    public void onProcessorRemoved(final String identifier, final String type, final String version) {
     }
 
     @Override

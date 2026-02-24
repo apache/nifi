@@ -32,24 +32,24 @@ import static org.apache.nifi.jasn1.JASN1Utils.toGetterMethod;
 
 public class BerArrayConverter implements JASN1TypeAndValueConverter {
     @Override
-    public boolean supportsType(Class<?> berType) {
+    public boolean supportsType(final Class<?> berType) {
         return JASN1Utils.getSeqOfField(berType) != null;
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
-        Field seqOfField = JASN1Utils.getSeqOfField(berType);
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
+        final Field seqOfField = JASN1Utils.getSeqOfField(berType);
         final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
         return RecordFieldType.ARRAY.getArrayDataType(converter.convertType(seqOf));
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
+    public boolean supportsValue(final BerType value, final DataType dataType) {
         return RecordFieldType.ARRAY.equals(dataType.getFieldType());
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType value, final DataType dataType, final JASN1Converter converter) {
         // If the field is declared with a direct SEQUENCE OF, then this value is a Parent$Children innerclass,
         // in such a case, use the parent instance to get the seqOfContainer.
         // Otherwise, the value is a separated class holding only seqOf field.
@@ -64,7 +64,7 @@ public class BerArrayConverter implements JASN1TypeAndValueConverter {
             final DataType elementType = ((ArrayDataType) dataType).getElementType();
             return ((List<? extends BerType>) invokeGetter(value, getterMethod)).stream()
                     .map(fieldValue -> converter.convertValue(fieldValue, elementType)).toArray();
-        } catch (NoSuchFieldException e) {
+        } catch (final NoSuchFieldException e) {
             throw new RuntimeException(value + " doesn't have the expected 'seqOf' field.");
         }
     }

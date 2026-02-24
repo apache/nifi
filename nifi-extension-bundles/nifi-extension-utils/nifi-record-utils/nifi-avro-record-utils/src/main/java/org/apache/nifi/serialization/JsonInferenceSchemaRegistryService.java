@@ -50,7 +50,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
     private String schemaAccess;
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         this.storeSchemaAccessStrategy(context);
         this.schemaAccess = context.getProperty(getSchemaAccessStrategyDescriptor()).getValue();
     }
@@ -99,7 +99,7 @@ public class JsonInferenceSchemaRegistryService extends SchemaRegistryService {
         return properties;
     }
 
-    public RecordSchema getSchema(Map<String, String> variables, Map<String, Object> content, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+    public RecordSchema getSchema(final Map<String, String> variables, final Map<String, Object> content, final RecordSchema readSchema) throws SchemaNotFoundException, IOException {
         if (schemaAccess.equalsIgnoreCase(SCHEMA_NAME_PROPERTY.getValue()) || schemaAccess.equalsIgnoreCase(SCHEMA_TEXT_PROPERTY.getValue())) {
             return getSchema(variables, readSchema);
         } else {

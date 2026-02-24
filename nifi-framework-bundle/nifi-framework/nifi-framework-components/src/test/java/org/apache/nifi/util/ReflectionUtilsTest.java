@@ -96,7 +96,7 @@ public class ReflectionUtilsTest {
 
     @Test
     public void validateNoFailureIfQuiatelyIfOneOfArgumentsWrongTypeAndProcessLog() throws Exception {
-        ComponentLog pl = mock(ComponentLog.class);
+        final ComponentLog pl = mock(ComponentLog.class);
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, new E(), pl, 3, "hjk", "hjk");
         verify(pl, Mockito.atMost(1)).error(Mockito.anyString());
     }
@@ -114,7 +114,7 @@ public class ReflectionUtilsTest {
 
     public abstract class A<T> {
         @OnStopped
-        public void setFoo(T a) {
+        public void setFoo(final T a) {
             invocations.add("A");
         }
     }
@@ -122,7 +122,7 @@ public class ReflectionUtilsTest {
     public class B extends A<Integer> {
         @Override
         @OnStopped
-        public void setFoo(Integer a) {
+        public void setFoo(final Integer a) {
             invocations.add("B");
         }
     }
@@ -133,21 +133,21 @@ public class ReflectionUtilsTest {
 
     public class D extends C {
         @Override
-        public void setFoo(String a) {
+        public void setFoo(final String a) {
             invocations.add("D");
         }
     }
 
     public class E {
         @OnStopped
-        public void foo(Integer a, String b, byte[] c) {
+        public void foo(final Integer a, final String b, final byte[] c) {
             invocations.add("E");
         }
     }
 
     public class F {
         @OnStopped
-        public void foo(Integer a) {
+        public void foo(final Integer a) {
             throw new RuntimeException("Intentional");
         }
     }

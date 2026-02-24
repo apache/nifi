@@ -58,7 +58,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
 
         final List<PatternMapping> patterns;
         if (compiledPatterns == null) {
-            String expression = search.evaluate(evaluationContext).getValue();
+            final String expression = search.evaluate(evaluationContext).getValue();
             if (expression == null) {
                 return new StringQueryResult(subjectValue);
             }
@@ -67,7 +67,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
             patterns = compiledPatterns;
         }
 
-        for (PatternMapping entry : patterns) {
+        for (final PatternMapping entry : patterns) {
             if (entry.pattern().matcher(subjectValue).matches()) {
                 return new StringQueryResult(entry.replacement());
             }
@@ -83,10 +83,10 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
         }
 
         final String[] mappings = argument.split(",");
-        for (String mapping : mappings) {
-            String[] parts = mapping.trim().split(":");
-            String streamPattern = parts[0];
-            String mappedTo = parts[1];
+        for (final String mapping : mappings) {
+            final String[] parts = mapping.trim().split(":");
+            final String streamPattern = parts[0];
+            final String mappedTo = parts[1];
 
             if (streamPattern == null || streamPattern.isBlank()) {
                 continue;
@@ -98,7 +98,7 @@ public class ReplaceByPatternEvaluator extends StringEvaluator {
 
             try {
                 result.add(new PatternMapping(Pattern.compile(streamPattern), mappedTo));
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // ignore
                 continue;
             }

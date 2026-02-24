@@ -127,7 +127,7 @@ public class PutSmbFileTest {
         testRunner.setProperty(PutSmbFile.PASSWORD, PASSWORD);
     }
 
-    private void testDirectoryCreation(String dirFlag, int times) throws IOException {
+    private void testDirectoryCreation(final String dirFlag, final int times) throws IOException {
         when(diskShare.folderExists(DIRECTORY)).thenReturn(false);
 
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, dirFlag);
@@ -152,7 +152,7 @@ public class PutSmbFileTest {
         return shareAccessSet.getValue();
     }
 
-    private List<MockFlowFile> generateFlowFile(int numberOfFlowFiles, Map<String, String> attributes) {
+    private List<MockFlowFile> generateFlowFile(final int numberOfFlowFiles, final Map<String, String> attributes) {
         final List<MockFlowFile> result = new ArrayList<>();
         for (int i = 0; i < numberOfFlowFiles; i++) {
             final MockFlowFile flowFile = new MockFlowFile(FLOWFILE_ID_COUNTER.incrementAndGet());
@@ -169,7 +169,7 @@ public class PutSmbFileTest {
     public void init() throws IOException {
         testRunner = TestRunners.newTestRunner(new PutSmbFile() {
             @Override
-            SMBClient initSmbClient(ProcessContext context) {
+            SMBClient initSmbClient(final ProcessContext context) {
                 return smbClient;
             }
         });
@@ -248,7 +248,7 @@ public class PutSmbFileTest {
         testRunner.run();
 
         verify(connection).authenticate(authenticationContext.capture());
-        AuthenticationContext acObj = authenticationContext.getValue();
+        final AuthenticationContext acObj = authenticationContext.getValue();
         assertEquals(acObj.getUsername(), USERNAME);
         assertEquals(acObj.getDomain(), DOMAIN);
         assertArrayEquals(acObj.getPassword(), PASSWORD.toCharArray());
@@ -261,8 +261,8 @@ public class PutSmbFileTest {
         testRunner.run();
 
         verify(connection).authenticate(authenticationContext.capture());
-        AuthenticationContext acObj = authenticationContext.getValue();
-        AuthenticationContext compAc = AuthenticationContext.anonymous();
+        final AuthenticationContext acObj = authenticationContext.getValue();
+        final AuthenticationContext compAc = AuthenticationContext.anonymous();
         assertEquals(acObj.getUsername(), compAc.getUsername());
         assertEquals(acObj.getDomain(), compAc.getDomain());
         assertArrayEquals(acObj.getPassword(), compAc.getPassword());
@@ -299,9 +299,9 @@ public class PutSmbFileTest {
         when(diskShare.folderExists(any())).thenReturn(false);
         doThrow(new RuntimeException("Access denied")).when(diskShare).mkdir("dir2");
 
-        FlowFile flowFile1 = createFlowFileWithDirectoryAttribute(1, "dir1");
-        FlowFile flowFile2 = createFlowFileWithDirectoryAttribute(2, "dir2");
-        FlowFile flowFile3 = createFlowFileWithDirectoryAttribute(3, "dir3");
+        final FlowFile flowFile1 = createFlowFileWithDirectoryAttribute(1, "dir1");
+        final FlowFile flowFile2 = createFlowFileWithDirectoryAttribute(2, "dir2");
+        final FlowFile flowFile3 = createFlowFileWithDirectoryAttribute(3, "dir3");
 
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
         testRunner.setProperty(PutSmbFile.DIRECTORY, "${directory}");
@@ -312,8 +312,8 @@ public class PutSmbFileTest {
         testRunner.assertTransferCount(PutSmbFile.REL_FAILURE, 1);
     }
 
-    private FlowFile createFlowFileWithDirectoryAttribute(long id, String directory) {
-        MockFlowFile flowFile = new MockFlowFile(id);
+    private FlowFile createFlowFileWithDirectoryAttribute(final long id, final String directory) {
+        final MockFlowFile flowFile = new MockFlowFile(id);
         flowFile.putAttributes(Map.of("directory", directory));
         return flowFile;
     }
@@ -322,7 +322,7 @@ public class PutSmbFileTest {
     public void testFileShareNone() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_NONE);
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
-        Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
+        final Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
         assertTrue(shareAccessSet.isEmpty());
     }
 
@@ -330,7 +330,7 @@ public class PutSmbFileTest {
     public void testFileShareRead() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_READ);
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
-        Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
+        final Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
         assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
     }
 
@@ -338,7 +338,7 @@ public class PutSmbFileTest {
     public void testFileShareReadWriteDelete() throws IOException {
         testRunner.setProperty(PutSmbFile.SHARE_ACCESS, PutSmbFile.SHARE_ACCESS_READWRITEDELETE);
         testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
-        Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
+        final Set<SMB2ShareAccess> shareAccessSet = testOpenFileShareAccess();
         assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_READ));
         assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_WRITE));
         assertTrue(shareAccessSet.contains(SMB2ShareAccess.FILE_SHARE_DELETE));
@@ -382,7 +382,7 @@ public class PutSmbFileTest {
         testRunner.enqueue("data");
         testRunner.run();
 
-        ArgumentCaptor<String> filename = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> filename = ArgumentCaptor.forClass(String.class);
 
         verify(diskShare, times(1)).open(
             filename.capture(),
@@ -405,9 +405,9 @@ public class PutSmbFileTest {
         testRunner.enqueue("data");
         testRunner.run();
 
-        ArgumentCaptor<String> initialFilename = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> finalFilename = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<Boolean> replace = ArgumentCaptor.forClass(Boolean.class);
+        final ArgumentCaptor<String> initialFilename = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> finalFilename = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<Boolean> replace = ArgumentCaptor.forClass(Boolean.class);
 
         verify(diskShare, times(1)).open(
             initialFilename.capture(),
@@ -430,7 +430,7 @@ public class PutSmbFileTest {
 
     @Test
     public void testConnectionError() throws IOException {
-        String emsg = "mock connection exception";
+        final String emsg = "mock connection exception";
         when(smbClient.connect(any(String.class))).thenThrow(new IOException(emsg));
 
         testRunner.enqueue("1");

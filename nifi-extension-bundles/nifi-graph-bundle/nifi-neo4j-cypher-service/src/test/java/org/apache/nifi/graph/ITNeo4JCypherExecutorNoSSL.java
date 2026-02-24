@@ -78,12 +78,12 @@ public class ITNeo4JCypherExecutorNoSSL {
         driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 
-        List<Record> result = executeSession("match (n) return n");
+        final List<Record> result = executeSession("match (n) return n");
 
         assertEquals(0, result.size(), "nodes should be equal");
     }
 
-    protected List<Record> executeSession(String statement) {
+    protected List<Record> executeSession(final String statement) {
         try (Session session = driver.session()) {
             return session.run(statement).list();
         }
@@ -100,9 +100,9 @@ public class ITNeo4JCypherExecutorNoSSL {
 
     @Test
     public void testCreateNodeNoReturn() {
-        String query = "create (n:nodereturn { name: \"Testing\"})";
+        final String query = "create (n:nodereturn { name: \"Testing\"})";
 
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), EMPTY_CALLBACK);
+        final Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), EMPTY_CALLBACK);
         assertEquals("1", attributes.get(GraphClientService.LABELS_ADDED));
         assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
         assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));
@@ -114,10 +114,10 @@ public class ITNeo4JCypherExecutorNoSSL {
 
     @Test
     public void testCreateNodeOnePropertyWithReturn() {
-        String query = "create (n { name:'abc' }) return n.name";
+        final String query = "create (n { name:'abc' }) return n.name";
 
         final List<Map<String, Object>> result = new ArrayList<>();
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
+        final Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> result.add(record));
         assertEquals("0", attributes.get(GraphClientService.LABELS_ADDED));
         assertEquals("1", attributes.get(GraphClientService.NODES_CREATED));
         assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));
@@ -131,10 +131,10 @@ public class ITNeo4JCypherExecutorNoSSL {
 
     @Test
     public void testCreateNodeTwoPropertyOneLabelWithReturn() {
-        String query = "create (n:Person { name:'abc', age : 1 }) return n.name, n.age";
+        final String query = "create (n:Person { name:'abc', age : 1 }) return n.name, n.age";
 
         final List<Map<String, Object>> result = new ArrayList<>();
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> {
+        final Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), (record, hasMore) -> {
             result.add(record);
         });
 
@@ -152,10 +152,10 @@ public class ITNeo4JCypherExecutorNoSSL {
 
     @Test
     public void testCreateTwoNodeTwoPropertyOneRelationshipWithReturn() {
-        String query = "create (m:Person { name:'abc', age : 1 }) create (n:Person { name : 'pqr'}) create (m)-[r:hello]->(n) return m.name, n.name, type(r)";
+        final String query = "create (m:Person { name:'abc', age : 1 }) create (n:Person { name : 'pqr'}) create (m)-[r:hello]->(n) return m.name, n.name, type(r)";
 
-        List<Map<String, Object>> result = new ArrayList<>();
-        Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), ((record, isMore) -> result.add(record)));
+        final List<Map<String, Object>> result = new ArrayList<>();
+        final Map<String, String> attributes = clientService.executeQuery(query, new HashMap<>(), ((record, isMore) -> result.add(record)));
         assertEquals("2", attributes.get(GraphClientService.LABELS_ADDED));
         assertEquals("2", attributes.get(GraphClientService.NODES_CREATED));
         assertEquals("0", attributes.get(GraphClientService.NODES_DELETED));

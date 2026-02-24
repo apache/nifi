@@ -53,8 +53,8 @@ public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoi
     }
 
     @Override
-    protected void mergeResponses(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap,
+                                  final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         remoteProcessGroupEntityMerger.merge(clientEntity, entityMap);
     }

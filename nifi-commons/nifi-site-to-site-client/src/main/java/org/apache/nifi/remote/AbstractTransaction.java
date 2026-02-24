@@ -83,7 +83,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.state = TransactionState.ERROR;
         try {
             close();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Failed to close transaction due to {}", e.getMessage());
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
@@ -166,11 +166,11 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected abstract Response readTransactionResponse() throws IOException;
 
-    protected final void writeTransactionResponse(ResponseCode response) throws IOException {
+    protected final void writeTransactionResponse(final ResponseCode response) throws IOException {
         writeTransactionResponse(response, null);
     }
 
-    protected void writeTransactionResponse(ResponseCode response, String explanation) throws IOException {
+    protected void writeTransactionResponse(final ResponseCode response, final String explanation) throws IOException {
         writeTransactionResponse(response, explanation, true);
     }
 

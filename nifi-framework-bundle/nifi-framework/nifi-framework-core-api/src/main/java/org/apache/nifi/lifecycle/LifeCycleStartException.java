@@ -27,19 +27,19 @@ public class LifeCycleStartException extends LifeCycleException {
     public LifeCycleStartException() {
     }
 
-    public LifeCycleStartException(String message) {
+    public LifeCycleStartException(final String message) {
         super(message);
     }
 
-    public LifeCycleStartException(String message, Throwable cause) {
+    public LifeCycleStartException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public LifeCycleStartException(Throwable cause) {
+    public LifeCycleStartException(final Throwable cause) {
         super(cause);
     }
 
-    public LifeCycleStartException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public LifeCycleStartException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 

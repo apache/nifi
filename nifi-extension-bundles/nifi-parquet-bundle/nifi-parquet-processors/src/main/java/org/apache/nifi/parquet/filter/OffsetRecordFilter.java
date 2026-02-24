@@ -29,12 +29,12 @@ public class OffsetRecordFilter implements RecordFilter {
 
     private final AtomicLong skipsRemaining;
 
-    public static UnboundRecordFilter offset(long startIndex) {
+    public static UnboundRecordFilter offset(final long startIndex) {
         final AtomicLong skipsRemaining = new AtomicLong(startIndex);
         return readers -> new OffsetRecordFilter(skipsRemaining);
     }
 
-    private OffsetRecordFilter(AtomicLong skipsRemaining) {
+    private OffsetRecordFilter(final AtomicLong skipsRemaining) {
         this.skipsRemaining = skipsRemaining;
     }
 

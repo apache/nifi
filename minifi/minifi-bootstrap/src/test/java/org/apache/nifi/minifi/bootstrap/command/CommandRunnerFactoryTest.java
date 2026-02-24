@@ -85,7 +85,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldStartCommandReturnStartRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(START);
+        final CommandRunner runner = commandRunnerFactory.getRunner(START);
 
         assertInstanceOf(StartRunner.class, runner);
         verify();
@@ -93,7 +93,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldRunCommandReturnStartRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(RUN);
+        final CommandRunner runner = commandRunnerFactory.getRunner(RUN);
 
         assertInstanceOf(StartRunner.class, runner);
         verify();
@@ -101,7 +101,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldStopCommandReturnStopRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(STOP);
+        final CommandRunner runner = commandRunnerFactory.getRunner(STOP);
 
         assertInstanceOf(StopRunner.class, runner);
         verify();
@@ -109,7 +109,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldEnvCommandReturnEnvRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(ENV);
+        final CommandRunner runner = commandRunnerFactory.getRunner(ENV);
 
         assertInstanceOf(EnvRunner.class, runner);
         verify();
@@ -117,7 +117,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldDumpCommandReturnDumpRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(DUMP);
+        final CommandRunner runner = commandRunnerFactory.getRunner(DUMP);
 
         assertInstanceOf(DumpRunner.class, runner);
         verify();
@@ -125,7 +125,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldFlowStatusCommandReturnFlowStatusRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(FLOWSTATUS);
+        final CommandRunner runner = commandRunnerFactory.getRunner(FLOWSTATUS);
 
         assertInstanceOf(FlowStatusRunner.class, runner);
         verify();
@@ -133,7 +133,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldStatusCommandReturnStatusRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(STATUS);
+        final CommandRunner runner = commandRunnerFactory.getRunner(STATUS);
 
         assertInstanceOf(StatusRunner.class, runner);
         verify();
@@ -141,7 +141,7 @@ class CommandRunnerFactoryTest {
 
     @Test
     void testRunCommandShouldRestartCommandReturnCompositeRunner() {
-        CommandRunner runner = commandRunnerFactory.getRunner(RESTART);
+        final CommandRunner runner = commandRunnerFactory.getRunner(RESTART);
 
         assertInstanceOf(CompositeCommandRunner.class, runner);
         verify();

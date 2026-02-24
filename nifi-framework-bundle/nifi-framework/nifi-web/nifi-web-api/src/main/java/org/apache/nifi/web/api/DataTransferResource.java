@@ -168,16 +168,16 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response createPortTransaction(
-            @Parameter(
+            final @Parameter(
                     description = "The port type.",
                     required = true
             )
             @PathParam("portType") String portType,
-            @PathParam("portId") String portId,
-            @Context HttpServletRequest req,
-            @Context ServletContext context,
-            @Context UriInfo uriInfo,
-            InputStream inputStream) {
+            final @PathParam("portId") String portId,
+            final @Context HttpServletRequest req,
+            final @Context ServletContext context,
+            final @Context UriInfo uriInfo,
+            final InputStream inputStream) {
 
         if (!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)) {
             return responseCreator.wrongPortTypeResponse(portType, portId);
@@ -202,17 +202,17 @@ public class DataTransferResource extends ApplicationResource {
             // Execute handshake.
             initiateServerProtocol(req, peer, transportProtocolVersion);
 
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.PROPERTIES_OK.getCode());
             entity.setMessage("Handshake properties are valid, and port is running. A transaction is created:" + transactionId);
 
             return responseCreator.locationResponse(uriInfo, portType, portId, transactionId, entity, transportProtocolVersion, transactionManager);
 
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             transactionManager.cancelTransaction(transactionId);
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             transactionManager.cancelTransaction(transactionId);
             return responseCreator.unexpectedErrorResponse(portId, e);
         }
@@ -238,15 +238,15 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response receiveFlowFiles(
-            @Parameter(
+            final @Parameter(
                     description = "The input port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context ServletContext context,
-            InputStream inputStream) {
+            final @PathParam("transactionId") String transactionId,
+            final @Context HttpServletRequest req,
+            final @Context ServletContext context,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -265,40 +265,40 @@ public class DataTransferResource extends ApplicationResource {
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
-            int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
+            final int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
             logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
             if (numOfFlowFiles < 1) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity("Client should send request when there is data to send. There was no flow file sent.").build();
             }
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (NotAuthorizedException e) {
+        } catch (final NotAuthorizedException e) {
             return responseCreator.unauthorizedResponse(e);
 
-        } catch (BadRequestException | RequestExpiredException e) {
+        } catch (final BadRequestException | RequestExpiredException e) {
             return responseCreator.badRequestResponse(e);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return responseCreator.unexpectedErrorResponse(portId, e);
         }
 
-        String serverChecksum = ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).getChecksum();
+        final String serverChecksum = ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).getChecksum();
         return responseCreator.acceptedResponse(transactionManager, serverChecksum, transportProtocolVersion);
     }
 
     private HttpFlowFileServerProtocol initiateServerProtocol(final HttpServletRequest req, final Peer peer,
                                                               final Integer transportProtocolVersion) throws IOException {
         // Switch transaction protocol version based on transport protocol version.
-        TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
-        VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
+        final TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
 
         final String dataTransferUrl = req.getRequestURL().toString();
         ((HttpCommunicationsSession) peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
 
-        HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
+        final HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance(nifiProperties).setupServerProtocol(serverProtocol);
         serverProtocol.handshake(peer);
         return serverProtocol;
@@ -315,7 +315,7 @@ public class DataTransferResource extends ApplicationResource {
             // req.getRemoteHost returns IP address, try to resolve hostname to be consistent with RAW protocol.
             final InetAddress clientAddress = InetAddress.getByName(clientHostName);
             clientHostName = clientAddress.getHostName();
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             logger.info("Failed to resolve client hostname {}, due to {}", clientHostName, e.getMessage());
         }
         final int clientPort = req.getRemotePort();
@@ -386,29 +386,29 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response commitOutputPortTransaction(
-            @Parameter(
+            final @Parameter(
                     description = "The response code. Available values are CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
                     required = true
             )
             @QueryParam(RESPONSE_CODE) Integer responseCode,
-            @Parameter(
+            final @Parameter(
                     description = "A checksum calculated at client side using CRC32 to check flow file content integrity. It must match with the value calculated at server side.",
                     required = true
             )
             @QueryParam(CHECK_SUM) @DefaultValue(StringUtils.EMPTY) String checksum,
-            @Parameter(
+            final @Parameter(
                     description = "The output port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @Parameter(
+            final @Parameter(
                     description = "The transaction id.",
                     required = true
             )
             @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context ServletContext context,
-            InputStream inputStream) {
+            final @Context HttpServletRequest req,
+            final @Context ServletContext context,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -428,7 +428,7 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
             String inputErrMessage = null;
             if (responseCode == null) {
@@ -448,21 +448,21 @@ public class DataTransferResource extends ApplicationResource {
                 return cancelTransaction(transactionId, entity);
             }
 
-            int flowFileSent = serverProtocol.commitTransferTransaction(peer, checksum);
+            final int flowFileSent = serverProtocol.commitTransferTransaction(peer, checksum);
             entity.setResponseCode(ResponseCode.CONFIRM_TRANSACTION.getCode());
             entity.setFlowFileSent(flowFileSent);
 
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (Exception e) {
-            HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        } catch (final Exception e) {
+            final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             logger.error("Failed to process the request", e);
             if (ResponseCode.BAD_CHECKSUM.equals(commsSession.getResponseCode())) {
                 entity.setResponseCode(commsSession.getResponseCode().getCode());
                 entity.setMessage(e.getMessage());
 
-                Response.ResponseBuilder builder = Response.status(Response.Status.BAD_REQUEST).entity(entity);
+                final Response.ResponseBuilder builder = Response.status(Response.Status.BAD_REQUEST).entity(entity);
                 return noCache(builder).build();
             }
 
@@ -492,24 +492,24 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response commitInputPortTransaction(
-            @Parameter(
+            final @Parameter(
                     description = "The response code. Available values are BAD_CHECKSUM(19), CONFIRM_TRANSACTION(12) or CANCEL_TRANSACTION(15).",
                     required = true
             )
             @QueryParam(RESPONSE_CODE) Integer responseCode,
-            @Parameter(
+            final @Parameter(
                     description = "The input port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @Parameter(
+            final @Parameter(
                     description = "The transaction id.",
                     required = true
             )
             @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context ServletContext context,
-            InputStream inputStream) {
+            final @Context HttpServletRequest req,
+            final @Context ServletContext context,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -530,8 +530,8 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
-            HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
+            final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             // Pass the response code sent from the client.
             String inputErrMessage = null;
             if (responseCode == null) {
@@ -555,11 +555,11 @@ public class DataTransferResource extends ApplicationResource {
             commsSession.setResponseCode(ResponseCode.fromCode(responseCode));
 
             try {
-                int flowFileSent = serverProtocol.commitReceiveTransaction(peer);
+                final int flowFileSent = serverProtocol.commitReceiveTransaction(peer);
                 entity.setResponseCode(commsSession.getResponseCode().getCode());
                 entity.setFlowFileSent(flowFileSent);
 
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 if (ResponseCode.BAD_CHECKSUM.getCode() == responseCode && e.getMessage().contains("Received a BadChecksum response")) {
                     // AbstractFlowFileServerProtocol throws IOException after it canceled transaction.
                     // This is a known behavior and if we return 500 with this exception,
@@ -572,17 +572,17 @@ public class DataTransferResource extends ApplicationResource {
                 }
             }
 
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return responseCreator.unexpectedErrorResponse(portId, transactionId, e);
         }
 
         return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
     }
 
-    private Response cancelTransaction(String transactionId, TransactionResultEntity entity) {
+    private Response cancelTransaction(final String transactionId, final TransactionResultEntity entity) {
         transactionManager.cancelTransaction(transactionId);
         entity.setMessage("Transaction has been canceled.");
         entity.setResponseCode(ResponseCode.CANCEL_TRANSACTION.getCode());
@@ -610,16 +610,16 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response transferFlowFiles(
-            @Parameter(
+            final @Parameter(
                     description = "The output port id.",
                     required = true
             )
             @PathParam("portId") String portId,
-            @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context HttpServletResponse res,
-            @Context ServletContext context,
-            InputStream inputStream) {
+            final @PathParam("transactionId") String transactionId,
+            final @Context HttpServletRequest req,
+            final @Context HttpServletResponse res,
+            final @Context ServletContext context,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -641,19 +641,19 @@ public class DataTransferResource extends ApplicationResource {
         try {
             final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
-            StreamingOutput flowFileContent = outputStream -> {
+            final StreamingOutput flowFileContent = outputStream -> {
 
-                HttpOutput output = (HttpOutput) peer.getCommunicationsSession().getOutput();
+                final HttpOutput output = (HttpOutput) peer.getCommunicationsSession().getOutput();
                 output.setOutputStream(outputStream);
 
                 try {
-                    int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
+                    final int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
                     logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
                     if (numOfFlowFiles < 1) {
                         // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
                         throw new WebApplicationException(Response.Status.OK);
                     }
-                } catch (NotAuthorizedException | BadRequestException | RequestExpiredException e) {
+                } catch (final NotAuthorizedException | BadRequestException | RequestExpiredException e) {
                     // Handshake is done outside of write() method, so these exception wouldn't be thrown.
                     throw new IOException("Failed to process the request.", e);
                 }
@@ -661,10 +661,10 @@ public class DataTransferResource extends ApplicationResource {
 
             return responseCreator.acceptedResponse(transactionManager, flowFileContent, transportProtocolVersion);
 
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return responseCreator.unexpectedErrorResponse(portId, e);
         }
     }
@@ -688,13 +688,13 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response extendInputPortTransactionTTL(
-            @PathParam("portId") String portId,
-            @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context HttpServletResponse res,
-            @Context ServletContext context,
-            @Context UriInfo uriInfo,
-            InputStream inputStream) {
+            final @PathParam("portId") String portId,
+            final @PathParam("transactionId") String transactionId,
+            final @Context HttpServletRequest req,
+            final @Context HttpServletResponse res,
+            final @Context ServletContext context,
+            final @Context UriInfo uriInfo,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -724,13 +724,13 @@ public class DataTransferResource extends ApplicationResource {
             }
     )
     public Response extendOutputPortTransactionTTL(
-            @PathParam("portId") String portId,
-            @PathParam("transactionId") String transactionId,
-            @Context HttpServletRequest req,
-            @Context HttpServletResponse res,
-            @Context ServletContext context,
-            @Context UriInfo uriInfo,
-            InputStream inputStream) {
+            final @PathParam("portId") String portId,
+            final @PathParam("transactionId") String transactionId,
+            final @Context HttpServletRequest req,
+            final @Context HttpServletResponse res,
+            final @Context ServletContext context,
+            final @Context UriInfo uriInfo,
+            final InputStream inputStream) {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
@@ -741,14 +741,14 @@ public class DataTransferResource extends ApplicationResource {
     }
 
     public Response extendPortTransactionTTL(
-            String portType,
-            String portId,
-            String transactionId,
-            HttpServletRequest req,
-            HttpServletResponse res,
-            ServletContext context,
-            UriInfo uriInfo,
-            InputStream inputStream) {
+            final String portType,
+            final String portId,
+            final String transactionId,
+            final HttpServletRequest req,
+            final HttpServletResponse res,
+            final ServletContext context,
+            final UriInfo uriInfo,
+            final InputStream inputStream) {
 
         final ValidateRequestResult validationResult = validateResult(req, portId, transactionId);
         if (validationResult.errResponse != null) {
@@ -776,10 +776,10 @@ public class DataTransferResource extends ApplicationResource {
             entity.setMessage("Extended TTL.");
             return noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager)).build();
 
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             return responseCreator.handshakeExceptionResponse(e);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return responseCreator.unexpectedErrorResponse(portId, transactionId, e);
         }
 
@@ -790,12 +790,12 @@ public class DataTransferResource extends ApplicationResource {
         private Response errResponse;
     }
 
-    private ValidateRequestResult validateResult(HttpServletRequest req, String portId) {
+    private ValidateRequestResult validateResult(final HttpServletRequest req, final String portId) {
         return validateResult(req, portId, null);
     }
 
-    private ValidateRequestResult validateResult(HttpServletRequest req, String portId, String transactionId) {
-        ValidateRequestResult result = new ValidateRequestResult();
+    private ValidateRequestResult validateResult(final HttpServletRequest req, final String portId, final String transactionId) {
+        final ValidateRequestResult result = new ValidateRequestResult();
         if (!properties.isSiteToSiteHttpEnabled()) {
             result.errResponse = responseCreator.httpSiteToSiteIsNotEnabledResponse();
             return result;
@@ -803,7 +803,7 @@ public class DataTransferResource extends ApplicationResource {
 
         try {
             result.transportProtocolVersion = negotiateTransportProtocolVersion(req, transportProtocolVersionNegotiator);
-        } catch (BadRequestException e) {
+        } catch (final BadRequestException e) {
             result.errResponse = responseCreator.badRequestResponse(e);
             return result;
         }
@@ -817,7 +817,7 @@ public class DataTransferResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 }

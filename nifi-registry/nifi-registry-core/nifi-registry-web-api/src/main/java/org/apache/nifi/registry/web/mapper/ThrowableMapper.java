@@ -33,7 +33,7 @@ public class ThrowableMapper implements ExceptionMapper<Throwable> {
     private static final Logger logger = LoggerFactory.getLogger(ThrowableMapper.class);
 
     @Override
-    public Response toResponse(Throwable exception) {
+    public Response toResponse(final Throwable exception) {
         // log the error
         logger.error("An unexpected error. Returning {} response.", Response.Status.INTERNAL_SERVER_ERROR, exception);
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("An unexpected error has occurred. Please check the logs for additional details.").type("text/plain").build();

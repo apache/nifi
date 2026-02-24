@@ -71,7 +71,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         clientFactory = null;
     }
 
-    public DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
+    public DataLakeServiceClient getStorageClient(final PropertyContext context, final FlowFile flowFile) {
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Map.of();
 
         final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE)
@@ -82,7 +82,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }

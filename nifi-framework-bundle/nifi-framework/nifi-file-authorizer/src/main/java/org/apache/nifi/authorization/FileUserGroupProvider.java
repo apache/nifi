@@ -77,12 +77,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     private final AuthorizedUserGroupsMapper fingerprintAuthorizedUserGroupMapper = new FingerprintAuthorizedUserGroupsMapper();
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
 
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         try {
             final PropertyValue tenantsPath = configurationContext.getProperty(PROP_TENANTS_FILE);
             if (StringUtils.isBlank(tenantsPath.getValue())) {
@@ -122,12 +122,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             }
 
             // extract the identity and group mappings from nifi.properties if any are provided
-            List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
+            final List<IdentityMapping> identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
 
             // extract any node identities
             initialUserIdentities = new HashSet<>();
             initialGroupIdentities = new HashSet<>();
-            for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
                 if (INITIAL_USER_IDENTITY_PATTERN.matcher(entry.getKey()).matches()) {
                     if (StringUtils.isNotBlank(entry.getValue())) {
                         initialUserIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
@@ -150,7 +150,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             }
 
             logger.debug("Users/Groups file loaded");
-        } catch (IOException | AuthorizerCreationException | IllegalStateException e) {
+        } catch (final IOException | AuthorizerCreationException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
         }
     }
@@ -173,7 +173,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         if (identifier == null) {
             return null;
         }
@@ -215,7 +215,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         if (identity == null) {
             return null;
         }
@@ -394,7 +394,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @AuthorizerContext
-    public void setNiFiProperties(NiFiProperties properties) {
+    public void setNiFiProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
@@ -450,7 +450,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException {
         // ensure we are in a proper state to inherit the fingerprint
         if (!isInheritable()) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current users and groups is not empty");

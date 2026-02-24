@@ -45,7 +45,7 @@ public class TestStateMapSerDe {
         stateValues.put("abc", "xyz");
         stateValues.put("cba", "zyx");
 
-        String version = "3";
+        final String version = "3";
         final StateMap stateMap = new StandardStateMap(stateValues, Optional.of(version));
         final StateMapUpdate record = new StateMapUpdate(stateMap, componentId, UpdateType.CREATE);
 

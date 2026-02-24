@@ -38,9 +38,9 @@ public class ReplayProvenanceIT extends NiFiSystemIT {
     @ParameterizedTest
     @EnumSource(ReplayEventNodes.class)
     public void testReplayLastEvent(final ReplayEventNodes nodes) throws NiFiClientException, IOException, InterruptedException {
-        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
-        ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
 
         // Run Generate once
         getClientUtil().startProcessor(generate);

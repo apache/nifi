@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class WStringTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testWStringTypeNodeLengthArg() throws IOException {
-        String value = "testValue";
+        final String value = "testValue";
         assertEquals(value, new WStringTypeNode(testBinaryReaderBuilder.putWString(value).build(), chunkHeader, parent, value.length() * 2).getValue());
     }
 
     @Test
     public void testWStringTypeNodeNoLengthArg() throws IOException {
-        String value = "testValue";
+        final String value = "testValue";
         assertEquals(value, new WStringTypeNode(testBinaryReaderBuilder.putWord(value.length()).putWString(value).build(), chunkHeader, parent, -1).getValue());
     }
 }

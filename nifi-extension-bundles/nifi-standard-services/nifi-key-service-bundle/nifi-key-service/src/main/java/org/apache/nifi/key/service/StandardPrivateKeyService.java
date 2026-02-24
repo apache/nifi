@@ -133,7 +133,7 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("key-file", KEY_FILE.getName());
         config.renameProperty("key", KEY.getName());
         config.renameProperty("key-password", KEY_PASSWORD.getName());

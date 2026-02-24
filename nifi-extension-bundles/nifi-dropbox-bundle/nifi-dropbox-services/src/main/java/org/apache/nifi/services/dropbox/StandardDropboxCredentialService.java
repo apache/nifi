@@ -103,7 +103,7 @@ public class StandardDropboxCredentialService extends AbstractControllerService 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("app-key", APP_KEY.getName());
         config.renameProperty("app-secret", APP_SECRET.getName());
         config.renameProperty("access-token", ACCESS_TOKEN.getName());

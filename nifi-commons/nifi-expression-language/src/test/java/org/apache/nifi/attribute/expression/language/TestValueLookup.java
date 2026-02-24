@@ -111,7 +111,7 @@ public class TestValueLookup {
             }
 
             @Override
-            public String getAttribute(String key) {
+            public String getAttribute(final String key) {
                 return getAttributes().get(key);
             }
 
@@ -132,14 +132,14 @@ public class TestValueLookup {
 
             @Override
             public Map<String, String> getAttributes() {
-                Map<String, String> attributes = new HashMap<>();
+                final Map<String, String> attributes = new HashMap<>();
                 attributes.put("filename", "fakefile.txt");
                 attributes.put("override me", "original");
                 return attributes;
             }
 
             @Override
-            public int compareTo(FlowFile o) {
+            public int compareTo(final FlowFile o) {
                 return 0;
             }
         };

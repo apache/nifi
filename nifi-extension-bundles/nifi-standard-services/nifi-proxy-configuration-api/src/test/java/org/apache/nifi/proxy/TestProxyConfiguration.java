@@ -50,7 +50,7 @@ public class TestProxyConfiguration {
 
         private ProxySpec[] proxySpecs;
 
-        private void setProxySpecs(ProxySpec... proxySpecs) {
+        private void setProxySpecs(final ProxySpec... proxySpecs) {
             this.proxySpecs = proxySpecs;
         }
 
@@ -60,12 +60,12 @@ public class TestProxyConfiguration {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         }
 
         @Override
-        protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
             final List<ValidationResult> results = new ArrayList<>();
             ProxyConfiguration.validateProxySpec(validationContext, results, proxySpecs);
             return results;
@@ -91,7 +91,7 @@ public class TestProxyConfiguration {
         SOCKS_AUTH_CONFIG.setProxyUserPassword("proxy-password");
     }
 
-    private void testValidateProxySpec(final boolean[] expectations, ProxySpec... specs) throws InitializationException {
+    private void testValidateProxySpec(final boolean[] expectations, final ProxySpec... specs) throws InitializationException {
         final String serviceId = "proxyConfigurationService";
         final ProxyConfigurationService service = mock(ProxyConfigurationService.class);
         when(service.getIdentifier()).thenReturn(serviceId);
@@ -105,7 +105,7 @@ public class TestProxyConfiguration {
         testRunner.enableControllerService(service);
         testRunner.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
 
-        for (boolean expectation : expectations) {
+        for (final boolean expectation : expectations) {
             if (expectation) {
                 testRunner.assertValid();
             } else {

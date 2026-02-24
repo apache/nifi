@@ -58,15 +58,15 @@ public class SocketProtocolListenerTest {
         marshaller = protocolContext.createMarshaller();
         unmarshaller = protocolContext.createUnmarshaller();
 
-        ServerSocketConfiguration configuration = new ServerSocketConfiguration();
+        final ServerSocketConfiguration configuration = new ServerSocketConfiguration();
         configuration.setSocketTimeout(SOCKET_TIMEOUT_MILLISECONDS);
 
         listener = new SocketProtocolListener(LISTENER_THREADS, 0, configuration, protocolContext);
         listener.start();
 
-        int port = listener.getPort();
+        final int port = listener.getPort();
 
-        SocketConfiguration config = new SocketConfiguration();
+        final SocketConfiguration config = new SocketConfiguration();
         config.setReuseAddress(true);
         config.setSocketTimeout(SOCKET_TIMEOUT_MILLISECONDS);
         socket = SocketUtils.createSocket(new InetSocketAddress("localhost", port), config);
@@ -85,7 +85,7 @@ public class SocketProtocolListenerTest {
 
     @Test
     public void testBadRequest() throws Exception {
-        DelayedProtocolHandler handler = new DelayedProtocolHandler(0);
+        final DelayedProtocolHandler handler = new DelayedProtocolHandler(0);
         listener.addHandler(handler);
         socket.getOutputStream().write(5);
         Thread.sleep(250);
@@ -94,16 +94,16 @@ public class SocketProtocolListenerTest {
 
     @Test
     public void testPing() throws Exception {
-        ProtocolMessage msg = new PingMessage();
+        final ProtocolMessage msg = new PingMessage();
 
-        ReflexiveProtocolHandler handler = new ReflexiveProtocolHandler();
+        final ReflexiveProtocolHandler handler = new ReflexiveProtocolHandler();
         listener.addHandler(handler);
 
         // marshal message to output stream
         marshaller.marshal(msg, socket.getOutputStream());
 
         // unmarshall response and return
-        ProtocolMessage response = unmarshaller.unmarshal(socket.getInputStream());
+        final ProtocolMessage response = unmarshaller.unmarshal(socket.getInputStream());
         assertEquals(msg.getType(), response.getType());
 
         assertEquals(1, handler.getMessages().size());

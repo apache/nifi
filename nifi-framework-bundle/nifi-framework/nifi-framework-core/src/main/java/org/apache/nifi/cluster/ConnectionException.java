@@ -24,22 +24,22 @@ public class ConnectionException extends RuntimeException {
 
     private static final long serialVersionUID = -1378294897231234028L;
 
-    public ConnectionException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public ConnectionException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
     public ConnectionException() {
     }
 
-    public ConnectionException(String msg) {
+    public ConnectionException(final String msg) {
         super(msg);
     }
 
-    public ConnectionException(Throwable cause) {
+    public ConnectionException(final Throwable cause) {
         super(cause);
     }
 
-    public ConnectionException(String msg, Throwable cause) {
+    public ConnectionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

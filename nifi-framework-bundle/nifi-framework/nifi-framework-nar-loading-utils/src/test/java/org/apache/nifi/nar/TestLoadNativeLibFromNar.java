@@ -59,21 +59,21 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
         final NarLoadResult narLoadResult = narLoader.load(narFiles);
         assertNotNull(narLoadResult);
 
-        List<NarClassLoader> narClassLoaders = this.narClassLoaders.getBundles().stream()
+        final List<NarClassLoader> narClassLoaders = this.narClassLoaders.getBundles().stream()
                 .filter(bundle -> bundle.getBundleDetails().getCoordinate().getCoordinate().contains("nifi-nar_with_native_lib-"))
                 .map(Bundle::getClassLoader)
                 .filter(NarClassLoader.class::isInstance)
                 .map(NarClassLoader.class::cast)
                 .toList();
 
-        Set<String> actualLibraryLocations = narClassLoaders.stream()
+        final Set<String> actualLibraryLocations = narClassLoaders.stream()
                 .map(classLoader -> classLoader.findLibrary("testjni"))
                 .collect(Collectors.toSet());
 
-        for (NarClassLoader narClassLoader : narClassLoaders) {
-            Class<?> TestJNI = narClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
+        for (final NarClassLoader narClassLoader : narClassLoaders) {
+            final Class<?> TestJNI = narClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
 
-            Object actualJniMethodReturnValue = TestJNI
+            final Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
                 .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
@@ -100,23 +100,23 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
         final NarLoadResult narLoadResult = narLoader.load(narFiles);
         assertNotNull(narLoadResult);
 
-        Bundle bundleWithNativeLib = this.narClassLoaders.getBundles().stream()
+        final Bundle bundleWithNativeLib = this.narClassLoaders.getBundles().stream()
                 .filter(bundle -> bundle.getBundleDetails().getCoordinate().getCoordinate().contains("nifi-nar_with_native_lib-"))
                 .findFirst().get();
 
-        Class<?> processorClass = bundleWithNativeLib.getClassLoader().loadClass("org.apache.nifi.nar.ModifiesClasspathProcessor");
+        final Class<?> processorClass = bundleWithNativeLib.getClassLoader().loadClass("org.apache.nifi.nar.ModifiesClasspathProcessor");
 
-        List<InstanceClassLoader> instanceClassLoaders = Arrays.asList(
+        final List<InstanceClassLoader> instanceClassLoaders = Arrays.asList(
                 extensionManager.createInstanceClassLoader(processorClass.getName(), UUID.randomUUID().toString(), bundleWithNativeLib, null),
                 extensionManager.createInstanceClassLoader(processorClass.getName(), UUID.randomUUID().toString(), bundleWithNativeLib, null)
         );
 
-        for (InstanceClassLoader instanceClassLoader : instanceClassLoaders) {
-            String actualLibraryLocation = instanceClassLoader.findLibrary("testjni");
+        for (final InstanceClassLoader instanceClassLoader : instanceClassLoaders) {
+            final String actualLibraryLocation = instanceClassLoader.findLibrary("testjni");
 
-            Class<?> TestJNI = instanceClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
+            final Class<?> TestJNI = instanceClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
 
-            Object actualJniMethodReturnValue = TestJNI
+            final Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
                 .invoke(TestJNI.getDeclaredConstructor().newInstance());
 

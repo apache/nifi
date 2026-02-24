@@ -33,7 +33,7 @@ public class FieldValueWalker {
      * @param fieldValue FieldValue to start with
      * @param consumer Consumer for each FieldValue
      */
-    public static void walk(FieldValue fieldValue, Consumer<FieldValue> consumer) {
+    public static void walk(final FieldValue fieldValue, final Consumer<FieldValue> consumer) {
         Objects.requireNonNull(fieldValue, "fieldValue cannot be null");
         Objects.requireNonNull(consumer, "consumer must not be null");
         consumer.accept(fieldValue);

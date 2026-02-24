@@ -41,9 +41,9 @@ public class NarAutoUnloaderTask implements Runnable {
     private volatile boolean stopped = false;
 
     public NarAutoUnloaderTask(
-            Path autoLoadPath,
-            WatchService watchService,
-            NarAutoUnloadService narAutoUnloadService) {
+            final Path autoLoadPath,
+            final WatchService watchService,
+            final NarAutoUnloadService narAutoUnloadService) {
         this.autoLoadPath = requireNonNull(autoLoadPath);
         this.watchService = requireNonNull(watchService);
         this.narAutoUnloadService = requireNonNull(narAutoUnloadService);
@@ -53,16 +53,16 @@ public class NarAutoUnloaderTask implements Runnable {
     public void run() {
         while (!stopped) {
             try {
-                WatchKey key;
+                final WatchKey key;
                 try {
                     LOGGER.debug("Polling for removed NARs at {}", autoLoadPath);
                     key = watchService.poll(POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException x) {
+                } catch (final InterruptedException x) {
                     LOGGER.info("WatchService interrupted, returning...");
                     return;
                 }
                 if (key != null) {
-                    for (WatchEvent<?> event : key.pollEvents()) {
+                    for (final WatchEvent<?> event : key.pollEvents()) {
                         if (event.kind() == ENTRY_DELETE) {
                             narAutoUnloadService.unloadNarFile(getFileName(event));
                         }
@@ -87,10 +87,10 @@ public class NarAutoUnloaderTask implements Runnable {
         return autoLoadPath;
     }
 
-    private String getFileName(WatchEvent<?> event) {
-        WatchEvent<Path> ev = (WatchEvent<Path>) event;
-        Path filename = ev.context();
-        Path autoUnLoadFile = autoLoadPath.resolve(filename);
+    private String getFileName(final WatchEvent<?> event) {
+        final WatchEvent<Path> ev = (WatchEvent<Path>) event;
+        final Path filename = ev.context();
+        final Path autoUnLoadFile = autoLoadPath.resolve(filename);
         return autoUnLoadFile.toFile().getName().toLowerCase();
     }
 }

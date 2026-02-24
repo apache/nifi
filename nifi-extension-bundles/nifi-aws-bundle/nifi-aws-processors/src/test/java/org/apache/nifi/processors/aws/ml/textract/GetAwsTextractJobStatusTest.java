@@ -78,7 +78,7 @@ public class GetAwsTextractJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        GetAwsTextractJobStatus processor = new GetAwsTextractJobStatus() {
+        final GetAwsTextractJobStatus processor = new GetAwsTextractJobStatus() {
             @Override
             public TextractClient getClient(final ProcessContext context) {
                 return mockTextractClient;

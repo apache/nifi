@@ -28,7 +28,7 @@ public abstract class UpdateStepDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -37,7 +37,7 @@ public abstract class UpdateStepDTO {
         return complete;
     }
 
-    public void setComplete(boolean complete) {
+    public void setComplete(final boolean complete) {
         this.complete = complete;
     }
 
@@ -46,7 +46,7 @@ public abstract class UpdateStepDTO {
         return failureReason;
     }
 
-    public void setFailureReason(String reason) {
+    public void setFailureReason(final String reason) {
         this.failureReason = reason;
     }
 }

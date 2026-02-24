@@ -67,17 +67,17 @@ class TestRecordExtender {
 
     @Test
     void testGetWrappedRecordJson() throws IOException {
-        ObjectNode testNode = OBJECT_MAPPER.createObjectNode();
+        final ObjectNode testNode = OBJECT_MAPPER.createObjectNode();
         testNode.put("testField1", "testValue1");
         testNode.put("testField2", "testValue2");
 
-        ObjectNode expectedWrappedNode = OBJECT_MAPPER.createObjectNode();
+        final ObjectNode expectedWrappedNode = OBJECT_MAPPER.createObjectNode();
         expectedWrappedNode.set("records", testNode);
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(testNode.toString().getBytes());
 
-        ObjectNode actualWrappedJson = testSubject.getWrappedRecordsJson(out);
+        final ObjectNode actualWrappedJson = testSubject.getWrappedRecordsJson(out);
 
         assertEquals(expectedWrappedNode, actualWrappedJson);
     }
@@ -91,21 +91,21 @@ class TestRecordExtender {
 
     @Test
     void testGetExtendedRecord() {
-        int referenceId = 0;
-        String objectType = "Account";
+        final int referenceId = 0;
+        final String objectType = "Account";
 
-        MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, Map.of(
+        final MapRecord testRecord = new MapRecord(ORIGINAL_SCHEMA, Map.of(
                 "testRecordField1", "testRecordValue1",
                 "testRecordField2", "testRecordValue2"
         ));
 
-        MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, Map.of(
+        final MapRecord expectedRecord = new MapRecord(EXPECTED_EXTENDED_SCHEMA, Map.of(
                 "attributes", new MapRecord(ATTRIBUTES_RECORD_SCHEMA, Map.of("type", objectType, "referenceId", referenceId)),
                 "testRecordField1", "testRecordValue1",
                 "testRecordField2", "testRecordValue2"
         ));
 
-        MapRecord actualRecord = testSubject.getExtendedRecord(objectType, referenceId, testRecord);
+        final MapRecord actualRecord = testSubject.getExtendedRecord(objectType, referenceId, testRecord);
 
         assertEquals(expectedRecord, actualRecord);
     }

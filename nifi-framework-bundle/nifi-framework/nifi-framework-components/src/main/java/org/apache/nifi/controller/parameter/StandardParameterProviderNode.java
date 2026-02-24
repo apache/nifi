@@ -282,7 +282,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     public void fetchParameters() {
         final ParameterProvider parameterProvider = parameterProviderRef.get().getParameterProvider();
         final ConfigurationContext configurationContext = getConfigurationContext();
-        List<ParameterGroup> fetchedParameterGroups;
+        final List<ParameterGroup> fetchedParameterGroups;
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
             fetchedParameterGroups = parameterProvider.fetchParameters(configurationContext);
         } catch (final IOException | RuntimeException e) {
@@ -476,7 +476,7 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
      * @param parameterGroupConfiguration The configuration for the fetched parameter group
      * @return A map from name to Parameter (or null if parameter should be removed)
      */
-    private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterContext parameterContext, ParameterGroupConfiguration parameterGroupConfiguration) {
+    private Map<String, Parameter> getFetchedParameterUpdateMap(final ParameterContext parameterContext, final ParameterGroupConfiguration parameterGroupConfiguration) {
         final Map<String, Parameter> parameterUpdateMap = new HashMap<>();
 
         final ParameterGroup parameterGroup = fetchedParameterGroups.stream()

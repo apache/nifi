@@ -28,12 +28,12 @@ public class FlowEntity extends BucketItemEntity {
         return snapshotCount;
     }
 
-    public void setSnapshotCount(long snapshotCount) {
+    public void setSnapshotCount(final long snapshotCount) {
         this.snapshotCount = snapshotCount;
     }
 
     @Override
-    public void setType(BucketItemEntityType type) {
+    public void setType(final BucketItemEntityType type) {
         if (BucketItemEntityType.FLOW != type) {
             throw new IllegalStateException("Must set type to FLOW");
         }

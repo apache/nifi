@@ -201,7 +201,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         runner.enableControllerService(credentialsService);
 
-        AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
@@ -221,7 +221,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         runner.enableControllerService(credentialsService);
 
-        AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
@@ -240,7 +240,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         runner.enableControllerService(credentialsService);
 
-        AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
@@ -262,7 +262,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         runner.enableControllerService(credentialsService);
 
-        AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(DEFAULT_BLOB_ENDPOINT_SUFFIX, actual.getEndpointSuffix());
@@ -283,7 +283,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
         runner.enableControllerService(credentialsService);
 
-        AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
+        final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ENDPOINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
@@ -296,7 +296,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         runner.setProperty(credentialsService, ENDPOINT_SUFFIX, ENDPOINT_SUFFIX_VALUE);
     }
 
-    private void configureCredentialsType(AzureStorageCredentialsType credentialsType) {
+    private void configureCredentialsType(final AzureStorageCredentialsType credentialsType) {
         runner.setProperty(credentialsService, CREDENTIALS_TYPE, credentialsType);
     }
 

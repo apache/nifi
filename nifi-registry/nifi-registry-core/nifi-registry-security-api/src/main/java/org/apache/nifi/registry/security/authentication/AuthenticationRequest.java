@@ -24,7 +24,7 @@ public class AuthenticationRequest implements Serializable {
     private Object credentials;
     private Object details;
 
-    public AuthenticationRequest(String username, Object credentials, Object details) {
+    public AuthenticationRequest(final String username, final Object credentials, final Object details) {
         this.username = username;
         this.credentials = credentials;
         this.details = details;
@@ -36,7 +36,7 @@ public class AuthenticationRequest implements Serializable {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(final String username) {
         this.username = username;
     }
 
@@ -44,7 +44,7 @@ public class AuthenticationRequest implements Serializable {
         return credentials;
     }
 
-    public void setCredentials(Object credentials) {
+    public void setCredentials(final Object credentials) {
         this.credentials = credentials;
     }
 
@@ -52,12 +52,12 @@ public class AuthenticationRequest implements Serializable {
         return details;
     }
 
-    public void setDetails(Object details) {
+    public void setDetails(final Object details) {
         this.details = details;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -65,7 +65,7 @@ public class AuthenticationRequest implements Serializable {
             return false;
         }
 
-        AuthenticationRequest that = (AuthenticationRequest) o;
+        final AuthenticationRequest that = (AuthenticationRequest) o;
 
         return username != null ? username.equals(that.username) : that.username == null;
     }

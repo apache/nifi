@@ -61,7 +61,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final ListBoxFileMetadataTemplates testSubject = new ListBoxFileMetadataTemplates() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };
@@ -75,10 +75,10 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         final List<Metadata> metadataList = new ArrayList<>();
         metadataList.add(mockMetadata1);
         metadataList.add(mockMetadata2);
-        JsonValue mockJsonValue1 = mock(JsonValue.class);
-        JsonValue mockJsonValue2 = mock(JsonValue.class);
-        JsonValue mockJsonValue3 = mock(JsonValue.class);
-        JsonValue mockJsonValue4 = mock(JsonValue.class);
+        final JsonValue mockJsonValue1 = mock(JsonValue.class);
+        final JsonValue mockJsonValue2 = mock(JsonValue.class);
+        final JsonValue mockJsonValue3 = mock(JsonValue.class);
+        final JsonValue mockJsonValue4 = mock(JsonValue.class);
 
         when(mockJsonValue1.asString()).thenReturn("document.pdf");
         when(mockJsonValue2.asString()).thenReturn("pdf");
@@ -89,7 +89,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         when(mockMetadata1.getID()).thenReturn(TEMPLATE_1_ID);
         when(mockMetadata1.getTemplateName()).thenReturn(TEMPLATE_1_NAME);
         when(mockMetadata1.getScope()).thenReturn(TEMPLATE_1_SCOPE);
-        List<String> template1Fields = List.of("fileName", "fileExtension");
+        final List<String> template1Fields = List.of("fileName", "fileExtension");
         when(mockMetadata1.getPropertyPaths()).thenReturn(template1Fields);
         when(mockMetadata1.getValue("fileName")).thenReturn(mockJsonValue1);
         when(mockMetadata1.getValue("fileExtension")).thenReturn(mockJsonValue2);
@@ -99,7 +99,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         when(mockMetadata2.getTemplateName()).thenReturn(TEMPLATE_2_NAME);
         when(mockMetadata2.getScope()).thenReturn(TEMPLATE_2_SCOPE);
 
-        List<String> template2Fields = List.of("Test Number", "Title", "Author", "Date");
+        final List<String> template2Fields = List.of("Test Number", "Title", "Author", "Date");
         when(mockMetadata2.getPropertyPaths()).thenReturn(template2Fields);
         when(mockMetadata2.getValue("Test Number")).thenReturn(null); // Test null handling
         when(mockMetadata2.getValue("Title")).thenReturn(mockJsonValue3);
@@ -117,7 +117,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals("box.metadata.templates.names", "fileMetadata,properties");
         flowFile.assertAttributeEquals("box.metadata.templates.count", "2");
 
-        String content = new String(flowFile.toByteArray());
+        final String content = new String(flowFile.toByteArray());
         testRunner.getLogger().info("FlowFile content: {}", content);
 
         // Check that content contains key elements
@@ -143,7 +143,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
+        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
         doThrow(mockException).when(mockBoxFile).getAllMetadata();
 
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);
@@ -158,7 +158,7 @@ public class ListBoxFileMetadataTemplatesTest extends AbstractBoxFileTest {
 
     @Test
     void testBoxApiException() {
-        BoxAPIException mockException = new BoxAPIException("General API Error", 500, "Unexpected Error");
+        final BoxAPIException mockException = new BoxAPIException("General API Error", 500, "Unexpected Error");
         doThrow(mockException).when(mockBoxFile).getAllMetadata();
 
         testRunner.setProperty(ListBoxFileMetadataTemplates.FILE_ID, TEST_FILE_ID);

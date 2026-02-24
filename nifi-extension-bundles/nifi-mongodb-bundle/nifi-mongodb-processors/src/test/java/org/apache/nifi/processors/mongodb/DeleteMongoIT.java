@@ -43,7 +43,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         super.teardown();
     }
 
-    private void testOne(TestRunner runner, String query, Map<String, String> attrs) {
+    private void testOne(final TestRunner runner, final String query, final Map<String, String> attrs) {
         runner.enqueue(query, attrs);
         runner.run(1, true);
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
@@ -55,11 +55,11 @@ public class DeleteMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testDeleteOne() throws Exception {
-        TestRunner runner = init(DeleteMongo.class);
+        final TestRunner runner = init(DeleteMongo.class);
         String query = "{ \"_id\": \"doc_1\" }";
         runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_ONE);
         testOne(runner, query, new HashMap<>());
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("mongodb.delete.mode", "one");
         runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_ATTR);
         query = "{ \"_id\": \"doc_2\" }";
@@ -67,7 +67,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         testOne(runner, query, attrs);
     }
 
-    private void manyTest(TestRunner runner, String query, Map<String, String> attrs) {
+    private void manyTest(final TestRunner runner, final String query, final Map<String, String> attrs) {
         runner.enqueue(query, attrs);
         runner.run(1, true);
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
@@ -79,8 +79,8 @@ public class DeleteMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testDeleteMany() throws Exception {
-        TestRunner runner = init(DeleteMongo.class);
-        String query = "{\n" +
+        final TestRunner runner = init(DeleteMongo.class);
+        final String query = "{\n" +
                 "\t\"_id\": {\n" +
                 "\t\t\"$in\": [\"doc_1\", \"doc_2\"]\n" +
                 "\t}\n" +
@@ -89,7 +89,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         manyTest(runner, query, new HashMap<>());
 
         runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_ATTR);
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("mongodb.delete.mode", "many");
         collection.drop();
         collection.insertMany(DOCUMENTS);
@@ -99,8 +99,8 @@ public class DeleteMongoIT extends MongoWriteTestBase {
 
     @Test
     public void testFailOnNoDeleteOptions() throws Exception {
-        TestRunner runner = init(DeleteMongo.class);
-        String query = "{ \"_id\": \"doc_4\"} ";
+        final TestRunner runner = init(DeleteMongo.class);
+        final String query = "{ \"_id\": \"doc_4\"} ";
         runner.enqueue(query);
         runner.run(1, true);
         runner.assertTransferCount(DeleteMongo.REL_FAILURE, 1);

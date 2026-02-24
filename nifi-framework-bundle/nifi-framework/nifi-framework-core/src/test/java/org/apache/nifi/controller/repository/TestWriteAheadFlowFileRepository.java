@@ -151,11 +151,11 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public void setPriorities(List<FlowFilePrioritizer> newPriorities) {
+            public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
             }
 
             @Override
-            public void setBackPressureObjectThreshold(long maxQueueSize) {
+            public void setBackPressureObjectThreshold(final long maxQueueSize) {
             }
 
             @Override
@@ -164,7 +164,7 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public void setBackPressureDataSizeThreshold(String maxDataSize) {
+            public void setBackPressureDataSizeThreshold(final String maxDataSize) {
             }
 
             @Override
@@ -178,7 +178,7 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public long getTotalQueuedDuration(long fromTimestamp) {
+            public long getTotalQueuedDuration(final long fromTimestamp) {
                 return 0;
             }
 
@@ -203,11 +203,11 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public void acknowledge(FlowFileRecord flowFile) {
+            public void acknowledge(final FlowFileRecord flowFile) {
             }
 
             @Override
-            public void acknowledge(Collection<FlowFileRecord> flowFiles) {
+            public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
             }
 
             @Override
@@ -221,40 +221,40 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public void put(FlowFileRecord file) {
+            public void put(final FlowFileRecord file) {
             }
 
             @Override
-            public void putAll(Collection<FlowFileRecord> files) {
+            public void putAll(final Collection<FlowFileRecord> files) {
             }
 
             @Override
-            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+            public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
                 return null;
             }
 
             @Override
-            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+            public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
             @Override
-            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+            public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
                 return null;
             }
 
             @Override
-            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+            public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
             @Override
-            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+            public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
                 return null;
             }
 
             @Override
-            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+            public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
@@ -264,46 +264,46 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public long getFlowFileExpiration(TimeUnit timeUnit) {
+            public long getFlowFileExpiration(final TimeUnit timeUnit) {
                 return 0;
             }
 
             @Override
-            public void setFlowFileExpiration(String flowExpirationPeriod) {
+            public void setFlowFileExpiration(final String flowExpirationPeriod) {
             }
 
             @Override
-            public DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor) {
+            public DropFlowFileStatus dropFlowFiles(final String requestIdentifier, final String requestor) {
                 return null;
             }
 
             @Override
-            public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {
+            public DropFlowFileStatus getDropFlowFileStatus(final String requestIdentifier) {
                 return null;
             }
 
             @Override
-            public DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier) {
+            public DropFlowFileStatus cancelDropFlowFileRequest(final String requestIdentifier) {
                 return null;
             }
 
             @Override
-            public ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults) {
+            public ListFlowFileStatus listFlowFiles(final String requestIdentifier, final int maxResults) {
                 return null;
             }
 
             @Override
-            public ListFlowFileStatus getListFlowFileStatus(String requestIdentifier) {
+            public ListFlowFileStatus getListFlowFileStatus(final String requestIdentifier) {
                 return null;
             }
 
             @Override
-            public ListFlowFileStatus cancelListFlowFileRequest(String requestIdentifier) {
+            public ListFlowFileStatus cancelListFlowFileRequest(final String requestIdentifier) {
                 return null;
             }
 
             @Override
-            public FlowFileRecord getFlowFile(String flowFileUuid) {
+            public FlowFileRecord getFlowFile(final String flowFileUuid) {
                 return null;
             }
 
@@ -463,7 +463,7 @@ public class TestWriteAheadFlowFileRepository {
 
         queueProvider.addConnection(connection);
 
-        StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
+        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
         ffBuilder.id(1L);
         ffBuilder.size(0L);
         final FlowFileRecord flowFileRecord = ffBuilder.build();
@@ -507,7 +507,7 @@ public class TestWriteAheadFlowFileRepository {
 
         queueProvider.addConnection(connection);
 
-        StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
+        final StandardFlowFileRecord.Builder ffBuilder = new StandardFlowFileRecord.Builder();
         ffBuilder.id(1L);
         ffBuilder.size(0L);
         final FlowFileRecord flowFileRecord = ffBuilder.build();
@@ -706,11 +706,11 @@ public class TestWriteAheadFlowFileRepository {
         private final Map<FlowFileQueue, Map<String, List<FlowFileRecord>>> swappedRecords = new HashMap<>();
 
         @Override
-        public void initialize(SwapManagerInitializationContext initializationContext) {
+        public void initialize(final SwapManagerInitializationContext initializationContext) {
         }
 
         @Override
-        public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) {
+        public String swapOut(final List<FlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue, final String partitionName) {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 swapMap = new HashMap<>();
@@ -723,8 +723,8 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapContents peek(String swapLocation, FlowFileQueue flowFileQueue) {
-            Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
+        public SwapContents peek(final String swapLocation, final FlowFileQueue flowFileQueue) {
+            final Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
             }
@@ -735,8 +735,8 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) {
-            Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
+        public SwapContents swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) {
+            final Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
             }
@@ -747,8 +747,8 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) {
-            Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
+        public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue, final String partitionName) {
+            final Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
             }
@@ -757,7 +757,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapSummary getSwapSummary(String swapLocation) {
+        public SwapSummary getSwapSummary(final String swapLocation) {
             List<FlowFileRecord> records = null;
             for (final Map<String, List<FlowFileRecord>> swapMap : swappedRecords.values()) {
                 records = swapMap.get(swapLocation);
@@ -801,12 +801,12 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public Set<String> getSwappedPartitionNames(FlowFileQueue queue) {
+        public Set<String> getSwappedPartitionNames(final FlowFileQueue queue) {
             return Collections.emptySet();
         }
 
         @Override
-        public String changePartitionName(String swapLocation, String newPartitionName) {
+        public String changePartitionName(final String swapLocation, final String newPartitionName) {
             return swapLocation;
         }
     }

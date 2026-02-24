@@ -30,7 +30,7 @@ public interface FlowActionReporter extends Closeable {
      * @param context reporter configuration context
      * @throws FlowActionReporterCreationException if case of any error during initialization
      */
-    default void onConfigured(FlowActionReporterConfigurationContext context) throws FlowActionReporterCreationException {
+    default void onConfigured(final FlowActionReporterConfigurationContext context) throws FlowActionReporterCreationException {
     }
 
     /**

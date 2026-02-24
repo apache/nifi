@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class NiFiCLIMainRunner {
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         final String[] cmdArgs = ("registry list-buckets help " +
                 "").split("[ ]");
 

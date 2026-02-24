@@ -73,7 +73,7 @@ public class UserGroupsResult extends AbstractWritableResult<List<UserGroup>> {
         tableWriter.write(table, output);
     }
 
-    private String joinTenantIdentities(Set<Tenant> tenants) {
+    private String joinTenantIdentities(final Set<Tenant> tenants) {
         return tenants.stream()
             .map(tenant -> tenant.getIdentity())
             .collect(Collectors.joining("; "));

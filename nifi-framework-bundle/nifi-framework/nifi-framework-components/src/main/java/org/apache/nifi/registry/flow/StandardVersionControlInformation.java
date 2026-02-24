@@ -51,57 +51,57 @@ public class StandardVersionControlInformation implements VersionControlInformat
         private VersionedProcessGroup flowSnapshot;
         private VersionedFlowStatus status;
 
-        public Builder registryId(String registryId) {
+        public Builder registryId(final String registryId) {
             this.registryIdentifier = registryId;
             return this;
         }
 
-        public Builder registryName(String registryName) {
+        public Builder registryName(final String registryName) {
             this.registryName = registryName;
             return this;
         }
 
-        public Builder branch(String branch) {
+        public Builder branch(final String branch) {
             this.branch = branch;
             return this;
         }
 
-        public Builder bucketId(String bucketId) {
+        public Builder bucketId(final String bucketId) {
             this.bucketIdentifier = bucketId;
             return this;
         }
 
-        public Builder bucketName(String bucketName) {
+        public Builder bucketName(final String bucketName) {
             this.bucketName = bucketName;
             return this;
         }
 
-        public Builder flowId(String flowId) {
+        public Builder flowId(final String flowId) {
             this.flowIdentifier = flowId;
             return this;
         }
 
-        public Builder flowName(String flowName) {
+        public Builder flowName(final String flowName) {
             this.flowName = flowName;
             return this;
         }
 
-        public Builder flowDescription(String flowDescription) {
+        public Builder flowDescription(final String flowDescription) {
             this.flowDescription = flowDescription;
             return this;
         }
 
-        public Builder storageLocation(String storageLocation) {
+        public Builder storageLocation(final String storageLocation) {
             this.storageLocation = storageLocation;
             return this;
         }
 
-        public Builder version(String version) {
+        public Builder version(final String version) {
             this.version = version;
             return this;
         }
 
-        public Builder flowSnapshot(VersionedProcessGroup snapshot) {
+        public Builder flowSnapshot(final VersionedProcessGroup snapshot) {
             this.flowSnapshot = snapshot;
             return this;
         }
@@ -111,8 +111,8 @@ public class StandardVersionControlInformation implements VersionControlInformat
             return this;
         }
 
-        public static Builder fromDto(VersionControlInformationDTO dto) {
-            Builder builder = new Builder();
+        public static Builder fromDto(final VersionControlInformationDTO dto) {
+            final Builder builder = new Builder();
             builder.registryId(dto.getRegistryId())
                 .registryName(dto.getRegistryName())
                 .branch(dto.getBranch())
@@ -207,7 +207,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         return flowIdentifier;
     }
 
-    public void setFlowName(String flowName) {
+    public void setFlowName(final String flowName) {
         this.flowName = flowName;
     }
 
@@ -216,7 +216,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         return flowName;
     }
 
-    public void setFlowDescription(String flowDescription) {
+    public void setFlowDescription(final String flowDescription) {
         this.flowDescription = flowDescription;
     }
 
@@ -230,7 +230,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
         return storageLocation;
     }
 
-    public void setStorageLocation(String storageLocation) {
+    public void setStorageLocation(final String storageLocation) {
         this.storageLocation = storageLocation;
     }
 

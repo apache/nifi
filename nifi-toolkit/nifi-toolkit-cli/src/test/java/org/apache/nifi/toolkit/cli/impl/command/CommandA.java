@@ -35,7 +35,7 @@ public class CommandA implements Command<CommandAResult> {
     }
 
     @Override
-    public void initialize(Context context) {
+    public void initialize(final Context context) {
 
     }
 
@@ -51,19 +51,19 @@ public class CommandA implements Command<CommandAResult> {
 
     @Override
     public Options getOptions() {
-        Options options = new Options();
+        final Options options = new Options();
         options.addOption(CommandOption.BUCKET_ID.createOption());
         options.addOption(CommandOption.FLOW_ID.createOption());
         return options;
     }
 
     @Override
-    public void printUsage(String errorMessage) {
+    public void printUsage(final String errorMessage) {
 
     }
 
     @Override
-    public CommandAResult execute(CommandLine cli) throws CommandException {
+    public CommandAResult execute(final CommandLine cli) throws CommandException {
         this.cli = cli;
         return new CommandAResult(results);
     }

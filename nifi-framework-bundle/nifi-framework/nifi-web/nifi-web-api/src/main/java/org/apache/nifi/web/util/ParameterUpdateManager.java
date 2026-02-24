@@ -215,7 +215,7 @@ public class ParameterUpdateManager {
             try {
                 updateUri = new URI(exampleUri.getScheme(), exampleUri.getUserInfo(), exampleUri.getHost(),
                         exampleUri.getPort(), "/nifi-api/parameter-contexts/" + updatedContext.getId(), null, exampleUri.getFragment());
-            } catch (URISyntaxException e) {
+            } catch (final URISyntaxException e) {
                 throw new RuntimeException(e);
             }
 

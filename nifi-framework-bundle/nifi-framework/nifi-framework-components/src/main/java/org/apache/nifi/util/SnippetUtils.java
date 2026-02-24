@@ -46,7 +46,7 @@ public final class SnippetUtils {
      * @param x       x location
      * @param y       y location
      */
-    public static void moveSnippet(FlowSnippetDTO snippet, Double x, Double y) {
+    public static void moveSnippet(final FlowSnippetDTO snippet, final Double x, final Double y) {
         moveAndScaleSnippet(snippet, x, y, 1.0, 1.0);
     }
 
@@ -61,7 +61,7 @@ public final class SnippetUtils {
      * @param factorX x location scaling factor
      * @param factorY y location scaling factor
      */
-    public static void moveAndScaleSnippet(FlowSnippetDTO snippet, Double x, Double y, double factorX, double factorY) {
+    public static void moveAndScaleSnippet(final FlowSnippetDTO snippet, final Double x, final Double y, final double factorX, final double factorY) {
         // ensure the point is specified
         if (x != null && y != null) {
             final PositionDTO origin = new PositionDTO(x, y);
@@ -109,7 +109,7 @@ public final class SnippetUtils {
      * @param factorX x location scaling factor
      * @param factorY y location scaling factor
      */
-    public static void scaleSnippet(FlowSnippetDTO snippet, double factorX, double factorY) {
+    public static void scaleSnippet(final FlowSnippetDTO snippet, final double factorX, final double factorY) {
         // get the connections
         final Collection<ConnectionDTO> connections = getConnections(snippet);
 
@@ -148,7 +148,7 @@ public final class SnippetUtils {
      * @param snippet containing the child {@link ProcessGroupDTO}s to be returned
      * @return List of child {@link ProcessGroupDTO}s found in the given {@link FlowSnippetDTO}.
      */
-    public static List<ProcessGroupDTO> findAllProcessGroups(FlowSnippetDTO snippet) {
+    public static List<ProcessGroupDTO> findAllProcessGroups(final FlowSnippetDTO snippet) {
         final List<ProcessGroupDTO> allProcessGroups = new ArrayList<>(snippet.getProcessGroups());
         for (final ProcessGroupDTO childGroup : snippet.getProcessGroups()) {
             allProcessGroups.addAll(findAllProcessGroups(childGroup.getContents()));
@@ -162,7 +162,7 @@ public final class SnippetUtils {
      * @param contents snippet content
      * @return connection dtos
      */
-    private static Collection<ConnectionDTO> getConnections(FlowSnippetDTO contents) {
+    private static Collection<ConnectionDTO> getConnections(final FlowSnippetDTO contents) {
         final Collection<ConnectionDTO> connections = new HashSet<>();
         if (contents.getConnections() != null) {
             connections.addAll(contents.getConnections());
@@ -176,7 +176,7 @@ public final class SnippetUtils {
      * @param contents snippet
      * @return component dtos
      */
-    private static Collection<ComponentDTO> getComponents(FlowSnippetDTO contents) {
+    private static Collection<ComponentDTO> getComponents(final FlowSnippetDTO contents) {
         final Collection<ComponentDTO> components = new HashSet<>();
 
         // add all components
@@ -211,7 +211,7 @@ public final class SnippetUtils {
      * @param components components
      * @return component and position map
      */
-    private static Map<ComponentDTO, PositionDTO> getPositionLookup(Collection<ComponentDTO> components) {
+    private static Map<ComponentDTO, PositionDTO> getPositionLookup(final Collection<ComponentDTO> components) {
         final Map<ComponentDTO, PositionDTO> positionLookup = new HashMap<>();
 
         // determine the position for each component
@@ -255,7 +255,7 @@ public final class SnippetUtils {
      * @param connectionPositions position list for connections
      * @return position
      */
-    private static PositionDTO getOrigin(Collection<PositionDTO> componentPositions, Collection<List<PositionDTO>> connectionPositions) {
+    private static PositionDTO getOrigin(final Collection<PositionDTO> componentPositions, final Collection<List<PositionDTO>> connectionPositions) {
         Double x = null;
         Double y = null;
 
@@ -265,7 +265,7 @@ public final class SnippetUtils {
         }
 
         // go through each component position to find the upper left most point
-        for (PositionDTO position : componentPositions) {
+        for (final PositionDTO position : componentPositions) {
             if (position != null) {
                 if (x == null || position.getX() < x) {
                     x = position.getX();
@@ -278,7 +278,7 @@ public final class SnippetUtils {
 
         // go through each connection position to find the upper left most point
         for (final List<PositionDTO> bendPoints : connectionPositions) {
-            for (PositionDTO point : bendPoints) {
+            for (final PositionDTO point : bendPoints) {
                 if (x == null || point.getX() < x) {
                     x = point.getX();
                 }

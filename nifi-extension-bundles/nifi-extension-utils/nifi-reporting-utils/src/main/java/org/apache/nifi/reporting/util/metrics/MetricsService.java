@@ -42,23 +42,23 @@ public class MetricsService {
      * @param appendPgId if true, the process group ID will be appended at the end of the metric name
      * @return a map of metrics for the given status
      */
-    public Map<String, String> getMetrics(ProcessGroupStatus status, boolean appendPgId) {
+    public Map<String, String> getMetrics(final ProcessGroupStatus status, final boolean appendPgId) {
         final Map<String, String> metrics = new HashMap<>();
 
-        Map<String, Long> longMetrics = getLongMetrics(status, appendPgId);
-        for (String key : longMetrics.keySet()) {
+        final Map<String, Long> longMetrics = getLongMetrics(status, appendPgId);
+        for (final String key : longMetrics.keySet()) {
             metrics.put(key, String.valueOf(longMetrics.get(key)));
         }
 
-        Map<String, Integer> integerMetrics = getIntegerMetrics(status, appendPgId);
-        for (String key : integerMetrics.keySet()) {
+        final Map<String, Integer> integerMetrics = getIntegerMetrics(status, appendPgId);
+        for (final String key : integerMetrics.keySet()) {
             metrics.put(key, String.valueOf(integerMetrics.get(key)));
         }
 
         return metrics;
     }
 
-    private Map<String, Integer> getIntegerMetrics(ProcessGroupStatus status, boolean appendPgId) {
+    private Map<String, Integer> getIntegerMetrics(final ProcessGroupStatus status, final boolean appendPgId) {
         final Map<String, Integer> metrics = new HashMap<>();
         metrics.put(appendPgId(MetricNames.FLOW_FILES_RECEIVED, status, appendPgId), status.getFlowFilesReceived());
         metrics.put(appendPgId(MetricNames.FLOW_FILES_SENT, status, appendPgId), status.getFlowFilesSent());
@@ -67,7 +67,7 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String, Long> getLongMetrics(ProcessGroupStatus status, boolean appendPgId) {
+    private Map<String, Long> getLongMetrics(final ProcessGroupStatus status, final boolean appendPgId) {
         final Map<String, Long> metrics = new HashMap<>();
         metrics.put(appendPgId(MetricNames.BYTES_RECEIVED, status, appendPgId), status.getBytesReceived());
         metrics.put(appendPgId(MetricNames.BYTES_SENT, status, appendPgId), status.getBytesSent());
@@ -90,21 +90,21 @@ public class MetricsService {
      * @param virtualMachineMetrics a VirtualMachineMetrics instance to get metrics from
      * @return a map of metrics from the given VirtualMachineStatus
      */
-    public Map<String, String> getMetrics(JvmMetrics virtualMachineMetrics) {
+    public Map<String, String> getMetrics(final JvmMetrics virtualMachineMetrics) {
         final Map<String, String> metrics = new HashMap<>();
 
-        Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
-        for (String key : integerMetrics.keySet()) {
+        final Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
+        for (final String key : integerMetrics.keySet()) {
             metrics.put(key, String.valueOf(integerMetrics.get(key)));
         }
 
-        Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
-        for (String key : longMetrics.keySet()) {
+        final Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
+        for (final String key : longMetrics.keySet()) {
             metrics.put(key, String.valueOf(longMetrics.get(key)));
         }
 
-        Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
-        for (String key : doubleMetrics.keySet()) {
+        final Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+        for (final String key : doubleMetrics.keySet()) {
             metrics.put(key, String.valueOf(doubleMetrics.get(key)));
         }
 
@@ -127,7 +127,7 @@ public class MetricsService {
     }
 
     // append the process group ID if necessary
-    private String appendPgId(String name, ProcessGroupStatus status, boolean appendPgId) {
+    private String appendPgId(final String name, final ProcessGroupStatus status, final boolean appendPgId) {
         if (appendPgId) {
             return name + MetricNames.METRIC_NAME_SEPARATOR + status.getId();
         } else {
@@ -135,7 +135,7 @@ public class MetricsService {
         }
     }
 
-    private Map<String, Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
+    private Map<String, Double> getDoubleMetrics(final JvmMetrics virtualMachineMetrics) {
         final Map<String, Double> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
         metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
@@ -150,11 +150,11 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String, Long> getLongMetrics(JvmMetrics virtualMachineMetrics) {
+    private Map<String, Long> getLongMetrics(final JvmMetrics virtualMachineMetrics) {
         final Map<String, Long> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_UPTIME, virtualMachineMetrics.uptime());
 
-        for (Map.Entry<String, JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
+        for (final Map.Entry<String, JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
             final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);
@@ -165,12 +165,12 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String, Integer> getIntegerMetrics(JvmMetrics virtualMachineMetrics) {
+    private Map<String, Integer> getIntegerMetrics(final JvmMetrics virtualMachineMetrics) {
         final Map<String, Integer> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_DAEMON_THREAD_COUNT, virtualMachineMetrics.daemonThreadCount());
         metrics.put(MetricNames.JVM_THREAD_COUNT, virtualMachineMetrics.threadCount());
 
-        for (Map.Entry<Thread.State, Double> entry : virtualMachineMetrics.threadStatePercentages().entrySet()) {
+        for (final Map.Entry<Thread.State, Double> entry : virtualMachineMetrics.threadStatePercentages().entrySet()) {
             final int normalizedValue = (int) (100 * (entry.getValue() == null ? 0 : entry.getValue()));
             switch (entry.getKey()) {
                 case BLOCKED:
@@ -193,7 +193,7 @@ public class MetricsService {
         return metrics;
     }
 
-    private boolean addEmptyValue(Map<String, ?> metricsMap, String metricskey, JsonObjectBuilder objectBuilder, boolean allowNullValues) {
+    private boolean addEmptyValue(final Map<String, ?> metricsMap, final String metricskey, final JsonObjectBuilder objectBuilder, final boolean allowNullValues) {
         if (metricsMap.get(metricskey) == null) {
             if (allowNullValues) {
                 objectBuilder.add(metricskey, JsonValue.NULL);
@@ -203,9 +203,9 @@ public class MetricsService {
         return false;
     }
 
-    public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, JvmMetrics virtualMachineMetrics,
-            String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad, boolean allowNullValues) {
-        JsonObjectBuilder objectBuilder = factory.createObjectBuilder()
+    public JsonObject getMetrics(final JsonBuilderFactory factory, final ProcessGroupStatus status, final JvmMetrics virtualMachineMetrics,
+            final String applicationId, final String id, final String hostname, final long currentTimeMillis, final int availableProcessors, final double systemLoad, final boolean allowNullValues) {
+        final JsonObjectBuilder objectBuilder = factory.createObjectBuilder()
                 .add(MetricFields.APP_ID, applicationId)
                 .add(MetricFields.HOSTNAME, hostname)
                 .add(MetricFields.INSTANCE_ID, status.getId())
@@ -215,37 +215,37 @@ public class MetricsService {
             .add(MetricNames.CORES, availableProcessors)
             .add(MetricNames.LOAD1MN, systemLoad);
 
-        Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
-        for (String key : integerMetrics.keySet()) {
+        final Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
+        for (final String key : integerMetrics.keySet()) {
             if (!addEmptyValue(integerMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
             }
         }
 
-        Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
-        for (String key : longMetrics.keySet()) {
+        final Map<String, Long> longMetrics = getLongMetrics(virtualMachineMetrics);
+        for (final String key : longMetrics.keySet()) {
             if (!addEmptyValue(longMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
             }
         }
 
-        Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+        final Map<String, Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
 
-        for (String key : doubleMetrics.keySet()) {
+        for (final String key : doubleMetrics.keySet()) {
             if (!addEmptyValue(doubleMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
             }
         }
 
-        Map<String, Long> longPgMetrics = getLongMetrics(status, false);
-        for (String key : longPgMetrics.keySet()) {
+        final Map<String, Long> longPgMetrics = getLongMetrics(status, false);
+        for (final String key : longPgMetrics.keySet()) {
             if (!addEmptyValue(longPgMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key, longPgMetrics.get(key));
             }
         }
 
-        Map<String, Integer> integerPgMetrics = getIntegerMetrics(status, false);
-        for (String key : integerPgMetrics.keySet()) {
+        final Map<String, Integer> integerPgMetrics = getIntegerMetrics(status, false);
+        for (final String key : integerPgMetrics.keySet()) {
             if (!addEmptyValue(integerPgMetrics, key, objectBuilder, allowNullValues)) {
                 objectBuilder.add(key, integerPgMetrics.get(key));
             }

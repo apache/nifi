@@ -162,7 +162,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
 
     @Test
     public void testSelectQueryInFlowFileWithParameters() throws SQLException, IOException {
-        Map<String, String> sqlParams = new HashMap<>();
+        final Map<String, String> sqlParams = new HashMap<>();
         sqlParams.put("sql.args.1.type", "4");
         sqlParams.put("sql.args.1.value", "20");
         sqlParams.put("sql.args.2.type", "4");
@@ -254,7 +254,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         try (DataFileStream<GenericRecord> dfs = new DataFileStream<>(new ByteArrayInputStream(flowFile.toByteArray()), new GenericDatumReader<>())) {
             assertEquals(AvroUtil.CodecType.BZIP2.name().toLowerCase(), dfs.getMetaString(DataFileConstants.CODEC).toLowerCase());
@@ -276,14 +276,14 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
@@ -295,30 +295,30 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
         insertRecords();
 
-        Map<String, String> attrMap = new HashMap<>();
-        String testAttrName = "attr1";
-        String testAttrValue = "value1";
+        final Map<String, String> attrMap = new HashMap<>();
+        final String testAttrName = "attr1";
+        final String testAttrValue = "value1";
         attrMap.put(testAttrName, testAttrValue);
         attrMap.put("max.rows", "5");
         attrMap.put("batch.size", "1");
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "${max.rows}");
         runner.setProperty(ExecuteSQL.OUTPUT_BATCH_SIZE, "${batch.size}");
-        MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
+        final MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, FRAGMENT_SIZE);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeNotExists(FragmentAttributes.FRAGMENT_COUNT.key());
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
@@ -343,13 +343,13 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
 
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
 
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
+        final MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
         lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
@@ -378,7 +378,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "0");
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
@@ -430,14 +430,14 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testWithSqlExceptionErrorProcessingResultSet() throws Exception {
-        DBCPService dbcp = mock(DBCPService.class);
-        Connection conn = mock(Connection.class);
+        final DBCPService dbcp = mock(DBCPService.class);
+        final Connection conn = mock(Connection.class);
         when(dbcp.getConnection(any(Map.class))).thenReturn(conn);
         when(dbcp.getIdentifier()).thenReturn("mockdbcp");
-        PreparedStatement statement = mock(PreparedStatement.class);
+        final PreparedStatement statement = mock(PreparedStatement.class);
         when(conn.prepareStatement(anyString())).thenReturn(statement);
         when(statement.execute()).thenReturn(true);
-        ResultSet rs = mock(ResultSet.class);
+        final ResultSet rs = mock(ResultSet.class);
         when(statement.getResultSet()).thenReturn(rs);
         // Throw an exception the first time you access the ResultSet, this is after the flow file to hold the results has been created.
         when(rs.getMetaData()).thenThrow(new SQLException("test execute statement failed"));
@@ -454,7 +454,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
 
         // Assert exception message has been put to flow file attribute
-        MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
+        final MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(ExecuteSQL.RESULT_ERROR_MESSAGE));
     }
 
@@ -536,7 +536,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
 
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
@@ -569,7 +569,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).getFirst();
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "1");
 
         final InputStream in = new ByteArrayInputStream(firstFlowFile.toByteArray());
@@ -616,7 +616,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 1);
-        MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_FAILURE).getFirst();
         firstFlowFile.assertContentEquals("test");
     }
 

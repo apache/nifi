@@ -40,7 +40,7 @@ public class CorePropertiesSchemaV2 extends BaseSchema implements ConvertableSch
 
     }
 
-    public CorePropertiesSchemaV2(Map map) {
+    public CorePropertiesSchemaV2(final Map map) {
         flowControllerGracefulShutdownPeriod = getOptionalKeyAsType(map, CorePropertiesSchema.FLOW_CONTROLLER_SHUTDOWN_PERIOD_KEY, String.class,
                 CORE_PROPS_KEY, CorePropertiesSchema.DEFAULT_FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD);
         flowServiceWriteDelayInterval = getOptionalKeyAsType(map, CorePropertiesSchema.FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY, String.class,
@@ -60,7 +60,7 @@ public class CorePropertiesSchemaV2 extends BaseSchema implements ConvertableSch
     @Override
     public CorePropertiesSchema convert() {
 
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(CorePropertiesSchema.FLOW_CONTROLLER_SHUTDOWN_PERIOD_KEY, flowControllerGracefulShutdownPeriod);
         result.put(CorePropertiesSchema.FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY, flowServiceWriteDelayInterval);
         result.put(CorePropertiesSchema.ADMINISTRATIVE_YIELD_DURATION_KEY, administrativeYieldDuration);

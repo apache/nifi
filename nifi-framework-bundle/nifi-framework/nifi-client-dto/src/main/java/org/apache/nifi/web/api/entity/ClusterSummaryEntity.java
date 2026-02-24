@@ -36,7 +36,7 @@ public class ClusterSummaryEntity extends Entity {
         return clusterSummary;
     }
 
-    public void setClusterSummary(ClusterSummaryDTO clusterSummary) {
+    public void setClusterSummary(final ClusterSummaryDTO clusterSummary) {
         this.clusterSummary = clusterSummary;
     }
 

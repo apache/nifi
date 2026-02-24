@@ -65,7 +65,7 @@ public class TestPutLambda {
     @Test
     public void testSizeGreaterThan6MB() {
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "test-function");
-        byte[] largeInput = new byte[6000001];
+        final byte[] largeInput = new byte[6000001];
         runner.enqueue(largeInput);
         runner.run(1);
 
@@ -87,9 +87,9 @@ public class TestPutLambda {
         runner.assertValid();
         runner.run(1);
 
-        ArgumentCaptor<InvokeRequest> captureRequest = ArgumentCaptor.forClass(InvokeRequest.class);
+        final ArgumentCaptor<InvokeRequest> captureRequest = ArgumentCaptor.forClass(InvokeRequest.class);
         Mockito.verify(mockLambdaClient, Mockito.times(1)).invoke(captureRequest.capture());
-        InvokeRequest request = captureRequest.getValue();
+        final InvokeRequest request = captureRequest.getValue();
         assertEquals("test-function", request.functionName());
 
         runner.assertAllFlowFilesTransferred(PutLambda.REL_SUCCESS, 1);

@@ -252,7 +252,7 @@ public class TestStandardAuthorizableLookup {
         try {
             bucketAuthorizable.authorize(authorizer, action, USER_NO_PROXY_CHAIN);
             fail("Should have thrown exception");
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             // Should never call authorizer twice for specific bucket and top-level /buckets
             verify(authorizer, times(2)).authorize(any(AuthorizationRequest.class));
         }
@@ -273,7 +273,7 @@ public class TestStandardAuthorizableLookup {
         try {
             bucketAuthorizable.authorize(authorizer, action, USER_WITH_PROXY_CHAIN);
             fail("Should have thrown exception");
-        } catch (UntrustedProxyException e) {
+        } catch (final UntrustedProxyException e) {
             // Should call authorizer once for /proxy and then throw exception
             verify(authorizer, times(1)).authorize(any(AuthorizationRequest.class));
         }
@@ -308,7 +308,7 @@ public class TestStandardAuthorizableLookup {
         try {
             bucketAuthorizable.authorize(authorizer, action, user);
             fail("Should have thrown exception");
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             // Should call authorizer three times for /proxy, /bucket/{id}, and /buckets
             verify(authorizer, times(3)).authorize(any(AuthorizationRequest.class));
         }

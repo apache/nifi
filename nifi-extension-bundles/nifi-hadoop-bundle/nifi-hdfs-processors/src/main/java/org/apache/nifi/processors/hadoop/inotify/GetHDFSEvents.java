@@ -162,20 +162,20 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
     }
 
     @OnScheduled
-    public void onSchedule(ProcessContext context) {
+    public void onSchedule(final ProcessContext context) {
         notificationConfig = new NotificationConfig(context);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
-            StateMap state = session.getState(Scope.CLUSTER);
-            String txIdAsString = state.get(LAST_TX_ID);
+            final StateMap state = session.getState(Scope.CLUSTER);
+            final String txIdAsString = state.get(LAST_TX_ID);
 
             if (txIdAsString != null && !"".equals(txIdAsString)) {
                 lastTxId = Long.parseLong(txIdAsString);
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Unable to retrieve last transaction ID. Must retrieve last processed transaction ID before processing can occur.", e);
             context.yield();
             return;
@@ -190,8 +190,8 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
             if (eventBatch != null && eventBatch.getEvents() != null) {
                 if (eventBatch.getEvents().length > 0) {
-                    List<FlowFile> flowFiles = new ArrayList<>(eventBatch.getEvents().length);
-                    for (Event e : eventBatch.getEvents()) {
+                    final List<FlowFile> flowFiles = new ArrayList<>(eventBatch.getEvents().length);
+                    for (final Event e : eventBatch.getEvents()) {
                         if (toProcessEvent(context, e)) {
                             getLogger().debug("Creating flow file for event: {}.", e);
                             final String path = getPath(e);
@@ -206,7 +206,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                         }
                     }
 
-                    for (FlowFile flowFile : flowFiles) {
+                    for (final FlowFile flowFile : flowFiles) {
                         final String path = flowFile.getAttribute(EventAttributes.EVENT_PATH);
                         final String transitUri = path.startsWith("/") ? "hdfs:/" + path : "hdfs://" + path;
                         getLogger().debug("Transferring flow file {} and creating provenance event with URI {}.", flowFile, transitUri);
@@ -217,11 +217,11 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
                 lastTxId = eventBatch.getTxid();
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (final IOException | InterruptedException e) {
             getLogger().error("Unable to get notification information", e);
             context.yield();
             return;
-        } catch (MissingEventsException e) {
+        } catch (final MissingEventsException e) {
             // set lastTxId to -1 and update state. This may cause events not to be processed. The reason this exception is thrown is described in the
             // org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStrea API. It suggests tuning a couple parameters if this API is used.
             lastTxId = -1L;
@@ -232,7 +232,8 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         updateClusterStateForTxId(session);
     }
 
-    private EventBatch getEventBatch(DFSInotifyEventInputStream eventStream, long duration, TimeUnit timeUnit, int retries) throws IOException, InterruptedException, MissingEventsException {
+    private EventBatch getEventBatch(final DFSInotifyEventInputStream eventStream, final long duration,
+            final TimeUnit timeUnit, final int retries) throws IOException, InterruptedException, MissingEventsException {
         // According to the inotify API we should retry a few times if poll throws an IOException.
         // Please see org.apache.hadoop.hdfs.DFSInotifyEventInputStream#poll for documentation.
         int i = 0;
@@ -240,7 +241,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             try {
                 i += 1;
                 return eventStream.poll(duration, timeUnit);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 if (i > retries) {
                     getLogger().debug("Failed to poll for event batch. Reached max retry times.", e);
                     throw e;
@@ -253,10 +254,10 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     private void updateClusterStateForTxId(final ProcessSession session) {
         try {
-            Map<String, String> newState = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
+            final Map<String, String> newState = new HashMap<>(session.getState(Scope.CLUSTER).toMap());
             newState.put(LAST_TX_ID, String.valueOf(lastTxId));
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().warn("Failed to update cluster state for last txId. It is possible data replication may occur.", e);
         }
     }
@@ -265,15 +266,15 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         try {
             // Currently HdfsAdmin is the only public API that allows access to the inotify API. Because of this we need to have super user rights in HDFS.
             return new HdfsAdmin(getFileSystem().getUri(), getFileSystem().getConf());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Unable to get and instance of HDFS admin. You must be an HDFS super user to view HDFS events.");
             throw new ProcessException(e);
         }
     }
 
-    private boolean toProcessEvent(ProcessContext context, Event event) {
+    private boolean toProcessEvent(final ProcessContext context, final Event event) {
         final String[] eventTypes = context.getProperty(EVENT_TYPES).getValue().split(",");
-        for (String name : eventTypes) {
+        for (final String name : eventTypes) {
             if (name.trim().equalsIgnoreCase(event.getEventType().name())) {
                 return notificationConfig.getPathFilter().accept(new Path(getPath(event)));
             }
@@ -282,7 +283,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         return false;
     }
 
-    private String getPath(Event event) {
+    private String getPath(final Event event) {
         if (event == null || event.getEventType() == null) {
             throw new IllegalArgumentException("Event and event type must not be null.");
         }
@@ -301,7 +302,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
     private static class NotificationConfig {
         private final PathFilter pathFilter;
 
-        NotificationConfig(ProcessContext context) {
+        NotificationConfig(final ProcessContext context) {
             final boolean toIgnoreHiddenFiles = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
             final Pattern watchDirectory = Pattern.compile(context.getProperty(HDFS_PATH_TO_WATCH).evaluateAttributeExpressions().getValue());
             pathFilter = new NotificationEventPathFilter(watchDirectory, toIgnoreHiddenFiles);

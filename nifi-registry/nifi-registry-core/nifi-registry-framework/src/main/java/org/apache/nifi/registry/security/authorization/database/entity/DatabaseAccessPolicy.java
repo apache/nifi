@@ -28,7 +28,7 @@ public class DatabaseAccessPolicy {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -36,7 +36,7 @@ public class DatabaseAccessPolicy {
         return resource;
     }
 
-    public void setResource(String resource) {
+    public void setResource(final String resource) {
         this.resource = resource;
     }
 
@@ -44,7 +44,7 @@ public class DatabaseAccessPolicy {
         return action;
     }
 
-    public void setAction(String action) {
+    public void setAction(final String action) {
         this.action = action;
     }
 }

@@ -322,7 +322,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String scheme = validationContext.getProperty(SCHEME).getValue();
@@ -347,7 +347,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (((oldValue != null && !oldValue.equals(newValue)))
                 && (descriptor.equals(QUERY)
                 || descriptor.equals(TIME_FIELD_STRATEGY)
@@ -393,13 +393,13 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     public void onRemoved(final ProcessContext context) {
         try {
             context.getStateManager().clear(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Unable to clear processor state due to {}", e.getMessage(), e);
         }
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final OffsetDateTime currentTime = OffsetDateTime.now();
 
         synchronized (isInitialized) {
@@ -420,7 +420,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         exportArgs.setOutputMode(JobExportArgs.OutputMode.valueOf(outputMode));
 
         String earliestTime = null;
-        String latestTime;
+        final String latestTime;
 
         if (PROVIDED_VALUE.getValue().equals(timeRangeStrategy)) {
             // for provided we just use the values of the properties
@@ -457,12 +457,12 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
                         earliestTime = dateTimeFormatter.format(previousLastDate.plusSeconds(1));
                         latestTime = dateTimeFormatter.format(currentTime);
-                    } catch (DateTimeParseException e) {
+                    } catch (final DateTimeParseException e) {
                         throw new ProcessException(e);
                     }
                 }
 
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Unable to load data from State Manager due to {}", e.getMessage(), e);
                 context.yield();
                 return;
@@ -495,7 +495,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         try {
             export = splunkService.export(query, exportArgs);
         //Catch Stale connection exception, reinitialize, and retry
-        } catch (com.splunk.HttpException e) {
+        } catch (final com.splunk.HttpException e) {
             getLogger().error("Splunk request status code:{} Retrying the request.", e.getStatus());
             splunkService.logout();
             splunkService = createSplunkService(context);
@@ -527,7 +527,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         if (!PROVIDED_VALUE.getValue().equals(timeRangeStrategy)) {
             try {
                 saveState(session, new TimeRange(earliestTime, latestTime));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Unable to load data from State Manager due to {}", e.getMessage(), e);
                 session.rollback();
                 context.yield();
@@ -596,11 +596,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         return Service.connect(serviceArgs);
     }
 
-    private void saveState(final ProcessSession session, TimeRange timeRange) throws IOException {
+    private void saveState(final ProcessSession session, final TimeRange timeRange) throws IOException {
         final String earliest = StringUtils.isBlank(timeRange.getEarliestTime()) ? "" : timeRange.getEarliestTime();
         final String latest = StringUtils.isBlank(timeRange.getLatestTime()) ? "" : timeRange.getLatestTime();
 
-        Map<String, String> state = new HashMap<>(2);
+        final Map<String, String> state = new HashMap<>(2);
         state.put(EARLIEST_TIME_KEY, earliest);
         state.put(LATEST_TIME_KEY, latest);
 
@@ -628,7 +628,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
     }
 
     @Override
-    public String getClassloaderIsolationKey(PropertyContext context) {
+    public String getClassloaderIsolationKey(final PropertyContext context) {
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
         if (sslContextProvider != null) {
             // Class loader isolation is only necessary when SSL is enabled, as Service.setSSLSocketFactory
@@ -645,7 +645,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final String earliestTime;
         final String latestTime;
 
-        public TimeRange(String earliestTime, String latestTime) {
+        public TimeRange(final String earliestTime, final String latestTime) {
             this.earliestTime = earliestTime;
             this.latestTime = latestTime;
         }

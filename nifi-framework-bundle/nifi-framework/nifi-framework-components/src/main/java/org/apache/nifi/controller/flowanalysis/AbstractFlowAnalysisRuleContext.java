@@ -44,10 +44,10 @@ public abstract class AbstractFlowAnalysisRuleContext implements FlowAnalysisRul
     private final ParameterLookup parameterLookup;
 
     public AbstractFlowAnalysisRuleContext(
-            FlowAnalysisRuleNode flowAnalysisRule,
-            Map<PropertyDescriptor, String> properties,
-            ControllerServiceProvider controllerServiceProvider,
-            ParameterLookup parameterLookup
+            final FlowAnalysisRuleNode flowAnalysisRule,
+            final Map<PropertyDescriptor, String> properties,
+            final ControllerServiceProvider controllerServiceProvider,
+            final ParameterLookup parameterLookup
     ) {
         this.flowAnalysisRuleNode = flowAnalysisRule;
         this.properties = Collections.unmodifiableMap(properties);

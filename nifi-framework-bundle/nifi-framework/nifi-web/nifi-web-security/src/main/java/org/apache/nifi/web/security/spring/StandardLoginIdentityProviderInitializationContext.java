@@ -27,7 +27,7 @@ public class StandardLoginIdentityProviderInitializationContext implements Login
     private final String identifier;
     private final LoginIdentityProviderLookup lookup;
 
-    public StandardLoginIdentityProviderInitializationContext(String identifier, final LoginIdentityProviderLookup lookup) {
+    public StandardLoginIdentityProviderInitializationContext(final String identifier, final LoginIdentityProviderLookup lookup) {
         this.identifier = identifier;
         this.lookup = lookup;
     }

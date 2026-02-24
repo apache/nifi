@@ -27,7 +27,7 @@ public class GenericScriptRunner extends BaseScriptRunner {
 
     private String engineName = "Unknown";
 
-    public GenericScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+    public GenericScriptRunner(final ScriptEngine engine, final String scriptBody, final String[] modulePaths) {
         super(engine, scriptBody, modulePaths);
         this.engineName = engine.getFactory().getEngineName();
     }
@@ -38,7 +38,7 @@ public class GenericScriptRunner extends BaseScriptRunner {
     }
 
     @Override
-    public void run(Bindings bindings) throws ScriptException {
+    public void run(final Bindings bindings) throws ScriptException {
         scriptEngine.eval(scriptBody);
     }
 }

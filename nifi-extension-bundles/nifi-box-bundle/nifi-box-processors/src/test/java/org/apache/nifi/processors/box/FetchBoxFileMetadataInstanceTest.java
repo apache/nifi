@@ -51,7 +51,7 @@ public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final FetchBoxFileMetadataInstance testSubject = new FetchBoxFileMetadataInstance() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };

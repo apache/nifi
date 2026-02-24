@@ -57,7 +57,7 @@ public class TestSimpleIndexManager {
             assertEquals(0, mgr.getWriterCount());
             assertEquals(1, mgr.getSearcherCount());
 
-            boolean removed = mgr.removeIndex(dir);
+            final boolean removed = mgr.removeIndex(dir);
             assertFalse(removed);
             mgr.returnIndexSearcher(eventSearcher);
 
@@ -109,7 +109,7 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) {
+            protected void close(final IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };
@@ -149,7 +149,7 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) {
+            protected void close(final IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };
@@ -167,7 +167,7 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) {
+            protected void close(final IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };

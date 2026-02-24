@@ -136,7 +136,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("starting-field-strategy", STARTING_FIELD_STRATEGY.getName());
         config.renameProperty("starting-field-name", STARTING_FIELD_NAME.getName());

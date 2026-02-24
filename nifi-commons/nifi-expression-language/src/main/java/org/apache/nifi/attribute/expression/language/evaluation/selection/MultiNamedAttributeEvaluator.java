@@ -36,7 +36,7 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         State state = evaluationContext.getEvaluatorState().getState(this, State.class);
         if (state == null) {
             state = new State();

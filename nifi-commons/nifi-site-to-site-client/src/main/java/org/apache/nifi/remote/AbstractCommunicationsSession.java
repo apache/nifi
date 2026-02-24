@@ -33,7 +33,7 @@ public abstract class AbstractCommunicationsSession implements CommunicationsSes
     }
 
     @Override
-    public String createTransitUri(String communicantUrl, String sourceFlowFileIdentifier) {
+    public String createTransitUri(final String communicantUrl, final String sourceFlowFileIdentifier) {
         return communicantUrl + (communicantUrl.endsWith("/") ? "" : "/") + sourceFlowFileIdentifier;
     }
 

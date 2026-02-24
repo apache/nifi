@@ -224,10 +224,10 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         testData.set("arrayTest", jarray);
 
         // setup registry and reader
-        MockSchemaRegistry registry = new MockSchemaRegistry();
-        RecordSchema rschema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schemaDef.toPrettyString()));
+        final MockSchemaRegistry registry = new MockSchemaRegistry();
+        final RecordSchema rschema = AvroTypeUtil.createSchema(new Schema.Parser().parse(schemaDef.toPrettyString()));
         registry.addSchema("test", rschema);
-        JsonTreeReader reader = new JsonTreeReader();
+        final JsonTreeReader reader = new JsonTreeReader();
         testRunner.addControllerService("registry", registry);
         testRunner.addControllerService("reader", reader);
         testRunner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
@@ -238,7 +238,7 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         // override partiton key for this test case
         testRunner.setProperty(PutAzureCosmosDBRecord.PARTITION_KEY, "sport");
 
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "test");
 
         testRunner.enqueue(testData.toPrettyString(), attrs);
@@ -246,11 +246,11 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
 
         testRunner.assertTransferCount(PutAzureCosmosDBRecord.REL_FAILURE, 0);
         testRunner.assertTransferCount(PutAzureCosmosDBRecord.REL_SUCCESS, 1);
-        List<Map<String, Object>> backendData = processor.getTestResults();
+        final List<Map<String, Object>> backendData = processor.getTestResults();
         assertEquals(1, backendData.size());
         //validate array data
         final Map<?, ?> arrayTestResult = backendData.getFirst();
-        Object[] check  = (Object[]) arrayTestResult.get("arrayTest");
+        final Object[] check  = (Object[]) arrayTestResult.get("arrayTest");
         assertArrayEquals(new Object[]{"a", "b", "c"}, check);
     }
 
@@ -295,7 +295,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     }
 
     @Override
-    protected void bulkInsert(List<Map<String, Object>> records) throws CosmosException {
+    protected void bulkInsert(final List<Map<String, Object>> records) throws CosmosException {
         this.mockBackend.addAll(records);
     }
 

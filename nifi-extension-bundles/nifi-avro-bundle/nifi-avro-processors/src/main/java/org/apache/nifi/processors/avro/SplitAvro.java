@@ -175,8 +175,8 @@ public class SplitAvro extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -184,7 +184,7 @@ public class SplitAvro extends AbstractProcessor {
         final int splitSize = context.getProperty(OUTPUT_SIZE).asInteger();
         final boolean transferMetadata = context.getProperty(TRANSFER_METADATA).asBoolean();
 
-        SplitWriter splitWriter;
+        final SplitWriter splitWriter;
         final String outputStrategy = context.getProperty(OUTPUT_STRATEGY).getValue();
         splitWriter = switch (outputStrategy) {
             case DATAFILE_OUTPUT_VALUE -> new DatafileSplitWriter(transferMetadata);
@@ -192,7 +192,7 @@ public class SplitAvro extends AbstractProcessor {
             default -> throw new AssertionError();
         };
 
-        Splitter splitter;
+        final Splitter splitter;
         final String splitStrategy = context.getProperty(SPLIT_STRATEGY).getValue();
         if (splitStrategy.equals(RECORD_SPLIT_VALUE)) {
             splitter = new RecordSplitter(splitSize, transferMetadata);
@@ -215,7 +215,7 @@ public class SplitAvro extends AbstractProcessor {
             });
             final FlowFile originalFlowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, splits.size());
             session.transfer(originalFlowFile, REL_ORIGINAL);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             getLogger().error("Failed to split {} due to {}", flowFile, e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -282,7 +282,7 @@ public class SplitAvro extends AbstractProcessor {
                         // can't be done inside of an OutputStream callback which is where the splitWriter is used
                         if (splitWriter instanceof BareRecordSplitWriter && transferMetadata) {
                             final Map<String, String> metadata = new HashMap<>();
-                            for (String metaKey : reader.getMetaKeys()) {
+                            for (final String metaKey : reader.getMetaKeys()) {
                                 metadata.put(metaKey, reader.getMetaString(metaKey));
                             }
                             childFlowFile = session.putAllAttributes(childFlowFile, metadata);
@@ -324,7 +324,7 @@ public class SplitAvro extends AbstractProcessor {
             writer = new DataFileWriter<>(new GenericDatumWriter<>());
 
             if (transferMetadata) {
-                for (String metaKey : reader.getMetaKeys()) {
+                for (final String metaKey : reader.getMetaKeys()) {
                     if (!RESERVED_METADATA.contains(metaKey)) {
                         writer.setMeta(metaKey, reader.getMeta(metaKey));
                     }
@@ -365,7 +365,7 @@ public class SplitAvro extends AbstractProcessor {
         }
 
         @Override
-        public void write(GenericRecord datum) throws IOException {
+        public void write(final GenericRecord datum) throws IOException {
             writer.write(datum, encoder);
         }
 

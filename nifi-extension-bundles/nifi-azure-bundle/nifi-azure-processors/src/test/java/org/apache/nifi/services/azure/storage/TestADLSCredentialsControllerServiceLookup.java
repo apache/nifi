@@ -143,7 +143,7 @@ public class TestADLSCredentialsControllerServiceLookup {
 
         private final ADLSCredentialsDetails adlsCredentialsDetails;
 
-        MockADLSCredentialsService(ADLSCredentialsDetails adlsCredentialsDetails) {
+        MockADLSCredentialsService(final ADLSCredentialsDetails adlsCredentialsDetails) {
             this.adlsCredentialsDetails = adlsCredentialsDetails;
         }
 

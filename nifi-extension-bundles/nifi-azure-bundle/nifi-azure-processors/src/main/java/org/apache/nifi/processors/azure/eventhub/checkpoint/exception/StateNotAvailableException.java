@@ -18,7 +18,7 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint.exception;
 
 public class StateNotAvailableException extends ComponentStateCheckpointStoreException {
 
-    public StateNotAvailableException(Throwable cause) {
+    public StateNotAvailableException(final Throwable cause) {
         super("Failure when reading/writing the component state", cause);
     }
 }

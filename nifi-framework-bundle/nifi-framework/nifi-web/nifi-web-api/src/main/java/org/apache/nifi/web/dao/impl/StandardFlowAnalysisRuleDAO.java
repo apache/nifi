@@ -109,7 +109,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
             );
 
             return flowAnalysisRule;
-        } catch (FlowAnalysisRuleInstantiationException rtie) {
+        } catch (final FlowAnalysisRuleInstantiationException rtie) {
             throw new NiFiCoreException(rtie.getMessage(), rtie);
         }
     }
@@ -161,11 +161,11 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                             flowAnalysisRuleProvider.disableFlowAnalysisRule(flowAnalysisRule);
                             break;
                     }
-                } catch (IllegalStateException | ComponentLifeCycleException ise) {
+                } catch (final IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
-                } catch (NullPointerException npe) {
+                } catch (final NullPointerException npe) {
                     throw new NiFiCoreException("Unable to update flow analysis rule state.", npe);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new NiFiCoreException("Unable to update flow analysis rule state: " + e, e);
                 }
             }
@@ -178,7 +178,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
         return flowAnalysisRule;
     }
 
-    private void updateBundle(FlowAnalysisRuleNode flowAnalysisRule, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+    private void updateBundle(final FlowAnalysisRuleNode flowAnalysisRule, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
         final BundleDTO bundleDTO = flowAnalysisRuleDTO.getBundle();
         if (bundleDTO != null) {
             final ExtensionManager extensionManager = flowAnalysisRuleProvider.getExtensionManager();
@@ -190,7 +190,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                     final ConfigurableComponent tempComponent = extensionManager.getTempComponent(flowAnalysisRule.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = flowAnalysisRule.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     reloadComponent.reload(flowAnalysisRule, flowAnalysisRule.getCanonicalClassName(), incomingCoordinate, additionalUrls);
-                } catch (FlowAnalysisRuleInstantiationException e) {
+                } catch (final FlowAnalysisRuleInstantiationException e) {
                     throw new NiFiCoreException(String.format("Unable to update flow analysis rule %s from %s to %s due to: %s",
                             flowAnalysisRuleDTO.getId(), flowAnalysisRule.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
                 }
@@ -234,7 +234,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
                             break;
                     }
                 }
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format(
                         "The specified flow analysis rule state (%s) is not valid. Valid options are 'ENABLED' or 'DISABLED'.",
                         flowAnalysisRuleDTO.getState()));
@@ -335,7 +335,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
     }
 
     @Override
-    public void deleteFlowAnalysisRule(String flowAnalysisRuleId) {
+    public void deleteFlowAnalysisRule(final String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
         flowAnalysisRuleProvider.removeFlowAnalysisRule(flowAnalysisRule);
 
@@ -345,13 +345,13 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
     }
 
     @Override
-    public StateMap getState(String flowAnalysisRuleId, Scope scope) {
+    public StateMap getState(final String flowAnalysisRuleId, final Scope scope) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
         return componentStateDAO.getState(flowAnalysisRule, scope);
     }
 
     @Override
-    public void verifyClearState(String flowAnalysisRuleId) {
+    public void verifyClearState(final String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = locateFlowAnalysisRule(flowAnalysisRuleId);
         flowAnalysisRule.verifyCanClearState();
     }
@@ -363,22 +363,22 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
     }
 
     @Autowired
-    public void setFlowAnalysisRuleProvider(FlowAnalysisRuleProvider flowAnalysisRuleProvider) {
+    public void setFlowAnalysisRuleProvider(final FlowAnalysisRuleProvider flowAnalysisRuleProvider) {
         this.flowAnalysisRuleProvider = flowAnalysisRuleProvider;
     }
 
     @Autowired
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 
     @Autowired
-    public void setReloadComponent(ReloadComponent reloadComponent) {
+    public void setReloadComponent(final ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 }

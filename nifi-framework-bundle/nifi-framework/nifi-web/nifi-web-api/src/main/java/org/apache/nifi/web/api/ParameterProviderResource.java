@@ -182,7 +182,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
      * @return dtos
      */
     public Set<ParameterProviderEntity> populateRemainingParameterProviderEntitiesContent(final Set<ParameterProviderEntity> parameterProviderEntities) {
-        for (ParameterProviderEntity parameterProviderEntity : parameterProviderEntities) {
+        for (final ParameterProviderEntity parameterProviderEntity : parameterProviderEntities) {
             populateRemainingParameterProviderEntityContent(parameterProviderEntity);
         }
         return parameterProviderEntities;
@@ -695,11 +695,11 @@ public class ParameterProviderResource extends AbstractParameterResource {
             }
     )
     public Response removeParameterProvider(
-            @Parameter(
+            final @Parameter(
                     description = "The revision is used to verify the client is working with the latest version of the flow."
             )
             @QueryParam(VERSION) LongParameter version,
-            @Parameter(
+            final @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -707,7 +707,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
             @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @Parameter(
+            final @Parameter(
                     description = "The parameter provider id.",
                     required = true
             )
@@ -1626,7 +1626,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
             try {
                 updateUri = new URI(exampleUri.getScheme(), exampleUri.getUserInfo(), exampleUri.getHost(),
                         exampleUri.getPort(), "/nifi-api/parameter-contexts", null, exampleUri.getFragment());
-            } catch (URISyntaxException e) {
+            } catch (final URISyntaxException e) {
                 throw new RuntimeException(e);
             }
 

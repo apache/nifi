@@ -36,7 +36,7 @@ public class CopySnippetRequestEntity extends Entity {
         return snippetId;
     }
 
-    public void setSnippetId(String snippetId) {
+    public void setSnippetId(final String snippetId) {
         this.snippetId = snippetId;
     }
 
@@ -46,7 +46,7 @@ public class CopySnippetRequestEntity extends Entity {
         return originX;
     }
 
-    public void setOriginX(Double originX) {
+    public void setOriginX(final Double originX) {
         this.originX = originX;
     }
 
@@ -56,7 +56,7 @@ public class CopySnippetRequestEntity extends Entity {
         return originY;
     }
 
-    public void setOriginY(Double originY) {
+    public void setOriginY(final Double originY) {
         this.originY = originY;
     }
 
@@ -66,7 +66,7 @@ public class CopySnippetRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

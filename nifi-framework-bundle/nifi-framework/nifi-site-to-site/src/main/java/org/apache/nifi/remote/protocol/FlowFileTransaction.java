@@ -36,7 +36,8 @@ public class FlowFileTransaction {
         this(null, null, new StopWatch(true), 0, null, null);
     }
 
-    public FlowFileTransaction(ProcessSession session, ProcessContext context, StopWatch stopWatch, long bytesSent, Set<FlowFile> flowFilesSent, String calculatedCRC) {
+    public FlowFileTransaction(final ProcessSession session, final ProcessContext context, final StopWatch stopWatch,
+            final long bytesSent, final Set<FlowFile> flowFilesSent, final String calculatedCRC) {
         this.session = session;
         this.context = context;
         this.stopWatch = stopWatch;

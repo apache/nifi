@@ -204,7 +204,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("message-body-type", MESSAGE_BODY.getName());
         config.renameProperty("allow-illegal-chars-in-jms-header-names", ALLOW_ILLEGAL_HEADER_CHARS.getName());
@@ -223,7 +223,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * transferred to the 'failure' {@link Relationship}
      */
     @Override
-    protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
+    protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher) throws ProcessException {
         final List<FlowFile> flowFiles = processSession.get(context.getProperty(MAX_BATCH_SIZE).asInteger());
         if (flowFiles.isEmpty()) {
             return;
@@ -258,7 +258,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                             content -> publisher.publish(destinationName, content, attributesToSend),
                             new FlowFileReaderCallback() {
                                 @Override
-                                public void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis) {
+                                public void onSuccess(final FlowFile flowFile, final int processedRecords, final boolean isRecover, final long transmissionMillis) {
                                     final String eventTemplate = isRecover ? PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER : PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
                                     processSession.getProvenanceReporter().send(
                                             flowFile,
@@ -270,7 +270,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                                 }
 
                                 @Override
-                                public void onFailure(FlowFile flowFile, int processedRecords, long transmissionMillis, Exception e) {
+                                public void onFailure(final FlowFile flowFile, final int processedRecords, final long transmissionMillis, final Exception e) {
                                     processSession.getProvenanceReporter().send(
                                             flowFile,
                                             destinationName,
@@ -286,13 +286,13 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                     processSession.transfer(flowFile, REL_SUCCESS);
                     processSession.getProvenanceReporter().send(flowFile, destinationName);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 handleException(context, processSession, publisher, flowFile, e);
             }
         });
     }
 
-    private void handleException(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile, Exception e) {
+    private void handleException(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher, final FlowFile flowFile, final Exception e) {
         processSession.transfer(flowFile, REL_FAILURE);
         this.getLogger().error("Failed while sending message to JMS via {}", publisher, e);
         context.yield();
@@ -316,22 +316,22 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * Will create an instance of {@link JMSPublisher}
      */
     @Override
-    protected JMSPublisher finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
+    protected JMSPublisher finishBuildingJmsWorker(final CachingConnectionFactory connectionFactory, final JmsTemplate jmsTemplate, final ProcessContext processContext) {
         return new JMSPublisher(connectionFactory, jmsTemplate, this.getLogger());
     }
 
-    private void processStandardFlowFile(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile,
-                                         String destinationName, String charset, Map<String, String> attributesToSend) {
+    private void processStandardFlowFile(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher, final FlowFile flowFile,
+                                         final String destinationName, final String charset, final Map<String, String> attributesToSend) {
         publishMessage(context, processSession, publisher, flowFile, destinationName, charset, attributesToSend);
     }
 
-    private void publishMessage(ProcessContext context, ProcessSession processSession, JMSPublisher publisher, FlowFile flowFile,
-                                String destinationName, String charset, Map<String, String> attributesToSend) {
+    private void publishMessage(final ProcessContext context, final ProcessSession processSession, final JMSPublisher publisher, final FlowFile flowFile,
+                                final String destinationName, final String charset, final Map<String, String> attributesToSend) {
         switch (context.getProperty(MESSAGE_BODY).getValue()) {
             case TEXT_MESSAGE:
                 try {
                     publisher.publish(destinationName, this.extractTextMessageBody(flowFile, processSession, charset), attributesToSend);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     publisher.setValid(false);
                     throw e;
                 }
@@ -340,7 +340,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             default:
                 try {
                     publisher.publish(destinationName, this.extractMessageBody(flowFile, processSession), attributesToSend);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     publisher.setValid(false);
                     throw e;
                 }
@@ -351,13 +351,13 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
     /**
      * Extracts contents of the {@link FlowFile} as byte array.
      */
-    private byte[] extractMessageBody(FlowFile flowFile, ProcessSession session) {
+    private byte[] extractMessageBody(final FlowFile flowFile, final ProcessSession session) {
         final byte[] messageContent = new byte[(int) flowFile.getSize()];
         session.read(flowFile, in -> StreamUtils.fillBuffer(in, messageContent, true));
         return messageContent;
     }
 
-    private String extractTextMessageBody(FlowFile flowFile, ProcessSession session, String charset) {
+    private String extractTextMessageBody(final FlowFile flowFile, final ProcessSession session, final String charset) {
         final StringWriter writer = new StringWriter();
         session.read(flowFile, in -> IOUtils.copy(in, writer, Charset.forName(charset)));
         return writer.toString();

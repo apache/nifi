@@ -91,7 +91,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         setupService();
         setupMocking();
 
-        FileResource fileResource = service.getFileResource(Map.of());
+        final FileResource fileResource = service.getFileResource(Map.of());
 
         assertFileResource(fileResource);
         verifyMockInvocations();
@@ -99,13 +99,13 @@ class AzureDataLakeStorageFileResourceServiceTest {
 
     @Test
     void testHappyPathWithValidEL() throws InitializationException {
-        String fileSystemKey = "filesystem.name";
-        String directoryKey = "directory";
-        String fileNameKey = "filename";
+        final String fileSystemKey = "filesystem.name";
+        final String directoryKey = "directory";
+        final String fileNameKey = "filename";
         setupService("${" + fileSystemKey + "}", "${" + directoryKey + "}", "${" + fileNameKey + "}");
         setupMocking();
 
-        FileResource fileResource = service.getFileResource(Map.of(
+        final FileResource fileResource = service.getFileResource(Map.of(
                 fileSystemKey, FILE_SYSTEM,
                 directoryKey, DIRECTORY,
                 fileNameKey, FILE));
@@ -141,8 +141,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
 
     @Test
     void testInvalidDirectoryValueWithLeadingSlash() throws InitializationException {
-        String directoryKey = "directory.name";
-        String directoryValue = "/invalid-directory";
+        final String directoryKey = "directory.name";
+        final String directoryValue = "/invalid-directory";
         setupService(FILE_SYSTEM, "${" + directoryKey + "}", FILE);
 
         executeAndAssertProcessException(Map.of(directoryKey, directoryValue), "'Directory Name' starts with '/'. 'Directory Name' cannot contain a leading '/'.");
@@ -157,8 +157,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
 
     @Test
     void testInvalidFileSystem() throws InitializationException {
-        String fileSystemKey = "fileSystem";
-        String fileSystemValue = "  ";
+        final String fileSystemKey = "fileSystem";
+        final String fileSystemValue = "  ";
         setupService("${" + fileSystemKey + "}", DIRECTORY, FILE);
 
         executeAndAssertProcessException(Map.of(fileSystemKey, fileSystemValue), MSG_EMPTY_FILE_SYSTEM_NAME);
@@ -166,8 +166,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
 
     @Test
     void testInvalidFileName() throws InitializationException {
-        String fileKey = "fileSystem";
-        String fileValue = "  ";
+        final String fileKey = "fileSystem";
+        final String fileValue = "  ";
         setupService(FILE_SYSTEM, DIRECTORY, "${" + fileKey + "}");
 
         executeAndAssertProcessException(Map.of(fileKey, fileValue),
@@ -176,8 +176,8 @@ class AzureDataLakeStorageFileResourceServiceTest {
 
     @Test
     void testInvalidDirectoryValueWithWhiteSpaceOnly() throws InitializationException {
-        String directoryKey = "directory.name";
-        String directoryValue = "   ";
+        final String directoryKey = "directory.name";
+        final String directoryValue = "   ";
         setupService(FILE_SYSTEM, "${" + directoryKey + "}", FILE);
 
         executeAndAssertProcessException(Map.of(directoryKey, directoryValue), "'Directory Name' contains whitespace characters only.");
@@ -187,7 +187,7 @@ class AzureDataLakeStorageFileResourceServiceTest {
         setupService(FILE_SYSTEM, DIRECTORY, FILE);
     }
 
-    private void setupService(String fileSystem, String directory, String fileName) throws InitializationException {
+    private void setupService(final String fileSystem, final String directory, final String fileName) throws InitializationException {
         final ADLSCredentialsService credentialsService = mock(ADLSCredentialsService.class);
         when(credentialsService.getIdentifier()).thenReturn(CREDENTIALS_CONTROLLER_SERVICE);
         runner.addControllerService(CREDENTIALS_CONTROLLER_SERVICE, credentialsService);
@@ -209,18 +209,18 @@ class AzureDataLakeStorageFileResourceServiceTest {
         when(properties.isDirectory()).thenReturn(false);
         when(fileClient.exists()).thenReturn(true);
         when(properties.getFileSize()).thenReturn(CONTENT_LENGTH);
-        DataLakeFileOpenInputStreamResult result = mock(DataLakeFileOpenInputStreamResult.class);
+        final DataLakeFileOpenInputStreamResult result = mock(DataLakeFileOpenInputStreamResult.class);
         when(fileClient.openInputStream()).thenReturn(result);
         when(result.getInputStream()).thenReturn(inputStream);
     }
 
-    private void executeAndAssertProcessException(Map<String, String> arguments, String expectedMessage) {
-        ProcessException exception = assertThrows(ProcessException.class,
+    private void executeAndAssertProcessException(final Map<String, String> arguments, final String expectedMessage) {
+        final ProcessException exception = assertThrows(ProcessException.class,
                 () -> service.getFileResource(arguments));
         assertEquals(expectedMessage, exception.getMessage());
     }
 
-    private void assertFileResource(FileResource fileResource) {
+    private void assertFileResource(final FileResource fileResource) {
         assertNotNull(fileResource);
         assertEquals(fileResource.getInputStream(), inputStream);
         assertEquals(fileResource.getSize(), CONTENT_LENGTH);
@@ -239,12 +239,12 @@ class AzureDataLakeStorageFileResourceServiceTest {
     private static class TestAzureDataLakeStorageFileResourceService extends AzureDataLakeStorageFileResourceService {
         private final DataLakeServiceClient client;
 
-        private TestAzureDataLakeStorageFileResourceService(DataLakeServiceClient client) {
+        private TestAzureDataLakeStorageFileResourceService(final DataLakeServiceClient client) {
             this.client = client;
         }
 
         @Override
-        protected DataLakeServiceClient getStorageClient(Map<String, String> attributes) {
+        protected DataLakeServiceClient getStorageClient(final Map<String, String> attributes) {
             return client;
         }
     }

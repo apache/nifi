@@ -52,11 +52,11 @@ public class HashServiceTest {
         final String EXPECTED_HASH = "dc4bd945723b9c234f1be408e8ceb78660b481008b8ab5b71eb2aa3b4f08357a";
         final byte[] EXPECTED_HASH_BYTES = Hex.decode(EXPECTED_HASH);
 
-        String threeArgString = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
-        String twoArgString = HashService.hashValue(algorithm, KNOWN_VALUE);
-        byte[] threeArgStringRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
-        byte[] twoArgStringRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE);
-        byte[] twoArgBytesRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE.getBytes());
+        final String threeArgString = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
+        final String twoArgString = HashService.hashValue(algorithm, KNOWN_VALUE);
+        final byte[] threeArgStringRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
+        final byte[] twoArgStringRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE);
+        final byte[] twoArgBytesRaw = HashService.hashValueRaw(algorithm, KNOWN_VALUE.getBytes());
 
         final Map<String, Object> scenarios = new HashMap<>();
         scenarios.put("threeArgString", threeArgString);
@@ -82,8 +82,8 @@ public class HashServiceTest {
         final HashAlgorithm algorithm = HashAlgorithm.SHA256;
 
         // Act
-        String utf8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
-        String utf16Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_16);
+        final String utf8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
+        final String utf16Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_16);
 
         // Assert
         assertNotEquals(utf8Hash, utf16Hash);
@@ -104,9 +104,9 @@ public class HashServiceTest {
     @Test
     void testHashValueShouldHandleUTF16BOMIssue() {
         // Arrange
-        HashAlgorithm algorithm = HashAlgorithm.SHA256;
+        final HashAlgorithm algorithm = HashAlgorithm.SHA256;
 
-        List<Charset> charsets = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
+        final List<Charset> charsets = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
 
         final Map<String, String> EXPECTED_SHA_256_HASHES = new HashMap<>();
         EXPECTED_SHA_256_HASHES.put("utf_8", "dc4bd945723b9c234f1be408e8ceb78660b481008b8ab5b71eb2aa3b4f08357a");
@@ -117,7 +117,7 @@ public class HashServiceTest {
         // Act
         for (final Charset charset : charsets) {
             // Calculate the expected hash value given the character set
-            String hash = HashService.hashValue(algorithm, KNOWN_VALUE, charset);
+            final String hash = HashService.hashValue(algorithm, KNOWN_VALUE, charset);
 
             // Assert
             assertEquals(EXPECTED_SHA_256_HASHES.get(translateStringToMapKey(charset.name())), hash);
@@ -130,12 +130,12 @@ public class HashServiceTest {
         final HashAlgorithm algorithm = HashAlgorithm.SHA256;
 
         // Act
-        String explicitUTF8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
-        String implicitUTF8Hash = HashService.hashValue(algorithm, KNOWN_VALUE);
+        final String explicitUTF8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
+        final String implicitUTF8Hash = HashService.hashValue(algorithm, KNOWN_VALUE);
 
-        byte[] explicitUTF8HashBytes = HashService.hashValueRaw(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
-        byte[] implicitUTF8HashBytes = HashService.hashValueRaw(algorithm, KNOWN_VALUE);
-        byte[] implicitUTF8HashBytesDefault = HashService.hashValueRaw(algorithm, KNOWN_VALUE.getBytes());
+        final byte[] explicitUTF8HashBytes = HashService.hashValueRaw(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
+        final byte[] implicitUTF8HashBytes = HashService.hashValueRaw(algorithm, KNOWN_VALUE);
+        final byte[] implicitUTF8HashBytesDefault = HashService.hashValueRaw(algorithm, KNOWN_VALUE.getBytes());
 
         // Assert
         assertEquals(explicitUTF8Hash, implicitUTF8Hash);
@@ -221,7 +221,7 @@ public class HashServiceTest {
         for (final Map.Entry<String, String> entry : generatedHashes.entrySet()) {
             final String algorithmName = entry.getKey();
             final String hash = entry.getValue();
-            String key = translateStringToMapKey(algorithmName);
+            final String key = translateStringToMapKey(algorithmName);
             assertEquals(EXPECTED_HASHES.get(key), hash);
         }
     }
@@ -263,7 +263,7 @@ public class HashServiceTest {
         for (final Map.Entry<String, String> entry : generatedHashes.entrySet()) {
             final String algorithmName = entry.getKey();
             final String hash = entry.getValue();
-            String key = translateStringToMapKey(algorithmName);
+            final String key = translateStringToMapKey(algorithmName);
             assertEquals(EXPECTED_HASHES.get(key), hash);
         }
     }
@@ -338,7 +338,7 @@ public class HashServiceTest {
         final List<HashAlgorithm> algorithms = new ArrayList<>(List.of(HashAlgorithm.values()));
         algorithms.remove(HashAlgorithm.MD2);
 
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         final int times = 10000;
         for (int i = 0; i < times; i++) {
             sb.append(String.format("%s: %s\n", StringUtils.leftPad(String.valueOf(i), 5), "apachenifi ".repeat(10)));
@@ -370,10 +370,10 @@ public class HashServiceTest {
                 .stream()
                 .collect(Collectors.toMap(HashAlgorithm::getName, algorithm -> {
                     // Get a new InputStream for each iteration, or it will calculate the hash of an empty input on iterations 1 - n
-                    InputStream input = new ByteArrayInputStream(sb.toString().getBytes());
+                    final InputStream input = new ByteArrayInputStream(sb.toString().getBytes());
                     try {
                         return HashService.hashValueStreaming(algorithm, input);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         throw new RuntimeException(e);
                     }
                 }));
@@ -382,12 +382,12 @@ public class HashServiceTest {
         for (final Map.Entry<String, String> entry : generatedHashes.entrySet()) {
             final String algorithmName = entry.getKey();
             final String hash = entry.getValue();
-            String key = translateStringToMapKey(algorithmName);
+            final String key = translateStringToMapKey(algorithmName);
             assertEquals(EXPECTED_HASHES.get(key), hash);
         }
     }
 
-    private static String translateStringToMapKey(String string) {
+    private static String translateStringToMapKey(final String string) {
         return string.toLowerCase().replaceAll("[-\\/]", "_");
     }
 }

@@ -248,7 +248,7 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws ProcessException {
+    public void onScheduled(final ProcessContext context) throws ProcessException {
         if (fileFilter == null) {
             final PackageFormat packageFormat = context.getProperty(PACKAGING_FORMAT).asAllowableValue(PackageFormat.class);
 
@@ -262,7 +262,7 @@ public class UnpackContent extends AbstractProcessor {
             zipUnpacker = switch (packageFormat) {
                 case AUTO_DETECT_FORMAT, ZIP_FORMAT -> {
                     final String passwordText = context.getProperty(PASSWORD).getValue();
-                    char[] password = passwordText == null ? null : passwordText.toCharArray();
+                    final char[] password = passwordText == null ? null : passwordText.toCharArray();
 
                     final boolean allowStoredEntriesWithDataDescriptor =
                             context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR).asBoolean();
@@ -295,7 +295,7 @@ public class UnpackContent extends AbstractProcessor {
                 return;
             }
 
-            for (PackageFormat format: PackageFormat.values()) {
+            for (final PackageFormat format: PackageFormat.values()) {
                 if (mimeType.toLowerCase().equals(format.getMimeType())) {
                     packagingFormat = format;
                 }
@@ -365,7 +365,7 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("allow-stored-entries-wdd", ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR.getName());
     }
 
@@ -390,7 +390,7 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     private static class TarUnpacker extends Unpacker {
-        public TarUnpacker(Pattern fileFilter) {
+        public TarUnpacker(final Pattern fileFilter) {
             super(fileFilter);
         }
 
@@ -408,7 +408,7 @@ public class UnpackContent extends AbstractProcessor {
                         }
                         final File file = new File(tarEntry.getName());
                         final Path filePath = file.toPath();
-                        String filePathString = filePath.getParent() == null ? "/" : filePath.getParent() + "/";
+                        final String filePathString = filePath.getParent() == null ? "/" : filePath.getParent() + "/";
 
                         FlowFile unpackedFile = session.create(source);
                         try {
@@ -419,7 +419,7 @@ public class UnpackContent extends AbstractProcessor {
                             attributes.put(FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()));
                             attributes.put(FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()));
                             attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(tarEntry.getRealSize()));
-                            String lastModified = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
+                            final String lastModified = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
                             attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, lastModified);
 
                             if (tarEntry.getCreationTime() != null) {
@@ -510,7 +510,7 @@ public class UnpackContent extends AbstractProcessor {
                 return !directory && (fileFilter == null || fileFilter.matcher(fileName).find());
             }
 
-            protected void processEntry(final InputStream zipInputStream, boolean directory, String zipEntryName, Map<String, String> attributes) {
+            protected void processEntry(final InputStream zipInputStream, final boolean directory, final String zipEntryName, final Map<String, String> attributes) {
                 if (isFileEntryMatched(directory, zipEntryName)) {
                     final File file = new File(zipEntryName);
                     final String parentDirectory = (file.getParent() == null) ? PATH_SEPARATOR : file.getParent();
@@ -530,21 +530,21 @@ public class UnpackContent extends AbstractProcessor {
                 }
             }
 
-            protected void addFileSizeAttribute(long fileSize, Map<String, String> attributes) {
+            protected void addFileSizeAttribute(final long fileSize, final Map<String, String> attributes) {
                 attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
             }
 
-            protected void addEncryptionMethodAttribute(EncryptionMethod encryptionMethod, Map<String, String> attributes) {
+            protected void addEncryptionMethodAttribute(final EncryptionMethod encryptionMethod, final Map<String, String> attributes) {
                 attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
             }
 
-            protected void addFilePermissionsAttribute(int mode, Map<String, String> attributes) {
+            protected void addFilePermissionsAttribute(final int mode, final Map<String, String> attributes) {
                 if (mode > -1) {
                     attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(mode));
                 }
             }
 
-            protected void addZipEntryTimeAttributes(Instant lastModified, Instant creation, Instant lastAccess, Map<String, String> attributes) {
+            protected void addZipEntryTimeAttributes(final Instant lastModified, final Instant creation, final Instant lastAccess, final Map<String, String> attributes) {
                 String lastModifiedDate = null;
                 if (lastModified != null) {
                     lastModifiedDate = DATE_TIME_FORMATTER.format(lastModified);
@@ -596,9 +596,9 @@ public class UnpackContent extends AbstractProcessor {
                         addFilePermissionsAttribute(zipEntry.getUnixMode(), attributes);
                         // NOTE: Per javadocs, ZipArchiveEntry can return -1 for getTime() if its not specified
                         // and getLastAccessTime() can return null if it is not specified.
-                        Instant lastModified = zipEntry.getLastModifiedDate().toInstant();
-                        Instant creation = zipEntry.getTime() > 0 ? new Date(zipEntry.getTime()).toInstant() : null;
-                        Instant lastAccess = zipEntry.getLastAccessTime() != null ? zipEntry.getLastAccessTime().toInstant() : null;
+                        final Instant lastModified = zipEntry.getLastModifiedDate().toInstant();
+                        final Instant creation = zipEntry.getTime() > 0 ? new Date(zipEntry.getTime()).toInstant() : null;
+                        final Instant lastAccess = zipEntry.getLastAccessTime() != null ? zipEntry.getLastAccessTime().toInstant() : null;
                         addZipEntryTimeAttributes(lastModified, creation, lastAccess, attributes);
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), attributes);
                         attributes.clear();
@@ -634,7 +634,7 @@ public class UnpackContent extends AbstractProcessor {
                         //NOTE: LocalFileHeader has no methods to return creation time and the mode.
                         addEncryptionMethodAttribute(zipEntry.getEncryptionMethod(), attributes);
                         addFileSizeAttribute(zipEntry.getUncompressedSize(), attributes);
-                        Instant lastModified = zipEntry.getLastModifiedTime() > 0 ? new Date(zipEntry.getLastModifiedTime()).toInstant() : null;
+                        final Instant lastModified = zipEntry.getLastModifiedTime() > 0 ? new Date(zipEntry.getLastModifiedTime()).toInstant() : null;
                         addZipEntryTimeAttributes(lastModified, null, null, attributes);
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getFileName(), attributes);
                         attributes.clear();
@@ -694,8 +694,8 @@ public class UnpackContent extends AbstractProcessor {
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
         // first pass verifies all FlowFiles have the FRAGMENT_INDEX attribute and gets the total number of fragments
         int fragmentCount = 0;
-        for (FlowFile ff : unpacked) {
-            String fragmentIndex = ff.getAttribute(FRAGMENT_INDEX);
+        for (final FlowFile ff : unpacked) {
+            final String fragmentIndex = ff.getAttribute(FRAGMENT_INDEX);
             if (fragmentIndex != null) {
                 fragmentCount++;
             } else {
@@ -709,10 +709,10 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         // second pass adds fragment attributes
-        List<FlowFile> newList = new ArrayList<>(unpacked);
+        final List<FlowFile> newList = new ArrayList<>(unpacked);
         unpacked.clear();
-        for (FlowFile ff : newList) {
-            FlowFile newFF = session.putAllAttributes(ff, Map.of(
+        for (final FlowFile ff : newList) {
+            final FlowFile newFF = session.putAllAttributes(ff, Map.of(
                     FRAGMENT_COUNT, String.valueOf(fragmentCount),
                     SEGMENT_ORIGINAL_FILENAME, originalFilename
             ));

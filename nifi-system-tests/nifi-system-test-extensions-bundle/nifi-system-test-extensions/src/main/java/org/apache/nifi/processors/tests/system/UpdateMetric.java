@@ -48,7 +48,7 @@ public class UpdateMetric extends AbstractProcessor {
         final long freeMemory = runtime.freeMemory();
         session.recordGauge("freeMemory", freeMemory, CommitTiming.NOW);
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }

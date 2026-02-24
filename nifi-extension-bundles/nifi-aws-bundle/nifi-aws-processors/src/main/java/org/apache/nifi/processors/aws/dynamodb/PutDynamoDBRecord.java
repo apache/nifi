@@ -224,7 +224,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("partition-key-strategy", PARTITION_KEY_STRATEGY.getName());
@@ -273,7 +273,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         private final String displayName;
         private final String description;
 
-        SortKeyStrategy(String value, String displayName, String description) {
+        SortKeyStrategy(final String value, final String displayName, final String description) {
             this.value = value;
             this.displayName = displayName;
             this.description = description;

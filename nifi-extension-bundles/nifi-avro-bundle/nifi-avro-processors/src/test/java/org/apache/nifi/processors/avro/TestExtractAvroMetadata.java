@@ -234,7 +234,7 @@ public class TestExtractAvroMetadata {
         runner.assertAllFlowFilesTransferred(ExtractAvroMetadata.REL_FAILURE, 1);
     }
 
-    private ByteArrayOutputStream getOutputStreamWithOneUser(Schema schema) throws IOException {
+    private ByteArrayOutputStream getOutputStreamWithOneUser(final Schema schema) throws IOException {
         final GenericRecord user = new GenericData.Record(schema);
         user.put("name", "Alyssa");
         user.put("favorite_number", 256);
@@ -243,7 +243,7 @@ public class TestExtractAvroMetadata {
         return AvroTestUtil.serializeAvroRecord(schema, datumWriter, user);
     }
 
-    private ByteArrayOutputStream getOutputStreamWithMultipleUsers(Schema schema, int numUsers) throws IOException {
+    private ByteArrayOutputStream getOutputStreamWithMultipleUsers(final Schema schema, final int numUsers) throws IOException {
         final GenericRecord[] users = new GenericRecord[numUsers];
         for (int i = 0; i < numUsers; i++) {
             final GenericRecord user = new GenericData.Record(schema);

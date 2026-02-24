@@ -59,7 +59,7 @@ public class Property {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -68,7 +68,7 @@ public class Property {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -77,7 +77,7 @@ public class Property {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -86,7 +86,7 @@ public class Property {
         return defaultValue;
     }
 
-    public void setDefaultValue(String defaultValue) {
+    public void setDefaultValue(final String defaultValue) {
         this.defaultValue = defaultValue;
     }
 
@@ -95,7 +95,7 @@ public class Property {
         return controllerServiceDefinition;
     }
 
-    public void setControllerServiceDefinition(ControllerServiceDefinition controllerServiceDefinition) {
+    public void setControllerServiceDefinition(final ControllerServiceDefinition controllerServiceDefinition) {
         this.controllerServiceDefinition = controllerServiceDefinition;
     }
 
@@ -104,7 +104,7 @@ public class Property {
         return allowableValues;
     }
 
-    public void setAllowableValues(List<AllowableValue> allowableValues) {
+    public void setAllowableValues(final List<AllowableValue> allowableValues) {
         this.allowableValues = allowableValues;
     }
 
@@ -113,7 +113,7 @@ public class Property {
         return required;
     }
 
-    public void setRequired(boolean required) {
+    public void setRequired(final boolean required) {
         this.required = required;
     }
 
@@ -122,7 +122,7 @@ public class Property {
         return sensitive;
     }
 
-    public void setSensitive(boolean sensitive) {
+    public void setSensitive(final boolean sensitive) {
         this.sensitive = sensitive;
     }
 
@@ -131,7 +131,7 @@ public class Property {
         return expressionLanguageSupported;
     }
 
-    public void setExpressionLanguageSupported(boolean expressionLanguageSupported) {
+    public void setExpressionLanguageSupported(final boolean expressionLanguageSupported) {
         this.expressionLanguageSupported = expressionLanguageSupported;
     }
 
@@ -140,7 +140,7 @@ public class Property {
         return expressionLanguageScope;
     }
 
-    public void setExpressionLanguageScope(ExpressionLanguageScope expressionLanguageScope) {
+    public void setExpressionLanguageScope(final ExpressionLanguageScope expressionLanguageScope) {
         this.expressionLanguageScope = expressionLanguageScope;
     }
 
@@ -149,7 +149,7 @@ public class Property {
         return dynamicallyModifiesClasspath;
     }
 
-    public void setDynamicallyModifiesClasspath(boolean dynamicallyModifiesClasspath) {
+    public void setDynamicallyModifiesClasspath(final boolean dynamicallyModifiesClasspath) {
         this.dynamicallyModifiesClasspath = dynamicallyModifiesClasspath;
     }
 
@@ -158,7 +158,7 @@ public class Property {
         return dynamic;
     }
 
-    public void setDynamic(boolean dynamic) {
+    public void setDynamic(final boolean dynamic) {
         this.dynamic = dynamic;
     }
 
@@ -167,7 +167,7 @@ public class Property {
         return dependencies;
     }
 
-    public void setDependencies(List<Dependency> dependencies) {
+    public void setDependencies(final List<Dependency> dependencies) {
         this.dependencies = dependencies;
     }
 
@@ -176,7 +176,7 @@ public class Property {
         return resourceDefinition;
     }
 
-    public void setResourceDefinition(ResourceDefinition resourceDefinition) {
+    public void setResourceDefinition(final ResourceDefinition resourceDefinition) {
         this.resourceDefinition = resourceDefinition;
     }
 

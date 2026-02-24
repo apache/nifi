@@ -149,13 +149,13 @@ public class VerifyContentMAC extends AbstractProcessor {
     private String macEncoding;
 
     @OnScheduled
-    public void setUp(ProcessContext context) {
+    public void setUp(final ProcessContext context) {
         macAlgorithm = context.getProperty(MAC_ALGORITHM).getValue();
         macEncoding = context.getProperty(MAC_ENCODING).getValue();
-        String secretKeyEncoding = context.getProperty(SECRET_KEY_ENCODING).getValue();
-        String inputSecretKey = context.getProperty(SECRET_KEY).getValue();
+        final String secretKeyEncoding = context.getProperty(SECRET_KEY_ENCODING).getValue();
+        final String inputSecretKey = context.getProperty(SECRET_KEY).getValue();
 
-        byte[] secretKey = Encoding.valueOf(secretKeyEncoding).decode(inputSecretKey);
+        final byte[] secretKey = Encoding.valueOf(secretKeyEncoding).decode(inputSecretKey);
 
         secretKeySpec = new SecretKeySpec(secretKey, macAlgorithm);
     }
@@ -193,7 +193,7 @@ public class VerifyContentMAC extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("mac-algorithm", MAC_ALGORITHM.getName());
         config.renameProperty("message-authentication-code-encoding", MAC_ENCODING.getName());
         config.renameProperty("message-authentication-code", MAC.getName());
@@ -207,7 +207,7 @@ public class VerifyContentMAC extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final String secretKeyEncoding = validationContext.getProperty(SECRET_KEY_ENCODING).getValue();
@@ -215,7 +215,7 @@ public class VerifyContentMAC extends AbstractProcessor {
 
         try {
             Encoding.valueOf(secretKeyEncoding).decode(encodedSecretKey);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(SECRET_KEY.getDisplayName())
@@ -226,8 +226,8 @@ public class VerifyContentMAC extends AbstractProcessor {
         return results;
     }
 
-    private FlowFile setFlowFileAttributes(ProcessSession session, FlowFile flowFile, byte[] calculatedMac) {
-        Map<String, String> attributes = new HashMap<>();
+    private FlowFile setFlowFileAttributes(final ProcessSession session, final FlowFile flowFile, final byte[] calculatedMac) {
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(MAC_ALGORITHM_ATTRIBUTE, macAlgorithm);
         attributes.put(MAC_ENCODING_ATTRIBUTE, macEncoding);
         attributes.put(MAC_CALCULATED_ATTRIBUTE, Encoding.valueOf(macEncoding).encode(calculatedMac));
@@ -236,7 +236,7 @@ public class VerifyContentMAC extends AbstractProcessor {
 
     private Mac getInitializedMac() {
         try {
-            Mac mac = Mac.getInstance(macAlgorithm);
+            final Mac mac = Mac.getInstance(macAlgorithm);
             mac.init(secretKeySpec);
             return mac;
         } catch (final NoSuchAlgorithmException | InvalidKeyException e) {
@@ -244,10 +244,10 @@ public class VerifyContentMAC extends AbstractProcessor {
         }
     }
 
-    private byte[] getCalculatedMac(ProcessSession session, FlowFile flowFile) {
-        Mac mac = getInitializedMac();
+    private byte[] getCalculatedMac(final ProcessSession session, final FlowFile flowFile) {
+        final Mac mac = getInitializedMac();
 
-        byte[] contents = new byte[BUFFER_SIZE];
+        final byte[] contents = new byte[BUFFER_SIZE];
         int readSize;
 
         try (InputStream is = session.read(flowFile)) {
@@ -269,16 +269,16 @@ public class VerifyContentMAC extends AbstractProcessor {
         private final Function<byte[], String> encodeFunction;
         private final Function<String, byte[]> decodeFunction;
 
-        Encoding(Function<byte[], String> encodeFunction, Function<String, byte[]> decodeFunction) {
+        Encoding(final Function<byte[], String> encodeFunction, final Function<String, byte[]> decodeFunction) {
             this.decodeFunction = decodeFunction;
             this.encodeFunction = encodeFunction;
         }
 
-        public byte[] decode(String value) {
+        public byte[] decode(final String value) {
             return decodeFunction.apply(value);
         }
 
-        public String encode(byte[] value) {
+        public String encode(final byte[] value) {
             return encodeFunction.apply(value);
         }
     }

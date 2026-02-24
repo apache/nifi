@@ -57,9 +57,9 @@ class QuerySalesforceObjectTest {
 
     @BeforeEach
     void beforeEach() throws Exception {
-        QuerySalesforceObject querySalesforceObject = new QuerySalesforceObject() {
+        final QuerySalesforceObject querySalesforceObject = new QuerySalesforceObject() {
             @Override
-            SalesforceRestClient getSalesforceRestClient(SalesforceConfiguration salesforceConfiguration) {
+            SalesforceRestClient getSalesforceRestClient(final SalesforceConfiguration salesforceConfiguration) {
                 return mockSalesforceRestClient;
             }
         };
@@ -68,8 +68,8 @@ class QuerySalesforceObjectTest {
 
         testRunner.setProperty(CommonSalesforceProperties.SALESFORCE_INSTANCE_URL, "http://localhost");
 
-        String accessTokenServiceId = "access_token_service";
-        OAuth2AccessTokenProvider accessTokenService = mock(OAuth2AccessTokenProvider.class);
+        final String accessTokenServiceId = "access_token_service";
+        final OAuth2AccessTokenProvider accessTokenService = mock(OAuth2AccessTokenProvider.class);
         when(accessTokenService.getIdentifier()).thenReturn(accessTokenServiceId);
         testRunner.addControllerService(accessTokenServiceId, accessTokenService);
         testRunner.enableControllerService(accessTokenService);
@@ -79,15 +79,15 @@ class QuerySalesforceObjectTest {
     @Test
     void testDateTimeFields() throws Exception {
         // values from query_sobject.json
-        String date = "2025-12-16";
-        String dateTime = "2025-12-16T13:05:30.000+0000";
-        String time = "13:05:30.000Z";
+        final String date = "2025-12-16";
+        final String dateTime = "2025-12-16T13:05:30.000+0000";
+        final String time = "13:05:30.000Z";
 
-        String sObjectName = "TestObject";
+        final String sObjectName = "TestObject";
         testRunner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
 
-        String recordWriterServiceId = "record_writer_service";
-        RecordSetWriterFactory recordWriterService = MockCsvRecordWriter.builder()
+        final String recordWriterServiceId = "record_writer_service";
+        final RecordSetWriterFactory recordWriterService = MockCsvRecordWriter.builder()
                 .quoteValues(false)
                 .build();
         testRunner.addControllerService(recordWriterServiceId, recordWriterService);
@@ -101,23 +101,23 @@ class QuerySalesforceObjectTest {
 
         testRunner.assertTransferCount(QuerySalesforceObject.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS).getFirst();
         assertNotNull(flowFile);
 
-        String content = flowFile.getContent();
+        final String content = flowFile.getContent();
         assertNotNull(content);
 
-        String[] fields = content.split(",");
+        final String[] fields = content.split(",");
         assertEquals(4, fields.length);
 
         assertEquals(date, fields[1].trim());
 
-        String expectedDateTime = ZonedDateTime.parse(dateTime, DATE_TIME_FORMATTER)
+        final String expectedDateTime = ZonedDateTime.parse(dateTime, DATE_TIME_FORMATTER)
                 .withZoneSameInstant(ZoneId.systemDefault())
                 .format(DATE_TIME_FORMATTER);
         assertEquals(expectedDateTime, fields[2].trim());
 
-        String expectedTime = OffsetTime.parse(time, TIME_FORMATTER)
+        final String expectedTime = OffsetTime.parse(time, TIME_FORMATTER)
                 .atDate(LocalDate.EPOCH)
                 .toZonedDateTime()
                 .withZoneSameInstant(ZoneId.systemDefault())
@@ -125,7 +125,7 @@ class QuerySalesforceObjectTest {
         assertEquals(expectedTime, fields[3].trim());
     }
 
-    private InputStream getResourceAsStream(String resourceName) {
+    private InputStream getResourceAsStream(final String resourceName) {
         return getClass().getClassLoader().getResourceAsStream(resourceName);
     }
 }

@@ -192,7 +192,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
     }
 
     @Override
-    public WriteResult sendData(final RecordSet recordSet, Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
+    public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         final Map<String, String> writeAttributes = new LinkedHashMap<>(attributes);
         final String partitionKey = context.getProperty(PARTITION_KEY).evaluateAttributeExpressions(attributes).getValue();
         final CreateBatchOptions createBatchOptions = new CreateBatchOptions();

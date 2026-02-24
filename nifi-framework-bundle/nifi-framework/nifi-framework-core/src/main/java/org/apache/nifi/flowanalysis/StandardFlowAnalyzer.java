@@ -81,17 +81,17 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     }
 
     @Override
-    public void setFlowAnalysisRequired(boolean flowAnalysisRequired) {
+    public void setFlowAnalysisRequired(final boolean flowAnalysisRequired) {
         this.flowAnalysisRequired = flowAnalysisRequired;
     }
 
     @Override
-    public void analyzeProcessor(ProcessorNode processorNode) {
+    public void analyzeProcessor(final ProcessorNode processorNode) {
         logger.debug("Running analysis on {}", processorNode);
 
         final NiFiRegistryFlowMapper mapper = createMapper();
 
-        VersionedProcessor versionedProcessor = mapper.mapProcessor(
+        final VersionedProcessor versionedProcessor = mapper.mapProcessor(
                 processorNode,
                 controllerServiceProvider,
                 Collections.emptySet(),
@@ -102,12 +102,12 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     }
 
     @Override
-    public void analyzeControllerService(ControllerServiceNode controllerServiceNode) {
+    public void analyzeControllerService(final ControllerServiceNode controllerServiceNode) {
         logger.debug("Running analysis on {}", controllerServiceNode);
 
         final NiFiRegistryFlowMapper mapper = createMapper();
 
-        VersionedControllerService versionedControllerService = mapper.mapControllerService(
+        final VersionedControllerService versionedControllerService = mapper.mapControllerService(
                 controllerServiceNode,
                 controllerServiceProvider,
                 Collections.emptySet(),
@@ -117,21 +117,21 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         analyzeComponent(versionedControllerService);
     }
 
-    private void analyzeComponent(VersionedComponent component) {
-        long start = System.currentTimeMillis();
+    private void analyzeComponent(final VersionedComponent component) {
+        final long start = System.currentTimeMillis();
 
-        String componentId = component.getIdentifier();
-        ComponentType componentType = component.getComponentType();
+        final String componentId = component.getIdentifier();
+        final ComponentType componentType = component.getComponentType();
 
-        Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
+        final Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
 
-        Set<RuleViolation> violations = flowAnalysisRules.stream()
+        final Set<RuleViolation> violations = flowAnalysisRules.stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
                 .flatMap(flowAnalysisRuleNode -> {
-                    String ruleId = flowAnalysisRuleNode.getIdentifier();
+                    final String ruleId = flowAnalysisRuleNode.getIdentifier();
 
                     try {
-                        Collection<ComponentAnalysisResult> analysisResults = flowAnalysisRuleNode
+                        final Collection<ComponentAnalysisResult> analysisResults = flowAnalysisRuleNode
                                 .getFlowAnalysisRule()
                                 .analyzeComponent(component, flowAnalysisRuleNode.getFlowAnalysisRuleContext());
 
@@ -148,7 +148,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
                                         analysisResult.getMessage(),
                                         analysisResult.getExplanation()
                                 ));
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         logger.error("FlowAnalysis error while running '{}' against '{}'", flowAnalysisRuleNode.getName(), component, e);
                         return Stream.empty();
                     }
@@ -157,61 +157,61 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
 
         ruleViolationsManager.upsertComponentViolations(componentId, violations);
 
-        long end = System.currentTimeMillis();
-        long durationMs = end - start;
+        final long end = System.currentTimeMillis();
+        final long durationMs = end - start;
 
         logger.trace("Flow Analysis of component '{}' took {} ms", componentId, durationMs);
     }
 
     @Override
-    public void analyzeProcessGroup(VersionedProcessGroup processGroup) {
+    public void analyzeProcessGroup(final VersionedProcessGroup processGroup) {
         logger.debug("Running analysis on process group {}.", processGroup.getIdentifier());
 
-        long start = System.currentTimeMillis();
+        final long start = System.currentTimeMillis();
 
-        Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
+        final Set<FlowAnalysisRuleNode> flowAnalysisRules = flowAnalysisRuleProvider.getAllFlowAnalysisRules();
 
-        Collection<RuleViolation> groupViolations = new HashSet<>();
-        Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations = new HashMap<>();
+        final Collection<RuleViolation> groupViolations = new HashSet<>();
+        final Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations = new HashMap<>();
 
         analyzeProcessGroup(processGroup, flowAnalysisRules, groupViolations, componentToRuleViolations);
 
         ruleViolationsManager.upsertGroupViolations(processGroup, groupViolations, componentToRuleViolations);
 
-        long end = System.currentTimeMillis();
-        long durationMs = end - start;
+        final long end = System.currentTimeMillis();
+        final long durationMs = end - start;
 
         logger.debug("Flow Analysis of process group '{}' took {} ms", processGroup.getIdentifier(), durationMs);
     }
 
     private void analyzeProcessGroup(
-            VersionedProcessGroup processGroup,
-            Set<FlowAnalysisRuleNode> flowAnalysisRules,
-            Collection<RuleViolation> groupViolations,
-            Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
+            final VersionedProcessGroup processGroup,
+            final Set<FlowAnalysisRuleNode> flowAnalysisRules,
+            final Collection<RuleViolation> groupViolations,
+            final Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
     ) {
         if (flowAnalysisRules.isEmpty()) {
             return;
         }
-        String groupId = processGroup.getIdentifier();
-        ComponentType processGroupComponentType = processGroup.getComponentType();
+        final String groupId = processGroup.getIdentifier();
+        final ComponentType processGroupComponentType = processGroup.getComponentType();
 
         flowAnalysisRules.stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
                 .forEach(flowAnalysisRuleNode -> {
-                    String ruleId = flowAnalysisRuleNode.getIdentifier();
+                    final String ruleId = flowAnalysisRuleNode.getIdentifier();
 
                     try {
-                        Collection<GroupAnalysisResult> analysisResults = flowAnalysisRuleNode.getFlowAnalysisRule().analyzeProcessGroup(
+                        final Collection<GroupAnalysisResult> analysisResults = flowAnalysisRuleNode.getFlowAnalysisRule().analyzeProcessGroup(
                                 processGroup,
                                 flowAnalysisRuleNode.getFlowAnalysisRuleContext()
                         );
 
                         analysisResults.forEach(analysisResult -> {
-                            Optional<VersionedComponent> componentOptional = analysisResult.getComponent();
+                            final Optional<VersionedComponent> componentOptional = analysisResult.getComponent();
 
                             if (componentOptional.isPresent()) {
-                                VersionedComponent component = componentOptional.get();
+                                final VersionedComponent component = componentOptional.get();
 
                                 componentToRuleViolations.computeIfAbsent(component, __ -> new HashSet<>())
                                         .add(new RuleViolation(
@@ -242,7 +242,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
                                 ));
                             }
                         });
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         logger.error("FlowAnalysis error while running '{}' against group '{}'", flowAnalysisRuleNode.getName(), groupId, e);
                     }
                 });
@@ -253,11 +253,11 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
         processGroup.getProcessGroups().forEach(childProcessGroup -> analyzeProcessGroup(childProcessGroup, flowAnalysisRules, groupViolations, componentToRuleViolations));
     }
 
-    private String getDisplayName(VersionedComponent component) {
+    private String getDisplayName(final VersionedComponent component) {
         final String displayName;
 
         if (component instanceof VersionedConnection) {
-            VersionedConnection connection = (VersionedConnection) component;
+            final VersionedConnection connection = (VersionedConnection) component;
             displayName = connection.getSource().getName() + " > " + connection.getSelectedRelationships().stream().collect(Collectors.joining(","));
         } else {
             displayName = component.getName();
@@ -267,7 +267,7 @@ public class StandardFlowAnalyzer implements FlowAnalyzer {
     }
 
     private NiFiRegistryFlowMapper createMapper() {
-        NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
+        final NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(extensionManager);
 
         return mapper;
     }

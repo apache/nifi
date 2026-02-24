@@ -53,12 +53,12 @@ public class TestRedisStateProvider {
         Mockito.when(validationContext.getProperty(RedisUtils.DATABASE)).thenReturn(new MockPropertyValue("0"));
     }
 
-    private void enableTls(boolean enable) {
+    private void enableTls(final boolean enable) {
         Mockito.when(validationContext.getProperty(RedisStateProvider.ENABLE_TLS)).thenReturn(new MockPropertyValue(String.valueOf(enable)));
         Mockito.when(context.getProperty(RedisStateProvider.ENABLE_TLS)).thenReturn(new MockPropertyValue(String.valueOf(enable)));
 
         if (enable) {
-            SSLContext sslContext = Mockito.mock(SSLContext.class);
+            final SSLContext sslContext = Mockito.mock(SSLContext.class);
             Mockito.when(context.getSSLContext()).thenReturn(sslContext);
         }
     }
@@ -69,7 +69,7 @@ public class TestRedisStateProvider {
 
         redisStateProvider.initialize(context);
 
-        Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
+        final Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
         assertTrue(results.isEmpty());
     }
 
@@ -79,7 +79,7 @@ public class TestRedisStateProvider {
 
         redisStateProvider.initialize(context);
 
-        Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
+        final Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
         assertTrue(results.isEmpty());
     }
 
@@ -91,7 +91,7 @@ public class TestRedisStateProvider {
 
         redisStateProvider.initialize(context);
 
-        Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
+        final Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
         assertEquals(1, results.size());
     }
 }

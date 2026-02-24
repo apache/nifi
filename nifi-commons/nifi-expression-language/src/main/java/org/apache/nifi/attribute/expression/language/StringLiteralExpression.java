@@ -27,7 +27,7 @@ public class StringLiteralExpression implements Expression {
     }
 
     @Override
-    public String evaluate(final EvaluationContext evaluationContext, AttributeValueDecorator decorator) {
+    public String evaluate(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) {
         return value;
     }
 

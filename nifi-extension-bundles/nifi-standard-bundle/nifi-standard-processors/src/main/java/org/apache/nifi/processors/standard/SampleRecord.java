@@ -211,8 +211,8 @@ public class SampleRecord extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -259,7 +259,7 @@ public class SampleRecord extends AbstractProcessor {
                 samplingStrategy.sample(record);
             }
 
-            WriteResult writeResult = samplingStrategy.finish();
+            final WriteResult writeResult = samplingStrategy.finish();
             try {
                 recordSetWriter.flush();
                 recordSetWriter.close();
@@ -270,7 +270,7 @@ public class SampleRecord extends AbstractProcessor {
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
             attributes.putAll(writeResult.getAttributes());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Error during transmission of records, routing to failure", e);
             session.transfer(flowFile, REL_FAILURE);
             session.remove(sampledFlowFile);
@@ -282,7 +282,7 @@ public class SampleRecord extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());
         config.renameProperty("sample-record-sampling-strategy", SAMPLING_STRATEGY.getName());
@@ -306,7 +306,7 @@ public class SampleRecord extends AbstractProcessor {
         final int interval;
         int currentCount = 0;
 
-        IntervalSamplingStrategy(RecordSetWriter writer, int interval) {
+        IntervalSamplingStrategy(final RecordSetWriter writer, final int interval) {
             this.writer = writer;
             this.interval = interval;
         }
@@ -318,7 +318,7 @@ public class SampleRecord extends AbstractProcessor {
         }
 
         @Override
-        public void sample(Record record) throws IOException {
+        public void sample(final Record record) throws IOException {
             if (++currentCount >= interval && interval > 0) {
                 writer.write(record);
                 currentCount = 0;
@@ -336,7 +336,7 @@ public class SampleRecord extends AbstractProcessor {
         final RecordSetWriter writer;
         final String rangeExpression;
         int currentCount = 1;
-        final List<Range<Integer>> ranges = new ArrayList<>();
+        List<Range<Integer>> ranges = new ArrayList<>();
 
         RangeSamplingStrategy(final RecordSetWriter writer, final String rangeExpression) {
             this.writer = writer;
@@ -371,7 +371,7 @@ public class SampleRecord extends AbstractProcessor {
                 endRange = Integer.MAX_VALUE;
                 ranges.add(Range.of(startRange, endRange));
             } else {
-                Matcher m = INTERVAL_PATTERN.matcher(rangeExpression);
+                final Matcher m = INTERVAL_PATTERN.matcher(rangeExpression);
                 while (m.find()) {
                     // groupCount will be 3, need to check nulls to see if it's a range or single number. Groups that are all null are ignored
                     if (m.group(1) == null && m.group(2) == null && m.group(3) == null) {
@@ -407,9 +407,9 @@ public class SampleRecord extends AbstractProcessor {
         }
 
         @Override
-        public void sample(Record record) throws IOException {
+        public void sample(final Record record) throws IOException {
             // Check the current record number against the specified ranges
-            for (Range<Integer> range : ranges) {
+            for (final Range<Integer> range : ranges) {
                 if (range.contains(currentCount)) {
                     writer.write(record);
                     break;
@@ -429,7 +429,7 @@ public class SampleRecord extends AbstractProcessor {
         final int probabilityValue;
         final Random randomNumberGenerator;
 
-        ProbabilisticSamplingStrategy(RecordSetWriter writer, int probabilityValue, Long randomSeed) {
+        ProbabilisticSamplingStrategy(final RecordSetWriter writer, final int probabilityValue, final Long randomSeed) {
             this.writer = writer;
             this.probabilityValue = probabilityValue;
             this.randomNumberGenerator = randomSeed == null ? new Random() : new Random(randomSeed);
@@ -441,7 +441,7 @@ public class SampleRecord extends AbstractProcessor {
         }
 
         @Override
-        public void sample(Record record) throws IOException {
+        public void sample(final Record record) throws IOException {
             final int random = randomNumberGenerator.nextInt(100);
             if (random < probabilityValue) {
                 writer.write(record);
@@ -461,7 +461,7 @@ public class SampleRecord extends AbstractProcessor {
         int currentCount = 0;
         final Random randomNumberGenerator;
 
-        ReservoirSamplingStrategy(RecordSetWriter writer, int reservoirSize, Long randomSeed) {
+        ReservoirSamplingStrategy(final RecordSetWriter writer, final int reservoirSize, final Long randomSeed) {
             this.writer = writer;
             this.reservoirSize = reservoirSize;
             this.reservoir = new ArrayList<>(reservoirSize);
@@ -475,12 +475,12 @@ public class SampleRecord extends AbstractProcessor {
         }
 
         @Override
-        public void sample(Record record) {
+        public void sample(final Record record) {
             if (currentCount < reservoirSize) {
                 reservoir.add(record);
             } else {
                 // Use Algorithm R as we can't randomly access records (otherwise would use optimal Algorithm L).
-                int j = randomNumberGenerator.nextInt(currentCount + 1);
+                final int j = randomNumberGenerator.nextInt(currentCount + 1);
                 if (j < reservoirSize) {
                     reservoir.set(j, record);
                 }
@@ -490,7 +490,7 @@ public class SampleRecord extends AbstractProcessor {
 
         @Override
         public WriteResult finish() throws IOException {
-            for (Record record : reservoir) {
+            for (final Record record : reservoir) {
                 writer.write(record);
             }
             return writer.finishRecordSet();

@@ -33,13 +33,13 @@ public class NiFiAnonymousAuthenticationProvider extends NiFiAuthenticationProvi
 
     final NiFiProperties properties;
 
-    public NiFiAnonymousAuthenticationProvider(NiFiProperties nifiProperties, Authorizer authorizer) {
+    public NiFiAnonymousAuthenticationProvider(final NiFiProperties nifiProperties, final Authorizer authorizer) {
         super(nifiProperties, authorizer);
         this.properties = nifiProperties;
     }
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
         final NiFiAnonymousAuthenticationRequestToken request = (NiFiAnonymousAuthenticationRequestToken) authentication;
 
         if (request.isSecureRequest() && !properties.isAnonymousAuthenticationAllowed()) {
@@ -50,7 +50,7 @@ public class NiFiAnonymousAuthenticationProvider extends NiFiAuthenticationProvi
     }
 
     @Override
-    public boolean supports(Class<?> authentication) {
+    public boolean supports(final Class<?> authentication) {
         return NiFiAnonymousAuthenticationRequestToken.class.isAssignableFrom(authentication);
     }
 }

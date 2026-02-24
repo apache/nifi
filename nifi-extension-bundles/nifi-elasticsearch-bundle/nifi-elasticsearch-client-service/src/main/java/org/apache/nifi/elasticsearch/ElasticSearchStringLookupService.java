@@ -102,7 +102,7 @@ public class ElasticSearchStringLookupService extends AbstractControllerService 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("el-rest-client-service", CLIENT_SERVICE.getName());
         config.renameProperty("el-lookup-index", INDEX.getName());
         config.renameProperty("el-lookup-type", TYPE.getName());

@@ -73,7 +73,7 @@ public class GCSFileResourceServiceTest {
     }
 
     @Test
-    void testValidBlob(@Mock Blob blob) throws InitializationException, IOException {
+    void testValidBlob(final @Mock Blob blob) throws InitializationException, IOException {
         when(blob.getBlobId()).thenReturn(BLOB_ID);
         when(blob.getSize()).thenReturn((long) TEST_DATA.length());
         when(storage.get(BLOB_ID)).thenReturn(blob);
@@ -87,7 +87,7 @@ public class GCSFileResourceServiceTest {
     }
 
     @Test
-    void testValidBlobUsingEL(@Mock Blob blob) throws IOException, InitializationException {
+    void testValidBlobUsingEL(final @Mock Blob blob) throws IOException, InitializationException {
         when(blob.getBlobId()).thenReturn(BLOB_ID);
         when(blob.getSize()).thenReturn((long) TEST_DATA.length());
         when(storage.get(BLOB_ID)).thenReturn(blob);
@@ -116,7 +116,7 @@ public class GCSFileResourceServiceTest {
         assertThrows(ProcessException.class, () -> service.getFileResource(attributes));
     }
 
-    private void setUpService(String key, String bucket) throws InitializationException {
+    private void setUpService(final String key, final String bucket) throws InitializationException {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsService);
@@ -129,11 +129,11 @@ public class GCSFileResourceServiceTest {
         runner.enableControllerService(service);
     }
 
-    private Map<String, String> setUpServiceWithEL(String key, String bucket) throws InitializationException {
+    private Map<String, String> setUpServiceWithEL(final String key, final String bucket) throws InitializationException {
         final String keyAttribute = "file.key";
         final String bucketAttribute = "file.bucket";
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(keyAttribute, key);
         attributes.put(bucketAttribute, bucket);
 
@@ -142,7 +142,7 @@ public class GCSFileResourceServiceTest {
         return attributes;
     }
 
-    private void assertFileResource(FileResource fileResource) throws  IOException {
+    private void assertFileResource(final FileResource fileResource) throws  IOException {
         assertNotNull(fileResource);
         assertEquals(TEST_DATA.length(), fileResource.getSize());
         try (final InputStream inputStream = fileResource.getInputStream()) {
@@ -154,12 +154,12 @@ public class GCSFileResourceServiceTest {
 
         private final Storage storage;
 
-        public TestGCSFileResourceService(Storage storage) {
+        public TestGCSFileResourceService(final Storage storage) {
             this.storage = storage;
         }
 
         @Override
-        protected Storage getCloudService(GoogleCredentials credentials) {
+        protected Storage getCloudService(final GoogleCredentials credentials) {
             return storage;
         }
     }

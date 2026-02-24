@@ -97,7 +97,7 @@ public class SambaTestContainers {
         final String dirMode = accessMode == AccessMode.READ_ONLY ? "755" : "777";
         try {
             sambaContainer.execInContainer("bash", "-c", "mkdir -m " + dirMode + " -p " + getContainerPath(path));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException("Failed to create directory", e);
         }
     }
@@ -114,7 +114,7 @@ public class SambaTestContainers {
     protected boolean fileExists(final String path) {
         try {
             return sambaContainer.execInContainer("bash", "-c", "cat " + getContainerPath(path) + " > /dev/null").getExitCode() == 0;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException("Failed to check file", e);
         }
     }

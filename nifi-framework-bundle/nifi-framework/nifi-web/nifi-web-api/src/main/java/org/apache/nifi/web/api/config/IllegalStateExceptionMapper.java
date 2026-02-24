@@ -31,7 +31,7 @@ public class IllegalStateExceptionMapper implements ExceptionMapper<IllegalState
     private static final Logger logger = LoggerFactory.getLogger(IllegalStateExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalStateException exception) {
+    public Response toResponse(final IllegalStateException exception) {
         // log the error
         logger.warn("{}. Returning {} response.", exception, Response.Status.CONFLICT, exception);
         return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();

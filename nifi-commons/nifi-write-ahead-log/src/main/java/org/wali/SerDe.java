@@ -36,7 +36,7 @@ public interface SerDe<T> {
      * @param out the DataOutputStream to write to
      * @throws IOException if unable to write to the OutputStream
      */
-    default void writeHeader(DataOutputStream out) throws IOException {
+    default void writeHeader(final DataOutputStream out) throws IOException {
     }
 
     /**
@@ -70,7 +70,7 @@ public interface SerDe<T> {
      * @param in the InputStream to read from
      * @throws IOException if unable to read from the InputStream
      */
-    default void readHeader(DataInputStream in) throws IOException {
+    default void readHeader(final DataInputStream in) throws IOException {
     }
 
     /**
@@ -162,7 +162,7 @@ public interface SerDe<T> {
      * @throws IOException if unable to write the update
      * @throws UnsupportedOperationException if this SerDe does not support this operation
      */
-    default void writeExternalFileReference(File externalFile, DataOutputStream out) throws IOException {
+    default void writeExternalFileReference(final File externalFile, final DataOutputStream out) throws IOException {
         throw new UnsupportedOperationException();
     }
 

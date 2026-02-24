@@ -48,7 +48,7 @@ public class RemoveVariable extends AbstractCommand<VoidResult> {
         try {
             getContext().getSession().remove(args[0]);
             return VoidResult.getInstance();
-        } catch (SessionException se) {
+        } catch (final SessionException se) {
             throw new CommandException(se.getMessage(), se);
         }
     }

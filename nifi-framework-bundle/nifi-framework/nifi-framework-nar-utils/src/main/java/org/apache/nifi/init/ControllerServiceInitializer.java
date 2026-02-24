@@ -38,9 +38,9 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
     }
 
     @Override
-    public void initialize(ConfigurableComponent component) throws InitializationException {
-        ControllerService controllerService = (ControllerService) component;
-        ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
+    public void initialize(final ConfigurableComponent component) throws InitializationException {
+        final ControllerService controllerService = (ControllerService) component;
+        final ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             controllerService.initialize(context);
         }

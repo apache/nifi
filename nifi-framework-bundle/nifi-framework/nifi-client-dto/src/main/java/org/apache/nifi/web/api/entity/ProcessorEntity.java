@@ -45,7 +45,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
     }
 
     @Override
-    public void setComponent(ProcessorDTO component) {
+    public void setComponent(final ProcessorDTO component) {
         this.component = component;
     }
 
@@ -58,7 +58,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
         return status;
     }
 
-    public void setStatus(ProcessorStatusDTO status) {
+    public void setStatus(final ProcessorStatusDTO status) {
         this.status = status;
     }
 
@@ -71,7 +71,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
         return inputRequirement;
     }
 
-    public void setInputRequirement(String inputRequirement) {
+    public void setInputRequirement(final String inputRequirement) {
         this.inputRequirement = inputRequirement;
     }
 
@@ -84,7 +84,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
         return physicalState;
     }
 
-    public void setPhysicalState(String physicalState) {
+    public void setPhysicalState(final String physicalState) {
         this.physicalState = physicalState;
     }
 
@@ -99,7 +99,7 @@ public class ProcessorEntity extends ComponentEntity implements Permissible<Proc
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO operatePermissions) {
+    public void setOperatePermissions(final PermissionsDTO operatePermissions) {
         this.operatePermissions = operatePermissions;
     }
 }

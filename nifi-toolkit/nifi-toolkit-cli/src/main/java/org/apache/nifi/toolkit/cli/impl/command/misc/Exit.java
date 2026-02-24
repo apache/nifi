@@ -48,7 +48,7 @@ public class Exit implements Command<VoidResult> {
     }
 
     @Override
-    public void printUsage(String errorMessage) {
+    public void printUsage(final String errorMessage) {
 
     }
 

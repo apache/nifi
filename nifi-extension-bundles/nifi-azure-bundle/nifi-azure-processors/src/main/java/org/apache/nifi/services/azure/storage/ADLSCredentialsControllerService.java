@@ -101,7 +101,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.OLD_CREDENTIALS_TYPE_DESCRIPTOR_NAME, AzureStorageUtils.CREDENTIALS_TYPE.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_KEY.getName());
         config.renameProperty(AzureStorageUtils.STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME, ACCOUNT_NAME.getName());
@@ -136,13 +136,13 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         this.context = context;
     }
 
     @Override
-    public ADLSCredentialsDetails getCredentialsDetails(Map<String, String> attributes) {
-        ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
+    public ADLSCredentialsDetails getCredentialsDetails(final Map<String, String> attributes) {
+        final ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
         setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
         setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
@@ -167,9 +167,9 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     }
 
     private <T> void setValue(
-            ADLSCredentialsDetails.Builder credentialsBuilder,
-            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
-            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
+            final ADLSCredentialsDetails.Builder credentialsBuilder,
+            final PropertyDescriptor propertyDescriptor, final Function<PropertyValue, T> getPropertyValue,
+            final BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, final Map<String, String> attributes
     ) {
         PropertyValue property = context.getProperty(propertyDescriptor);
 
@@ -181,7 +181,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
                     property = property.evaluateAttributeExpressions();
                 }
             }
-            T value = getPropertyValue.apply(property);
+            final T value = getPropertyValue.apply(property);
             setBuilderValue.accept(credentialsBuilder, value);
         }
     }

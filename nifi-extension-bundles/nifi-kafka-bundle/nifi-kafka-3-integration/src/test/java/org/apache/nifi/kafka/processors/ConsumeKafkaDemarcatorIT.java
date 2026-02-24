@@ -81,7 +81,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
 
         final Collection<ProducerRecord<String, String>> records = new ArrayList<>();
         final String[] values = RECORD_VALUE.split(",");
-        for (String value : values) {
+        for (final String value : values) {
             records.add(new ProducerRecord<>(topic, value));
         }
         produce(topic, records);
@@ -127,7 +127,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         final Collection<ProducerRecord<String, String>> records = new ArrayList<>();
         final String[] values = RECORD_VALUE.split(",");
         boolean key = false;
-        for (String value : values) {
+        for (final String value : values) {
             final List<Header> headers = new ArrayList<>();
             records.add(new ProducerRecord<>(topic, null, Boolean.toString(key), value, headers));
             key = !key;
@@ -143,7 +143,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
         assertEquals(2, flowFiles.size());
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
             if (Boolean.TRUE.toString().equals(flowFile.getAttribute(KafkaFlowFileAttribute.KAFKA_KEY))) {
                 assertEquals("recordB|recordD|recordF", flowFile.getContent());
                 flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_OFFSET, Long.toString(1));
@@ -182,7 +182,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
         final Collection<ProducerRecord<String, String>> records = new ArrayList<>();
         final String[] values = RECORD_VALUE.split(",");
         int i = 0;
-        for (String value : values) {
+        for (final String value : values) {
             final String string = String.format("A%d", (++i % expectedGroupCount));
             final Header header = new RecordHeader(string, string.getBytes(StandardCharsets.UTF_8));
             records.add(new ProducerRecord<>(topic, null, (String) null, value, Collections.singletonList(header)));
@@ -198,7 +198,7 @@ class ConsumeKafkaDemarcatorIT extends AbstractConsumeKafkaIT {
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
         assertEquals(expectedGroupCount, flowFiles.size());
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
 
             if ("A1".equals(flowFile.getAttribute("A1"))) {
                 assertEquals("recordA|recordD", flowFile.getContent());

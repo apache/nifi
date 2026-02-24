@@ -43,7 +43,7 @@ public class ClearBulletinsForGroupRequestEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -59,7 +59,7 @@ public class ClearBulletinsForGroupRequestEntity extends Entity {
         return fromTimestamp;
     }
 
-    public void setFromTimestamp(Instant fromTimestamp) {
+    public void setFromTimestamp(final Instant fromTimestamp) {
         this.fromTimestamp = fromTimestamp;
     }
 
@@ -72,7 +72,7 @@ public class ClearBulletinsForGroupRequestEntity extends Entity {
         return components;
     }
 
-    public void setComponents(Set<String> components) {
+    public void setComponents(final Set<String> components) {
         this.components = components;
     }
 }

@@ -38,7 +38,7 @@ public class SupportedMimeTypesDTO {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -50,7 +50,7 @@ public class SupportedMimeTypesDTO {
         return mimeTypes;
     }
 
-    public void setMimeTypes(List<String> mimeTypes) {
+    public void setMimeTypes(final List<String> mimeTypes) {
         this.mimeTypes = mimeTypes;
     }
 }

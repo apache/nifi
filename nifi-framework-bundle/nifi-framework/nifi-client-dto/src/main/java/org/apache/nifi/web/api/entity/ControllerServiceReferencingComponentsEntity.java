@@ -36,7 +36,7 @@ public class ControllerServiceReferencingComponentsEntity extends Entity {
         return controllerServiceReferencingComponents;
     }
 
-    public void setControllerServiceReferencingComponents(Set<ControllerServiceReferencingComponentEntity> controllerServiceReferencingComponents) {
+    public void setControllerServiceReferencingComponents(final Set<ControllerServiceReferencingComponentEntity> controllerServiceReferencingComponents) {
         this.controllerServiceReferencingComponents = controllerServiceReferencingComponents;
     }
 

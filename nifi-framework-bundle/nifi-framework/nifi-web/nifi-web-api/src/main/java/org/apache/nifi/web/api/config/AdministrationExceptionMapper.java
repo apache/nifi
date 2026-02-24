@@ -32,7 +32,7 @@ public class AdministrationExceptionMapper implements ExceptionMapper<Administra
     private static final Logger logger = LoggerFactory.getLogger(AdministrationExceptionMapper.class);
 
     @Override
-    public Response toResponse(AdministrationException exception) {
+    public Response toResponse(final AdministrationException exception) {
         // log the error
         logger.error("{}. Returning {} response.", exception, Response.Status.INTERNAL_SERVER_ERROR, exception);
 

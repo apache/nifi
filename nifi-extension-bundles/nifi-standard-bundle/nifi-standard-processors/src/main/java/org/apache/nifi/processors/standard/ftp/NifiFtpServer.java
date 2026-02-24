@@ -55,9 +55,10 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
 
     private final FtpServer server;
 
-    private NifiFtpServer(Map<String, Command> commandMap, FileSystemFactory fileSystemFactory, ConnectionConfig connectionConfig, Listener listener, User user) throws ProcessException {
+    private NifiFtpServer(final Map<String, Command> commandMap, final FileSystemFactory fileSystemFactory,
+            final ConnectionConfig connectionConfig, final Listener listener, final User user) throws ProcessException {
         try {
-            FtpServerFactory serverFactory = new FtpServerFactory();
+            final FtpServerFactory serverFactory = new FtpServerFactory();
 
             serverFactory.setFileSystem(fileSystemFactory);
             serverFactory.setCommandFactory(createCommandFactory(commandMap));
@@ -66,13 +67,13 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             serverFactory.getUserManager().save(user);
 
             server = serverFactory.createServer();
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             throw new ProcessException("FTP server could not be started.", exception);
         }
     }
 
-    private CommandFactory createCommandFactory(Map<String, Command> commandMap) {
-        CommandFactoryFactory commandFactoryFactory = new CommandFactoryFactory();
+    private CommandFactory createCommandFactory(final Map<String, Command> commandMap) {
+        final CommandFactoryFactory commandFactoryFactory = new CommandFactoryFactory();
         commandFactoryFactory.setUseDefaultCommands(false);
         commandFactoryFactory.setCommandMap(commandMap);
         return commandFactoryFactory.createCommandFactory();
@@ -82,7 +83,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
     public void start() throws ProcessException {
         try {
             server.start();
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             throw new ProcessException("FTP server could not be started.", exception);
         }
     }
@@ -109,97 +110,97 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         private String password;
         private SSLContextProvider sslContextProvider;
 
-        public Builder sessionFactory(AtomicReference<ProcessSessionFactory> sessionFactory) {
+        public Builder sessionFactory(final AtomicReference<ProcessSessionFactory> sessionFactory) {
             this.sessionFactory = sessionFactory;
             return this;
         }
 
-        public Builder sessionFactorySetSignal(CountDownLatch sessionFactorySetSignal) {
+        public Builder sessionFactorySetSignal(final CountDownLatch sessionFactorySetSignal) {
             Objects.requireNonNull(sessionFactorySetSignal);
 
             this.sessionFactorySetSignal = sessionFactorySetSignal;
             return this;
         }
 
-        public Builder relationshipSuccess(Relationship relationship) {
+        public Builder relationshipSuccess(final Relationship relationship) {
             Objects.requireNonNull(relationship);
 
             this.relationshipSuccess = relationship;
             return this;
         }
 
-        public Builder bindAddress(String bindAddress) {
+        public Builder bindAddress(final String bindAddress) {
             this.bindAddress = bindAddress;
             return this;
         }
 
-        public Builder port(int port) {
+        public Builder port(final int port) {
             this.port = port;
             return this;
         }
 
-        public Builder username(String username) {
+        public Builder username(final String username) {
             this.username = username;
             return this;
         }
 
-        public Builder password(String password) {
+        public Builder password(final String password) {
             this.password = password;
             return this;
         }
 
-        public Builder sslContextProvider(SSLContextProvider sslContextProvider) {
+        public Builder sslContextProvider(final SSLContextProvider sslContextProvider) {
             this.sslContextProvider = sslContextProvider;
             return this;
         }
 
         public NifiFtpServer build() throws ProcessException {
             try {
-                boolean anonymousLoginEnabled = (username == null);
+                final boolean anonymousLoginEnabled = (username == null);
 
-                FileSystemFactory fileSystemFactory = new VirtualFileSystemFactory();
-                CommandMapFactory commandMapFactory = new CommandMapFactory(sessionFactory, sessionFactorySetSignal, relationshipSuccess);
-                Map<String, Command> commandMap = commandMapFactory.createCommandMap();
-                ConnectionConfig connectionConfig = createConnectionConfig(anonymousLoginEnabled);
-                Listener listener = createListener(bindAddress, port, sslContextProvider);
-                User user = createUser(username, password, HOME_DIRECTORY);
+                final FileSystemFactory fileSystemFactory = new VirtualFileSystemFactory();
+                final CommandMapFactory commandMapFactory = new CommandMapFactory(sessionFactory, sessionFactorySetSignal, relationshipSuccess);
+                final Map<String, Command> commandMap = commandMapFactory.createCommandMap();
+                final ConnectionConfig connectionConfig = createConnectionConfig(anonymousLoginEnabled);
+                final Listener listener = createListener(bindAddress, port, sslContextProvider);
+                final User user = createUser(username, password, HOME_DIRECTORY);
 
                 return new NifiFtpServer(commandMap, fileSystemFactory, connectionConfig, listener, user);
-            } catch (Exception exception) {
+            } catch (final Exception exception) {
                 throw new ProcessException("FTP server could not be started.", exception);
             }
         }
 
-        private ConnectionConfig createConnectionConfig(boolean anonymousLoginEnabled) {
-            ConnectionConfigFactory connectionConfigFactory = new ConnectionConfigFactory();
+        private ConnectionConfig createConnectionConfig(final boolean anonymousLoginEnabled) {
+            final ConnectionConfigFactory connectionConfigFactory = new ConnectionConfigFactory();
             connectionConfigFactory.setAnonymousLoginEnabled(anonymousLoginEnabled);
             return connectionConfigFactory.createConnectionConfig();
         }
 
-        private Listener createListener(String bindAddress, int port, SSLContextProvider sslContextProvider) throws FtpServerConfigurationException {
-            ListenerFactory listenerFactory = new ListenerFactory();
+        private Listener createListener(final String bindAddress, final int port, final SSLContextProvider sslContextProvider) throws FtpServerConfigurationException {
+            final ListenerFactory listenerFactory = new ListenerFactory();
             listenerFactory.setServerAddress(bindAddress);
             listenerFactory.setPort(port);
             if (sslContextProvider != null) {
                 final SSLContext sslContext = sslContextProvider.createContext();
-                SslConfiguration sslConfiguration = new StandardSslConfiguration(sslContext);
+                final SslConfiguration sslConfiguration = new StandardSslConfiguration(sslContext);
 
                 // Set implicit security for the control socket
                 listenerFactory.setSslConfiguration(sslConfiguration);
                 listenerFactory.setImplicitSsl(true);
 
                 // Set implicit security for the data connection
-                DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
+                final DataConnectionConfigurationFactory dataConnectionConfigurationFactory = new DataConnectionConfigurationFactory();
                 dataConnectionConfigurationFactory.setImplicitSsl(true);
                 dataConnectionConfigurationFactory.setSslConfiguration(sslConfiguration);
-                DataConnectionConfiguration dataConnectionConfiguration = dataConnectionConfigurationFactory.createDataConnectionConfiguration();
+                final DataConnectionConfiguration dataConnectionConfiguration = dataConnectionConfigurationFactory.createDataConnectionConfiguration();
                 listenerFactory.setDataConnectionConfiguration(dataConnectionConfiguration);
             }
             return listenerFactory.createListener();
         }
 
-        private User createUser(String username, String password, String homeDirectory) {
-            boolean anonymousLoginEnabled = (username == null);
+        private User createUser(final String username, final String password, final String homeDirectory) {
+            final boolean anonymousLoginEnabled = (username == null);
             if (anonymousLoginEnabled) {
                 return createAnonymousUser(homeDirectory, List.of(new WritePermission()));
             } else {
@@ -207,16 +208,16 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
             }
         }
 
-        private User createAnonymousUser(String homeDirectory, List<Authority> authorities) {
-            BaseUser user = new BaseUser();
+        private User createAnonymousUser(final String homeDirectory, final List<Authority> authorities) {
+            final BaseUser user = new BaseUser();
             user.setName("anonymous");
             user.setHomeDirectory(homeDirectory);
             user.setAuthorities(authorities);
             return user;
         }
 
-        private User createNamedUser(String username, String password, String homeDirectory, List<Authority> authorities) {
-            BaseUser user = new BaseUser();
+        private User createNamedUser(final String username, final String password, final String homeDirectory, final List<Authority> authorities) {
+            final BaseUser user = new BaseUser();
             user.setName(username);
             user.setPassword(password);
             user.setHomeDirectory(homeDirectory);
@@ -245,7 +246,7 @@ public class NifiFtpServer implements org.apache.nifi.processors.standard.ftp.Ft
         }
 
         @Override
-        public SSLContext getSSLContext(String enabledProtocol) {
+        public SSLContext getSSLContext(final String enabledProtocol) {
             return sslContext;
         }
 

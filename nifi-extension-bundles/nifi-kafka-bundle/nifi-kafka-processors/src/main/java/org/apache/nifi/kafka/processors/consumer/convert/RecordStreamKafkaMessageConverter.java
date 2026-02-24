@@ -52,7 +52,7 @@ public class RecordStreamKafkaMessageConverter extends AbstractRecordStreamKafka
     protected RecordSchema getWriteSchema(final RecordSchema inputSchema, final ByteRecord consumerRecord, final Map<String, String> attributes) throws IOException {
         try {
             return writerFactory.getSchema(attributes, inputSchema);
-        } catch (IOException | SchemaNotFoundException e) {
+        } catch (final IOException | SchemaNotFoundException e) {
             throw new IOException("Unable to get schema for wrapper record", e);
         }
     }

@@ -68,11 +68,11 @@ public final class BulletinFactory {
         return bulletin;
     }
 
-    private static String buildGroupPath(ProcessGroup group) {
+    private static String buildGroupPath(final ProcessGroup group) {
         if (group == null) {
             return null;
         } else {
-            StringBuilder path = new StringBuilder(group.getName());
+            final StringBuilder path = new StringBuilder(group.getName());
             ProcessGroup parent = group.getParent();
             while (parent != null) {
                 path.insert(0, " / ");

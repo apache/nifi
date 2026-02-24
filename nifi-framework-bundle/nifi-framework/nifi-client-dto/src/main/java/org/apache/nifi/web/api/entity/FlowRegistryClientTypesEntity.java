@@ -36,7 +36,7 @@ public class FlowRegistryClientTypesEntity extends Entity {
         return flowRegistryClientTypes;
     }
 
-    public void setFlowRegistryClientTypes(Set<DocumentedTypeDTO> flowRegistryClientTypes) {
+    public void setFlowRegistryClientTypes(final Set<DocumentedTypeDTO> flowRegistryClientTypes) {
         this.flowRegistryClientTypes = flowRegistryClientTypes;
     }
 }

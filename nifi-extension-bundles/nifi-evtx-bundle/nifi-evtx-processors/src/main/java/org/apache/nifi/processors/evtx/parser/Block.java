@@ -28,11 +28,11 @@ public abstract class Block {
     private BinaryReader binaryReader;
     private boolean initialized = false;
 
-    public Block(BinaryReader binaryReader) {
+    public Block(final BinaryReader binaryReader) {
         this(binaryReader, binaryReader.getPosition());
     }
 
-    public Block(BinaryReader binaryReader, long offset) {
+    public Block(final BinaryReader binaryReader, final long offset) {
         this.binaryReader = binaryReader;
         this.initialPosition = binaryReader.getPosition();
         this.offset = offset;
@@ -46,13 +46,13 @@ public abstract class Block {
         return offset;
     }
 
-    protected void init(boolean clearBinaryReader) throws IOException {
+    protected void init(final boolean clearBinaryReader) throws IOException {
         if (initialized) {
             throw new IOException("Initialize should only be called once");
         } else {
             initialized = true;
         }
-        int skipAmount = getHeaderLength() - (binaryReader.getPosition() - initialPosition);
+        final int skipAmount = getHeaderLength() - (binaryReader.getPosition() - initialPosition);
         if (skipAmount > 0) {
             binaryReader.skip(skipAmount);
         }

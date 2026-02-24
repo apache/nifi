@@ -168,7 +168,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final SSLContext sslContext;
             try {
                 sslContext = SslConfigurationUtil.createSslContext(engineConfiguration.getSslContext());
-            } catch (StatelessConfigurationException e) {
+            } catch (final StatelessConfigurationException e) {
                 throw new StatelessConfigurationException("Could not create SSLContext", e);
             }
 

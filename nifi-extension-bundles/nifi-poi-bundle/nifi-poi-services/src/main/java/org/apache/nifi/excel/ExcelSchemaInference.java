@@ -36,12 +36,12 @@ import java.util.stream.IntStream;
 public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
     private final CellFieldTypeReader cellFieldTypeReader;
 
-    public ExcelSchemaInference(TimeValueInference timeValueInference) {
+    public ExcelSchemaInference(final TimeValueInference timeValueInference) {
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
     }
 
     @Override
-    public RecordSchema inferSchema(RecordSource<Row> recordSource) throws IOException {
+    public RecordSchema inferSchema(final RecordSource<Row> recordSource) throws IOException {
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
         Row row;
         while ((row = recordSource.next()) != null) {

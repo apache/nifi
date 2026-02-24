@@ -98,7 +98,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     private final StateManager stateManager;
 
-    public ComponentStateCheckpointStore(String clientId, StateManager stateManager) {
+    public ComponentStateCheckpointStore(final String clientId, final StateManager stateManager) {
         this.clientId = clientId;
         this.stateManager = stateManager;
     }
@@ -111,29 +111,29 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
      * @param eventHubName the eventHubName of the items to be retained
      * @param consumerGroup the consumerGroup of the items to be retained
      */
-    public void cleanUp(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+    public void cleanUp(final String fullyQualifiedNamespace, final String eventHubName, final String consumerGroup) {
         cleanUpMono(fullyQualifiedNamespace, eventHubName, consumerGroup)
                 .subscribe();
     }
 
-    Mono<Void> cleanUpMono(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+    Mono<Void> cleanUpMono(final String fullyQualifiedNamespace, final String eventHubName, final String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("cleanUp() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
                 .flatMap(oldState -> {
-                    Map<String, String> newMap = oldState.toMap().entrySet().stream()
+                    final Map<String, String> newMap = oldState.toMap().entrySet().stream()
                             .filter(e -> {
-                                String key = e.getKey();
+                                final String key = e.getKey();
                                 if (!key.startsWith(OWNERSHIP.keyPrefix()) && !key.startsWith(CHECKPOINT.keyPrefix())) {
                                     return true;
                                 }
-                                PartitionContext context = convertPartitionContext(key);
+                                final PartitionContext context = convertPartitionContext(key);
                                 return context.getFullyQualifiedNamespace().equalsIgnoreCase(fullyQualifiedNamespace)
                                         && context.getEventHubName().equalsIgnoreCase(eventHubName)
                                         && context.getConsumerGroup().equalsIgnoreCase(consumerGroup);
                             })
                             .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                    int removed = oldState.toMap().size() - newMap.size();
+                    final int removed = oldState.toMap().size() - newMap.size();
                     if (removed > 0) {
                         debug("cleanUp() -> Removed {} item(s)", removed);
                         return updateState(oldState, newMap);
@@ -148,7 +148,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     @Override
-    public Flux<PartitionOwnership> listOwnership(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+    public Flux<PartitionOwnership> listOwnership(final String fullyQualifiedNamespace, final String eventHubName, final String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("listOwnership() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
                 .flatMapMany(state -> {
@@ -167,35 +167,35 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     @Override
-    public Flux<PartitionOwnership> claimOwnership(List<PartitionOwnership> requestedPartitionOwnerships) {
+    public Flux<PartitionOwnership> claimOwnership(final List<PartitionOwnership> requestedPartitionOwnerships) {
         return getState()
                 .doFirst(() -> debug("claimOwnership() -> Entering [{}]", ownershipListToString(requestedPartitionOwnerships)))
                 .flatMapMany(oldState -> {
                     checkDisconnectedNode(oldState);
 
-                    Map<String, String> newMap = new HashMap<>(oldState.toMap());
+                    final Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
-                    List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
+                    final List<PartitionOwnership> claimedOwnerships = new ArrayList<>();
 
-                    long timestamp = System.currentTimeMillis();
+                    final long timestamp = System.currentTimeMillis();
 
-                    for (PartitionOwnership requestedPartitionOwnership : requestedPartitionOwnerships) {
-                        String key = createOwnershipKey(requestedPartitionOwnership);
+                    for (final PartitionOwnership requestedPartitionOwnership : requestedPartitionOwnerships) {
+                        final String key = createOwnershipKey(requestedPartitionOwnership);
 
                         if (oldState.get(key) != null) {
-                            PartitionOwnership oldPartitionOwnership = convertOwnership(key, oldState.get(key));
+                            final PartitionOwnership oldPartitionOwnership = convertOwnership(key, oldState.get(key));
 
-                            String oldETag = oldPartitionOwnership.getETag();
-                            String reqETag = requestedPartitionOwnership.getETag();
+                            final String oldETag = oldPartitionOwnership.getETag();
+                            final String reqETag = requestedPartitionOwnership.getETag();
                             if (StringUtils.isNotEmpty(oldETag) && !oldETag.equals(reqETag)) {
                                 debug("claimOwnership() -> Already claimed {}", ownershipToString(oldPartitionOwnership));
                                 continue;
                             }
                         }
 
-                        String newETag = CoreUtils.randomUuid().toString();
+                        final String newETag = CoreUtils.randomUuid().toString();
 
-                        PartitionOwnership partitionOwnership = new PartitionOwnership()
+                        final PartitionOwnership partitionOwnership = new PartitionOwnership()
                                 .setFullyQualifiedNamespace(requestedPartitionOwnership.getFullyQualifiedNamespace())
                                 .setEventHubName(requestedPartitionOwnership.getEventHubName())
                                 .setConsumerGroup(requestedPartitionOwnership.getConsumerGroup())
@@ -225,7 +225,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     @Override
-    public Flux<Checkpoint> listCheckpoints(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
+    public Flux<Checkpoint> listCheckpoints(final String fullyQualifiedNamespace, final String eventHubName, final String consumerGroup) {
         return getState()
                 .doFirst(() -> debug("listCheckpoints() -> Entering [{}, {}, {}]", fullyQualifiedNamespace, eventHubName, consumerGroup))
                 .flatMapMany(state -> {
@@ -244,13 +244,13 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     @Override
-    public Mono<Void> updateCheckpoint(Checkpoint checkpoint) {
+    public Mono<Void> updateCheckpoint(final Checkpoint checkpoint) {
         return getState()
                 .doFirst(() -> debug("updateCheckpoint() -> Entering [{}]", checkpointToString(checkpoint)))
                 .flatMap(oldState -> {
                     checkDisconnectedNode(oldState);
 
-                    Map<String, String> newMap = new HashMap<>(oldState.toMap());
+                    final Map<String, String> newMap = new HashMap<>(oldState.toMap());
 
                     newMap.put(createCheckpointKey(checkpoint), createCheckpointValue(checkpoint));
 
@@ -261,7 +261,7 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                 .doOnError(throwable -> debug("updateCheckpoint() -> Failed: {}", throwable.getMessage()));
     }
 
-    private Retry createRetrySpec(String methodName) {
+    private Retry createRetrySpec(final String methodName) {
         return Retry.max(10)
                 .filter(t -> t instanceof ConcurrentStateModificationException)
                 .doBeforeRetry(retrySignal -> debug(methodName + "() -> Retry: {}", retrySignal))
@@ -269,31 +269,31 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                         String.format("Retrials of concurrent state modifications has been exhausted (%d retrials)", 10)));
     }
 
-    private Flux<PartitionOwnership> getOwnerships(StateMap state) {
+    private Flux<PartitionOwnership> getOwnerships(final StateMap state) {
         return getEntries(state, OWNERSHIP.keyPrefix(), ComponentStateCheckpointStoreUtils::convertOwnership);
     }
 
-    private Flux<Checkpoint> getCheckpoints(StateMap state) {
+    private Flux<Checkpoint> getCheckpoints(final StateMap state) {
         return getEntries(state, CHECKPOINT.keyPrefix(), ComponentStateCheckpointStoreUtils::convertCheckpoint);
     }
 
-    private <T> Flux<T> getEntries(StateMap state, String kind, BiFunction<String, String, T> converter) throws ProcessException {
+    private <T> Flux<T> getEntries(final StateMap state, final String kind, final BiFunction<String, String, T> converter) throws ProcessException {
         return state.toMap().entrySet().stream()
                 .filter(e -> e.getKey().startsWith(kind))
                 .map(e -> converter.apply(e.getKey(), e.getValue()))
                 .collect(collectingAndThen(toList(), Flux::fromIterable));
     }
 
-    private void checkDisconnectedNode(StateMap state) {
+    private void checkDisconnectedNode(final StateMap state) {
         // if _isClustered key is available in the state (that is the local cache is accessed via cluster scope) and it is true, then it is a disconnected cluster node
-        boolean disconnectedNode = Boolean.parseBoolean(state.get(CLUSTERED.key()));
+        final boolean disconnectedNode = Boolean.parseBoolean(state.get(CLUSTERED.key()));
 
         if (disconnectedNode) {
             throw new ClusterNodeDisconnectedException("The node has been disconnected from the cluster, the checkpoint store is not accessible");
         }
     }
 
-    private void debug(String message, Object... arguments) {
+    private void debug(final String message, final Object... arguments) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("[clientId={}] {}",  ArrayUtils.addFirst(arguments, clientId), message);
         }
@@ -303,27 +303,27 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
         return Mono.defer(
                 () -> {
                     try {
-                        StateMap state = stateManager.getState(Scope.CLUSTER);
+                        final StateMap state = stateManager.getState(Scope.CLUSTER);
                         return Mono.just(state);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         return Mono.error(new StateNotAvailableException(e));
                     }
                 }
         );
     }
 
-    private Mono<Void> updateState(StateMap oldState, Map<String, String> newMap) {
+    private Mono<Void> updateState(final StateMap oldState, final Map<String, String> newMap) {
         return Mono.defer(
                 () -> {
                     try {
-                        boolean success = stateManager.replace(oldState, newMap, Scope.CLUSTER);
+                        final boolean success = stateManager.replace(oldState, newMap, Scope.CLUSTER);
                         if (success) {
                             return Mono.empty();
                         } else {
                             return Mono.error(new ConcurrentStateModificationException(
                                     String.format("Component state with version [%s] has been modified by another instance", oldState.getStateVersion().orElse("new"))));
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         return Mono.error(new StateNotAvailableException(e));
                     }
                 }

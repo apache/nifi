@@ -57,7 +57,7 @@ public class VersionedFlowsResult extends AbstractWritableResult<List<VersionedF
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) {
+    protected void writeSimpleResult(final PrintStream output) {
         if (versionedFlows.isEmpty()) {
             return;
         }

@@ -100,7 +100,7 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
     }
 
     @Override
-    public FileResource getFileResource(Map<String, String> attributes) {
+    public FileResource getFileResource(final Map<String, String> attributes) {
         final BlobServiceClient client = getStorageClient(attributes);
         try {
             return fetchBlob(client, attributes);
@@ -110,13 +110,13 @@ public class AzureBlobStorageFileResourceService extends AbstractControllerServi
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
         config.renameProperty(AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
     }
 
-    protected BlobServiceClient getStorageClient(Map<String, String> attributes) {
+    protected BlobServiceClient getStorageClient(final Map<String, String> attributes) {
         final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(BLOB_STORAGE_CREDENTIALS_SERVICE)
                 .asControllerService(AzureStorageCredentialsService_v12.class);
         return clientFactory.getStorageClient(credentialsService.getCredentialsDetails(attributes));

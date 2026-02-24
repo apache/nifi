@@ -39,7 +39,7 @@ public class AuthorizationResult {
      * @param result of the authorization
      * @param explanation for the authorization attempt
      */
-    private AuthorizationResult(Result result, String explanation) {
+    private AuthorizationResult(final Result result, final String explanation) {
         if (Result.Denied.equals(result) && explanation == null) {
             throw new IllegalArgumentException("An explanation is required when the authorization request is denied.");
         }
@@ -97,7 +97,7 @@ public class AuthorizationResult {
      * @return a new denied AuthorizationResult with the specified explanation
      * @throws IllegalArgumentException if explanation is null
      */
-    public static AuthorizationResult denied(String explanation) {
+    public static AuthorizationResult denied(final String explanation) {
         return new AuthorizationResult(Result.Denied, explanation);
     }
 }

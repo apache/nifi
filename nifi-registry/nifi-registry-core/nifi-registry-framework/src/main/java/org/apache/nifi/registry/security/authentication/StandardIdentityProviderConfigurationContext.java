@@ -25,7 +25,7 @@ public class StandardIdentityProviderConfigurationContext implements IdentityPro
     private final IdentityProviderLookup lookup;
     private final Map<String, String> properties;
 
-    public StandardIdentityProviderConfigurationContext(String identifier, final IdentityProviderLookup lookup, Map<String, String> properties) {
+    public StandardIdentityProviderConfigurationContext(final String identifier, final IdentityProviderLookup lookup, final Map<String, String> properties) {
         this.identifier = identifier;
         this.lookup = lookup;
         this.properties = properties;
@@ -47,7 +47,7 @@ public class StandardIdentityProviderConfigurationContext implements IdentityPro
     }
 
     @Override
-    public String getProperty(String property) {
+    public String getProperty(final String property) {
         return properties.get(property);
     }
 

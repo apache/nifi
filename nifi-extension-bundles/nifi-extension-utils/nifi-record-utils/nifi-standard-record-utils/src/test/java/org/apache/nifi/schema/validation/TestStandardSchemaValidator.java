@@ -99,12 +99,12 @@ public class TestStandardSchemaValidator {
         intMap.put("height", 48);
         intMap.put("width", 96);
 
-        List<RecordField> mapRecordFields = new ArrayList<>();
-        RecordField mapRecordField = new RecordField("mapRecord", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType()));
+        final List<RecordField> mapRecordFields = new ArrayList<>();
+        final RecordField mapRecordField = new RecordField("mapRecord", RecordFieldType.MAP.getMapDataType(RecordFieldType.INT.getDataType()));
         mapRecordFields.add(mapRecordField);
         fields.add(mapRecordField);
-        RecordSchema mapRecordSchema = new SimpleRecordSchema(mapRecordFields);
-        MapRecord mapRecord = new MapRecord(mapRecordSchema, intMap);
+        final RecordSchema mapRecordSchema = new SimpleRecordSchema(mapRecordFields);
+        final MapRecord mapRecord = new MapRecord(mapRecordSchema, intMap);
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
         final Map<String, Object> valueMap = new LinkedHashMap<>();
@@ -283,8 +283,8 @@ public class TestStandardSchemaValidator {
 
         final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
 
-        StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
-        SchemaValidationResult result = validator.validate(record);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
+        final SchemaValidationResult result = validator.validate(record);
         assertFalse(result.isValid());
         assertNotNull(result.getValidationErrors());
 
@@ -301,12 +301,12 @@ public class TestStandardSchemaValidator {
 
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("id", 1);
-        Record record = new MapRecord(schema, valueMap, false, false);
+        final Record record = new MapRecord(schema, valueMap, false, false);
 
         final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
 
-        StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
-        SchemaValidationResult result = validator.validate(record);
+        final StandardSchemaValidator validator = new StandardSchemaValidator(allowExtraFieldsContext);
+        final SchemaValidationResult result = validator.validate(record);
         assertTrue(result.isValid());
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
@@ -321,7 +321,7 @@ public class TestStandardSchemaValidator {
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("id", 1);
         valueMap.put("name", "John Doe");
-        Record record = new MapRecord(schema, valueMap, false, false);
+        final Record record = new MapRecord(schema, valueMap, false, false);
 
         final SchemaValidationContext allowExtraFieldsContext = new SchemaValidationContext(schema, true, true);
         final SchemaValidationContext forbidExtraFieldsContext = new SchemaValidationContext(schema, false, false);
@@ -362,7 +362,7 @@ public class TestStandardSchemaValidator {
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("id", 1);
         valueMap.put("account", accountRecord);
-        Record record = new MapRecord(schema, valueMap, false, false);
+        final Record record = new MapRecord(schema, valueMap, false, false);
 
         final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
         final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, false);
@@ -384,19 +384,19 @@ public class TestStandardSchemaValidator {
 
     @Test
     public void testEnumValidation() {
-        List<String> enums = List.of("X", "Y", "Z");
-        EnumDataType enumDataType = new EnumDataType(enums);
+        final List<String> enums = List.of("X", "Y", "Z");
+        final EnumDataType enumDataType = new EnumDataType(enums);
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("enum_field", enumDataType));
         final RecordSchema schema = new SimpleRecordSchema(fields);
         final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
         final StandardSchemaValidator validator = new StandardSchemaValidator(strictValidationContext);
 
-        List<Record> records = enums.stream().map(e -> new MapRecord(schema, Map.of("enum_field", e)))
+        final List<Record> records = enums.stream().map(e -> new MapRecord(schema, Map.of("enum_field", e)))
                 .collect(Collectors.toList());
 
         records.forEach(record -> {
-            SchemaValidationResult result = validator.validate(record);
+            final SchemaValidationResult result = validator.validate(record);
             assertTrue(result.isValid());
             assertNotNull(result.getValidationErrors());
             assertTrue(result.getValidationErrors().isEmpty());
@@ -413,7 +413,7 @@ public class TestStandardSchemaValidator {
         final Map<String, Object> valueMap = new LinkedHashMap<>();
         valueMap.put("id", 1);
         valueMap.put("numbers", new Object[] {1, "2", "3"});
-        Record record = new MapRecord(schema, valueMap, false, false);
+        final Record record = new MapRecord(schema, valueMap, false, false);
 
         final SchemaValidationContext strictValidationContext = new SchemaValidationContext(schema, false, true);
         final SchemaValidationContext lenientValidationContext = new SchemaValidationContext(schema, false, false);
@@ -458,13 +458,13 @@ public class TestStandardSchemaValidator {
         return validator.validate(record);
     }
 
-    private void thenSingleValueIsValid(SchemaValidationResult result) {
+    private void thenSingleValueIsValid(final SchemaValidationResult result) {
         assertTrue(result.isValid());
         assertNotNull(result.getValidationErrors());
         assertTrue(result.getValidationErrors().isEmpty());
     }
 
-    private void thenSingleValueIsInvalid(SchemaValidationResult result) {
+    private void thenSingleValueIsInvalid(final SchemaValidationResult result) {
         assertFalse(result.isValid());
 
         final Collection<ValidationError> validationErrors = result.getValidationErrors();

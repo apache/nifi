@@ -88,7 +88,7 @@ public class TestHashiCorpVaultConfiguration {
     }
 
     public static File writeVaultAuthProperties(final Map<String, String> properties) throws IOException {
-        File authProps = File.createTempFile("vault-", ".properties");
+        final File authProps = File.createTempFile("vault-", ".properties");
         writeProperties(properties, authProps);
         return authProps;
     }
@@ -101,16 +101,16 @@ public class TestHashiCorpVaultConfiguration {
      * @throws IOException If the file could not be written
      */
     public static File writeBasicVaultAuthProperties() throws IOException {
-        Map<String, String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put(VAULT_AUTHENTICATION, TOKEN_VALUE);
         properties.put(VAULT_TOKEN, TEST_TOKEN_VALUE);
         return writeVaultAuthProperties(properties);
     }
 
-    public static void writeProperties(Map<String, String> props, File authProps) throws IOException {
-        Properties properties = new Properties();
+    public static void writeProperties(final Map<String, String> props, final File authProps) throws IOException {
+        final Properties properties = new Properties();
 
-        for (Map.Entry<String, String> entry : props.entrySet()) {
+        for (final Map.Entry<String, String> entry : props.entrySet()) {
             properties.put(entry.getKey(), entry.getValue());
         }
         try (Writer writer = new FileWriter(authProps)) {
@@ -121,12 +121,12 @@ public class TestHashiCorpVaultConfiguration {
     public void runTest(final String expectedScheme) {
         config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
 
-        VaultEndpoint endpoint = config.vaultEndpoint();
+        final VaultEndpoint endpoint = config.vaultEndpoint();
         assertEquals("localhost", endpoint.getHost());
         assertEquals(8200, endpoint.getPort());
         assertEquals(expectedScheme, endpoint.getScheme());
 
-        ClientAuthentication clientAuthentication = config.clientAuthentication();
+        final ClientAuthentication clientAuthentication = config.clientAuthentication();
         assertNotNull(clientAuthentication);
     }
 
@@ -172,7 +172,7 @@ public class TestHashiCorpVaultConfiguration {
 
         this.runTest("https");
 
-        SslConfiguration sslConfiguration = config.sslConfiguration();
+        final SslConfiguration sslConfiguration = config.sslConfiguration();
         assertEquals(keystoreFile.toFile().getAbsolutePath(), sslConfiguration.getKeyStoreConfiguration().getResource().getFile().getAbsolutePath());
         assertEquals(KEYSTORE_PASSWORD_VALUE, new String(sslConfiguration.getKeyStoreConfiguration().getStorePassword()));
         assertEquals(KEYSTORE_TYPE_VALUE, sslConfiguration.getKeyStoreConfiguration().getStoreType());

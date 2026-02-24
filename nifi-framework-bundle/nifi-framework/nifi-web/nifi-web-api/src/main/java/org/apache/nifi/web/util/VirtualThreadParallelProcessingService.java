@@ -57,9 +57,9 @@ public class VirtualThreadParallelProcessingService implements PredictionBasedPa
 
     @Override
     public Collection<Map<String, Long>> createConnectionStatusAnalyticsMetricsAndCollectPredictions(
-            ControllerFacade controllerFacade, ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry, String instanceId) {
+            final ControllerFacade controllerFacade, final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry, final String instanceId) {
 
-        Collection<Map<String, Long>> predictions = Collections.synchronizedList(new ArrayList<>());
+        final Collection<Map<String, Long>> predictions = Collections.synchronizedList(new ArrayList<>());
 
         if (!analyticsEnabled) {
             return predictions;
@@ -68,7 +68,7 @@ public class VirtualThreadParallelProcessingService implements PredictionBasedPa
         final Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
         final CountDownLatch countDownLatch = new CountDownLatch(connections.size());
         try {
-            for (Connection c : connections) {
+            for (final Connection c : connections) {
                 parallelProcessingExecutorService.execute(() -> {
                     try {
                         final StatusAnalytics statusAnalytics = controllerFacade.getConnectionStatusAnalytics(c.getIdentifier());
@@ -92,11 +92,11 @@ public class VirtualThreadParallelProcessingService implements PredictionBasedPa
             }
         } finally {
             try {
-                boolean finished = countDownLatch.await(parallelProcessingTimeout, TimeUnit.MILLISECONDS);
+                final boolean finished = countDownLatch.await(parallelProcessingTimeout, TimeUnit.MILLISECONDS);
                 if (!finished) {
                     throw new WebApplicationException("Populating flow metrics timed out");
                 }
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new WebApplicationException("Populating flow metrics cancelled");
             }
         }

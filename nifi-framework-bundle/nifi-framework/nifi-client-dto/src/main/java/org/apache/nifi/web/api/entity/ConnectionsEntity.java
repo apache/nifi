@@ -35,7 +35,7 @@ public class ConnectionsEntity extends Entity {
         return connections;
     }
 
-    public void setConnections(Set<ConnectionEntity> connections) {
+    public void setConnections(final Set<ConnectionEntity> connections) {
         this.connections = connections;
     }
 

@@ -510,7 +510,7 @@ public class TestStandardFlowFileQueue {
     @Test
     @Timeout(10)
     public void testListFlowFilesResultsLimitedCollection() throws InterruptedException {
-        Collection<FlowFileRecord> tff = new ArrayList<>();
+        final Collection<FlowFileRecord> tff = new ArrayList<>();
         //Swap Size is 10000 records, so 30000 is equal to 3 swap files.
         for (int i = 0; i < 30000; i++) {
             tff.add(new MockFlowFileRecord());
@@ -578,10 +578,10 @@ public class TestStandardFlowFileQueue {
 
     @Test
     public void testGetTotalActiveQueuedDuration() {
-        long now = System.currentTimeMillis();
-        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        final long now = System.currentTimeMillis();
+        final MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
         testFlowfile1.setLastQueuedDate(now - 500);
-        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        final MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
         testFlowfile2.setLastQueuedDate(now - 1000);
 
         queue.put(testFlowfile1);
@@ -595,10 +595,10 @@ public class TestStandardFlowFileQueue {
 
     @Test
     public void testGetMinLastQueueDate() {
-        long now = System.currentTimeMillis();
-        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        final long now = System.currentTimeMillis();
+        final MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
         testFlowfile1.setLastQueuedDate(now - 1000);
-        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        final MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
         testFlowfile2.setLastQueuedDate(now - 500);
 
         queue.put(testFlowfile1);

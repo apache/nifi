@@ -58,7 +58,7 @@ public class Bundle extends BucketItem {
         return bundleType;
     }
 
-    public void setBundleType(BundleType bundleType) {
+    public void setBundleType(final BundleType bundleType) {
         this.bundleType = bundleType;
     }
 
@@ -67,7 +67,7 @@ public class Bundle extends BucketItem {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -76,7 +76,7 @@ public class Bundle extends BucketItem {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -85,7 +85,7 @@ public class Bundle extends BucketItem {
         return versionCount;
     }
 
-    public void setVersionCount(long versionCount) {
+    public void setVersionCount(final long versionCount) {
         this.versionCount = versionCount;
     }
 

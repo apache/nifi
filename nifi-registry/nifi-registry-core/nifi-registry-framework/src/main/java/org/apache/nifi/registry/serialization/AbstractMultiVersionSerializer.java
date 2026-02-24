@@ -92,7 +92,7 @@ public abstract class AbstractMultiVersionSerializer<T> implements Serializer<T>
         markSupportedInput.mark(MAX_HEADER_BYTES);
 
         // Applying each serializer
-        for (int serializerVersion : descendingVersions) {
+        for (final int serializerVersion : descendingVersions) {
             final VersionedSerializer<T> serializer = serializersByVersion.get(serializerVersion);
 
             // Serializer version will not be the data model version always.
@@ -105,7 +105,7 @@ public abstract class AbstractMultiVersionSerializer<T> implements Serializer<T>
                     throw new SerializationException(String.format(
                             "Version %d was returned by %s, but no serializer is registered for that version.", version, serializer));
                 }
-            } catch (SerializationException e) {
+            } catch (final SerializationException e) {
                 logger.debug("Deserialization failed with {}", serializer, e);
                 continue;
             } finally {
@@ -113,7 +113,7 @@ public abstract class AbstractMultiVersionSerializer<T> implements Serializer<T>
                 // reset the stream position.
                 try {
                     markSupportedInput.reset();
-                } catch (IOException resetException) {
+                } catch (final IOException resetException) {
                     // Should not happen.
                     logger.error("Unable to reset the input stream.", resetException);
                 }

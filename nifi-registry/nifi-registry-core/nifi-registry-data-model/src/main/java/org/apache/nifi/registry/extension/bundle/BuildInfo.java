@@ -39,7 +39,7 @@ public class BuildInfo {
         return buildTool;
     }
 
-    public void setBuildTool(String buildTool) {
+    public void setBuildTool(final String buildTool) {
         this.buildTool = buildTool;
     }
 
@@ -48,7 +48,7 @@ public class BuildInfo {
         return buildFlags;
     }
 
-    public void setBuildFlags(String buildFlags) {
+    public void setBuildFlags(final String buildFlags) {
         this.buildFlags = buildFlags;
     }
 
@@ -57,7 +57,7 @@ public class BuildInfo {
         return buildBranch;
     }
 
-    public void setBuildBranch(String buildBranch) {
+    public void setBuildBranch(final String buildBranch) {
         this.buildBranch = buildBranch;
     }
 
@@ -66,7 +66,7 @@ public class BuildInfo {
         return buildTag;
     }
 
-    public void setBuildTag(String buildTag) {
+    public void setBuildTag(final String buildTag) {
         this.buildTag = buildTag;
     }
 
@@ -75,7 +75,7 @@ public class BuildInfo {
         return buildRevision;
     }
 
-    public void setBuildRevision(String buildRevision) {
+    public void setBuildRevision(final String buildRevision) {
         this.buildRevision = buildRevision;
     }
 
@@ -84,7 +84,7 @@ public class BuildInfo {
         return built;
     }
 
-    public void setBuilt(long built) {
+    public void setBuilt(final long built) {
         this.built = built;
     }
 
@@ -93,7 +93,7 @@ public class BuildInfo {
         return builtBy;
     }
 
-    public void setBuiltBy(String builtBy) {
+    public void setBuiltBy(final String builtBy) {
         this.builtBy = builtBy;
     }
 

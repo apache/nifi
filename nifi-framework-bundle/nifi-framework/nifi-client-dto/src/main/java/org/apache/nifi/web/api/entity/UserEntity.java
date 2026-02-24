@@ -38,7 +38,7 @@ public class UserEntity extends ComponentEntity implements Permissible<UserDTO> 
     }
 
     @Override
-    public void setComponent(UserDTO component) {
+    public void setComponent(final UserDTO component) {
         this.component = component;
     }
 

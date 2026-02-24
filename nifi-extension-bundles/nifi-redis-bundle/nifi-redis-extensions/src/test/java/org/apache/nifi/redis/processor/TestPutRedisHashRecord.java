@@ -51,7 +51,7 @@ class TestPutRedisHashRecord {
 
     @BeforeEach
     public void setup() throws Exception {
-        PutRedisHashRecord processor = new PutRedisHashRecord();
+        final PutRedisHashRecord processor = new PutRedisHashRecord();
         runner = TestRunners.newTestRunner(processor);
         parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -62,7 +62,7 @@ class TestPutRedisHashRecord {
         connectionPoolService.setFailAfterN(0);
         try {
             runner.addControllerService("connectionPool", connectionPoolService);
-        } catch (InitializationException e) {
+        } catch (final InitializationException e) {
             throw new IOException(e);
         }
         runner.setProperty(connectionPoolService, RedisUtils.CONNECTION_STRING, "localhost:6379");
@@ -89,7 +89,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_SUCCESS);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.getFirst();
+        final MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "3");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -114,7 +114,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_FAILURE, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_FAILURE);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.getFirst();
+        final MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "1");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -138,7 +138,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_FAILURE, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_FAILURE);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.getFirst();
+        final MockFlowFile ff = result.getFirst();
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "0");
         // Verify the content is untouched
         ff.assertContentEquals("hello");
@@ -162,7 +162,7 @@ class TestPutRedisHashRecord {
         runner.assertAllFlowFilesTransferred(PutRedisHashRecord.REL_SUCCESS, 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(PutRedisHashRecord.REL_SUCCESS);
         assertEquals(1, result.size());
-        MockFlowFile ff = result.getFirst();
+        final MockFlowFile ff = result.getFirst();
         // Both records are transferred successfully, but the null value was not put into Redis
         ff.assertAttributeEquals(PutRedisHashRecord.SUCCESS_RECORD_COUNT, "2");
         // Verify the content is untouched
@@ -178,8 +178,8 @@ class TestPutRedisHashRecord {
         @Override
         public RedisConnection getConnection() {
             currentFailures = 0;
-            RedisConnection mockRedisConnection = mock(RedisConnection.class);
-            RedisHashCommands hashCommands = mock(RedisHashCommands.class);
+            final RedisConnection mockRedisConnection = mock(RedisConnection.class);
+            final RedisHashCommands hashCommands = mock(RedisHashCommands.class);
             when(hashCommands.hSet(any(byte[].class), any(byte[].class), any(byte[].class))).thenAnswer((Answer<Boolean>) invocationOnMock -> {
                 currentFailures++;
                 if (failAfterN > 0 && currentFailures > failAfterN) {
@@ -208,7 +208,7 @@ class TestPutRedisHashRecord {
             return mockRedisConnection;
         }
 
-        public void setFailAfterN(int triesBeforeFailure) {
+        public void setFailAfterN(final int triesBeforeFailure) {
             failAfterN = Math.max(triesBeforeFailure, 0);
         }
     }

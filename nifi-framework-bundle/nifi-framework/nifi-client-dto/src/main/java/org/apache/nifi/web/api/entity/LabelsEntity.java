@@ -35,7 +35,7 @@ public class LabelsEntity extends Entity {
         return labels;
     }
 
-    public void setLabels(Set<LabelEntity> labels) {
+    public void setLabels(final Set<LabelEntity> labels) {
         this.labels = labels;
     }
 

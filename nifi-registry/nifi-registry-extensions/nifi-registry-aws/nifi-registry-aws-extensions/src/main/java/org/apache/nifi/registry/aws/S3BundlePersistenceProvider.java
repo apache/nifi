@@ -112,7 +112,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
 
     }
 
-    private boolean getForcePathStyle(ProviderConfigurationContext configurationContext) {
+    private boolean getForcePathStyle(final ProviderConfigurationContext configurationContext) {
         final String forcePathStyleValue = configurationContext.getProperties().get(FORCE_PATH_STYLE_PROP);
         if (StringUtils.isBlank(forcePathStyleValue)) {
             LOGGER.debug("Force Path Style not specified, using default value: false");
@@ -121,7 +121,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
 
         try {
             return Boolean.parseBoolean(forcePathStyleValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Invalid value for Force Path Style: '{}', using default value: false", forcePathStyleValue);
             return false;
         }
@@ -134,7 +134,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         }
 
         Region region = null;
-        for (Region r : Region.regions()) {
+        for (final Region r : Region.regions()) {
             if (r.id().equals(regionValue)) {
                 region = r;
                 break;
@@ -156,10 +156,10 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
             throw new ProviderCreationException("The property '" + CREDENTIALS_PROVIDER_PROP + "' must be provided");
         }
 
-        CredentialProvider credentialProvider;
+        final CredentialProvider credentialProvider;
         try {
             credentialProvider = CredentialProvider.valueOf(credentialsProviderValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProviderCreationException("The property '" + CREDENTIALS_PROVIDER_PROP + "' must be one of ["
                     + CredentialProvider.STATIC + ", " + CredentialProvider.DEFAULT_CHAIN + " ]");
         }
@@ -190,7 +190,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         final String endpointUrlValue = configurationContext.getProperties().get(ENDPOINT_URL_PROP);
         try {
             s3EndpointOverride = StringUtils.isBlank(endpointUrlValue) ? null : URI.create(endpointUrlValue);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             final String errMessage = "The optional property '" + ENDPOINT_URL_PROP + "' must be a valid URL if set. " +
                     "URI Syntax Exception is: " + e.getLocalizedMessage();
             LOGGER.error(errMessage);
@@ -225,7 +225,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         try {
             s3Client.putObject(request, requestBody);
             LOGGER.debug("Successfully saved bundle version to S3 bucket '{}' with key '{}'", s3BucketName, key);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundlePersistenceException("Error saving bundle version to S3 due to: " + e.getMessage(), e);
         }
     }
@@ -244,7 +244,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         try (final ResponseInputStream<GetObjectResponse> response = s3Client.getObject(request)) {
             IoUtils.copy(response, outputStream);
             LOGGER.debug("Successfully retrieved bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundlePersistenceException("Error retrieving bundle version from S3 due to: " + e.getMessage(), e);
         }
     }
@@ -262,7 +262,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
         try {
             s3Client.deleteObject(request);
             LOGGER.debug("Successfully deleted bundle version from S3 bucket '{}' with key '{}'", s3BucketName, key);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundlePersistenceException("Error deleting bundle version from S3 due to: " + e.getMessage(), e);
         }
     }
@@ -296,7 +296,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
             }
 
             LOGGER.debug("Successfully deleted all bundle versions from S3 bucket '{}' with prefix '{}'", s3BucketName, prefix);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new BundlePersistenceException("Error deleting bundle versions from S3 due to: " + e.getMessage(), e);
         }
     }

@@ -59,7 +59,7 @@ public class FlowRegistryClientDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -68,7 +68,7 @@ public class FlowRegistryClientDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -77,7 +77,7 @@ public class FlowRegistryClientDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -86,7 +86,7 @@ public class FlowRegistryClientDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -95,7 +95,7 @@ public class FlowRegistryClientDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -104,7 +104,7 @@ public class FlowRegistryClientDTO {
         return properties;
     }
 
-    public void setProperties(Map<String, String> properties) {
+    public void setProperties(final Map<String, String> properties) {
         this.properties = properties;
     }
 
@@ -113,7 +113,7 @@ public class FlowRegistryClientDTO {
         return descriptors;
     }
 
-    public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
+    public void setDescriptors(final Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
 
@@ -150,7 +150,7 @@ public class FlowRegistryClientDTO {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -160,7 +160,7 @@ public class FlowRegistryClientDTO {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -173,7 +173,7 @@ public class FlowRegistryClientDTO {
         return isExtensionMissing;
     }
 
-    public void setExtensionMissing(Boolean extensionMissing) {
+    public void setExtensionMissing(final Boolean extensionMissing) {
         isExtensionMissing = extensionMissing;
     }
 
@@ -186,7 +186,7 @@ public class FlowRegistryClientDTO {
         return setMultipleVersionsAvailable;
     }
 
-    public void setMultipleVersionsAvailable(Boolean setMultipleVersionsAvailable) {
+    public void setMultipleVersionsAvailable(final Boolean setMultipleVersionsAvailable) {
         this.setMultipleVersionsAvailable = setMultipleVersionsAvailable;
     }
 
@@ -196,7 +196,7 @@ public class FlowRegistryClientDTO {
         return annotationData;
     }
 
-    public void setAnnotationData(String annotationData) {
+    public void setAnnotationData(final String annotationData) {
         this.annotationData = annotationData;
     }
 
@@ -207,7 +207,7 @@ public class FlowRegistryClientDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -218,7 +218,7 @@ public class FlowRegistryClientDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 }

@@ -632,7 +632,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCreateProcessor(ProcessorDTO processorDTO) {
+    public void verifyCreateProcessor(final ProcessorDTO processorDTO) {
         processorDAO.verifyCreate(processorDTO);
     }
 
@@ -663,7 +663,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanVerifyFlowAnalysisRuleConfig(String flowAnalysisRuleId) {
+    public void verifyCanVerifyFlowAnalysisRuleConfig(final String flowAnalysisRuleId) {
         flowAnalysisRuleDAO.verifyConfigVerification(flowAnalysisRuleId);
     }
 
@@ -688,7 +688,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyEnableComponents(String processGroupId, ScheduledState state, Set<String> componentIds) {
+    public void verifyEnableComponents(final String processGroupId, final ScheduledState state, final Set<String> componentIds) {
         processGroupDAO.verifyEnableComponents(processGroupId, state, componentIds);
     }
 
@@ -703,8 +703,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyUpdateRemoteProcessGroups(String processGroupId, boolean shouldTransmit) {
-        List<RemoteProcessGroup> allRemoteProcessGroups = processGroupDAO.getProcessGroup(processGroupId).findAllRemoteProcessGroups();
+    public void verifyUpdateRemoteProcessGroups(final String processGroupId, final boolean shouldTransmit) {
+        final List<RemoteProcessGroup> allRemoteProcessGroups = processGroupDAO.getProcessGroup(processGroupId).findAllRemoteProcessGroups();
 
         allRemoteProcessGroups.stream()
                 .map(remoteProcessGroup -> {
@@ -741,7 +741,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCreateControllerService(ControllerServiceDTO controllerServiceDTO) {
+    public void verifyCreateControllerService(final ControllerServiceDTO controllerServiceDTO) {
         controllerServiceDAO.verifyCreate(controllerServiceDTO);
     }
 
@@ -774,7 +774,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO) {
+    public void verifyCreateReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         reportingTaskDAO.verifyCreate(reportingTaskDTO);
     }
 
@@ -795,7 +795,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCreateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+    public void verifyCreateFlowAnalysisRule(final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
         flowAnalysisRuleDAO.verifyCreate(flowAnalysisRuleDTO);
     }
 
@@ -828,12 +828,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanClearFlowAnalysisRuleState(String flowAnalysisRuleId) {
+    public void verifyCanClearFlowAnalysisRuleState(final String flowAnalysisRuleId) {
         flowAnalysisRuleDAO.verifyClearState(flowAnalysisRuleId);
     }
 
     @Override
-    public FlowAnalysisRuleEntity createFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+    public FlowAnalysisRuleEntity createFlowAnalysisRule(final Revision revision, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // request claim for component to be created... revision already verified (version == 0)
@@ -862,7 +862,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowAnalysisRuleEntity getFlowAnalysisRule(String flowAnalysisRuleId) {
+    public FlowAnalysisRuleEntity getFlowAnalysisRule(final String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
         return createFlowAnalysisRuleEntity(flowAnalysisRule);
     }
@@ -877,14 +877,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(String flowAnalysisRuleId, String propertyName, boolean sensitive) {
+    public PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(final String flowAnalysisRuleId, final String propertyName, final boolean sensitive) {
         final FlowAnalysisRuleNode flowAnalysisRuleNode = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
         final PropertyDescriptor descriptor = getPropertyDescriptor(flowAnalysisRuleNode, propertyName, sensitive);
         return dtoFactory.createPropertyDescriptorDto(descriptor, null);
     }
 
     @Override
-    public ComponentStateDTO getFlowAnalysisRuleState(String flowAnalysisRuleId) {
+    public ComponentStateDTO getFlowAnalysisRuleState(final String flowAnalysisRuleId) {
         final StateMap clusterState = isClustered() ? flowAnalysisRuleDAO.getState(flowAnalysisRuleId, Scope.CLUSTER) : null;
         final StateMap localState = flowAnalysisRuleDAO.getState(flowAnalysisRuleId, Scope.LOCAL);
 
@@ -900,7 +900,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowAnalysisRuleEntity updateFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
+    public FlowAnalysisRuleEntity updateFlowAnalysisRule(final Revision revision, final FlowAnalysisRuleDTO flowAnalysisRuleDTO) {
         // get the component, ensure we have access to it, and perform the update request
         final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleDTO.getId());
         final RevisionUpdate<FlowAnalysisRuleDTO> snapshot = updateComponent(revision,
@@ -919,7 +919,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String flowAnalysisRuleId) {
+    public FlowAnalysisRuleEntity deleteFlowAnalysisRule(final Revision revision, final String flowAnalysisRuleId) {
         final FlowAnalysisRuleNode flowAnalysisRule = flowAnalysisRuleDAO.getFlowAnalysisRule(flowAnalysisRuleId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(flowAnalysisRule);
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(flowAnalysisRule));
@@ -934,7 +934,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCreateParameterProvider(ParameterProviderDTO parameterProviderDTO) {
+    public void verifyCreateParameterProvider(final ParameterProviderDTO parameterProviderDTO) {
         parameterProviderDAO.verifyCreate(parameterProviderDTO);
     }
 
@@ -960,7 +960,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyCanApplyParameters(final String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
+    public void verifyCanApplyParameters(final String parameterProviderId, final Collection<ParameterGroupConfiguration> parameterGroupConfigurations) {
         parameterProviderDAO.verifyCanApplyParameters(parameterProviderId, parameterGroupConfigurations);
     }
 
@@ -1543,7 +1543,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<AffectedComponentEntity> getControllerServicesReferencingParameter(String groupId) {
+    public Set<AffectedComponentEntity> getControllerServicesReferencingParameter(final String groupId) {
         return getComponentsReferencingParameter(groupId, group -> group.getControllerServices(false));
     }
 
@@ -1857,14 +1857,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO) {
+    public void verifyUpdateProcessGroup(final ProcessGroupDTO processGroupDTO) {
         if (processGroupDAO.hasProcessGroup(processGroupDTO.getId())) {
             processGroupDAO.verifyUpdate(processGroupDTO);
         }
     }
 
     @Override
-    public ScheduleComponentsEntity enableComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions) {
+    public ScheduleComponentsEntity enableComponents(final String processGroupId, final ScheduledState state, final Map<String, Revision> componentRevisions) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final RevisionUpdate<ScheduleComponentsEntity> updatedComponent = revisionManager.updateRevision(new StandardRevisionClaim(componentRevisions.values()), user, () -> {
@@ -2057,7 +2057,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId) {
+    public ComponentStateDTO getRemoteProcessGroupState(final String remoteProcessGroupId) {
         final StateMap clusterState = isClustered() ? remoteProcessGroupDAO.getState(remoteProcessGroupId, Scope.CLUSTER) : null;
         final StateMap localState = remoteProcessGroupDAO.getState(remoteProcessGroupId, Scope.LOCAL);
 
@@ -2429,7 +2429,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+    public DropRequestDTO deleteDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
         return dtoFactory.createDropRequestDTO(processGroupDAO.deleteDropAllFlowFilesRequest(processGroupId, dropRequestId));
     }
 
@@ -3367,7 +3367,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void verifyDeleteRegistry(String registryClientId) {
+    public void verifyDeleteRegistry(final String registryClientId) {
         processGroupDAO.verifyDeleteFlowRegistry(registryClientId);
     }
 
@@ -3981,7 +3981,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowRegistryClientDefinition getFlowRegistryClientDefinition(String group, String artifact, String version, String type) {
+    public FlowRegistryClientDefinition getFlowRegistryClientDefinition(final String group, final String artifact, final String version, final String type) {
         final FlowRegistryClientDefinition flowRegistryClientDefinition = controllerFacade.getFlowRegistryClientDefinition(group, artifact, version, type);
         if (flowRegistryClientDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -3995,7 +3995,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProcessorDefinition getProcessorDefinition(String group, String artifact, String version, String type) {
+    public ProcessorDefinition getProcessorDefinition(final String group, final String artifact, final String version, final String type) {
         final ProcessorDefinition processorDefinition = controllerFacade.getProcessorDefinition(group, artifact, version, type);
         if (processorDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -4004,7 +4004,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ControllerServiceDefinition getControllerServiceDefinition(String group, String artifact, String version, String type) {
+    public ControllerServiceDefinition getControllerServiceDefinition(final String group, final String artifact, final String version, final String type) {
         final ControllerServiceDefinition controllerServiceDefinition = controllerFacade.getControllerServiceDefinition(group, artifact, version, type);
         if (controllerServiceDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -4013,7 +4013,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ReportingTaskDefinition getReportingTaskDefinition(String group, String artifact, String version, String type) {
+    public ReportingTaskDefinition getReportingTaskDefinition(final String group, final String artifact, final String version, final String type) {
         final ReportingTaskDefinition reportingTaskDefinition = controllerFacade.getReportingTaskDefinition(group, artifact, version, type);
         if (reportingTaskDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -4022,7 +4022,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ParameterProviderDefinition getParameterProviderDefinition(String group, String artifact, String version, String type) {
+    public ParameterProviderDefinition getParameterProviderDefinition(final String group, final String artifact, final String version, final String type) {
         final ParameterProviderDefinition parameterProviderDefinition = controllerFacade.getParameterProviderDefinition(group, artifact, version, type);
         if (parameterProviderDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -4031,7 +4031,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
+    public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(final String group, final String artifact, final String version, final String type) {
         final FlowAnalysisRuleDefinition flowAnalysisRuleDefinition = controllerFacade.getFlowAnalysisRuleDefinition(group, artifact, version, type);
         if (flowAnalysisRuleDefinition == null) {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
@@ -4040,7 +4040,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public String getAdditionalDetails(String group, String artifact, String version, String type) {
+    public String getAdditionalDetails(final String group, final String artifact, final String version, final String type) {
         return controllerFacade.getAdditionalDetails(group, artifact, version, type);
     }
 
@@ -4256,12 +4256,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public BundleCoordinate getCompatibleBundle(String type, BundleDTO bundleDTO) {
+    public BundleCoordinate getCompatibleBundle(final String type, final BundleDTO bundleDTO) {
         return BundleUtils.getCompatibleBundle(controllerFacade.getExtensionManager(), type, bundleDTO);
     }
 
     @Override
-    public ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate) {
+    public ConfigurableComponent getTempComponent(final String classType, final BundleCoordinate bundleCoordinate) {
         return controllerFacade.getExtensionManager().getTempComponent(classType, bundleCoordinate);
     }
 
@@ -4409,7 +4409,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         if (serviceNodes.add(serviceNode)) {
                             findReferencedControllerServices(serviceNode, serviceNodes, user);
                         }
-                    } catch (ResourceNotFoundException ignored) {
+                    } catch (final ResourceNotFoundException ignored) {
                         // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
                     }
                 }
@@ -4827,7 +4827,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             bulletins.addAll(bulletinRepository.findBulletinsForGroupBySource(descendantGroup.getIdentifier()));
         }
 
-        List<BulletinEntity> bulletinEntities = new ArrayList<>();
+        final List<BulletinEntity> bulletinEntities = new ArrayList<>();
         for (final Bulletin bulletin : bulletins) {
             bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), authorizeBulletin(bulletin)));
         }
@@ -5269,7 +5269,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private String getStorageLocation(final RegisteredFlowSnapshot registeredSnapshot) {
-        VersionedFlowCoordinates versionedFlowCoordinates = registeredSnapshot.getFlowContents().getVersionedFlowCoordinates();
+        final VersionedFlowCoordinates versionedFlowCoordinates = registeredSnapshot.getFlowContents().getVersionedFlowCoordinates();
 
         if (versionedFlowCoordinates == null) {
             return null;
@@ -5278,7 +5278,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return versionedFlowCoordinates.getStorageLocation();
     }
 
-    private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(String groupId, InstantiatedVersionedProcessGroup versionedProcessGroup, VersionControlInformationDTO vci) {
+    private VersionControlComponentMappingEntity createVersionControlComponentMappingEntity(final String groupId,
+            final InstantiatedVersionedProcessGroup versionedProcessGroup, final VersionControlInformationDTO vci) {
         final Map<String, String> mapping = dtoFactory.createVersionControlComponentMappingDto(versionedProcessGroup);
 
         final Revision groupRevision = revisionManager.getRevision(groupId);
@@ -5403,7 +5404,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return getCurrentFlowSnapshotByGroupId(processGroupId, true);
     }
 
-    private Set<String> getAllSubGroups(ProcessGroup processGroup) {
+    private Set<String> getAllSubGroups(final ProcessGroup processGroup) {
         final Set<String> result = processGroup.findAllProcessGroups().stream()
                 .map(ProcessGroup::getIdentifier)
                 .collect(Collectors.toSet());
@@ -5524,7 +5525,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public FlowComparisonEntity getVersionDifference(final String registryId, FlowVersionLocation versionLocationA, FlowVersionLocation versionLocationB) {
+    public FlowComparisonEntity getVersionDifference(final String registryId, final FlowVersionLocation versionLocationA, final FlowVersionLocation versionLocationB) {
         final FlowComparisonEntity result = new FlowComparisonEntity();
 
         if (versionLocationA.equals(versionLocationB)) {
@@ -6634,21 +6635,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
-    protected Collection<AbstractMetricsRegistry> populateFlowMetrics(FlowMetricsReportingStrategy flowMetricsStrategy) {
+    protected Collection<AbstractMetricsRegistry> populateFlowMetrics(final FlowMetricsReportingStrategy flowMetricsStrategy) {
         // Include registries which are fully refreshed upon each invocation
-        NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
-        BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
-        VersionInfoRegistry versionInfoRegistry = new VersionInfoRegistry();
+        final NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+        final BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+        final VersionInfoRegistry versionInfoRegistry = new VersionInfoRegistry();
 
         final NodeIdentifier node = controllerFacade.getNodeId();
         final String instId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
         final String instanceId = node == null ? instId : node.getId();
-        ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
+        final ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP, flowMetricsStrategy);
 
         // Add the total byte counts (read/written) to the NiFi metrics registry
-        FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
+        final FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
         final String rootPGId = StringUtils.isEmpty(rootPGStatus.getId()) ? "" : rootPGStatus.getId();
         final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
         final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
@@ -6692,7 +6693,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
-        Collection<Map<String, Long>> predictions = parallelProcessingService.createConnectionStatusAnalyticsMetricsAndCollectPredictions(
+        final Collection<Map<String, Long>> predictions = parallelProcessingService.createConnectionStatusAnalyticsMetricsAndCollectPredictions(
                 controllerFacade, connectionAnalyticsMetricsRegistry, instanceId);
 
         predictions.forEach((prediction) -> PrometheusMetricsUtil.aggregateConnectionPredictionMetrics(aggregatedMetrics, prediction));
@@ -6700,9 +6701,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         // Create a query to get all bulletins
         final BulletinQueryDTO query = new BulletinQueryDTO();
-        BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
-        for (BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
-            BulletinDTO bulletin = bulletinEntity.getBulletin();
+        final BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
+        for (final BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
+            final BulletinDTO bulletin = bulletinEntity.getBulletin();
             if (bulletin != null) {
                 PrometheusMetricsUtil.createBulletinMetrics(bulletinMetricsRegistry, instanceId,
                         "Bulletin",
@@ -6734,7 +6735,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean isClustered = clusterCoordinator != null;
         final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
         PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
-        Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
+        final Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
                 nifiMetricsRegistry,
                 jvmMetricsRegistry,
                 connectionAnalyticsMetricsRegistry,
@@ -6761,7 +6762,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(FlowMetricsRegistry::getRegistryClass)
                 .collect(Collectors.toSet());
 
-        Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics(flowMetricsStrategy);
+        final Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics(flowMetricsStrategy);
 
         return configuredRegistries.stream()
                 .filter(configuredRegistry -> registryClasses.contains(configuredRegistry.getClass()))
@@ -6864,7 +6865,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public Set<FlowAnalysisRuleEntity> getFlowAnalysisRules() {
-        Set<FlowAnalysisRuleEntity> flowAnalysisRules = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
+        final Set<FlowAnalysisRuleEntity> flowAnalysisRules = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
                 .map(flowAnalysisRule -> createFlowAnalysisRuleEntity(flowAnalysisRule))
                 .collect(Collectors.toSet());
 
@@ -6873,77 +6874,77 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public FlowAnalysisResultEntity getFlowAnalysisResult() {
-        Collection<RuleViolation> ruleViolations = ruleViolationsManager.getAllRuleViolations();
+        final Collection<RuleViolation> ruleViolations = ruleViolationsManager.getAllRuleViolations();
 
-        FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
+        final FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
 
         return flowAnalysisResultEntity;
     }
 
     @Override
-    public FlowAnalysisResultEntity getFlowAnalysisResult(String processGroupId) {
-        Set<RuleViolation> ruleViolations = getRuleViolationStream(processGroupId).collect(Collectors.toSet());
+    public FlowAnalysisResultEntity getFlowAnalysisResult(final String processGroupId) {
+        final Set<RuleViolation> ruleViolations = getRuleViolationStream(processGroupId).collect(Collectors.toSet());
 
-        FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
+        final FlowAnalysisResultEntity flowAnalysisResultEntity = createFlowAnalysisResultEntity(ruleViolations);
 
         return flowAnalysisResultEntity;
     }
 
-    public Stream<RuleViolation> getRuleViolationStream(String processGroupId) {
+    public Stream<RuleViolation> getRuleViolationStream(final String processGroupId) {
         if (ruleViolationsManager.isEmpty()) {
             return Stream.empty();
         }
 
-        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
 
         if (processGroup.getIdentifier().equals(processGroupDAO.getProcessGroup(FlowManager.ROOT_GROUP_ID_ALIAS).getIdentifier())) {
             return ruleViolationsManager.getAllRuleViolations().stream();
         } else {
 
-            Set<String> allIdsOfProcessGroupAndChildren = new HashSet<>();
+            final Set<String> allIdsOfProcessGroupAndChildren = new HashSet<>();
 
             collectGroupIdsRecursively(processGroupId, allIdsOfProcessGroupAndChildren);
 
-            Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroups(allIdsOfProcessGroupAndChildren);
+            final Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroups(allIdsOfProcessGroupAndChildren);
 
             return ruleViolations.stream();
         }
     }
 
-    private void collectGroupIdsRecursively(String processGroupId, Set<String> allIdsOfProcessGroupAndChildren) {
+    private void collectGroupIdsRecursively(final String processGroupId, final Set<String> allIdsOfProcessGroupAndChildren) {
         allIdsOfProcessGroupAndChildren.add(processGroupId);
 
-        ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
-        Set<ProcessGroup> children = processGroup.getProcessGroups();
-        for (ProcessGroup child : children) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+        final Set<ProcessGroup> children = processGroup.getProcessGroups();
+        for (final ProcessGroup child : children) {
             collectGroupIdsRecursively(child.getIdentifier(), allIdsOfProcessGroupAndChildren);
         }
     }
 
-    public FlowAnalysisResultEntity createFlowAnalysisResultEntity(Collection<RuleViolation> ruleViolations) {
-        FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
+    public FlowAnalysisResultEntity createFlowAnalysisResultEntity(final Collection<RuleViolation> ruleViolations) {
+        final FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
 
         controllerFacade.getFlowManager().getFlowAnalyzer().ifPresent(
                 flowAnalyzer -> entity.setFlowAnalysisPending(flowAnalyzer.isFlowAnalysisRequired())
         );
 
-        List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
+        final List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = flowAnalysisRuleDAO.getFlowAnalysisRules().stream()
                 .filter(FlowAnalysisRuleNode::isEnabled)
                 .sorted(Comparator.comparing(FlowAnalysisRuleNode::getName))
                 .map(flowAnalysisRule -> dtoFactory.createFlowAnalysisRuleDto(flowAnalysisRule))
                 .collect(Collectors.toList());
 
-        List<FlowAnalysisRuleViolationDTO> ruleViolationDtos = ruleViolations.stream()
+        final List<FlowAnalysisRuleViolationDTO> ruleViolationDtos = ruleViolations.stream()
                 .sorted(Comparator.comparing(RuleViolation::getSubjectId)
                         .thenComparing(RuleViolation::getScope)
                         .thenComparing(RuleViolation::getRuleId)
                         .thenComparing(RuleViolation::getIssueId)
                 )
                 .map(ruleViolation -> {
-                    FlowAnalysisRuleViolationDTO ruleViolationDto = new FlowAnalysisRuleViolationDTO();
+                    final FlowAnalysisRuleViolationDTO ruleViolationDto = new FlowAnalysisRuleViolationDTO();
 
-                    String subjectId = ruleViolation.getSubjectId();
-                    String groupId = ruleViolation.getGroupId();
+                    final String subjectId = ruleViolation.getSubjectId();
+                    final String groupId = ruleViolation.getGroupId();
 
                     ruleViolationDto.setScope(ruleViolation.getScope());
                     ruleViolationDto.setSubjectId(subjectId);
@@ -6953,7 +6954,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     ruleViolationDto.setSubjectComponentType(ruleViolation.getSubjectComponentType().name());
                     ruleViolationDto.setEnforcementPolicy(ruleViolation.getEnforcementPolicy().toString());
 
-                    PermissionsDTO subjectPermissionDto = createPermissionDto(
+                    final PermissionsDTO subjectPermissionDto = createPermissionDto(
                             subjectId,
                             ruleViolation.getSubjectComponentType(),
                             groupId
@@ -7118,7 +7119,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         Authorizable authorizable;
         try {
             authorizable = getAuthorizable(subjectComponentType.name(), versionedComponent);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             authorizable = null;
         }
 
@@ -7346,7 +7347,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Autowired
-    public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
+    public void setFlowAnalysisRuleDAO(final FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
         this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
 
@@ -7411,17 +7412,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Autowired
-    public void setFlowRegistryDAO(FlowRegistryDAO flowRegistryDao) {
+    public void setFlowRegistryDAO(final FlowRegistryDAO flowRegistryDao) {
         this.flowRegistryDAO = flowRegistryDao;
     }
 
     @Autowired
-    public void setRuleViolationsManager(RuleViolationsManager ruleViolationsManager) {
+    public void setRuleViolationsManager(final RuleViolationsManager ruleViolationsManager) {
         this.ruleViolationsManager = ruleViolationsManager;
     }
 
     @Autowired
-    public void setParallelProcessingService(PredictionBasedParallelProcessingService parallelProcessingService) {
+    public void setParallelProcessingService(final PredictionBasedParallelProcessingService parallelProcessingService) {
         this.parallelProcessingService = parallelProcessingService;
     }
 

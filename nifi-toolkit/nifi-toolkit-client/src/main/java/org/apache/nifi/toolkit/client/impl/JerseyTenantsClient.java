@@ -107,7 +107,7 @@ public class JerseyTenantsClient extends AbstractJerseyClient implements Tenants
     }
 
     @Override
-    public UserGroupEntity updateUserGroup(UserGroupEntity userGroupEntity) throws NiFiClientException, IOException {
+    public UserGroupEntity updateUserGroup(final UserGroupEntity userGroupEntity) throws NiFiClientException, IOException {
         if (userGroupEntity == null) {
             throw new IllegalArgumentException("User group entity cannot be null");
         }

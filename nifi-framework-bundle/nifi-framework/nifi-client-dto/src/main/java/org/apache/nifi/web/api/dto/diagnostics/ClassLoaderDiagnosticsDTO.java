@@ -31,7 +31,7 @@ public class ClassLoaderDiagnosticsDTO {
         return bundle;
     }
 
-    public void setBundle(BundleDTO bundle) {
+    public void setBundle(final BundleDTO bundle) {
         this.bundle = bundle;
     }
 
@@ -40,7 +40,7 @@ public class ClassLoaderDiagnosticsDTO {
         return parentClassLoader;
     }
 
-    public void setParentClassLoader(ClassLoaderDiagnosticsDTO parentClassLoader) {
+    public void setParentClassLoader(final ClassLoaderDiagnosticsDTO parentClassLoader) {
         this.parentClassLoader = parentClassLoader;
     }
 }

@@ -83,7 +83,7 @@ public class IdentityMappingUtil {
         final List<IdentityMapping> mappings = new ArrayList<>();
 
         // go through each property
-        for (String propertyName : properties.getPropertyKeys()) {
+        for (final String propertyName : properties.getPropertyKeys()) {
             if (Strings.CS.startsWith(propertyName, patternPrefix)) {
                 final String key = StringUtils.substringAfter(propertyName, patternPrefix);
                 final String identityPattern = properties.getProperty(propertyName);
@@ -141,9 +141,9 @@ public class IdentityMappingUtil {
      * @param mappings the mappings
      * @return the mapped identity, or the same identity if no mappings matched
      */
-    public static String mapIdentity(final String identity, List<IdentityMapping> mappings) {
-        for (IdentityMapping mapping : mappings) {
-            Matcher m = mapping.getPattern().matcher(identity);
+    public static String mapIdentity(final String identity, final List<IdentityMapping> mappings) {
+        for (final IdentityMapping mapping : mappings) {
+            final Matcher m = mapping.getPattern().matcher(identity);
             if (m.matches()) {
                 final String pattern = mapping.getPattern().pattern();
                 final String replacementValue = escapeLiteralBackReferences(mapping.getReplacementValue(), m.groupCount());

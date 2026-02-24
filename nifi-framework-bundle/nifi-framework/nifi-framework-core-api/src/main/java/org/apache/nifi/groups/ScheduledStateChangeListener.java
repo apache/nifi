@@ -34,22 +34,22 @@ public interface ScheduledStateChangeListener {
 
     ScheduledStateChangeListener EMPTY = new ScheduledStateChangeListener() {
         @Override
-        public void onScheduledStateChange(ProcessorNode processor, ScheduledState intendedState) {
+        public void onScheduledStateChange(final ProcessorNode processor, final ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(Port port, ScheduledState intendedState) {
+        public void onScheduledStateChange(final Port port, final ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(ControllerServiceNode controllerService, ScheduledState intendedState) {
+        public void onScheduledStateChange(final ControllerServiceNode controllerService, final ScheduledState intendedState) {
 
         }
 
         @Override
-        public void onScheduledStateChange(ReportingTaskNode reportingTask, ScheduledState intendedState) {
+        public void onScheduledStateChange(final ReportingTaskNode reportingTask, final ScheduledState intendedState) {
 
         }
     };

@@ -55,30 +55,30 @@ class KafkaRecordConverterTest {
     private static final Map<String, String> SAMPLE_ATTRIBUTES = Map.of("attribute1", "value1");
 
     private static Stream<Arguments> converterProvider() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(new PublishKafka());
+        final TestRunner runner = TestRunners.newTestRunner(new PublishKafka());
 
-        JsonTreeReader jsonTreeReader = new JsonTreeReader();
+        final JsonTreeReader jsonTreeReader = new JsonTreeReader();
 
         runner.addControllerService("jsonTreeReader", jsonTreeReader);
         runner.setProperty(jsonTreeReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
         runner.enableControllerService(jsonTreeReader);
 
-        JsonRecordSetWriter jsonRecordSetWriter = new JsonRecordSetWriter();
+        final JsonRecordSetWriter jsonRecordSetWriter = new JsonRecordSetWriter();
 
         runner.addControllerService("jsonRecordSetWriter", jsonRecordSetWriter);
         runner.setProperty(jsonRecordSetWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
         runner.setProperty(jsonRecordSetWriter, JsonRecordSetWriter.OUTPUT_GROUPING, "output-oneline");
         runner.enableControllerService(jsonRecordSetWriter);
 
-        ComponentLog mockLog = mock(ComponentLog.class);
-        HeadersFactory headersFactory = mock(HeadersFactory.class);
-        KeyFactory keyFactory = mock(KeyFactory.class);
+        final ComponentLog mockLog = mock(ComponentLog.class);
+        final HeadersFactory headersFactory = mock(HeadersFactory.class);
+        final KeyFactory keyFactory = mock(KeyFactory.class);
 
-        DelimitedStreamKafkaRecordConverter delimitedStreamKafkaRecordConverter = new DelimitedStreamKafkaRecordConverter(new byte[] {'\n'}, MAX_MESSAGE_SIZE, headersFactory);
-        FlowFileStreamKafkaRecordConverter flowFileStreamKafkaRecordConverter = new FlowFileStreamKafkaRecordConverter(MAX_MESSAGE_SIZE, headersFactory, keyFactory);
-        RecordStreamKafkaRecordConverter recordStreamKafkaRecordConverter = new RecordStreamKafkaRecordConverter(jsonTreeReader, jsonRecordSetWriter, headersFactory, keyFactory, Integer.MAX_VALUE,
-                mockLog);
-        RecordWrapperStreamKafkaRecordConverter recordWrapperStreamKafkaRecordConverter = new RecordWrapperStreamKafkaRecordConverter(new MockFlowFile(0), RecordMetadataStrategy.FROM_PROPERTIES,
+        final DelimitedStreamKafkaRecordConverter delimitedStreamKafkaRecordConverter = new DelimitedStreamKafkaRecordConverter(new byte[] {'\n'}, MAX_MESSAGE_SIZE, headersFactory);
+        final FlowFileStreamKafkaRecordConverter flowFileStreamKafkaRecordConverter = new FlowFileStreamKafkaRecordConverter(MAX_MESSAGE_SIZE, headersFactory, keyFactory);
+        final RecordStreamKafkaRecordConverter recordStreamKafkaRecordConverter = new RecordStreamKafkaRecordConverter(
+                jsonTreeReader, jsonRecordSetWriter, headersFactory, keyFactory, Integer.MAX_VALUE, mockLog);
+        final RecordWrapperStreamKafkaRecordConverter recordWrapperStreamKafkaRecordConverter = new RecordWrapperStreamKafkaRecordConverter(new MockFlowFile(0), RecordMetadataStrategy.FROM_PROPERTIES,
                 jsonTreeReader, jsonRecordSetWriter, jsonRecordSetWriter, Integer.MAX_VALUE, mockLog);
 
         return Stream.of(
@@ -90,11 +90,11 @@ class KafkaRecordConverterTest {
 
     @ParameterizedTest
     @MethodSource("converterProvider")
-    void testKafkaRecordConverter(KafkaRecordConverter converter, int expectedCount) throws Exception {
+    void testKafkaRecordConverter(final KafkaRecordConverter converter, final int expectedCount) throws Exception {
         populateSampleInput();
 
-        InputStream inputStream = new ByteArrayInputStream(LARGE_SAMPLE_INPUT);
-        List<KafkaRecord> recordList = new ArrayList<>();
+        final InputStream inputStream = new ByteArrayInputStream(LARGE_SAMPLE_INPUT);
+        final List<KafkaRecord> recordList = new ArrayList<>();
         converter.convert(SAMPLE_ATTRIBUTES, inputStream, LARGE_SAMPLE_INPUT.length).forEachRemaining(recordList::add);
 
         assertEquals(expectedCount, recordList.size(), "Expected exactly " + expectedCount + " records");
@@ -102,13 +102,13 @@ class KafkaRecordConverterTest {
 
     // Create 5MB of sample data with multiple records
     private static void populateSampleInput() {
-        StringBuilder sb = new StringBuilder();
-        int recordCount = EXPECTED_RECORD_COUNT;
-        int approximateRecordSize = MAX_MESSAGE_SIZE / recordCount;
+        final StringBuilder sb = new StringBuilder();
+        final int recordCount = EXPECTED_RECORD_COUNT;
+        final int approximateRecordSize = MAX_MESSAGE_SIZE / recordCount;
 
         for (int i = 0; i < recordCount; i++) {
             sb.append("{\"key\": \"").append(i).append("\",\"value\":\"");
-            int payloadSize = approximateRecordSize - 30;
+            final int payloadSize = approximateRecordSize - 30;
             for (int j = 0; j < payloadSize; j++) {
                 sb.append((char) ('A' + (j % 26)));
             }
@@ -121,11 +121,11 @@ class KafkaRecordConverterTest {
             }
         }
 
-        byte[] stringBytes = sb.toString().getBytes();
+        final byte[] stringBytes = sb.toString().getBytes();
 
         Arrays.fill(LARGE_SAMPLE_INPUT, (byte) ' ');  // Fill with spaces instead of NULL
 
-        int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
+        final int copyLength = Math.min(stringBytes.length, LARGE_SAMPLE_INPUT.length);
         System.arraycopy(stringBytes, 0, LARGE_SAMPLE_INPUT, 0, copyLength);
     }
 

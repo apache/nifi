@@ -34,15 +34,15 @@ public class Record extends Block {
     private final RootNode rootNode;
     private final int size2;
 
-    public Record(BinaryReader binaryReader, ChunkHeader chunkHeader) throws IOException {
+    public Record(final BinaryReader binaryReader, final ChunkHeader chunkHeader) throws IOException {
         super(binaryReader, chunkHeader.getOffset() + binaryReader.getPosition());
         magicNumber = NumberUtil.intValueExpected(binaryReader.readDWord(), 10794, "Invalid magic number.");
         size = NumberUtil.intValueMax(binaryReader.readDWord(), 0x10000, "Invalid size.");
         recordNum = binaryReader.readQWord();
         timestamp = binaryReader.readFileTime();
         rootNode = new RootNode(binaryReader, chunkHeader, null);
-        int desiredPosition = getInitialPosition() + size - 4;
-        int skipAmount = desiredPosition - binaryReader.getPosition();
+        final int desiredPosition = getInitialPosition() + size - 4;
+        final int skipAmount = desiredPosition - binaryReader.getPosition();
         if (skipAmount > 0) {
             binaryReader.skip(skipAmount);
         }

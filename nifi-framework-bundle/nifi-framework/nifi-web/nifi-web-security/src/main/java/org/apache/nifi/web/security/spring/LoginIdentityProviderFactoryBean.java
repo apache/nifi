@@ -71,12 +71,12 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
 
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
     @Override
-    public LoginIdentityProvider getLoginIdentityProvider(String identifier) {
+    public LoginIdentityProvider getLoginIdentityProvider(final String identifier) {
         return loginIdentityProviders.get(identifier);
     }
 
@@ -180,11 +180,11 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
             Thread.currentThread().setContextClassLoader(loginIdentityProviderClassLoader);
 
             // attempt to load the class
-            Class<?> rawLoginIdentityProviderClass = Class.forName(loginIdentityProviderClassName, true, loginIdentityProviderClassLoader);
-            Class<? extends LoginIdentityProvider> loginIdentityProviderClass = rawLoginIdentityProviderClass.asSubclass(LoginIdentityProvider.class);
+            final Class<?> rawLoginIdentityProviderClass = Class.forName(loginIdentityProviderClassName, true, loginIdentityProviderClassLoader);
+            final Class<? extends LoginIdentityProvider> loginIdentityProviderClass = rawLoginIdentityProviderClass.asSubclass(LoginIdentityProvider.class);
 
             // otherwise create a new instance
-            Constructor<? extends LoginIdentityProvider> constructor = loginIdentityProviderClass.getConstructor();
+            final Constructor<? extends LoginIdentityProvider> constructor = loginIdentityProviderClass.getConstructor();
             instance = constructor.newInstance();
 
             // method injection
@@ -280,21 +280,21 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
         return new LoginIdentityProvider() {
 
             @Override
-            public AuthenticationResponse authenticate(LoginCredentials credentials) {
+            public AuthenticationResponse authenticate(final LoginCredentials credentials) {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     return baseProvider.authenticate(credentials);
                 }
             }
 
             @Override
-            public void initialize(LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
+            public void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     baseProvider.initialize(initializationContext);
                 }
             }
 
             @Override
-            public void onConfigured(LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
+            public void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
                 try (final NarCloseable ignored = NarCloseable.withNarLoader()) {
                     baseProvider.onConfigured(configurationContext);
                 }
@@ -326,7 +326,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, Di
         }
     }
 
-    public void setExtensionManager(ExtensionManager extensionManager) {
+    public void setExtensionManager(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
     }
 

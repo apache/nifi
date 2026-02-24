@@ -36,7 +36,7 @@ public class SupportedOperation implements Serializable {
         return type;
     }
 
-    public void setType(OperationType type) {
+    public void setType(final OperationType type) {
         this.type = type;
     }
 
@@ -44,19 +44,19 @@ public class SupportedOperation implements Serializable {
         return properties;
     }
 
-    public void setProperties(Map<OperandType, Map<String, Object>> properties) {
+    public void setProperties(final Map<OperandType, Map<String, Object>> properties) {
         this.properties = properties;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        SupportedOperation that = (SupportedOperation) o;
+        final SupportedOperation that = (SupportedOperation) o;
         return type == that.type && Objects.equals(properties, that.properties);
     }
 

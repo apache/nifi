@@ -52,7 +52,7 @@ public class Query {
         return startDate;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(final Date startDate) {
         this.startDate = startDate;
     }
 
@@ -60,7 +60,7 @@ public class Query {
         return endDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(final Date endDate) {
         this.endDate = endDate;
     }
 
@@ -68,7 +68,7 @@ public class Query {
         return maxResults;
     }
 
-    public void setMaxResults(int maxResults) {
+    public void setMaxResults(final int maxResults) {
         this.maxResults = maxResults;
     }
 

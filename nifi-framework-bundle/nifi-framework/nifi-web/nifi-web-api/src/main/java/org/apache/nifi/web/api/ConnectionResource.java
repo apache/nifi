@@ -73,8 +73,8 @@ public class ConnectionResource extends ApplicationResource {
      * @param connectionEntities connections
      * @return dtos
      */
-    public Set<ConnectionEntity> populateRemainingConnectionEntitiesContent(Set<ConnectionEntity> connectionEntities) {
-        for (ConnectionEntity connectionEntity : connectionEntities) {
+    public Set<ConnectionEntity> populateRemainingConnectionEntitiesContent(final Set<ConnectionEntity> connectionEntities) {
+        for (final ConnectionEntity connectionEntity : connectionEntities) {
             populateRemainingConnectionEntityContent(connectionEntity);
         }
         return connectionEntities;
@@ -86,7 +86,7 @@ public class ConnectionResource extends ApplicationResource {
      * @param connectionEntity connection
      * @return dto
      */
-    public ConnectionEntity populateRemainingConnectionEntityContent(ConnectionEntity connectionEntity) {
+    public ConnectionEntity populateRemainingConnectionEntityContent(final ConnectionEntity connectionEntity) {
         connectionEntity.setUri(generateResourceUri("connections", connectionEntity.getId()));
         return connectionEntity;
     }
@@ -136,7 +136,7 @@ public class ConnectionResource extends ApplicationResource {
         });
 
         // get the specified relationship
-        ConnectionEntity entity = serviceFacade.getConnection(id);
+        final ConnectionEntity entity = serviceFacade.getConnection(id);
         populateRemainingConnectionEntityContent(entity);
 
         // generate the response
@@ -231,7 +231,7 @@ public class ConnectionResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     // verifies write access to this connection (this checks the current source and destination)
-                    ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(id);
                     connAuth.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // if a destination has been specified and is different
@@ -359,12 +359,12 @@ public class ConnectionResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

@@ -28,10 +28,10 @@ public class BulletinBoardPatternParameter {
 
     private Pattern patternValue;
 
-    public BulletinBoardPatternParameter(String rawPatternValue) {
+    public BulletinBoardPatternParameter(final String rawPatternValue) {
         try {
             patternValue = Pattern.compile(String.format(".*%s.*", rawPatternValue));
-        } catch (PatternSyntaxException pse) {
+        } catch (final PatternSyntaxException pse) {
             throw new IllegalArgumentException(String.format(INVALID_PATTERN_MESSAGE, rawPatternValue));
         }
     }

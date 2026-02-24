@@ -284,7 +284,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof Iterable<?> iterable) {
                 options = new ArrayList<>();
-                for (Object option : iterable) {
+                for (final Object option : iterable) {
                     if (option instanceof Record optionRecord) {
                         final String optionKey = optionRecord.getAsString("key");
                         if (optionKey != null && !optionKey.isBlank()) {
@@ -314,7 +314,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
         private final String displayName;
         private final String description;
 
-        ExtractionMethod(String displayName, String description) {
+        ExtractionMethod(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }

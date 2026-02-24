@@ -28,8 +28,8 @@ class ByteCountingOutputStreamTest {
 
     @Test
     void testReset() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(100);
-        ByteCountingOutputStream bcos = new ByteCountingOutputStream(baos);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream(100);
+        final ByteCountingOutputStream bcos = new ByteCountingOutputStream(baos);
         bcos.write("Hello".getBytes(StandardCharsets.UTF_8));
         assertEquals(5, bcos.getBytesWritten());
         bcos.reset();

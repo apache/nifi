@@ -71,7 +71,7 @@ public class FlowFileSourceProxy extends PythonProcessorProxy<FlowFileSource> {
             final Map<String, String> attributes = result.getAttributes();
             final byte[] contents = result.getContents();
 
-            FlowFile output = createFlowFile(session, attributes, contents);
+            final FlowFile output = createFlowFile(session, attributes, contents);
 
             if (REL_SUCCESS.getName().equals(relationshipName)) {
                 session.transfer(output, REL_SUCCESS);

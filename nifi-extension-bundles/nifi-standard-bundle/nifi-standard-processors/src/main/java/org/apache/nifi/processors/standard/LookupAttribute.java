@@ -113,7 +113,7 @@ public class LookupAttribute extends AbstractProcessor {
     private Map<PropertyDescriptor, PropertyValue> dynamicProperties;
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> errors = new ArrayList<>(super.customValidate(validationContext));
 
         final Set<PropertyDescriptor> dynamicProperties = validationContext.getProperties().keySet().stream()
@@ -177,11 +177,11 @@ public class LookupAttribute extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
         final LookupService lookupService = context.getProperty(LOOKUP_SERVICE).asControllerService(LookupService.class);
         final boolean includeEmptyValues = context.getProperty(INCLUDE_EMPTY_VALUES).asBoolean();
-        for (FlowFile flowFile : session.get(50)) {
+        for (final FlowFile flowFile : session.get(50)) {
             try {
                 onTrigger(logger, lookupService, includeEmptyValues, flowFile, session);
             } catch (final IOException e) {
@@ -191,13 +191,13 @@ public class LookupAttribute extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("lookup-service", LOOKUP_SERVICE.getName());
         config.renameProperty("include-empty-values", INCLUDE_EMPTY_VALUES.getName());
     }
 
-    private void onTrigger(ComponentLog logger, LookupService lookupService,
-                           boolean includeEmptyValues, FlowFile flowFile, ProcessSession session)
+    private void onTrigger(final ComponentLog logger, final LookupService lookupService,
+                           final boolean includeEmptyValues, final FlowFile flowFile, final ProcessSession session)
         throws ProcessException, IOException {
 
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
@@ -224,8 +224,8 @@ public class LookupAttribute extends AbstractProcessor {
                 }
             }
 
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, matched ? REL_MATCHED : REL_UNMATCHED);
+            final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(updatedFlowFile, matched ? REL_MATCHED : REL_UNMATCHED);
 
         } catch (final LookupFailureException e) {
             logger.error(e.getMessage(), e);

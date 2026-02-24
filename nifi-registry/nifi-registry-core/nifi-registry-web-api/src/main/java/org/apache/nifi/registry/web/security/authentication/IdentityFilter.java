@@ -46,13 +46,13 @@ public class IdentityFilter extends GenericFilterBean {
     private final IdentityProvider identityProvider;
     private final AuthenticationManager authenticationManager;
 
-    public IdentityFilter(IdentityProvider identityProvider, AuthenticationManager authenticationManager) {
+    public IdentityFilter(final IdentityProvider identityProvider, final AuthenticationManager authenticationManager) {
         this.identityProvider = identityProvider;
         this.authenticationManager = authenticationManager;
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain) throws IOException, ServletException {
 
         // Only require authentication from an identity provider if the NiFi registry is running securely.
         if (!servletRequest.isSecure()) {
@@ -78,9 +78,9 @@ public class IdentityFilter extends GenericFilterBean {
         logger.debug("Attempting to extract user credentials using {}", identityProvider.getClass().getSimpleName());
 
         try {
-            AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest) servletRequest);
+            final AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest) servletRequest);
             if (authenticationRequest != null) {
-                Authentication authenticationRequestToken = new AuthenticationRequestToken(
+                final Authentication authenticationRequestToken = new AuthenticationRequestToken(
                         authenticationRequest,
                         identityProvider.getClass(),
                         servletRequest.getRemoteAddr());

@@ -54,7 +54,7 @@ public class HDFSListing {
      *
      * @param latestTimestamp the timestamp of the modification date of the newest file that was contained in the HDFS Listing
      */
-    public void setLatestTimestamp(Date latestTimestamp) {
+    public void setLatestTimestamp(final Date latestTimestamp) {
         this.latestTimestamp = latestTimestamp;
     }
 
@@ -83,7 +83,7 @@ public class HDFSListing {
      * equal to {@link #getLatestTimestamp()}
      * @param matchingPaths the paths that have last modified date matching the latest timestamp
      */
-    public void setMatchingPaths(Collection<String> matchingPaths) {
+    public void setMatchingPaths(final Collection<String> matchingPaths) {
         this.matchingPaths = matchingPaths;
     }
 

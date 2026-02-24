@@ -99,7 +99,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     }
 
     @Override
-    public boolean testFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+    public boolean testFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule) {
         final VersionedFlowAnalysisRule versionedFlowAnalysisRule = flowAnalysisRules.get(flowAnalysisRule.getIdentifier());
         return versionedFlowAnalysisRule != null && versionedFlowAnalysisRule.getScheduledState() == ScheduledState.ENABLED;
     }

@@ -32,7 +32,7 @@ public class VersionedFlowSnapshotMetadataSetEntity extends Entity {
         return versionedFlowSnapshotMetadataSet;
     }
 
-    public void setVersionedFlowSnapshotMetadataSet(Set<VersionedFlowSnapshotMetadataEntity> versionedFlowSnapshotMetadataSet) {
+    public void setVersionedFlowSnapshotMetadataSet(final Set<VersionedFlowSnapshotMetadataEntity> versionedFlowSnapshotMetadataSet) {
         this.versionedFlowSnapshotMetadataSet = versionedFlowSnapshotMetadataSet;
     }
 

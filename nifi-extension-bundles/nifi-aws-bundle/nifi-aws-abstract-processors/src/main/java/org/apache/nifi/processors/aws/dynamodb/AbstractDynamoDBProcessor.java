@@ -166,7 +166,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Batch items for each request (between 1 and 50)", BATCH_SIZE.getName());
         config.renameProperty("Json Document attribute", JSON_DOCUMENT.getName());
@@ -193,11 +193,11 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         return builder.build();
     }
 
-    protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles, Exception exception) {
-        List<FlowFile> failedFlowFiles = new ArrayList<>();
-        for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
-            failedFlowFiles.add(flowFile);
+    protected List<FlowFile> processException(final ProcessSession session, final List<FlowFile> flowFiles, final Exception exception) {
+        final List<FlowFile> failedFlowFiles = new ArrayList<>();
+        for (final FlowFile flowFile : flowFiles) {
+            final FlowFile updatedFlowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
+            failedFlowFiles.add(updatedFlowFile);
         }
         return failedFlowFiles;
     }
@@ -205,12 +205,12 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     protected List<FlowFile> processSdkException(final ProcessSession session, final List<FlowFile> flowFiles,
             final SdkException exception) {
         final List<FlowFile> failedFlowFiles = new ArrayList<>();
-        for (FlowFile flowFile : flowFiles) {
-            Map<String, String> attributes = new HashMap<>();
+        for (final FlowFile flowFile : flowFiles) {
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
             attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            failedFlowFiles.add(flowFile);
+            final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+            failedFlowFiles.add(updatedFlowFile);
         }
         return failedFlowFiles;
     }
@@ -218,8 +218,8 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     protected List<FlowFile> processServiceException(final ProcessSession session, final List<FlowFile> flowFiles,
             final AwsServiceException exception) {
         final List<FlowFile> failedFlowFiles = new ArrayList<>();
-        for (FlowFile flowFile : flowFiles) {
-            Map<String, String> attributes = new HashMap<>();
+        for (final FlowFile flowFile : flowFiles) {
+            final Map<String, String> attributes = new HashMap<>();
             attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
             attributes.put(DYNAMODB_ERROR_CODE, exception.awsErrorDetails().errorCode());
             attributes.put(DYNAMODB_ERROR_MESSAGE, exception.awsErrorDetails().errorMessage());
@@ -227,8 +227,8 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
             attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.requestId());
             attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.statusCode()));
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            failedFlowFiles.add(flowFile);
+            final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, attributes);
+            failedFlowFiles.add(updatedFlowFile);
         }
         return failedFlowFiles;
     }
@@ -257,14 +257,14 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         keysToFlowFileMap.remove(itemKeys);
     }
 
-    protected boolean isRangeKeyValueConsistent(final String rangeKeyName, final AttributeValue rangeKeyValue, final ProcessSession session, FlowFile flowFile) {
+    protected boolean isRangeKeyValueConsistent(final String rangeKeyName, final AttributeValue rangeKeyValue, final ProcessSession session, final FlowFile flowFile) {
         try {
             validateRangeKeyValue(rangeKeyName, rangeKeyValue);
         } catch (final IllegalArgumentException e) {
             getLogger().error("{}", flowFile, e);
-            flowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key '" + rangeKeyName
+            final FlowFile updatedFlowFile = session.putAttribute(flowFile, DYNAMODB_RANGE_KEY_VALUE_ERROR, "range key '" + rangeKeyName
                  + "'/value '" + rangeKeyValue + "' inconsistency error");
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(updatedFlowFile, REL_FAILURE);
             return false;
         }
 
@@ -272,7 +272,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     }
 
     protected void validateRangeKeyValue(final String rangeKeyName, final AttributeValue rangeKeyValue) {
-        boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
+        final boolean isRangeNameBlank = StringUtils.isBlank(rangeKeyName);
         boolean isConsistent = true;
         if (!isRangeNameBlank && isBlank(rangeKeyValue)) {
             isConsistent = false;
@@ -285,21 +285,18 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         }
     }
 
-    protected boolean isHashKeyValueConsistent(final String hashKeyName, final AttributeValue hashKeyValue, final ProcessSession session, FlowFile flowFile) {
-
-        boolean isConsistent = true;
-
+    protected boolean isHashKeyValueConsistent(final String hashKeyName, final AttributeValue hashKeyValue, final ProcessSession session, final FlowFile flowFile) {
         try {
             validateHashKeyValue(hashKeyValue);
         } catch (final IllegalArgumentException e) {
             getLogger().error("{}", flowFile, e);
-            flowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR, "hash key " + hashKeyName + "/value '" + hashKeyValue + "' inconsistency error");
-            session.transfer(flowFile, REL_FAILURE);
-            isConsistent = false;
+            final FlowFile updatedFlowFile = session.putAttribute(flowFile, DYNAMODB_HASH_KEY_VALUE_ERROR,
+                    "hash key " + hashKeyName + "/value '" + hashKeyValue + "' inconsistency error");
+            session.transfer(updatedFlowFile, REL_FAILURE);
+            return false;
         }
 
-        return isConsistent;
-
+        return true;
     }
 
     protected void validateHashKeyValue(final AttributeValue hashKeyValue) {

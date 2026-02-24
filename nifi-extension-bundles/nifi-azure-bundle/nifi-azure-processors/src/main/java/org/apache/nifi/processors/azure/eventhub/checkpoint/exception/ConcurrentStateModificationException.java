@@ -18,7 +18,7 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint.exception;
 
 public class ConcurrentStateModificationException extends ComponentStateCheckpointStoreException {
 
-    public ConcurrentStateModificationException(String message) {
+    public ConcurrentStateModificationException(final String message) {
         super(message);
     }
 }

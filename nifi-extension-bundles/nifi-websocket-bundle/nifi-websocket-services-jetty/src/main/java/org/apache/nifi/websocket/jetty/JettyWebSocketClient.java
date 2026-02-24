@@ -258,7 +258,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
 
         if (proxyHost != null && proxyPort != null) {
-            HttpProxy httpProxy = new HttpProxy(proxyHost, proxyPort);
+            final HttpProxy httpProxy = new HttpProxy(proxyHost, proxyPort);
             httpClient.getProxyConfiguration().addProxy(httpProxy);
         }
 
@@ -301,7 +301,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
         final boolean proxyPortSet = validationContext.getProperty(PROXY_PORT).isSet();
@@ -330,7 +330,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         if (sessionMaintenanceScheduler != null) {
             try {
                 sessionMaintenanceScheduler.shutdown();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().warn("Failed to shutdown session maintainer due to {}", e, e);
             }
             sessionMaintenanceScheduler = null;
@@ -357,7 +357,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private void connect(final String clientId, final String sessionId, final Map<String, String> flowFileAttributes) throws IOException {
         try {
             webSocketUri = new URI(configurationContext.getProperty(WS_URI).evaluateAttributeExpressions(flowFileAttributes).getValue());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new ProcessException("Could not create websocket URI", e);
         }
 
@@ -367,7 +367,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             final WebSocketMessageRouter router;
             try {
                 router = routers.getRouterOrFail(clientId);
-            } catch (WebSocketConfigurationException e) {
+            } catch (final WebSocketConfigurationException e) {
                 throw new IllegalStateException("Failed to get router due to: " + e, e);
             }
             final RoutingWebSocketListener listener = new RoutingWebSocketListener(router);
@@ -393,7 +393,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         }
     }
 
-    private Session attemptConnection(RoutingWebSocketListener listener, ClientUpgradeRequest request, int connectCount) throws IOException {
+    private Session attemptConnection(final RoutingWebSocketListener listener, final ClientUpgradeRequest request, final int connectCount) throws IOException {
         int backoffMillis = INITIAL_BACKOFF_MILLIS;
         int backoffJitterMillis;
         for (int i = 0; i < connectCount; i++) {
@@ -402,13 +402,13 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             getLogger().info("Connecting to : {}", webSocketUri);
             try {
                 return connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-            } catch (TimeoutException e) {
+            } catch (final TimeoutException e) {
                 getLogger().warn("Connection attempt to {} timed out", webSocketUri);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 final String errorMessage = String.format("Thread was interrupted while attempting to connect to %s", webSocketUri);
                 throw new ProcessException(errorMessage, e);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().warn("Failed to connect to {}, reconnection attempt {}", webSocketUri, i + 1, e);
             }
 
@@ -417,7 +417,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 try {
                     getLogger().info("Sleeping {} ms before new connection attempt.", sleepTime);
                     Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     final String errorMessage = String.format("Thread was interrupted while reconnecting to %s with %s backoffMillis", webSocketUri, sleepTime);
                     throw new ProcessException(errorMessage, e);
@@ -428,7 +428,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         throw new IOException("Failed to connect " + webSocketUri + " after " + connectCount + " attempts");
     }
 
-    Future<Session> createWebsocketSession(RoutingWebSocketListener listener, ClientUpgradeRequest request) throws IOException {
+    Future<Session> createWebsocketSession(final RoutingWebSocketListener listener, final ClientUpgradeRequest request) throws IOException {
         return client.connect(listener, request);
     }
 
@@ -442,7 +442,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         final ComponentLog logger = getLogger();
         try {
             // Loop through existing sessions and reconnect.
-            for (String clientId : activeSessions.keySet()) {
+            for (final String clientId : activeSessions.keySet()) {
                 final WebSocketMessageRouter router;
                 try {
                     router = routers.getRouterOrFail(clientId);

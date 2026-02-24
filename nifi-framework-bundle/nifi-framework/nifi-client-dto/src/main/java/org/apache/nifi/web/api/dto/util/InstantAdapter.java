@@ -26,12 +26,12 @@ import java.time.Instant;
 public class InstantAdapter extends XmlAdapter<String, Instant> {
 
     @Override
-    public String marshal(Instant instant) throws Exception {
+    public String marshal(final Instant instant) throws Exception {
         return instant.toString();
     }
 
     @Override
-    public Instant unmarshal(String instant) throws Exception {
+    public Instant unmarshal(final String instant) throws Exception {
         return Instant.parse(instant);
     }
 }

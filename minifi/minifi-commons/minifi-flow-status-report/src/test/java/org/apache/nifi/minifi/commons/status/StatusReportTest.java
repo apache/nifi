@@ -39,7 +39,7 @@ public class StatusReportTest {
 
     @Test
     public void verifySerializableFullyPopulated() throws IOException, ClassNotFoundException {
-        FlowStatusReport original = new FlowStatusReport();
+        final FlowStatusReport original = new FlowStatusReport();
 
         addControllerServiceStatus(original, true, true, true, true);
         addInstanceStatus(original, true, true, true, true);
@@ -49,15 +49,15 @@ public class StatusReportTest {
         addProcessorStatus(original, true, true, true, true, true);
         addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true, true);
 
-        byte[] byteArrayCopy = serialize(original);
-        FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);
+        final byte[] byteArrayCopy = serialize(original);
+        final FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);
 
         assertEquals(original, copy);
     }
 
     @Test
     public void verifySerializableSomeNull() throws IOException, ClassNotFoundException {
-        FlowStatusReport original = new FlowStatusReport();
+        final FlowStatusReport original = new FlowStatusReport();
 
         addControllerServiceStatus(original, true, true, true, true);
         addInstanceStatus(original, true, true, true, true);
@@ -65,24 +65,24 @@ public class StatusReportTest {
         addProcessorStatus(original, true, true, true, true, true);
         addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true, true);
 
-        byte[] byteArrayCopy = serialize(original);
-        FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);
+        final byte[] byteArrayCopy = serialize(original);
+        final FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);
 
         assertEquals(original, copy);
     }
 
-    private static <T extends Serializable> byte[] serialize(T obj) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+    private static <T extends Serializable> byte[] serialize(final T obj) throws IOException {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(obj);
         oos.close();
         return baos.toByteArray();
     }
 
-    private static <T extends Serializable> T unSerialize(byte[] b, Class<T> cl) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(b);
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        Object o = ois.readObject();
+    private static <T extends Serializable> T unSerialize(final byte[] b, final Class<T> cl) throws IOException, ClassNotFoundException {
+        final ByteArrayInputStream bais = new ByteArrayInputStream(b);
+        final ObjectInputStream ois = new ObjectInputStream(bais);
+        final Object o = ois.readObject();
         return cl.cast(o);
     }
 }

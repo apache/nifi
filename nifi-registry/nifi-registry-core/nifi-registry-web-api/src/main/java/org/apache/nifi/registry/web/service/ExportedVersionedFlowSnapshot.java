@@ -44,11 +44,11 @@ public class ExportedVersionedFlowSnapshot {
         this.filename = filename;
     }
 
-    public void setVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+    public void setVersionedFlowSnapshot(final VersionedFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
-    public void setFilename(String filename) {
+    public void setFilename(final String filename) {
         this.filename = filename;
     }
 

@@ -35,7 +35,7 @@ public class Divide extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final FieldValue lhs = lhsPath.evaluate(context).findFirst().orElseThrow(() -> new IllegalArgumentException("divide function requires a left-hand operand"));
         final FieldValue rhs = rhsPath.evaluate(context).findFirst().orElseThrow(() -> new IllegalArgumentException("divide function requires a right-hand operand"));
 

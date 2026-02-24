@@ -50,20 +50,20 @@ public class GeohashRecordTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        ControllerService reader = new JsonTreeReader();
-        ControllerService writer = new JsonRecordSetWriter();
-        ControllerService registry = new MockSchemaRegistry();
+        final ControllerService reader = new JsonTreeReader();
+        final ControllerService writer = new JsonRecordSetWriter();
+        final ControllerService registry = new MockSchemaRegistry();
         runner = TestRunners.newTestRunner(GeohashRecord.class);
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
         runner.addControllerService("registry", registry);
 
         try (InputStream is = getClass().getResourceAsStream("/record_schema.avsc")) {
-            String raw = IOUtils.toString(is, StandardCharsets.UTF_8);
-            RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
+            final String raw = IOUtils.toString(is, StandardCharsets.UTF_8);
+            final RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
             ((MockSchemaRegistry) registry).addSchema("record", parsed);
 
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
 
@@ -84,8 +84,8 @@ public class GeohashRecordTest {
         runner.setProperty(GeohashRecord.GEOHASH_LEVEL, "12");
     }
 
-    private void assertTransfers(String path, int failure, int success, int matched, int notMatched, int original) {
-        Map<String, String> attrs = new HashMap<>();
+    private void assertTransfers(final String path, final int failure, final int success, final int matched, final int notMatched, final int original) {
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "record");
         runner.enqueue(getClass().getResourceAsStream(path), attrs);
         runner.run();
@@ -105,17 +105,17 @@ public class GeohashRecordTest {
 
         assertTransfers("/encode-records-with-illegal-arguments.json", 0, 1, 0, 0, 1);
 
-        MockFlowFile outSuccess = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).getFirst();
-        byte[] raw = runner.getContentAsByteArray(outSuccess);
-        String content = new String(raw);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> result = (List<Map<String, Object>>) mapper.readValue(content, List.class);
+        final MockFlowFile outSuccess = runner.getFlowFilesForRelationship(GeohashRecord.REL_SUCCESS).getFirst();
+        final byte[] raw = runner.getContentAsByteArray(outSuccess);
+        final String content = new String(raw);
+        final ObjectMapper mapper = new ObjectMapper();
+        final List<Map<String, Object>> result = (List<Map<String, Object>>) mapper.readValue(content, List.class);
 
         assertNotNull(result);
         assertEquals(3, result.size());
 
-        Map<String, Object> element = result.getFirst();
-        String geohash = (String) element.get("geohash");
+        final Map<String, Object> element = result.getFirst();
+        final String geohash = (String) element.get("geohash");
         assertNotNull(geohash);
     }
 
@@ -139,26 +139,26 @@ public class GeohashRecordTest {
         final MockFlowFile outNotMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_NOT_MATCHED).getFirst();
         final MockFlowFile outMatched = runner.getFlowFilesForRelationship(GeohashRecord.REL_MATCHED).getFirst();
 
-        byte[] rawNotMatched = runner.getContentAsByteArray(outNotMatched);
-        byte[] rawMatched = runner.getContentAsByteArray(outMatched);
-        String contentNotMatched = new String(rawNotMatched);
-        String contentMatched = new String(rawMatched);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> resultNotMatched = (List<Map<String, Object>>) mapper.readValue(contentNotMatched, List.class);
-        List<Map<String, Object>> resultMatched = (List<Map<String, Object>>) mapper.readValue(contentMatched, List.class);
+        final byte[] rawNotMatched = runner.getContentAsByteArray(outNotMatched);
+        final byte[] rawMatched = runner.getContentAsByteArray(outMatched);
+        final String contentNotMatched = new String(rawNotMatched);
+        final String contentMatched = new String(rawMatched);
+        final ObjectMapper mapper = new ObjectMapper();
+        final List<Map<String, Object>> resultNotMatched = (List<Map<String, Object>>) mapper.readValue(contentNotMatched, List.class);
+        final List<Map<String, Object>> resultMatched = (List<Map<String, Object>>) mapper.readValue(contentMatched, List.class);
 
         assertNotNull(resultNotMatched);
         assertNotNull(resultMatched);
         assertEquals(2, resultNotMatched.size());
         assertEquals(1, resultMatched.size());
 
-        for (Map<String, Object> elementNotMatched : resultNotMatched) {
-            String geohashNotMatched = (String) elementNotMatched.get("geohash");
+        for (final Map<String, Object> elementNotMatched : resultNotMatched) {
+            final String geohashNotMatched = (String) elementNotMatched.get("geohash");
             assertNull(geohashNotMatched);
         }
 
-        Map<String, Object> elementMatched = resultMatched.getFirst();
-        String geohashMatched = (String) elementMatched.get("geohash");
+        final Map<String, Object> elementMatched = resultMatched.getFirst();
+        final String geohashMatched = (String) elementMatched.get("geohash");
         assertNotNull(geohashMatched);
     }
 

@@ -61,7 +61,7 @@ public class PortDTO extends ComponentDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -77,7 +77,7 @@ public class PortDTO extends ComponentDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -90,7 +90,7 @@ public class PortDTO extends ComponentDTO {
         return concurrentlySchedulableTaskCount;
     }
 
-    public void setConcurrentlySchedulableTaskCount(Integer concurrentlySchedulableTaskCount) {
+    public void setConcurrentlySchedulableTaskCount(final Integer concurrentlySchedulableTaskCount) {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
@@ -103,7 +103,7 @@ public class PortDTO extends ComponentDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -116,7 +116,7 @@ public class PortDTO extends ComponentDTO {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -131,7 +131,7 @@ public class PortDTO extends ComponentDTO {
         return validationErrors;
     }
 
-    public void setValidationErrors(Collection<String> validationErrors) {
+    public void setValidationErrors(final Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
@@ -144,7 +144,7 @@ public class PortDTO extends ComponentDTO {
         return allowRemoteAccess;
     }
 
-    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+    public void setAllowRemoteAccess(final Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
     }
 

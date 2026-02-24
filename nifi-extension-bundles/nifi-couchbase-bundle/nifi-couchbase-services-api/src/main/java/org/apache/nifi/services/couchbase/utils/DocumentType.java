@@ -26,7 +26,7 @@ public enum DocumentType {
 
     private final String mimeType;
 
-    DocumentType(String mimeType) {
+    DocumentType(final String mimeType) {
         this.mimeType = mimeType;
     }
 

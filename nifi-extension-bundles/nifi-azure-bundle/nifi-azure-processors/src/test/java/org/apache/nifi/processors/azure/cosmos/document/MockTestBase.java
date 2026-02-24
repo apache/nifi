@@ -36,14 +36,14 @@ public class MockTestBase {
     public static final String MOCK_PARTITION_FIELD_NAME = "category";
     protected TestRunner testRunner;
 
-    protected void setBasicMockProperties(boolean withConnectionService) throws InitializationException {
+    protected void setBasicMockProperties(final boolean withConnectionService) throws InitializationException {
         if (testRunner != null) {
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.DATABASE_NAME, MOCK_DB_NAME);
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.CONTAINER_ID, MOCK_CONTAINER_ID);
             testRunner.setProperty(AbstractAzureCosmosDBProcessor.PARTITION_KEY, MOCK_PARTITION_FIELD_NAME);
             if (withConnectionService) {
                 // setup connnection controller service
-                AzureCosmosDBClientService service = new MockConnectionService();
+                final AzureCosmosDBClientService service = new MockConnectionService();
                 testRunner.addControllerService("connService", service);
                 testRunner.setProperty(service, AzureCosmosDBUtils.URI, MOCK_URI);
                 testRunner.setProperty(service, AzureCosmosDBUtils.DB_ACCESS_KEY, MOCK_DB_ACCESS_KEY);

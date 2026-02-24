@@ -39,7 +39,7 @@ public class BucketItemDeserializer extends StdDeserializer<BucketItem[]> {
     }
 
     @Override
-    public BucketItem[] deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+    public BucketItem[] deserialize(final JsonParser jsonParser, final DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
         final JsonNode arrayNode = jsonParser.getCodec().readTree(jsonParser);
 
         final List<BucketItem> bucketItems = new ArrayList<>();
@@ -56,7 +56,7 @@ public class BucketItemDeserializer extends StdDeserializer<BucketItem[]> {
             final BucketItemType bucketItemType;
             try {
                 bucketItemType = BucketItemType.valueOf(type);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new IllegalStateException("Unknown type for BucketItem: " + type, e);
             }
 

@@ -36,7 +36,7 @@ public class ListingRequestEntity extends Entity {
         return listingRequest;
     }
 
-    public void setListingRequest(ListingRequestDTO listingRequest) {
+    public void setListingRequest(final ListingRequestDTO listingRequest) {
         this.listingRequest = listingRequest;
     }
 

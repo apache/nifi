@@ -42,10 +42,10 @@ public enum ListFlowFileState {
      * @param description string form of list flow file state
      * @return the matching ListFlowFileState or <code>null</code> if the description doesn't match
      */
-    public static ListFlowFileState valueOfDescription(String description) {
+    public static ListFlowFileState valueOfDescription(final String description) {
         ListFlowFileState desiredState = null;
 
-        for (ListFlowFileState state : values()) {
+        for (final ListFlowFileState state : values()) {
             if (state.toString().equals(description)) {
                 desiredState = state;
                 break;

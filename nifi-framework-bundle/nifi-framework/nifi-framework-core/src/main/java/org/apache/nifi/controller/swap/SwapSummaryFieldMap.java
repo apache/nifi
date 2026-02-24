@@ -87,7 +87,7 @@ public class SwapSummaryFieldMap implements Record {
         // In the event that min and totalLastQueueDate are null, set them to neutral values based on
         // the current time.
         Long minLastQueueDate = (Long) record.getFieldValue(SwapSchema.MIN_LAST_QUEUE_DATE);
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (minLastQueueDate == null) {
             minLastQueueDate = now;
         }

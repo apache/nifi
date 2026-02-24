@@ -44,9 +44,10 @@ public class ArrayManagedOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(final byte[] b, int off, final int len) throws IOException {
+    public void write(final byte[] b, final int offArg, final int len) throws IOException {
         writeLock.lock();
         try {
+            int off = offArg;
             final int bytesFreeThisBlock = currentBlock == null ? 0 : currentBlock.length - currentIndex;
             if (bytesFreeThisBlock >= len) {
                 System.arraycopy(b, off, currentBlock, currentIndex, len);

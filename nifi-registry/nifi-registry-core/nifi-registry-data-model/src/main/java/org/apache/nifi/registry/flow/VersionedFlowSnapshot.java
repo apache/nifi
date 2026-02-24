@@ -78,7 +78,7 @@ public class VersionedFlowSnapshot {
         return snapshotMetadata;
     }
 
-    public void setSnapshotMetadata(VersionedFlowSnapshotMetadata snapshotMetadata) {
+    public void setSnapshotMetadata(final VersionedFlowSnapshotMetadata snapshotMetadata) {
         this.snapshotMetadata = snapshotMetadata;
     }
 
@@ -87,7 +87,7 @@ public class VersionedFlowSnapshot {
         return flowContents;
     }
 
-    public void setFlowContents(VersionedProcessGroup flowContents) {
+    public void setFlowContents(final VersionedProcessGroup flowContents) {
         this.flowContents = flowContents;
     }
 
@@ -96,7 +96,7 @@ public class VersionedFlowSnapshot {
         return externalControllerServices;
     }
 
-    public void setExternalControllerServices(Map<String, ExternalControllerServiceReference> externalControllerServices) {
+    public void setExternalControllerServices(final Map<String, ExternalControllerServiceReference> externalControllerServices) {
         this.externalControllerServices = externalControllerServices;
     }
 
@@ -114,7 +114,7 @@ public class VersionedFlowSnapshot {
         return flow;
     }
 
-    public void setFlow(VersionedFlow flow) {
+    public void setFlow(final VersionedFlow flow) {
         this.flow = flow;
     }
 
@@ -123,7 +123,7 @@ public class VersionedFlowSnapshot {
         return bucket;
     }
 
-    public void setBucket(Bucket bucket) {
+    public void setBucket(final Bucket bucket) {
         this.bucket = bucket;
     }
 
@@ -134,7 +134,7 @@ public class VersionedFlowSnapshot {
         return parameterContexts;
     }
 
-    public void setParameterContexts(Map<String, VersionedParameterContext> parameterContexts) {
+    public void setParameterContexts(final Map<String, VersionedParameterContext> parameterContexts) {
         this.parameterContexts = parameterContexts;
     }
 
@@ -143,7 +143,7 @@ public class VersionedFlowSnapshot {
         return flowEncodingVersion;
     }
 
-    public void setFlowEncodingVersion(String flowEncodingVersion) {
+    public void setFlowEncodingVersion(final String flowEncodingVersion) {
         this.flowEncodingVersion = flowEncodingVersion;
     }
 

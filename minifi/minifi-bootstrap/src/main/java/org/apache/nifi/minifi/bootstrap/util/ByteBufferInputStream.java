@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
 public class ByteBufferInputStream extends InputStream {
     ByteBuffer buf;
 
-    public ByteBufferInputStream(ByteBuffer buf) {
+    public ByteBufferInputStream(final ByteBuffer buf) {
         this.buf = buf;
     }
 
@@ -37,14 +37,14 @@ public class ByteBufferInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] bytes, int off, int len)
+    public int read(final byte[] bytes, final int off, final int len)
             throws IOException {
         if (!buf.hasRemaining()) {
             return -1;
         }
 
-        len = Math.min(len, buf.remaining());
-        buf.get(bytes, off, len);
-        return len;
+        final int bytesToRead = Math.min(len, buf.remaining());
+        buf.get(bytes, off, bytesToRead);
+        return bytesToRead;
     }
 }

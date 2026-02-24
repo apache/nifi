@@ -53,19 +53,19 @@ import java.util.function.Function;
 public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTester {
     @Test
     public void testSequenceOfInteger() throws Exception {
-        String dataFile = "target/sequence_of_integer_wrapper.dat";
+        final String dataFile = "target/sequence_of_integer_wrapper.dat";
 
-        SequenceOfIntegerWrapper.Value value = new SequenceOfIntegerWrapper.Value();
+        final SequenceOfIntegerWrapper.Value value = new SequenceOfIntegerWrapper.Value();
         value.getBerInteger().add(new BerInteger(1234));
         value.getBerInteger().add(new BerInteger(567));
 
-        SequenceOfIntegerWrapper berValue = new SequenceOfIntegerWrapper();
+        final SequenceOfIntegerWrapper berValue = new SequenceOfIntegerWrapper();
         berValue.setValue(value);
 
-        Map<String, Object> expectedValues =
+        final Map<String, Object> expectedValues =
                 Map.of("value", new BigInteger[]{BigInteger.valueOf(1234), BigInteger.valueOf(567)});
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("value", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BIGINT.getDataType())))
         );
 
@@ -74,23 +74,23 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
 
     @Test
     public void testBasicTypes() throws Exception {
-        String dataFile = "target/basicTypes.dat";
+        final String dataFile = "target/basicTypes.dat";
 
-        BasicTypes basicTypes = new BasicTypes();
+        final BasicTypes basicTypes = new BasicTypes();
         basicTypes.setB(new BerBoolean(true));
         basicTypes.setI(new BerInteger(789));
         basicTypes.setOctStr(new BerOctetString(new byte[]{1, 2, 3, 4, 5}));
         basicTypes.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
         basicTypes.setBitStr(new BerBitString(new boolean[] {true, false, true, true}));
 
-        Map<String, Object> expectedValues =
+        final Map<String, Object> expectedValues =
                 Map.of("b", true,
                         "i", BigInteger.valueOf(789),
                         "octStr", "0102030405",
                         "utf8Str", "Some UTF-8 String. こんにちは世界。",
                         "bitStr", "1011");
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("b", RecordFieldType.BOOLEAN.getDataType()),
                 new RecordField("i", RecordFieldType.BIGINT.getDataType()),
                 new RecordField("octStr", RecordFieldType.STRING.getDataType()),
@@ -103,60 +103,60 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
 
     @Test
     public void testComposite() throws Exception {
-        String dataFile = "target/composite.dat";
+        final String dataFile = "target/composite.dat";
 
-        BasicTypes child = new BasicTypes();
+        final BasicTypes child = new BasicTypes();
         child.setB(new BerBoolean(true));
         child.setI(new BerInteger(789));
         child.setOctStr(new BerOctetString(new byte[]{1, 2, 3, 4, 5}));
 
-        BasicTypes child1 = new BasicTypes();
+        final BasicTypes child1 = new BasicTypes();
         child1.setB(new BerBoolean(true));
         child1.setI(new BerInteger(0));
         child1.setOctStr(new BerOctetString(new byte[]{0, 0, 0}));
 
-        BasicTypes child2 = new BasicTypes();
+        final BasicTypes child2 = new BasicTypes();
         child2.setB(new BerBoolean(false));
         child2.setI(new BerInteger(1));
         child2.setOctStr(new BerOctetString(new byte[]{1, 1, 1}));
 
-        BasicTypes child3 = new BasicTypes();
+        final BasicTypes child3 = new BasicTypes();
         child3.setB(new BerBoolean(true));
         child3.setI(new BerInteger(2));
         child3.setOctStr(new BerOctetString(new byte[]{2, 2, 2}));
 
-        Composite.Children children = new Composite.Children();
+        final Composite.Children children = new Composite.Children();
         children.getBasicTypes().add(child1);
         children.getBasicTypes().add(child2);
         children.getBasicTypes().add(child3);
 
-        BasicTypes unordered1 = new BasicTypes();
+        final BasicTypes unordered1 = new BasicTypes();
         unordered1.setB(new BerBoolean(true));
         unordered1.setI(new BerInteger(0));
         unordered1.setOctStr(new BerOctetString(new byte[]{0, 0, 0}));
 
-        BasicTypes unordered2 = new BasicTypes();
+        final BasicTypes unordered2 = new BasicTypes();
         unordered2.setB(new BerBoolean(false));
         unordered2.setI(new BerInteger(1));
         unordered2.setOctStr(new BerOctetString(new byte[]{1, 1, 1}));
 
-        BasicTypeSet unordered = new BasicTypeSet();
+        final BasicTypeSet unordered = new BasicTypeSet();
         unordered.getBasicTypes().add(unordered1);
         unordered.getBasicTypes().add(unordered2);
 
-        Composite.Numbers numbers = new Composite.Numbers();
+        final Composite.Numbers numbers = new Composite.Numbers();
         numbers.getBerInteger().add(new BerInteger(0));
         numbers.getBerInteger().add(new BerInteger(1));
         numbers.getBerInteger().add(new BerInteger(2));
         numbers.getBerInteger().add(new BerInteger(3));
 
-        Composite composite = new Composite();
+        final Composite composite = new Composite();
         composite.setChild(child);
         composite.setChildren(children);
         composite.setNumbers(numbers);
         composite.setUnordered(unordered);
 
-        SimpleRecordSchema expectedChildSchema = new SimpleRecordSchema(Arrays.asList(
+        final SimpleRecordSchema expectedChildSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("b", RecordFieldType.BOOLEAN.getDataType()),
                 new RecordField("i", RecordFieldType.BIGINT.getDataType()),
                 new RecordField("octStr", RecordFieldType.STRING.getDataType()),
@@ -164,7 +164,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
                 new RecordField("bitStr", RecordFieldType.STRING.getDataType())
         ));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
                 new RecordField("child", RecordFieldType.RECORD.getRecordDataType(expectedChildSchema)),
                 new RecordField("children", RecordFieldType.ARRAY.getArrayDataType(
                         RecordFieldType.RECORD.getRecordDataType(expectedChildSchema)
@@ -175,7 +175,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
                 ))
         ));
 
-        Function<Record, RecordSchema> expectedSchemaProvider = actualRecord -> {
+        final Function<Record, RecordSchema> expectedSchemaProvider = actualRecord -> {
             // Resolving lazy schema in actual by calling RecordDataType#getChildSchema()
             ((RecordDataType) actualRecord.getSchema().getField("child").get().getDataType()).getChildSchema();
             ((RecordDataType) ((ArrayDataType) actualRecord.getSchema().getField("children").get().getDataType()).getElementType()).getChildSchema();
@@ -184,7 +184,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
             return expectedSchema;
         };
 
-        Function<Record, Map<String, Object>> expectedValuesProvider = __ -> Map.of(
+        final Function<Record, Map<String, Object>> expectedValuesProvider = __ -> Map.of(
                     "child",
                     new MapRecord(expectedChildSchema, Map.of("b", true,
                         "i", BigInteger.valueOf(789),
@@ -221,14 +221,14 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
 
     @Test
     public void testRecursive() throws Exception {
-        String dataFile = "target/recursive.dat";
+        final String dataFile = "target/recursive.dat";
 
-        Recursive recursive = new Recursive();
-        Recursive.Children children = new Recursive.Children();
-        Recursive child1 = new Recursive();
-        Recursive child2 = new Recursive();
-        Recursive.Children grandChildren1 = new Recursive.Children();
-        Recursive grandChild11 = new Recursive();
+        final Recursive recursive = new Recursive();
+        final Recursive.Children children = new Recursive.Children();
+        final Recursive child1 = new Recursive();
+        final Recursive child2 = new Recursive();
+        final Recursive.Children grandChildren1 = new Recursive.Children();
+        final Recursive grandChild11 = new Recursive();
 
         grandChild11.setName(new BerIA5String("grandChildName11".getBytes()));
         grandChild11.setChildren(new Recursive.Children());
@@ -263,7 +263,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         expectedSchema.setSchemaName("Recursive");
         expectedSchema.setSchemaNamespace("org.apache.nifi.jasn1.example");
 
-        Map<String, Object> expectedValues = Map.of("name", "name",
+        final Map<String, Object> expectedValues = Map.of("name", "name",
             "children", new MapRecord[]{
                     new MapRecord(expectedSchema, Map.of("name", "childName1",
                         "children", new MapRecord[]{
@@ -279,18 +279,18 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
 
     @Test
     public void testInheritance() throws Exception {
-        String dataFile = "target/inheriting_integer_and_string_wrapper.dat";
+        final String dataFile = "target/inheriting_integer_and_string_wrapper.dat";
 
-        InheritingIntegerAndStringWrapper berValue = new InheritingIntegerAndStringWrapper();
+        final InheritingIntegerAndStringWrapper berValue = new InheritingIntegerAndStringWrapper();
         berValue.setI(new BerInteger(53286));
         berValue.setStr(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
 
-        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+        final RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
             new RecordField("i", RecordFieldType.BIGINT.getDataType()),
             new RecordField("str", RecordFieldType.STRING.getDataType())
         ));
 
-        Map<String, Object> expectedValues = Map.of("i", BigInteger.valueOf(53286L),
+        final Map<String, Object> expectedValues = Map.of("i", BigInteger.valueOf(53286L),
                 "str", "Some UTF-8 String. こんにちは世界。");
 
         testReadRecord(dataFile, berValue, expectedValues, expectedSchema);

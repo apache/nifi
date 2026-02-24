@@ -72,7 +72,7 @@ class SetSNMPIT {
 
     @ParameterizedTest
     @MethodSource("provideArguments")
-    void testSnmpSet(TestAgent testAgent, SNMPTestRunnerFactory testRunnerFactory) throws IOException {
+    void testSnmpSet(final TestAgent testAgent, final SNMPTestRunnerFactory testRunnerFactory) throws IOException {
         testAgent.start();
         try {
             final TestRunner runner = testRunnerFactory.createSnmpSetTestRunner(testAgent.getPort(), TEST_OID, TEST_OID_VALUE);
@@ -81,7 +81,7 @@ class SetSNMPIT {
 
             assertNotNull(successFF);
             assertEquals(TEST_OID_VALUE, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + TEST_OID + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             fail(e);
         } finally {
             testAgent.stop();

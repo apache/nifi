@@ -31,13 +31,13 @@ public class ProtoSchemaStrategy implements SchemaAccessStrategy {
     private final String messageType;
     private final Schema schema;
 
-    public ProtoSchemaStrategy(String messageType, Schema schema) {
+    public ProtoSchemaStrategy(final String messageType, final Schema schema) {
         this.messageType = messageType;
         this.schema = schema;
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
+    public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) {
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
         return schemaParser.createSchema(messageType);
     }

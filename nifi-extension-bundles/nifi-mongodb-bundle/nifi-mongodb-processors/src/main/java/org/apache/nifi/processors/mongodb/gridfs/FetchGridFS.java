@@ -102,21 +102,21 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(OLD_OPERATION_MODE_PROPERTY_NAME, OPERATION_MODE.getName());
         config.renameProperty("gridfs-query", QUERY.getName());
     }
 
-    private String getQuery(ProcessSession session, ProcessContext context, FlowFile input) throws IOException {
-        String queryString;
+    private String getQuery(final ProcessSession session, final ProcessContext context, final FlowFile input) throws IOException {
+        final String queryString;
         if (context.getProperty(FILE_NAME).isSet()) {
-            String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
+            final String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
             queryString = String.format("{ \"filename\": \"%s\"}", fileName);
         } else if (context.getProperty(QUERY).isSet()) {
             queryString = context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue();
         } else {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
             queryString = new String(out.toByteArray());
@@ -126,12 +126,12 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
         if (input == null) {
             return;
@@ -140,7 +140,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
         final String operatingMode = context.getProperty(OPERATION_MODE).getValue();
         final Map<String, String> originalAttributes = input.getAttributes();
 
-        String queryStr;
+        final String queryStr;
         try {
             queryStr = getQuery(session, context, input);
             if (StringUtils.isEmpty(queryStr)) {
@@ -148,27 +148,27 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
                 session.transfer(input, REL_FAILURE);
                 return;
             }
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             getLogger().error("No query could be found from supplied input", ex);
             session.transfer(input, REL_FAILURE);
             return;
         }
 
-        Document query = Document.parse(queryStr);
+        final Document query = Document.parse(queryStr);
 
         try {
             final GridFSBucket bucket = getBucket(input, context);
             final String queryPtr = queryStr;
             final FlowFile parent = operatingMode.equals(MODE_ONE_COMMIT.getValue()) ? input : null;
 
-            MongoCursor it = bucket.find(query).iterator();
+            final MongoCursor it = bucket.find(query).iterator();
             if (operatingMode.equals(MODE_MANY_COMMITS.getValue())) {
                 session.transfer(input, REL_ORIGINAL);
                 input = null;
             }
 
             while (it.hasNext()) {
-                GridFSFile gridFSFile = (GridFSFile) it.next();
+                final GridFSFile gridFSFile = (GridFSFile) it.next();
                 handleFile(bucket, session, context, parent, gridFSFile, queryPtr);
 
                 if (operatingMode.equals(MODE_MANY_COMMITS.getValue())) {
@@ -179,7 +179,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("An error occurred wile trying to run the query.", ex);
             if (input != null && operatingMode.equals(MODE_ONE_COMMIT.getValue())) {
                 session.transfer(input, REL_FAILURE);
@@ -193,11 +193,11 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
         }
     }
 
-    private void handleFile(GridFSBucket bucket, ProcessSession session, ProcessContext context, FlowFile parent, GridFSFile input, String query) {
-        Map<String, String> attrs = new HashMap<>();
+    private void handleFile(final GridFSBucket bucket, final ProcessSession session, final ProcessContext context, final FlowFile parent, final GridFSFile input, final String query) {
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(METADATA_ATTRIBUTE, input.getMetadata() != null ? input.getMetadata().toJson() : "{}");
         if (context.getProperty(QUERY_ATTRIBUTE).isSet()) {
-            String key = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(parent).getValue();
+            final String key = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(parent).getValue();
             attrs.put(key, query);
         }
         attrs.put(CoreAttributes.FILENAME.key(), input.getFilename());

@@ -49,7 +49,7 @@ final class CounterStatisticsDataSource implements InsertRowDataSource {
             .addLong(3, counterStatistic.getValue());
     }
 
-    static InsertRowDataSource getInstance(Collection<CapturedStatus<ProcessorStatus>> processorStatuses)  {
+    static InsertRowDataSource getInstance(final Collection<CapturedStatus<ProcessorStatus>> processorStatuses)  {
         final List<CounterStatistic> counterStatistics = new LinkedList<>();
 
         for (final CapturedStatus<ProcessorStatus> processorStatus : processorStatuses) {

@@ -293,7 +293,7 @@ public class DebugFlow extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         synchronized (properties) {
             if (properties.get() == null) {
-                List<PropertyDescriptor> properties = List.of(
+                final List<PropertyDescriptor> properties = List.of(
                         FF_SUCCESS_ITERATIONS,
                         FF_FAILURE_ITERATIONS,
                         FF_ROLLBACK_ITERATIONS,
@@ -328,7 +328,7 @@ public class DebugFlow extends AbstractProcessor {
 
     @OnScheduled
     @SuppressWarnings("unchecked")
-    public void onScheduled(ProcessContext context) throws ClassNotFoundException, InterruptedException {
+    public void onScheduled(final ProcessContext context) throws ClassNotFoundException, InterruptedException {
         flowFileMaxSuccess = context.getProperty(FF_SUCCESS_ITERATIONS).asInteger();
         flowFileMaxFailure = context.getProperty(FF_FAILURE_ITERATIONS).asInteger();
         flowFileMaxYield = context.getProperty(FF_ROLLBACK_YIELD_ITERATIONS).asInteger();
@@ -364,11 +364,11 @@ public class DebugFlow extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         try {
             sleep(validationContext.getProperty(CUSTOM_VALIDATE_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS),
                 validationContext.getProperty(IGNORE_INTERRUPTS).asBoolean());
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
 
             return Set.of(new ValidationResult.Builder()
@@ -425,7 +425,7 @@ public class DebugFlow extends AbstractProcessor {
 
                 // Save state
                 context.getStateManager().setState(stateMap, scope);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Failed to generate state entries", e);
                 throw new ProcessException("Failed to generate state entries", e);
             }
@@ -433,7 +433,7 @@ public class DebugFlow extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
 
         // Handle state generation if configured
@@ -462,12 +462,12 @@ public class DebugFlow extends AbstractProcessor {
                         if (noFlowFileCurrException < noFlowFileMaxException) {
                             noFlowFileCurrException += 1;
                             logger.info("DebugFlow throwing NPE with no flow file");
-                            String message = "forced by " + this.getClass().getName();
-                            RuntimeException rte;
+                            final String message = "forced by " + this.getClass().getName();
+                            final RuntimeException rte;
                             try {
                                 rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
                                 throw rte;
-                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                            } catch (final InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
                                     logger.error("{} unexpected exception throwing DebugFlow exception: {}",
                                             this, e);
@@ -579,15 +579,15 @@ public class DebugFlow extends AbstractProcessor {
                     if (curr_ff_resp.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
                         if (flowFileCurrException < flowFileMaxException) {
                             flowFileCurrException += 1;
-                            String message = "forced by " + this.getClass().getName();
+                            final String message = "forced by " + this.getClass().getName();
                             logger.info("DebugFlow throwing NPE file={} UUID={}",
                                     ff.getAttribute(CoreAttributes.FILENAME.key()),
                                     ff.getAttribute(CoreAttributes.UUID.key()));
-                            RuntimeException rte;
+                            final RuntimeException rte;
                             try {
                                 rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
                                 throw rte;
-                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                            } catch (final InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                                 if (logger.isErrorEnabled()) {
                                     logger.error("{} unexpected exception throwing DebugFlow exception: {}",
                                             this, e);
@@ -608,14 +608,14 @@ public class DebugFlow extends AbstractProcessor {
                     sleep(sleepMillis, context.getProperty(IGNORE_INTERRUPTS).asBoolean());
                     getLogger().info("DebugFlow finished sleeping at completion of its onTrigger() method");
                 }
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Fail When @OnScheduled called", ON_SCHEDULED_FAIL.getName());
         config.renameProperty("Fail When @OnUnscheduled called", ON_UNSCHEDULED_FAIL.getName());
         config.renameProperty("Fail When @OnStopped called", ON_STOPPED_FAIL.getName());
@@ -635,7 +635,7 @@ public class DebugFlow extends AbstractProcessor {
                 } else {
                     resultBuilder.valid(false).explanation("Class " + input + " is a Checked Exception, not a RuntimeException");
                 }
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 resultBuilder.valid(false).explanation("Class " + input + " cannot be found");
             }
 

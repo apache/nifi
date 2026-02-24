@@ -130,7 +130,7 @@ public class FetchSFTP extends FetchFileTransfer {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
         SFTPTransfer.migrateAlgorithmProperties(config);
@@ -143,7 +143,7 @@ public class FetchSFTP extends FetchFileTransfer {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
         SFTPTransfer.validateProxySpec(validationContext, results);
         return results;

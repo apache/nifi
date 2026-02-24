@@ -85,7 +85,7 @@ public class TestJacksonCSVRecordReader {
         return createReader(in, schema, format, true);
     }
 
-    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
+    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, final CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new JacksonCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
     }

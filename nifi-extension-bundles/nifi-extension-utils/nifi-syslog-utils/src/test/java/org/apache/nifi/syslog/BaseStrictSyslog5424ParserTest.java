@@ -66,7 +66,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         assertNotNull(event);
         assertTrue(event.isValid());
         assertFalse(event.getFieldMap().isEmpty());
-        Map<String, Object> fieldMap = event.getFieldMap();
+        final Map<String, Object> fieldMap = event.getFieldMap();
         assertEquals(pri, fieldMap.get(SyslogAttributes.SYSLOG_PRIORITY.key()));
         assertEquals("2", fieldMap.get(SyslogAttributes.SYSLOG_SEVERITY.key()));
         assertEquals("4", fieldMap.get(SyslogAttributes.SYSLOG_FACILITY.key()));
@@ -76,7 +76,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         assertEquals(appName, fieldMap.get(Syslog5424Attributes.SYSLOG_APP_NAME.key()));
         assertEquals(msgId, fieldMap.get(Syslog5424Attributes.SYSLOG_MESSAGEID.key()));
 
-        Pattern structuredPattern = new SyslogPrefixedKeyProvider().getStructuredElementIdParamNamePattern();
+        final Pattern structuredPattern = new SyslogPrefixedKeyProvider().getStructuredElementIdParamNamePattern();
         fieldMap.forEach((key, value) -> {
             if (value != null) {
                 assertFalse(structuredPattern.matcher(key).matches());

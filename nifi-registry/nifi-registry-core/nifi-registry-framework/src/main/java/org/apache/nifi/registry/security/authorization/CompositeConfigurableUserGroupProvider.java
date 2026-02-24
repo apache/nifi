@@ -40,7 +40,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         userGroupProviderLookup = initializationContext.getUserGroupProviderLookup();
 
         // initialize the CompositeUserGroupProvider
@@ -48,7 +48,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
         final PropertyValue configurableUserGroupProviderKey = configurationContext.getProperty(PROP_CONFIGURABLE_USER_GROUP_PROVIDER);
         if (!configurableUserGroupProviderKey.isSet()) {
             throw new SecurityProviderCreationException("The Configurable User Group Provider must be set.");
@@ -65,8 +65,8 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
         }
 
         // Ensure that the ConfigurableUserGroupProvider is not also listed as one of the providers for the CompositeUserGroupProvider
-        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-            Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
+        for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            final Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 final String userGroupProviderKey = entry.getValue();
 
@@ -88,52 +88,52 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         configurableUserGroupProvider.inheritFingerprint(fingerprint);
     }
 
     @Override
-    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         configurableUserGroupProvider.checkInheritability(proposedFingerprint);
     }
 
     @Override
-    public User addUser(User user) throws AuthorizationAccessException {
+    public User addUser(final User user) throws AuthorizationAccessException {
         return configurableUserGroupProvider.addUser(user);
     }
 
     @Override
-    public boolean isConfigurable(User user) {
+    public boolean isConfigurable(final User user) {
         return configurableUserGroupProvider.isConfigurable(user);
     }
 
     @Override
-    public User updateUser(User user) throws AuthorizationAccessException {
+    public User updateUser(final User user) throws AuthorizationAccessException {
         return configurableUserGroupProvider.updateUser(user);
     }
 
     @Override
-    public User deleteUser(User user) throws AuthorizationAccessException {
+    public User deleteUser(final User user) throws AuthorizationAccessException {
         return configurableUserGroupProvider.deleteUser(user);
     }
 
     @Override
-    public Group addGroup(Group group) throws AuthorizationAccessException {
+    public Group addGroup(final Group group) throws AuthorizationAccessException {
         return configurableUserGroupProvider.addGroup(group);
     }
 
     @Override
-    public boolean isConfigurable(Group group) {
+    public boolean isConfigurable(final Group group) {
         return configurableUserGroupProvider.isConfigurable(group);
     }
 
     @Override
-    public Group updateGroup(Group group) throws AuthorizationAccessException {
+    public Group updateGroup(final Group group) throws AuthorizationAccessException {
         return configurableUserGroupProvider.updateGroup(group);
     }
 
     @Override
-    public Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public Group deleteGroup(final Group group) throws AuthorizationAccessException {
         return configurableUserGroupProvider.deleteGroup(group);
     }
 
@@ -145,7 +145,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         User user = configurableUserGroupProvider.getUser(identifier);
 
         if (user == null) {
@@ -156,7 +156,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         User user = configurableUserGroupProvider.getUserByIdentity(identity);
 
         if (user == null) {
@@ -174,7 +174,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         Group group = configurableUserGroupProvider.getGroup(identifier);
 
         if (group == null) {
@@ -185,13 +185,13 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
     }
 
     @Override
-    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
 
         final CompositeUserAndGroups combinedResult;
 
         // First, lookup user and groups by identity and combine data from all providers
-        UserAndGroups configurableProviderResult = configurableUserGroupProvider.getUserAndGroups(identity);
-        UserAndGroups compositeProvidersResult = super.getUserAndGroups(identity);
+        final UserAndGroups configurableProviderResult = configurableUserGroupProvider.getUserAndGroups(identity);
+        final UserAndGroups compositeProvidersResult = super.getUserAndGroups(identity);
 
         if (configurableProviderResult.getUser() != null && compositeProvidersResult.getUser() != null) {
             throw new IllegalStateException("Multiple UserGroupProviders claim to provide user " + identity);
@@ -209,7 +209,7 @@ public class CompositeConfigurableUserGroupProvider extends CompositeUserGroupPr
         }
 
         // Second, lookup groups containing the user identifier
-        String userIdentifier = combinedResult.getUser().getIdentifier();
+        final String userIdentifier = combinedResult.getUser().getIdentifier();
         for (final Group group : configurableUserGroupProvider.getGroups()) {
             if (group.getUsers() != null && group.getUsers().contains(userIdentifier)) {
                 combinedResult.addGroup(group);

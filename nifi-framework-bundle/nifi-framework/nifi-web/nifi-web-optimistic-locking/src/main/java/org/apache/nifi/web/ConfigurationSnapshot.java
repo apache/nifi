@@ -32,7 +32,7 @@ public class ConfigurationSnapshot<T> {
      *
      * @param version The revision version
      */
-    public ConfigurationSnapshot(Long version) {
+    public ConfigurationSnapshot(final Long version) {
         this(version, null);
     }
 
@@ -44,7 +44,7 @@ public class ConfigurationSnapshot<T> {
      * @param version The revision version
      * @param configuration The configuration
      */
-    public ConfigurationSnapshot(Long version, T configuration) {
+    public ConfigurationSnapshot(final Long version, final T configuration) {
         this(version, configuration, false);
     }
 
@@ -57,7 +57,7 @@ public class ConfigurationSnapshot<T> {
      * @param configuration The configuration
      * @param isNew         Whether the resource was newly created
      */
-    public ConfigurationSnapshot(Long version, T configuration, boolean isNew) {
+    public ConfigurationSnapshot(final Long version, final T configuration, final boolean isNew) {
         this.version = version;
         this.configuration = configuration;
         this.isNew = isNew;

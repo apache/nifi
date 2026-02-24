@@ -340,8 +340,8 @@ public class RouteText extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         boolean dynamicProperty = false;
 
         final String matchStrategy = validationContext.getProperty(MATCH_STRATEGY).getValue();
@@ -353,7 +353,7 @@ public class RouteText extends AbstractProcessor {
             validator = StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true);
         }
 
-        Map<PropertyDescriptor, String> allProperties = validationContext.getProperties();
+        final Map<PropertyDescriptor, String> allProperties = validationContext.getProperties();
         for (final PropertyDescriptor descriptor : allProperties.keySet()) {
             if (descriptor.isDynamic()) {
                 dynamicProperty = true;
@@ -361,7 +361,7 @@ public class RouteText extends AbstractProcessor {
                 final String propValue = validationContext.getProperty(descriptor).getValue();
 
                 if (compileRegex) {
-                    ValidationResult validationResult = validator.validate(descriptor.getName(), propValue, validationContext);
+                    final ValidationResult validationResult = validator.validate(descriptor.getName(), propValue, validationContext);
                     if (validationResult != null) {
                         results.add(validationResult);
                     }
@@ -463,7 +463,7 @@ public class RouteText extends AbstractProcessor {
 
                     int propertiesThatMatchedLine = 0;
                     for (final Map.Entry<Relationship, Object> entry : propValueMap.entrySet()) {
-                        boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), matchStrategy, ignoreCase, originalFlowFile, variables);
+                        final boolean lineMatchesProperty = lineMatches(matchLine, entry.getValue(), matchStrategy, ignoreCase, originalFlowFile, variables);
                         if (lineMatchesProperty) {
                             propertiesThatMatchedLine++;
                         }
@@ -518,7 +518,7 @@ public class RouteText extends AbstractProcessor {
                 final FlowFile flowFile = flowFileEntry.getValue();
 
                 logger.info("Created {} from {}; routing to relationship {}", flowFile, originalFlowFile, relationship.getName());
-                FlowFile updatedFlowFile = session.putAllAttributes(flowFile, Map.of(
+                final FlowFile updatedFlowFile = session.putAllAttributes(flowFile, Map.of(
                         ROUTE_ATTRIBUTE_KEY, relationship.getName(),
                         GROUP_ATTRIBUTE_KEY, StringUtils.join(group.getCapturedValues(), ", ")
                 ));
@@ -632,7 +632,7 @@ public class RouteText extends AbstractProcessor {
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public boolean equals(final Object obj) {
             if (this == obj) {
                 return true;
             }
@@ -645,7 +645,7 @@ public class RouteText extends AbstractProcessor {
                 return false;
             }
 
-            Group other = (Group) obj;
+            final Group other = (Group) obj;
             if (capturedValues == null) {
                 return other.capturedValues == null;
             } else {

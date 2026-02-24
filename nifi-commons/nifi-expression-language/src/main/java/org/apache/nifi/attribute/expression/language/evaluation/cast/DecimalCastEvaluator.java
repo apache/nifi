@@ -52,7 +52,7 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
                 return (DecimalQueryResult) result;
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
-                NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
+                final NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
                 switch (parseType) {
                     case DECIMAL:
                         return new DecimalQueryResult(Double.valueOf(trimmed));
@@ -60,7 +60,7 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
                         Long resultValue;
                         try {
                             resultValue = Long.valueOf(trimmed);
-                        } catch (NumberFormatException e) {
+                        } catch (final NumberFormatException e) {
                             // Will only occur if trimmed is a hex number
                             resultValue = Long.decode(trimmed);
                         }
@@ -70,7 +70,7 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
                 }
                 // fallthrough
             case DATE:
-                Long timestamp = ((DateQueryResult) result).getValue().getTime();
+                final Long timestamp = ((DateQueryResult) result).getValue().getTime();
                 return new DecimalQueryResult(timestamp.doubleValue());
             case WHOLE_NUMBER:
                 final Long resultValue = ((WholeNumberQueryResult) result).getValue();

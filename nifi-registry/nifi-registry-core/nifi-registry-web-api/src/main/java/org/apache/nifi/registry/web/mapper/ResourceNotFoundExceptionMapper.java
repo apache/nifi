@@ -32,7 +32,7 @@ public class ResourceNotFoundExceptionMapper implements ExceptionMapper<Resource
     private static final Logger logger = LoggerFactory.getLogger(ResourceNotFoundExceptionMapper.class);
 
     @Override
-    public Response toResponse(ResourceNotFoundException exception) {
+    public Response toResponse(final ResourceNotFoundException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.NOT_FOUND);
 

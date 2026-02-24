@@ -38,14 +38,14 @@ public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {
             dataSource.setUser(container.getUsername());
             dataSource.setPassword(container.getPassword());
             return dataSource;
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             throw new RuntimeException("Unable to create MariaDB DataSource", e);
         }
     }
 
     @PostConstruct
     public void initDatabase() {
-        DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mariaDBContainer(), "");
+        final DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mariaDBContainer(), "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }
 }

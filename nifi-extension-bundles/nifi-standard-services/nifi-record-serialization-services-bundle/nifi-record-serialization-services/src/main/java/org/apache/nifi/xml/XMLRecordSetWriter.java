@@ -149,7 +149,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         if (!validationContext.getProperty(ARRAY_WRAPPING).getValue().equals(NO_WRAPPING.getValue())) {
             if (!validationContext.getProperty(ARRAY_TAG_NAME).isSet()) {
-                StringBuilder explanation = new StringBuilder()
+                final StringBuilder explanation = new StringBuilder()
                         .append("if property '")
                         .append(ARRAY_WRAPPING.getName())
                         .append("' is defined as '")
@@ -215,7 +215,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("suppress_nulls", SUPPRESS_NULLS.getName());
         config.renameProperty("pretty_print_xml", PRETTY_PRINT_XML.getName());

@@ -29,7 +29,7 @@ import java.util.Objects;
 
 public class ThreadDumpTask implements DiagnosticTask {
     @Override
-    public DiagnosticsDumpElement captureDump(boolean verbose) {
+    public DiagnosticsDumpElement captureDump(final boolean verbose) {
         final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
 
         final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
@@ -40,7 +40,7 @@ public class ThreadDumpTask implements DiagnosticTask {
         Collections.addAll(sortedInfos, infos);
         sortedInfos.sort(new Comparator<>() {
             @Override
-            public int compare(ThreadInfo o1, ThreadInfo o2) {
+            public int compare(final ThreadInfo o1, final ThreadInfo o2) {
                 return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
             }
         });

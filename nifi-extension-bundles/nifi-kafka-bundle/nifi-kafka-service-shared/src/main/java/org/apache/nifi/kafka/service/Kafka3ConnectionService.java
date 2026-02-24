@@ -348,7 +348,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return properties;
     }
 
-    private void setOAuthProperties(Properties properties, PropertyContext propertyContext) {
+    private void setOAuthProperties(final Properties properties, final PropertyContext propertyContext) {
         final SecurityProtocol securityProtocol = propertyContext.getProperty(SECURITY_PROTOCOL).asAllowableValue(SecurityProtocol.class);
         if (securityProtocol == SecurityProtocol.SASL_PLAINTEXT || securityProtocol == SecurityProtocol.SASL_SSL) {
             final SaslMechanism saslMechanism = propertyContext.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);

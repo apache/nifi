@@ -74,7 +74,7 @@ class DataLakeServiceClientFactoryTest {
         assertSame(clientOne, clientThree);
     }
 
-    private ADLSCredentialsDetails createCredentialDetails(String accountName) {
+    private ADLSCredentialsDetails createCredentialDetails(final String accountName) {
         return ADLSCredentialsDetails.Builder.newBuilder()
                 .setAccountName(accountName)
                 .setAccountKey("accountKey")

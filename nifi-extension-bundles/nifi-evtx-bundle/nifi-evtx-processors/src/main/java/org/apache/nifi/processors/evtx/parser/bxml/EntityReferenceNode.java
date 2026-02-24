@@ -29,7 +29,7 @@ import java.util.List;
  * An escape string node
  */
 public class EntityReferenceNode extends BxmlNodeWithTokenAndString {
-    public EntityReferenceNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public EntityReferenceNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
     }
@@ -40,7 +40,7 @@ public class EntityReferenceNode extends BxmlNodeWithTokenAndString {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 

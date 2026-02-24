@@ -36,9 +36,9 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     protected final String scoreName;
     protected final double scoreThreshold;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
-                                           StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory, long predictionIntervalMillis,
-                                           long queryIntervalMillis, String scoreName, double scoreThreshold) {
+    public ConnectionStatusAnalyticsEngine(final FlowManager flowManager, final StatusHistoryRepository statusRepository,
+                                           final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory, final long predictionIntervalMillis,
+                                           final long queryIntervalMillis, final String scoreName, final double scoreThreshold) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
         this.predictionIntervalMillis = predictionIntervalMillis;
@@ -54,9 +54,9 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
      * @return status analytics object
      */
     @Override
-    public StatusAnalytics getStatusAnalytics(String identifier) {
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = statusAnalyticsModelMapFactory.getConnectionStatusModelMap();
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, modelMap, identifier, false);
+    public StatusAnalytics getStatusAnalytics(final String identifier) {
+        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = statusAnalyticsModelMapFactory.getConnectionStatusModelMap();
+        final ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, modelMap, identifier, false);
         connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
         connectionStatusAnalytics.setQueryIntervalMillis(queryIntervalMillis);
         connectionStatusAnalytics.setScoreName(scoreName);

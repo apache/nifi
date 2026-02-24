@@ -39,7 +39,7 @@ public class ResourceItem implements Serializable {
         return resourceId;
     }
 
-    public void setResourceId(String resourceId) {
+    public void setResourceId(final String resourceId) {
         this.resourceId = resourceId;
     }
 
@@ -48,7 +48,7 @@ public class ResourceItem implements Serializable {
         return resourceName;
     }
 
-    public void setResourceName(String resourceName) {
+    public void setResourceName(final String resourceName) {
         this.resourceName = resourceName;
     }
 
@@ -57,7 +57,7 @@ public class ResourceItem implements Serializable {
         return resourceType;
     }
 
-    public void setResourceType(ResourceType resourceType) {
+    public void setResourceType(final ResourceType resourceType) {
         this.resourceType = resourceType;
     }
 
@@ -66,7 +66,7 @@ public class ResourceItem implements Serializable {
         return resourcePath;
     }
 
-    public void setResourcePath(String resourcePath) {
+    public void setResourcePath(final String resourcePath) {
         this.resourcePath = resourcePath;
     }
 
@@ -75,7 +75,7 @@ public class ResourceItem implements Serializable {
         return digest;
     }
 
-    public void setDigest(String digest) {
+    public void setDigest(final String digest) {
         this.digest = digest;
     }
 
@@ -84,7 +84,7 @@ public class ResourceItem implements Serializable {
         return hashType;
     }
 
-    public void setHashType(String hashType) {
+    public void setHashType(final String hashType) {
         this.hashType = hashType;
     }
 
@@ -93,19 +93,19 @@ public class ResourceItem implements Serializable {
         return url;
     }
 
-    public void setUrl(String url) {
+    public void setUrl(final String url) {
         this.url = url;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ResourceItem that = (ResourceItem) o;
+        final ResourceItem that = (ResourceItem) o;
         return Objects.equals(resourceId, that.resourceId) && Objects.equals(resourceName, that.resourceName) && Objects.equals(resourceType, that.resourceType)
             && Objects.equals(resourcePath, that.resourcePath) && Objects.equals(digest, that.digest) && Objects.equals(hashType, that.hashType)
             && Objects.equals(url, that.url);

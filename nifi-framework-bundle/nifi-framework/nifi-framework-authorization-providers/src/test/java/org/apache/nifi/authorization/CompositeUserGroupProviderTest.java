@@ -51,7 +51,7 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         final UserGroupProviderInitializationContext initializationContext = mock(UserGroupProviderInitializationContext.class);
         when(initializationContext.getUserGroupProviderLookup()).thenReturn(new UserGroupProviderLookup() {
             @Override
-            public UserGroupProvider getUserGroupProvider(String identifier) {
+            public UserGroupProvider getUserGroupProvider(final String identifier) {
                 return null;
             }
         });
@@ -70,7 +70,7 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
 
     @Test
     public void testDuplicateProviders() {
-        UserGroupProvider duplicatedUserGroupProvider = getUserGroupProviderOne();
+        final UserGroupProvider duplicatedUserGroupProvider = getUserGroupProviderOne();
         assertThrows(AuthorizerCreationException.class, () -> {
             initCompositeUserGroupProvider(new CompositeUserGroupProvider(), null, null, duplicatedUserGroupProvider, duplicatedUserGroupProvider);
         });

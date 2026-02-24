@@ -33,7 +33,7 @@ public class NodeReconnectionExceptionMapper implements ExceptionMapper<NodeReco
     private static final Logger logger = LoggerFactory.getLogger(NodeReconnectionExceptionMapper.class);
 
     @Override
-    public Response toResponse(NodeReconnectionException exception) {
+    public Response toResponse(final NodeReconnectionException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

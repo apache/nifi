@@ -29,23 +29,23 @@ public class TestSimpleRegression {
     @Test
     public void testConstantPrediction() {
 
-        Double timestamp = 1565444720000.0;
-        Double queueCount = 50.0;
+        final Double timestamp = 1565444720000.0;
+        final Double queueCount = 50.0;
 
-        Double[] feature0 = {timestamp - 1000};
-        Double[] feature1 = {timestamp};
-        Double[] feature2 = {timestamp + 1000};
-        Double[] feature3 = {timestamp + 2000};
+        final Double[] feature0 = {timestamp - 1000};
+        final Double[] feature1 = {timestamp};
+        final Double[] feature2 = {timestamp + 1000};
+        final Double[] feature3 = {timestamp + 2000};
 
-        Double[][] features = {feature0, feature1, feature2, feature3};
-        Double[] labels = {queueCount, queueCount, queueCount, queueCount};
+        final Double[][] features = {feature0, feature1, feature2, feature3};
+        final Double[] labels = {queueCount, queueCount, queueCount, queueCount};
 
-        SimpleRegression model = new SimpleRegression(false);
+        final SimpleRegression model = new SimpleRegression(false);
 
         model.learn(Stream.of(features), Stream.of(labels));
 
-        Double[] predictor = {timestamp + 5000};
-        Double target = model.predict(predictor);
+        final Double[] predictor = {timestamp + 5000};
+        final Double target = model.predict(predictor);
         assertNotNull(target);
         assertEquals(50, (double) target);
 
@@ -54,24 +54,24 @@ public class TestSimpleRegression {
     @Test
     public void testVaryingPredictX() {
 
-        Double timestamp = 1565444720000.0;
-        Double queueCount = 950.0;
+        final Double timestamp = 1565444720000.0;
+        final Double queueCount = 950.0;
 
-        Double[] feature0 = {timestamp};
-        Double[] feature1 = {timestamp + 1000};
-        Double[] feature2 = {timestamp + 2000};
-        Double[] feature3 = {timestamp + 3000 };
+        final Double[] feature0 = {timestamp};
+        final Double[] feature1 = {timestamp + 1000};
+        final Double[] feature2 = {timestamp + 2000};
+        final Double[] feature3 = {timestamp + 3000 };
 
-        Double[][] features = {feature0, feature1, feature2, feature3};
-        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
+        final Double[][] features = {feature0, feature1, feature2, feature3};
+        final Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
-        SimpleRegression model = new SimpleRegression(false);
+        final SimpleRegression model = new SimpleRegression(false);
 
         model.learn(Stream.of(features), Stream.of(labels));
 
-        Double target = model.predictX(1000.0);
-        Double minTimeMillis = 1565343920000.0;
-        Double maxTimeMillis = 1565516720000.0;
+        final Double target = model.predictX(1000.0);
+        final Double minTimeMillis = 1565343920000.0;
+        final Double maxTimeMillis = 1565516720000.0;
         assertTrue(target >= minTimeMillis && target <= maxTimeMillis);
 
     }
@@ -79,26 +79,26 @@ public class TestSimpleRegression {
     @Test
     public void testVaryingPredictY() {
 
-        Double timestamp = 1565444720000.0;
-        Double queueCount = 950.0;
+        final Double timestamp = 1565444720000.0;
+        final Double queueCount = 950.0;
 
-        Double[] feature0 = {timestamp};
-        Double[] feature1 = {timestamp + 1000};
-        Double[] feature2 = {timestamp + 2000};
-        Double[] feature3 = {timestamp + 3000};
+        final Double[] feature0 = {timestamp};
+        final Double[] feature1 = {timestamp + 1000};
+        final Double[] feature2 = {timestamp + 2000};
+        final Double[] feature3 = {timestamp + 3000};
 
-        Double[][] features = {feature0, feature1, feature2, feature3};
-        Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
+        final Double[][] features = {feature0, feature1, feature2, feature3};
+        final Double[] labels = {queueCount, queueCount + 50, queueCount - 50, queueCount - 100};
 
-        SimpleRegression model = new SimpleRegression(false);
+        final SimpleRegression model = new SimpleRegression(false);
 
-        Double[] predictor = {timestamp + 5000};
+        final Double[] predictor = {timestamp + 5000};
 
         model.learn(Stream.of(features), Stream.of(labels));
-        Double target = model.predict(predictor);
-        Double rSquared = model.getScores().get("rSquared");
-        Double minCount = -1265.0;
-        Double maxCount = 3235.0;
+        final Double target = model.predict(predictor);
+        final Double rSquared = model.getScores().get("rSquared");
+        final Double minCount = -1265.0;
+        final Double maxCount = 3235.0;
         assertTrue(rSquared > .60);
         assertTrue(target >= minCount && target <= maxCount);
     }

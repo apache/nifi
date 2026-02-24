@@ -43,7 +43,7 @@ public class UpdatePropertiesOperationHandler implements C2OperationHandler {
     private final OperandPropertiesProvider operandPropertiesProvider;
     private final Function<Map<String, Object>, Boolean> persistProperties;
 
-    public UpdatePropertiesOperationHandler(OperandPropertiesProvider operandPropertiesProvider, Function<Map<String, Object>, Boolean> persistProperties) {
+    public UpdatePropertiesOperationHandler(final OperandPropertiesProvider operandPropertiesProvider, final Function<Map<String, Object>, Boolean> persistProperties) {
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.persistProperties = persistProperties;
     }
@@ -64,8 +64,8 @@ public class UpdatePropertiesOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
         C2OperationState c2OperationState;
         try {
@@ -75,10 +75,10 @@ public class UpdatePropertiesOperationHandler implements C2OperationHandler {
                 LOGGER.info("Properties are already in desired state");
                 c2OperationState = operationState(NO_OPERATION, null);
             }
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             LOGGER.error("Operation not applied due to issues with the arguments: {}", e.getMessage());
             c2OperationState = operationState(NOT_APPLIED, e.getMessage());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Unexpected error happened during persisting properties", e);
             c2OperationState = operationState(NOT_APPLIED, "Failed to persist properties");
         }

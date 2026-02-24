@@ -36,7 +36,7 @@ public class MqttTestClient implements MqttClient {
     public String subscribedTopic;
     public int subscribedQos;
     public ReceivedMqttMessageHandler receivedMqttMessageHandler;
-    public MqttTestClient(ConnectType type) {
+    public MqttTestClient(final ConnectType type) {
         this.type = type;
     }
 
@@ -61,7 +61,7 @@ public class MqttTestClient implements MqttClient {
     }
 
     @Override
-    public void publish(String topic, StandardMqttMessage message) {
+    public void publish(final String topic, final StandardMqttMessage message) {
         switch (type) {
             case Publisher:
                 publishedMessages.add(Pair.of(topic, message));
@@ -73,7 +73,7 @@ public class MqttTestClient implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
+    public void subscribe(final String topicFilter, final int qos, final ReceivedMqttMessageHandler handler) {
         subscribedTopic = topicFilter;
         subscribedQos = qos;
         receivedMqttMessageHandler = handler;

@@ -35,12 +35,12 @@ public class MockAccessPolicyProvider implements AccessPolicyProvider {
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
         return null;
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
         return null;
     }
 
@@ -50,12 +50,12 @@ public class MockAccessPolicyProvider implements AccessPolicyProvider {
     }
 
     @Override
-    public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws AuthorizerCreationException {
 
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
     }
 

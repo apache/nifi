@@ -34,7 +34,7 @@ public class BundleEntity extends BucketItemEntity {
         return bundleType;
     }
 
-    public void setBundleType(BundleType bundleType) {
+    public void setBundleType(final BundleType bundleType) {
         this.bundleType = bundleType;
     }
 
@@ -42,7 +42,7 @@ public class BundleEntity extends BucketItemEntity {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -50,7 +50,7 @@ public class BundleEntity extends BucketItemEntity {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -58,12 +58,12 @@ public class BundleEntity extends BucketItemEntity {
         return versionCount;
     }
 
-    public void setVersionCount(long versionCount) {
+    public void setVersionCount(final long versionCount) {
         this.versionCount = versionCount;
     }
 
     @Override
-    public void setType(BucketItemEntityType type) {
+    public void setType(final BucketItemEntityType type) {
         if (BucketItemEntityType.BUNDLE != type) {
             throw new IllegalStateException("Must set type to " + BucketItemEntityType.Values.BUNDLE);
         }

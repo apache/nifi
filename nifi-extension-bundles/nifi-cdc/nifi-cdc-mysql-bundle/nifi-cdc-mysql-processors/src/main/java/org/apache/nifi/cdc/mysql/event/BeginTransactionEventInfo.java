@@ -23,12 +23,12 @@ public class BeginTransactionEventInfo extends BaseBinlogEventInfo {
 
     private String databaseName;
 
-    public BeginTransactionEventInfo(String databaseName, Long timestamp, String binlogFilename, long binlogPosition) {
+    public BeginTransactionEventInfo(final String databaseName, final Long timestamp, final String binlogFilename, final long binlogPosition) {
         super(BEGIN_EVENT, timestamp, binlogFilename, binlogPosition);
         this.databaseName = databaseName;
     }
 
-    public BeginTransactionEventInfo(String databaseName, Long timestamp, String binlogGtidSet) {
+    public BeginTransactionEventInfo(final String databaseName, final Long timestamp, final String binlogGtidSet) {
         super(BEGIN_EVENT, timestamp, binlogGtidSet);
         this.databaseName = databaseName;
     }

@@ -40,7 +40,7 @@ public class C2Operation implements Serializable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -49,7 +49,7 @@ public class C2Operation implements Serializable {
         return operation;
     }
 
-    public void setOperation(OperationType operation) {
+    public void setOperation(final OperationType operation) {
         if (operand != null && !operation.isSupportedOperand(operand)) {
             throw new IllegalArgumentException(format("%s is not a valid operand for %s", operand, operation));
         }
@@ -62,7 +62,7 @@ public class C2Operation implements Serializable {
         return operand;
     }
 
-    public void setOperand(OperandType operand) {
+    public void setOperand(final OperandType operand) {
         if (operation != null && !operation.isSupportedOperand(operand)) {
             throw new IllegalArgumentException(format("%s is not a valid operand for %s", operand, operation));
         }
@@ -83,7 +83,7 @@ public class C2Operation implements Serializable {
         return args;
     }
 
-    public void setArgs(Map<String, Object> args) {
+    public void setArgs(final Map<String, Object> args) {
         this.args = args;
     }
 
@@ -93,19 +93,19 @@ public class C2Operation implements Serializable {
         return dependencies;
     }
 
-    public void setDependencies(Set<String> dependencies) {
+    public void setDependencies(final Set<String> dependencies) {
         this.dependencies = dependencies;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        C2Operation operation1 = (C2Operation) o;
+        final C2Operation operation1 = (C2Operation) o;
         return Objects.equals(identifier, operation1.identifier) && operation == operation1.operation && operand == operation1.operand && Objects.equals(args,
             operation1.args) && Objects.equals(dependencies, operation1.dependencies);
     }

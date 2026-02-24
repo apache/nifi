@@ -110,7 +110,7 @@ public class CryptographicHashContent extends AbstractProcessor {
         // Determine the algorithm to use
         final String algorithmName = context.getProperty(HASH_ALGORITHM).getValue();
         logger.debug("Using algorithm {}", algorithmName);
-        HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
+        final HashAlgorithm algorithm = HashAlgorithm.fromName(algorithmName);
 
         if (flowFile.getSize() == 0) {
             if (context.getProperty(FAIL_WHEN_EMPTY).asBoolean()) {
@@ -142,14 +142,14 @@ public class CryptographicHashContent extends AbstractProcessor {
             // Update provenance and route to success
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             logger.error("Routing to failure since failed to process {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("fail_when_empty", FAIL_WHEN_EMPTY.getName());
         config.renameProperty("hash_algorithm", HASH_ALGORITHM.getName());
     }

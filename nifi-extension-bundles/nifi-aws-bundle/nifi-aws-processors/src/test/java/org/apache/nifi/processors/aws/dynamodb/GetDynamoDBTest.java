@@ -113,7 +113,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
 
         final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
             flowFile.assertAttributeExists(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED);
         }
     }
@@ -251,8 +251,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(GetDynamoDB.REL_NOT_FOUND, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND));
         }
 
@@ -290,8 +290,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_HASH_KEY_VALUE_ERROR));
         }
 
@@ -307,8 +307,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
@@ -323,8 +323,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_FAILURE, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_FAILURE);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR));
         }
     }
@@ -347,8 +347,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
 
         getRunner.assertAllFlowFilesTransferred(AbstractDynamoDBProcessor.REL_UNPROCESSED, 1);
 
-        List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
-        for (MockFlowFile flowFile : flowFiles) {
+        final List<MockFlowFile> flowFiles = getRunner.getFlowFilesForRelationship(AbstractDynamoDBProcessor.REL_UNPROCESSED);
+        for (final MockFlowFile flowFile : flowFiles) {
             assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED));
         }
     }

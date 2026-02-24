@@ -32,7 +32,7 @@ public class CDataSectionNode extends BxmlNodeWithToken {
     private final int stringLength;
     private final String cdata;
 
-    public CDataSectionNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public CDataSectionNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         if (getFlags() != 0) {
             throw new IOException("Invalid flags");
@@ -55,7 +55,7 @@ public class CDataSectionNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

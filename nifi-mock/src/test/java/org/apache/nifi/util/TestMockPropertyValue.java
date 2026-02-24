@@ -178,7 +178,7 @@ public class TestMockPropertyValue {
 
         @Override
         public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-            FlowFile ff = session.get();
+            final FlowFile ff = session.get();
 
             final Map<String, String> map = Map.of("test", "test");
 
@@ -203,7 +203,7 @@ public class TestMockPropertyValue {
             return testCase;
         }
 
-        public void setTestCase(String testCase) {
+        public void setTestCase(final String testCase) {
             this.testCase = testCase;
         }
     }
@@ -260,7 +260,7 @@ public class TestMockPropertyValue {
             return testCase;
         }
 
-        public void setTestCase(String testCase) {
+        public void setTestCase(final String testCase) {
             this.testCase = testCase;
         }
     }

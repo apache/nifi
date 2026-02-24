@@ -46,7 +46,7 @@ public class DebugDisabledTimedLock implements DebuggableTimedLock {
     public boolean tryLock(final long timeout, final TimeUnit timeUnit) {
         try {
             return lock.tryLock(timeout, timeUnit);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             return false;
         }
     }

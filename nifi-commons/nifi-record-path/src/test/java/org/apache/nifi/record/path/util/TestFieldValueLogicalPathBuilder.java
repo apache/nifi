@@ -46,7 +46,7 @@ public class TestFieldValueLogicalPathBuilder extends AbstractWalkerTest {
             RecordPath.compile("/mapRecordArray[0..-1]/intArray[0..-1][. > 1]").evaluate(record).getSelectedFields()
                 .collect(Collectors.toList());
         assertEquals(4, fieldValues.size());
-        String[] expected = {
+        final String[] expected = {
             "/mapRecordArray[0]/intArray[0]",
             "/mapRecordArray[1]/intArray[0]",
             "/mapRecordArray[2]/intArray[0]",
@@ -75,7 +75,7 @@ public class TestFieldValueLogicalPathBuilder extends AbstractWalkerTest {
             RecordPath.compile("/mapRecordArray[0..-1]/intArray[0..-1][. > 1]").evaluate(record).getSelectedFields()
                 .collect(Collectors.toList());
         assertEquals(4, fieldValues.size());
-        String[] expected = {
+        final String[] expected = {
             "--->mapRecordArray{0}--->intArray{0}",
             "--->mapRecordArray{1}--->intArray{0}",
             "--->mapRecordArray{2}--->intArray{0}",

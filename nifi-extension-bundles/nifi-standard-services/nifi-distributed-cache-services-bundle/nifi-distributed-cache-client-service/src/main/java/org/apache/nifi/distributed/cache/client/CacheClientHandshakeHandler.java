@@ -93,7 +93,7 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
     public void waitHandshakeComplete() {
         promiseHandshakeComplete.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
         if (!promiseHandshakeComplete.isSuccess()) {
-            HandshakeException ex = new HandshakeException("Handshake timed out before completion.");
+            final HandshakeException ex = new HandshakeException("Handshake timed out before completion.");
             promiseHandshakeComplete.setFailure(ex);
         }
     }
@@ -124,7 +124,7 @@ public class CacheClientHandshakeHandler extends ChannelInboundHandlerAdapter {
             final ByteBuf byteBuf = (ByteBuf) msg;
             try {
                 processHandshake(ctx, byteBuf);
-            } catch (IOException | HandshakeException e) {
+            } catch (final IOException | HandshakeException e) {
                 throw new IllegalStateException("Handshake Processing Failed", e);
             } finally {
                 byteBuf.release();

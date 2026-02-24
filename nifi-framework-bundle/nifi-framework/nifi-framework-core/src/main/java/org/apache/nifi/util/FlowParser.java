@@ -63,7 +63,7 @@ public class FlowParser {
                 logger.warn("Flow Configuration does not exist or was empty");
                 return null;
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.error("An error occurred determining the size of the Flow Configuration file");
             return null;
         }

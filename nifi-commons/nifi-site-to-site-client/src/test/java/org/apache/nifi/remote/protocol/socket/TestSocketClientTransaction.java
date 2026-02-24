@@ -57,44 +57,44 @@ public class TestSocketClientTransaction {
 
     private FlowFileCodec codec = new StandardFlowFileCodec();
 
-    private SocketClientTransaction getClientTransaction(ByteArrayInputStream bis, ByteArrayOutputStream bos, TransferDirection direction) throws IOException {
-        PeerDescription description = null;
-        String peerUrl = "";
-        SocketCommunicationsSession commsSession = mock(SocketCommunicationsSession.class);
-        SocketInput socketIn = mock(SocketInput.class);
-        SocketOutput socketOut = mock(SocketOutput.class);
+    private SocketClientTransaction getClientTransaction(final ByteArrayInputStream bis, final ByteArrayOutputStream bos, final TransferDirection direction) throws IOException {
+        final PeerDescription description = null;
+        final String peerUrl = "";
+        final SocketCommunicationsSession commsSession = mock(SocketCommunicationsSession.class);
+        final SocketInput socketIn = mock(SocketInput.class);
+        final SocketOutput socketOut = mock(SocketOutput.class);
         when(commsSession.getInput()).thenReturn(socketIn);
         when(commsSession.getOutput()).thenReturn(socketOut);
 
         when(socketIn.getInputStream()).thenReturn(bis);
         when(socketOut.getOutputStream()).thenReturn(bos);
 
-        String clusterUrl = "";
-        Peer peer = new Peer(description, commsSession, peerUrl, clusterUrl);
-        boolean useCompression = false;
-        int penaltyMillis = 1000;
-        SiteToSiteEventReporter eventReporter = null;
-        int protocolVersion = 5;
-        String destinationId = "destinationId";
+        final String clusterUrl = "";
+        final Peer peer = new Peer(description, commsSession, peerUrl, clusterUrl);
+        final boolean useCompression = false;
+        final int penaltyMillis = 1000;
+        final SiteToSiteEventReporter eventReporter = null;
+        final int protocolVersion = 5;
+        final String destinationId = "destinationId";
         return new SocketClientTransaction(protocolVersion, destinationId, peer, codec, direction, useCompression, penaltyMillis, eventReporter);
     }
 
     @Test
     public void testReceiveZeroFlowFile() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.NO_MORE_DATA.writeResponse(serverResponse);
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
 
         execReceiveZeroFlowFile(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         assertEquals(-1, sentByClient.read());
     }
@@ -102,27 +102,27 @@ public class TestSocketClientTransaction {
     @Test
     public void testReceiveOneFlowFile() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.MORE_DATA.writeResponse(serverResponse);
         codec.encode(createDataPacket("contents on server 1"), serverResponse);
         ResponseCode.FINISH_TRANSACTION.writeResponse(serverResponse);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "Checksum has been verified at server.");
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
 
         execReceiveOneFlowFile(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals("3680976076", confirmResponse.getMessage(), "Checksum should be calculated at client");
-        Response completeResponse = Response.read(sentByClient);
+        final Response completeResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.TRANSACTION_FINISHED, completeResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
@@ -130,8 +130,8 @@ public class TestSocketClientTransaction {
     @Test
     public void testReceiveTwoFlowFiles() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.MORE_DATA.writeResponse(serverResponse);
         codec.encode(createDataPacket("contents on server 1"), serverResponse);
         ResponseCode.CONTINUE_TRANSACTION.writeResponse(serverResponse);
@@ -139,22 +139,22 @@ public class TestSocketClientTransaction {
         ResponseCode.FINISH_TRANSACTION.writeResponse(serverResponse);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "Checksum has been verified at server.");
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
 
         assertEquals(Transaction.TransactionState.TRANSACTION_STARTED, transaction.getState());
 
         execReceiveTwoFlowFiles(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals("2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
-        Response completeResponse = Response.read(sentByClient);
+        final Response completeResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.TRANSACTION_FINISHED, completeResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
@@ -162,8 +162,8 @@ public class TestSocketClientTransaction {
     @Test
     public void testReceiveWithInvalidChecksum() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.MORE_DATA.writeResponse(serverResponse);
         codec.encode(createDataPacket("contents on server 1"), serverResponse);
         ResponseCode.CONTINUE_TRANSACTION.writeResponse(serverResponse);
@@ -171,17 +171,17 @@ public class TestSocketClientTransaction {
         ResponseCode.FINISH_TRANSACTION.writeResponse(serverResponse);
         ResponseCode.BAD_CHECKSUM.writeResponse(serverResponse);
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
 
         execReceiveWithInvalidChecksum(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals("2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
         assertEquals(-1, sentByClient.read());
@@ -190,17 +190,17 @@ public class TestSocketClientTransaction {
     @Test
     public void testSendZeroFlowFile() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
 
         execSendZeroFlowFile(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.SEND_FLOWFILES, RequestType.readRequestType(sentByClient));
         assertEquals(-1, sentByClient.read());
     }
@@ -208,26 +208,26 @@ public class TestSocketClientTransaction {
     @Test
     public void testSendOneFlowFile() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "2946083981");
         ResponseCode.TRANSACTION_FINISHED.writeResponse(serverResponse);
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
 
         execSendOneFlowFile(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.SEND_FLOWFILES, RequestType.readRequestType(sentByClient));
-        DataPacket packetByClient = codec.decode(sentByClient);
+        final DataPacket packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 1", readContents(packetByClient));
-        Response endOfDataResponse = Response.read(sentByClient);
+        final Response endOfDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.FINISH_TRANSACTION, endOfDataResponse.getCode());
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
@@ -235,30 +235,30 @@ public class TestSocketClientTransaction {
     @Test
     public void testSendTwoFlowFiles() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "3359812065");
         ResponseCode.TRANSACTION_FINISHED.writeResponse(serverResponse);
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
 
         execSendTwoFlowFiles(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.SEND_FLOWFILES, RequestType.readRequestType(sentByClient));
         DataPacket packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 1", readContents(packetByClient));
-        Response continueDataResponse = Response.read(sentByClient);
+        final Response continueDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONTINUE_TRANSACTION, continueDataResponse.getCode());
         packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 2", readContents(packetByClient));
-        Response endOfDataResponse = Response.read(sentByClient);
+        final Response endOfDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.FINISH_TRANSACTION, endOfDataResponse.getCode());
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
@@ -266,29 +266,29 @@ public class TestSocketClientTransaction {
     @Test
     public void testSendWithInvalidChecksum() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "Different checksum");
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
 
         execSendWithInvalidChecksum(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.SEND_FLOWFILES, RequestType.readRequestType(sentByClient));
         DataPacket packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 1", readContents(packetByClient));
-        Response continueDataResponse = Response.read(sentByClient);
+        final Response continueDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONTINUE_TRANSACTION, continueDataResponse.getCode());
         packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 2", readContents(packetByClient));
-        Response endOfDataResponse = Response.read(sentByClient);
+        final Response endOfDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.FINISH_TRANSACTION, endOfDataResponse.getCode());
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.BAD_CHECKSUM, confirmResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }
@@ -296,30 +296,30 @@ public class TestSocketClientTransaction {
     @Test
     public void testSendButDestinationFull() throws IOException {
 
-        ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
-        DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
+        final ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
+        final DataOutputStream serverResponse = new DataOutputStream(serverResponseBos);
         ResponseCode.CONFIRM_TRANSACTION.writeResponse(serverResponse, "3359812065");
         ResponseCode.TRANSACTION_FINISHED_BUT_DESTINATION_FULL.writeResponse(serverResponse);
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
+        final SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.SEND);
 
         execSendButDestinationFull(transaction);
 
         // Verify what client has sent.
-        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        final DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(RequestType.SEND_FLOWFILES, RequestType.readRequestType(sentByClient));
         DataPacket packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 1", readContents(packetByClient));
-        Response continueDataResponse = Response.read(sentByClient);
+        final Response continueDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONTINUE_TRANSACTION, continueDataResponse.getCode());
         packetByClient = codec.decode(sentByClient);
         assertEquals("contents on client 2", readContents(packetByClient));
-        Response endOfDataResponse = Response.read(sentByClient);
+        final Response endOfDataResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.FINISH_TRANSACTION, endOfDataResponse.getCode());
-        Response confirmResponse = Response.read(sentByClient);
+        final Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
         assertEquals(-1, sentByClient.read());
     }

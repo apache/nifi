@@ -21,11 +21,11 @@ import java.io.File;
 
 public class BootstrapPropertiesLoader {
 
-    public static BootstrapProperties load(File file) {
+    public static BootstrapProperties load(final File file) {
         return loadProtectedProperties(file);
     }
 
-    public static BootstrapProperties loadProtectedProperties(File file) {
+    public static BootstrapProperties loadProtectedProperties(final File file) {
         return new BootstrapProperties(PropertiesLoader.load(file, "Bootstrap"));
     }
 }

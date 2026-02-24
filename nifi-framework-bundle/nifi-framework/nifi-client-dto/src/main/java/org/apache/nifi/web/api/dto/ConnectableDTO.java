@@ -45,7 +45,7 @@ public class ConnectableDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -69,7 +69,7 @@ public class ConnectableDTO {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -83,7 +83,7 @@ public class ConnectableDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -96,7 +96,7 @@ public class ConnectableDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -109,7 +109,7 @@ public class ConnectableDTO {
         return running;
     }
 
-    public void setRunning(Boolean running) {
+    public void setRunning(final Boolean running) {
         this.running = running;
     }
 
@@ -122,7 +122,7 @@ public class ConnectableDTO {
         return exists;
     }
 
-    public void setExists(Boolean exists) {
+    public void setExists(final Boolean exists) {
         this.exists = exists;
     }
 
@@ -135,7 +135,7 @@ public class ConnectableDTO {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -148,7 +148,7 @@ public class ConnectableDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 

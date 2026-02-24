@@ -389,7 +389,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("mergecontent-metadata-strategy", METADATA_STRATEGY.getName());
         config.renameProperty("Header File", HEADER.getName());
@@ -403,7 +403,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected Collection<ValidationResult> additionalCustomValidation(ValidationContext context) {
+    protected Collection<ValidationResult> additionalCustomValidation(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         if (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class) == MergeFormat.CONCAT
@@ -469,7 +469,7 @@ public class MergeContent extends BinFiles {
     protected BinProcessingResult processBin(final Bin bin, final ProcessContext context) throws ProcessException {
         final BinProcessingResult binProcessingResult = new BinProcessingResult(true);
 
-        MergeBin merger = switch (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class)) {
+        final MergeBin merger = switch (context.getProperty(MERGE_FORMAT).asAllowableValue(MergeFormat.class)) {
             case TAR -> new TarMerge();
             case ZIP -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
             case FLOWFILE_STREAM_V3 ->
@@ -538,7 +538,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected int getMinEntries(PropertyContext context) {
+    protected int getMinEntries(final PropertyContext context) {
         return switch (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class)) {
             case BIN_PACK -> super.getMinEntries(context);
             case DEFRAGMENT -> Integer.MAX_VALUE; // number of fragments is set dynamically based on fragment count attribute
@@ -546,7 +546,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected int getMaxEntries(PropertyContext context) {
+    protected int getMaxEntries(final PropertyContext context) {
         return switch (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class)) {
             case BIN_PACK -> super.getMaxEntries(context);
             case DEFRAGMENT -> Integer.MAX_VALUE; // number of fragments is set dynamically based on fragment count attribute
@@ -554,7 +554,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected long getMinBytes(PropertyContext context) {
+    protected long getMinBytes(final PropertyContext context) {
         return switch (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class)) {
             case BIN_PACK -> super.getMinBytes(context);
             case DEFRAGMENT -> 0; // minimum size threshold is not taken into account effectively
@@ -562,7 +562,7 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
-    protected long getMaxBytes(PropertyContext context) {
+    protected long getMaxBytes(final PropertyContext context) {
         return switch (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class)) {
             case BIN_PACK -> super.getMaxBytes(context);
             case DEFRAGMENT -> Long.MAX_VALUE;
@@ -1094,7 +1094,7 @@ public class MergeContent extends BinFiles {
                                 bin.getSession().exportTo(flowFile, out);
                                 out.closeEntry();
                                 unmerged.remove(flowFile);
-                            } catch (ZipException e) {
+                            } catch (final ZipException e) {
                                 getLogger().error("Encountered exception merging {}", flowFile, e);
                             }
                         }
@@ -1153,9 +1153,9 @@ public class MergeContent extends BinFiles {
                                         // Schema & metadata we'll use.
                                         schema.set(reader.getSchema());
                                         if (metadataStrategy != MetadataStrategy.IGNORE) {
-                                            for (String key : reader.getMetaKeys()) {
+                                            for (final String key : reader.getMetaKeys()) {
                                                 if (!DataFileWriter.isReservedMeta(key)) {
-                                                    byte[] metadatum = reader.getMeta(key);
+                                                    final byte[] metadatum = reader.getMeta(key);
                                                     metadata.put(key, metadatum);
                                                     writer.setMeta(key, metadatum);
                                                 }
@@ -1179,10 +1179,10 @@ public class MergeContent extends BinFiles {
                                         if (metadataStrategy == MetadataStrategy.DO_NOT_MERGE
                                                 || metadataStrategy == MetadataStrategy.ALL_COMMON) {
                                             // check that we're appending to the same metadata
-                                            for (String key : reader.getMetaKeys()) {
+                                            for (final String key : reader.getMetaKeys()) {
                                                 if (!DataFileWriter.isReservedMeta(key)) {
-                                                    byte[] metadatum = reader.getMeta(key);
-                                                    byte[] writersMetadatum = metadata.get(key);
+                                                    final byte[] metadatum = reader.getMeta(key);
+                                                    final byte[] writersMetadatum = metadata.get(key);
                                                     if (!Arrays.equals(metadatum, writersMetadatum)) {
                                                         // Ignore additional metadata if ALL_COMMON is the strategy, otherwise don't merge
                                                         if (metadataStrategy != MetadataStrategy.ALL_COMMON || writersMetadatum != null) {

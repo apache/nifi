@@ -30,7 +30,7 @@ import java.io.IOException;
 public class BinaryTypeNode extends VariantTypeNode {
     private final String value;
 
-    public BinaryTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public BinaryTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         if (length >= 0) {
             value = binaryReader.readAndBase64EncodeBinary(length);

@@ -40,7 +40,7 @@ public class AuthenticationNotSupportedExceptionMapper implements ExceptionMappe
      * @return the response to the client
      */
     @Override
-    public Response toResponse(AuthenticationNotSupportedException exception) {
+    public Response toResponse(final AuthenticationNotSupportedException exception) {
         // Use DEBUG level to avoid polluting the logs
         logger.debug("{}. Returning {} response.", exception, Response.Status.CONFLICT, exception);
         return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();

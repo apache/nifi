@@ -46,11 +46,11 @@ public class ClojureScriptRunner extends BaseScriptRunner {
                     + "[org.apache.nifi.record.sink RecordSinkService]\n"
                     + ")\n";
 
-    public ClojureScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+    public ClojureScriptRunner(final ScriptEngine engine, final String scriptBody, final String[] modulePaths) {
         super(engine, scriptBody, buildPreloads(engine), modulePaths);
     }
 
-    private static String buildPreloads(ScriptEngine engine) {
+    private static String buildPreloads(final ScriptEngine engine) {
         return "(ns " + ((ClojureScriptEngine) engine).getNamespace() +
                 " " +
                 PRELOADS +
@@ -63,7 +63,7 @@ public class ClojureScriptRunner extends BaseScriptRunner {
     }
 
     @Override
-    public void run(Bindings bindings) throws ScriptException {
+    public void run(final Bindings bindings) throws ScriptException {
         scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
         scriptEngine.eval(scriptBody);
     }

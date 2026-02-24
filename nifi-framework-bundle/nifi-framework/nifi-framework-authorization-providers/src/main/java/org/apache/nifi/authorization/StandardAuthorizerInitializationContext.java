@@ -26,8 +26,8 @@ public class StandardAuthorizerInitializationContext implements AuthorizerInitia
     private final AccessPolicyProviderLookup accessPolicyProviderLookup;
     private final AuthorizerLookup authorizerLookup;
 
-    public StandardAuthorizerInitializationContext(String identifier, UserGroupProviderLookup userGroupProviderLookup,
-                                                   AccessPolicyProviderLookup accessPolicyProviderLookup, AuthorizerLookup authorizerLookup) {
+    public StandardAuthorizerInitializationContext(final String identifier, final UserGroupProviderLookup userGroupProviderLookup,
+                                                   final AccessPolicyProviderLookup accessPolicyProviderLookup, final AuthorizerLookup authorizerLookup) {
         this.identifier = identifier;
         this.userGroupProviderLookup = userGroupProviderLookup;
         this.accessPolicyProviderLookup = accessPolicyProviderLookup;

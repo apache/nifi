@@ -40,7 +40,7 @@ public final class HeaderMapExtractor {
                 .collect(Collectors.toMap(Map.Entry::getKey, HeaderMapExtractor::headerValueMapper));
     }
 
-    private static List<String> headerValueMapper(Map.Entry<String, String> entry) {
+    private static List<String> headerValueMapper(final Map.Entry<String, String> entry) {
         return Arrays.stream(entry.getValue().split(",")).map(String::trim).collect(Collectors.toList());
     }
 

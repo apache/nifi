@@ -63,7 +63,7 @@ import java.util.List;
 public class JMSConnectionFactoryProvider extends AbstractJMSConnectionFactoryProvider {
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_CONNECTION_FACTORY_IMPL_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL.getName());
         config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_CLIENT_LIBRARIES_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES.getName());
         config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_BROKER_URI_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_BROKER_URI.getName());
@@ -81,7 +81,7 @@ public class JMSConnectionFactoryProvider extends AbstractJMSConnectionFactoryPr
     }
 
     @Override
-    protected JMSConnectionFactoryHandlerDefinition createConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
+    protected JMSConnectionFactoryHandlerDefinition createConnectionFactoryHandler(final ConfigurationContext context, final ComponentLog logger) {
         return new JMSConnectionFactoryHandler(context, logger);
     }
 }

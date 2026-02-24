@@ -79,13 +79,13 @@ class TestChannel implements Channel {
     private final BitSet nacks = new BitSet();
     private int prefetchCount = 0;
 
-    public TestChannel(Map<String, String> exchangeToRoutingKeyMappings,
-            Map<String, List<String>> routingKeyToQueueMappings) {
+    public TestChannel(final Map<String, String> exchangeToRoutingKeyMappings,
+            final Map<String, List<String>> routingKeyToQueueMappings) {
         this.enqueuedMessages = new HashMap<>();
         this.routingKeyToQueueMappings = routingKeyToQueueMappings;
         if (this.routingKeyToQueueMappings != null) {
-            for (List<String> queues : routingKeyToQueueMappings.values()) {
-                for (String queue : queues) {
+            for (final List<String> queues : routingKeyToQueueMappings.values()) {
+                for (final String queue : queues) {
                     this.enqueuedMessages.put(queue, new ArrayBlockingQueue<>(100));
                 }
             }
@@ -100,18 +100,18 @@ class TestChannel implements Channel {
         this.corrupted = true;
     }
 
-    void setConnection(Connection connection) {
+    void setConnection(final Connection connection) {
         this.connection = connection;
     }
 
     @Override
-    public void addShutdownListener(ShutdownListener listener) {
+    public void addShutdownListener(final ShutdownListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void removeShutdownListener(ShutdownListener listener) {
+    public void removeShutdownListener(final ShutdownListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
@@ -148,7 +148,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void close(int closeCode, String closeMessage) {
+    public void close(final int closeCode, final String closeMessage) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
@@ -160,18 +160,18 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void abort(int closeCode, String closeMessage) throws IOException {
+    public void abort(final int closeCode, final String closeMessage) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void addReturnListener(ReturnListener listener) {
+    public void addReturnListener(final ReturnListener listener) {
         this.returnListeners.add(listener);
     }
 
     @Override
-    public boolean removeReturnListener(ReturnListener listener) {
+    public boolean removeReturnListener(final ReturnListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -182,13 +182,13 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void addConfirmListener(ConfirmListener listener) {
+    public void addConfirmListener(final ConfirmListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public boolean removeConfirmListener(ConfirmListener listener) {
+    public boolean removeConfirmListener(final ConfirmListener listener) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -204,25 +204,25 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void setDefaultConsumer(Consumer consumer) {
+    public void setDefaultConsumer(final Consumer consumer) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void basicQos(int prefetchSize, int prefetchCount, boolean global) throws IOException {
+    public void basicQos(final int prefetchSize, final int prefetchCount, final boolean global) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void basicQos(int prefetchCount, boolean global) throws IOException {
+    public void basicQos(final int prefetchCount, final boolean global) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void basicQos(int prefetchCount) throws IOException {
+    public void basicQos(final int prefetchCount) throws IOException {
         this.prefetchCount = prefetchCount;
     }
 
@@ -231,13 +231,13 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void basicPublish(String exchange, String routingKey, BasicProperties props, byte[] body)
+    public void basicPublish(final String exchange, final String routingKey, final BasicProperties props, final byte[] body)
             throws IOException {
         this.basicPublish(exchange, routingKey, true, props, body);
     }
 
     @Override
-    public void basicPublish(final String exchange, final String routingKey, boolean mandatory,
+    public void basicPublish(final String exchange, final String routingKey, final boolean mandatory,
             final BasicProperties props, final byte[] body) throws IOException {
         if (this.corrupted) {
             throw new IOException("Channel is corrupted");
@@ -247,23 +247,23 @@ class TestChannel implements Channel {
         }
 
         if (exchange.equals("")) { // default exchange; routingKey corresponds to a queue.
-            BlockingQueue<GetResponse> messages = this.getMessageQueue(routingKey);
+            final BlockingQueue<GetResponse> messages = this.getMessageQueue(routingKey);
             final Envelope envelope = new Envelope(deliveryTag++, false, exchange, routingKey);
 
-            GetResponse response = new GetResponse(envelope, props, body, messages.size());
+            final GetResponse response = new GetResponse(envelope, props, body, messages.size());
             messages.offer(response);
         } else {
-            String rKey = this.exchangeToRoutingKeyMappings.get(exchange);
+            final String rKey = this.exchangeToRoutingKeyMappings.get(exchange);
 
             if (rKey.equals(routingKey)) {
-                List<String> queueNames = this.routingKeyToQueueMappings.get(routingKey);
+                final List<String> queueNames = this.routingKeyToQueueMappings.get(routingKey);
                 if (queueNames == null || queueNames.isEmpty()) {
                     this.discard(exchange, routingKey, mandatory, props, body);
                 } else {
-                    for (String queueName : queueNames) {
-                        BlockingQueue<GetResponse> messages = this.getMessageQueue(queueName);
+                    for (final String queueName : queueNames) {
+                        final BlockingQueue<GetResponse> messages = this.getMessageQueue(queueName);
                         final Envelope envelope = new Envelope(deliveryTag++, false, exchange, routingKey);
-                        GetResponse response = new GetResponse(envelope, props, body, messages.size());
+                        final GetResponse response = new GetResponse(envelope, props, body, messages.size());
                         messages.offer(response);
 
                         final List<Consumer> consumers = consumerMap.get(queueName);
@@ -281,21 +281,21 @@ class TestChannel implements Channel {
         }
     }
 
-    private void discard(final String exchange, final String routingKey, boolean mandatory, final BasicProperties props,
+    private void discard(final String exchange, final String routingKey, final boolean mandatory, final BasicProperties props,
             final byte[] body) {
         // NO ROUTE. Invoke return listener async
         for (final ReturnListener listener : returnListeners) {
             this.executorService.execute(() -> {
                 try {
                     listener.handleReturn(-9, "Rejecting", exchange, routingKey, props, body);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalStateException("Failed to send return message", e);
                 }
             });
         }
     }
 
-    private BlockingQueue<GetResponse> getMessageQueue(String name) {
+    private BlockingQueue<GetResponse> getMessageQueue(final String name) {
         BlockingQueue<GetResponse> messages = this.enqueuedMessages.get(name);
         if (messages == null) {
             messages = new ArrayBlockingQueue<>(100);
@@ -305,93 +305,93 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void basicPublish(String exchange, String routingKey, boolean mandatory, boolean immediate,
-            BasicProperties props, byte[] body) throws IOException {
+    public void basicPublish(final String exchange, final String routingKey, final boolean mandatory, final boolean immediate,
+            final BasicProperties props, final byte[] body) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, String type) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final String type) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, String type, boolean durable) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final String type, final boolean durable) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, String type, boolean durable, boolean autoDelete,
-            Map<String, Object> arguments) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final String type, final boolean durable, final boolean autoDelete,
+            final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, String type, boolean durable, boolean autoDelete,
-            boolean internal, Map<String, Object> arguments) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final String type, final boolean durable, final boolean autoDelete,
+            final boolean internal, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void exchangeDeclareNoWait(String exchange, String type, boolean durable, boolean autoDelete,
-            boolean internal, Map<String, Object> arguments) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-
-    }
-
-    @Override
-    public DeclareOk exchangeDeclarePassive(String name) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-    }
-
-    @Override
-    public DeleteOk exchangeDelete(String exchange, boolean ifUnused) throws IOException {
-        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
-    }
-
-    @Override
-    public void exchangeDeleteNoWait(String exchange, boolean ifUnused) throws IOException {
+    public void exchangeDeclareNoWait(final String exchange, final String type, final boolean durable, final boolean autoDelete,
+            final boolean internal, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public DeleteOk exchangeDelete(String exchange) throws IOException {
+    public DeclareOk exchangeDeclarePassive(final String name) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public BindOk exchangeBind(String destination, String source, String routingKey) throws IOException {
+    public DeleteOk exchangeDelete(final String exchange, final boolean ifUnused) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public BindOk exchangeBind(String destination, String source, String routingKey, Map<String, Object> arguments)
+    public void exchangeDeleteNoWait(final String exchange, final boolean ifUnused) throws IOException {
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+
+    }
+
+    @Override
+    public DeleteOk exchangeDelete(final String exchange) throws IOException {
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+    }
+
+    @Override
+    public BindOk exchangeBind(final String destination, final String source, final String routingKey) throws IOException {
+        throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
+    }
+
+    @Override
+    public BindOk exchangeBind(final String destination, final String source, final String routingKey, final Map<String, Object> arguments)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void exchangeBindNoWait(String destination, String source, String routingKey, Map<String, Object> arguments)
+    public void exchangeBindNoWait(final String destination, final String source, final String routingKey, final Map<String, Object> arguments)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public UnbindOk exchangeUnbind(String destination, String source, String routingKey) throws IOException {
+    public UnbindOk exchangeUnbind(final String destination, final String source, final String routingKey) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public UnbindOk exchangeUnbind(String destination, String source, String routingKey, Map<String, Object> arguments)
+    public UnbindOk exchangeUnbind(final String destination, final String source, final String routingKey, final Map<String, Object> arguments)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void exchangeUnbindNoWait(String destination, String source, String routingKey,
-            Map<String, Object> arguments) throws IOException {
+    public void exchangeUnbindNoWait(final String destination, final String source, final String routingKey,
+            final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
@@ -402,79 +402,79 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclare(String queue, boolean durable, boolean exclusive,
-            boolean autoDelete, Map<String, Object> arguments) throws IOException {
+    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclare(final String queue, final boolean durable, final boolean exclusive,
+            final boolean autoDelete, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void queueDeclareNoWait(String queue, boolean durable, boolean exclusive, boolean autoDelete,
-            Map<String, Object> arguments) throws IOException {
+    public void queueDeclareNoWait(final String queue, final boolean durable, final boolean exclusive, final boolean autoDelete,
+            final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclarePassive(String queue) throws IOException {
+    public com.rabbitmq.client.AMQP.Queue.DeclareOk queueDeclarePassive(final String queue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.DeleteOk queueDelete(String queue) throws IOException {
+    public com.rabbitmq.client.AMQP.Queue.DeleteOk queueDelete(final String queue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.DeleteOk queueDelete(String queue, boolean ifUnused, boolean ifEmpty)
+    public com.rabbitmq.client.AMQP.Queue.DeleteOk queueDelete(final String queue, final boolean ifUnused, final boolean ifEmpty)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void queueDeleteNoWait(String queue, boolean ifUnused, boolean ifEmpty) throws IOException {
+    public void queueDeleteNoWait(final String queue, final boolean ifUnused, final boolean ifEmpty) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.BindOk queueBind(String queue, String exchange, String routingKey)
+    public com.rabbitmq.client.AMQP.Queue.BindOk queueBind(final String queue, final String exchange, final String routingKey)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.BindOk queueBind(String queue, String exchange, String routingKey,
-            Map<String, Object> arguments) throws IOException {
+    public com.rabbitmq.client.AMQP.Queue.BindOk queueBind(final String queue, final String exchange, final String routingKey,
+            final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void queueBindNoWait(String queue, String exchange, String routingKey, Map<String, Object> arguments)
+    public void queueBindNoWait(final String queue, final String exchange, final String routingKey, final Map<String, Object> arguments)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.UnbindOk queueUnbind(String queue, String exchange, String routingKey)
+    public com.rabbitmq.client.AMQP.Queue.UnbindOk queueUnbind(final String queue, final String exchange, final String routingKey)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public com.rabbitmq.client.AMQP.Queue.UnbindOk queueUnbind(String queue, String exchange, String routingKey,
-            Map<String, Object> arguments) throws IOException {
+    public com.rabbitmq.client.AMQP.Queue.UnbindOk queueUnbind(final String queue, final String exchange, final String routingKey,
+            final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public PurgeOk queuePurge(String queue) throws IOException {
+    public PurgeOk queuePurge(final String queue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public GetResponse basicGet(String queue, boolean autoAck) throws IOException {
-        BlockingQueue<GetResponse> messages = this.enqueuedMessages.get(queue);
+    public GetResponse basicGet(final String queue, final boolean autoAck) throws IOException {
+        final BlockingQueue<GetResponse> messages = this.enqueuedMessages.get(queue);
         if (messages == null) {
             throw new IOException("Queue is not defined");
         } else {
@@ -483,7 +483,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void basicAck(long deliveryTag, boolean multiple) throws IOException {
+    public void basicAck(final long deliveryTag, final boolean multiple) throws IOException {
         acknowledgments.set((int) deliveryTag);
     }
 
@@ -492,7 +492,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void basicNack(long deliveryTag, boolean multiple, boolean requeue) throws IOException {
+    public void basicNack(final long deliveryTag, final boolean multiple, final boolean requeue) throws IOException {
         nacks.set((int) deliveryTag);
     }
 
@@ -501,17 +501,17 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void basicReject(long deliveryTag, boolean requeue) throws IOException {
+    public void basicReject(final long deliveryTag, final boolean requeue) throws IOException {
         nacks.set((int) deliveryTag);
     }
 
     @Override
-    public String basicConsume(String queue, Consumer callback) {
+    public String basicConsume(final String queue, final Consumer callback) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, Consumer callback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final Consumer callback) throws IOException {
         final BlockingQueue<GetResponse> messageQueue = enqueuedMessages.get(queue);
         if (messageQueue == null) {
             throw new IOException("Queue is not defined");
@@ -530,27 +530,27 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, Map<String, Object> arguments, Consumer callback)
+    public String basicConsume(final String queue, final boolean autoAck, final Map<String, Object> arguments, final Consumer callback)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, Consumer callback)
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final Consumer callback)
             throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, boolean noLocal, boolean exclusive,
-            Map<String, Object> arguments, Consumer callback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final boolean noLocal, final boolean exclusive,
+            final Map<String, Object> arguments, final Consumer callback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void basicCancel(String consumerTag) throws IOException {
+    public void basicCancel(final String consumerTag) throws IOException {
         // consumerMap is indexed by queue name so the passed in consumerTag parameter needs to be the name of the test queue
-        for (Consumer consumer: consumerMap.get(consumerTag)) {
+        for (final Consumer consumer: consumerMap.get(consumerTag)) {
             consumer.handleCancel(consumerTag);
         }
     }
@@ -561,7 +561,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public RecoverOk basicRecover(boolean requeue) throws IOException {
+    public RecoverOk basicRecover(final boolean requeue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -596,7 +596,7 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public boolean waitForConfirms(long timeout) throws InterruptedException, TimeoutException {
+    public boolean waitForConfirms(final long timeout) throws InterruptedException, TimeoutException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
@@ -607,151 +607,162 @@ class TestChannel implements Channel {
     }
 
     @Override
-    public void waitForConfirmsOrDie(long timeout) throws IOException, InterruptedException, TimeoutException {
+    public void waitForConfirmsOrDie(final long timeout) throws IOException, InterruptedException, TimeoutException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public void asyncRpc(Method method) throws IOException {
+    public void asyncRpc(final Method method) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
 
     }
 
     @Override
-    public Command rpc(Method method) throws IOException {
+    public Command rpc(final Method method) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public long messageCount(String queue) throws IOException {
+    public long messageCount(final String queue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public long consumerCount(String queue) throws IOException {
+    public long consumerCount(final String queue) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public ReturnListener addReturnListener(ReturnCallback returnCallback) {
+    public ReturnListener addReturnListener(final ReturnCallback returnCallback) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public ConfirmListener addConfirmListener(ConfirmCallback ackCallback, ConfirmCallback nackCallback) {
+    public ConfirmListener addConfirmListener(final ConfirmCallback ackCallback, final ConfirmCallback nackCallback) {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, BuiltinExchangeType type) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final BuiltinExchangeType type) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, BuiltinExchangeType type, boolean durable) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final BuiltinExchangeType type, final boolean durable) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, BuiltinExchangeType type, boolean durable, boolean autoDelete, Map<String, Object> arguments) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final BuiltinExchangeType type, final boolean durable, final boolean autoDelete, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public DeclareOk exchangeDeclare(String exchange, BuiltinExchangeType type, boolean durable, boolean autoDelete, boolean internal, Map<String, Object> arguments) throws IOException {
+    public DeclareOk exchangeDeclare(final String exchange, final BuiltinExchangeType type, final boolean durable,
+            final boolean autoDelete, final boolean internal, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public void exchangeDeclareNoWait(String exchange, BuiltinExchangeType type, boolean durable, boolean autoDelete, boolean internal, Map<String, Object> arguments) throws IOException {
+    public void exchangeDeclareNoWait(final String exchange, final BuiltinExchangeType type, final boolean durable,
+            final boolean autoDelete, final boolean internal, final Map<String, Object> arguments) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, DeliverCallback deliverCallback, CancelCallback cancelCallback) throws IOException {
+    public String basicConsume(final String queue, final DeliverCallback deliverCallback, final CancelCallback cancelCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, DeliverCallback deliverCallback, ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final DeliverCallback deliverCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, DeliverCallback deliverCallback, CancelCallback cancelCallback, ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final DeliverCallback deliverCallback, final CancelCallback cancelCallback,
+            final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, DeliverCallback deliverCallback, CancelCallback cancelCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final DeliverCallback deliverCallback,
+            final CancelCallback cancelCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, DeliverCallback deliverCallback, ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final DeliverCallback deliverCallback,
+            final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, DeliverCallback deliverCallback, CancelCallback cancelCallback, ConsumerShutdownSignalCallback shutdownSignalCallback)
-        throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final DeliverCallback deliverCallback,
+            final CancelCallback cancelCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, Map<String, Object> arguments, DeliverCallback deliverCallback, CancelCallback cancelCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final Map<String, Object> arguments,
+            final DeliverCallback deliverCallback, final CancelCallback cancelCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, Map<String, Object> arguments, DeliverCallback deliverCallback, ConsumerShutdownSignalCallback shutdownSignalCallback)
-        throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final Map<String, Object> arguments,
+            final DeliverCallback deliverCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, Map<String, Object> arguments, DeliverCallback deliverCallback, CancelCallback cancelCallback,
-        ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final Map<String, Object> arguments, final DeliverCallback deliverCallback, final CancelCallback cancelCallback,
+        final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, DeliverCallback deliverCallback, CancelCallback cancelCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag,
+            final DeliverCallback deliverCallback, final CancelCallback cancelCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, DeliverCallback deliverCallback, ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag,
+            final DeliverCallback deliverCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, DeliverCallback deliverCallback, CancelCallback cancelCallback, ConsumerShutdownSignalCallback shutdownSignalCallback)
-        throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final DeliverCallback deliverCallback,
+            final CancelCallback cancelCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, boolean noLocal, boolean exclusive, Map<String, Object> arguments, DeliverCallback deliverCallback,
-        CancelCallback cancelCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final boolean noLocal,
+            final boolean exclusive, final Map<String, Object> arguments, final DeliverCallback deliverCallback,
+            final CancelCallback cancelCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, boolean noLocal, boolean exclusive, Map<String, Object> arguments, DeliverCallback deliverCallback,
-        ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final boolean noLocal,
+            final boolean exclusive, final Map<String, Object> arguments, final DeliverCallback deliverCallback,
+            final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public String basicConsume(String queue, boolean autoAck, String consumerTag, boolean noLocal, boolean exclusive, Map<String, Object> arguments, DeliverCallback deliverCallback,
-        CancelCallback cancelCallback, ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
+    public String basicConsume(final String queue, final boolean autoAck, final String consumerTag, final boolean noLocal,
+            final boolean exclusive, final Map<String, Object> arguments, final DeliverCallback deliverCallback,
+            final CancelCallback cancelCallback, final ConsumerShutdownSignalCallback shutdownSignalCallback) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 
     @Override
-    public CompletableFuture<Command> asyncCompletableRpc(Method method) throws IOException {
+    public CompletableFuture<Command> asyncCompletableRpc(final Method method) throws IOException {
         throw new UnsupportedOperationException("This method is not currently supported as it is not used by current API in testing");
     }
 

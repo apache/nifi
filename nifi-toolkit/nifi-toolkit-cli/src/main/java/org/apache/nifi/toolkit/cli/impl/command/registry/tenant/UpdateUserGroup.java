@@ -73,7 +73,7 @@ public class UpdateUserGroup extends AbstractNiFiRegistryCommand<VoidResult> {
         }
 
         // Update group members
-        Set<Tenant> users = TenantHelper.selectExistingTenants(
+        final Set<Tenant> users = TenantHelper.selectExistingTenants(
             getArg(properties, CommandOption.USER_NAME_LIST),
             getArg(properties, CommandOption.USER_ID_LIST),
             tenantsClient.getUsers()

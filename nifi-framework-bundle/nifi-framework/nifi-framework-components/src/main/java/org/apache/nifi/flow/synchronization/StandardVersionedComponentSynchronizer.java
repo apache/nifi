@@ -443,7 +443,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
-        boolean proposedParameterContextExistsBeforeSynchronize = getParameterContextByName(proposed.getParameterContextName()) != null;
+        final boolean proposedParameterContextExistsBeforeSynchronize = getParameterContextByName(proposed.getParameterContextName()) != null;
 
         // Ensure that we create all Parameter Contexts before updating them. This is necessary in case the proposed incoming dataflow has
         // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
@@ -1355,7 +1355,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 for (final String prioritizerType : connectionToAdd.getPrioritizers()) {
                     try {
                         context.getFlowManager().createPrioritizer(prioritizerType);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         throw new IllegalArgumentException("Unable to create Prioritizer of type " + prioritizerType, e);
                     }
                 }
@@ -1375,7 +1375,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private ProcessGroup addProcessGroup(final ProcessGroup destination, final VersionedProcessGroup proposed, final ComponentIdGenerator componentIdGenerator,
                                          final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                         final Map<String, ParameterProviderReference> parameterProviderReferences, ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
+                                         final Map<String, ParameterProviderReference> parameterProviderReferences, final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
         final String id = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
         final ProcessGroup group = context.getFlowManager().createProcessGroup(id);
         group.setVersionedComponentId(proposed.getIdentifier());
@@ -1635,7 +1635,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
                     if (existingExternalServiceId == null) {
                         final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
+                        final String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
                         value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
 
                         // Find the same property descriptor in the component's CreatedExtension and replace it with the
@@ -1693,7 +1693,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (isValueEncrypted(value)) {
             try {
                 return decryptor.decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUFFIX.length()));
-            } catch (EncryptionException e) {
+            } catch (final EncryptionException e) {
                 final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
                         "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
                 throw new EncryptionException(moreDescriptiveMessage, e);
@@ -2015,7 +2015,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 notifyScheduledStateChange(controllerServicesToStop, synchronizationOptions, org.apache.nifi.flow.ScheduledState.DISABLED);
                 try {
                     serviceDisableFuture.get(timeout - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-                } catch (ExecutionException e) {
+                } catch (final ExecutionException e) {
                     throw new FlowSynchronizationException("Failed to disable Controller Services necessary in order to perform update of Process Group", e);
                 }
 

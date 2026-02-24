@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 
 public class TestPutWebSocket {
 
-    private void assertFlowFile(WebSocketSession webSocketSession, String serviceId, String endpointId, MockFlowFile ff, WebSocketMessage.Type messageType) {
+    private void assertFlowFile(final WebSocketSession webSocketSession, final String serviceId, final String endpointId, final MockFlowFile ff, final WebSocketMessage.Type messageType) {
         assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
         assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
         assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
@@ -286,7 +286,7 @@ public class TestPutWebSocket {
 
     @ParameterizedTest
     @MethodSource("webSocketMessageTypeArgs")
-    void testWebSocketMessageType(String type, boolean valid) {
+    void testWebSocketMessageType(final String type, final boolean valid) {
         final TestRunner runner = TestRunners.newTestRunner(PutWebSocket.class);
         runner.setProperty(PutWebSocket.PROP_WS_MESSAGE_TYPE, type);
 

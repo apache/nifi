@@ -23,28 +23,28 @@ public class TestAzureServiceEndpoints {
 
     @Test
     public void testAzureBlobStorageEndpoint() {
-        String endpoint = AzureServiceEndpoints.getAzureBlobStorageEndpoint("myaccount", "blob.core.usgovcloudapi.net");
+        final String endpoint = AzureServiceEndpoints.getAzureBlobStorageEndpoint("myaccount", "blob.core.usgovcloudapi.net");
 
         Assertions.assertEquals("https://myaccount.blob.core.usgovcloudapi.net", endpoint);
     }
 
     @Test
     public void testAzureBlobStorageEndpointWithDefaultSuffix() {
-        String endpoint = AzureServiceEndpoints.getAzureBlobStorageEndpoint("myaccount", null);
+        final String endpoint = AzureServiceEndpoints.getAzureBlobStorageEndpoint("myaccount", null);
 
         Assertions.assertEquals("https://myaccount.blob.core.windows.net", endpoint);
     }
 
     @Test
     public void testAzureDataLakeStorageEndpoint() {
-        String endpoint = AzureServiceEndpoints.getAzureDataLakeStorageEndpoint("myaccount", "dfs.core.usgovcloudapi.net");
+        final String endpoint = AzureServiceEndpoints.getAzureDataLakeStorageEndpoint("myaccount", "dfs.core.usgovcloudapi.net");
 
         Assertions.assertEquals("https://myaccount.dfs.core.usgovcloudapi.net", endpoint);
     }
 
     @Test
     public void testAzureDataLakeEndpointWithDefaultSuffix() {
-        String endpoint = AzureServiceEndpoints.getAzureDataLakeStorageEndpoint("myaccount", null);
+        final String endpoint = AzureServiceEndpoints.getAzureDataLakeStorageEndpoint("myaccount", null);
 
         Assertions.assertEquals("https://myaccount.dfs.core.windows.net", endpoint);
     }

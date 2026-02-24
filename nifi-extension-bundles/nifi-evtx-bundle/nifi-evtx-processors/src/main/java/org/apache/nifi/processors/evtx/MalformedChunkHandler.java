@@ -29,11 +29,11 @@ import org.apache.nifi.processor.Relationship;
 public class MalformedChunkHandler {
     private final Relationship badChunkRelationship;
 
-    public MalformedChunkHandler(Relationship badChunkRelationship) {
+    public MalformedChunkHandler(final Relationship badChunkRelationship) {
         this.badChunkRelationship = badChunkRelationship;
     }
 
-    public void handle(FlowFile original, ProcessSession processSession, String chunkName, byte[] badChunk) {
+    public void handle(final FlowFile original, final ProcessSession processSession, final String chunkName, final byte[] badChunk) {
         FlowFile flowFile = processSession.create(original);
         flowFile = processSession.putAttribute(flowFile, CoreAttributes.FILENAME.key(), chunkName);
         flowFile = processSession.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), MediaType.APPLICATION_BINARY.toString());

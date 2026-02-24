@@ -218,7 +218,7 @@ class StandardPemPrivateKeyReader implements PemPrivateKeyReader {
             if (initialByteLength == 0) {
                 derLength = lengthEncoded & DER_RESERVED_LENGTH_MASK;
             } else {
-                int lengthBytes = lengthEncoded & DER_RESERVED_LENGTH_MASK;
+                final int lengthBytes = lengthEncoded & DER_RESERVED_LENGTH_MASK;
                 int sequenceLength = 0;
                 for (int i = 0; i < lengthBytes; i++) {
                     sequenceLength <<= DER_LENGTH_BITS;

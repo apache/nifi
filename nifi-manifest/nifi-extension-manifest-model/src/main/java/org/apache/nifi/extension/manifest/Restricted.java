@@ -40,7 +40,7 @@ public class Restricted {
         return generalRestrictionExplanation;
     }
 
-    public void setGeneralRestrictionExplanation(String generalRestrictionExplanation) {
+    public void setGeneralRestrictionExplanation(final String generalRestrictionExplanation) {
         this.generalRestrictionExplanation = generalRestrictionExplanation;
     }
 
@@ -49,7 +49,7 @@ public class Restricted {
         return restrictions;
     }
 
-    public void setRestrictions(List<Restriction> restrictions) {
+    public void setRestrictions(final List<Restriction> restrictions) {
         this.restrictions = restrictions;
     }
 

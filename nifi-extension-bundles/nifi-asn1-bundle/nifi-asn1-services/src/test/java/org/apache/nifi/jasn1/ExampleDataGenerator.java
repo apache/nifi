@@ -44,7 +44,7 @@ public class ExampleDataGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExampleDataGenerator.class);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(final String[] args) throws Exception {
 
         final File asnFile = new File(ExampleDataGenerator.class.getResource("/example.asn").getFile());
         final File dir = new File(asnFile.getParentFile().getParentFile().getParentFile(), "src/test/resources/examples");
@@ -58,7 +58,7 @@ public class ExampleDataGenerator {
         generateTbcdString(dir);
     }
 
-    private static void generateBasicTypes(File dir) throws IOException {
+    private static void generateBasicTypes(final File dir) throws IOException {
         final File file = new File(dir, "basic-types.dat");
         try (final ReverseByteArrayOutputStream rev = new ReverseByteArrayOutputStream(1024);
              final OutputStream out = new FileOutputStream(file)) {
@@ -74,7 +74,7 @@ public class ExampleDataGenerator {
         }
     }
 
-    private static void generateComposite(File dir) throws IOException {
+    private static void generateComposite(final File dir) throws IOException {
         final File file = new File(dir, "composite.dat");
         try (final ReverseByteArrayOutputStream rev = new ReverseByteArrayOutputStream(1024);
              final OutputStream out = new FileOutputStream(file)) {
@@ -121,34 +121,34 @@ public class ExampleDataGenerator {
         }
     }
 
-    private static void generateMultiRecord(File dir) throws IOException {
+    private static void generateMultiRecord(final File dir) throws IOException {
         final File file = new File(dir, "multi-record.dat");
         try (
                 final ReverseByteArrayOutputStream rev = new ReverseByteArrayOutputStream(1024);
                 final OutputStream out = new FileOutputStream(file)
         ) {
 
-            int record1Length = write(rev, out, true, 123, new byte[]{1, 2, 3, 4, 5}, "Some UTF-8 String. こんにちは世界。");
-            int record2Length = write(rev, out, false, 456, new byte[]{6, 7, 8, 9, 10}, "Another UTF-8 String. こんばんは世界。");
+            final int record1Length = write(rev, out, true, 123, new byte[]{1, 2, 3, 4, 5}, "Some UTF-8 String. こんにちは世界。");
+            final int record2Length = write(rev, out, false, 456, new byte[]{6, 7, 8, 9, 10}, "Another UTF-8 String. こんばんは世界。");
 
             LOG.info("Generated {} bytes to {}", record1Length + record2Length, file);
         }
     }
 
-    private static int write(ReverseByteArrayOutputStream rev, OutputStream out, boolean b, int i, byte[] octStr, String uft8Str) throws IOException {
-        BasicTypes basicTypes = new BasicTypes();
+    private static int write(final ReverseByteArrayOutputStream rev, final OutputStream out, final boolean b, final int i, final byte[] octStr, final String uft8Str) throws IOException {
+        final BasicTypes basicTypes = new BasicTypes();
         basicTypes.setB(new BerBoolean(b));
         basicTypes.setI(new BerInteger(i));
         basicTypes.setOctStr(new BerOctetString(octStr));
         basicTypes.setUtf8Str(new BerUTF8String(uft8Str));
 
-        int encoded = basicTypes.encode(rev);
+        final int encoded = basicTypes.encode(rev);
         out.write(rev.getArray(), 0, encoded);
 
         return encoded;
     }
 
-    private static void generateTbcdString(File dir) throws IOException {
+    private static void generateTbcdString(final File dir) throws IOException {
         final File file = new File(dir, "tbcd-string.dat");
         try (final ReverseByteArrayOutputStream rev = new ReverseByteArrayOutputStream(1024);
                 final OutputStream out = new FileOutputStream(file)) {

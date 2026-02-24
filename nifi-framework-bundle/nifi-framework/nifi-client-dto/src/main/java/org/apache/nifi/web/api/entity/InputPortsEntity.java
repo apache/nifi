@@ -35,7 +35,7 @@ public class InputPortsEntity extends Entity {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<PortEntity> inputPorts) {
+    public void setInputPorts(final Set<PortEntity> inputPorts) {
         this.inputPorts = inputPorts;
     }
 

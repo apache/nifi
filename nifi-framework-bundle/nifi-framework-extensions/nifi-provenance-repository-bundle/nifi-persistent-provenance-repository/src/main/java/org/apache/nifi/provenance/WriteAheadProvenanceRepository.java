@@ -138,7 +138,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory, fileManager);
     }
 
-    protected synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,
+    protected synchronized void init(final RecordWriterFactory recordWriterFactory, final RecordReaderFactory recordReaderFactory,
                            final EventReporter eventReporter, final Authorizer authorizer,
                            final ProvenanceAuthorizableFactory resourceFactory, final EventFileManager fileManager) throws IOException {
 
@@ -310,11 +310,11 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
     @Override
     public long getContainerCapacity(final String containerName) throws IOException {
-        Map<String, File> map = config.getStorageDirectories();
+        final Map<String, File> map = config.getStorageDirectories();
 
-        File container = map.get(containerName);
+        final File container = map.get(containerName);
         if (container != null) {
-            long capacity = FileUtils.getContainerCapacity(container.toPath());
+            final long capacity = FileUtils.getContainerCapacity(container.toPath());
             if (capacity == 0) {
                 throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
                         + "Nifi can not create a zero sized provenance repository.");
@@ -335,16 +335,16 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
 
         try {
             return Files.getFileStore(container.toPath()).name();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return null;
         }
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
-        Map<String, File> map = config.getStorageDirectories();
+    public long getContainerUsableSpace(final String containerName) throws IOException {
+        final Map<String, File> map = config.getStorageDirectories();
 
-        File container = map.get(containerName);
+        final File container = map.get(containerName);
         if (container != null) {
             return FileUtils.getContainerUsableSpace(container.toPath());
         } else {

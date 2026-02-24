@@ -29,7 +29,7 @@ public enum TagsTarget implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    TagsTarget(String displayName, String description) {
+    TagsTarget(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

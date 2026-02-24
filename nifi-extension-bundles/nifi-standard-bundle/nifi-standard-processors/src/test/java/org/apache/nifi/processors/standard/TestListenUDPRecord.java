@@ -243,7 +243,7 @@ public class TestListenUDPRecord {
         private volatile BlockingQueue<StandardEvent<SelectableChannel>> testErrorEvents = new LinkedBlockingQueue<>();
 
         @Override
-        protected ChannelDispatcher createDispatcher(ProcessContext context, BlockingQueue<StandardEvent> events) {
+        protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<StandardEvent> events) {
             return Mockito.mock(ChannelDispatcher.class);
         }
 
@@ -256,7 +256,7 @@ public class TestListenUDPRecord {
         }
 
         @Override
-        protected StandardEvent getMessage(boolean longPoll, boolean pollErrorQueue, ProcessSession session) {
+        protected StandardEvent getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
             StandardEvent event = null;
             if (pollErrorQueue) {
                 event = testErrorEvents.poll();
@@ -269,7 +269,7 @@ public class TestListenUDPRecord {
                     } else {
                         event = testEvents.poll();
                     }
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return null;
                 }

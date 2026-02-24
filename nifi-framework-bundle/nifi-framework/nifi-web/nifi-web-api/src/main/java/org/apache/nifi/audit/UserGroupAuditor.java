@@ -67,9 +67,9 @@ public class UserGroupAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.UserGroupDAO+) && "
             + "execution(org.apache.nifi.authorization.Group createUserGroup(org.apache.nifi.web.api.dto.UserGroupDTO))")
-    public Group createUserGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Group createUserGroupAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the access user group
-        Group userGroup = (Group) proceedingJoinPoint.proceed();
+        final Group userGroup = (Group) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the user action...
         final Action action = generateAuditRecord(userGroup, Operation.Add);
@@ -95,7 +95,7 @@ public class UserGroupAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.Group updateUserGroup(org.apache.nifi.web.api.dto.UserGroupDTO)) && "
             + "args(userGroupDTO) && "
             + "target(userGroupDAO)")
-    public Group updateUserAdvice(ProceedingJoinPoint proceedingJoinPoint, UserGroupDTO userGroupDTO, UserGroupDAO userGroupDAO) throws Throwable {
+    public Group updateUserAdvice(final ProceedingJoinPoint proceedingJoinPoint, final UserGroupDTO userGroupDTO, final UserGroupDAO userGroupDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         Group user = userGroupDAO.getUserGroup(userGroupDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(user, userGroupDTO);
@@ -108,16 +108,16 @@ public class UserGroupAuditor extends NiFiAuditor {
 
         if (isAuditable()) {
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userGroupDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userGroupDTO);
 
             // create a user action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
-                String newValue = updatedValues.get(property);
-                String oldValue = values.get(property);
+            for (final String property : updatedValues.keySet()) {
+                final String newValue = updatedValues.get(property);
+                final String oldValue = values.get(property);
                 Operation operation = null;
 
                 // determine the type of operation
@@ -166,9 +166,9 @@ public class UserGroupAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.Group deleteUserGroup(java.lang.String)) && "
             + "args(userGroupId) && "
             + "target(userGroupDAO)")
-    public Group removeUserAdvice(ProceedingJoinPoint proceedingJoinPoint, String userGroupId, UserGroupDAO userGroupDAO) throws Throwable {
+    public Group removeUserAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String userGroupId, final UserGroupDAO userGroupDAO) throws Throwable {
         // get the user group before removing it
-        Group userGroup = userGroupDAO.getUserGroup(userGroupId);
+        final Group userGroup = userGroupDAO.getUserGroup(userGroupId);
 
         // remove the user group
         final Group removedUserGroup = (Group) proceedingJoinPoint.proceed();
@@ -192,7 +192,7 @@ public class UserGroupAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(Group userGroup, Operation operation) {
+    public Action generateAuditRecord(final Group userGroup, final Operation operation) {
         return generateAuditRecord(userGroup, operation, null);
     }
 
@@ -204,7 +204,7 @@ public class UserGroupAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(Group userGroup, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final Group userGroup, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
@@ -226,8 +226,8 @@ public class UserGroupAuditor extends NiFiAuditor {
     /**
      * Extracts the values for the configured properties from the specified user group.
      */
-    private Map<String, String> extractConfiguredPropertyValues(Group group, UserGroupDTO userGroupDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final Group group, final UserGroupDTO userGroupDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (userGroupDTO.getIdentity() != null) {
             values.put(NAME, group.getName());

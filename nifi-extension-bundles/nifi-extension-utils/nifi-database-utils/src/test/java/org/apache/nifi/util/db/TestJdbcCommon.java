@@ -248,17 +248,17 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        Schema schema = JdbcCommon.createSchema(rs);
+        final Schema schema = JdbcCommon.createSchema(rs);
         assertNotNull(schema);
 
-        Schema.Field field = schema.getField("Col1");
-        Schema fieldSchema = field.schema();
+        final Schema.Field field = schema.getField("Col1");
+        final Schema fieldSchema = field.schema();
         assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
 
-        for (Schema type : fieldSchema.getTypes()) {
+        for (final Schema type : fieldSchema.getTypes()) {
             if (type.getType().equals(Schema.Type.INT)) {
                 foundIntSchema = true;
             } else if (type.getType().equals(Schema.Type.NULL)) {
@@ -283,17 +283,17 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        Schema schema = JdbcCommon.createSchema(rs);
+        final Schema schema = JdbcCommon.createSchema(rs);
         assertNotNull(schema);
 
-        Schema.Field field = schema.getField("Col1");
-        Schema fieldSchema = field.schema();
+        final Schema.Field field = schema.getField("Col1");
+        final Schema fieldSchema = field.schema();
         assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;
 
-        for (Schema type : fieldSchema.getTypes()) {
+        for (final Schema type : fieldSchema.getTypes()) {
             if (type.getType().equals(Schema.Type.LONG)) {
                 foundLongSchema = true;
             } else if (type.getType().equals(Schema.Type.NULL)) {
@@ -318,17 +318,17 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        Schema schema = JdbcCommon.createSchema(rs);
+        final Schema schema = JdbcCommon.createSchema(rs);
         assertNotNull(schema);
 
-        Schema.Field field = schema.getField("Col1");
-        Schema fieldSchema = field.schema();
+        final Schema.Field field = schema.getField("Col1");
+        final Schema fieldSchema = field.schema();
         assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundIntSchema = false;
         boolean foundNullSchema = false;
 
-        for (Schema type : fieldSchema.getTypes()) {
+        for (final Schema type : fieldSchema.getTypes()) {
             if (type.getType().equals(Schema.Type.INT)) {
                 foundIntSchema = true;
             } else if (type.getType().equals(Schema.Type.NULL)) {
@@ -353,17 +353,17 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        Schema schema = JdbcCommon.createSchema(rs);
+        final Schema schema = JdbcCommon.createSchema(rs);
         assertNotNull(schema);
 
-        Schema.Field field = schema.getField("Col1");
-        Schema fieldSchema = field.schema();
+        final Schema.Field field = schema.getField("Col1");
+        final Schema fieldSchema = field.schema();
         assertEquals(2, fieldSchema.getTypes().size());
 
         boolean foundLongSchema = false;
         boolean foundNullSchema = false;
 
-        for (Schema type : fieldSchema.getTypes()) {
+        for (final Schema type : fieldSchema.getTypes()) {
             if (type.getType().equals(Schema.Type.LONG)) {
                 foundLongSchema = true;
             } else if (type.getType().equals(Schema.Type.NULL)) {
@@ -416,12 +416,14 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         testConvertToAvroStreamForBigDecimal(bigDecimal, expectedValue, dbPrecision, dbScale, defaultPrecision, defaultScale, expectedPrecision, expectedScale);
     }
 
-    private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, int dbPrecision, int defaultPrecision, int expectedPrecision, int expectedScale) throws SQLException, IOException {
+    private void testConvertToAvroStreamForBigDecimal(final BigDecimal bigDecimal, final int dbPrecision,
+            final int defaultPrecision, final int expectedPrecision, final int expectedScale) throws SQLException, IOException {
         testConvertToAvroStreamForBigDecimal(bigDecimal, bigDecimal, dbPrecision, expectedScale, defaultPrecision, -1, expectedPrecision, expectedScale);
     }
 
-    private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, BigDecimal expectedValue, int dbPrecision, int dbScale, int defaultPrecision, int defaultScale,
-                                                      int expectedPrecision, int expectedScale) throws SQLException, IOException {
+    private void testConvertToAvroStreamForBigDecimal(final BigDecimal bigDecimal, final BigDecimal expectedValue,
+            final int dbPrecision, final int dbScale, final int defaultPrecision, final int defaultScale,
+                                                      final int expectedPrecision, final int expectedScale) throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
@@ -461,7 +463,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
             final LogicalType logicalType = generatedUnion.getTypes().get(1).getLogicalType();
             assertNotNull(logicalType);
             assertEquals("decimal", logicalType.getName());
-            LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
+            final LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
             assertEquals(expectedPrecision, decimalType.getPrecision());
             assertEquals(expectedScale, decimalType.getScale());
 
@@ -482,7 +484,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         ) {
             stmt.executeUpdate("CREATE TABLE clobtest (id INT, text CLOB)");
             stmt.execute("INSERT INTO clobtest VALUES (41, NULL)");
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
+            final PreparedStatement ps = connection.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
             ps.setInt(1, 42);
             final char[] buffer = new char[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = String.valueOf(i % 10).charAt(0));
@@ -514,8 +516,8 @@ public class TestJdbcCommon extends AbstractConnectionTest {
                     // allocating and garbage collecting many objects for files with
                     // many items.
                     record = dataFileReader.next(record);
-                    Integer id = (Integer) record.get("ID");
-                    Object o = record.get("TEXT");
+                    final Integer id = (Integer) record.get("ID");
+                    final Object o = record.get("TEXT");
                     if (id == 41) {
                         assertNull(o);
                     } else {
@@ -538,13 +540,13 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         ) {
             stmt.executeUpdate("CREATE TABLE blobtest (id INT, b BLOB)");
             stmt.execute("INSERT INTO blobtest VALUES (41, NULL)");
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO blobtest VALUES (?, ?)");
+            final PreparedStatement ps = connection.prepareStatement("INSERT INTO blobtest VALUES (?, ?)");
             ps.setInt(1, 42);
             final byte[] buffer = new byte[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = (byte) ((i % 10) + 65));
             // Put a zero-byte in to test the buffer building logic
             buffer[1] = 0;
-            ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+            final ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
 
             // - set the value of the input parameter to the input stream
             ps.setBlob(2, bais, 4002);
@@ -570,8 +572,8 @@ public class TestJdbcCommon extends AbstractConnectionTest {
                     // allocating and garbage collecting many objects for files with
                     // many items.
                     record = dataFileReader.next(record);
-                    Integer id = (Integer) record.get("ID");
-                    Object o = record.get("B");
+                    final Integer id = (Integer) record.get("ID");
+                    final Object o = record.get("B");
                     if (id == 41) {
                         assertNull(o);
                     } else {
@@ -600,7 +602,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final byte[] byteBuffer = "test clob".getBytes(StandardCharsets.UTF_8);
         final Reader reader = new InputStreamReader(new ByteArrayInputStream(byteBuffer));
 
-        Clob clob = mock(Clob.class);
+        final Clob clob = mock(Clob.class);
         when(clob.getCharacterStream()).thenReturn(reader);
         when(clob.length()).thenReturn((long) byteBuffer.length);
         doThrow(SQLFeatureNotSupportedException.class).when(clob).free();
@@ -613,7 +615,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
-                Object o = record.get("t_clob");
+                final Object o = record.get("t_clob");
                 assertInstanceOf(Utf8.class, o);
                 assertEquals("test clob", o.toString());
             }
@@ -633,8 +635,8 @@ public class TestJdbcCommon extends AbstractConnectionTest {
         final byte[] byteBuffer = "test blob".getBytes(StandardCharsets.UTF_8);
         when(rs.getObject(Mockito.anyInt())).thenReturn(byteBuffer);
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(byteBuffer);
-        Blob blob = mock(Blob.class);
+        final ByteArrayInputStream bais = new ByteArrayInputStream(byteBuffer);
+        final Blob blob = mock(Blob.class);
         when(blob.getBinaryStream()).thenReturn(bais);
         when(blob.length()).thenReturn((long) byteBuffer.length);
         doThrow(SQLFeatureNotSupportedException.class).when(blob).free();
@@ -647,9 +649,9 @@ public class TestJdbcCommon extends AbstractConnectionTest {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
-                Object o = record.get("t_blob");
+                final Object o = record.get("t_blob");
                 assertInstanceOf(ByteBuffer.class, o);
-                ByteBuffer bb = (ByteBuffer) o;
+                final ByteBuffer bb = (ByteBuffer) o;
                 assertEquals("test blob", new String(bb.array(), StandardCharsets.UTF_8));
             }
         }
@@ -761,14 +763,14 @@ public class TestJdbcCommon extends AbstractConnectionTest {
                     assertEquals(expectedDaysSinceEpoch, actualDaysSinceEpoch);
                 },
                 (record, time) -> {
-                    int millisSinceMidnight = (int) record.get("time");
-                    LocalTime localTime = Instant.ofEpochMilli(millisSinceMidnight).atOffset(ZoneOffset.UTC).toLocalTime();
-                    Time actual = Time.valueOf(localTime);
+                    final int millisSinceMidnight = (int) record.get("time");
+                    final LocalTime localTime = Instant.ofEpochMilli(millisSinceMidnight).atOffset(ZoneOffset.UTC).toLocalTime();
+                    final Time actual = Time.valueOf(localTime);
                     LOGGER.debug("comparing times, expecting '{}', actual '{}'", time, actual);
                     assertEquals(time, actual);
                 },
                 (record, timestamp) -> {
-                    Timestamp actual = new Timestamp((long) record.get("timestamp"));
+                    final Timestamp actual = new Timestamp((long) record.get("timestamp"));
                     LOGGER.debug("comparing date/time, expecting '{}', actual '{}'", timestamp, actual);
                     assertEquals(timestamp, actual);
                 }
@@ -776,8 +778,8 @@ public class TestJdbcCommon extends AbstractConnectionTest {
     }
 
     private void testConvertToAvroStreamForDateTime(
-            JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, java.sql.Date> assertDate,
-            BiConsumer<GenericRecord, Time> assertTime, BiConsumer<GenericRecord, Timestamp> assertTimeStamp)
+            final JdbcCommon.AvroConversionOptions options, final BiConsumer<GenericRecord, java.sql.Date> assertDate,
+            final BiConsumer<GenericRecord, Time> assertTime, final BiConsumer<GenericRecord, Timestamp> assertTimeStamp)
             throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
@@ -836,7 +838,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
                 Statement stmt = connection.createStatement()
         ) {
             stmt.executeUpdate("CREATE TABLE SENSITIVE_TEST (id INT)");
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO SENSITIVE_TEST VALUES (?)");
+            final PreparedStatement ps = connection.prepareStatement("INSERT INTO SENSITIVE_TEST VALUES (?)");
             final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setSensitiveParameters(ps, attributes));
             assertTrue(exception.getMessage().contains(MASKED_LOG_VALUE));
             assertFalse(exception.getMessage().contains("123.4"));
@@ -853,7 +855,7 @@ public class TestJdbcCommon extends AbstractConnectionTest {
                 Statement stmt = connection.createStatement()
         ) {
             stmt.executeUpdate("CREATE TABLE inttest (id INT)");
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO inttest VALUES (?)");
+            final PreparedStatement ps = connection.prepareStatement("INSERT INTO inttest VALUES (?)");
             final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setParameters(ps, attributes));
             assertFalse(exception.getMessage().contains(MASKED_LOG_VALUE));
             assertTrue(exception.getMessage().contains("123.4"));

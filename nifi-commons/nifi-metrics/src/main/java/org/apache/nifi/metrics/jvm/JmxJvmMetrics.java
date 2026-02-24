@@ -80,7 +80,7 @@ public class JmxJvmMetrics implements JvmMetrics {
         return new JmxJvmMetrics();
     }
 
-    private Object getMetric(String metricName) {
+    private Object getMetric(final String metricName) {
         final SortedMap<String, Gauge> gauges = metricRegistry.get().getGauges((name, metric) -> name.equals(metricName));
         if (gauges.isEmpty()) {
             throw new IllegalArgumentException(String.format("Unable to retrieve metric \"%s\"", metricName));
@@ -88,7 +88,7 @@ public class JmxJvmMetrics implements JvmMetrics {
         return gauges.get(metricName).getValue();
     }
 
-    public Set<String> getMetricNames(String metricNamePrefix) {
+    public Set<String> getMetricNames(final String metricNamePrefix) {
         if (metricNamePrefix == null || metricNamePrefix.length() == 0) {
             throw new IllegalArgumentException("A metric name prefix must be supplied");
         }
@@ -100,72 +100,72 @@ public class JmxJvmMetrics implements JvmMetrics {
     }
 
     @Override
-    public double totalInit(DataUnit dataUnit) {
+    public double totalInit(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_TOTAL_INIT), DataUnit.B);
     }
 
     @Override
-    public double totalUsed(DataUnit dataUnit) {
+    public double totalUsed(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_TOTAL_USED), DataUnit.B);
     }
 
     @Override
-    public double totalMax(DataUnit dataUnit) {
+    public double totalMax(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_TOTAL_MAX), DataUnit.B);
     }
 
     @Override
-    public double totalCommitted(DataUnit dataUnit) {
+    public double totalCommitted(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_TOTAL_COMMITTED), DataUnit.B);
     }
 
     @Override
-    public double heapInit(DataUnit dataUnit) {
+    public double heapInit(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_HEAP_INIT), DataUnit.B);
     }
 
     @Override
-    public double heapUsed(DataUnit dataUnit) {
+    public double heapUsed(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_HEAP_USED), DataUnit.B);
     }
 
     @Override
-    public double heapMax(DataUnit dataUnit) {
+    public double heapMax(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_HEAP_MAX), DataUnit.B);
     }
 
     @Override
-    public double heapCommitted(DataUnit dataUnit) {
+    public double heapCommitted(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_HEAP_COMMITTED), DataUnit.B);
     }
 
     @Override
     public double heapUsage() {
-        double usage = (Double) getMetric(MEMORY_HEAP_USAGE);
+        final double usage = (Double) getMetric(MEMORY_HEAP_USAGE);
         return usage < 0 ? -1.0 : usage;
     }
 
     @Override
     public double nonHeapUsage() {
-        double usage = (Double) getMetric(MEMORY_NON_HEAP_USAGE);
+        final double usage = (Double) getMetric(MEMORY_NON_HEAP_USAGE);
         return usage < 0 ? -1.0 : usage;
     }
 
     @Override
-    public double nonHeapUsed(DataUnit dataUnit) {
+    public double nonHeapUsed(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_USED), DataUnit.B);
     }
 
     @Override
-    public double nonHeapCommitted(DataUnit dataUnit) {
+    public double nonHeapCommitted(final DataUnit dataUnit) {
         return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_COMMITTED), DataUnit.B);
     }
 
     @Override
     public Map<String, Double> memoryPoolUsage() {
-        Set<String> poolNames = getMetricNames(MEMORY_POOLS);
-        Map<String, Double> memoryPoolUsage = new HashMap<>();
-        for (String poolName : poolNames) {
+        final Set<String> poolNames = getMetricNames(MEMORY_POOLS);
+        final Map<String, Double> memoryPoolUsage = new HashMap<>();
+        for (final String poolName : poolNames) {
             memoryPoolUsage.put(poolName, (Double) getMetric(MEMORY_POOLS + "." + poolName + ".usage"));
         }
         return Collections.unmodifiableMap(memoryPoolUsage);
@@ -203,9 +203,9 @@ public class JmxJvmMetrics implements JvmMetrics {
 
     @Override
     public Map<String, GarbageCollectorStats> garbageCollectors() {
-        Set<String> garbageCollectors = getMetricNames(REGISTRY_METRICSET_GARBAGE_COLLECTORS);
-        Map<String, GarbageCollectorStats> gcStats = new HashMap<>();
-        for (String garbageCollector : garbageCollectors) {
+        final Set<String> garbageCollectors = getMetricNames(REGISTRY_METRICSET_GARBAGE_COLLECTORS);
+        final Map<String, GarbageCollectorStats> gcStats = new HashMap<>();
+        for (final String garbageCollector : garbageCollectors) {
             gcStats.put(garbageCollector, new GarbageCollectorStats(
                     (Long) getMetric(REGISTRY_METRICSET_GARBAGE_COLLECTORS + "." + garbageCollector + ".count"),
                     (Long) getMetric(REGISTRY_METRICSET_GARBAGE_COLLECTORS + "." + garbageCollector + ".time")));
@@ -221,16 +221,16 @@ public class JmxJvmMetrics implements JvmMetrics {
 
     @Override
     public Map<Thread.State, Double> threadStatePercentages() {
-        int totalThreadCount = (Integer) getMetric(THREADS_COUNT);
+        final int totalThreadCount = (Integer) getMetric(THREADS_COUNT);
         final Map<Thread.State, Double> threadStatePercentages = new HashMap<>();
-        for (Thread.State state : Thread.State.values()) {
+        for (final Thread.State state : Thread.State.values()) {
             threadStatePercentages.put(state, (Integer) getMetric(REGISTRY_METRICSET_THREADS + "." + state.name().toLowerCase() + ".count") / (double) totalThreadCount);
         }
         return Collections.unmodifiableMap(threadStatePercentages);
     }
 
     @Override
-    public void threadDump(OutputStream out) {
+    public void threadDump(final OutputStream out) {
         throw new UnsupportedOperationException("This operation has not yet been implemented");
     }
 

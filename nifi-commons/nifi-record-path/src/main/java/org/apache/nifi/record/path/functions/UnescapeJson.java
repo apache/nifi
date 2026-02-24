@@ -66,7 +66,7 @@ public class UnescapeJson extends RecordPathSegment {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
-                    Object value = fv.getValue();
+                    final Object value = fv.getValue();
 
                     if (value instanceof String) {
                         try {
@@ -89,7 +89,7 @@ public class UnescapeJson extends RecordPathSegment {
                                     convertFieldValue(value, fieldName, dataType, convertMapToRecord, recursiveMapToRecord),
                                     fv.getField(), fv.getParent().orElse(null)
                             );
-                        } catch (IOException e) {
+                        } catch (final IOException e) {
                             throw new RecordPathException("Unable to deserialise JSON String into Record Path value", e);
                         }
                     } else {

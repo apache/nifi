@@ -171,7 +171,7 @@ public class JerseyProvenanceClient extends AbstractJerseyClient implements Prov
     }
 
     @Override
-    public InputStream getOutputFlowFileContent(String provenanceEventId, final String nodeId) throws NiFiClientException, IOException {
+    public InputStream getOutputFlowFileContent(final String provenanceEventId, final String nodeId) throws NiFiClientException, IOException {
         if (StringUtils.isBlank(provenanceEventId)) {
             throw new IllegalArgumentException("Provenance Event ID must be specified");
         }

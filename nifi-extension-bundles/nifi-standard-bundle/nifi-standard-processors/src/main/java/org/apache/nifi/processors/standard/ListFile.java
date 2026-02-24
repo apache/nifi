@@ -364,7 +364,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("track-performance", TRACK_PERFORMANCE.getName());
         config.renameProperty("max-performance-metrics", MAX_TRACKED_FILES.getName());
@@ -442,16 +442,16 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             final TimingInfo timingInfo = performanceTracker.getTimingInfo(relativePath.toString(), file.getName());
 
             try {
-                FileStore store = Files.getFileStore(filePath);
+                final FileStore store = Files.getFileStore(filePath);
 
                 timingInfo.timeOperation(DiskOperation.RETRIEVE_BASIC_ATTRIBUTES, () -> {
                     if (store.supportsFileAttributeView("basic")) {
                         try {
-                            BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
-                            BasicFileAttributes attrs = view.readAttributes();
+                            final BasicFileAttributeView view = Files.getFileAttributeView(filePath, BasicFileAttributeView.class);
+                            final BasicFileAttributes attrs = view.readAttributes();
                             attributes.put(FILE_CREATION_TIME_ATTRIBUTE, formatDateTime(attrs.creationTime().toMillis()));
                             attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, formatDateTime(attrs.lastAccessTime().toMillis()));
-                        } catch (Exception ignored) {
+                        } catch (final Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });
@@ -459,9 +459,9 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 timingInfo.timeOperation(DiskOperation.RETRIEVE_OWNER_ATTRIBUTES, () -> {
                     if (store.supportsFileAttributeView("owner")) {
                         try {
-                            FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
+                            final FileOwnerAttributeView view = Files.getFileAttributeView(filePath, FileOwnerAttributeView.class);
                             attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                        } catch (Exception ignored) {
+                        } catch (final Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });
@@ -469,14 +469,14 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 timingInfo.timeOperation(DiskOperation.RETRIEVE_POSIX_ATTRIBUTES, () -> {
                     if (store.supportsFileAttributeView("posix")) {
                         try {
-                            PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
+                            final PosixFileAttributeView view = Files.getFileAttributeView(filePath, PosixFileAttributeView.class);
                             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                             attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                        } catch (Exception ignored) {
+                        } catch (final Exception ignored) {
                         } // allow other attributes if these fail
                     }
                 });
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 // well then this FlowFile gets none of these attributes
                 getLogger().warn("Error collecting attributes for file {}", absPathString, ioe);
             }
@@ -537,7 +537,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             fileFilter = createFileFilter(context, performanceTracker, applyFilters, basePath);
         }
 
-        int maxDepth = recurse ? Integer.MAX_VALUE : 1;
+        final int maxDepth = recurse ? Integer.MAX_VALUE : 1;
 
         final BiPredicate<Path, BasicFileAttributes> matcher = new BiPredicate<>() {
             private long lastTimestamp = System.currentTimeMillis();
@@ -991,7 +991,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 return OperationStatistics.EMPTY;
             }
 
-            double average = (double) sum / (double) count;
+            final double average = (double) sum / (double) count;
 
             // Calculate Standard Deviation
             final double stdDeviation = calculateStdDev(average, count, operation);

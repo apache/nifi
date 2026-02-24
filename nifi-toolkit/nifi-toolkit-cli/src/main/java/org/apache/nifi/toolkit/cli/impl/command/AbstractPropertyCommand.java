@@ -73,9 +73,9 @@ public abstract class AbstractPropertyCommand<R extends Result> extends Abstract
             // delegate to sub-classes
             return doExecute(properties);
 
-        } catch (CommandException ce) {
+        } catch (final CommandException ce) {
             throw ce;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new CommandException("Error executing command '" + getName() + "' : " + e.getMessage(), e);
         }
     }

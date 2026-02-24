@@ -32,21 +32,21 @@ public class UpdateAssetCommandHelper {
 
     private final String assetDirectory;
 
-    public UpdateAssetCommandHelper(String assetDirectory) {
+    public UpdateAssetCommandHelper(final String assetDirectory) {
         this.assetDirectory = assetDirectory;
     }
 
     public void createAssetDirectory() {
         try {
             Files.createDirectories(Paths.get(assetDirectory));
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             LOG.error("Unable to create asset directory {}", assetDirectory);
             throw new UncheckedIOException("Unable to create directory", ioe);
         }
     }
 
-    public boolean assetUpdatePrecondition(String assetFileName, Boolean forceDownload) {
-        Path assetPath = Paths.get(assetDirectory, assetFileName);
+    public boolean assetUpdatePrecondition(final String assetFileName, final Boolean forceDownload) {
+        final Path assetPath = Paths.get(assetDirectory, assetFileName);
         if (Files.exists(assetPath) && !forceDownload) {
             LOG.info("Asset file already exists on path {}. Asset won't be downloaded", assetPath);
             return false;
@@ -55,14 +55,14 @@ public class UpdateAssetCommandHelper {
         return true;
     }
 
-    public boolean assetPersistFunction(String assetFileName, byte[] assetBinary) {
-        Path assetPath = Paths.get(assetDirectory, assetFileName);
+    public boolean assetPersistFunction(final String assetFileName, final byte[] assetBinary) {
+        final Path assetPath = Paths.get(assetDirectory, assetFileName);
         try {
             Files.deleteIfExists(assetPath);
             Files.write(assetPath, assetBinary);
             LOG.info("Asset was persisted to {}, {} bytes were written", assetPath, assetBinary.length);
             return true;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.error("Persisting asset failed. File creation was not successful targeting {}", assetPath, e);
             return false;
         }

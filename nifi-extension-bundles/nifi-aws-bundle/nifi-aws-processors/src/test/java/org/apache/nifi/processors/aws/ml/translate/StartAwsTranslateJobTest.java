@@ -80,7 +80,7 @@ public class StartAwsTranslateJobTest {
     public void setUp() throws InitializationException {
         processor = new StartAwsTranslateJob() {
             @Override
-            public TranslateClient getClient(ProcessContext context) {
+            public TranslateClient getClient(final ProcessContext context) {
                 return mockTranslateClient;
             }
         };

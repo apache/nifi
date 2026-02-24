@@ -36,7 +36,7 @@ public class ClusterEntity extends Entity {
         return cluster;
     }
 
-    public void setCluster(ClusterDTO cluster) {
+    public void setCluster(final ClusterDTO cluster) {
         this.cluster = cluster;
     }
 

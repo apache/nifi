@@ -589,7 +589,7 @@ public class FlowDifferenceFilters {
         return false;
     }
 
-    private static boolean isStaticPropertyRemoved(String propertyName, ComponentNode componentNode) {
+    private static boolean isStaticPropertyRemoved(final String propertyName, final ComponentNode componentNode) {
         if (componentNode == null) {
             return false;
         }
@@ -955,7 +955,7 @@ public class FlowDifferenceFilters {
             }
 
             if (resolvedReference.isEmpty()) {
-                for (Map.Entry<String, String> entry : primaryProperties.entrySet()) {
+                for (final Map.Entry<String, String> entry : primaryProperties.entrySet()) {
                     final String propertyName = entry.getKey();
                     final String propertyValue = entry.getValue();
                     if (!isParameterReference(propertyValue)) {

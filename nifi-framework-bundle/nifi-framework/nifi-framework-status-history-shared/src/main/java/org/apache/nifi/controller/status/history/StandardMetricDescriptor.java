@@ -52,7 +52,7 @@ public class StandardMetricDescriptor<T> extends AbstractMetricDescriptor<T> {
             return false;
         }
 
-        MetricDescriptor<?> other = (MetricDescriptor<?>) obj;
+        final MetricDescriptor<?> other = (MetricDescriptor<?>) obj;
         return getField().equals(other.getField());
     }
 

@@ -59,7 +59,7 @@ public class SyslogParser {
 
     public static final Collection<Pattern> MESSAGE_PATTERNS;
     static {
-        List<Pattern> patterns = new ArrayList<>();
+        final List<Pattern> patterns = new ArrayList<>();
         patterns.add(Pattern.compile(SYSLOG_MSG_RFC5424_0));
         patterns.add(Pattern.compile(SYSLOG_MSG_RFC3164_0));
         MESSAGE_PATTERNS = Collections.unmodifiableList(patterns);
@@ -106,7 +106,7 @@ public class SyslogParser {
         if (buffer.position() != 0) {
             buffer.flip();
         }
-        byte[] bytes = new byte[buffer.limit()];
+        final byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes, 0, buffer.limit());
         return parseEvent(bytes, sender);
     }
@@ -134,7 +134,7 @@ public class SyslogParser {
         final SyslogEvent.Builder builder = new SyslogEvent.Builder()
                 .valid(false).fullMessage(message).rawMessage(bytes).sender(sender);
 
-        for (Pattern pattern : MESSAGE_PATTERNS) {
+        for (final Pattern pattern : MESSAGE_PATTERNS) {
             final Matcher matcher = pattern.matcher(message);
             if (!matcher.matches()) {
                 continue;
@@ -142,15 +142,15 @@ public class SyslogParser {
 
             final MatchResult res = matcher.toMatchResult();
             for (int grp = 1; grp <= res.groupCount(); grp++) {
-                String value = res.group(grp);
+                final String value = res.group(grp);
                 if (grp == SYSLOG_TIMESTAMP_POS) {
                     builder.timestamp(value);
                 } else if (grp == SYSLOG_HOSTNAME_POS) {
                     builder.hostname(value);
                 } else if (grp == SYSLOG_PRIORITY_POS) {
-                    int pri = Integer.parseInt(value);
-                    int sev = pri % 8;
-                    int facility = pri / 8;
+                    final int pri = Integer.parseInt(value);
+                    final int sev = pri % 8;
+                    final int facility = pri / 8;
                     builder.priority(value);
                     builder.severity(String.valueOf(sev));
                     builder.facility(String.valueOf(facility));

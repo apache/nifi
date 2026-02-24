@@ -75,13 +75,13 @@ public class TestPutKinesisStream {
     public void testWithSizeGreaterThan1MB() {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
-        byte[] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE + 1)];
+        final byte[] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE + 1)];
         Arrays.fill(bytes, (byte) 'a');
         runner.enqueue(bytes);
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisStream.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisStream.REL_FAILURE);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisStream.REL_FAILURE);
 
         assertNotNull(flowFiles.getFirst().getAttribute(PutKinesisStream.AWS_KINESIS_ERROR_MESSAGE));
     }

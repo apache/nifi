@@ -67,7 +67,7 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
             new RecordField("COUNTRY", RecordFieldType.STRING.getDataType())));
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
 
         final RecordSetWriterFactory writerFactory = context.getProperty(WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -78,15 +78,15 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
                 // See the InheritSchemaFromRecord class for more details
                 final RecordSchema schema = writerFactory.getSchema(flowFileRef.getAttributes(), recordSchema);
 
-                boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
-                RecordSet recordSet = getRecordSet(multipleRecords);
+                final boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
+                final RecordSet recordSet = getRecordSet(multipleRecords);
 
                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileRef);
 
                 writer.write(recordSet);
                 writer.flush();
 
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new ProcessException(e.getMessage());
             }
 
@@ -104,16 +104,16 @@ public class TestFreeFormTextRecordSetWriterProcessor extends AbstractProcessor 
         return Set.of(SUCCESS);
     }
 
-    protected static RecordSet getRecordSet(boolean multipleRecords) {
+    protected static RecordSet getRecordSet(final boolean multipleRecords) {
 
-        Map<String, Object> recordFields = new HashMap<>();
+        final Map<String, Object> recordFields = new HashMap<>();
         recordFields.put("ID", "ABC123");
         recordFields.put("NAME", "John Doe");
         recordFields.put("AGE", 22);
         recordFields.put("COUNTRY", "USA");
         // Username is an additional "field" in the output but is not present in the record and will be supplied by an attribute for the test(s).
 
-        List<Record> records = new ArrayList<>();
+        final List<Record> records = new ArrayList<>();
         records.add(new MapRecord(recordSchema, recordFields));
 
         if (multipleRecords) {

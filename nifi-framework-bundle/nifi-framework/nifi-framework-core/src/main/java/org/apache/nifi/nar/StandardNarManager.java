@@ -123,7 +123,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
             if (!executorService.awaitTermination(5000, MILLISECONDS)) {
                 executorService.shutdownNow();
             }
-        } catch (InterruptedException ignore) {
+        } catch (final InterruptedException ignore) {
             logger.info(interruptedMessage);
             executorService.shutdownNow();
         }
@@ -350,7 +350,7 @@ public class StandardNarManager implements NarManager, InitializingBean, Closeab
     private void sleep(final Duration duration) {
         try {
             Thread.sleep(duration);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

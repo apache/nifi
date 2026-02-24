@@ -36,26 +36,26 @@ public class ChannelMapper {
         this.client = client;
     }
 
-    public String lookupChannelId(String channelName) throws SlackApiException, IOException {
+    public String lookupChannelId(final String channelName) throws SlackApiException, IOException {
         if (channelName == null) {
             return null;
         }
 
-        channelName = channelName.trim();
-        if (channelName.startsWith("#")) {
-            if (channelName.length() == 1) {
+        String resolved = channelName.trim();
+        if (resolved.startsWith("#")) {
+            if (resolved.length() == 1) {
                 return null;
             }
 
-            channelName = channelName.substring(1);
+            resolved = resolved.substring(1);
         }
 
-        final String channelId = mappedChannels.get(channelName);
+        final String channelId = mappedChannels.get(resolved);
         if (channelId == null) {
-            lookupChannels(channelName);
+            lookupChannels(resolved);
         }
 
-        return mappedChannels.get(channelName);
+        return mappedChannels.get(resolved);
     }
 
     private void lookupChannels(final String desiredChannelName) throws SlackApiException, IOException {

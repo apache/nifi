@@ -27,17 +27,17 @@ public class NifiParquetOutputFile implements OutputFile {
 
     private OutputStream outputStream;
 
-    public NifiParquetOutputFile(OutputStream outputStream) {
+    public NifiParquetOutputFile(final OutputStream outputStream) {
         this.outputStream = outputStream;
     }
 
     @Override
-    public PositionOutputStream create(long blockSizeHint) {
+    public PositionOutputStream create(final long blockSizeHint) {
         return new NifiOutputStream(outputStream);
     }
 
     @Override
-    public PositionOutputStream createOrOverwrite(long blockSizeHint) {
+    public PositionOutputStream createOrOverwrite(final long blockSizeHint) {
         return new NifiOutputStream(outputStream);
     }
 

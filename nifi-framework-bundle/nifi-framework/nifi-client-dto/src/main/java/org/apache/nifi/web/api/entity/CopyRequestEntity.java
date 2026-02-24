@@ -46,7 +46,7 @@ public class CopyRequestEntity extends Entity {
         return connections;
     }
 
-    public void setConnections(Set<String> connections) {
+    public void setConnections(final Set<String> connections) {
         this.connections = connections;
     }
 
@@ -59,7 +59,7 @@ public class CopyRequestEntity extends Entity {
         return funnels;
     }
 
-    public void setFunnels(Set<String> funnels) {
+    public void setFunnels(final Set<String> funnels) {
         this.funnels = funnels;
     }
 
@@ -72,7 +72,7 @@ public class CopyRequestEntity extends Entity {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<String> inputPorts) {
+    public void setInputPorts(final Set<String> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -85,7 +85,7 @@ public class CopyRequestEntity extends Entity {
         return labels;
     }
 
-    public void setLabels(Set<String> labels) {
+    public void setLabels(final Set<String> labels) {
         this.labels = labels;
     }
 
@@ -98,7 +98,7 @@ public class CopyRequestEntity extends Entity {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<String> outputPorts) {
+    public void setOutputPorts(final Set<String> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -111,7 +111,7 @@ public class CopyRequestEntity extends Entity {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<String> processGroups) {
+    public void setProcessGroups(final Set<String> processGroups) {
         this.processGroups = processGroups;
     }
 
@@ -124,7 +124,7 @@ public class CopyRequestEntity extends Entity {
         return processors;
     }
 
-    public void setProcessors(Set<String> processors) {
+    public void setProcessors(final Set<String> processors) {
         this.processors = processors;
     }
 
@@ -137,7 +137,7 @@ public class CopyRequestEntity extends Entity {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<String> remoteProcessGroups) {
+    public void setRemoteProcessGroups(final Set<String> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

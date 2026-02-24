@@ -28,7 +28,7 @@ public class RegistryAbout {
      *
      * @param registryAboutVersion the version string for this Registry
      */
-    public RegistryAbout(String registryAboutVersion) {
+    public RegistryAbout(final String registryAboutVersion) {
         this.registryAboutVersion = registryAboutVersion;
     }
 

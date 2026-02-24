@@ -126,7 +126,7 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
                 // we resume from the last known position
                 eventStream = new EventStream(boxAPIConnection, Long.parseLong(position));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException("Could not retrieve last event position", e);
         }
 
@@ -143,26 +143,26 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
         eventStream.addListener(new EventListener() {
 
             @Override
-            public void onEvent(BoxEvent event) {
+            public void onEvent(final BoxEvent event) {
                 try {
                     events.put(event);
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     throw new RuntimeException("Interrupted while trying to put the event into the queue", e);
                 }
             }
 
             @Override
-            public void onNextPosition(long pos) {
+            public void onNextPosition(final long pos) {
                 try {
                     context.getStateManager().setState(Map.of(POSITION_KEY, String.valueOf(pos)), Scope.CLUSTER);
                     position.set(pos);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     getLogger().warn("Failed to save position {} in processor state", pos, e);
                 }
             }
 
             @Override
-            public boolean onException(Throwable e) {
+            public boolean onException(final Throwable e) {
                 getLogger().warn("An error has been received from the stream. Last tracked position {}", position.get(), e);
                 return true;
             }
@@ -180,10 +180,10 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
 
         try {
@@ -193,7 +193,7 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
                     .outcome(Outcome.SUCCESSFUL)
                     .explanation("Successfully validated Box connection")
                     .build());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Failed to verify configuration", e);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Box API Connection")
@@ -206,7 +206,7 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         if (events.isEmpty()) {
             context.yield();
             return;
@@ -218,10 +218,10 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
 
         try (final OutputStream out = session.write(flowFile);
              final BoxEventJsonArrayWriter writer = BoxEventJsonArrayWriter.create(out)) {
-            for (BoxEvent event : boxEvents) {
+            for (final BoxEvent event : boxEvents) {
                 writer.write(event);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to write events to FlowFile; will re-queue events and try again", e);
             boxEvents.forEach(events::offer);
             session.remove(flowFile);

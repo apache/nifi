@@ -46,7 +46,7 @@ public class ShowSession extends AbstractCommand<VoidResult> {
             final PrintStream printStream = getContext().getOutput();
             session.printVariables(printStream);
             return VoidResult.getInstance();
-        } catch (SessionException se) {
+        } catch (final SessionException se) {
             throw new CommandException(se.getMessage(), se);
         }
     }

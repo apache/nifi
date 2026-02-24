@@ -58,7 +58,7 @@ public class TestSiteToSiteBulletinReportingTask {
     public void testUrls() {
         final ValidationContext context = Mockito.mock(ValidationContext.class);
         Mockito.when(context.newPropertyValue(Mockito.anyString())).then((Answer<PropertyValue>) invocation -> {
-            String value = (String) invocation.getArguments()[0];
+            final String value = (String) invocation.getArguments()[0];
             return new StandardPropertyValue(value, null, null);
         });
 
@@ -113,8 +113,8 @@ public class TestSiteToSiteBulletinReportingTask {
         // test checking
         assertEquals(1, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
 
         assertEquals("message", bulletinJson.getString("bulletinMessage"));
         assertEquals("group-name", bulletinJson.getString("bulletinGroupName"));
@@ -161,8 +161,8 @@ public class TestSiteToSiteBulletinReportingTask {
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject bulletinJson = jsonReader.readArray().getJsonObject(0);
         assertEquals(JsonValue.NULL, bulletinJson.get("bulletinSourceType"));
     }
 
@@ -174,7 +174,7 @@ public class TestSiteToSiteBulletinReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        public void setup(PropertyContext reportContext) {
+        public void setup(final PropertyContext reportContext) {
             if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);

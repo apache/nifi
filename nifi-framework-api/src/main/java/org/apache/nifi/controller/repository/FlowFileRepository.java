@@ -175,7 +175,7 @@ public interface FlowFileRepository extends Closeable {
      * @return a Mapping of Resource Claim to a representation of the FlowFiles/Swap Files that reference those Resource Claims
      * @throws IOException if an IO failure occurs when attempting to find references
      */
-    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager)
+    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager)
         throws IOException {
         return null;
     }

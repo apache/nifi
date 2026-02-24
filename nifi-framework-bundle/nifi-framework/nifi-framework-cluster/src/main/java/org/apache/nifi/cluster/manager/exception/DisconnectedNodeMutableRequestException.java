@@ -25,15 +25,15 @@ public class DisconnectedNodeMutableRequestException extends MutableRequestExcep
     public DisconnectedNodeMutableRequestException() {
     }
 
-    public DisconnectedNodeMutableRequestException(String msg) {
+    public DisconnectedNodeMutableRequestException(final String msg) {
         super(msg);
     }
 
-    public DisconnectedNodeMutableRequestException(Throwable cause) {
+    public DisconnectedNodeMutableRequestException(final Throwable cause) {
         super(cause);
     }
 
-    public DisconnectedNodeMutableRequestException(String msg, Throwable cause) {
+    public DisconnectedNodeMutableRequestException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

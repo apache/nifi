@@ -616,7 +616,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
             if (!initialized.get()) {
                 initializeServer(context);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             context.yield();
 
             try {
@@ -629,7 +629,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
             throw new ProcessException("Failed to initialize the server", e);
         }
 
-        HttpRequestContainer container;
+        final HttpRequestContainer container;
         try {
             container = containerQueue.poll(2, TimeUnit.MILLISECONDS);
         } catch (final InterruptedException e1) {
@@ -647,19 +647,19 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         if (Strings.CS.contains(request.getContentType(), MIME_TYPE__MULTIPART_FORM_DATA)) {
             final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
             final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-            String tempDir = System.getProperty("java.io.tmpdir");
+            final String tempDir = System.getProperty("java.io.tmpdir");
             request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
             List<Part> parts = null;
             try {
                 parts = List.copyOf(request.getParts());
-                int allPartsCount = parts.size();
+                final int allPartsCount = parts.size();
                 final String contextIdentifier = UUID.randomUUID().toString();
                 for (int i = 0; i < allPartsCount; i++) {
-                    Part part = parts.get(i);
+                    final Part part = parts.get(i);
                     FlowFile flowFile = session.create();
                     try (OutputStream flowFileOut = session.write(flowFile)) {
                         StreamUtils.copy(part.getInputStream(), flowFileOut);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         handleFlowContentStreamingError(session, container, Optional.of(flowFile), e);
                         return;
                     }
@@ -667,21 +667,21 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
                     flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
                     if (i == 0) {
                         // each one of multipart comes from a single request, thus registering only once per loop.
-                        boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
+                        final boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
                         if (!requestRegistrationSuccess) {
                             break;
                         }
                     }
                     forwardFlowFile(session, start, request, flowFile);
                 }
-            } catch (IOException | ServletException | IllegalStateException e) {
+            } catch (final IOException | ServletException | IllegalStateException e) {
                 handleFlowContentStreamingError(session, container, Optional.empty(), e);
             } finally {
                 if (parts != null) {
-                    for (Part part : parts) {
+                    for (final Part part : parts) {
                         try {
                             part.delete();
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             getLogger().error("Couldn't delete underlying storage for {}", part, e);
                         }
                     }
@@ -697,7 +697,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
             }
             final String contextIdentifier = UUID.randomUUID().toString();
             flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
-            boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
+            final boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
             if (requestRegistrationSuccess) {
                 forwardFlowFile(session, start, request, flowFile);
             }
@@ -705,16 +705,16 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("parameters-to-attributes", PARAMETERS_TO_ATTRIBUTES.getName());
         config.renameProperty("container-queue-size", CONTAINER_QUEUE_SIZE.getName());
         config.renameProperty("multipart-request-max-size", MULTIPART_REQUEST_MAX_SIZE.getName());
         config.renameProperty("multipart-read-buffer-size", MULTIPART_READ_BUFFER_SIZE.getName());
     }
 
-    private FlowFile savePartAttributes(ProcessSession session, Part part, FlowFile flowFile, final int i, final int allPartsCount) {
+    private FlowFile savePartAttributes(final ProcessSession session, final Part part, final FlowFile flowFile, final int i, final int allPartsCount) {
         final Map<String, String> attributes = new HashMap<>();
-        for (String headerName : part.getHeaderNames()) {
+        for (final String headerName : part.getHeaderNames()) {
             final String headerValue = part.getHeader(headerName);
             putAttribute(attributes, "http.headers.multipart." + headerName, headerValue);
         }
@@ -727,7 +727,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private FlowFile saveRequestAttributes(final ProcessContext context, final ProcessSession session, HttpServletRequest request, FlowFile flowFile, String contextIdentifier) {
+    private FlowFile saveRequestAttributes(final ProcessContext context, final ProcessSession session, final HttpServletRequest request, final FlowFile flowFile, final String contextIdentifier) {
         final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
 
         final Map<String, String> attributes = new HashMap<>();
@@ -761,7 +761,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
             putAttribute(attributes, "http.server.name", request.getServerName());
             putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
 
-            Set<String> parametersToAttributes = parameterToAttributesReference.get();
+            final Set<String> parametersToAttributes = parameterToAttributesReference.get();
             if (parametersToAttributes != null && !parametersToAttributes.isEmpty()) {
                 final Enumeration<String> paramEnumeration = request.getParameterNames();
                 while (paramEnumeration.hasMoreElements()) {

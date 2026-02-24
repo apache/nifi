@@ -72,8 +72,8 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.getFirst();
-            String hashAttribute = String.format("content_%s", algorithm.getName());
+            final MockFlowFile flowFile = successfulFlowfiles.getFirst();
+            final String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
             flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
         }
@@ -105,11 +105,11 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.getFirst();
-            String hashAttribute = String.format("content_%s", algorithm.getName());
+            final MockFlowFile flowFile = successfulFlowfiles.getFirst();
+            final String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
 
-            String hashedContent = flowFile.getAttribute(hashAttribute);
+            final String hashedContent = flowFile.getAttribute(hashAttribute);
 
             assertEquals(expectedContentHash, hashedContent);
         }
@@ -147,8 +147,8 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.getFirst();
-            String hashAttribute = String.format("content_%s", algorithm.getName());
+            final MockFlowFile flowFile = successfulFlowfiles.getFirst();
+            final String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
             flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
         }
@@ -159,7 +159,7 @@ public class CryptographicHashContentTest {
         final String nonEmptyContent = "apachenifi";
         final String oldHashAttributeValue = "OLD VALUE";
 
-        HashAlgorithm algorithm = HashAlgorithm.SHA256;
+        final HashAlgorithm algorithm = HashAlgorithm.SHA256;
 
         final String expectedContentHash = HashService.hashValue(algorithm, nonEmptyContent);
 
@@ -180,11 +180,11 @@ public class CryptographicHashContentTest {
         final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
         // Extract the generated attributes from the flowfile
-        MockFlowFile flowFile = successfulFlowfiles.getFirst();
-        String hashAttribute = String.format("content_%s", algorithm.getName());
+        final MockFlowFile flowFile = successfulFlowfiles.getFirst();
+        final String hashAttribute = String.format("content_%s", algorithm.getName());
         flowFile.assertAttributeExists(hashAttribute);
 
-        String hashedContent = flowFile.getAttribute(hashAttribute);
+        final String hashedContent = flowFile.getAttribute(hashAttribute);
 
         assertNotEquals(oldHashAttributeValue, hashedContent);
         assertEquals(expectedContentHash, hashedContent);
@@ -217,8 +217,8 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> failedFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_FAILURE);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = failedFlowfiles.getFirst();
-            String hashAttribute = String.format("content_%s", algorithm.getName());
+            final MockFlowFile flowFile = failedFlowfiles.getFirst();
+            final String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeNotExists(hashAttribute);
         }
     }

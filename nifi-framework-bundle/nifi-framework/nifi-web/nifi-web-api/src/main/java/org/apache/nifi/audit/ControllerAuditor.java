@@ -49,9 +49,9 @@ public class ControllerAuditor extends NiFiAuditor {
             + "execution(void setMaxTimerDrivenThreadCount(int)) && "
             + "args(maxTimerDrivenThreadCount) && "
             + "target(controllerFacade)")
-    public void updateControllerTimerDrivenThreadsAdvice(ProceedingJoinPoint proceedingJoinPoint, int maxTimerDrivenThreadCount, ControllerFacade controllerFacade) throws Throwable {
+    public void updateControllerTimerDrivenThreadsAdvice(final ProceedingJoinPoint proceedingJoinPoint, final int maxTimerDrivenThreadCount, final ControllerFacade controllerFacade) throws Throwable {
         // get the current max thread count
-        int previousMaxTimerDrivenThreadCount = controllerFacade.getMaxTimerDrivenThreadCount();
+        final int previousMaxTimerDrivenThreadCount = controllerFacade.getMaxTimerDrivenThreadCount();
 
         // update the processors state
         proceedingJoinPoint.proceed();
@@ -60,13 +60,13 @@ public class ControllerAuditor extends NiFiAuditor {
         // ensure the value changed
         if (previousMaxTimerDrivenThreadCount != maxTimerDrivenThreadCount) {
             if (isAuditable()) {
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                final FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
                 configDetails.setName("Controller Max Timer Driven Thread Count");
                 configDetails.setValue(String.valueOf(maxTimerDrivenThreadCount));
                 configDetails.setPreviousValue(String.valueOf(previousMaxTimerDrivenThreadCount));
 
                 // create the config action
-                FlowChangeAction configAction = createFlowChangeAction();
+                final FlowChangeAction configAction = createFlowChangeAction();
                 configAction.setOperation(Operation.Configure);
                 configAction.setSourceId("Flow Controller");
                 configAction.setSourceName("Flow Controller");

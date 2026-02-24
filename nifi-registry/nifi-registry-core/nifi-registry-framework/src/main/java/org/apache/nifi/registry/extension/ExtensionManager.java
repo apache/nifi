@@ -131,7 +131,7 @@ public class ExtensionManager {
         classLoaders.add(frameworkClassLoader);
 
         // we want to use the system class loader as the parent of the extension class loaders
-        ClassLoader systemClassLoader = FlowPersistenceProvider.class.getClassLoader();
+        final ClassLoader systemClassLoader = FlowPersistenceProvider.class.getClassLoader();
 
         // add a class loader for each extension dir
         final Set<String> extensionDirs = properties.getExtensionsDirs();

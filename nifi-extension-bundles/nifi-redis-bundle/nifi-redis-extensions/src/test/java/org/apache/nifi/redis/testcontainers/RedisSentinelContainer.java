@@ -121,7 +121,7 @@ public class RedisSentinelContainer extends RedisContainer {
     protected void configure() {
         super.configure();
 
-        List<String> commandParts = new ArrayList<>(Arrays.asList(getCommandParts()));
+        final List<String> commandParts = new ArrayList<>(Arrays.asList(getCommandParts()));
         commandParts.add("--sentinel");
         setCommandParts(commandParts.toArray(new String[0]));
     }

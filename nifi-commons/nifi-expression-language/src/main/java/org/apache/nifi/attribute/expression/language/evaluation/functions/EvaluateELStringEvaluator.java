@@ -33,7 +33,7 @@ public class EvaluateELStringEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
         final String subjectValue = subject.evaluate(evaluationContext).getValue();
         final ParametersDisabledEvaluationContext parametersDisabledEvaluationContext = new ParametersDisabledEvaluationContext(evaluationContext);
         final String evaluated = Query.prepare(subjectValue).evaluateExpressions(parametersDisabledEvaluationContext, null);

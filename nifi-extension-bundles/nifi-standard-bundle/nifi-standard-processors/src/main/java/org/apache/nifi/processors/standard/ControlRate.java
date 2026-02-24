@@ -326,7 +326,7 @@ public class ControlRate extends AbstractProcessor {
             long newRate;
             try {
                 newRate = Long.parseLong(newValue);
-            } catch (NumberFormatException nfe) {
+            } catch (final NumberFormatException nfe) {
                 newRate = -1;
             }
             for (final Throttle throttle : countThrottleMap.values()) {
@@ -400,7 +400,7 @@ public class ControlRate extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile flowFile : flowFiles) {
             // call this to capture potential error
             if (isRateAttributeValid(flowFile)) {
                 logger.info("transferring {} to 'success'", flowFile);
@@ -456,7 +456,7 @@ public class ControlRate extends AbstractProcessor {
      * Determine if the accrual amount is valid for the type of throttle being applied. For example, if throttling based on
      * flowfile attribute, the specified attribute must be present and must be a long integer.
      */
-    private boolean isRateAttributeValid(FlowFile flowFile) {
+    private boolean isRateAttributeValid(final FlowFile flowFile) {
         if (rateControlCriteria == RateControlCriteria.ATTRIBUTE_RATE) {
             final String attributeValue = flowFile.getAttribute(rateControlAttribute);
             return attributeValue != null && POSITIVE_LONG_PATTERN.matcher(attributeValue).matches();
@@ -468,7 +468,7 @@ public class ControlRate extends AbstractProcessor {
      * Determine the amount this FlowFile will incur against the maximum allowed rate.
      * This is applicable to data size accrual only
      */
-    private long getDataSizeAccrual(FlowFile flowFile) {
+    private long getDataSizeAccrual(final FlowFile flowFile) {
         return flowFile.getSize();
     }
 
@@ -476,7 +476,7 @@ public class ControlRate extends AbstractProcessor {
      * Determine the amount this FlowFile will incur against the maximum allowed rate.
      * This is applicable to counting accruals, flowfiles or attributes
      */
-    private long getCountAccrual(FlowFile flowFile) {
+    private long getCountAccrual(final FlowFile flowFile) {
         return switch (rateControlCriteria) {
             case DATA_RATE -> DEFAULT_ACCRUAL_COUNT;
             case FLOWFILE_RATE, DATA_OR_FLOWFILE_RATE -> 1;
@@ -629,7 +629,7 @@ public class ControlRate extends AbstractProcessor {
         }
 
         @Override
-        public FlowFileFilterResult filter(FlowFile flowFile) {
+        public FlowFileFilterResult filter(final FlowFile flowFile) {
             if (!isRateAttributeValid(flowFile)) {
                 // this FlowFile is invalid for this configuration so let the processor deal with it
                 return FlowFileFilterResult.ACCEPT_AND_TERMINATE;

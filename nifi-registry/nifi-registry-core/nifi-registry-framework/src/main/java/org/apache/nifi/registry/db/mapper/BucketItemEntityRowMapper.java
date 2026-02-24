@@ -31,7 +31,7 @@ public class BucketItemEntityRowMapper implements RowMapper<BucketItemEntity> {
 
     @Nullable
     @Override
-    public BucketItemEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public BucketItemEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final BucketItemEntityType type = BucketItemEntityType.valueOf(rs.getString("ITEM_TYPE"));
 
         // Create the appropriate type of sub-class, eventually populate specific data for each type

@@ -31,7 +31,7 @@ public class PreviousValue {
         return previousValue;
     }
 
-    public void setPreviousValue(String previousValue) {
+    public void setPreviousValue(final String previousValue) {
         this.previousValue = previousValue;
     }
 
@@ -39,7 +39,7 @@ public class PreviousValue {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -47,7 +47,7 @@ public class PreviousValue {
         return userIdentity;
     }
 
-    public void setUserIdentity(String userIdentity) {
+    public void setUserIdentity(final String userIdentity) {
         this.userIdentity = userIdentity;
     }
 

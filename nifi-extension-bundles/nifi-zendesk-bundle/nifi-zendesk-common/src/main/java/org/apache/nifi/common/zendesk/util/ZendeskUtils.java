@@ -49,10 +49,10 @@ public final class ZendeskUtils {
      * @param response Http response
      * @return response body
      */
-    public static String getResponseBody(HttpResponseEntity response) {
+    public static String getResponseBody(final HttpResponseEntity response) {
         try (InputStream responseBodyStream = response.body()) {
             return new String(responseBodyStream.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Reading response body has failed", e);
         }
     }
@@ -65,7 +65,7 @@ public final class ZendeskUtils {
      * @param attributes attributes that Expressions can reference
      * @return Map of dynamic properties
      */
-    public static Map<String, String> getDynamicProperties(PropertyContext context, Map<PropertyDescriptor, String> properties, Map<String, String> attributes) {
+    public static Map<String, String> getDynamicProperties(final PropertyContext context, final Map<PropertyDescriptor, String> properties, final Map<String, String> attributes) {
         return properties.entrySet().stream()
                 // filter non-blank dynamic properties
                 .filter(e -> e.getKey().isDynamic()
@@ -86,11 +86,11 @@ public final class ZendeskUtils {
      * @return input stream of the request object
      * @throws JsonProcessingException error while processing the request object
      */
-    public static InputStream createRequestObject(List<ObjectNode> zendeskTickets) throws JsonProcessingException {
-        ObjectNode ticketNode = OBJECT_MAPPER.createObjectNode();
+    public static InputStream createRequestObject(final List<ObjectNode> zendeskTickets) throws JsonProcessingException {
+        final ObjectNode ticketNode = OBJECT_MAPPER.createObjectNode();
         if (zendeskTickets.size() > 1) {
-            ArrayNode arrayNode = OBJECT_MAPPER.createArrayNode();
-            for (ObjectNode ticket : zendeskTickets) {
+            final ArrayNode arrayNode = OBJECT_MAPPER.createArrayNode();
+            for (final ObjectNode ticket : zendeskTickets) {
                 arrayNode.add(ticket);
             }
 

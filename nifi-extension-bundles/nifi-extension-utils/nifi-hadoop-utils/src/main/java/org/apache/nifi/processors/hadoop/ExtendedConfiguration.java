@@ -47,7 +47,7 @@ public class ExtendedConfiguration extends Configuration {
     }
 
     @Override
-    public Class<?> getClassByNameOrNull(String name) {
+    public Class<?> getClassByNameOrNull(final String name) {
         final ClassLoader classLoader = getClassLoader();
 
         Map<String, WeakReference<Class<?>>> map;
@@ -60,7 +60,7 @@ public class ExtendedConfiguration extends Configuration {
         }
 
         Class<?> clazz = null;
-        WeakReference<Class<?>> ref = map.get(name);
+        final WeakReference<Class<?>> ref = map.get(name);
         if (ref != null) {
             clazz = ref.get();
         }
@@ -68,7 +68,7 @@ public class ExtendedConfiguration extends Configuration {
         if (clazz == null) {
             try {
                 clazz = Class.forName(name, true, classLoader);
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 loggerMethod.accept(e.getMessage(), e);
                 return null;
             }

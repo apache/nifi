@@ -116,14 +116,14 @@ public class AccessResource extends ApplicationResource {
 
     @Autowired
     public AccessResource(
-            NiFiRegistryProperties properties,
-            JwtService jwtService,
-            X509IdentityProvider x509IdentityProvider,
-            OidcService oidcService,
-            @Nullable KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider,
-            @Nullable IdentityProvider identityProvider,
-            ServiceFacade serviceFacade,
-            EventService eventService) {
+            final NiFiRegistryProperties properties,
+            final JwtService jwtService,
+            final X509IdentityProvider x509IdentityProvider,
+            final OidcService oidcService,
+            final @Nullable KerberosSpnegoIdentityProvider kerberosSpnegoIdentityProvider,
+            final @Nullable IdentityProvider identityProvider,
+            final ServiceFacade serviceFacade,
+            final EventService eventService) {
         super(serviceFacade, eventService);
         this.properties = properties;
         this.jwtService = jwtService;
@@ -150,7 +150,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "409", description = HttpStatusMessages.MESSAGE_409 + " The NiFi Registry might be running unsecured.")
             }
     )
-    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest) {
+    public Response getAccessStatus(final @Context HttpServletRequest httpServletRequest) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
@@ -189,19 +189,19 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response createAccessTokenByTryingAllProviders(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenByTryingAllProviders(final @Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("Access tokens are only issued over HTTPS");
         }
 
-        List<IdentityProvider> identityProviderWaterfall = generateIdentityProviderWaterfall();
+        final List<IdentityProvider> identityProviderWaterfall = generateIdentityProviderWaterfall();
 
         String token = null;
-        for (IdentityProvider provider : identityProviderWaterfall) {
+        for (final IdentityProvider provider : identityProviderWaterfall) {
 
-            AuthenticationRequest authenticationRequest = provider.extractCredentials(httpServletRequest);
+            final AuthenticationRequest authenticationRequest = provider.extractCredentials(httpServletRequest);
             if (authenticationRequest == null) {
                 continue;
             }
@@ -216,7 +216,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         if (StringUtils.isEmpty(token)) {
-            List<IdentityProviderUsage.AuthType> acceptableAuthTypes = identityProviderWaterfall.stream()
+            final List<IdentityProviderUsage.AuthType> acceptableAuthTypes = identityProviderWaterfall.stream()
                     .map(IdentityProvider::getUsageInstructions)
                     .map(IdentityProviderUsage::getAuthType)
                     .filter(Objects::nonNull)
@@ -257,7 +257,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response createAccessTokenUsingBasicAuthCredentials(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenUsingBasicAuthCredentials(final @Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -276,7 +276,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         // generate JWT for response
-        AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
+        final AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
 
         if (authenticationRequest == null) {
             throw new UnauthorizedException("The client credentials are missing from the request.")
@@ -309,7 +309,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
-    public Response logout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
+    public Response logout(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
@@ -343,7 +343,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = "Client failed to log out."),
             }
     )
-    public void logoutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws IOException {
+    public void logoutComplete(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws IOException {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User logout is only supported when running over HTTPS.");
         }
@@ -370,7 +370,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response createAccessTokenUsingKerberosTicket(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenUsingKerberosTicket(final @Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -382,7 +382,7 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("Kerberos service ticket login not supported by this NiFi Registry");
         }
 
-        AuthenticationRequest authenticationRequest = kerberosSpnegoIdentityProvider.extractCredentials(httpServletRequest);
+        final AuthenticationRequest authenticationRequest = kerberosSpnegoIdentityProvider.extractCredentials(httpServletRequest);
 
         if (authenticationRequest == null) {
             throw new UnauthorizedException("The client credentials are missing from the request.")
@@ -429,7 +429,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response createAccessTokenUsingIdentityProviderCredentials(@Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenUsingIdentityProviderCredentials(final @Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -441,7 +441,7 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalStateException("Custom login not supported by this NiFi Registry");
         }
 
-        AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
+        final AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
 
         if (authenticationRequest == null) {
             throw new UnauthorizedException("The client credentials are missing from the request.")
@@ -451,7 +451,7 @@ public class AccessResource extends ApplicationResource {
         final String token;
         try {
             token = createAccessToken(identityProvider, authenticationRequest);
-        } catch (InvalidCredentialsException ice) {
+        } catch (final InvalidCredentialsException ice) {
             throw new UnauthorizedException("The supplied client credentials are not valid.", ice)
                     .withAuthenticateChallenge(identityProvider.getUsageInstructions().getAuthType());
         }
@@ -482,22 +482,22 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response getIdentityProviderUsageInstructions(@Context HttpServletRequest httpServletRequest) {
+    public Response getIdentityProviderUsageInstructions(final @Context HttpServletRequest httpServletRequest) {
 
         // if not configuration for login, don't consider credentials
         if (identityProvider == null) {
             throw new IllegalStateException("Custom login not supported by this NiFi Registry");
         }
 
-        Class ipClazz = identityProvider.getClass();
-        String identityProviderName = StringUtils.isNotEmpty(ipClazz.getSimpleName()) ? ipClazz.getSimpleName() : ipClazz.getName();
+        final Class ipClazz = identityProvider.getClass();
+        final String identityProviderName = StringUtils.isNotEmpty(ipClazz.getSimpleName()) ? ipClazz.getSimpleName() : ipClazz.getName();
 
         try {
             String usageInstructions = "Usage Instructions for '" + identityProviderName + "': ";
             usageInstructions += identityProvider.getUsageInstructions().getText();
             return generateOkResponse(usageInstructions).build();
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // If, for any reason, this identity provider does not support getUsageInstructions(), e.g., returns null or throws NotImplementedException.
             return Response.status(Response.Status.NOT_IMPLEMENTED)
                     .entity("The currently configured identity provider, '" + identityProvider.getClass().getName() + "' does not provide usage instructions.")
@@ -528,7 +528,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(responseCode = "500", description = HttpStatusMessages.MESSAGE_500)
             }
     )
-    public Response testIdentityProviderRecognizesCredentialsFormat(@Context HttpServletRequest httpServletRequest) {
+    public Response testIdentityProviderRecognizesCredentialsFormat(final @Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -544,7 +544,7 @@ public class AccessResource extends ApplicationResource {
         final String identityProviderName = StringUtils.isNotEmpty(ipClazz.getSimpleName()) ? ipClazz.getSimpleName() : ipClazz.getName();
 
         // attempt to extract client credentials without authenticating them
-        AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
+        final AuthenticationRequest authenticationRequest = identityProvider.extractCredentials(httpServletRequest);
 
         if (authenticationRequest == null) {
             throw new UnauthorizedException("The format of the credentials were not recognized by the currently configured identity provider " +
@@ -565,7 +565,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Initiates a request to authenticate through the configured OpenId Connect provider.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void oidcRequest(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             //forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
@@ -592,7 +592,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Redirect/callback URI for processing the result of the OpenId Connect login sequence.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void oidcCallback(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             //forwardToMessagePage(httpServletRequest, httpServletResponse, "User authentication/authorization is only supported when running over HTTPS.");
@@ -653,7 +653,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Retrieves a JWT following a successful login sequence using the configured OpenId Connect provider.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public Response oidcExchange(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
@@ -690,7 +690,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Performs a logout in the OpenId Provider.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void oidcLogout(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
         }
@@ -737,7 +737,7 @@ public class AccessResource extends ApplicationResource {
             summary = "Redirect/callback URI for processing the result of the OpenId Connect logout sequence.",
             description = NON_GUARANTEED_ENDPOINT
     )
-    public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+    public void oidcLogoutCallback(final @Context HttpServletRequest httpServletRequest, final @Context HttpServletResponse httpServletResponse) throws Exception {
         if (!httpServletRequest.isSecure()) {
             throw new IllegalStateException("User logout is only supported when running over HTTPS.");
         }
@@ -845,7 +845,7 @@ public class AccessResource extends ApplicationResource {
         return null;
     }
 
-    public void setOidcService(OidcService oidcService) {
+    public void setOidcService(final OidcService oidcService) {
         this.oidcService = oidcService;
     }
 
@@ -870,7 +870,7 @@ public class AccessResource extends ApplicationResource {
         return uriInfo.getRequestUri();
     }
 
-    private String createAccessToken(IdentityProvider identityProvider, AuthenticationRequest authenticationRequest)
+    private String createAccessToken(final IdentityProvider identityProvider, final AuthenticationRequest authenticationRequest)
             throws InvalidCredentialsException, AdministrationException {
 
         final AuthenticationResponse authenticationResponse;
@@ -900,7 +900,7 @@ public class AccessResource extends ApplicationResource {
      * @return a list of providers to use in order to authenticate the client.
      */
     private List<IdentityProvider> generateIdentityProviderWaterfall() {
-        List<IdentityProvider> identityProviderWaterfall = new ArrayList<>();
+        final List<IdentityProvider> identityProviderWaterfall = new ArrayList<>();
 
         // if configured with an X509IdentityProvider, add it to the list of providers to try
         if (x509IdentityProvider != null) {
@@ -920,11 +920,11 @@ public class AccessResource extends ApplicationResource {
         return identityProviderWaterfall;
     }
 
-    private boolean isBasicLoginSupported(HttpServletRequest request) {
+    private boolean isBasicLoginSupported(final HttpServletRequest request) {
         return request.isSecure() && identityProvider != null;
     }
 
-    private boolean isOIDCLoginSupported(HttpServletRequest request) {
+    private boolean isOIDCLoginSupported(final HttpServletRequest request) {
         return request.isSecure() && oidcService != null && oidcService.isOidcEnabled();
     }
 
@@ -1017,11 +1017,11 @@ public class AccessResource extends ApplicationResource {
      * @param revokeEndpoint the name of the cookie
      * @throws IOException exceptional case for communication error with the OpenId Connect Provider
      */
-    private void revokeEndpointRequest(@Context HttpServletResponse httpServletResponse, String accessToken, URI revokeEndpoint) throws IOException, NoSuchAlgorithmException {
+    private void revokeEndpointRequest(final @Context HttpServletResponse httpServletResponse, final String accessToken, final URI revokeEndpoint) throws IOException, NoSuchAlgorithmException {
         final CloseableHttpClient httpClient = getHttpClient();
-        HttpPost httpPost = new HttpPost(revokeEndpoint);
+        final HttpPost httpPost = new HttpPost(revokeEndpoint);
 
-        List<NameValuePair> params = new ArrayList<>();
+        final List<NameValuePair> params = new ArrayList<>();
         // Append a query param with the access token
         params.add(new BasicNameValuePair("token", accessToken));
         httpPost.setEntity(new UrlEncodedFormEntity(params));

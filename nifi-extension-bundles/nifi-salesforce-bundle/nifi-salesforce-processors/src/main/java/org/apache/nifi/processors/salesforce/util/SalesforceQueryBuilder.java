@@ -23,17 +23,17 @@ public class SalesforceQueryBuilder {
 
     private final IncrementalContext incrementalContext;
 
-    public SalesforceQueryBuilder(IncrementalContext incrementalContext) {
+    public SalesforceQueryBuilder(final IncrementalContext incrementalContext) {
         this.incrementalContext = incrementalContext;
     }
 
-    public String buildQuery(String sObject, String fields, String customWhereClause) {
-        StringBuilder queryBuilder = new StringBuilder("SELECT ")
+    public String buildQuery(final String sObject, final String fields, final String customWhereClause) {
+        final StringBuilder queryBuilder = new StringBuilder("SELECT ")
                 .append(fields)
                 .append(" FROM ")
                 .append(sObject);
 
-        List<String> whereItems = new ArrayList<>();
+        final List<String> whereItems = new ArrayList<>();
         if (customWhereClause != null) {
             whereItems.add("( " + customWhereClause + " )");
         }
@@ -41,17 +41,17 @@ public class SalesforceQueryBuilder {
         addAgeFilter(whereItems);
 
         if (!whereItems.isEmpty()) {
-            String finalWhereClause = String.join(" AND ", whereItems);
+            final String finalWhereClause = String.join(" AND ", whereItems);
             queryBuilder.append(" WHERE ").append(finalWhereClause);
         }
 
         return queryBuilder.toString();
     }
 
-    private void addAgeFilter(List<String> whereItems) {
-        String ageField = incrementalContext.getAgeField();
-        String ageFilterLower = incrementalContext.getAgeFilterLower();
-        String initialAgeFilter = incrementalContext.getInitialAgeFilter();
+    private void addAgeFilter(final List<String> whereItems) {
+        final String ageField = incrementalContext.getAgeField();
+        final String ageFilterLower = incrementalContext.getAgeFilterLower();
+        final String initialAgeFilter = incrementalContext.getInitialAgeFilter();
 
         if (ageField != null) {
             if (ageFilterLower != null) {

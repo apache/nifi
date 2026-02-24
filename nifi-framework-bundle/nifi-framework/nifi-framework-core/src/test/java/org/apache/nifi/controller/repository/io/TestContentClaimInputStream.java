@@ -225,7 +225,7 @@ public class TestContentClaimInputStream {
         final byte[] source = new byte[bigReadSize];
 
         Mockito.when(repo.read(contentClaim)).thenAnswer(invocation -> {
-            ByteArrayInputStream is = new ByteArrayInputStream(source) {
+            final ByteArrayInputStream is = new ByteArrayInputStream(source) {
                 @Override
                 public void close() throws IOException {
                     super.close();
@@ -238,7 +238,7 @@ public class TestContentClaimInputStream {
 
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 100L, repo.read(contentClaim), new NopPerformanceTracker());
 
-        int invocations = 5;
+        final int invocations = 5;
         for (int i = 0; i < invocations; i++) {
             in.mark(1);
             in.read();
@@ -249,7 +249,7 @@ public class TestContentClaimInputStream {
             in.reset();
         }
 
-        byte[] buff = new byte[bigReadSize];
+        final byte[] buff = new byte[bigReadSize];
         // Force the buffer to read from the delegate stream by reading all the data and therefore
         // going over the default buffer size.
         in.read(buff);

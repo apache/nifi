@@ -141,7 +141,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
     }
 
     @Override
-    public CouchbaseClient getClient(CouchbaseContext context) {
+    public CouchbaseClient getClient(final CouchbaseContext context) {
         final Collection collection = cluster
                 .bucket(context.bucket())
                 .scope(context.scope())

@@ -220,12 +220,12 @@ public class PublishMQTT extends AbstractMQTTProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Quality of Service(QoS)", PROP_QOS.getName());
     }
 
-    private void processMultiMessageFlowFile(ProcessStrategy processStrategy, ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {
+    private void processMultiMessageFlowFile(final ProcessStrategy processStrategy, final ProcessContext context, final ProcessSession session, final FlowFile flowfile, final String topic) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
@@ -236,7 +236,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
             FlowFile successFlowFile = flowfile;
 
-            String provenanceEventDetails;
+            final String provenanceEventDetails;
             if (previousProcessFailedAt != null) {
                 successFlowFile = session.removeAttribute(flowfile, publishFailedIndexAttributeName);
                 provenanceEventDetails = String.format(processStrategy.getRecoverTemplateMessage(), processedRecords.get());
@@ -246,10 +246,10 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
             session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), provenanceEventDetails, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(successFlowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("An error happened during publishing records. Routing to failure.", e);
 
-            FlowFile failedFlowFile = session.putAttribute(flowfile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));
+            final FlowFile failedFlowFile = session.putAttribute(flowfile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));
 
             if (processedRecords.get() > 0) {
                 session.getProvenanceReporter().send(
@@ -263,7 +263,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         }
     }
 
-    private void processStandardFlowFile(ProcessContext context, ProcessSession session, FlowFile flowfile, String topic) {
+    private void processStandardFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowfile, final String topic) {
         try {
             final byte[] messageContent = new byte[(int) flowfile.getSize()];
             session.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
@@ -272,27 +272,27 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             publishMessage(context, flowfile, topic, messageContent);
             session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowfile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("An error happened during publishing a message. Routing to failure.", e);
             session.transfer(flowfile, REL_FAILURE);
         }
     }
 
-    private void publishMessage(ProcessContext context, FlowFile flowfile, String topic, byte[] messageContent) {
-        int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
-        boolean retained = context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean();
+    private void publishMessage(final ProcessContext context, final FlowFile flowfile, final String topic, final byte[] messageContent) {
+        final int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
+        final boolean retained = context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean();
         final StandardMqttMessage mqttMessage = new StandardMqttMessage(messageContent, qos, retained);
 
         mqttClient.publish(topic, mqttMessage);
     }
 
-    private void initializeClient(ProcessContext context) {
+    private void initializeClient(final ProcessContext context) {
         // NOTE: This method is called when isConnected returns false which can happen when the client is null, or when it is
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             mqttClient = createMqttClient();
             mqttClient.connect();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             context.yield();
         }
@@ -312,7 +312,8 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
 
         @Override
-        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException {
+        public void process(final ProcessContext context, final FlowFile flowfile, final InputStream in, final String topic,
+                final AtomicInteger processedRecords, final Long previousProcessFailedAt) throws IOException {
             final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
@@ -342,7 +343,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
                     publishMessage(context, flowfile, topic, messageContent);
                     processedRecords.getAndIncrement();
                 }
-            } catch (SchemaNotFoundException | MalformedRecordException e) {
+            } catch (final SchemaNotFoundException | MalformedRecordException e) {
                 throw new ProcessException("An error happened during creating components for serialization.", e);
             }
         }
@@ -370,7 +371,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS = "Successfully published all messages. Total message count: %d";
 
         @Override
-        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) {
+        public void process(final ProcessContext context, final FlowFile flowfile, final InputStream in, final String topic, final AtomicInteger processedRecords, final Long previousProcessFailedAt) {
             final String demarcator = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue();
 
             try (final Scanner scanner = new Scanner(in)) {

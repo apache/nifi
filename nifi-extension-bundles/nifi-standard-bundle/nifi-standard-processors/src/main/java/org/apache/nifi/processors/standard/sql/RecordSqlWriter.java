@@ -55,7 +55,7 @@ public class RecordSqlWriter implements SqlWriter {
     private RecordSchema writeSchema;
     private String mimeType;
 
-    public RecordSqlWriter(RecordSetWriterFactory recordSetWriterFactory, AvroConversionOptions options, int maxRowsPerFlowFile, Map<String, String> originalAttributes) {
+    public RecordSqlWriter(final RecordSetWriterFactory recordSetWriterFactory, final AvroConversionOptions options, final int maxRowsPerFlowFile, final Map<String, String> originalAttributes) {
         this.recordSetWriterFactory = recordSetWriterFactory;
         this.writeResultRef = new AtomicReference<>();
         this.maxRowsPerFlowFile = maxRowsPerFlowFile;
@@ -64,7 +64,7 @@ public class RecordSqlWriter implements SqlWriter {
     }
 
     @Override
-    public long writeResultSet(ResultSet resultSet, OutputStream outputStream, ComponentLog logger, ResultSetRowCallback callback) throws Exception {
+    public long writeResultSet(final ResultSet resultSet, final OutputStream outputStream, final ComponentLog logger, final ResultSetRowCallback callback) throws Exception {
         final RecordSet recordSet;
         try {
             if (fullRecordSet == null) {
@@ -91,7 +91,7 @@ public class RecordSqlWriter implements SqlWriter {
 
     @Override
     public Map<String, String> getAttributesToAdd() {
-        Map<String, String> attributesToAdd = new HashMap<>();
+        final Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeType);
 
         // Add any attributes from the record writer (if present)
@@ -107,7 +107,7 @@ public class RecordSqlWriter implements SqlWriter {
     }
 
     @Override
-    public void updateCounters(ProcessSession session) {
+    public void updateCounters(final ProcessSession session) {
         final WriteResult result = writeResultRef.get();
         if (result != null) {
             session.adjustCounter("Records Written", result.getRecordCount(), false);
@@ -115,7 +115,7 @@ public class RecordSqlWriter implements SqlWriter {
     }
 
     @Override
-    public void writeEmptyResultSet(OutputStream outputStream, ComponentLog logger) throws IOException {
+    public void writeEmptyResultSet(final OutputStream outputStream, final ComponentLog logger) throws IOException {
         try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, outputStream, Collections.emptyMap())) {
             mimeType = resultSetWriter.getMimeType();
             resultSetWriter.beginRecordSet();
@@ -134,7 +134,7 @@ public class RecordSqlWriter implements SqlWriter {
 
         private final ResultSetRowCallback callback;
 
-        ResultSetRecordSetWithCallback(ResultSet rs, RecordSchema readerSchema, ResultSetRowCallback callback,
+        ResultSetRecordSetWithCallback(final ResultSet rs, final RecordSchema readerSchema, final ResultSetRowCallback callback,
                                        final int defaultPrecision, final int defaultScale, final boolean useLogicalTypes) throws SQLException {
             super(rs, readerSchema, defaultPrecision, defaultScale, useLogicalTypes);
             this.callback = callback;
@@ -144,7 +144,7 @@ public class RecordSqlWriter implements SqlWriter {
         public Record next() throws IOException {
             try {
                 if (hasMoreRows()) {
-                    ResultSet rs = getResultSet();
+                    final ResultSet rs = getResultSet();
                     final Record record = createRecord(rs);
                     if (callback != null) {
                         callback.processRow(rs);

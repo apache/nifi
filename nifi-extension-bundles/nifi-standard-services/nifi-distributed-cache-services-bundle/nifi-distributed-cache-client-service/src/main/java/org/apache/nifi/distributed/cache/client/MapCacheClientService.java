@@ -161,8 +161,8 @@ public class MapCacheClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-        Collection<byte[]> bytesKeys = CacheClientSerde.serialize(keys, keySerializer);
+    public <K, V> Map<K, V> subMap(final Set<K> keys, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        final Collection<byte[]> bytesKeys = CacheClientSerde.serialize(keys, keySerializer);
         final MapValuesInboundAdapter<K, V> inboundAdapter =
                 new MapValuesInboundAdapter<>(keys, valueDeserializer, new HashMap<>());
         return cacheClient.subMap(bytesKeys, inboundAdapter);
@@ -175,7 +175,7 @@ public class MapCacheClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V removeAndGet(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         final byte[] bytesKey = CacheClientSerde.serialize(key, keySerializer);
         final ValueInboundAdapter<V> inboundAdapter = new ValueInboundAdapter<>(valueDeserializer);
         return cacheClient.removeAndGet(bytesKey, inboundAdapter);
@@ -191,7 +191,7 @@ public class MapCacheClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean replace(final AtomicCacheEntry<K, V, Long> entry, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final byte[] bytesKey = CacheClientSerde.serialize(entry.getKey(), keySerializer);
         final byte[] bytesValue = CacheClientSerde.serialize(entry.getValue(), valueSerializer);
         final long revision = entry.getRevision().orElse(DEFAULT_CACHE_REVISION);
@@ -199,7 +199,7 @@ public class MapCacheClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+    public <K> Set<K> keySet(final Deserializer<K> keyDeserializer) throws IOException {
         final SetInboundAdapter<K> inboundAdapter = new SetInboundAdapter<>(keyDeserializer, new HashSet<>());
         return cacheClient.keySet(inboundAdapter);
     }

@@ -51,7 +51,7 @@ public class PropertyDescriptorDTO {
         return allowableValues;
     }
 
-    public void setAllowableValues(List<AllowableValueEntity> allowableValues) {
+    public void setAllowableValues(final List<AllowableValueEntity> allowableValues) {
         this.allowableValues = allowableValues;
     }
 
@@ -64,7 +64,7 @@ public class PropertyDescriptorDTO {
         return defaultValue;
     }
 
-    public void setDefaultValue(String defaultValue) {
+    public void setDefaultValue(final String defaultValue) {
         this.defaultValue = defaultValue;
     }
 
@@ -77,7 +77,7 @@ public class PropertyDescriptorDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -90,7 +90,7 @@ public class PropertyDescriptorDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -103,7 +103,7 @@ public class PropertyDescriptorDTO {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public void setDisplayName(final String displayName) {
         this.displayName = displayName;
     }
 
@@ -116,7 +116,7 @@ public class PropertyDescriptorDTO {
         return required;
     }
 
-    public void setRequired(Boolean required) {
+    public void setRequired(final Boolean required) {
         this.required = required;
     }
 
@@ -129,7 +129,7 @@ public class PropertyDescriptorDTO {
         return sensitive;
     }
 
-    public void setSensitive(Boolean sensitive) {
+    public void setSensitive(final Boolean sensitive) {
         this.sensitive = sensitive;
     }
 
@@ -142,7 +142,7 @@ public class PropertyDescriptorDTO {
         return dynamic;
     }
 
-    public void setDynamic(Boolean dynamic) {
+    public void setDynamic(final Boolean dynamic) {
         this.dynamic = dynamic;
     }
 
@@ -155,7 +155,7 @@ public class PropertyDescriptorDTO {
         return supportsEl;
     }
 
-    public void setSupportsEl(Boolean supportsEl) {
+    public void setSupportsEl(final Boolean supportsEl) {
         this.supportsEl = supportsEl;
     }
 
@@ -168,7 +168,7 @@ public class PropertyDescriptorDTO {
         return expressionLanguageScope;
     }
 
-    public void setExpressionLanguageScope(String scope) {
+    public void setExpressionLanguageScope(final String scope) {
         this.expressionLanguageScope = scope;
     }
 
@@ -181,7 +181,7 @@ public class PropertyDescriptorDTO {
         return identifiesControllerService;
     }
 
-    public void setIdentifiesControllerService(String identifiesControllerService) {
+    public void setIdentifiesControllerService(final String identifiesControllerService) {
         this.identifiesControllerService = identifiesControllerService;
     }
 
@@ -194,7 +194,7 @@ public class PropertyDescriptorDTO {
         return identifiesControllerServiceBundle;
     }
 
-    public void setIdentifiesControllerServiceBundle(BundleDTO identifiesControllerServiceBundle) {
+    public void setIdentifiesControllerServiceBundle(final BundleDTO identifiesControllerServiceBundle) {
         this.identifiesControllerServiceBundle = identifiesControllerServiceBundle;
     }
 

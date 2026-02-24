@@ -24,15 +24,15 @@ public class IllegalNodeOffloadException extends IllegalClusterStateException {
     public IllegalNodeOffloadException() {
     }
 
-    public IllegalNodeOffloadException(String msg) {
+    public IllegalNodeOffloadException(final String msg) {
         super(msg);
     }
 
-    public IllegalNodeOffloadException(Throwable cause) {
+    public IllegalNodeOffloadException(final Throwable cause) {
         super(cause);
     }
 
-    public IllegalNodeOffloadException(String msg, Throwable cause) {
+    public IllegalNodeOffloadException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

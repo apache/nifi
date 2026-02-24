@@ -30,7 +30,7 @@ public class MiNiFiStatus {
         this.processRunning = false;
     }
 
-    public MiNiFiStatus(Integer port, Long pid, boolean respondingToPing, boolean processRunning) {
+    public MiNiFiStatus(final Integer port, final Long pid, final boolean respondingToPing, final boolean processRunning) {
         this.port = port;
         this.pid = pid;
         this.respondingToPing = respondingToPing;

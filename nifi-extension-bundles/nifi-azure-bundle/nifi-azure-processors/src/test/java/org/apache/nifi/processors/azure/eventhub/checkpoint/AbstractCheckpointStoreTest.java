@@ -57,7 +57,7 @@ abstract class AbstractCheckpointStoreTest {
         checkpoint2 = createCheckpoint(PARTITION_ID_2, OFFSET, SEQUENCE_NUMBER);
     }
 
-    PartitionOwnership createPartitionOwnership(String partitionId, String ownerId) {
+    PartitionOwnership createPartitionOwnership(final String partitionId, final String ownerId) {
         return createPartitionOwnership(
                 EVENT_HUB_NAMESPACE,
                 EVENT_HUB_NAME,
@@ -68,11 +68,11 @@ abstract class AbstractCheckpointStoreTest {
     }
 
     PartitionOwnership createPartitionOwnership(
-            String fullyQualifiedNamespace,
-            String eventHubName,
-            String consumerGroup,
-            String partitionId,
-            String ownerId) {
+            final String fullyQualifiedNamespace,
+            final String eventHubName,
+            final String consumerGroup,
+            final String partitionId,
+            final String ownerId) {
         return new TestablePartitionOwnership()
                 .setFullyQualifiedNamespace(fullyQualifiedNamespace)
                 .setEventHubName(eventHubName)
@@ -83,7 +83,7 @@ abstract class AbstractCheckpointStoreTest {
                 .setETag(null);
     }
 
-    Checkpoint createCheckpoint(String partitionId, String offset, Long sequenceNumber) {
+    Checkpoint createCheckpoint(final String partitionId, final String offset, final Long sequenceNumber) {
         return createCheckpoint(
                 EVENT_HUB_NAMESPACE,
                 EVENT_HUB_NAME,
@@ -95,12 +95,12 @@ abstract class AbstractCheckpointStoreTest {
     }
 
     Checkpoint createCheckpoint(
-            String fullyQualifiedNamespace,
-            String eventHubName,
-            String consumerGroup,
-            String partitionId,
-            String offset,
-            Long sequenceNumber) {
+            final String fullyQualifiedNamespace,
+            final String eventHubName,
+            final String consumerGroup,
+            final String partitionId,
+            final String offset,
+            final Long sequenceNumber) {
         return new TestableCheckpoint()
                 .setFullyQualifiedNamespace(fullyQualifiedNamespace)
                 .setEventHubName(eventHubName)
@@ -110,15 +110,15 @@ abstract class AbstractCheckpointStoreTest {
                 .setSequenceNumber(sequenceNumber);
     }
 
-    PartitionOwnership copy(PartitionOwnership original) {
+    PartitionOwnership copy(final PartitionOwnership original) {
         return convertToTestable(original);
     }
 
-    Checkpoint copy(Checkpoint original) {
+    Checkpoint copy(final Checkpoint original) {
         return convertToTestable(original);
     }
 
-    PartitionOwnership convertToTestable(PartitionOwnership original) {
+    PartitionOwnership convertToTestable(final PartitionOwnership original) {
         return new TestablePartitionOwnership()
                 .setFullyQualifiedNamespace(original.getFullyQualifiedNamespace())
                 .setEventHubName(original.getEventHubName())
@@ -129,7 +129,7 @@ abstract class AbstractCheckpointStoreTest {
                 .setETag(original.getETag());
     }
 
-    Checkpoint convertToTestable(Checkpoint original) {
+    Checkpoint convertToTestable(final Checkpoint original) {
         return new TestableCheckpoint()
                 .setFullyQualifiedNamespace(original.getFullyQualifiedNamespace())
                 .setEventHubName(original.getEventHubName())
@@ -139,13 +139,13 @@ abstract class AbstractCheckpointStoreTest {
                 .setSequenceNumber(original.getSequenceNumber());
     }
 
-    List<PartitionOwnership> convertToTestablePartitionOwnerships(List<PartitionOwnership> partitionOwnerships) {
+    List<PartitionOwnership> convertToTestablePartitionOwnerships(final List<PartitionOwnership> partitionOwnerships) {
         return partitionOwnerships.stream()
                 .map(this::convertToTestable)
                 .collect(Collectors.toList());
     }
 
-    List<Checkpoint> convertToTestableCheckpoints(List<Checkpoint> checkpoints) {
+    List<Checkpoint> convertToTestableCheckpoints(final List<Checkpoint> checkpoints) {
         return checkpoints.stream()
                 .map(this::convertToTestable)
                 .collect(Collectors.toList());
@@ -154,14 +154,14 @@ abstract class AbstractCheckpointStoreTest {
     static class TestablePartitionOwnership extends PartitionOwnership {
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) {
                 return true;
             }
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            TestablePartitionOwnership that = (TestablePartitionOwnership) o;
+            final TestablePartitionOwnership that = (TestablePartitionOwnership) o;
             return Objects.equals(getFullyQualifiedNamespace(), that.getFullyQualifiedNamespace())
                     && Objects.equals(getEventHubName(), that.getEventHubName())
                     && Objects.equals(getConsumerGroup(), that.getConsumerGroup())
@@ -188,14 +188,14 @@ abstract class AbstractCheckpointStoreTest {
     static class TestableCheckpoint extends Checkpoint {
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) {
                 return true;
             }
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            TestableCheckpoint that = (TestableCheckpoint) o;
+            final TestableCheckpoint that = (TestableCheckpoint) o;
             return Objects.equals(getFullyQualifiedNamespace(), that.getFullyQualifiedNamespace())
                     && Objects.equals(getEventHubName(), that.getEventHubName())
                     && Objects.equals(getConsumerGroup(), that.getConsumerGroup())

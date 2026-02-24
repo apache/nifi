@@ -42,7 +42,7 @@ public class BulletinQueryDTO {
         return after;
     }
 
-    public void setAfter(Long after) {
+    public void setAfter(final Long after) {
         this.after = after;
     }
 
@@ -55,7 +55,7 @@ public class BulletinQueryDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -68,7 +68,7 @@ public class BulletinQueryDTO {
         return message;
     }
 
-    public void setMessage(String message) {
+    public void setMessage(final String message) {
         this.message = message;
     }
 
@@ -81,7 +81,7 @@ public class BulletinQueryDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -94,7 +94,7 @@ public class BulletinQueryDTO {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -107,7 +107,7 @@ public class BulletinQueryDTO {
         return limit;
     }
 
-    public void setLimit(Integer limit) {
+    public void setLimit(final Integer limit) {
         this.limit = limit;
     }
 

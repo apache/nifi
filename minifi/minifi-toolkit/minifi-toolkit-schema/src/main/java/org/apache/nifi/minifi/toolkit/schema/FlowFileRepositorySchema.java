@@ -48,7 +48,7 @@ public class FlowFileRepositorySchema extends BaseSchema implements WritableSche
         swapProperties = new SwapSchema();
     }
 
-    public FlowFileRepositorySchema(Map map) {
+    public FlowFileRepositorySchema(final Map map) {
         flowFileRepository = getOptionalKeyAsType(map, FLOWFILE_REPOSITORY_IMPLEMENTATION, String.class,
         FLOWFILE_REPO_KEY, DEFAULT_FLOWFILE_REPOSITORY_IMPLEMENTATION);
         partitions = getOptionalKeyAsType(map, PARTITIONS_KEY, Number.class, FLOWFILE_REPO_KEY, DEFAULT_PARTITIONS);
@@ -61,7 +61,7 @@ public class FlowFileRepositorySchema extends BaseSchema implements WritableSche
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(FLOWFILE_REPOSITORY_IMPLEMENTATION, flowFileRepository);
         result.put(PARTITIONS_KEY, partitions);
         result.put(CHECKPOINT_INTERVAL_KEY, checkpointInterval);

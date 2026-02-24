@@ -72,7 +72,7 @@ class StopRunnerTest {
     void testRunCommandShouldReturnErrorStatusCodeInCaseOfException() {
         when(currentPortProvider.getCurrentPort()).thenThrow(new RuntimeException());
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoInteractions(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, gracefulShutdownParameterProvider, processUtils);
@@ -82,7 +82,7 @@ class StopRunnerTest {
     void testRunCommandShouldReturnMiNiFiNotRunningStatusCodeInCaseMiNiFiPortIsNull() {
         when(currentPortProvider.getCurrentPort()).thenReturn(null);
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), statusCode);
         verifyNoInteractions(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, gracefulShutdownParameterProvider, processUtils);
@@ -90,7 +90,7 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldCreateAndCleanupLockFileAfterExecution() throws IOException {
-        File lockFile = mock(File.class);
+        final File lockFile = mock(File.class);
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(lockFile.exists()).thenReturn(false, true);
@@ -98,7 +98,7 @@ class StopRunnerTest {
         when(miNiFiParameters.getMinifiPid()).thenReturn((long) UNINITIALIZED);
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenReturn(Optional.of(SHUTDOWN_CMD));
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verify(lockFile).createNewFile();
@@ -107,7 +107,7 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldMessageBeLockedInCaseOfLockFileFailureIssue() throws IOException {
-        File lockFile = mock(File.class);
+        final File lockFile = mock(File.class);
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(lockFile.exists()).thenReturn(false, true);
@@ -115,7 +115,7 @@ class StopRunnerTest {
         when(miNiFiParameters.getMinifiPid()).thenReturn((long) UNINITIALIZED);
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenReturn(Optional.of(SHUTDOWN_CMD));
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verify(lockFile).createNewFile();
@@ -124,15 +124,15 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldReturnErrorStatusCodeIfMiNiFiResponseIsNotShutdown() throws IOException {
-        File lockFile = mock(File.class);
+        final File lockFile = mock(File.class);
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(lockFile.exists()).thenReturn(true, false);
         when(miNiFiParameters.getMinifiPid()).thenReturn((long) UNINITIALIZED);
-        String unknown = "unknown";
+        final String unknown = "unknown";
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenReturn(Optional.of(unknown));
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(ERROR.getStatusCode(), statusCode);
         verifyNoInteractions(gracefulShutdownParameterProvider, processUtils);
@@ -140,14 +140,14 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldHandleExceptionalCaseIfProcessIdIsUnknown() throws IOException {
-        File lockFile = mock(File.class);
+        final File lockFile = mock(File.class);
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(lockFile.exists()).thenReturn(true, false);
         when(miNiFiParameters.getMinifiPid()).thenReturn((long) UNINITIALIZED);
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenThrow(new IOException());
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verifyNoInteractions(gracefulShutdownParameterProvider, processUtils);
@@ -155,14 +155,14 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldHandleExceptionalCaseIfProcessIdIsGiven() throws IOException {
-        File lockFile = mock(File.class);
+        final File lockFile = mock(File.class);
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(lockFile.exists()).thenReturn(true, false);
         when(miNiFiParameters.getMinifiPid()).thenReturn(MINIFI_PID);
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenThrow(new IOException());
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verify(processUtils).killProcessTree(MINIFI_PID);
@@ -171,10 +171,10 @@ class StopRunnerTest {
 
     @Test
     void testRunCommandShouldShutDownMiNiFiProcessGracefully() throws IOException {
-        File lockFile = mock(File.class);
-        File statusFile = mock(File.class);
-        File pidFile = mock(File.class);
-        int gracefulShutdownSeconds = 10;
+        final File lockFile = mock(File.class);
+        final File statusFile = mock(File.class);
+        final File pidFile = mock(File.class);
+        final int gracefulShutdownSeconds = 10;
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(bootstrapFileProvider.getLockFile()).thenReturn(lockFile);
         when(bootstrapFileProvider.getStatusFile()).thenReturn(statusFile);
@@ -188,7 +188,7 @@ class StopRunnerTest {
         when(miNiFiCommandSender.sendCommand(SHUTDOWN_CMD, MINIFI_PORT)).thenReturn(Optional.of(SHUTDOWN_CMD));
         when(gracefulShutdownParameterProvider.getGracefulShutdownSeconds()).thenReturn(gracefulShutdownSeconds);
 
-        int statusCode = stopRunner.runCommand(new String[0]);
+        final int statusCode = stopRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
         verify(statusFile).delete();

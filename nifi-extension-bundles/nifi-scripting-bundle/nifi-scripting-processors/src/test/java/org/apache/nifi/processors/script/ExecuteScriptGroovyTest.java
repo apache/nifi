@@ -88,7 +88,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).getFirst();
         flowFile.assertAttributeExists("time-updated");
         flowFile.assertAttributeExists("thread");
         assertTrue(SINGLE_POOL_THREAD_PATTERN.matcher(flowFile.getAttribute("thread")).find());
@@ -151,7 +151,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         flowFile.assertAttributeEquals("greeting", "good-bye");
     }
 
-    private void setupPooledExecuteScript(int poolSize) {
+    private void setupPooledExecuteScript(final int poolSize) {
         final ExecuteScript executeScript = new ExecuteScript();
         // Need to do something to initialize the properties, like retrieve the list of properties
         assertNotNull(executeScript.getSupportedPropertyDescriptors());

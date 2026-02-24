@@ -81,7 +81,7 @@ public class JerseyBundleClient extends AbstractJerseyClient implements BundleCl
         }
 
         return executeAction("Error getting extension bundles for bucket", () -> {
-            WebTarget target = bucketExtensionBundlesTarget.resolveTemplate("bucketId", bucketId);
+            final WebTarget target = bucketExtensionBundlesTarget.resolveTemplate("bucketId", bucketId);
 
             final Bundle[] bundles = getRequestBuilder(target).get(Bundle[].class);
             return  bundles == null ? Collections.emptyList() : Arrays.asList(bundles);
@@ -95,7 +95,7 @@ public class JerseyBundleClient extends AbstractJerseyClient implements BundleCl
         }
 
         return executeAction("Error getting extension bundle", () -> {
-            WebTarget target = extensionBundlesTarget
+            final WebTarget target = extensionBundlesTarget
                     .path("{bundleId}")
                     .resolveTemplate("bundleId", bundleId);
 
@@ -110,7 +110,7 @@ public class JerseyBundleClient extends AbstractJerseyClient implements BundleCl
         }
 
         return executeAction("Error deleting extension bundle", () -> {
-            WebTarget target = extensionBundlesTarget
+            final WebTarget target = extensionBundlesTarget
                     .path("{bundleId}")
                     .resolveTemplate("bundleId", bundleId);
 

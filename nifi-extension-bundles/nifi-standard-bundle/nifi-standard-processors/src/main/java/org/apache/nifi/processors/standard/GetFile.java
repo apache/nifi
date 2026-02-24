@@ -302,7 +302,7 @@ public class GetFile extends AbstractProcessor {
     }
 
     private Set<File> performListing(final File directory, final FileFilter filter, final boolean recurseSubdirectories) {
-        Path p = directory.toPath();
+        final Path p = directory.toPath();
         if (!Files.isWritable(p) || !Files.isReadable(p)) {
             throw new IllegalStateException("Directory '" + directory + "' does not have sufficient permissions (i.e., not writable and readable)");
         }
@@ -330,36 +330,36 @@ public class GetFile extends AbstractProcessor {
     }
 
     protected Map<String, String> getAttributesFromFile(final Path file) {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         try {
-            FileStore store = Files.getFileStore(file);
+            final FileStore store = Files.getFileStore(file);
             if (store.supportsFileAttributeView("basic")) {
                 try {
                     final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                    BasicFileAttributeView view = Files.getFileAttributeView(file, BasicFileAttributeView.class);
-                    BasicFileAttributes attrs = view.readAttributes();
+                    final BasicFileAttributeView view = Files.getFileAttributeView(file, BasicFileAttributeView.class);
+                    final BasicFileAttributes attrs = view.readAttributes();
                     attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastModifiedTime().toInstant().atZone(ZoneId.systemDefault())));
                     attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.creationTime().toInstant().atZone(ZoneId.systemDefault())));
                     attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateTimeFormatter.format(attrs.lastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
-                } catch (Exception ignored) {
+                } catch (final Exception ignored) {
                 } // allow other attributes if these fail
             }
             if (store.supportsFileAttributeView("owner")) {
                 try {
-                    FileOwnerAttributeView view = Files.getFileAttributeView(file, FileOwnerAttributeView.class);
+                    final FileOwnerAttributeView view = Files.getFileAttributeView(file, FileOwnerAttributeView.class);
                     attributes.put(FILE_OWNER_ATTRIBUTE, view.getOwner().getName());
-                } catch (Exception ignored) {
+                } catch (final Exception ignored) {
                 } // allow other attributes if these fail
             }
             if (store.supportsFileAttributeView("posix")) {
                 try {
-                    PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
+                    final PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
                     attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                     attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
-                } catch (Exception ignored) {
+                } catch (final Exception ignored) {
                 } // allow other attributes if these fail
             }
-        } catch (IOException ignored) {
+        } catch (final IOException ignored) {
             // well then this FlowFile gets none of these attributes
         }
 
@@ -426,7 +426,7 @@ public class GetFile extends AbstractProcessor {
                 final File file = itr.next();
                 final Path filePath = file.toPath();
                 final Path relativePath = directoryPath.relativize(filePath.getParent());
-                String relativePathString = relativePath.toString() + "/";
+                final String relativePathString = relativePath.toString() + "/";
                 final Path absPath = filePath.toAbsolutePath();
                 final String absPathString = absPath.getParent().toString() + "/";
 
@@ -439,7 +439,7 @@ public class GetFile extends AbstractProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), file.getName());
                 flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePathString);
                 flowFile = session.putAttribute(flowFile, CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
-                Map<String, String> attributes = getAttributesFromFile(filePath);
+                final Map<String, String> attributes = getAttributesFromFile(filePath);
                 if (!attributes.isEmpty()) {
                     flowFile = session.putAllAttributes(flowFile, attributes);
                 }

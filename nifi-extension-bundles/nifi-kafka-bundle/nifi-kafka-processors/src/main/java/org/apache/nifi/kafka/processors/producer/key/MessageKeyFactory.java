@@ -32,10 +32,10 @@ public class MessageKeyFactory implements KeyFactory {
     private final ComponentLog logger;
 
     public MessageKeyFactory(
-            FlowFile flowFile,
-            String messageKeyField,
-            RecordSetWriterFactory keyWriterFactory,
-            ComponentLog logger) {
+            final FlowFile flowFile,
+            final String messageKeyField,
+            final RecordSetWriterFactory keyWriterFactory,
+            final ComponentLog logger) {
         this.flowFile = flowFile;
         this.messageKeyField = messageKeyField;
         this.keyWriterFactory = keyWriterFactory;
@@ -43,7 +43,7 @@ public class MessageKeyFactory implements KeyFactory {
     }
 
     @Override
-    public byte[] getKey(Map<String, String> attributes, Record record) throws IOException {
+    public byte[] getKey(final Map<String, String> attributes, final Record record) throws IOException {
         final RecordFieldConverter converter = new RecordFieldConverter(record, flowFile, logger);
         return converter.toBytes(messageKeyField, keyWriterFactory);
     }

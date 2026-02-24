@@ -18,7 +18,7 @@ package org.apache.nifi.processors.azure.eventhub.checkpoint.exception;
 
 public class ClusterNodeDisconnectedException extends ComponentStateCheckpointStoreException {
 
-    public ClusterNodeDisconnectedException(String message) {
+    public ClusterNodeDisconnectedException(final String message) {
         super(message);
     }
 }

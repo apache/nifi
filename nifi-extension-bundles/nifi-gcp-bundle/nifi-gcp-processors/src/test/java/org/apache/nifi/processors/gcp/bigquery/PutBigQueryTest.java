@@ -122,7 +122,7 @@ public class PutBigQueryTest {
     @Captor
     private ArgumentCaptor<BatchCommitWriteStreamsRequest> batchCommitRequestCaptor;
 
-    public static TestRunner buildNewRunner(Processor processor) throws Exception {
+    public static TestRunner buildNewRunner(final Processor processor) throws Exception {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
@@ -167,18 +167,19 @@ public class PutBigQueryTest {
             }
 
             @Override
-            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
+            protected StreamWriter createStreamWriter(final String streamName, final Descriptors.Descriptor descriptor,
+                    final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) {
                 return streamWriter;
             }
 
             @Override
-            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
+            protected BigQueryWriteClient createWriteClient(final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) {
                 return writeClient;
             }
         };
     }
 
-    protected void addRequiredPropertiesToRunner(TestRunner runner) {
+    protected void addRequiredPropertiesToRunner(final TestRunner runner) {
         runner.setProperty(PutBigQuery.DATASET, DATASET);
         runner.setProperty(PutBigQuery.TABLE_NAME, "tableName");
         runner.setProperty(PutBigQuery.APPEND_RECORD_COUNT, "999");
@@ -189,7 +190,7 @@ public class PutBigQueryTest {
 
     @BeforeEach
     void setup() throws Exception {
-        AbstractBigQueryProcessor processor = getProcessor();
+        final AbstractBigQueryProcessor processor = getProcessor();
         runner = buildNewRunner(processor);
         decorateWithRecordReader(runner);
         addRequiredPropertiesToRunner(runner);
@@ -204,9 +205,9 @@ public class PutBigQueryTest {
 
     @ParameterizedTest(name = "{index} => csvLineCount={0}, appendRecordCount={1}")
     @MethodSource("generateRecordGroupingParameters")
-    void testRecordGrouping(Integer csvLineCount, Integer appendRecordCount) {
+    void testRecordGrouping(final Integer csvLineCount, final Integer appendRecordCount) {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
             .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
@@ -216,10 +217,10 @@ public class PutBigQueryTest {
         runner.enqueue(csvContentWithLines(csvLineCount));
         runner.run();
 
-        Integer expectedAppendCount = (int) Math.ceil((double) csvLineCount / appendRecordCount);
+        final Integer expectedAppendCount = (int) Math.ceil((double) csvLineCount / appendRecordCount);
         verify(streamWriter, times(expectedAppendCount)).append(protoRowsCaptor.capture(), offsetCaptor.capture());
-        List<ProtoRows> allValues = protoRowsCaptor.getAllValues();
-        List<Long> offsets = offsetCaptor.getAllValues();
+        final List<ProtoRows> allValues = protoRowsCaptor.getAllValues();
+        final List<Long> offsets = offsetCaptor.getAllValues();
 
         assertEquals(expectedAppendCount, allValues.size());
         for (int i = 0; i < expectedAppendCount - 1; i++) {
@@ -230,7 +231,7 @@ public class PutBigQueryTest {
             }
         }
 
-        int lastAppendSize = csvLineCount % appendRecordCount;
+        final int lastAppendSize = csvLineCount % appendRecordCount;
         if (lastAppendSize != 0) {
             assertEquals(lastAppendSize, allValues.getLast().getSerializedRowsCount());
             for (int j = 0; j < lastAppendSize; j++) {
@@ -253,21 +254,21 @@ public class PutBigQueryTest {
     @Test
     void testMultipleFlowFiles() {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
             .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
 
-        int entityCountFirst = 3;
-        int entityCountSecond = 5;
+        final int entityCountFirst = 3;
+        final int entityCountSecond = 5;
         runner.enqueue(csvContentWithLines(entityCountFirst));
         runner.enqueue(csvContentWithLines(entityCountSecond));
 
-        int iteration = 2;
+        final int iteration = 2;
         runner.run(iteration);
 
         verify(streamWriter, times(iteration)).append(protoRowsCaptor.capture(), offsetCaptor.capture());
-        List<ProtoRows> allValues = protoRowsCaptor.getAllValues();
+        final List<ProtoRows> allValues = protoRowsCaptor.getAllValues();
 
         assertEquals(iteration, allValues.size());
         assertEquals(entityCountFirst, allValues.get(0).getSerializedRowsCount());
@@ -282,11 +283,11 @@ public class PutBigQueryTest {
     @Test
     void testRetryAndFailureAfterRetryCount() {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class))).thenReturn(ApiFutures.immediateFailedFuture(new StatusRuntimeException(Status.INTERNAL)));
 
-        int retryCount = 5;
+        final int retryCount = 5;
         runner.setProperty(PutBigQuery.RETRY_COUNT, Integer.toString(retryCount));
 
         runner.enqueue(csvContentWithLines(1));
@@ -300,7 +301,7 @@ public class PutBigQueryTest {
     @Test
     void testRetryAndSuccessBeforeRetryCount() {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
             .thenReturn(ApiFutures.immediateFailedFuture(new StatusRuntimeException(Status.INTERNAL)))
@@ -317,17 +318,17 @@ public class PutBigQueryTest {
 
     @Test
     void testBatch() {
-        String streamName = "myStreamName";
+        final String streamName = "myStreamName";
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
 
-        FinalizeWriteStreamResponse finalizeWriteStreamResponse = mock(FinalizeWriteStreamResponse.class);
+        final FinalizeWriteStreamResponse finalizeWriteStreamResponse = mock(FinalizeWriteStreamResponse.class);
         when(writeClient.finalizeWriteStream(streamName)).thenReturn(finalizeWriteStreamResponse);
 
-        BatchCommitWriteStreamsResponse commitResponse = mock(BatchCommitWriteStreamsResponse.class);
+        final BatchCommitWriteStreamsResponse commitResponse = mock(BatchCommitWriteStreamsResponse.class);
         when(commitResponse.hasCommitTime()).thenReturn(true);
         when(writeClient.batchCommitWriteStreams(isA(BatchCommitWriteStreamsRequest.class))).thenReturn(commitResponse);
 
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(writeStream.getName()).thenReturn(streamName);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
@@ -341,7 +342,7 @@ public class PutBigQueryTest {
 
         verify(writeClient).finalizeWriteStream(streamName);
         verify(writeClient).batchCommitWriteStreams(batchCommitRequestCaptor.capture());
-        BatchCommitWriteStreamsRequest batchCommitRequest = batchCommitRequestCaptor.getValue();
+        final BatchCommitWriteStreamsRequest batchCommitRequest = batchCommitRequestCaptor.getValue();
         assertEquals(streamName, batchCommitRequest.getWriteStreams(0));
         verify(streamWriter).append(any(ProtoRows.class), anyLong());
 
@@ -351,17 +352,17 @@ public class PutBigQueryTest {
     @Test
     void testUnknownColumnSkipped() {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
             .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
 
-        String unknownProperty = "myUnknownProperty";
+        final String unknownProperty = "myUnknownProperty";
         runner.enqueue(CSV_HEADER + ",unknownProperty\nmyId,myValue," + unknownProperty);
         runner.run();
 
         verify(streamWriter).append(protoRowsCaptor.capture(), offsetCaptor.capture());
-        ProtoRows rows = protoRowsCaptor.getValue();
+        final ProtoRows rows = protoRowsCaptor.getValue();
         assertFalse(rows.getSerializedRowsList().getFirst().toString().contains(unknownProperty));
 
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS);
@@ -371,7 +372,7 @@ public class PutBigQueryTest {
     void testSchema() throws Exception {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
 
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.INT64, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.INT64, FIELD_2_NAME, TableFieldSchema.Type.STRING);
 
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
@@ -389,7 +390,7 @@ public class PutBigQueryTest {
     void testSchemaTypeIncompatibility() throws Exception {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
 
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
 
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
 
@@ -403,7 +404,7 @@ public class PutBigQueryTest {
 
     @Test
     void testStreamWriterNotInitialized() throws Exception {
-        AbstractBigQueryProcessor processor = new PutBigQuery() {
+        final AbstractBigQueryProcessor processor = new PutBigQuery() {
             @Override
             protected BigQuery getCloudService() {
                 return bq;
@@ -415,12 +416,13 @@ public class PutBigQueryTest {
             }
 
             @Override
-            protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) throws IOException {
+            protected StreamWriter createStreamWriter(final String streamName, final Descriptors.Descriptor descriptor,
+                    final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) throws IOException {
                 throw new IOException();
             }
 
             @Override
-            protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials, ProxyConfiguration proxyConfiguration) {
+            protected BigQueryWriteClient createWriteClient(final GoogleCredentials credentials, final ProxyConfiguration proxyConfiguration) {
                 return writeClient;
             }
         };
@@ -442,7 +444,7 @@ public class PutBigQueryTest {
     @Test
     void testNextFlowFileProcessedWhenIntermittentErrorResolved() {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
-        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        final TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
         when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
             .thenReturn(ApiFutures.immediateFailedFuture(new StatusRuntimeException(Status.INTERNAL)))
@@ -465,7 +467,7 @@ public class PutBigQueryTest {
     void testMapFieldSchema() throws Exception {
         when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
 
-        TableSchema myTableSchema = mockJsonTableSchema();
+        final TableSchema myTableSchema = mockJsonTableSchema();
 
         when(writeStream.getTableSchema()).thenReturn(myTableSchema);
 
@@ -510,16 +512,16 @@ public class PutBigQueryTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private void decorateWithRecordReader(TestRunner runner) throws InitializationException {
-        CSVReader csvReader = new CSVReader();
+    private void decorateWithRecordReader(final TestRunner runner) throws InitializationException {
+        final CSVReader csvReader = new CSVReader();
         runner.addControllerService("csvReader", csvReader);
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "csv-header-derived");
         runner.enableControllerService(csvReader);
     }
 
-    private void decorateWithRecordReaderWithSchema(TestRunner runner) throws InitializationException {
-        String recordReaderSchema = "{\n" +
+    private void decorateWithRecordReaderWithSchema(final TestRunner runner) throws InitializationException {
+        final String recordReaderSchema = "{\n" +
             "  \"name\": \"recordFormatName\",\n" +
             "  \"namespace\": \"nifi.examples\",\n" +
             "  \"type\": \"record\",\n" +
@@ -529,7 +531,7 @@ public class PutBigQueryTest {
             "  ]\n" +
             "}";
 
-        CSVReader csvReader = new CSVReader();
+        final CSVReader csvReader = new CSVReader();
         runner.addControllerService("csvReader", csvReader);
         runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "true");
         runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
@@ -537,8 +539,8 @@ public class PutBigQueryTest {
         runner.enableControllerService(csvReader);
     }
 
-    private void decorateWithJsonRecordReaderWithSchema(TestRunner runner) throws InitializationException {
-        String recordReaderSchema = """
+    private void decorateWithJsonRecordReaderWithSchema(final TestRunner runner) throws InitializationException {
+        final String recordReaderSchema = """
                 {
                   "name": "recordFormatName",
                   "namespace": "nifi.examples",
@@ -554,22 +556,22 @@ public class PutBigQueryTest {
                   ]
                 }""";
 
-        JsonTreeReader jsonReader = new JsonTreeReader();
+        final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("jsonReader", jsonReader);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, recordReaderSchema);
         runner.enableControllerService(jsonReader);
     }
 
-    private TableSchema mockTableSchema(String name1, TableFieldSchema.Type type1, String name2, TableFieldSchema.Type type2) {
-        TableSchema myTableSchema = mock(TableSchema.class);
+    private TableSchema mockTableSchema(final String name1, final TableFieldSchema.Type type1, final String name2, final TableFieldSchema.Type type2) {
+        final TableSchema myTableSchema = mock(TableSchema.class);
 
-        TableFieldSchema tableFieldSchemaId = mock(TableFieldSchema.class);
+        final TableFieldSchema tableFieldSchemaId = mock(TableFieldSchema.class);
         when(tableFieldSchemaId.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
         when(tableFieldSchemaId.getType()).thenReturn(type1);
         when(tableFieldSchemaId.getName()).thenReturn(name1);
 
-        TableFieldSchema tableFieldSchemaValue = mock(TableFieldSchema.class);
+        final TableFieldSchema tableFieldSchemaValue = mock(TableFieldSchema.class);
         when(tableFieldSchemaValue.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
         when(tableFieldSchemaValue.getType()).thenReturn(type2);
         when(tableFieldSchemaValue.getName()).thenReturn(name2);
@@ -580,19 +582,19 @@ public class PutBigQueryTest {
     }
 
     private TableSchema mockJsonTableSchema() {
-        TableSchema myTableSchema = mock(TableSchema.class);
+        final TableSchema myTableSchema = mock(TableSchema.class);
 
-        TableFieldSchema keyFieldSchema = mock(TableFieldSchema.class);
+        final TableFieldSchema keyFieldSchema = mock(TableFieldSchema.class);
         when(keyFieldSchema.getName()).thenReturn("key");
         when(keyFieldSchema.getType()).thenReturn(TableFieldSchema.Type.STRING);
         when(keyFieldSchema.getMode()).thenReturn(TableFieldSchema.Mode.REQUIRED);
 
-        TableFieldSchema valueFieldSchema = mock(TableFieldSchema.class);
+        final TableFieldSchema valueFieldSchema = mock(TableFieldSchema.class);
         when(valueFieldSchema.getName()).thenReturn("value");
         when(valueFieldSchema.getType()).thenReturn(TableFieldSchema.Type.STRING);
         when(valueFieldSchema.getMode()).thenReturn(TableFieldSchema.Mode.NULLABLE);
 
-        TableFieldSchema tableFieldSchemaId = mock(TableFieldSchema.class);
+        final TableFieldSchema tableFieldSchemaId = mock(TableFieldSchema.class);
         when(tableFieldSchemaId.getName()).thenReturn("field");
         when(tableFieldSchemaId.getType()).thenReturn(TableFieldSchema.Type.STRUCT);
         when(tableFieldSchemaId.getMode()).thenReturn(TableFieldSchema.Mode.REPEATED);
@@ -603,8 +605,8 @@ public class PutBigQueryTest {
         return myTableSchema;
     }
 
-    private String csvContentWithLines(int lineNum) {
-        StringBuilder builder = new StringBuilder();
+    private String csvContentWithLines(final int lineNum) {
+        final StringBuilder builder = new StringBuilder();
         builder.append(CSV_HEADER);
 
         IntStream.range(0, lineNum).forEach(x -> {

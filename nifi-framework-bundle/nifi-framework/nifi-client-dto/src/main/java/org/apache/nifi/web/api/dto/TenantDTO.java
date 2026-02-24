@@ -35,7 +35,7 @@ public class TenantDTO extends ComponentDTO {
         return identity;
     }
 
-    public void setIdentity(String identity) {
+    public void setIdentity(final String identity) {
         this.identity = identity;
     }
 
@@ -47,7 +47,7 @@ public class TenantDTO extends ComponentDTO {
         return configurable;
     }
 
-    public void setConfigurable(Boolean configurable) {
+    public void setConfigurable(final Boolean configurable) {
         this.configurable = configurable;
     }
 }

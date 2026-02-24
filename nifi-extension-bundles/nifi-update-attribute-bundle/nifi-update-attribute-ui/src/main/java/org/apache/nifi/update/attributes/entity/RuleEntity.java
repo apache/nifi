@@ -35,7 +35,7 @@ public class RuleEntity {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -43,7 +43,7 @@ public class RuleEntity {
         return revision;
     }
 
-    public void setRevision(Long revision) {
+    public void setRevision(final Long revision) {
         this.revision = revision;
     }
 
@@ -51,7 +51,7 @@ public class RuleEntity {
         return processorId;
     }
 
-    public void setProcessorId(String processorId) {
+    public void setProcessorId(final String processorId) {
         this.processorId = processorId;
     }
 
@@ -59,7 +59,7 @@ public class RuleEntity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
@@ -67,7 +67,7 @@ public class RuleEntity {
         return rule;
     }
 
-    public void setRule(RuleDTO rule) {
+    public void setRule(final RuleDTO rule) {
         this.rule = rule;
     }
 

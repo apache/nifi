@@ -45,7 +45,7 @@ class TestSplitPCAP {
     @BeforeEach
     void init() {
 
-        ByteBuffer headerBuffer = ByteBuffer.allocate(PCAPHeader.PCAP_HEADER_LENGTH);
+        final ByteBuffer headerBuffer = ByteBuffer.allocate(PCAPHeader.PCAP_HEADER_LENGTH);
         headerBuffer.put(new byte[]{(byte) 0xa1, (byte) 0xb2, (byte) 0xc3, (byte) 0xd4});
         headerBuffer.put(PCAP.readIntToNBytes(2, 2));
         headerBuffer.put(PCAP.readIntToNBytes(4, 2));
@@ -73,17 +73,17 @@ class TestSplitPCAP {
 
     }
 
-    void executeTest(String pcapMaxSize, List<Packet> packets, Map<Relationship, Integer> expectedRelations) {
-        TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
+    void executeTest(final String pcapMaxSize, final List<Packet> packets, final Map<Relationship, Integer> expectedRelations) {
+        final TestRunner runner = TestRunners.newTestRunner(SplitPCAP.class);
         runner.setProperty(SplitPCAP.PCAP_MAX_SIZE, pcapMaxSize);
 
-        PCAP testPcap = new PCAP(this.pcapHeader, packets);
+        final PCAP testPcap = new PCAP(this.pcapHeader, packets);
 
         runner.enqueue(testPcap.toByteArray());
 
         runner.run();
 
-        for (Map.Entry<Relationship, Integer> entry : expectedRelations.entrySet()) {
+        for (final Map.Entry<Relationship, Integer> entry : expectedRelations.entrySet()) {
             runner.assertTransferCount(entry.getKey(), entry.getValue());
         }
 
@@ -123,7 +123,7 @@ class TestSplitPCAP {
                 Map.of(SplitPCAP.REL_FAILURE, 1)
         );
 
-        List<Packet> mixedValidityPackets = new ArrayList<>(Collections.nCopies(3, this.validPacket));
+        final List<Packet> mixedValidityPackets = new ArrayList<>(Collections.nCopies(3, this.validPacket));
         mixedValidityPackets.add(this.invalidPacket);
         executeTest(
                 "50B",

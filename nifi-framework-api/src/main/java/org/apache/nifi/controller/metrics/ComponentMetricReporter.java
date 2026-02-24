@@ -27,7 +27,7 @@ public interface ComponentMetricReporter extends Closeable {
      *
      * @param context Configuration Context properties
      */
-    default void onConfigured(ComponentMetricReporterConfigurationContext context) {
+    default void onConfigured(final ComponentMetricReporterConfigurationContext context) {
 
     }
 

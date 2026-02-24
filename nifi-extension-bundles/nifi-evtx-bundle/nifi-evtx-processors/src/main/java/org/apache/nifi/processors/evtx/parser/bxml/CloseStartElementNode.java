@@ -29,7 +29,7 @@ import java.util.List;
  * Close tag
  */
 public class CloseStartElementNode extends BxmlNodeWithToken {
-    public CloseStartElementNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public CloseStartElementNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         if ((getFlags() & 0x0F) != 0) {
             throw new IOException("Invalid flag");
@@ -43,7 +43,7 @@ public class CloseStartElementNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

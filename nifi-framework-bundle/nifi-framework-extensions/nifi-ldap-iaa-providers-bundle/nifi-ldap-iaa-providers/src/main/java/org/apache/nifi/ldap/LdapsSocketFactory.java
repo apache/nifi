@@ -75,27 +75,27 @@ public class LdapsSocketFactory extends SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(Socket socket, String string, int i, boolean bln) throws IOException {
+    public Socket createSocket(final Socket socket, final String string, final int i, final boolean bln) throws IOException {
         return delegate.createSocket(socket, string, i, bln);
     }
 
     @Override
-    public Socket createSocket(InetAddress ia, int i, InetAddress ia1, int i1) throws IOException {
+    public Socket createSocket(final InetAddress ia, final int i, final InetAddress ia1, final int i1) throws IOException {
         return delegate.createSocket(ia, i, ia1, i1);
     }
 
     @Override
-    public Socket createSocket(InetAddress ia, int i) throws IOException {
+    public Socket createSocket(final InetAddress ia, final int i) throws IOException {
         return delegate.createSocket(ia, i);
     }
 
     @Override
-    public Socket createSocket(String string, int i, InetAddress ia, int i1) throws IOException, UnknownHostException {
+    public Socket createSocket(final String string, final int i, final InetAddress ia, final int i1) throws IOException, UnknownHostException {
         return delegate.createSocket(string, i, ia, i1);
     }
 
     @Override
-    public Socket createSocket(String string, int i) throws IOException, UnknownHostException {
+    public Socket createSocket(final String string, final int i) throws IOException, UnknownHostException {
         return delegate.createSocket(string, i);
     }
 

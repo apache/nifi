@@ -81,7 +81,7 @@ public class TestRegistryClientResult {
 
         final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
-        String expected = """
+        final String expected = """
 
             #   Name                                   Type     Id                                     Properties                                                             \s
             -   ------------------------------------   ------   ------------------------------------   ---------------------------------------------------------------------  \s

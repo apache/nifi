@@ -39,7 +39,7 @@ public class VersionedFlowDTO {
         return registryId;
     }
 
-    public void setRegistryId(String registryId) {
+    public void setRegistryId(final String registryId) {
         this.registryId = registryId;
     }
 
@@ -57,7 +57,7 @@ public class VersionedFlowDTO {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -66,7 +66,7 @@ public class VersionedFlowDTO {
         return flowId;
     }
 
-    public void setFlowId(String flowId) {
+    public void setFlowId(final String flowId) {
         this.flowId = flowId;
     }
 
@@ -75,7 +75,7 @@ public class VersionedFlowDTO {
         return flowName;
     }
 
-    public void setFlowName(String flowName) {
+    public void setFlowName(final String flowName) {
         this.flowName = flowName;
     }
 
@@ -84,7 +84,7 @@ public class VersionedFlowDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -93,7 +93,7 @@ public class VersionedFlowDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -102,7 +102,7 @@ public class VersionedFlowDTO {
         return action;
     }
 
-    public void setAction(String action) {
+    public void setAction(final String action) {
         this.action = action;
     }
 }

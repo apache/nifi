@@ -60,7 +60,7 @@ public class ValueNode extends BxmlNodeWithToken {
     public static final Map<Integer, VariantTypeNodeFactory> factories = initFactories();
     private final int type;
 
-    public ValueNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public ValueNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         if ((getFlags() & 0x0B) != 0) {
             throw new IOException("Invalid flag");
@@ -70,7 +70,7 @@ public class ValueNode extends BxmlNodeWithToken {
     }
 
     private static Map<Integer, VariantTypeNodeFactory> initFactories() {
-        Map<Integer, VariantTypeNodeFactory> result = new HashMap<>();
+        final Map<Integer, VariantTypeNodeFactory> result = new HashMap<>();
         result.put(0, NullTypeNode::new);
         result.put(1, WStringTypeNode::new);
         result.put(2, StringTypeNode::new);
@@ -100,12 +100,12 @@ public class ValueNode extends BxmlNodeWithToken {
 
     @Override
     protected List<BxmlNode> initChildren() throws IOException {
-        VariantTypeNode variantTypeNode = factories.get(type).create(getBinaryReader(), getChunkHeader(), this, -1);
+        final VariantTypeNode variantTypeNode = factories.get(type).create(getBinaryReader(), getChunkHeader(), this, -1);
         return Collections.singletonList(variantTypeNode);
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

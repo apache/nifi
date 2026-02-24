@@ -166,7 +166,7 @@ public class TestPeerChannel {
         while (read.isEmpty()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(READ_SLEEP_INTERVAL);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 throw new RuntimeException("Peer Channel read sleep interrupted", e);
             }
             read = peerChannel.read();
@@ -234,7 +234,7 @@ public class TestPeerChannel {
                     private int protocolVersion;
 
                     @Override
-                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf) throws Exception {
+                    protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final ByteBuf byteBuf) throws Exception {
                         if (byteBuf.readableBytes() == 1) {
                             final int read = byteBuf.readByte();
                             if (PROTOCOL_VERSION == read) {

@@ -36,7 +36,7 @@ public class ControllerEntity extends Entity {
         return controller;
     }
 
-    public void setController(ControllerDTO controller) {
+    public void setController(final ControllerDTO controller) {
         this.controller = controller;
     }
 

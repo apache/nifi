@@ -40,7 +40,7 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
     public static final Pattern FLOW_ANALYSIS_RULE_STATE_URI_PATTERN = Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}/state");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (!"GET".equalsIgnoreCase(method)) {
             return false;
         }
@@ -57,12 +57,13 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
     }
 
     @Override
-    protected ComponentStateDTO getDto(ComponentStateEntity entity) {
+    protected ComponentStateDTO getDto(final ComponentStateEntity entity) {
         return entity.getComponentState();
     }
 
     @Override
-    protected void mergeResponses(ComponentStateDTO clientDto, Map<NodeIdentifier, ComponentStateDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ComponentStateDTO clientDto, final Map<NodeIdentifier, ComponentStateDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         List<StateEntryDTO> localStateEntries = new ArrayList<>();
 
         int totalStateEntries = 0;

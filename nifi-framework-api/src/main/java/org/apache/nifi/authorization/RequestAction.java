@@ -25,7 +25,7 @@ public enum RequestAction {
 
     private final String value;
 
-    RequestAction(String value) {
+    RequestAction(final String value) {
         this.value = value;
     }
 

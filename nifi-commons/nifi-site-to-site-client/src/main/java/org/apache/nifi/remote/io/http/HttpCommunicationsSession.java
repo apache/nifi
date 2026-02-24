@@ -91,19 +91,19 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
         return checksum;
     }
 
-    public void setChecksum(String checksum) {
+    public void setChecksum(final String checksum) {
         this.checksum = checksum;
     }
 
     /**
      * @param dataTransferUrl Set data transfer url to use as provenance event transit url.
      */
-    public void setDataTransferUrl(String dataTransferUrl) {
+    public void setDataTransferUrl(final String dataTransferUrl) {
         this.dataTransferUrl = dataTransferUrl;
     }
 
     @Override
-    public String createTransitUri(String communicantUrl, String sourceFlowFileIdentifier) {
+    public String createTransitUri(final String communicantUrl, final String sourceFlowFileIdentifier) {
         return dataTransferUrl;
     }
 }

@@ -38,20 +38,20 @@ public class JsonPathDeleteEvaluator extends JsonPathBaseEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(EvaluationContext context) {
-        DocumentContext documentContext = getDocumentContext(context);
+    public QueryResult<String> evaluate(final EvaluationContext context) {
+        final DocumentContext documentContext = getDocumentContext(context);
 
         final JsonPath compiledJsonPath = getJsonPath(context);
 
         String result = null;
         try {
             result = documentContext.delete(compiledJsonPath).jsonString();
-        } catch (PathNotFoundException pnf) {
+        } catch (final PathNotFoundException pnf) {
             // it is valid for a path not to be found, keys may not be there
             // do not spam the error log for this, instead we can log debug if enabled
             LOGGER.debug("JSON Path not found: {}", compiledJsonPath.getPath(), pnf);
             result = documentContext.jsonString();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // assume the path did not match anything in the document
             return EMPTY_RESULT;
         }

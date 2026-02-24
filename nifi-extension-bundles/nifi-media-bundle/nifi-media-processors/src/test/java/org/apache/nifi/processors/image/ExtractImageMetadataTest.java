@@ -54,8 +54,8 @@ public class ExtractImageMetadataTest {
 
     @Test
     public void testExtractJPG() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/simple.jpg", ExtractImageMetadata.SUCCESS, null);
-        Map<String, String> attributes = flowFile.getAttributes();
+        final MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/simple.jpg", ExtractImageMetadata.SUCCESS, null);
+        final Map<String, String> attributes = flowFile.getAttributes();
 
         assertEquals("800 pixels", attributes.get(JPEG_HEADER + "Image Width"));
         assertEquals("600 pixels", attributes.get(JPEG_HEADER + "Image Height"));
@@ -72,9 +72,9 @@ public class ExtractImageMetadataTest {
 
     @Test
     public void testExtractGIF() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow(
+        final MockFlowFile flowFile = verifyTestRunnerFlow(
                 "src/test/resources/photoshop-8x12-32colors-alpha.gif", ExtractImageMetadata.SUCCESS, null);
-        Map<String, String> attributes = flowFile.getAttributes();
+        final Map<String, String> attributes = flowFile.getAttributes();
 
         assertEquals("8", attributes.get(GIF_HEADER + "Image Width"));
         assertEquals("12", attributes.get(GIF_HEADER + "Image Height"));
@@ -88,8 +88,8 @@ public class ExtractImageMetadataTest {
 
     @Test
      public void testExtractPNG() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/mspaint-8x10.png", ExtractImageMetadata.SUCCESS, null);
-        Map<String, String> attributes = flowFile.getAttributes();
+        final MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/mspaint-8x10.png", ExtractImageMetadata.SUCCESS, null);
+        final Map<String, String> attributes = flowFile.getAttributes();
 
         assertEquals("8", attributes.get(PNG_HEADER + "IHDR.Image Width"));
         assertEquals("12", attributes.get(PNG_HEADER + "IHDR.Image Height"));
@@ -103,8 +103,8 @@ public class ExtractImageMetadataTest {
     }
     @Test
      public void testExtractBMP() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/16color-10x10.bmp", ExtractImageMetadata.SUCCESS, null);
-        Map<String, String> attributes = flowFile.getAttributes();
+        final MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/16color-10x10.bmp", ExtractImageMetadata.SUCCESS, null);
+        final Map<String, String> attributes = flowFile.getAttributes();
 
         assertEquals("10", attributes.get(BMP_HEADER + "Image Width"));
         assertEquals("10", attributes.get(BMP_HEADER + "Image Height"));
@@ -119,8 +119,8 @@ public class ExtractImageMetadataTest {
     }
     @Test
     public void testExtractLimitedAttributesBMP() throws IOException {
-        MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/16color-10x10.bmp", ExtractImageMetadata.SUCCESS, "5");
-        Map<String, String> attributes = flowFile.getAttributes();
+        final MockFlowFile flowFile = verifyTestRunnerFlow("src/test/resources/16color-10x10.bmp", ExtractImageMetadata.SUCCESS, "5");
+        final Map<String, String> attributes = flowFile.getAttributes();
 
         assertEquals("10", attributes.get(BMP_HEADER + "Image Width"));
         assertEquals("10", attributes.get(BMP_HEADER + "Image Height"));
@@ -134,8 +134,8 @@ public class ExtractImageMetadataTest {
         assertNull(attributes.get(BMP_HEADER + "Important Colour Count"));
     }
 
-    public MockFlowFile verifyTestRunnerFlow(String pathStr, Relationship rel, String max) throws IOException {
-        Path path = Paths.get(pathStr);
+    public MockFlowFile verifyTestRunnerFlow(final String pathStr, final Relationship rel, final String max) throws IOException {
+        final Path path = Paths.get(pathStr);
         testRunner.enqueue(path);
         if (max != null) {
             testRunner.setProperty(ExtractImageMetadata.MAX_NUMBER_OF_ATTRIBUTES, max);

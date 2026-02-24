@@ -27,15 +27,15 @@ public class IllegalClusterStateException extends ClusterException {
     public IllegalClusterStateException() {
     }
 
-    public IllegalClusterStateException(String msg) {
+    public IllegalClusterStateException(final String msg) {
         super(msg);
     }
 
-    public IllegalClusterStateException(Throwable cause) {
+    public IllegalClusterStateException(final Throwable cause) {
         super(cause);
     }
 
-    public IllegalClusterStateException(String msg, Throwable cause) {
+    public IllegalClusterStateException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

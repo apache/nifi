@@ -289,7 +289,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         final ExecutionProgress.CompletionAction completionAction;
         try {
             completionAction = executionProgress.awaitCompletionAction();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             logger.warn("Interrupted while waiting for dataflow completion to be acknowledged. Will roll back session.");
             abortProcessing(e);
             throw new DataflowAbortedException();

@@ -55,7 +55,7 @@ public class TestCopyS3Object {
         final CopyS3Object mockCopyS3Object = new CopyS3Object() {
             @Override
             protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
-                HeadObjectResponse response = HeadObjectResponse.builder()
+                final HeadObjectResponse response = HeadObjectResponse.builder()
                         .contentLength(1000L)
                         .build();
 

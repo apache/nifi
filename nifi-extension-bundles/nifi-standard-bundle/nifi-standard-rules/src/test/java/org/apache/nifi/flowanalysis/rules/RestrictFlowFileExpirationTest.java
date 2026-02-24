@@ -46,7 +46,7 @@ public class RestrictFlowFileExpirationTest extends AbstractFlowAnalaysisRuleTes
     public void testBadConfiguration() {
         setProperty(RestrictFlowFileExpiration.MIN_FLOWFILE_EXPIRATION, "2 days");
         setProperty(RestrictFlowFileExpiration.MAX_FLOWFILE_EXPIRATION, "1 day");
-        Collection<ValidationResult> results = rule.customValidate(validationContext);
+        final Collection<ValidationResult> results = rule.customValidate(validationContext);
         assertEquals(1, results.size());
         results.forEach(result -> {
             assertFalse(result.isValid());

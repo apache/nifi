@@ -42,7 +42,7 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -55,7 +55,7 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
     }
 
     @Override
-    public void setComponent(ControllerServiceDTO component) {
+    public void setComponent(final ControllerServiceDTO component) {
         this.component = component;
     }
 
@@ -70,7 +70,7 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 
@@ -84,7 +84,7 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
         return status;
     }
 
-    public void setStatus(ControllerServiceStatusDTO status) {
+    public void setStatus(final ControllerServiceStatusDTO status) {
         this.status = status;
     }
 

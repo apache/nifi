@@ -131,7 +131,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (descriptor.equals(ARRAY_JSON_PATH_EXPRESSION)) {
             if (!Strings.CS.equals(oldValue, newValue)) {
                 // This value will be computed and set in customValidate()
@@ -141,25 +141,25 @@ public class SplitJson extends AbstractJsonPathProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        JsonPathValidator validator = new JsonPathValidator() {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final JsonPathValidator validator = new JsonPathValidator() {
             @Override
-            public void cacheComputedValue(String subject, String input, JsonPath computedJson) {
+            public void cacheComputedValue(final String subject, final String input, final JsonPath computedJson) {
                 JSON_PATH_REF.set(computedJson);
             }
 
             @Override
-            public boolean isStale(String subject, String input) {
+            public boolean isStale(final String subject, final String input) {
                 return JSON_PATH_REF.get() == null;
             }
         };
 
-        String value = validationContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
+        final String value = validationContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
         return Set.of(validator.validate(ARRAY_JSON_PATH_EXPRESSION.getName(), value, validationContext));
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext processContext) {
+    public void onScheduled(final ProcessContext processContext) {
         nullDefaultValue = NULL_REPRESENTATION_MAP.get(processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue());
 
         final int maxStringLength = processContext.getProperty(MAX_STRING_LENGTH).asDataSize(DataUnit.B).intValue();
@@ -175,10 +175,10 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         final ComponentLog logger = getLogger();
 
-        DocumentContext documentContext;
+        final DocumentContext documentContext;
         try {
             documentContext = validateAndEstablishJsonContext(processSession, original, jsonPathConfiguration);
-        } catch (InvalidJsonException e) {
+        } catch (final InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", original);
             processSession.transfer(original, REL_FAILURE);
             return;
@@ -186,10 +186,10 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         final JsonPath jsonPath = JSON_PATH_REF.get();
 
-        Object jsonPathResult;
+        final Object jsonPathResult;
         try {
             jsonPathResult = documentContext.read(jsonPath);
-        } catch (PathNotFoundException e) {
+        } catch (final PathNotFoundException e) {
             logger.warn("JsonPath {} could not be found for FlowFile {}", jsonPath.getPath(), original);
             processSession.transfer(original, REL_FAILURE);
             return;
@@ -201,18 +201,18 @@ public class SplitJson extends AbstractJsonPathProcessor {
             return;
         }
 
-        List resultList = (List) jsonPathResult;
+        final List resultList = (List) jsonPathResult;
 
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         final String fragmentId = UUID.randomUUID().toString();
         attributes.put(FRAGMENT_ID.key(), fragmentId);
         attributes.put(FRAGMENT_COUNT.key(), Integer.toString(resultList.size()));
 
         for (int i = 0; i < resultList.size(); i++) {
-            Object resultSegment = resultList.get(i);
+            final Object resultSegment = resultList.get(i);
             FlowFile split = processSession.create(original);
             split = processSession.write(split, (out) -> {
-                String resultSegmentContent = getResultRepresentation(jsonPathConfiguration.jsonProvider(), resultSegment, nullDefaultValue);
+                final String resultSegmentContent = getResultRepresentation(jsonPathConfiguration.jsonProvider(), resultSegment, nullDefaultValue);
                 out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
             });
             attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));

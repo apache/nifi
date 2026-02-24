@@ -150,7 +150,7 @@ public abstract class ApplicationResource {
      * @return resource uri
      */
     protected String generateResourceUri(final String... path) {
-        URI uri = buildResourceUri(path);
+        final URI uri = buildResourceUri(path);
         return uri.toString();
     }
 
@@ -220,7 +220,7 @@ public abstract class ApplicationResource {
                     seedId = UUID.nameUUIDFromBytes((currentId + seed.get()).getBytes(StandardCharsets.UTF_8));
                 }
                 uuid = new UUID(seedId.getMostSignificantBits(), seed.get().hashCode());
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
                 uuid = UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8));
             }
@@ -783,7 +783,7 @@ public abstract class ApplicationResource {
         final Set<Revision> revisions;
         final T request;
 
-        public Request(String userChain, String uri, Revision revision, Set<Revision> revisions, T request) {
+        public Request(final String userChain, final String uri, final Revision revision, final Set<Revision> revisions, final T request) {
             this.userChain = userChain;
             this.uri = uri;
             this.revision = revision;
@@ -1119,7 +1119,7 @@ public abstract class ApplicationResource {
     // -----------------
 
     protected Integer negotiateTransportProtocolVersion(final HttpServletRequest req, final VersionNegotiator transportProtocolVersionNegotiator) throws BadRequestException {
-        String protocolVersionStr = req.getHeader(HttpHeaders.PROTOCOL_VERSION);
+        final String protocolVersionStr = req.getHeader(HttpHeaders.PROTOCOL_VERSION);
         if (isEmpty(protocolVersionStr)) {
             throw new BadRequestException("Protocol version was not specified.");
         }
@@ -1127,11 +1127,11 @@ public abstract class ApplicationResource {
         final Integer requestedProtocolVersion;
         try {
             requestedProtocolVersion = Integer.valueOf(protocolVersionStr);
-        } catch (NumberFormatException e) {
+        } catch (final NumberFormatException e) {
             throw new BadRequestException("Specified protocol version was not in a valid number format: " + protocolVersionStr);
         }
 
-        Integer protocolVersion;
+        final Integer protocolVersion;
         if (transportProtocolVersionNegotiator.isVersionSupported(requestedProtocolVersion)) {
             return requestedProtocolVersion;
         } else {
@@ -1151,7 +1151,7 @@ public abstract class ApplicationResource {
 
     protected class ResponseCreator {
 
-        public Response nodeTypeErrorResponse(String errMsg) {
+        public Response nodeTypeErrorResponse(final String errMsg) {
             return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity(errMsg).build();
         }
 
@@ -1159,73 +1159,73 @@ public abstract class ApplicationResource {
             return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity("HTTP(S) Site-to-Site is not enabled on this host.").build();
         }
 
-        public Response wrongPortTypeResponse(String portType, String portId) {
+        public Response wrongPortTypeResponse(final String portType, final String portId) {
             logger.debug("Port type was wrong. portType={}, portId={}", portType, portId);
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage("Port was not found.");
             entity.setFlowFileSent(0);
             return Response.status(NOT_FOUND).entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
         }
 
-        public Response transactionNotFoundResponse(String portId, String transactionId) {
+        public Response transactionNotFoundResponse(final String portId, final String transactionId) {
             logger.debug("Transaction was not found. portId={}, transactionId={}", portId, transactionId);
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage("Transaction was not found.");
             entity.setFlowFileSent(0);
             return Response.status(NOT_FOUND).entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
         }
 
-        public Response unexpectedErrorResponse(String portId, Exception e) {
+        public Response unexpectedErrorResponse(final String portId, final Exception e) {
             logger.error("Unexpected exception occurred. portId={}", portId);
             logger.error("Exception detail:", e);
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage("Server encountered an exception.");
             entity.setFlowFileSent(0);
             return Response.serverError().entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
         }
 
-        public Response unexpectedErrorResponse(String portId, String transactionId, Exception e) {
+        public Response unexpectedErrorResponse(final String portId, final String transactionId, final Exception e) {
             logger.error("Unexpected exception occurred. portId={}, transactionId={}", portId, transactionId);
             logger.error("Exception detail:", e);
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage("Server encountered an exception.");
             entity.setFlowFileSent(0);
             return Response.serverError().entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
         }
 
-        public Response unauthorizedResponse(NotAuthorizedException e) {
+        public Response unauthorizedResponse(final NotAuthorizedException e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Client request was not authorized. {}", e.getMessage());
             }
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.UNAUTHORIZED.getCode());
             entity.setMessage(e.getMessage());
             entity.setFlowFileSent(0);
             return Response.status(Response.Status.UNAUTHORIZED).type(MediaType.APPLICATION_JSON_TYPE).entity(e.getMessage()).build();
         }
 
-        public Response badRequestResponse(Exception e) {
+        public Response badRequestResponse(final Exception e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Client sent a bad request. {}", e.getMessage());
             }
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage(e.getMessage());
             entity.setFlowFileSent(0);
             return Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON_TYPE).entity(entity).build();
         }
 
-        public Response handshakeExceptionResponse(HandshakeException e) {
+        public Response handshakeExceptionResponse(final HandshakeException e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Handshake failed, {}", e.getMessage());
             }
-            ResponseCode handshakeRes = e.getResponseCode();
-            Response.Status statusCd;
-            TransactionResultEntity entity = new TransactionResultEntity();
+            final ResponseCode handshakeRes = e.getResponseCode();
+            final Response.Status statusCd;
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(handshakeRes != null ? handshakeRes.getCode() : ResponseCode.ABORT.getCode());
             entity.setMessage(e.getMessage());
             entity.setFlowFileSent(0);
@@ -1250,8 +1250,8 @@ public abstract class ApplicationResource {
                     .entity(entity).build();
         }
 
-        public Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity,
-                                         Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
+        public Response locationResponse(final UriInfo uriInfo, final String portType, final String portId, final String transactionId, final Object entity,
+                                         final Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
 
             final URI transactionUri = buildResourceUri("data-transfer", portType, portId, "transactions", transactionId);
 

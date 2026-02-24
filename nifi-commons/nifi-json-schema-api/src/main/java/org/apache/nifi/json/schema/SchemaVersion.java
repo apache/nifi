@@ -29,7 +29,7 @@ public enum SchemaVersion implements DescribedValue {
     private final String displayName;
     private final String uri;
 
-    SchemaVersion(String description, String displayName, String uri) {
+    SchemaVersion(final String description, final String displayName, final String uri) {
         this.description = description;
         this.displayName = displayName;
         this.uri = uri;

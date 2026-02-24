@@ -71,7 +71,7 @@ class CurrentPortProviderTest {
         when(miNiFiParameters.getMiNiFiPort()).thenReturn(PORT);
         when(miNiFiCommandSender.isPingSuccessful(PORT)).thenReturn(true);
 
-        Integer currentPort = currentPortProvider.getCurrentPort();
+        final Integer currentPort = currentPortProvider.getCurrentPort();
 
         assertEquals(PORT, currentPort);
         verifyNoInteractions(processUtils);
@@ -85,7 +85,7 @@ class CurrentPortProviderTest {
         when(miNiFiParameters.getMinifiPid()).thenReturn(PID);
         when(processUtils.isProcessRunning(PID)).thenReturn(true);
 
-        Integer currentPort = currentPortProvider.getCurrentPort();
+        final Integer currentPort = currentPortProvider.getCurrentPort();
 
         assertEquals(PORT, currentPort);
     }

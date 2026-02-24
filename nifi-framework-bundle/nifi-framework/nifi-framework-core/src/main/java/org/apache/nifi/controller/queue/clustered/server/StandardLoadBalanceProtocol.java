@@ -572,7 +572,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         int dataFrameLength = in.readInt();
         logger.trace("Received Data Frame Length of {} for {}", dataFrameLength, peerDescription);
 
-        byte[] buffer = getDataBuffer();
+        final byte[] buffer = getDataBuffer();
 
         long claimLength = 0;
         while (true) {
@@ -617,7 +617,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         private final long claimOffset;
         private final long contentLength;
 
-        public ContentClaimTriple(ContentClaim contentClaim, long claimOffset, long contentLength) {
+        public ContentClaimTriple(final ContentClaim contentClaim, final long claimOffset, final long contentLength) {
             this.contentClaim = contentClaim;
             this.claimOffset = claimOffset;
             this.contentLength = contentLength;

@@ -21,11 +21,11 @@ import org.testcontainers.utility.DockerImageName;
 
 public class RedisReplicaContainer extends RedisContainer {
 
-    public RedisReplicaContainer(@NonNull DockerImageName dockerImageName) {
+    public RedisReplicaContainer(final @NonNull DockerImageName dockerImageName) {
         super(dockerImageName);
     }
 
-    public RedisReplicaContainer(@NonNull String fullImageName) {
+    public RedisReplicaContainer(final @NonNull String fullImageName) {
         this(DockerImageName.parse(fullImageName));
     }
 
@@ -33,15 +33,15 @@ public class RedisReplicaContainer extends RedisContainer {
     protected String masterHost = "localhost";
     protected int masterPort = REDIS_PORT;
 
-    public void setMasterHost(@NonNull String masterHost) {
+    public void setMasterHost(final @NonNull String masterHost) {
         this.masterHost = masterHost;
     }
 
-    public void setMasterPort(int masterPort) {
+    public void setMasterPort(final int masterPort) {
         this.masterPort = masterPort;
     }
 
-    public void setReplicaOf(@NonNull String masterHost, int masterPort) {
+    public void setReplicaOf(final @NonNull String masterHost, final int masterPort) {
         setMasterHost(masterHost);
         setMasterPort(masterPort);
     }

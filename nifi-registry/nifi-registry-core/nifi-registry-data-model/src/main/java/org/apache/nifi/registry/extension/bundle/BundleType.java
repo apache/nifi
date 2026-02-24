@@ -30,12 +30,12 @@ public enum BundleType {
 
     private final String displayName;
 
-    BundleType(String displayName) {
+    BundleType(final String displayName) {
         this.displayName = displayName;
     }
 
     // Note: This method must be name fromString for JAX-RS/Jersey to use it on query and path params
-    public static BundleType fromString(String value) {
+    public static BundleType fromString(final String value) {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }

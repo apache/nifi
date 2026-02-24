@@ -41,7 +41,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
     public static final Pattern CONTROLLER_BULLETINS_URI_PATTERN = Pattern.compile("/nifi-api/flow/controller/bulletins");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_BULLETINS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -51,8 +51,8 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
     }
 
     @Override
-    protected void mergeResponses(ControllerBulletinsEntity clientEntity, Map<NodeIdentifier, ControllerBulletinsEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ControllerBulletinsEntity clientEntity, final Map<NodeIdentifier, ControllerBulletinsEntity> entityMap,
+                                  final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         final Map<NodeIdentifier, List<BulletinEntity>> bulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> controllerServiceBulletinDtos = new HashMap<>();

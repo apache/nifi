@@ -142,7 +142,7 @@ public abstract class AbstractCacheServer extends AbstractControllerService impl
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("maximum-read-size", MAX_READ_SIZE.getName());
     }
 

@@ -266,8 +266,8 @@ public class ResultSetRecordSetTest {
     public void testCreateRecord() throws SQLException {
         final RecordSchema recordSchema = givenRecordSchema(COLUMNS);
 
-        LocalDate testDate = LocalDate.of(2021, 1, 26);
-        LocalDateTime testDateTime = LocalDateTime.of(2021, 9, 10, 11, 11, 11);
+        final LocalDate testDate = LocalDate.of(2021, 1, 26);
+        final LocalDateTime testDateTime = LocalDateTime.of(2021, 9, 10, 11, 11, 11);
 
         final String varcharValue = "varchar";
         final Long bigintValue = 1234567890123456789L;
@@ -308,8 +308,8 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_4)).thenReturn(bigDecimal4Value);
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_5)).thenReturn(bigDecimal5Value);
 
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
-        Record record = testSubject.createRecord(resultSet);
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
+        final Record record = testSubject.createRecord(resultSet);
 
         assertEquals(varcharValue, record.getAsString(COLUMN_NAME_VARCHAR));
         assertEquals(bigintValue, record.getAsLong(COLUMN_NAME_BIGINT));
@@ -362,7 +362,7 @@ public class ResultSetRecordSetTest {
         when(resultSetMetaData.getColumnType(1)).thenReturn(Types.DECIMAL);
 
         // when
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, false);
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, false);
         final RecordSchema resultSchema = testSubject.getSchema();
 
         // then
@@ -415,30 +415,30 @@ public class ResultSetRecordSetTest {
         testCreateSchemaLogicalTypes(false, false);
     }
 
-    private void testArrayType(boolean useLogicalTypes) throws SQLException {
+    private void testArrayType(final boolean useLogicalTypes) throws SQLException {
         // GIVEN
-        List<ArrayTestData> testData = givenArrayTypesThatRequireLogicalTypes();
-        Map<String, DataType> expectedTypes = givenExpectedTypesForArrayTypesThatRequireLogicalTypes(useLogicalTypes);
+        final List<ArrayTestData> testData = givenArrayTypesThatRequireLogicalTypes();
+        final Map<String, DataType> expectedTypes = givenExpectedTypesForArrayTypesThatRequireLogicalTypes(useLogicalTypes);
 
         // WHEN
-        ResultSet resultSet = Mockito.mock(ResultSet.class);
-        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
         when(resultSetMetaData.getColumnCount()).thenReturn(testData.size());
 
-        List<RecordField> fields = whenSchemaFieldsAreSetupForArrayType(testData, resultSet, resultSetMetaData);
-        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        final List<RecordField> fields = whenSchemaFieldsAreSetupForArrayType(testData, resultSet, resultSetMetaData);
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
-        RecordSchema actualSchema = testSubject.getSchema();
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
+        final RecordSchema actualSchema = testSubject.getSchema();
 
         // THEN
         thenActualArrayElementTypesMatchExpected(expectedTypes, actualSchema);
     }
 
-    private void testCreateSchemaLogicalTypes(boolean useLogicalTypes, boolean provideInputSchema) throws SQLException {
+    private void testCreateSchemaLogicalTypes(final boolean useLogicalTypes, final boolean provideInputSchema) throws SQLException {
         // GIVEN
-        TestColumn[] columns = new TestColumn[]{
+        final TestColumn[] columns = new TestColumn[]{
                 new TestColumn(1, COLUMN_NAME_DATE, Types.DATE, RecordFieldType.DATE.getDataType()),
                 new TestColumn(2, "time", Types.TIME, RecordFieldType.TIME.getDataType()),
                 new TestColumn(3, "time_with_timezone", Types.TIME_WITH_TIMEZONE, RecordFieldType.TIME.getDataType()),
@@ -452,22 +452,22 @@ public class ResultSetRecordSetTest {
         };
         final RecordSchema recordSchema = provideInputSchema ? givenRecordSchema(columns) : null;
 
-        ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
-        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
 
-        RecordSchema expectedSchema = useLogicalTypes ? givenRecordSchema(columns) : givenRecordSchemaWithOnlyStringType(columns);
+        final RecordSchema expectedSchema = useLogicalTypes ? givenRecordSchema(columns) : givenRecordSchemaWithOnlyStringType(columns);
 
         // WHEN
         setUpMocks(columns, resultSetMetaData, resultSet);
 
-        ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
-        RecordSchema actualSchema = testSubject.getSchema();
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 0, useLogicalTypes);
+        final RecordSchema actualSchema = testSubject.getSchema();
 
         // THEN
         thenAllColumnDataTypesAreCorrect(columns, expectedSchema, actualSchema);
     }
 
-    private void setUpMocks(TestColumn[] columns, ResultSetMetaData resultSetMetaData, ResultSet resultSet) throws SQLException {
+    private void setUpMocks(final TestColumn[] columns, final ResultSetMetaData resultSetMetaData, final ResultSet resultSet) throws SQLException {
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
         when(resultSetMetaData.getColumnCount()).thenReturn(columns.length);
 
@@ -479,7 +479,7 @@ public class ResultSetRecordSetTest {
             when(resultSetMetaData.getColumnType(column.getIndex())).thenReturn(column.getSqlType());
 
             if (column.getRecordFieldType() instanceof DecimalDataType) {
-                DecimalDataType ddt = (DecimalDataType) column.getRecordFieldType();
+                final DecimalDataType ddt = (DecimalDataType) column.getRecordFieldType();
                 when(resultSetMetaData.getPrecision(column.getIndex())).thenReturn(ddt.getPrecision());
                 when(resultSetMetaData.getScale(column.getIndex())).thenReturn(ddt.getScale());
             }
@@ -505,20 +505,20 @@ public class ResultSetRecordSetTest {
         return fields;
     }
 
-    private RecordSchema givenRecordSchema(TestColumn[] columns) {
+    private RecordSchema givenRecordSchema(final TestColumn[] columns) {
         final List<RecordField> fields = new ArrayList<>(columns.length);
 
-        for (TestColumn column : columns) {
+        for (final TestColumn column : columns) {
             fields.add(new RecordField(column.getColumnName(), column.getRecordFieldType()));
         }
 
         return new SimpleRecordSchema(fields);
     }
 
-    private RecordSchema givenRecordSchemaWithOnlyStringType(TestColumn[] columns) {
+    private RecordSchema givenRecordSchemaWithOnlyStringType(final TestColumn[] columns) {
         final List<RecordField> fields = new ArrayList<>(columns.length);
 
-        for (TestColumn column : columns) {
+        for (final TestColumn column : columns) {
             fields.add(new RecordField(column.getColumnName(), RecordFieldType.STRING.getDataType()));
         }
 
@@ -526,7 +526,7 @@ public class ResultSetRecordSetTest {
     }
 
     private List<ArrayTestData> givenArrayTypesThatRequireLogicalTypes() {
-        List<ArrayTestData> testData = new ArrayList<>();
+        final List<ArrayTestData> testData = new ArrayList<>();
         testData.add(new ArrayTestData("arrayBigDecimal",
                 new ResultBigDecimal[]{new ResultBigDecimal(), new ResultBigDecimal()}));
         testData.add(new ArrayTestData("arrayDate",
@@ -539,7 +539,7 @@ public class ResultSetRecordSetTest {
     }
 
     private Map<String, DataType> givenExpectedTypesForArrayTypesThatRequireLogicalTypes(final boolean useLogicalTypes) {
-        Map<String, DataType> expectedTypes = new HashMap<>();
+        final Map<String, DataType> expectedTypes = new HashMap<>();
         if (useLogicalTypes) {
             expectedTypes.put("arrayBigDecimal", RecordFieldType.DECIMAL.getDecimalDataType(ResultBigDecimal.PRECISION, ResultBigDecimal.SCALE));
             expectedTypes.put("arrayDate", RecordFieldType.DATE.getDataType());
@@ -554,7 +554,7 @@ public class ResultSetRecordSetTest {
         return expectedTypes;
     }
 
-    private ResultSet givenResultSetForArrayThrowsException(boolean featureSupported) throws SQLException {
+    private ResultSet givenResultSetForArrayThrowsException(final boolean featureSupported) throws SQLException {
         final ResultSet resultSet = Mockito.mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
@@ -565,13 +565,13 @@ public class ResultSetRecordSetTest {
         return resultSet;
     }
 
-    private ResultSet givenResultSetForOther(List<RecordField> fields) throws SQLException {
+    private ResultSet givenResultSetForOther(final List<RecordField> fields) throws SQLException {
         final ResultSet resultSet = Mockito.mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
         when(resultSetMetaData.getColumnCount()).thenReturn(fields.size());
         for (int i = 0; i < fields.size(); ++i) {
-            int columnIndex = i + 1;
+            final int columnIndex = i + 1;
             when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(fields.get(i).getFieldName());
             when(resultSetMetaData.getColumnName(columnIndex)).thenReturn(fields.get(i).getFieldName());
             when(resultSetMetaData.getColumnType(columnIndex)).thenReturn(Types.OTHER);
@@ -580,22 +580,22 @@ public class ResultSetRecordSetTest {
     }
 
     private Record givenInputRecord() {
-        List<RecordField> inputRecordFields = new ArrayList<>(2);
+        final List<RecordField> inputRecordFields = new ArrayList<>(2);
         inputRecordFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         inputRecordFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
-        RecordSchema inputRecordSchema = new SimpleRecordSchema(inputRecordFields);
+        final RecordSchema inputRecordSchema = new SimpleRecordSchema(inputRecordFields);
 
-        Map<String, Object> inputRecordData = new HashMap<>(2);
+        final Map<String, Object> inputRecordData = new HashMap<>(2);
         inputRecordData.put("id", 1);
         inputRecordData.put("name", "John");
 
         return new MapRecord(inputRecordSchema, inputRecordData);
     }
 
-    private List<RecordField> givenFieldsThatAreOfTypeRecord(List<Record> concreteRecords) {
-        List<RecordField> fields = new ArrayList<>(concreteRecords.size());
+    private List<RecordField> givenFieldsThatAreOfTypeRecord(final List<Record> concreteRecords) {
+        final List<RecordField> fields = new ArrayList<>(concreteRecords.size());
         int i = 1;
-        for (Record record : concreteRecords) {
+        for (final Record record : concreteRecords) {
             fields.add(new RecordField("record" + i, RecordFieldType.RECORD.getRecordDataType(record.getSchema())));
             ++i;
         }
@@ -606,11 +606,11 @@ public class ResultSetRecordSetTest {
                                                                    final ResultSet resultSet,
                                                                    final ResultSetMetaData resultSetMetaData)
             throws SQLException {
-        List<RecordField> fields = new ArrayList<>();
+        final List<RecordField> fields = new ArrayList<>();
         for (int i = 0; i < testData.size(); ++i) {
-            ArrayTestData testDatum = testData.get(i);
-            int columnIndex = i + 1;
-            ResultSqlArray arrayDummy = Mockito.mock(ResultSqlArray.class);
+            final ArrayTestData testDatum = testData.get(i);
+            final int columnIndex = i + 1;
+            final ResultSqlArray arrayDummy = Mockito.mock(ResultSqlArray.class);
             when(arrayDummy.getArray()).thenReturn(testDatum.getTestArray());
             when(resultSet.getArray(columnIndex)).thenReturn(arrayDummy);
             when(resultSetMetaData.getColumnLabel(columnIndex)).thenReturn(testDatum.getFieldName());
@@ -633,16 +633,16 @@ public class ResultSetRecordSetTest {
         }
     }
 
-    private void thenAllColumnDataTypesAreCorrect(TestColumn[] columns, RecordSchema expectedSchema, RecordSchema actualSchema) {
+    private void thenAllColumnDataTypesAreCorrect(final TestColumn[] columns, final RecordSchema expectedSchema, final RecordSchema actualSchema) {
         assertNotNull(actualSchema);
 
-        for (TestColumn column : columns) {
-            int fieldIndex = column.getIndex() - 1;
+        for (final TestColumn column : columns) {
+            final int fieldIndex = column.getIndex() - 1;
             // The DECIMAL column with scale larger than precision will not match so verify that instead
-            DataType actualDataType = actualSchema.getField(fieldIndex).getDataType();
+            final DataType actualDataType = actualSchema.getField(fieldIndex).getDataType();
             DataType expectedDataType = expectedSchema.getField(fieldIndex).getDataType();
             if (expectedDataType.equals(RecordFieldType.DECIMAL.getDecimalDataType(3, 10))) {
-                DecimalDataType decimalDataType = (DecimalDataType) expectedDataType;
+                final DecimalDataType decimalDataType = (DecimalDataType) expectedDataType;
                 if (decimalDataType.getScale() > decimalDataType.getPrecision()) {
                     expectedDataType = RecordFieldType.DECIMAL.getDecimalDataType(decimalDataType.getScale(), decimalDataType.getScale());
                 }
@@ -651,10 +651,10 @@ public class ResultSetRecordSetTest {
         }
     }
 
-    private void thenActualArrayElementTypesMatchExpected(Map<String, DataType> expectedTypes, RecordSchema actualSchema) {
-        for (RecordField recordField : actualSchema.getFields()) {
+    private void thenActualArrayElementTypesMatchExpected(final Map<String, DataType> expectedTypes, final RecordSchema actualSchema) {
+        for (final RecordField recordField : actualSchema.getFields()) {
             if (recordField.getDataType() instanceof ArrayDataType) {
-                ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
+                final ArrayDataType arrayType = (ArrayDataType) recordField.getDataType();
                 assertEquals(expectedTypes.get(recordField.getFieldName()), arrayType.getElementType(),
                         "Array element type for " + recordField.getFieldName()
                                 + " is not of expected type " + expectedTypes.get(recordField.getFieldName()).toString());
@@ -667,14 +667,14 @@ public class ResultSetRecordSetTest {
     private void thenAllDataTypesAreChoice(final List<RecordField> inputFields, final RecordSchema resultSchema) {
         assertEquals(inputFields.size(), resultSchema.getFieldCount(), "The number of input fields does not match the number of fields in the result schema.");
 
-        DataType expectedType = getBroadestChoiceDataType();
+        final DataType expectedType = getBroadestChoiceDataType();
         for (int i = 0; i < inputFields.size(); ++i) {
             assertEquals(expectedType, resultSchema.getField(i).getDataType());
         }
     }
 
     private DataType getBroadestChoiceDataType() {
-        List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
+        final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
                 RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING,
                 RecordFieldType.TIME, RecordFieldType.TIMESTAMP)
                 .map(RecordFieldType::getDataType)
@@ -730,17 +730,17 @@ public class ResultSetRecordSetTest {
         }
 
         @Override
-        public Object getArray(Map<String, Class<?>> map) throws SQLException {
+        public Object getArray(final Map<String, Class<?>> map) throws SQLException {
             return null;
         }
 
         @Override
-        public Object getArray(long index, int count) throws SQLException {
+        public Object getArray(final long index, final int count) throws SQLException {
             return null;
         }
 
         @Override
-        public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+        public Object getArray(final long index, final int count, final Map<String, Class<?>> map) throws SQLException {
             return null;
         }
 
@@ -750,17 +750,17 @@ public class ResultSetRecordSetTest {
         }
 
         @Override
-        public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
+        public ResultSet getResultSet(final Map<String, Class<?>> map) throws SQLException {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet(long index, int count) throws SQLException {
+        public ResultSet getResultSet(final long index, final int count) throws SQLException {
             return null;
         }
 
         @Override
-        public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
+        public ResultSet getResultSet(final long index, final int count, final Map<String, Class<?>> map) throws SQLException {
             return null;
         }
 
@@ -782,7 +782,7 @@ public class ResultSetRecordSetTest {
         private final String fieldName;
         private final Object[] testArray;
 
-        public ArrayTestData(String fieldName, Object[] testArray) {
+        public ArrayTestData(final String fieldName, final Object[] testArray) {
             this.fieldName = fieldName;
             this.testArray = testArray;
         }

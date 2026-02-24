@@ -52,7 +52,7 @@ public class AndEvaluator extends BooleanEvaluator {
         }
 
         final QueryResult<Boolean> rhsValue = rhsEvaluator.evaluate(evaluationContext);
-        BooleanQueryResult result;
+        final BooleanQueryResult result;
         if (rhsValue == null) {
             result = new BooleanQueryResult(false);
         } else {

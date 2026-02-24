@@ -62,11 +62,11 @@ public class NarAutoLoaderTask implements Runnable {
     public void run() {
         while (!stopped) {
             try {
-                WatchKey key;
+                final WatchKey key;
                 try {
                     LOGGER.debug("Polling for new NARs at {}", autoLoadPath);
                     key = watchService.poll(pollIntervalMillis, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException x) {
+                } catch (final InterruptedException x) {
                     LOGGER.info("WatchService interrupted, returning...");
                     return;
                 }
@@ -75,7 +75,7 @@ public class NarAutoLoaderTask implements Runnable {
                 // so we can consider files added to the candidateNars list in previous iterations
 
                 if (key != null) {
-                    for (WatchEvent<?> event : key.pollEvents()) {
+                    for (final WatchEvent<?> event : key.pollEvents()) {
                         final WatchEvent.Kind<?> kind = event.kind();
                         if (kind == StandardWatchEventKinds.OVERFLOW) {
                             continue;

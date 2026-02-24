@@ -57,7 +57,7 @@ public class RedisStateMap implements StateMap {
     }
 
     @Override
-    public String get(String key) {
+    public String get(final String key) {
         return stateValues.get(key);
     }
 
@@ -86,7 +86,7 @@ public class RedisStateMap implements StateMap {
             return this;
         }
 
-        public Builder stateValue(final String name, String value) {
+        public Builder stateValue(final String name, final String value) {
             stateValues.put(name, value);
             return this;
         }

@@ -35,7 +35,7 @@ public class JAXBExtensionManifestParser implements ExtensionManifestParser {
         try {
             final JAXBContext jaxbContext = JAXBContext.newInstance(ExtensionManifest.class);
             this.unmarshaller = jaxbContext.createUnmarshaller();
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext: " + e.getMessage(), e);
         }
     }

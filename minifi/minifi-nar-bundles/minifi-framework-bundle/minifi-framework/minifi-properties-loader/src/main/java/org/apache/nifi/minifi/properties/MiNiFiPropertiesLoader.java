@@ -35,7 +35,7 @@ public class MiNiFiPropertiesLoader {
      * @param file the File containing the serialized properties
      * @return the NiFiProperties instance
      */
-    public NiFiProperties load(File file) {
+    public NiFiProperties load(final File file) {
         final Properties properties = PropertiesLoader.load(file, "Application");
         return new MultiSourceMinifiProperties(properties);
     }
@@ -49,7 +49,7 @@ public class MiNiFiPropertiesLoader {
      * @return the NiFiProperties instance
      * @see MiNiFiPropertiesLoader#load(File)
      */
-    public NiFiProperties load(String path) {
+    public NiFiProperties load(final String path) {
         if (path != null && !path.isBlank()) {
             return load(new File(path));
         } else {

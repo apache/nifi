@@ -288,19 +288,19 @@ public final class AzureStorageUtils {
             .fromPropertyDescriptor(ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS))
             .build();
 
-    public static void validateProxySpec(ValidationContext context, Collection<ValidationResult> results) {
+    public static void validateProxySpec(final ValidationContext context, final Collection<ValidationResult> results) {
         ProxyConfiguration.validateProxySpec(context, results, PROXY_SPECS);
     }
 
-    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context) {
+    public static String evaluateFileSystemProperty(final PropertyDescriptor property, final PropertyContext context) {
         return evaluateFileSystemProperty(property, context, (Map<String, String>) null);
     }
 
-    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
+    public static String evaluateFileSystemProperty(final PropertyDescriptor property, final PropertyContext context, final FlowFile flowFile) {
         return evaluateFileSystemProperty(property, context, flowFile.getAttributes());
     }
 
-    public static String evaluateFileSystemProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
+    public static String evaluateFileSystemProperty(final PropertyDescriptor property, final PropertyContext context, final Map<String, String> attributes) {
         final String fileSystem = evaluateProperty(property, context, attributes);
         if (StringUtils.isBlank(fileSystem)) {
             throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.",
@@ -309,15 +309,15 @@ public final class AzureStorageUtils {
         return fileSystem;
     }
 
-    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context) {
+    public static String evaluateDirectoryProperty(final PropertyDescriptor property, final PropertyContext context) {
         return evaluateDirectoryProperty(property, context, (Map<String, String>) null);
     }
 
-    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context, FlowFile flowFile) {
+    public static String evaluateDirectoryProperty(final PropertyDescriptor property, final PropertyContext context, final FlowFile flowFile) {
         return evaluateDirectoryProperty(property, context, flowFile.getAttributes());
     }
 
-    public static String evaluateDirectoryProperty(PropertyDescriptor property, PropertyContext context, Map<String, String> attributes) {
+    public static String evaluateDirectoryProperty(final PropertyDescriptor property, final PropertyContext context, final Map<String, String> attributes) {
         final String directory = evaluateProperty(property, context, attributes);
         if (directory.startsWith("/")) {
             throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", property.getDisplayName()));
@@ -327,11 +327,11 @@ public final class AzureStorageUtils {
         return directory;
     }
 
-    public static String evaluateFileProperty(PropertyContext context, FlowFile flowFile) {
+    public static String evaluateFileProperty(final PropertyContext context, final FlowFile flowFile) {
         return evaluateFileProperty(context, flowFile.getAttributes());
     }
 
-    public static String evaluateFileProperty(PropertyContext context, Map<String, String> attributes) {
+    public static String evaluateFileProperty(final PropertyContext context, final Map<String, String> attributes) {
         final String fileName = evaluateProperty(FILE, context, attributes);
         if (StringUtils.isBlank(fileName)) {
             throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", FILE.getDisplayName()));
@@ -339,7 +339,7 @@ public final class AzureStorageUtils {
         return fileName;
     }
 
-    private static String evaluateProperty(PropertyDescriptor propertyDescriptor, PropertyContext context, Map<String, String> attributes) {
+    private static String evaluateProperty(final PropertyDescriptor propertyDescriptor, final PropertyContext context, final Map<String, String> attributes) {
         return context.getProperty(propertyDescriptor).evaluateAttributeExpressions(attributes).getValue();
     }
 
@@ -370,7 +370,7 @@ public final class AzureStorageUtils {
         return null;
     }
 
-    private static ProxyOptions.Type getProxyType(ProxyConfiguration proxyConfiguration) {
+    private static ProxyOptions.Type getProxyType(final ProxyConfiguration proxyConfiguration) {
         if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
             return ProxyOptions.Type.HTTP;
         } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
@@ -405,14 +405,14 @@ public final class AzureStorageUtils {
             this.displayName = null;
         }
 
-        public DirectoryValidator(String displayName) {
+        public DirectoryValidator(final String displayName) {
             this.displayName = displayName;
         }
 
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             displayName = displayName == null ? DIRECTORY.getDisplayName() : displayName;
-            ValidationResult.Builder builder = new ValidationResult.Builder()
+            final ValidationResult.Builder builder = new ValidationResult.Builder()
                     .subject(displayName)
                     .input(input);
 

@@ -66,7 +66,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     protected void setUp() throws Exception {
         final FetchGoogleDrive testSubject = new FetchGoogleDrive() {
             @Override
-            public Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
+            public Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
                 return mockDriverService;
             }
         };
@@ -109,7 +109,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {TEST_SHARED_DRIVE_ID})
-    void testFileFetchByListResult(String driveId) throws IOException {
+    void testFileFetchByListResult(final String driveId) throws IOException {
         final MockFlowFile mockFlowFile = new MockFlowFile(0);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(GoogleDriveAttributes.ID, TEST_FILE_ID);
@@ -138,7 +138,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {TEST_SHARED_DRIVE_ID})
-    void testFileFetchByIdOnly(String driveId) throws IOException {
+    void testFileFetchByIdOnly(final String driveId) throws IOException {
         testRunner.setProperty(FetchGoogleDrive.FILE_ID, TEST_FILE_ID);
 
         mockGetFileMetaDataExtended(TEST_FILE_ID, driveId);
@@ -150,7 +150,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
         assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
-    private void assertFlowFile(String driveId) {
+    private void assertFlowFile(final String driveId) {
         testRunner.assertAllFlowFilesTransferred(FetchGoogleDrive.REL_SUCCESS, 1);
 
         assertFlowFileAttributes(FetchGoogleDrive.REL_SUCCESS);
@@ -198,7 +198,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void mockFileDownloadSuccess(String fileId) throws IOException {
+    private void mockFileDownloadSuccess(final String fileId) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
@@ -206,7 +206,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
                 .thenReturn(new ByteArrayInputStream(CONTENT.getBytes(UTF_8)));
     }
 
-    private void mockFileDownloadError(String fileId, Exception exception) throws IOException {
+    private void mockFileDownloadError(final String fileId, final Exception exception) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
@@ -214,7 +214,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
                 .thenThrow(exception);
     }
 
-    private void mockGetFileMetaDataBasic(String fileId) throws IOException {
+    private void mockGetFileMetaDataBasic(final String fileId) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
@@ -223,11 +223,11 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
                 .thenReturn(createFile());
     }
 
-    private void mockGetFileMetaDataExtended(String fileId) throws IOException {
+    private void mockGetFileMetaDataExtended(final String fileId) throws IOException {
         mockGetFileMetaDataExtended(fileId, null);
     }
 
-    private void mockGetFileMetaDataExtended(String fileId, String driveId) throws IOException {
+    private void mockGetFileMetaDataExtended(final String fileId, final String driveId) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
                 .setSupportsAllDrives(true)
@@ -264,7 +264,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
         runWithFlowFile(new MockFlowFile(0));
     }
 
-    private void runWithFlowFile(FlowFile flowFile) {
+    private void runWithFlowFile(final FlowFile flowFile) {
         testRunner.enqueue(flowFile);
         testRunner.run();
     }

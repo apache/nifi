@@ -51,7 +51,7 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
     private final CellFieldTypeReader cellFieldTypeReader;
     private final DataFormatter dataFormatter;
 
-    public ExcelStartingRowSchemaInference(RowEvaluationStrategy rowEvaluationStrategy, int firstRow, TimeValueInference timeValueInference) {
+    public ExcelStartingRowSchemaInference(final RowEvaluationStrategy rowEvaluationStrategy, final int firstRow, final TimeValueInference timeValueInference) {
         this.rowEvaluationStrategy = rowEvaluationStrategy;
         this.firstRow = firstRow;
         this.cellFieldTypeReader = new StandardCellFieldTypeReader(timeValueInference);
@@ -59,7 +59,7 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
     }
 
     @Override
-    public RecordSchema inferSchema(RecordSource<Row> recordSource) throws IOException {
+    public RecordSchema inferSchema(final RecordSource<Row> recordSource) throws IOException {
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
         final int zeroBasedFirstRow = ExcelReader.getZeroBasedIndex(firstRow);
         List<String> fieldNames = null;
@@ -87,7 +87,7 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
         return createSchema(typeMap);
     }
 
-    private List<String> getFieldNames(int firstRowIndex, Row row) throws IOException {
+    private List<String> getFieldNames(final int firstRowIndex, final Row row) throws IOException {
         if (!ExcelUtils.hasCells(row)) {
             throw new IOException(new SchemaNotFoundException(String.format("Field names could not be determined from configured header row %s, as this row has no cells with data", firstRowIndex)));
         }
@@ -113,7 +113,7 @@ public class ExcelStartingRowSchemaInference implements SchemaInferenceEngine<Ro
         final Map<String, Integer> fieldNameCounts = new HashMap<>();
         final List<String> renamedDuplicateFieldNames = new ArrayList<>();
 
-        for (String fieldName : fieldNames) {
+        for (final String fieldName : fieldNames) {
             if (fieldNameCounts.containsKey(fieldName)) {
                 final int count = fieldNameCounts.get(fieldName);
                 renamedDuplicateFieldNames.add("%s_%d".formatted(fieldName, count));

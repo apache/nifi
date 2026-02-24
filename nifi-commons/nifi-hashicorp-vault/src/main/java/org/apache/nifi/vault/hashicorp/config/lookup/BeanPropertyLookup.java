@@ -77,7 +77,7 @@ public class BeanPropertyLookup extends PropertyLookup {
     }
 
     @Override
-    public Object getEnclosingObject(Object obj) {
+    public Object getEnclosingObject(final Object obj) {
         try {
             return getPropertyDescriptor().getReadMethod().invoke(obj);
         } catch (final IllegalAccessException | InvocationTargetException e) {

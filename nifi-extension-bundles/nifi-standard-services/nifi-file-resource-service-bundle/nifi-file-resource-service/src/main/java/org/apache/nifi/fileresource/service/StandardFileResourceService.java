@@ -87,7 +87,7 @@ public class StandardFileResourceService extends AbstractControllerService imple
     }
 
     @Override
-    public FileResource getFileResource(Map<String, String> attributes) {
+    public FileResource getFileResource(final Map<String, String> attributes) {
         final ResourceReference resourceReference = context.getProperty(FILE_PATH).evaluateAttributeExpressions(attributes).asResource();
 
         if (resourceReference == null) {
@@ -105,13 +105,13 @@ public class StandardFileResourceService extends AbstractControllerService imple
             final long size = file.length();
 
             return new FileResource(inputStream, size);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("File cannot be read: " + file.getAbsolutePath(), e);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("file-path", FILE_PATH.getName());
     }
 }

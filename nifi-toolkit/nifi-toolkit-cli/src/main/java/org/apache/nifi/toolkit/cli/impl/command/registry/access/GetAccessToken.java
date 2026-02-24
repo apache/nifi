@@ -46,7 +46,7 @@ public class GetAccessToken extends AbstractNiFiRegistryCommand<StringResult> {
     }
 
     @Override
-    public StringResult doExecute(NiFiRegistryClient client, Properties properties)
+    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
         final String username = getRequiredArg(properties, CommandOption.USERNAME);

@@ -28,11 +28,11 @@ public class ListableEntityWrapper<T> implements ListableEntity {
     private final Function<T, Long> toSize;
 
     public ListableEntityWrapper(
-        T rawEntity,
-        Function<T, String> toName,
-        Function<T, String> toIdentifier,
-        Function<T, Long> toTimestamp,
-        Function<T, Long> toSize
+        final T rawEntity,
+        final Function<T, String> toName,
+        final Function<T, String> toIdentifier,
+        final Function<T, Long> toTimestamp,
+        final Function<T, Long> toSize
     ) {
         this.rawEntity = rawEntity;
         this.toName = toName;

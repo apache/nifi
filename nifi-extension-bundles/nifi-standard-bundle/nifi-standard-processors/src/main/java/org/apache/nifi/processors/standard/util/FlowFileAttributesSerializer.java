@@ -42,14 +42,14 @@ public class FlowFileAttributesSerializer implements Deserializer<Map<String, St
         if (input == null || input.length == 0) {
             return null;
         }
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
 
-        String attributesText = new String(input, StandardCharsets.UTF_8);
-        String[] entries = attributesText.split(Pattern.quote(ATTRIBUTE_SEPARATOR));
-        for (String entry : entries) {
-            int equalsIndex = entry.indexOf('=');
-            String key = entry.substring(0, equalsIndex);
-            String value = entry.substring(equalsIndex + 1);
+        final String attributesText = new String(input, StandardCharsets.UTF_8);
+        final String[] entries = attributesText.split(Pattern.quote(ATTRIBUTE_SEPARATOR));
+        for (final String entry : entries) {
+            final int equalsIndex = entry.indexOf('=');
+            final String key = entry.substring(0, equalsIndex);
+            final String value = entry.substring(equalsIndex + 1);
             attributes.put(key, value);
         }
 
@@ -57,9 +57,9 @@ public class FlowFileAttributesSerializer implements Deserializer<Map<String, St
     }
 
     @Override
-    public void serialize(Map<String, String> value, OutputStream output) throws SerializationException, IOException {
+    public void serialize(final Map<String, String> value, final OutputStream output) throws SerializationException, IOException {
         int i = 0;
-        for (Entry<String, String> entry : value.entrySet()) {
+        for (final Entry<String, String> entry : value.entrySet()) {
             output.write((entry.getKey() + '=' + entry.getValue()).getBytes(StandardCharsets.UTF_8));
             if (i < value.size() - 1) {
                 output.write(ATTRIBUTE_SEPARATOR.getBytes(StandardCharsets.UTF_8));

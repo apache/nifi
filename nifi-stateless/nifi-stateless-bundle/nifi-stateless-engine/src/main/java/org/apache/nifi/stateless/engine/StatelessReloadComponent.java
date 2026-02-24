@@ -265,7 +265,8 @@ public class StatelessReloadComponent implements ReloadComponent {
     }
 
     @Override
-    public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
+    public void reload(final FlowRegistryClientNode existingNode, final String newType, final BundleCoordinate bundleCoordinate,
+            final Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
         if (existingNode == null) {
             throw new IllegalStateException("Existing ParameterProviderNode cannot be null");
         }
@@ -303,7 +304,8 @@ public class StatelessReloadComponent implements ReloadComponent {
     }
 
     @Override
-    public void reload(FlowAnalysisRuleNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowAnalysisRuleInstantiationException {
+    public void reload(final FlowAnalysisRuleNode existingNode, final String newType, final BundleCoordinate bundleCoordinate,
+            final Set<URL> additionalUrls) throws FlowAnalysisRuleInstantiationException {
         // Flow Analysis is not supported in stateless NiFi
     }
 }

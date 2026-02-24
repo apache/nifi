@@ -34,7 +34,7 @@ public final class CustomTransformJarProvider {
         return CUSTOM_TRANSFORM_CLASS_NAME;
     }
 
-    public static Path createCustomTransformJar(Path directory) throws IOException {
+    public static Path createCustomTransformJar(final Path directory) throws IOException {
         Files.createDirectories(directory);
         final Path jarPath = directory.resolve("TestCustomJoltTransform.jar");
         try (final InputStream classStream = CustomTransformJarProvider.class.getClassLoader().getResourceAsStream(CLASS_ENTRY)) {

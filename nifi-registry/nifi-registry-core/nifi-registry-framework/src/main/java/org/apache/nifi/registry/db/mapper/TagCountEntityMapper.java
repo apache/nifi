@@ -25,7 +25,7 @@ import java.sql.SQLException;
 public class TagCountEntityMapper implements RowMapper<TagCountEntity> {
 
     @Override
-    public TagCountEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+    public TagCountEntity mapRow(final ResultSet rs, final int rowNum) throws SQLException {
         final TagCountEntity entity = new TagCountEntity();
         entity.setTag(rs.getString("TAG"));
         entity.setCount(rs.getInt("COUNT"));

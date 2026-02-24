@@ -56,7 +56,7 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
     public ContentRepositorySchema() {
     }
 
-    public ContentRepositorySchema(Map map) {
+    public ContentRepositorySchema(final Map map) {
         contentRepository = getOptionalKeyAsType(map, CONTENT_REPOSITORY_IMPLEMENTATION, String.class,
                 CONTENT_REPO_KEY, DEFAULT_CONTENT_REPOSITORY_IMPLEMENTATION);
         contentClaimMaxAppendableSize = getOptionalKeyAsType(map, CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY, String.class,
@@ -74,7 +74,7 @@ public class ContentRepositorySchema extends BaseSchema implements WritableSchem
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(CONTENT_REPOSITORY_IMPLEMENTATION, contentRepository);
         result.put(CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY, contentClaimMaxAppendableSize);
         result.put(CONTENT_CLAIM_MAX_FLOW_FILES_KEY, contentClaimMaxFlowFiles);

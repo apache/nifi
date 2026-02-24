@@ -104,7 +104,7 @@ public class FlowContentSerializer {
             final VersionedSerializer<?> serializer = allSerializers.get(serializerVersion);
             try {
                 return serializer.readDataModelVersion(markSupportedInput);
-            } catch (SerializationException e) {
+            } catch (final SerializationException e) {
                 if (logger.isDebugEnabled()) {
                     logger.error("Unable to read the data model version due to: {}", e.getMessage());
                 }
@@ -113,7 +113,7 @@ public class FlowContentSerializer {
                 // Reset the stream position.
                 try {
                     markSupportedInput.reset();
-                } catch (IOException resetException) {
+                } catch (final IOException resetException) {
                     // Should not happen.
                     logger.error("Unable to reset the input stream.", resetException);
                 }

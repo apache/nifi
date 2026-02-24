@@ -25,19 +25,19 @@ public class MissingBundleException extends ConnectionException {
 
     private static final long serialVersionUID = 198234798234794L;
 
-    public MissingBundleException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public MissingBundleException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public MissingBundleException(Throwable cause) {
+    public MissingBundleException(final Throwable cause) {
         super(cause);
     }
 
-    public MissingBundleException(String message, Throwable cause) {
+    public MissingBundleException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public MissingBundleException(String message) {
+    public MissingBundleException(final String message) {
         super(message);
     }
 

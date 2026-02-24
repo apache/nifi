@@ -135,7 +135,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
     private String hashAttribute;
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         this.uniqueness = context.getProperty(ENFORCE_UNIQUENESS).getValue();
         this.hashAttribute = context.getProperty(HASH_ATTRIBUTE).evaluateAttributeExpressions().getValue();
         this.clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
@@ -152,13 +152,13 @@ public class PutGridFS extends AbstractGridFSProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
         if (input == null) {
             return;
         }
 
-        GridFSBucket bucket = getBucket(input, context);
+        final GridFSBucket bucket = getBucket(input, context);
 
         if (!canUploadFile(context, input, bucket.getBucketName())) {
             getLogger().error("Cannot upload the file because of the uniqueness policy configured.");
@@ -169,11 +169,11 @@ public class PutGridFS extends AbstractGridFSProcessor {
         final int chunkSize = context.getProperty(CHUNK_SIZE).evaluateAttributeExpressions(input).asDataSize(DataUnit.B).intValue();
 
         try (InputStream fileInput = session.read(input)) {
-            String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
-            GridFSUploadOptions options = new GridFSUploadOptions()
+            final String fileName = context.getProperty(FILE_NAME).evaluateAttributeExpressions(input).getValue();
+            final GridFSUploadOptions options = new GridFSUploadOptions()
                 .chunkSizeBytes(chunkSize)
                 .metadata(getMetadata(input, context));
-            ObjectId id = bucket.uploadFromStream(fileName, fileInput, options);
+            final ObjectId id = bucket.uploadFromStream(fileName, fileInput, options);
             fileInput.close();
 
             if (id != null) {
@@ -184,14 +184,14 @@ public class PutGridFS extends AbstractGridFSProcessor {
                 getLogger().error("ID was null, assuming failure.");
                 session.transfer(input, REL_FAILURE);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Failed to upload file", ex);
             session.transfer(input, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("putgridfs-properties-prefix", PROPERTIES_PREFIX.getName());
         config.renameProperty("putgridfs-enforce-uniqueness", ENFORCE_UNIQUENESS.getName());
@@ -200,8 +200,8 @@ public class PutGridFS extends AbstractGridFSProcessor {
         config.renameProperty("gridfs-file-name", FILE_NAME.getName());
     }
 
-    private boolean canUploadFile(ProcessContext context, FlowFile input, String bucketName) {
-        boolean retVal;
+    private boolean canUploadFile(final ProcessContext context, final FlowFile input, final String bucketName) {
+        final boolean retVal;
 
         if (uniqueness.equals(NO_UNIQUE.getValue())) {
             retVal = true;
@@ -214,7 +214,7 @@ public class PutGridFS extends AbstractGridFSProcessor {
                 throw new RuntimeException(String.format("Uniqueness mode %s was set and the hash attribute %s was not found.", uniqueness, hashAttribute));
             }
 
-            Document query;
+            final Document query;
             if (uniqueness.equals(UNIQUE_BOTH.getValue())) {
                 query = new Document().append("filename", fileName).append("md5", hash);
             } else if (uniqueness.equals(UNIQUE_HASH.getValue())) {
@@ -229,19 +229,19 @@ public class PutGridFS extends AbstractGridFSProcessor {
         return retVal;
     }
 
-    private Document getMetadata(FlowFile input, ProcessContext context) {
+    private Document getMetadata(final FlowFile input, final ProcessContext context) {
         final String prefix = context.getProperty(PROPERTIES_PREFIX).evaluateAttributeExpressions(input).getValue();
-        Document doc;
+        final Document doc;
 
         if (StringUtils.isEmpty(prefix)) {
             doc = Document.parse("{}");
         } else {
             doc = new Document();
-            Map<String, String> attributes = input.getAttributes();
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            final Map<String, String> attributes = input.getAttributes();
+            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 if (entry.getKey().startsWith(prefix)) {
-                    String cleanPrefix = prefix.endsWith(".") ? prefix : String.format("%s.", prefix);
-                    String cleanKey = entry.getKey().replace(cleanPrefix, "");
+                    final String cleanPrefix = prefix.endsWith(".") ? prefix : String.format("%s.", prefix);
+                    final String cleanKey = entry.getKey().replace(cleanPrefix, "");
                     doc.append(cleanKey, entry.getValue());
                 }
             }

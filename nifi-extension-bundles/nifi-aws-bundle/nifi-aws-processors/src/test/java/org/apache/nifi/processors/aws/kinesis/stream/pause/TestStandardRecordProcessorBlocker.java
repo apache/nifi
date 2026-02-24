@@ -148,7 +148,7 @@ public class TestStandardRecordProcessorBlocker {
         }
     }
 
-    private static Runnable createRunnableWithInspector(final StandardRecordProcessorBlocker recordProcessorBlocker, TestThreadInspector blockerInspector) {
+    private static Runnable createRunnableWithInspector(final StandardRecordProcessorBlocker recordProcessorBlocker, final TestThreadInspector blockerInspector) {
         return () -> {
             try {
                 blockerInspector.onBlockAwaited();

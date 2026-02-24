@@ -81,13 +81,13 @@ public class PersistentSession implements Session {
     private void saveSession() throws SessionException {
         try (final OutputStream out = new FileOutputStream(persistenceFile)) {
             final Properties properties = new Properties();
-            for (String variable : wrappedSession.keys()) {
-                String value = wrappedSession.get(variable);
+            for (final String variable : wrappedSession.keys()) {
+                final String value = wrappedSession.get(variable);
                 properties.setProperty(variable, value);
             }
             properties.store(out, null);
             out.flush();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SessionException("Error saving session: " + e.getMessage(), e);
         }
     }
@@ -102,7 +102,7 @@ public class PersistentSession implements Session {
                 final String propValue = properties.getProperty(propName);
                 wrappedSession.set(propName, propValue);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new SessionException("Error loading session: " + e.getMessage(), e);
         }
     }

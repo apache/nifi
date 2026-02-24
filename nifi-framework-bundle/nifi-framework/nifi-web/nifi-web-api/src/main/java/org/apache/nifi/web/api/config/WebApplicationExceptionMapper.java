@@ -34,7 +34,7 @@ public class WebApplicationExceptionMapper implements ExceptionMapper<WebApplica
     private static final String EXCEPTION_SEPARATOR = ": ";
 
     @Override
-    public Response toResponse(WebApplicationException exception) {
+    public Response toResponse(final WebApplicationException exception) {
         // get the message and ensure it is not blank
         String message = exception.getMessage();
         if (message == null) {

@@ -242,7 +242,7 @@ public class EvaluateXQuery extends AbstractProcessor {
             try {
                 exp = comp.compile(entry.getValue());
                 attributeToXQueryMap.put(entry.getKey().getName(), exp);
-            } catch (SaxonApiException e) {
+            } catch (final SaxonApiException e) {
                 throw new ProcessException(e);  // should not happen because we've already validated the XQuery (in XQueryValidator)
             }
         }
@@ -251,7 +251,8 @@ public class EvaluateXQuery extends AbstractProcessor {
         final boolean validateDeclaration = context.getProperty(VALIDATE_DTD).asBoolean();
 
         flowFileLoop:
-        for (FlowFile flowFile : flowFileBatch) {
+        for (final FlowFile originalFlowFile : flowFileBatch) {
+            FlowFile flowFile = originalFlowFile;
             if (!isScheduled()) {
                 session.rollback();
                 return;
@@ -276,18 +277,18 @@ public class EvaluateXQuery extends AbstractProcessor {
             }
 
             final Map<String, String> xQueryResults = new HashMap<>();
-            List<FlowFile> childrenFlowFiles = new ArrayList<>();
+            final List<FlowFile> childrenFlowFiles = new ArrayList<>();
 
             for (final Map.Entry<String, XQueryExecutable> entry : attributeToXQueryMap.entrySet()) {
                 try {
-                    XQueryEvaluator qe = entry.getValue().load();
+                    final XQueryEvaluator qe = entry.getValue().load();
                     qe.setSource(sourceRef.get());
-                    XdmValue result = qe.evaluate();
+                    final XdmValue result = qe.evaluate();
 
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
                         int index = 1;
-                        for (XdmItem item : result) {
-                            String value = formatItem(item, context);
+                        for (final XdmItem item : result) {
+                            final String value = formatItem(item, context);
                             String attributeName = entry.getKey();
                             if (result.size() > 1) {
                                 attributeName += "." + index++; //NOPMD
@@ -358,22 +359,22 @@ public class EvaluateXQuery extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Validate DTD", VALIDATE_DTD.getName());
     }
 
-    private String formatItem(XdmItem item, ProcessContext context) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private String formatItem(final XdmItem item, final ProcessContext context) throws IOException {
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         writeFormattedItem(item, context, baos);
         return baos.toString(StandardCharsets.UTF_8);
     }
 
-    void writeFormattedItem(XdmItem item, ProcessContext context, OutputStream out) throws IOException {
+    void writeFormattedItem(final XdmItem item, final ProcessContext context, final OutputStream out) throws IOException {
 
         if (item.isAtomicValue()) {
             out.write(item.getStringValue().getBytes(StandardCharsets.UTF_8));
         } else { // item is an XdmNode
-            XdmNode node = (XdmNode) item;
+            final XdmNode node = (XdmNode) item;
             switch (node.getNodeKind()) {
                 case DOCUMENT:
                 case ELEMENT:

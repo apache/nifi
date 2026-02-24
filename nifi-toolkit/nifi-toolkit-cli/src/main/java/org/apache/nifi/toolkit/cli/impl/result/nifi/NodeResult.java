@@ -29,7 +29,7 @@ public class NodeResult extends AbstractWritableResult<NodeEntity> {
 
     private final NodeEntity nodeEntity;
 
-    public NodeResult(ResultType resultType, NodeEntity nodeEntity) {
+    public NodeResult(final ResultType resultType, final NodeEntity nodeEntity) {
         super(resultType);
         this.nodeEntity = Objects.requireNonNull(nodeEntity);
     }
@@ -40,8 +40,8 @@ public class NodeResult extends AbstractWritableResult<NodeEntity> {
     }
 
     @Override
-    protected void writeSimpleResult(PrintStream output) throws IOException {
-        NodeDTO nodeDTO = nodeEntity.getNode();
+    protected void writeSimpleResult(final PrintStream output) throws IOException {
+        final NodeDTO nodeDTO = nodeEntity.getNode();
         output.printf("Node ID: %s\nNode Address: %s\nAPI Port: %s\nNode Status:%s",
                 nodeDTO.getNodeId(), nodeDTO.getAddress(), nodeDTO.getApiPort(), nodeDTO.getStatus());
     }

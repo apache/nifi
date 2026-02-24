@@ -60,7 +60,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.SNAPPY.getMimeTypes()[0]);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.snappy");
     }
@@ -74,7 +74,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
@@ -88,7 +88,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.SNAPPY_HADOOP.getMimeTypes()[0]);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.snappy");
     }
@@ -110,7 +110,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.SNAPPY_FRAMED.getMimeTypes()[0]);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.sz");
     }
@@ -124,7 +124,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
@@ -138,7 +138,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFileConcat.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFileConcat.txt.bz2"); // not updating filename
     }
@@ -174,7 +174,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-bzip2");
     }
 
@@ -232,7 +232,7 @@ class TestModifyCompression {
 
         runner.clearTransferState();
         runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.MIME_TYPE_ATTRIBUTE);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.GZIP.getMimeTypes()[0]);
         runner.enqueue(getSamplePath("SampleFile.txt.gz"), attributes);
         runner.run();
@@ -252,7 +252,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
@@ -267,7 +267,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt.zlib"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.zlib");
     }
@@ -281,7 +281,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.gz");
 
     }
@@ -290,7 +290,7 @@ class TestModifyCompression {
     public void testDecompressFailure() throws IOException {
         runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.GZIP);
 
-        byte[] data = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        final byte[] data = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         runner.enqueue(data);
 
         assertTrue(runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.UPDATED).isValid());
@@ -316,7 +316,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.LZ4_FRAMED.getMimeTypes()[0]);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.lz4");
     }
@@ -330,7 +330,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
@@ -344,7 +344,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CompressionStrategy.ZSTD.getMimeTypes()[0]);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.zst");
     }
@@ -356,7 +356,7 @@ class TestModifyCompression {
         runner.enqueue(getSamplePath("SampleFile.txt.zst"));
         runner.run();
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
@@ -370,7 +370,7 @@ class TestModifyCompression {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-brotli");
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt.br");
     }
@@ -382,14 +382,14 @@ class TestModifyCompression {
         runner.enqueue(getSamplePath("SampleFile.txt.br"));
         runner.run();
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ModifyCompression.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(getSamplePath("SampleFile.txt"));
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "SampleFile.txt");
     }
 
     @ParameterizedTest
     @MethodSource("toRelationshipWhenDecompressionNotNeeded")
-    void testWhereDecompressionNotNeeded(Relationship toRelationship) throws Exception {
+    void testWhereDecompressionNotNeeded(final Relationship toRelationship) throws Exception {
         final Relationship expectedRelationship;
         runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.MIME_TYPE_ATTRIBUTE);
         runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.ORIGINAL);

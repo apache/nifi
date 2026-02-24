@@ -47,23 +47,23 @@ class TestJdbcClobReadable extends AbstractConnectionTest {
 
     @Test
     void testClobWithChinese() throws SQLException, IOException {
-        String chineseContent = "中国China";
+        final String chineseContent = "中国China";
         validateClob(chineseContent);
     }
 
     @Test
     void testClobWithJapanese() throws SQLException, IOException {
-        String japaneseContent = "にほんJapan";
+        final String japaneseContent = "にほんJapan";
         validateClob(japaneseContent);
     }
 
     @Test
     void testClobWithKorean() throws SQLException, IOException {
-        String koreanContent = "にほんKorea";
+        final String koreanContent = "にほんKorea";
         validateClob(koreanContent);
     }
 
-    private void validateClob(String someClob) throws SQLException, IOException {
+    private void validateClob(final String someClob) throws SQLException, IOException {
         final Connection con = getConnection();
         final Statement st = con.createStatement();
 

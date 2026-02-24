@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class SignedByteTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testSignedByteTypeNode() throws IOException {
-        byte value = -25;
+        final byte value = -25;
         assertEquals(Byte.toString(value), new SignedByteTypeNode(testBinaryReaderBuilder.put(value).build(), chunkHeader, parent, -1).getValue());
     }
 }

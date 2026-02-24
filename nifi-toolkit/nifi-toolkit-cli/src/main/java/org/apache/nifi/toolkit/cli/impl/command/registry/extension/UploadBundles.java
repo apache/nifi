@@ -73,7 +73,7 @@ public class UploadBundles extends AbstractNiFiRegistryCommand<StringResult> {
         final BundleType bundleType;
         try {
             bundleType = BundleType.fromString(getRequiredArg(properties, CommandOption.EXT_BUNDLE_TYPE));
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new NiFiRegistryException("Invalid bundle type, should be one of "
                     + BundleType.NIFI_NAR.toString() + " or " + BundleType.MINIFI_CPP.toString());
         }
@@ -129,7 +129,7 @@ public class UploadBundles extends AbstractNiFiRegistryCommand<StringResult> {
                                 + createdVersion.getVersionMetadata().getVersion());
                     }
 
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     println("Error uploading bundle from " + file.getAbsolutePath());
                     if (verbose) {
                         e.printStackTrace(getContext().getOutput());
@@ -143,7 +143,7 @@ public class UploadBundles extends AbstractNiFiRegistryCommand<StringResult> {
     private String calculateSha256(final File file, final boolean verbose) {
         try (final InputStream inputStream = new FileInputStream(file)) {
             return Hex.encodeHexString(DigestUtils.sha256(inputStream));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             println("Error calculating SHA-256 for " + file.getAbsolutePath());
             if (verbose) {
                 e.printStackTrace(getContext().getOutput());

@@ -52,7 +52,7 @@ public class HeartbeatPayloadTest {
     @Test
     public void testMarshallingWithNoInfo() {
         HeartbeatPayload.marshal(payload, marshalledBytes);
-        HeartbeatPayload newPayload = HeartbeatPayload.unmarshal(new ByteArrayInputStream(marshalledBytes.toByteArray()));
+        final HeartbeatPayload newPayload = HeartbeatPayload.unmarshal(new ByteArrayInputStream(marshalledBytes.toByteArray()));
         assertEquals(0, newPayload.getActiveThreadCount());
         assertEquals(0, newPayload.getTotalFlowFileCount());
     }
@@ -63,7 +63,7 @@ public class HeartbeatPayloadTest {
         payload.setTotalFlowFileCount(totalFlowFileCount);
 
         HeartbeatPayload.marshal(payload, marshalledBytes);
-        HeartbeatPayload newPayload = HeartbeatPayload.unmarshal(new ByteArrayInputStream(marshalledBytes.toByteArray()));
+        final HeartbeatPayload newPayload = HeartbeatPayload.unmarshal(new ByteArrayInputStream(marshalledBytes.toByteArray()));
 
         assertEquals(activeThreadCount, newPayload.getActiveThreadCount());
         assertEquals(totalFlowFileCount, newPayload.getTotalFlowFileCount());

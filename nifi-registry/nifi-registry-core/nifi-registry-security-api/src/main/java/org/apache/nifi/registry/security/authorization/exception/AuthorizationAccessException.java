@@ -21,11 +21,11 @@ package org.apache.nifi.registry.security.authorization.exception;
  */
 public class AuthorizationAccessException extends RuntimeException {
 
-    public AuthorizationAccessException(String message, Throwable cause) {
+    public AuthorizationAccessException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public AuthorizationAccessException(String message) {
+    public AuthorizationAccessException(final String message) {
         super(message);
     }
 

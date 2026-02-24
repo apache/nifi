@@ -63,7 +63,7 @@ public class NiFiAuthenticationToken extends AbstractAuthenticationToken {
     }
 
     @Override
-    public final void setAuthenticated(boolean authenticated) {
+    public final void setAuthenticated(final boolean authenticated) {
         throw new IllegalArgumentException("Cannot change the authenticated state.");
     }
 

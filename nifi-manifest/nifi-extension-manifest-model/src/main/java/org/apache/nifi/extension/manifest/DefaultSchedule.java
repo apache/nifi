@@ -32,7 +32,7 @@ public class DefaultSchedule {
         return strategy;
     }
 
-    public void setStrategy(String strategy) {
+    public void setStrategy(final String strategy) {
         this.strategy = strategy;
     }
 
@@ -41,7 +41,7 @@ public class DefaultSchedule {
         return period;
     }
 
-    public void setPeriod(String period) {
+    public void setPeriod(final String period) {
         this.period = period;
     }
 
@@ -50,7 +50,7 @@ public class DefaultSchedule {
         return concurrentTasks;
     }
 
-    public void setConcurrentTasks(String concurrentTasks) {
+    public void setConcurrentTasks(final String concurrentTasks) {
         this.concurrentTasks = concurrentTasks;
     }
 

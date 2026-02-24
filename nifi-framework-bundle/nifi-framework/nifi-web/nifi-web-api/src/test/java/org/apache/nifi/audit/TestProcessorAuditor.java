@@ -169,7 +169,7 @@ class TestProcessorAuditor {
     void testRemoveProcessorAdvice() {
         when(flowManager.getRootGroup()).thenReturn(processGroup);
 
-        ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
+        final ProcessorNode mockProcessorNode = mock(ProcessorNode.class);
         when(mockProcessorNode.getIdentifier()).thenReturn(PN_ID);
         when(mockProcessorNode.getName()).thenReturn(PN_SOURCE_NAME);
         when(mockProcessorNode.getProcessGroup()).thenReturn(processGroup);
@@ -202,7 +202,7 @@ class TestProcessorAuditor {
         when(processGroup.findProcessor(PN_ID)).thenReturn(mockProcessorNode);
 
         final ProcessorDTO processorDto = getProcessorDto();
-        ProcessorConfigDTO config = new ProcessorConfigDTO();
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setComments("comment1");
         config.setRunDurationMillis(100L);
 
@@ -237,7 +237,7 @@ class TestProcessorAuditor {
 
         final String propertyName = "sensitive-property-descriptor-1";
 
-        PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
                 .name(propertyName)
                 .sensitive(true)
                 .build();
@@ -247,7 +247,7 @@ class TestProcessorAuditor {
         when(processGroup.findProcessor(PN_ID)).thenReturn(mockProcessorNode);
 
         final ProcessorDTO processorDto = getProcessorDto();
-        ProcessorConfigDTO config = new ProcessorConfigDTO();
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setProperties(Collections.singletonMap("dynamicSensitiveProperty1", "asd"));
         config.setSensitiveDynamicPropertyNames(Collections.singleton("dynamicSensitiveProperty1"));
         config.setRunDurationMillis(100L);
@@ -257,8 +257,8 @@ class TestProcessorAuditor {
 
         processorDao.updateProcessor(processorDto);
 
-        ArgumentCaptor<String> propertyNameCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> componentIdCaptor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> propertyNameCaptor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> componentIdCaptor = ArgumentCaptor.forClass(String.class);
 
         verify(auditService).deletePreviousValues(propertyNameCaptor.capture(), componentIdCaptor.capture());
 

@@ -86,7 +86,7 @@ public abstract class AbstractListAzureProcessor<T extends ListableEntity> exten
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }

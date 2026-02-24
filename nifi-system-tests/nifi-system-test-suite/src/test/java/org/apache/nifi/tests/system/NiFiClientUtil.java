@@ -261,7 +261,7 @@ public class NiFiClientUtil {
     }
 
     public ParameterProviderEntity fetchParameters(final ParameterProviderEntity existingEntity) throws NiFiClientException, IOException {
-        ParameterProviderParameterFetchEntity parameterFetchEntity = new ParameterProviderParameterFetchEntity();
+        final ParameterProviderParameterFetchEntity parameterFetchEntity = new ParameterProviderParameterFetchEntity();
         parameterFetchEntity.setId(existingEntity.getId());
         parameterFetchEntity.setRevision(existingEntity.getRevision());
 
@@ -460,7 +460,7 @@ public class NiFiClientUtil {
     public void disableFlowAnalysisRules() throws NiFiClientException, IOException {
         final FlowAnalysisRulesEntity rules = nifiClient.getControllerClient().getFlowAnalysisRules();
 
-        Collection<String> toBeDisabledRuleIds = new ArrayList<>();
+        final Collection<String> toBeDisabledRuleIds = new ArrayList<>();
         for (final FlowAnalysisRuleEntity rule : rules.getFlowAnalysisRules()) {
             disableFlowAnalysisRule(rule);
             toBeDisabledRuleIds.add(rule.getId());
@@ -611,9 +611,9 @@ public class NiFiClientUtil {
         final List<ParameterContextReferenceEntity> inheritedRefs = new ArrayList<>();
         if (inheritedParameterContextIds != null) {
             inheritedRefs.addAll(inheritedParameterContextIds.stream().map(id -> {
-                ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
+                final ParameterContextReferenceEntity ref = new ParameterContextReferenceEntity();
                 ref.setId(id);
-                ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
+                final ParameterContextReferenceDTO refDto = new ParameterContextReferenceDTO();
                 refDto.setId(id);
                 ref.setComponent(refDto);
                 return ref;
@@ -864,11 +864,11 @@ public class NiFiClientUtil {
         }
     }
 
-    public void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
+    public void waitForValidProcessor(final String id) throws InterruptedException, IOException, NiFiClientException {
         waitForValidationStatus(id, ProcessorDTO.VALID);
     }
 
-    public void waitForInvalidProcessor(String id) throws NiFiClientException, IOException, InterruptedException {
+    public void waitForInvalidProcessor(final String id) throws NiFiClientException, IOException, InterruptedException {
         waitForValidationStatus(id, ProcessorDTO.INVALID);
     }
 
@@ -1141,7 +1141,7 @@ public class NiFiClientUtil {
         for (final ProcessorEntity processor : rootFlowDTO.getProcessors()) {
             try {
                 waitForStoppedProcessor(processor.getId());
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
             }
@@ -1163,7 +1163,7 @@ public class NiFiClientUtil {
         for (final ProcessorDTO processor : groupContents.getProcessors()) {
             try {
                 waitForStoppedProcessor(processor.getId());
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
             }
@@ -1523,12 +1523,12 @@ public class NiFiClientUtil {
         return dto;
     }
 
-    public QueueSize getQueueSize(String connectionId) {
+    public QueueSize getQueueSize(final String connectionId) {
         try {
             final ConnectionStatusEntity statusEntity = nifiClient.getFlowClient().getConnectionStatus(connectionId, false);
             final ConnectionStatusSnapshotDTO snapshotDto = statusEntity.getConnectionStatus().getAggregateSnapshot();
             return new QueueSize(snapshotDto.getFlowFilesQueued(), snapshotDto.getBytesQueued());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException("Failed to obtain queue size for connection with ID " + connectionId, e);
         }
     }

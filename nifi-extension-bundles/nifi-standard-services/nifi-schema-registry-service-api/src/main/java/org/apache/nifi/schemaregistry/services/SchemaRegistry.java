@@ -83,7 +83,7 @@ public interface SchemaRegistry extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema based on the given identifier
      * @throws UnsupportedOperationException if the schema registry implementation does not support raw schema retrieval
      */
-    default SchemaDefinition retrieveSchemaDefinition(SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
+    default SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         throw new UnsupportedOperationException("retrieveSchemaRaw is not supported by this SchemaRegistry implementation");
     }
 }

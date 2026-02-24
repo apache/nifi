@@ -44,7 +44,7 @@ public class ITListS3 extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "a");
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
@@ -61,7 +61,7 @@ public class ITListS3 extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "a");
         flowFiles.get(1).assertAttributeEquals("filename", "b/c");
         flowFiles.get(2).assertAttributeEquals("filename", "d/e");
@@ -80,7 +80,7 @@ public class ITListS3 extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "a");
     }
 
@@ -97,7 +97,7 @@ public class ITListS3 extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
     }
 
@@ -115,13 +115,13 @@ public class ITListS3 extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         flowFiles.get(0).assertAttributeEquals("filename", "b/c");
     }
 
     @Test
     public void testObjectTagsWritten() throws InitializationException {
-        List<Tag> objectTags = new ArrayList<>();
+        final List<Tag> objectTags = new ArrayList<>();
         objectTags.add(Tag.builder().key("dummytag1").value("dummyvalue1").build());
         objectTags.add(Tag.builder().key("dummytag2").value("dummyvalue2").build());
 
@@ -137,7 +137,7 @@ public class ITListS3 extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
 
-        MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
+        final MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
 
         flowFiles.assertAttributeEquals("filename", "t/fileWithTag");
         flowFiles.assertAttributeExists("s3.tag.dummytag1");
@@ -148,7 +148,7 @@ public class ITListS3 extends AbstractS3IT {
 
     @Test
     public void testUserMetadataWritten() throws FileNotFoundException, InitializationException {
-        Map<String, String> userMetadata = new HashMap<>();
+        final Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("dummy.metadata.1", "dummyvalue1");
         userMetadata.put("dummy.metadata.2", "dummyvalue2");
 
@@ -164,7 +164,7 @@ public class ITListS3 extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
 
-        MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
+        final MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
 
         flowFiles.assertAttributeEquals("filename", "m/fileWithUserMetadata");
         flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.1");

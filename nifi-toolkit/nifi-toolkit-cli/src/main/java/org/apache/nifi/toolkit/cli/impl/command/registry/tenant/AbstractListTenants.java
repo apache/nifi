@@ -34,7 +34,7 @@ import java.util.Properties;
  * @param <R> The type of the result object.
  */
 public abstract class AbstractListTenants<T extends Tenant, R extends Result> extends AbstractNiFiRegistryCommand<R> {
-    public AbstractListTenants(String name, Class<R> resultClass) {
+    public AbstractListTenants(final String name, final Class<R> resultClass) {
         super(name, resultClass);
     }
 

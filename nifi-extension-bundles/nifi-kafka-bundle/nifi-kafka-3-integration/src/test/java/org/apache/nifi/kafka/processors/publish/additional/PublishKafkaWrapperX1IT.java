@@ -76,7 +76,7 @@ public class PublishKafkaWrapperX1IT extends AbstractPublishKafkaIT {
             consumer.subscribe(Collections.singletonList(getClass().getName()));
             final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
             assertEquals(1, records.count());
-            for (ConsumerRecord<String, String> record : records) {
+            for (final ConsumerRecord<String, String> record : records) {
                 // kafka record headers
                 final List<Header> headers = Arrays.asList(record.headers().toArray());
                 assertEquals(2, headers.size());

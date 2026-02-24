@@ -155,7 +155,7 @@ public class TestProtobufDataConverter {
 
         final ProtobufDataConverter dataConverter = new ProtobufDataConverter(schema, "MissingMessage", recordSchema, false, false);
 
-        NullPointerException e = assertThrows(NullPointerException.class, () -> dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2()));
+        final NullPointerException e = assertThrows(NullPointerException.class, () -> dataConverter.createRecord(ProtoTestUtil.generateInputDataForProto2()));
         assertTrue(e.getMessage().contains("Message with name [MissingMessage] not found in the provided proto files"), e.getMessage());
     }
 }

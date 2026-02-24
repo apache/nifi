@@ -60,7 +60,7 @@ import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCO
 public class GetCouchbase extends AbstractCouchbaseProcessor {
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -88,7 +88,7 @@ public class GetCouchbase extends AbstractCouchbaseProcessor {
             final long fetchMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, createTransitUri(connectionService.getServiceLocation(), couchbaseContext, documentId), fetchMillis);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (CouchbaseException e) {
+        } catch (final CouchbaseException e) {
             handleCouchbaseException(couchbaseClient, context, session, getLogger(), flowFile, e, "Failed to get document from Couchbase");
         }
     }

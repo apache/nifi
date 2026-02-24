@@ -79,7 +79,7 @@ public class TestClientTimeout {
     public void testNiFiClientTimeoutSettings() {
         testClientTimeoutSettings(new AbstractNiFiCommand<>("test", Result.class) {
             @Override
-            public Result doExecute(NiFiClient client, Properties properties) {
+            public Result doExecute(final NiFiClient client, final Properties properties) {
                 return null;
             }
 
@@ -90,7 +90,7 @@ public class TestClientTimeout {
         });
     }
 
-    private void testClientTimeoutSettings(Command<?> command) {
+    private void testClientTimeoutSettings(final Command<?> command) {
         command.initialize(context);
         final CommandProcessor processor = new CommandProcessor(Collections.singletonMap("test", command), Collections.emptyMap(), context);
         processor.process(new String[] {"test", "-cto", "1", "-rto", "2", "-baseUrl", "http://localhost:9999"});

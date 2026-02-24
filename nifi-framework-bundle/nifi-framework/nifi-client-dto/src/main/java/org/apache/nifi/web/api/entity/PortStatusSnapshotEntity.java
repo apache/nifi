@@ -37,7 +37,7 @@ public class PortStatusSnapshotEntity extends Entity implements ReadablePermissi
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -50,7 +50,7 @@ public class PortStatusSnapshotEntity extends Entity implements ReadablePermissi
         return portStatusSnapshot;
     }
 
-    public void setPortStatusSnapshot(PortStatusSnapshotDTO portStatusSnapshot) {
+    public void setPortStatusSnapshot(final PortStatusSnapshotDTO portStatusSnapshot) {
         this.portStatusSnapshot = portStatusSnapshot;
     }
 
@@ -60,7 +60,7 @@ public class PortStatusSnapshotEntity extends Entity implements ReadablePermissi
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

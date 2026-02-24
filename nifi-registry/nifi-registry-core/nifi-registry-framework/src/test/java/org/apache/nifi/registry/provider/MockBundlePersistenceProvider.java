@@ -31,32 +31,32 @@ public class MockBundlePersistenceProvider implements BundlePersistenceProvider 
     private Map<String, String> properties;
 
     @Override
-    public void createBundleVersion(BundlePersistenceContext context, InputStream contentStream) throws BundlePersistenceException {
+    public void createBundleVersion(final BundlePersistenceContext context, final InputStream contentStream) throws BundlePersistenceException {
 
     }
 
     @Override
-    public void updateBundleVersion(BundlePersistenceContext context, InputStream contentStream) throws BundlePersistenceException {
+    public void updateBundleVersion(final BundlePersistenceContext context, final InputStream contentStream) throws BundlePersistenceException {
 
     }
 
     @Override
-    public void getBundleVersionContent(BundleVersionCoordinate versionCoordinate, OutputStream outputStream) throws BundlePersistenceException {
+    public void getBundleVersionContent(final BundleVersionCoordinate versionCoordinate, final OutputStream outputStream) throws BundlePersistenceException {
 
     }
 
     @Override
-    public void deleteBundleVersion(BundleVersionCoordinate versionCoordinate) throws BundlePersistenceException {
+    public void deleteBundleVersion(final BundleVersionCoordinate versionCoordinate) throws BundlePersistenceException {
 
     }
 
     @Override
-    public void deleteAllBundleVersions(BundleCoordinate bundleCoordinate) throws BundlePersistenceException {
+    public void deleteAllBundleVersions(final BundleCoordinate bundleCoordinate) throws BundlePersistenceException {
 
     }
 
     @Override
-    public void onConfigured(ProviderConfigurationContext configurationContext)
+    public void onConfigured(final ProviderConfigurationContext configurationContext)
             throws ProviderCreationException {
         properties = configurationContext.getProperties();
     }

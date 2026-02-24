@@ -38,7 +38,7 @@ public class BatchSettingsDTO {
         return count;
     }
 
-    public void setCount(Integer count) {
+    public void setCount(final Integer count) {
         this.count = count;
     }
 
@@ -51,7 +51,7 @@ public class BatchSettingsDTO {
         return size;
     }
 
-    public void setSize(String size) {
+    public void setSize(final String size) {
         this.size = size;
     }
 
@@ -64,7 +64,7 @@ public class BatchSettingsDTO {
         return duration;
     }
 
-    public void setDuration(String duration) {
+    public void setDuration(final String duration) {
         this.duration = duration;
     }
 

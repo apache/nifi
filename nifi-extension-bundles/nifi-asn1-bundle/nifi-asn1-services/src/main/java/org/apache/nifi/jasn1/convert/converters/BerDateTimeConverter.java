@@ -27,25 +27,25 @@ import java.time.LocalDateTime;
 
 public class BerDateTimeConverter implements JASN1TypeAndValueConverter {
     @Override
-    public boolean supportsType(Class<?> berType) {
+    public boolean supportsType(final Class<?> berType) {
         return BerDateTime.class.isAssignableFrom(berType);
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
         return RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-ddTHH:mm:ss");
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
+    public boolean supportsValue(final BerType value, final DataType dataType) {
         return value instanceof BerDateTime;
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType value, final DataType dataType, final JASN1Converter converter) {
         final BerDateTime berValue = ((BerDateTime) value);
 
-        LocalDateTime converted = LocalDateTime.parse(berValue.toString());
+        final LocalDateTime converted = LocalDateTime.parse(berValue.toString());
 
         return converted;
     }

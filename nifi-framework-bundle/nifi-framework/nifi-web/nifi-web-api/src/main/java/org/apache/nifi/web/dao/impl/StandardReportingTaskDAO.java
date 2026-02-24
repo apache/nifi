@@ -168,13 +168,13 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTaskProvider.disableReportingTask(reportingTask);
                             break;
                     }
-                } catch (IllegalStateException | ComponentLifeCycleException ise) {
+                } catch (final IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
-                } catch (RejectedExecutionException ree) {
+                } catch (final RejectedExecutionException ree) {
                     throw new NiFiCoreException("Unable to schedule all tasks for the specified reporting task.", ree);
-                } catch (NullPointerException npe) {
+                } catch (final NullPointerException npe) {
                     throw new NiFiCoreException("Unable to update reporting task run state.", npe);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new NiFiCoreException("Unable to update reporting task run state: " + e, e);
                 }
             }
@@ -183,7 +183,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         return reportingTask;
     }
 
-    private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
+    private void updateBundle(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
             final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
@@ -195,7 +195,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                     final ConfigurableComponent tempComponent = extensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = reportingTask.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, additionalUrls);
-                } catch (ReportingTaskInstantiationException e) {
+                } catch (final ReportingTaskInstantiationException e) {
                     throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
                             reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
                 }
@@ -214,7 +214,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             try {
                 // this will be the new scheduling strategy so use it
                 schedulingStrategy = SchedulingStrategy.valueOf(reportingTaskDTO.getSchedulingStrategy());
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 validationErrors.add(String.format("Scheduling strategy: Value must be one of [%s]", StringUtils.join(SchedulingStrategy.values(), ", ")));
             }
         }
@@ -315,7 +315,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             break;
                     }
                 }
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format(
                         "The specified reporting task state (%s) is not valid. Valid options are 'RUNNING', 'STOPPED', and 'DISABLED'.",
                         reportingTaskDTO.getState()));
@@ -391,19 +391,19 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     @Override
-    public void deleteReportingTask(String reportingTaskId) {
+    public void deleteReportingTask(final String reportingTaskId) {
         final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
         reportingTaskProvider.removeReportingTask(reportingTask);
     }
 
     @Override
-    public StateMap getState(String reportingTaskId, Scope scope) {
+    public StateMap getState(final String reportingTaskId, final Scope scope) {
         final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
         return componentStateDAO.getState(reportingTask, scope);
     }
 
     @Override
-    public void verifyClearState(String reportingTaskId) {
+    public void verifyClearState(final String reportingTaskId) {
         final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);
         reportingTask.verifyCanClearState();
     }
@@ -415,22 +415,22 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     @Autowired
-    public void setReportingTaskProvider(ReportingTaskProvider reportingTaskProvider) {
+    public void setReportingTaskProvider(final ReportingTaskProvider reportingTaskProvider) {
         this.reportingTaskProvider = reportingTaskProvider;
     }
 
     @Autowired
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 
     @Autowired
-    public void setReloadComponent(ReloadComponent reloadComponent) {
+    public void setReloadComponent(final ReloadComponent reloadComponent) {
         this.reloadComponent = reloadComponent;
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 }

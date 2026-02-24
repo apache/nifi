@@ -313,7 +313,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         initProperties(context);
         initJWTSigner();
     }
@@ -351,13 +351,13 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
-        PrivateKeyService keyService = validationContext.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class);
-        String algorithmName = validationContext.getProperty(SIGNING_ALGORITHM).getValue();
-        PrivateKey privateKey = keyService.getPrivateKey();
-        JWSAlgorithm algorithm = JWSAlgorithm.parse(algorithmName);
+        final PrivateKeyService keyService = validationContext.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class);
+        final String algorithmName = validationContext.getProperty(SIGNING_ALGORITHM).getValue();
+        final PrivateKey privateKey = keyService.getPrivateKey();
+        final JWSAlgorithm algorithm = JWSAlgorithm.parse(algorithmName);
 
         if (validationContext.getProperty(HEADER_X5T).asBoolean() && !(privateKey instanceof RSAPrivateKey)) {
             validationResults.add(new ValidationResult.Builder()
@@ -398,10 +398,10 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
         initProperties(context);
         initJWTSigner();
-        ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder().verificationStepName("Acquire token");
+        final ConfigVerificationResult.Builder builder = new ConfigVerificationResult.Builder().verificationStepName("Acquire token");
         try {
             getAccessDetails();
             builder.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
@@ -450,7 +450,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         final Date nowDate = Date.from(now);
         final Date expirationTime = Date.from(now.plus(jwtValidity));
 
-        Builder claimsSetBuilder = new JWTClaimsSet.Builder()
+        final Builder claimsSetBuilder = new JWTClaimsSet.Builder()
                 .expirationTime(expirationTime)
                 .issueTime(nowDate)
                 .notBeforeTime(nowDate);
@@ -477,7 +477,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
 
         customClaims.forEach(claimsSetBuilder::claim);
 
-        JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.parse(algorithmName));
+        final JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.parse(algorithmName));
         headerBuilder.type(JOSEObjectType.JWT);
 
         if (kid != null) {
@@ -495,7 +495,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
             }
         }
 
-        Map<String, String> formParams = new HashMap<>();
+        final Map<String, String> formParams = new HashMap<>();
         formParams.put("grant_type", grantType);
         formParams.put(assertion, getAssertion(headerBuilder.build(), claimsSetBuilder.build()));
         formParams.putAll(this.formParams);
@@ -524,8 +524,8 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
     }
 
-    protected void requestTokenEndpoint(Map<String, String> formParams) throws URISyntaxException {
-        HttpRequestHeadersSpec request = webClientService
+    protected void requestTokenEndpoint(final Map<String, String> formParams) throws URISyntaxException {
+        final HttpRequestHeadersSpec request = webClientService
                 .post()
                 .uri(new URI(tokenEndpoint))
                 .header("Accept", APPLICATION_JSON)
@@ -540,7 +540,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
                 String body;
                 try (final InputStream is = response.body()) {
                     body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     body = "[failed to read response: " + e.getMessage() + "]";
                 }
                 final String message = "Failed to retrieve Access Token from [%s]: HTTP %s with Response [%s]".formatted(
@@ -558,13 +558,13 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
     }
 
-    protected String getAssertion(JWSHeader jwsHeader, JWTClaimsSet jwtClaimsSet) throws JOSEException {
-        SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
+    protected String getAssertion(final JWSHeader jwsHeader, final JWTClaimsSet jwtClaimsSet) throws JOSEException {
+        final SignedJWT signedJWT = new SignedJWT(jwsHeader, jwtClaimsSet);
         signedJWT.sign(signer);
         return signedJWT.serialize();
     }
 
-    private void initProperties(ConfigurationContext context) {
+    private void initProperties(final ConfigurationContext context) {
         privateKey = context.getProperty(PRIVATE_KEY_SERVICE).asControllerService(PrivateKeyService.class).getPrivateKey();
         tokenEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
         webClientService = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class).getWebClientService();
@@ -613,13 +613,13 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
         }
 
         if (context.getProperty(SSL_CONTEXT_PROVIDER).isSet()) {
-            SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_PROVIDER).asControllerService(SSLContextProvider.class);
+            final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_PROVIDER).asControllerService(SSLContextProvider.class);
             keyManager = sslContextProvider.createKeyManager().orElseThrow(() -> new IllegalStateException("KeyManager not available"));
         }
 
         customClaims = new HashMap<>();
         formParams = new HashMap<>();
-        for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
                 if (descriptor.getName().startsWith(CLAIM_PREFIX)) {
                     customClaims.put(StringUtils.substringAfter(descriptor.getName(), CLAIM_PREFIX),

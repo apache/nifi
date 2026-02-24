@@ -125,8 +125,8 @@ public class DeleteFile extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -164,7 +164,7 @@ public class DeleteFile extends AbstractProcessor {
         }
     }
 
-    private void handleFailure(ProcessSession session, FlowFile flowFile, String errorMessage, Throwable throwable) {
+    private void handleFailure(final ProcessSession session, final FlowFile flowFile, final String errorMessage, final Throwable throwable) {
         getLogger().error(errorMessage, throwable);
 
         session.penalize(flowFile);

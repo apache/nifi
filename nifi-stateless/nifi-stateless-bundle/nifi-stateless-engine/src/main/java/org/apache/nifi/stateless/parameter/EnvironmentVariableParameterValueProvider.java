@@ -24,7 +24,7 @@ public class EnvironmentVariableParameterValueProvider extends AbstractParameter
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        String envValue = environmentVariables.get(contextName + ":" + parameterName);
+        final String envValue = environmentVariables.get(contextName + ":" + parameterName);
         if (envValue != null) {
             return envValue;
         }

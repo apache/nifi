@@ -84,7 +84,7 @@ class GetShopifyTest {
                 new StandardWebClientServiceProvider();
         final CustomGetShopify customGetShopify = spy(new CustomGetShopify());
 
-        TestRunner runner = TestRunners.newTestRunner(customGetShopify);
+        final TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
@@ -99,10 +99,10 @@ class GetShopifyTest {
 
         verify(customGetShopify).updateState(any(), any());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
 
         flowFiles.get(0).assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
@@ -116,7 +116,7 @@ class GetShopifyTest {
                 new StandardWebClientServiceProvider();
         final CustomGetShopify customGetShopify = new CustomGetShopify();
 
-        TestRunner runner = TestRunners.newTestRunner(customGetShopify);
+        final TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
@@ -142,7 +142,7 @@ class GetShopifyTest {
                 new StandardWebClientServiceProvider();
         final CustomGetShopify customGetShopify = new CustomGetShopify();
 
-        TestRunner runner = TestRunners.newTestRunner(customGetShopify);
+        final TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
@@ -171,7 +171,7 @@ class GetShopifyTest {
                 new StandardWebClientServiceProvider();
         final CustomGetShopify customGetShopify = new CustomGetShopify();
 
-        TestRunner runner = TestRunners.newTestRunner(customGetShopify);
+        final TestRunner runner = TestRunners.newTestRunner(customGetShopify);
         runner.addControllerService("standardWebClientServiceProvider", standardWebClientServiceProvider);
         runner.enableControllerService(standardWebClientServiceProvider);
 
@@ -183,18 +183,18 @@ class GetShopifyTest {
 
         runner.run(1);
 
-        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
         assertEquals(1, flowFilesForRelationship.size());
-        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     static class CustomGetShopify extends GetShopify {
 
         @Override
-        ShopifyRestService getShopifyRestService(WebClientServiceProvider webClientServiceProvider, String apiVersion,
-                                                 String baseUrl, String accessToken, String resourceName, String limit,
-                                                 IncrementalLoadingParameter incrementalLoadingParameter) {
+        ShopifyRestService getShopifyRestService(final WebClientServiceProvider webClientServiceProvider, final String apiVersion,
+                                                 final String baseUrl, final String accessToken, final String resourceName, final String limit,
+                                                 final IncrementalLoadingParameter incrementalLoadingParameter) {
             return new CustomShopifyRestService(webClientServiceProvider, apiVersion, baseUrl, accessToken,
                     resourceName, limit, incrementalLoadingParameter);
         }
@@ -202,9 +202,9 @@ class GetShopifyTest {
 
     static class CustomShopifyRestService extends ShopifyRestService {
 
-        public CustomShopifyRestService(WebClientServiceProvider webClientServiceProvider, String version,
-                                        String baseUrl, String accessToken, String resourceName, String limit,
-                                        IncrementalLoadingParameter incrementalLoadingParameter) {
+        public CustomShopifyRestService(final WebClientServiceProvider webClientServiceProvider, final String version,
+                                        final String baseUrl, final String accessToken, final String resourceName, final String limit,
+                                        final IncrementalLoadingParameter incrementalLoadingParameter) {
             super(webClientServiceProvider, version, baseUrl, accessToken, resourceName,
                     limit, incrementalLoadingParameter);
         }

@@ -47,8 +47,9 @@ public class FileRemovalAction implements ExpirationAction {
     }
 
     private boolean remove(final File file) {
-        for (int i = 0; i < 10; i++) {
-            if (file.delete()) {
+        boolean removed = false;
+        for (int i = 0; i < 10 && !removed; i++) {
+            if (removed = file.delete()) {
                 return true;
             }
         }

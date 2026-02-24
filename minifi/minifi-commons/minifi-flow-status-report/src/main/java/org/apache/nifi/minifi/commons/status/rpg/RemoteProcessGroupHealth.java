@@ -27,7 +27,7 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         return transmissionStatus;
     }
 
-    public void setTransmissionStatus(String transmissionStatus) {
+    public void setTransmissionStatus(final String transmissionStatus) {
         this.transmissionStatus = transmissionStatus;
     }
 
@@ -35,7 +35,7 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         return hasBulletins;
     }
 
-    public void setHasBulletins(boolean hasBulletins) {
+    public void setHasBulletins(final boolean hasBulletins) {
         this.hasBulletins = hasBulletins;
     }
 
@@ -43,7 +43,7 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         return activePortCount;
     }
 
-    public void setActivePortCount(int activePortCount) {
+    public void setActivePortCount(final int activePortCount) {
         this.activePortCount = activePortCount;
     }
 
@@ -51,12 +51,12 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         return inactivePortCount;
     }
 
-    public void setInactivePortCount(int inactivePortCount) {
+    public void setInactivePortCount(final int inactivePortCount) {
         this.inactivePortCount = inactivePortCount;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -64,7 +64,7 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
             return false;
         }
 
-        RemoteProcessGroupHealth that = (RemoteProcessGroupHealth) o;
+        final RemoteProcessGroupHealth that = (RemoteProcessGroupHealth) o;
 
         if (isHasBulletins() != that.isHasBulletins()) {
             return false;

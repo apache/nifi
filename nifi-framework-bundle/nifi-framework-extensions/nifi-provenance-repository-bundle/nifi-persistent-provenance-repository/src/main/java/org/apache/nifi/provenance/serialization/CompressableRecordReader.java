@@ -362,6 +362,6 @@ public abstract class CompressableRecordReader implements RecordReader {
 
     protected abstract StandardProvenanceEventRecord nextRecord(DataInputStream in, int serializationVersion) throws IOException;
 
-    protected void readHeader(DataInputStream in, int serializationVersion) throws IOException {
+    protected void readHeader(final DataInputStream in, final int serializationVersion) throws IOException {
     }
 }

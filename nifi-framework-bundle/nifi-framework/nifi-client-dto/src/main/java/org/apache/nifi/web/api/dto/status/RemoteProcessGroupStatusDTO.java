@@ -43,7 +43,7 @@ public class RemoteProcessGroupStatusDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -52,7 +52,7 @@ public class RemoteProcessGroupStatusDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -61,7 +61,7 @@ public class RemoteProcessGroupStatusDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -70,7 +70,7 @@ public class RemoteProcessGroupStatusDTO {
         return transmissionStatus;
     }
 
-    public void setTransmissionStatus(String transmissionStatus) {
+    public void setTransmissionStatus(final String transmissionStatus) {
         this.transmissionStatus = transmissionStatus;
     }
 
@@ -79,7 +79,7 @@ public class RemoteProcessGroupStatusDTO {
         return targetUri;
     }
 
-    public void setTargetUri(String targetUri) {
+    public void setTargetUri(final String targetUri) {
         this.targetUri = targetUri;
     }
 
@@ -89,7 +89,7 @@ public class RemoteProcessGroupStatusDTO {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -99,7 +99,7 @@ public class RemoteProcessGroupStatusDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 
@@ -116,7 +116,7 @@ public class RemoteProcessGroupStatusDTO {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 
@@ -128,7 +128,7 @@ public class RemoteProcessGroupStatusDTO {
         return validationStatus;
     }
 
-    public void setValidationStatus(String validationStatus) {
+    public void setValidationStatus(final String validationStatus) {
         this.validationStatus = validationStatus;
     }
 

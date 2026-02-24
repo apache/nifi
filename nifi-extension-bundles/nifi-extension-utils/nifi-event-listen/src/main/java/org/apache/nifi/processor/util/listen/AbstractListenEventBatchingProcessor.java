@@ -73,14 +73,14 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
     @Override
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) throws IOException {
         super.onScheduled(context);
         final String msgDemarcator = context.getProperty(ListenerProperties.MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int maxBatchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
         final Map<String, FlowFileEventBatch> batches = getBatches(session, maxBatchSize, messageDemarcatorBytes);
 
@@ -92,7 +92,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
 
         final List<E> allEvents = new ArrayList<>();
 
-        for (Map.Entry<String, FlowFileEventBatch> entry : batches.entrySet()) {
+        for (final Map.Entry<String, FlowFileEventBatch> entry : batches.entrySet()) {
             FlowFile flowFile = entry.getValue().getFlowFile();
             final List<E> events = entry.getValue().getEvents();
 
@@ -143,7 +143,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
      * @param session the current session
      * @param events the list of all events processed by the current execution of onTrigger
      */
-    protected void postProcess(ProcessContext context, ProcessSession session, final List<E> events) {
+    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<E> events) {
         // empty implementation so sub-classes only have to override if necessary
     }
 
@@ -186,7 +186,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
             final boolean writeDemarcator = (i > 0);
             try {
                 final byte[] rawMessage = event.getData();
-                FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
+                final FlowFile appendedFlowFile = session.append(batch.getFlowFile(), out -> {
                     if (writeDemarcator) {
                         out.write(messageDemarcatorBytes);
                     }
@@ -243,7 +243,7 @@ public abstract class AbstractListenEventBatchingProcessor<E extends Event> exte
             return events;
         }
 
-        public void setFlowFile(FlowFile flowFile) {
+        public void setFlowFile(final FlowFile flowFile) {
             this.flowFile = flowFile;
         }
     }

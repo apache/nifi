@@ -64,7 +64,7 @@ public class GhostReportingTask implements ReportingTask {
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
     }
 
     @Override
@@ -83,12 +83,12 @@ public class GhostReportingTask implements ReportingTask {
     }
 
     @Override
-    public void initialize(ReportingInitializationContext config) throws InitializationException {
+    public void initialize(final ReportingInitializationContext config) throws InitializationException {
 
     }
 
     @Override
-    public void onTrigger(ReportingContext context) {
+    public void onTrigger(final ReportingContext context) {
         throw new ProcessException("Unable to instantiate ReportingTask class");
     }
 

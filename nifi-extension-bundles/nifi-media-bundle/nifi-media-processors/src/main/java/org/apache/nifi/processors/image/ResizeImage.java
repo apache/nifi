@@ -126,7 +126,7 @@ public class ResizeImage extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -184,7 +184,7 @@ public class ResizeImage extends AbstractProcessor {
             height = context.getProperty(IMAGE_HEIGHT).evaluateAttributeExpressions(flowFile).asInteger();
 
             if (keepRatio) {
-                Dimension finalDimension = getScaledDimension(image.getWidth(), image.getHeight(), width, height);
+                final Dimension finalDimension = getScaledDimension(image.getWidth(), image.getHeight(), width, height);
                 width = finalDimension.width;
                 height = finalDimension.height;
             }
@@ -228,16 +228,16 @@ public class ResizeImage extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("keep-ratio", KEEP_RATIO.getName());
         config.renameProperty("Image Width (in pixels)", IMAGE_WIDTH.getName());
         config.renameProperty("Image Height (in pixels)", IMAGE_HEIGHT.getName());
     }
 
-    public Dimension getScaledDimension(int originalWidth, int originalHeight, int boundWidth, int boundHeight) {
-        double widthRatio = ((double) boundWidth) / originalWidth;
-        double heightRatio = ((double) boundHeight) / originalHeight;
-        double ratio = Math.min(widthRatio, heightRatio);
+    public Dimension getScaledDimension(final int originalWidth, final int originalHeight, final int boundWidth, final int boundHeight) {
+        final double widthRatio = ((double) boundWidth) / originalWidth;
+        final double heightRatio = ((double) boundHeight) / originalHeight;
+        final double ratio = Math.min(widthRatio, heightRatio);
         return new Dimension((int) (originalWidth  * ratio), (int) (originalHeight * ratio));
     }
 

@@ -55,28 +55,28 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
         genericData.setFastReaderEnabled(fastReaderEnabled);
 
         datumReader = new NonCachingDatumReader<>(avroSchema, genericData);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        TeeInputStream teeInputStream = new TeeInputStream(in, baos);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final TeeInputStream teeInputStream = new TeeInputStream(in, baos);
         // Try to parse as a DataFileStream, if it works, glue the streams back together and delegate calls to the DataFileStream
         try {
             dataFileStream = new DataFileStream<>(teeInputStream, new NonCachingDatumReader<>(null, genericData));
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             // Carry on, hopefully a raw Avro file
             // Need to be able to re-read the bytes read so far, and the InputStream passed in doesn't support reset. Use the TeeInputStream in
             // conjunction with SequenceInputStream to glue the two streams back together for future reading
-            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-            SequenceInputStream sis = new SequenceInputStream(bais, in);
+            final ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            final SequenceInputStream sis = new SequenceInputStream(bais, in);
             decoder = DecoderFactory.get().binaryDecoder(sis, null);
         }
         if (dataFileStream != null) {
             // Verify the schemas are the same
-            Schema embeddedSchema = dataFileStream.getSchema();
+            final Schema embeddedSchema = dataFileStream.getSchema();
             if (!embeddedSchema.equals(avroSchema)) {
                 throw new IOException("Explicit schema does not match embedded schema");
             }
             // Need to be able to re-read the bytes read so far, but we don't want to copy the input to a byte array anymore, so get rid of the TeeInputStream
-            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-            SequenceInputStream sis = new SequenceInputStream(bais, in);
+            final ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            final SequenceInputStream sis = new SequenceInputStream(bais, in);
             dataFileStream = new DataFileStream<>(sis, new NonCachingDatumReader<>(null, genericData));
         }
     }

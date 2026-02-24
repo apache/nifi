@@ -42,7 +42,7 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final DeleteBoxFileMetadataInstance testSubject = new DeleteBoxFileMetadataInstance() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };

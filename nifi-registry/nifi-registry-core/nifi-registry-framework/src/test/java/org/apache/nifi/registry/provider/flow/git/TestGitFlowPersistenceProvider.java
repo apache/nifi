@@ -55,7 +55,7 @@ public class TestGitFlowPersistenceProvider {
             final ProviderConfigurationContext configurationContext = new StandardProviderConfigurationContext(properties);
             persistenceProvider.onConfigured(configurationContext);
             fail("Should fail");
-        } catch (ProviderCreationException e) {
+        } catch (final ProviderCreationException e) {
             assertion.accept(e);
         }
     }
@@ -90,7 +90,7 @@ public class TestGitFlowPersistenceProvider {
         void accept(Git git) throws GitAPIException;
     }
 
-    private void assertProvider(final Map<String, String> properties, final GitConsumer gitConsumer, final Consumer<GitFlowPersistenceProvider> assertion, boolean deleteDir)
+    private void assertProvider(final Map<String, String> properties, final GitConsumer gitConsumer, final Consumer<GitFlowPersistenceProvider> assertion, final boolean deleteDir)
             throws IOException, GitAPIException {
 
         final File gitDir = new File(properties.get(GitFlowPersistenceProvider.FLOW_STORAGE_DIR_PROP));
@@ -127,7 +127,7 @@ public class TestGitFlowPersistenceProvider {
         assertProvider(properties, g -> { }, p -> {
             try {
                 p.getFlowContent("bucket-id-A", "flow-id-1", 1);
-            } catch (FlowPersistenceException e) {
+            } catch (final FlowPersistenceException e) {
                 assertEquals("Bucket ID bucket-id-A was not found.", e.getMessage());
             }
         }, true);
@@ -184,7 +184,7 @@ public class TestGitFlowPersistenceProvider {
                     "2nd commit.\n\nBy NiFi Registry user: unit-test-user",
                     "Initial commit.\n\nBy NiFi Registry user: unit-test-user"
             };
-            for (RevCommit commit : g.log().call()) {
+            for (final RevCommit commit : g.log().call()) {
                 assertEquals("git-user", commit.getAuthorIdent().getName());
                 final int commitIndex = commitCount.getAndIncrement();
                 assertEquals(commitMessages[commitIndex], commit.getFullMessage());
@@ -225,7 +225,7 @@ public class TestGitFlowPersistenceProvider {
                     "2nd commit.",
                     "Initial commit."
             };
-            for (RevCommit commit : g.log().call()) {
+            for (final RevCommit commit : g.log().call()) {
                 assertEquals("git-user", commit.getAuthorIdent().getName());
                 final int commitIndex = commitCount.getAndIncrement();
                 assertEquals(commitMessages[commitIndex], commit.getShortMessage());
@@ -246,13 +246,13 @@ public class TestGitFlowPersistenceProvider {
             // The 2nd flow has been deleted, and should not exist.
             try {
                 p.getFlowContent("bucket-id-A", "flow-id-2", 1);
-            } catch (FlowPersistenceException e) {
+            } catch (final FlowPersistenceException e) {
                 assertEquals("Flow ID flow-id-2 was not found in bucket New_name_for_Bucket_A:bucket-id-A.", e.getMessage());
             }
 
             try {
                 p.getFlowContent("bucket-id-A", "flow-id-2", 2);
-            } catch (FlowPersistenceException e) {
+            } catch (final FlowPersistenceException e) {
                 assertEquals("Flow ID flow-id-2 was not found in bucket New_name_for_Bucket_A:bucket-id-A.", e.getMessage());
             }
 
@@ -273,7 +273,7 @@ public class TestGitFlowPersistenceProvider {
                     "2nd commit.",
                     "Initial commit."
             };
-            for (RevCommit commit : g.log().call()) {
+            for (final RevCommit commit : g.log().call()) {
                 assertEquals("git-user", commit.getAuthorIdent().getName());
                 final int commitIndex = commitCount.getAndIncrement();
                 assertEquals(commitMessages[commitIndex], commit.getShortMessage());
@@ -283,7 +283,7 @@ public class TestGitFlowPersistenceProvider {
             // The 1st flow has been deleted, and should not exist. Moreover, the bucket A has been deleted since there's no flow.
             try {
                 p.getFlowContent("bucket-id-A", "flow-id-1", 1);
-            } catch (FlowPersistenceException e) {
+            } catch (final FlowPersistenceException e) {
                 assertEquals("Bucket ID bucket-id-A was not found.", e.getMessage());
             }
         }, true);

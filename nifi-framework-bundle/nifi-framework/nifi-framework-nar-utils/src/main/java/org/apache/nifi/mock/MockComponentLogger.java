@@ -30,32 +30,32 @@ public class MockComponentLogger implements ComponentLog {
             .getLogger(MockComponentLogger.class);
 
     @Override
-    public void warn(String msg, Throwable t) {
+    public void warn(final String msg, final Throwable t) {
         logger.warn(msg, t);
     }
 
     @Override
-    public void warn(String msg, Object... os) {
+    public void warn(final String msg, final Object... os) {
         logger.warn(msg, os);
     }
 
     @Override
-    public void warn(String msg) {
+    public void warn(final String msg) {
         logger.warn(msg);
     }
 
     @Override
-    public void trace(String msg, Throwable t) {
+    public void trace(final String msg, final Throwable t) {
         logger.trace(msg, t);
     }
 
     @Override
-    public void trace(String msg, Object... os) {
+    public void trace(final String msg, final Object... os) {
         logger.trace(msg, os);
     }
 
     @Override
-    public void trace(String msg) {
+    public void trace(final String msg) {
         logger.trace(msg);
     }
 
@@ -85,17 +85,17 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Throwable t) {
+    public void info(final String msg, final Throwable t) {
         logger.info(msg, t);
     }
 
     @Override
-    public void info(String msg, Object... os) {
+    public void info(final String msg, final Object... os) {
         logger.info(msg, os);
     }
 
     @Override
-    public void info(String msg) {
+    public void info(final String msg) {
         logger.info(msg);
 
     }
@@ -106,32 +106,32 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Throwable t) {
+    public void error(final String msg, final Throwable t) {
         logger.error(msg, t);
     }
 
     @Override
-    public void error(String msg, Object... os) {
+    public void error(final String msg, final Object... os) {
         logger.error(msg, os);
     }
 
     @Override
-    public void error(String msg) {
+    public void error(final String msg) {
         logger.error(msg);
     }
 
     @Override
-    public void debug(String msg, Throwable t) {
+    public void debug(final String msg, final Throwable t) {
         logger.debug(msg, t);
     }
 
     @Override
-    public void debug(String msg, Object... os) {
+    public void debug(final String msg, final Object... os) {
         logger.debug(msg, os);
     }
 
     @Override
-    public void debug(String msg) {
+    public void debug(final String msg) {
         logger.debug(msg);
     }
 }

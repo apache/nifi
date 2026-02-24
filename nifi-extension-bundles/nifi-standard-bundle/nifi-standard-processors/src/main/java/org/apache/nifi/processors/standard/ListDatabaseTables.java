@@ -266,7 +266,7 @@ public class ListDatabaseTables extends AbstractProcessor {
         try {
             stateMap = session.getState(Scope.CLUSTER);
             stateMapProperties = new HashMap<>(stateMap.toMap());
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new ProcessException(ioe);
         }
 
@@ -281,7 +281,7 @@ public class ListDatabaseTables extends AbstractProcessor {
         try (final Connection con = dbcpService.getConnection(Collections.emptyMap())) {
             writer.beginListing();
 
-            DatabaseMetaData dbMetaData = con.getMetaData();
+            final DatabaseMetaData dbMetaData = con.getMetaData();
             try (ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes)) {
                 while (rs.next()) {
                     final String tableCatalog = rs.getString(1);
@@ -376,7 +376,7 @@ public class ListDatabaseTables extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("list-db-tables-db-connection", DBCP_SERVICE.getName());
         config.renameProperty("list-db-tables-catalog", CATALOG.getName());
         config.renameProperty("list-db-tables-schema-pattern", SCHEMA_PATTERN.getName());
@@ -494,7 +494,7 @@ public class ListDatabaseTables extends AbstractProcessor {
         public void finishListingExceptionally(final Exception cause) {
             try {
                 recordWriter.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Failed to write listing as Records due to {}", e, e);
             }
 

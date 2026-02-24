@@ -72,7 +72,7 @@ public class TestSplitJson {
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
-        Relationship expectedRel = SplitJson.REL_FAILURE;
+        final Relationship expectedRel = SplitJson.REL_FAILURE;
 
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).getFirst();
@@ -102,7 +102,7 @@ public class TestSplitJson {
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
-        int numSplitsExpected = 10;
+        final int numSplitsExpected = 10;
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
@@ -119,7 +119,7 @@ public class TestSplitJson {
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
-        int numSplitsExpected = 10;
+        final int numSplitsExpected = 10;
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
@@ -140,7 +140,7 @@ public class TestSplitJson {
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
         originalFlowFile.assertContentEquals(JSON_SNIPPET);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).getFirst();
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).getFirst();
         flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
     }
 
@@ -187,7 +187,7 @@ public class TestSplitJson {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nullField");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        final ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -207,7 +207,7 @@ public class TestSplitJson {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        final ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -220,7 +220,7 @@ public class TestSplitJson {
         testRunner.run();
 
         /* assert that three files were transferred to split and each is empty */
-        int expectedFiles = 3;
+        final int expectedFiles = 3;
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
         for (int i = 0; i < expectedFiles; i++) {
             testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("");
@@ -234,7 +234,7 @@ public class TestSplitJson {
         testRunner.setProperty(SplitJson.NULL_VALUE_DEFAULT_REPRESENTATION,
                 AbstractJsonPathProcessor.NULL_STRING_OPTION);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        final ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, out -> {
@@ -247,7 +247,7 @@ public class TestSplitJson {
         testRunner.run();
 
         /* assert that three files were transferred to split and each has the word null in it */
-        int expectedFiles = 3;
+        final int expectedFiles = 3;
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
         for (int i = 0; i < expectedFiles; i++) {
             testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("null");
@@ -258,7 +258,7 @@ public class TestSplitJson {
     public void testSplit_pathToInputStringNullValue() {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.*");
-        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        final ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
         ff = session.write(ff, out -> {
             try (OutputStream outputStream = new BufferedOutputStream(out)) {

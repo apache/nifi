@@ -52,11 +52,11 @@ public enum OperationType {
 
     private final Set<OperandType> supportedOperands;
 
-    OperationType(OperandType... supportedOperands) {
+    OperationType(final OperandType... supportedOperands) {
         this.supportedOperands = Arrays.stream(supportedOperands).collect(Collectors.toSet());
     }
 
-    public boolean isSupportedOperand(OperandType operand) {
+    public boolean isSupportedOperand(final OperandType operand) {
         return supportedOperands.contains(operand);
     }
 

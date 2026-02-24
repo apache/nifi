@@ -230,12 +230,12 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
             // Adding GC metrics uses previous measurement for generating diff
             if (!snapshots.isEmpty()) {
                 for (int j = 0; j < gcMetricDescriptorsDifferential.size(); j++) {
-                    long previousValue = snapshots.getLast().getStatusMetric(gcMetricDescriptors.get(j));
-                    long currentValue = snapshot.getStatusMetric(gcMetricDescriptors.get(j));
+                    final long previousValue = snapshots.getLast().getStatusMetric(gcMetricDescriptors.get(j));
+                    final long currentValue = snapshot.getStatusMetric(gcMetricDescriptors.get(j));
                     snapshot.addStatusMetric(gcMetricDescriptorsDifferential.get(j), currentValue - previousValue);
                 }
             } else {
-                for (MetricDescriptor<List<GarbageCollectionStatus>> listMetricDescriptor : gcMetricDescriptorsDifferential) {
+                for (final MetricDescriptor<List<GarbageCollectionStatus>> listMetricDescriptor : gcMetricDescriptorsDifferential) {
                     snapshot.addStatusMetric(listMetricDescriptor, 0L);
                 }
             }
@@ -270,7 +270,7 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
         );
     }
 
-    private StandardMetricDescriptor<NodeStatus> getContentStorageUsed(NodeStatus referenceNodeStatus, int storageNumber, int order) {
+    private StandardMetricDescriptor<NodeStatus> getContentStorageUsed(final NodeStatus referenceNodeStatus, final int storageNumber, final int order) {
         return new StandardMetricDescriptor<>(
                 () -> order,
                 "contentStorage" + storageNumber + "Used",
@@ -281,7 +281,7 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
         );
     }
 
-    private StandardMetricDescriptor<NodeStatus> getContentStorageFree(NodeStatus referenceNodeStatus, int storageNumber, int order) {
+    private StandardMetricDescriptor<NodeStatus> getContentStorageFree(final NodeStatus referenceNodeStatus, final int storageNumber, final int order) {
         return new StandardMetricDescriptor<>(
                 () -> order,
                 "contentStorage" + storageNumber + "Free",
@@ -353,11 +353,11 @@ public class VolatileComponentStatusRepository implements StatusHistoryRepositor
 
     // Given a buffer, return a list of Dates based on start/end/preferredDataPoints
     protected List<Date> filterDates(final Date start, final Date end, final int preferredDataPoints) {
-        Date startDate = (start == null) ? new Date(0L) : start;
-        Date endDate = (end == null) ? new Date() : end;
+        final Date startDate = (start == null) ? new Date(0L) : start;
+        final Date endDate = (end == null) ? new Date() : end;
 
         // Limit date information to a subset based upon input parameters
-        List<Date> filteredDates =
+        final List<Date> filteredDates =
             timestamps.asList()
                 .stream()
                 .filter(p -> (p.after(startDate) || p.equals(startDate))

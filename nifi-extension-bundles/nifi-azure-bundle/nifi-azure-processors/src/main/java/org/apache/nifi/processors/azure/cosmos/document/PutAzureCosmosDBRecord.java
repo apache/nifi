@@ -120,10 +120,10 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         // currently, no createItems API available in Azure Cosmos Java SDK
         final ComponentLog logger = getLogger();
         final CosmosContainer container = getContainer();
-        for (Map<String, Object> record : records) {
+        for (final Map<String, Object> record : records) {
             try {
                 container.createItem(record);
-            } catch (ConflictException e) {
+            } catch (final ConflictException e) {
                 // insert with unique id is expected. In case conflict occurs, use the selected strategy.
                 // By default, it will ignore.
                 if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())) {
@@ -150,17 +150,17 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
 
         final String partitionKeyField = context.getProperty(PARTITION_KEY).getValue();
         List<Map<String, Object>> batch = new ArrayList<>();
-        int ceiling = context.getProperty(INSERT_BATCH_SIZE).asInteger();
+        final int ceiling = context.getProperty(INSERT_BATCH_SIZE).asInteger();
         boolean error = false;
         try (final InputStream inStream = session.read(flowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
 
-            RecordSchema schema = reader.getSchema();
+            final RecordSchema schema = reader.getSchema();
             Record record;
 
             while ((record = reader.nextRecord()) != null) {
                 // Convert each Record to HashMap
-                Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(schema));
+                final Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(schema));
                 if (contentMap.containsKey("id")) {
                     final Object idObj = contentMap.get("id");
                     final String idStr = (idObj == null) ? "" : String.valueOf(idObj);
@@ -187,7 +187,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             if (!error && !batch.isEmpty()) {
                 bulkInsert(batch);
             }
-        } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
+        } catch (final SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
             logger.error("PutAzureCosmoDBRecord failed with error: {}", e.getMessage(), e);
             error = true;
         } finally {
@@ -201,7 +201,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
         config.renameProperty("insert-batch-size", INSERT_BATCH_SIZE.getName());

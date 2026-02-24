@@ -46,7 +46,7 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
     }

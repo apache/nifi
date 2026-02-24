@@ -142,11 +142,11 @@ public class GetZendesk extends AbstractZendesk {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> results = new ArrayList<>(1);
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(1);
 
-        ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(validationContext.getProperty(ZENDESK_EXPORT_METHOD).getValue());
-        ZendeskResource zendeskResource = ZendeskResource.forName(validationContext.getProperty(ZENDESK_RESOURCE).getValue());
+        final ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(validationContext.getProperty(ZENDESK_EXPORT_METHOD).getValue());
+        final ZendeskResource zendeskResource = ZendeskResource.forName(validationContext.getProperty(ZENDESK_RESOURCE).getValue());
         if (!zendeskResource.supportsExportMethod(exportMethod)) {
             results.add(new ValidationResult.Builder()
                 .subject(ZENDESK_EXPORT_METHOD_NAME)
@@ -159,21 +159,21 @@ public class GetZendesk extends AbstractZendesk {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) {
-        ZendeskResource zendeskResource = ZendeskResource.forName(context.getProperty(ZENDESK_RESOURCE).getValue());
-        ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(context.getProperty(ZENDESK_EXPORT_METHOD).getValue());
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        final ZendeskResource zendeskResource = ZendeskResource.forName(context.getProperty(ZENDESK_RESOURCE).getValue());
+        final ZendeskExportMethod exportMethod = ZendeskExportMethod.forName(context.getProperty(ZENDESK_EXPORT_METHOD).getValue());
 
-        URI uri = createUri(context, zendeskResource, exportMethod);
-        HttpResponseEntity response = zendeskClient.performGetRequest(uri);
+        final URI uri = createUri(context, zendeskResource, exportMethod);
+        final HttpResponseEntity response = zendeskClient.performGetRequest(uri);
 
         if (response.statusCode() == OK.getCode()) {
-            AtomicInteger resultCount = new AtomicInteger(0);
-            FlowFile createdFlowFile = session.write(
+            final AtomicInteger resultCount = new AtomicInteger(0);
+            final FlowFile createdFlowFile = session.write(
                 session.create(),
                 httpResponseParser(context, response, zendeskResource, exportMethod, resultCount));
-            int recordCount = resultCount.get();
+            final int recordCount = resultCount.get();
             if (recordCount > 0) {
-                FlowFile updatedFlowFile = session.putAttribute(createdFlowFile, RECORD_COUNT_ATTRIBUTE_NAME, Integer.toString(recordCount));
+                final FlowFile updatedFlowFile = session.putAttribute(createdFlowFile, RECORD_COUNT_ATTRIBUTE_NAME, Integer.toString(recordCount));
                 session.getProvenanceReporter().receive(updatedFlowFile, uri.toString());
                 session.transfer(updatedFlowFile, REL_SUCCESS);
             } else {
@@ -189,7 +189,7 @@ public class GetZendesk extends AbstractZendesk {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
         config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
         config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
@@ -200,13 +200,13 @@ public class GetZendesk extends AbstractZendesk {
         config.renameProperty("zendesk-query-start-timestamp", ZENDESK_QUERY_START_TIMESTAMP.getName());
     }
 
-    private URI createUri(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
-        String resourcePath = zendeskResource.apiPath(exportMethod);
-        HttpUriBuilder uriBuilder = uriBuilder(resourcePath);
+    private URI createUri(final ProcessContext context, final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) {
+        final String resourcePath = zendeskResource.apiPath(exportMethod);
+        final HttpUriBuilder uriBuilder = uriBuilder(resourcePath);
 
-        String cursor = getCursorState(context, zendeskResource, exportMethod);
+        final String cursor = getCursorState(context, zendeskResource, exportMethod);
         if (cursor == null) {
-            String queryStartTimestamp = context.getProperty(ZENDESK_QUERY_START_TIMESTAMP).evaluateAttributeExpressions().getValue();
+            final String queryStartTimestamp = context.getProperty(ZENDESK_QUERY_START_TIMESTAMP).evaluateAttributeExpressions().getValue();
             uriBuilder.addQueryParameter(exportMethod.getInitialCursorQueryParameterName(), queryStartTimestamp);
         } else {
             uriBuilder.addQueryParameter(exportMethod.getCursorQueryParameterName(), cursor);
@@ -214,26 +214,26 @@ public class GetZendesk extends AbstractZendesk {
         return uriBuilder.build();
     }
 
-    private String getCursorState(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {
+    private String getCursorState(final ProcessContext context, final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod) {
         try {
             return context.getStateManager().getState(CLUSTER).get(zendeskResource.getValue() + exportMethod.getValue());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to retrieve cursor state", e);
         }
     }
 
-    private OutputStreamCallback httpResponseParser(ProcessContext context, HttpResponseEntity response,
-                                                    ZendeskResource zendeskResource, ZendeskExportMethod exportMethod,
-                                                    AtomicInteger resultCount) {
+    private OutputStreamCallback httpResponseParser(final ProcessContext context, final HttpResponseEntity response,
+                                                    final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod,
+                                                    final AtomicInteger resultCount) {
         return out -> {
             try (JsonParser parser = JSON_FACTORY.createParser(response.body());
                  JsonGenerator generator = JSON_FACTORY.createGenerator(out, UTF8)) {
                 while (parser.nextToken() != null) {
                     if (parser.getCurrentToken() == FIELD_NAME) {
-                        String fieldName = parser.currentName();
+                        final String fieldName = parser.currentName();
                         parser.nextToken();
                         if (zendeskResource.getResponseFieldName().equals(fieldName)) {
-                            int numberOfExtractedRecords = extractZendeskResourceData(parser, generator);
+                            final int numberOfExtractedRecords = extractZendeskResourceData(parser, generator);
                             resultCount.addAndGet(numberOfExtractedRecords);
                         }
                         if (exportMethod.getCursorJsonFieldName().equals(fieldName) && parser.currentToken() != VALUE_NULL) {
@@ -245,11 +245,11 @@ public class GetZendesk extends AbstractZendesk {
         };
     }
 
-    private int extractZendeskResourceData(JsonParser parser, JsonGenerator generator) throws IOException {
-        ArrayNode zendeskItems = OBJECT_MAPPER.readTree(parser);
+    private int extractZendeskResourceData(final JsonParser parser, final JsonGenerator generator) throws IOException {
+        final ArrayNode zendeskItems = OBJECT_MAPPER.readTree(parser);
         if (zendeskItems.size() > 0) {
             generator.writeStartArray();
-            for (JsonNode zendeskItem : zendeskItems) {
+            for (final JsonNode zendeskItem : zendeskItems) {
                 generator.writeTree(zendeskItem);
             }
             generator.writeEndArray();
@@ -257,10 +257,10 @@ public class GetZendesk extends AbstractZendesk {
         return zendeskItems.size();
     }
 
-    private void updateCursorState(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod, String cursor) {
+    private void updateCursorState(final ProcessContext context, final ZendeskResource zendeskResource, final ZendeskExportMethod exportMethod, final String cursor) {
         try {
             context.getStateManager().setState(singletonMap(zendeskResource.getValue() + exportMethod.getValue(), cursor), CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to update cursor state", e);
         }
     }

@@ -38,7 +38,7 @@ public interface InheritingAuthorizable extends Authorizable {
      * @return is authorized
      */
     @Override
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+    default AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) {
         if (user == null) {
             throw new AccessDeniedException("Unknown user.");
         }
@@ -63,7 +63,7 @@ public interface InheritingAuthorizable extends Authorizable {
      * @param resourceContext resource context
      */
     @Override
-    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+    default void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) throws AccessDeniedException {
         if (user == null) {
             throw new AccessDeniedException("Unknown user.");
         }

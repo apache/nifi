@@ -34,7 +34,7 @@ public class ExtensionRepoGroup extends LinkableEntity implements Comparable<Ext
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -43,7 +43,7 @@ public class ExtensionRepoGroup extends LinkableEntity implements Comparable<Ext
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -60,7 +60,7 @@ public class ExtensionRepoGroup extends LinkableEntity implements Comparable<Ext
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

@@ -44,7 +44,7 @@ public class FlowBreadcrumbEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -59,7 +59,7 @@ public class FlowBreadcrumbEntity extends Entity {
         return permissions;
     }
 
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -74,7 +74,7 @@ public class FlowBreadcrumbEntity extends Entity {
         return breadcrumb;
     }
 
-    public void setBreadcrumb(FlowBreadcrumbDTO breadcrumb) {
+    public void setBreadcrumb(final FlowBreadcrumbDTO breadcrumb) {
         this.breadcrumb = breadcrumb;
     }
 
@@ -89,7 +89,7 @@ public class FlowBreadcrumbEntity extends Entity {
         return parentBreadcrumb;
     }
 
-    public void setParentBreadcrumb(FlowBreadcrumbEntity parentBreadcrumb) {
+    public void setParentBreadcrumb(final FlowBreadcrumbEntity parentBreadcrumb) {
         this.parentBreadcrumb = parentBreadcrumb;
     }
 
@@ -102,7 +102,7 @@ public class FlowBreadcrumbEntity extends Entity {
         return versionedFlowState;
     }
 
-    public void setVersionedFlowState(String versionedFlowState) {
+    public void setVersionedFlowState(final String versionedFlowState) {
         this.versionedFlowState = versionedFlowState;
     }
 }

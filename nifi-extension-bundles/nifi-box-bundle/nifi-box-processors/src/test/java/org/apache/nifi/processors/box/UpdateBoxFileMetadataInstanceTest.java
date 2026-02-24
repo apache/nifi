@@ -88,7 +88,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         lenient().when(mockMetadata.getValue("/test")).thenReturn(Json.value("test"));
     }
 
-    private void configureJsonRecordReader(TestRunner runner) throws InitializationException {
+    private void configureJsonRecordReader(final TestRunner runner) throws InitializationException {
         final JsonTreeReader readerService = new JsonTreeReader();
         runner.addControllerService("json-reader", readerService);
         runner.setProperty(readerService, "Date Format", "yyyy-MM-dd");
@@ -196,7 +196,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testNullValues() {
-        JsonArray operationsArray = new JsonArray();
+        final JsonArray operationsArray = new JsonArray();
         operationsArray.add("someOperation");
         lenient().when(mockMetadata.getOperations()).thenReturn(operationsArray);
 
@@ -321,7 +321,7 @@ public class UpdateBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
         lenient().when(mockMetadata.getValue("/stringField")).thenReturn(Json.value("old value"));
         lenient().when(mockMetadata.getValue("/numberField")).thenReturn(Json.value(10.0));
-        JsonArray oldList = new JsonArray();
+        final JsonArray oldList = new JsonArray();
         oldList.add("old1");
         oldList.add("old2");
         lenient().when(mockMetadata.getValue("/listField")).thenReturn(oldList);

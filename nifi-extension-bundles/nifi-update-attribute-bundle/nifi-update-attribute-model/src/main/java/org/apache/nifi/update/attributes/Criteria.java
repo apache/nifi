@@ -126,7 +126,7 @@ public class Criteria {
      *
      * @param flowFilePolicy the new policy
      */
-    public void setFlowFilePolicy(FlowFilePolicy flowFilePolicy) {
+    public void setFlowFilePolicy(final FlowFilePolicy flowFilePolicy) {
         this.flowFilePolicy = flowFilePolicy;
     }
 

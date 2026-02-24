@@ -47,17 +47,17 @@ public class JacksonUtils {
     public static void write(final Object result, final OutputStream output) throws IOException {
         OBJECT_WRITER.writeValue(new OutputStream() {
             @Override
-            public void write(byte[] b) throws IOException {
+            public void write(final byte[] b) throws IOException {
                 output.write(b);
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(final byte[] b, final int off, final int len) throws IOException {
                 output.write(b, off, len);
             }
 
             @Override
-            public void write(int b) throws IOException {
+            public void write(final int b) throws IOException {
                 output.write(b);
             }
 

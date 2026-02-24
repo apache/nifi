@@ -165,7 +165,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 scriptingComponentHelper.createResources();
             }
         }
-        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
+        final List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
 
         final Processor instance = processor.get();
         if (instance != null) {
@@ -384,7 +384,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 throw new ProcessException("No script runner available");
             }
             // get the engine and ensure its invocable
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
@@ -490,7 +490,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
-        Collection<ValidationResult> commonValidationResults = super.customValidate(context);
+        final Collection<ValidationResult> commonValidationResults = super.customValidate(context);
         if (!commonValidationResults.isEmpty()) {
             return commonValidationResults;
         }
@@ -501,7 +501,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             return validationResults.get();
         }
 
-        Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
+        final Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
         if (scriptingComponentHelperResults != null && !scriptingComponentHelperResults.isEmpty()) {
             validationResults.set(scriptingComponentHelperResults);
             return scriptingComponentHelperResults;
@@ -525,7 +525,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 // invokescriptedprocessor properties
                 final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<>(scriptingComponentHelper.getDescriptors());
 
-                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
                 final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
 
                 if (instanceResults != null && !instanceResults.isEmpty()) {
@@ -568,7 +568,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
      * throws an exception
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
 
         // Initialize the rest of the processor resources if we have not already done so
         synchronized (scriptingComponentHelper.isInitialized) {
@@ -577,7 +577,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             }
         }
 
-        ComponentLog log = getLogger();
+        final ComponentLog log = getLogger();
 
         // ensure the processor (if it exists) is loaded
         final Processor instance = processor.get();
@@ -616,7 +616,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     }
 
     @OnStopped
-    public void stop(ProcessContext context) {
+    public void stop(final ProcessContext context) {
         // If the script needs to be reloaded at this point, it is because it was empty
         if (scriptRunner != null) {
             invokeScriptedProcessorMethod("onStopped", context);
@@ -626,7 +626,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         scriptRunner = null;
     }
 
-    private void invokeScriptedProcessorMethod(String methodName, Object... params) {
+    private void invokeScriptedProcessorMethod(final String methodName, final Object... params) {
         // Run the scripted processor's method here, if it exists
         if (scriptRunner != null) {
             final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
@@ -635,7 +635,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 final Object obj = scriptEngine.get("processor");
                 if (obj != null) {
 
-                    ComponentLog logger = getLogger();
+                    final ComponentLog logger = getLogger();
                     try {
                         invocable.invokeMethod(obj, methodName, params);
                     } catch (final NoSuchMethodException nsme) {

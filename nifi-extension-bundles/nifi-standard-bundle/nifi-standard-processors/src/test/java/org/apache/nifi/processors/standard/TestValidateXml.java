@@ -70,8 +70,8 @@ public class TestValidateXml {
         assertErrorAttributeContainsStableErrorKeyword(runner);
     }
 
-    private void assertErrorAttributeContainsStableErrorKeyword(TestRunner runner) {
-        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+    private void assertErrorAttributeContainsStableErrorKeyword(final TestRunner runner) {
+        final String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
         assertTrue(errorAttribute.contains("lineNumber"));
     }
 
@@ -104,7 +104,7 @@ public class TestValidateXml {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
         runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("xml.attribute", VALID_XML);
 
         runner.enqueue("XML is in attribute, not content", attributes);
@@ -119,7 +119,7 @@ public class TestValidateXml {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
         runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("xml.attribute", INVALID_XML);
 
         runner.enqueue("flowfile content is irrelevant", attributes);
@@ -146,7 +146,7 @@ public class TestValidateXml {
         // Valid XML in FF attribute, no XSD provided
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("xml.attribute", VALID_XML);
 
         runner.enqueue("XML is in attribute, not content", attributes);
@@ -160,7 +160,7 @@ public class TestValidateXml {
         // Invalid XML in FF attribute, no XSD provided
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("xml.attribute", INVALID_XML);
 
         runner.enqueue("XML is in attribute, not content", attributes);
@@ -168,7 +168,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
-        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+        final String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
         assertTrue(errorAttribute.contains("ParseError"));
     }
 
@@ -193,7 +193,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
-        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+        final String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
         assertTrue(errorAttribute.contains("ParseError"));
     }
 }

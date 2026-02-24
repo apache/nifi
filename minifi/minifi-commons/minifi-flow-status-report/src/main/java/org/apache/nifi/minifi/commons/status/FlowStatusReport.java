@@ -46,7 +46,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return controllerServiceStatusList;
     }
 
-    public void setControllerServiceStatusList(List<ControllerServiceStatus> controllerServiceStatusList) {
+    public void setControllerServiceStatusList(final List<ControllerServiceStatus> controllerServiceStatusList) {
         this.controllerServiceStatusList = controllerServiceStatusList;
     }
 
@@ -54,7 +54,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return processorStatusList;
     }
 
-    public void setProcessorStatusList(List<ProcessorStatusBean> processorStatusList) {
+    public void setProcessorStatusList(final List<ProcessorStatusBean> processorStatusList) {
         this.processorStatusList = processorStatusList;
     }
 
@@ -62,7 +62,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return connectionStatusList;
     }
 
-    public void setConnectionStatusList(List<ConnectionStatusBean> connectionStatusList) {
+    public void setConnectionStatusList(final List<ConnectionStatusBean> connectionStatusList) {
         this.connectionStatusList = connectionStatusList;
     }
 
@@ -70,7 +70,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return instanceStatus;
     }
 
-    public void setInstanceStatus(InstanceStatus instanceStatus) {
+    public void setInstanceStatus(final InstanceStatus instanceStatus) {
         this.instanceStatus = instanceStatus;
     }
 
@@ -78,7 +78,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return systemDiagnosticsStatus;
     }
 
-    public void setSystemDiagnosticsStatus(SystemDiagnosticsStatus systemDiagnosticsStatus) {
+    public void setSystemDiagnosticsStatus(final SystemDiagnosticsStatus systemDiagnosticsStatus) {
         this.systemDiagnosticsStatus = systemDiagnosticsStatus;
     }
 
@@ -86,7 +86,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return remoteProcessGroupStatusList;
     }
 
-    public void setRemoteProcessGroupStatusList(List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList) {
+    public void setRemoteProcessGroupStatusList(final List<RemoteProcessGroupStatusBean> remoteProcessGroupStatusList) {
         this.remoteProcessGroupStatusList = remoteProcessGroupStatusList;
     }
 
@@ -94,7 +94,7 @@ public class FlowStatusReport implements java.io.Serializable {
         return reportingTaskStatusList;
     }
 
-    public void setReportingTaskStatusList(List<ReportingTaskStatus> reportingTaskStatusList) {
+    public void setReportingTaskStatusList(final List<ReportingTaskStatus> reportingTaskStatusList) {
         this.reportingTaskStatusList = reportingTaskStatusList;
     }
 
@@ -102,12 +102,12 @@ public class FlowStatusReport implements java.io.Serializable {
         return errorsGeneratingReport;
     }
 
-    public void setErrorsGeneratingReport(List<String> errorsGeneratingReport) {
+    public void setErrorsGeneratingReport(final List<String> errorsGeneratingReport) {
         this.errorsGeneratingReport = errorsGeneratingReport;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -115,7 +115,7 @@ public class FlowStatusReport implements java.io.Serializable {
             return false;
         }
 
-        FlowStatusReport that = (FlowStatusReport) o;
+        final FlowStatusReport that = (FlowStatusReport) o;
 
         if (getControllerServiceStatusList() != null ? !getControllerServiceStatusList().equals(that.getControllerServiceStatusList()) : that.getControllerServiceStatusList() != null) {
             return false;
@@ -158,7 +158,7 @@ public class FlowStatusReport implements java.io.Serializable {
     @Override
     public String toString() {
 
-        StringWriter jsonString = new StringWriter();
+        final StringWriter jsonString = new StringWriter();
         try (JsonGenerator generator = objectMapper.getFactory().createGenerator(jsonString)) {
             generator.writeStartObject();
             generator.writeObjectField("controllerServiceStatusList", controllerServiceStatusList);
@@ -171,7 +171,7 @@ public class FlowStatusReport implements java.io.Serializable {
             generator.writeObjectField("errorsGeneratingReport", errorsGeneratingReport);
             generator.writeEndObject();
             generator.close();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             //this should not occur since we are using a StringWriter, however, in the event it does. Generate
             //the old style report
             return "FlowStatusReport{" +

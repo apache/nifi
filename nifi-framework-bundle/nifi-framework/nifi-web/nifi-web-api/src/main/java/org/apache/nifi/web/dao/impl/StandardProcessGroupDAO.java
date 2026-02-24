@@ -73,17 +73,17 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     private FlowController flowController;
 
     @Override
-    public ProcessGroup createProcessGroup(String parentGroupId, ProcessGroupDTO processGroup) {
+    public ProcessGroup createProcessGroup(final String parentGroupId, final ProcessGroupDTO processGroup) {
         final FlowManager flowManager = flowController.getFlowManager();
         if (processGroup.getParentGroupId() != null && !flowManager.areGroupsSame(processGroup.getParentGroupId(), parentGroupId)) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Process Group is being added.");
         }
 
         // get the parent group
-        ProcessGroup parentGroup = locateProcessGroup(flowController, parentGroupId);
+        final ProcessGroup parentGroup = locateProcessGroup(flowController, parentGroupId);
 
         // create the process group
-        ProcessGroup group = flowManager.createProcessGroup(processGroup.getId());
+        final ProcessGroup group = flowManager.createProcessGroup(processGroup.getId());
         if (processGroup.getName() != null) {
             group.setName(processGroup.getName());
         }
@@ -119,7 +119,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public boolean hasProcessGroup(String groupId) {
+    public boolean hasProcessGroup(final String groupId) {
         return flowController.getFlowManager().getGroup(groupId) != null;
     }
 
@@ -183,13 +183,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup getProcessGroup(String groupId) {
+    public ProcessGroup getProcessGroup(final String groupId) {
         return locateProcessGroup(flowController, groupId);
     }
 
     @Override
     public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
-        ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
+        final ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
         if (processGroupRecursivity == ProcessGroupRecursivity.ALL_DESCENDANTS) {
             return new HashSet<>(group.findAllProcessGroups());
         } else {
@@ -248,7 +248,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void verifyEnableComponents(String groupId, ScheduledState state, Set<String> componentIds) {
+    public void verifyEnableComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         final Set<ProcessGroup> validGroups = new HashSet<>();
@@ -431,7 +431,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public ProcessGroup updateProcessGroup(ProcessGroupDTO processGroupDTO) {
+    public ProcessGroup updateProcessGroup(final ProcessGroupDTO processGroupDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, processGroupDTO.getId());
 
         final String name = processGroupDTO.getName();
@@ -589,13 +589,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void verifyDelete(String groupId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public void verifyDelete(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         group.verifyCanDelete();
     }
 
     @Override
-    public void verifyDeleteFlowRegistry(String registryId) {
+    public void verifyDeleteFlowRegistry(final String registryId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
 
         final VersionControlInformation versionControlInformation = rootGroup.getVersionControlInformation();
@@ -615,8 +615,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+    public DropFlowFileStatus createDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
+        final ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
@@ -627,24 +627,24 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+    public DropFlowFileStatus getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
+        final ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
 
         return processGroup.getDropAllFlowFilesStatus(dropRequestId);
     }
 
     @Override
-    public DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+    public DropFlowFileStatus deleteDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
+        final ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
 
         return processGroup.cancelDropAllFlowFiles(dropRequestId);
     }
 
     @Override
-    public void deleteProcessGroup(String processGroupId) {
+    public void deleteProcessGroup(final String processGroupId) {
         // get the group
-        ProcessGroup group = locateProcessGroup(flowController, processGroupId);
-        ProcessGroup parentGroup = group.getParent();
+        final ProcessGroup group = locateProcessGroup(flowController, processGroupId);
+        final ProcessGroup parentGroup = group.getParent();
 
         // ensure this isn't the root group
         if (parentGroup == null) {
@@ -656,7 +656,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 }

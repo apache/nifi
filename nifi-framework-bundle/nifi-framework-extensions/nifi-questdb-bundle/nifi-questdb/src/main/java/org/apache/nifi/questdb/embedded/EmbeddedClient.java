@@ -56,7 +56,7 @@ final class EmbeddedClient implements Client {
 
         try {
             engine.get().execute(query, getSqlExecutionContext(), new SCSequence(new TimeoutBlockingWaitStrategy(5, TimeUnit.SECONDS)));
-        } catch (SqlException e) {
+        } catch (final SqlException e) {
             throw new DatabaseException(e);
         }
     }

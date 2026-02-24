@@ -79,7 +79,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
             bundleStorageDir = new File(bundleStorageDirValue);
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bundleStorageDir);
             LOGGER.info("Configured BundlePersistenceProvider with Extension Bundle Storage Directory {}", bundleStorageDir.getAbsolutePath());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProviderCreationException(e);
         }
     }
@@ -101,7 +101,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         final File bundleVersionDir = getBundleVersionDirectory(bundleStorageDir, versionCoordinate);
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(bundleVersionDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error accessing directory for extension bundle version at "
                     + bundleVersionDir.getAbsolutePath(), e);
         }
@@ -119,7 +119,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         try (final OutputStream out = new FileOutputStream(bundleFile)) {
             IOUtils.copy(contentStream, out);
             out.flush();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new FlowPersistenceException("Unable to write bundle file to disk due to " + e.getMessage(), e);
         }
     }
@@ -137,9 +137,9 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
              final BufferedInputStream bufIn = new BufferedInputStream(in)) {
             IOUtils.copy(bufIn, outputStream);
             outputStream.flush();
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             throw new BundlePersistenceException("Extension bundle content was not found for: " + bundleFile.getAbsolutePath(), e);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new BundlePersistenceException("Error reading extension bundle content", e);
         }
     }
@@ -173,7 +173,7 @@ public class FileSystemBundlePersistenceProvider implements BundlePersistencePro
         // delete everything under the bundle directory
         try {
             org.apache.commons.io.FileUtils.cleanDirectory(bundleDir);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowPersistenceException("Error deleting extension bundles at " + bundleDir.getAbsolutePath(), e);
         }
 

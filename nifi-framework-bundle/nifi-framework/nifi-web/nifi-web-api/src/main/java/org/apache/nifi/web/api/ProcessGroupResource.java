@@ -186,8 +186,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @param processGroupEntities groups
      * @return group dto
      */
-    public Set<ProcessGroupEntity> populateRemainingProcessGroupEntitiesContent(Set<ProcessGroupEntity> processGroupEntities) {
-        for (ProcessGroupEntity processGroupEntity : processGroupEntities) {
+    public Set<ProcessGroupEntity> populateRemainingProcessGroupEntitiesContent(final Set<ProcessGroupEntity> processGroupEntities) {
+        for (final ProcessGroupEntity processGroupEntity : processGroupEntities) {
             populateRemainingProcessGroupEntityContent(processGroupEntity);
         }
         return processGroupEntities;
@@ -199,7 +199,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @param processGroupEntity group
      * @return group dto
      */
-    public ProcessGroupEntity populateRemainingProcessGroupEntityContent(ProcessGroupEntity processGroupEntity) {
+    public ProcessGroupEntity populateRemainingProcessGroupEntityContent(final ProcessGroupEntity processGroupEntity) {
         processGroupEntity.setUri(generateResourceUri("process-groups", processGroupEntity.getId()));
         return processGroupEntity;
     }
@@ -207,7 +207,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     /**
      * Populates the remaining content of the specified snippet.
      */
-    private FlowDTO populateRemainingSnippetContent(FlowDTO flow) {
+    private FlowDTO populateRemainingSnippetContent(final FlowDTO flow) {
         processorResource.populateRemainingProcessorEntitiesContent(flow.getProcessors());
         connectionResource.populateRemainingConnectionEntitiesContent(flow.getConnections());
         inputPortResource.populateRemainingInputPortEntitiesContent(flow.getInputPorts());
@@ -303,7 +303,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
-            @Parameter(description = "If referenced services from outside the target group should be included")
+            final @Parameter(description = "If referenced services from outside the target group should be included")
             @QueryParam("includeReferencedServices")
             @DefaultValue("false") boolean includeReferencedServices) {
         // authorize access
@@ -578,7 +578,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
 
         if (updateStrategy == ProcessGroupRecursivity.ALL_DESCENDANTS) {
-            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
+            for (final ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
                 final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
                 final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
                 if (processGroupDTO != null) {
@@ -599,7 +599,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         final ProcessGroupDTO updatableGroupDto = updatableGroupEntity.getComponent();
                         final String groupId = updatableGroupDto == null ? updatableGroupEntity.getId() : updatableGroupDto.getId();
 
-                        Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
+                        final Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
                         authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
                         // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
@@ -648,7 +648,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 },
                 (revisions, entities) -> {
                     ProcessGroupEntity responseEntity = null;
-                    for (Map.Entry<ProcessGroupEntity, Revision> entry : updatableProcessGroups.entrySet()) {
+                    for (final Map.Entry<ProcessGroupEntity, Revision> entry : updatableProcessGroups.entrySet()) {
                         // update the process group
                         final Revision revision = entry.getValue();
                         final ProcessGroupDTO groupDTO = entry.getKey().getComponent();
@@ -869,7 +869,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         );
     }
 
-    private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
+    private void authorizeHandleDropAllFlowFilesRequest(final String processGroupId, final AuthorizableLookup lookup) {
         final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
 
         authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
@@ -1148,7 +1148,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     populateRemainingProcessGroupEntityContent(entity);
 
                     // generate a 201 created response
-                    String uri = entity.getUri();
+                    final String uri = entity.getUri();
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
@@ -1332,7 +1332,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     processorResource.populateRemainingProcessorEntityContent(entity);
 
                     // generate a 201 created response
-                    String uri = entity.getUri();
+                    final String uri = entity.getUri();
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
@@ -1368,7 +1368,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = true
             )
             @PathParam("id") final String groupId,
-            @Parameter(description = "Whether or not to include processors from descendant process groups")
+            final @Parameter(description = "Whether or not to include processors from descendant process groups")
             @QueryParam("includeDescendantGroups")
             @DefaultValue("false") boolean includeDescendantGroups) {
 
@@ -2097,7 +2097,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final Set<RemoteProcessGroupEntity> remoteProcessGroups = serviceFacade.getRemoteProcessGroups(groupId);
 
         // prune response as necessary
-        for (RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
+        for (final RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
             if (remoteProcessGroupEntity.getComponent() != null) {
                 remoteProcessGroupEntity.getComponent().setContents(null);
             }
@@ -2265,7 +2265,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     connectionResource.populateRemainingConnectionEntityContent(entity);
 
                     // extract the href and build the response
-                    String uri = entity.getUri();
+                    final String uri = entity.getUri();
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
@@ -2295,7 +2295,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
     )
     public Response getConnections(
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -2312,10 +2312,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // all of the relationships for the specified source processor
-        Set<ConnectionEntity> connections = serviceFacade.getConnections(groupId);
+        final Set<ConnectionEntity> connections = serviceFacade.getConnections(groupId);
 
         // create the client response entity
-        ConnectionsEntity entity = new ConnectionsEntity();
+        final ConnectionsEntity entity = new ConnectionsEntity();
         entity.setConnections(connectionResource.populateRemainingConnectionEntitiesContent(connections));
 
         // generate the response
@@ -2421,7 +2421,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final FlowDTO flow = flowEntity.getFlow();
 
                     // prune response as necessary
-                    for (ProcessGroupEntity childGroupEntity : flow.getProcessGroups()) {
+                    for (final ProcessGroupEntity childGroupEntity : flow.getProcessGroups()) {
                         childGroupEntity.getComponent().setContents(null);
                     }
 
@@ -2700,11 +2700,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         // deserialize InputStream to a VersionedFlowSnapshot
-        RegisteredFlowSnapshot deserializedSnapshot;
+        final RegisteredFlowSnapshot deserializedSnapshot;
 
         try {
             deserializedSnapshot = MAPPER.readValue(in, RegisteredFlowSnapshot.class);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Deserialization of uploaded JSON failed", e);
             throw new IllegalArgumentException("Deserialization of uploaded JSON failed", e);
         }
@@ -2734,12 +2734,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         positionDTO.setY(positionY);
 
         // create a RevisionDTO
-        RevisionDTO revisionDTO = new RevisionDTO();
+        final RevisionDTO revisionDTO = new RevisionDTO();
         revisionDTO.setClientId(clientId);
         revisionDTO.setVersion((long) 0);
 
         // build the response entity for a replicate request
-        ProcessGroupUploadEntity pgUploadEntity = new ProcessGroupUploadEntity();
+        final ProcessGroupUploadEntity pgUploadEntity = new ProcessGroupUploadEntity();
         pgUploadEntity.setGroupId(groupId);
         pgUploadEntity.setGroupName(groupName);
         pgUploadEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
@@ -2885,7 +2885,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     populateRemainingProcessGroupEntityContent(entity);
 
                     // generate a 201 created response
-                    String uri = entity.getUri();
+                    final String uri = entity.getUri();
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
@@ -3025,7 +3025,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final PasteResponseEntity pasteResponseEntity = serviceFacade.pasteComponents(revision, groupId, additions, getIdGenerationSeed().orElse(null));
 
                     // prune response as necessary
-                    for (ProcessGroupEntity childGroupEntity : pasteResponseEntity.getFlow().getProcessGroups()) {
+                    for (final ProcessGroupEntity childGroupEntity : pasteResponseEntity.getFlow().getProcessGroups()) {
                         childGroupEntity.getComponent().setContents(null);
                     }
 
@@ -3427,7 +3427,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @return a new ProcessGroupEntity
      */
     private ProcessGroupEntity createProcessGroupEntity(
-            String groupId, String groupName, PositionDTO positionDTO, RegisteredFlowSnapshot deserializedSnapshot) {
+            final String groupId, final String groupName, final PositionDTO positionDTO, final RegisteredFlowSnapshot deserializedSnapshot) {
 
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
 
@@ -3452,7 +3452,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @param processGroupEntity the ProcessGroupEntity
      * @param lookup the lookup
      */
-    private void authorizeAccess(String groupId, ProcessGroupEntity processGroupEntity, AuthorizableLookup lookup) {
+    private void authorizeAccess(final String groupId, final ProcessGroupEntity processGroupEntity, final AuthorizableLookup lookup) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
         processGroup.authorize(authorizer, RequestAction.WRITE, user);
@@ -3481,47 +3481,47 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     @Autowired
-    public void setProcessorResource(ProcessorResource processorResource) {
+    public void setProcessorResource(final ProcessorResource processorResource) {
         this.processorResource = processorResource;
     }
 
     @Autowired
-    public void setInputPortResource(InputPortResource inputPortResource) {
+    public void setInputPortResource(final InputPortResource inputPortResource) {
         this.inputPortResource = inputPortResource;
     }
 
     @Autowired
-    public void setOutputPortResource(OutputPortResource outputPortResource) {
+    public void setOutputPortResource(final OutputPortResource outputPortResource) {
         this.outputPortResource = outputPortResource;
     }
 
     @Autowired
-    public void setFunnelResource(FunnelResource funnelResource) {
+    public void setFunnelResource(final FunnelResource funnelResource) {
         this.funnelResource = funnelResource;
     }
 
     @Autowired
-    public void setLabelResource(LabelResource labelResource) {
+    public void setLabelResource(final LabelResource labelResource) {
         this.labelResource = labelResource;
     }
 
     @Autowired
-    public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
+    public void setRemoteProcessGroupResource(final RemoteProcessGroupResource remoteProcessGroupResource) {
         this.remoteProcessGroupResource = remoteProcessGroupResource;
     }
 
     @Autowired
-    public void setConnectionResource(ConnectionResource connectionResource) {
+    public void setConnectionResource(final ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
     }
 
     @Autowired
-    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+    public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
     @Autowired
-    public void setParameterContextReplacer(ParameterContextReplacer parameterContextReplacer) {
+    public void setParameterContextReplacer(final ParameterContextReplacer parameterContextReplacer) {
         this.parameterContextReplacer = parameterContextReplacer;
     }
 
@@ -3529,7 +3529,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final String entityId;
         final String dropRequestId;
 
-        public DropEntity(String entityId, String dropRequestId) {
+        public DropEntity(final String entityId, final String dropRequestId) {
             this.entityId = entityId;
             this.dropRequestId = dropRequestId;
         }

@@ -44,7 +44,7 @@ public class ModifiesClasspathNoAnnotationProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
     }
 }

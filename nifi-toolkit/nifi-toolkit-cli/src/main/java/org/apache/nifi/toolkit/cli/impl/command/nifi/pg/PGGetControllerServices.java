@@ -50,7 +50,7 @@ public class PGGetControllerServices extends AbstractNiFiCommand<ControllerServi
     }
 
     @Override
-    public ControllerServicesResult doExecute(NiFiClient client, Properties properties)
+    public ControllerServicesResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String pgId = getRequiredArg(properties, CommandOption.PG_ID);
         final FlowClient flowClient = client.getFlowClient();

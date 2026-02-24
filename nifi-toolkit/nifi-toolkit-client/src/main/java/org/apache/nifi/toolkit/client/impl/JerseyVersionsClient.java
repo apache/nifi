@@ -142,7 +142,7 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
     // DELETE /versions/process-groups/{id}
 
     @Override
-    public VersionControlInformationEntity stopVersionControl(ProcessGroupEntity processGroupEntity) throws IOException, NiFiClientException {
+    public VersionControlInformationEntity stopVersionControl(final ProcessGroupEntity processGroupEntity) throws IOException, NiFiClientException {
         final String pgId = processGroupEntity.getId();
 
         if (StringUtils.isBlank(pgId)) {

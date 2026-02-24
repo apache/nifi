@@ -240,8 +240,8 @@ public class FlowResource extends ApplicationResource {
      *
      * @param flow group
      */
-    private void populateRemainingFlowContent(ProcessGroupFlowDTO flow) {
-        FlowDTO flowStructure = flow.getFlow();
+    private void populateRemainingFlowContent(final ProcessGroupFlowDTO flow) {
+        final FlowDTO flowStructure = flow.getFlow();
 
         // populate the remaining fields for the processors, connections, process group refs, remote process groups, and labels if appropriate
         if (flowStructure != null) {
@@ -255,7 +255,7 @@ public class FlowResource extends ApplicationResource {
     /**
      * Populates the remaining content of the specified snippet.
      */
-    private void populateRemainingFlowStructure(FlowDTO flowStructure) {
+    private void populateRemainingFlowStructure(final FlowDTO flowStructure) {
         processorResource.populateRemainingProcessorEntitiesContent(flowStructure.getProcessors());
         connectionResource.populateRemainingConnectionEntitiesContent(flowStructure.getConnections());
         inputPortResource.populateRemainingInputPortEntitiesContent(flowStructure.getInputPorts());
@@ -641,7 +641,7 @@ public class FlowResource extends ApplicationResource {
                     "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     public Response getControllerServicesFromController(@QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly,
-                                                        @QueryParam("includeReferencingComponents") @DefaultValue("true")
+                                                        final @QueryParam("includeReferencingComponents") @DefaultValue("true")
                                                         @Parameter(description = "Whether or not to include services' referencing components in the response") boolean includeReferences) {
 
         authorizeFlow();
@@ -926,7 +926,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response scheduleComponents(
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -1129,7 +1129,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response activateControllerServices(
-            @Parameter(description = "The process group id.", required = true)
+            final @Parameter(description = "The process group id.", required = true)
             @PathParam("id") String id,
             @Parameter(description = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
             final ActivateControllerServicesEntity requestEntity) {
@@ -1284,7 +1284,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response clearBulletins(
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -1427,8 +1427,8 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(
-            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
-            @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
+            final @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
+            final @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
     ) {
         authorizeFlow();
 
@@ -1669,15 +1669,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessorTypes(
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
@@ -1722,31 +1722,31 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getControllerServiceTypes(
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return controller services that are compatible with this type of service."
             )
             @QueryParam("serviceType") String serviceType,
-            @Parameter(
+            final @Parameter(
                     description = "If serviceType specified, is the bundle group of the serviceType."
             )
             @QueryParam("serviceBundleGroup") String serviceBundleGroup,
-            @Parameter(
+            final @Parameter(
                     description = "If serviceType specified, is the bundle artifact of the serviceType."
             )
             @QueryParam("serviceBundleArtifact") String serviceBundleArtifact,
-            @Parameter(
+            final @Parameter(
                     description = "If serviceType specified, is the bundle version of the serviceType."
             )
             @QueryParam("serviceBundleVersion") String serviceBundleVersion,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("typeFilter") String typeFilter) throws InterruptedException {
@@ -1797,15 +1797,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getReportingTaskTypes(
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
@@ -1877,22 +1877,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessorDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The processor type",
                     required = true
             )
@@ -1931,22 +1931,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getControllerServiceDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The controller service type",
                     required = true
             )
@@ -1985,22 +1985,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getReportingTaskDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The reporting task type",
                     required = true
             )
@@ -2039,22 +2039,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getParameterProviderDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The parameter provider type",
                     required = true
             )
@@ -2093,22 +2093,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getFlowRegistryClientDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The flow registry client type",
                     required = true
             )
@@ -2145,22 +2145,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getFlowAnalysisRuleDefinition(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The flow analysis rule type",
                     required = true
             )
@@ -2199,22 +2199,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getAdditionalDetails(
-            @Parameter(
+            final @Parameter(
                     description = "The bundle group",
                     required = true
             )
             @PathParam("group") String group,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle artifact",
                     required = true
             )
             @PathParam("artifact") String artifact,
-            @Parameter(
+            final @Parameter(
                     description = "The bundle version",
                     required = true
             )
             @PathParam("version") String version,
-            @Parameter(
+            final @Parameter(
                     description = "The processor type",
                     required = true
             )
@@ -2261,15 +2261,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getParameterProviderTypes(
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
@@ -2313,15 +2313,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getFlowAnalysisRuleTypes(
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle group."
             )
             @QueryParam("bundleGroupFilter") String bundleGroupFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types that are a member of this bundle artifact."
             )
             @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
-            @Parameter(
+            final @Parameter(
                     description = "If specified, will only return types whose fully qualified classname matches."
             )
             @QueryParam("type") String typeFilter) throws InterruptedException {
@@ -2509,7 +2509,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getBranches(
-            @Parameter(
+            final @Parameter(
                     description = "The registry id.",
                     required = true
             )
@@ -2544,12 +2544,12 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getBuckets(
-            @Parameter(
+            final @Parameter(
                     description = "The registry id.",
                     required = true
             )
             @PathParam("id") String id,
-            @Parameter(
+            final @Parameter(
                     description = "The name of a branch to get the buckets from. If not specified the default branch of the registry client will be used."
             )
             @QueryParam("branch") String branch) {
@@ -2596,17 +2596,17 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getFlows(
-            @Parameter(
+            final @Parameter(
                     description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
-            @Parameter(
+            final @Parameter(
                     description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId,
-            @Parameter(
+            final @Parameter(
                     description = "The name of a branch to get the flows from. If not specified the default branch of the registry client will be used."
             )
             @QueryParam("branch") String branch) {
@@ -2653,22 +2653,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getDetails(
-            @Parameter(
+            final @Parameter(
                     description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
-            @Parameter(
+            final @Parameter(
                     description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId,
-            @Parameter(
+            final @Parameter(
                     description = "The flow id.",
                     required = true
             )
             @PathParam("flow-id") String flowId,
-            @Parameter(
+            final @Parameter(
                     description = "The name of a branch to get the flow from. If not specified the default branch of the registry client will be used."
             )
             @QueryParam("branch") String branch) {
@@ -2699,71 +2699,71 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getVersionDifferences(
-            @Parameter(
+            final @Parameter(
                     description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
 
-            @Parameter(
+            final @Parameter(
                     description = "The branch id for the base version.",
                     required = true
             )
             @PathParam("branch-id-a") String branchIdA,
 
-            @Parameter(
+            final @Parameter(
                     description = "The bucket id for the base version.",
                     required = true
             )
             @PathParam("bucket-id-a") String bucketIdA,
 
-            @Parameter(
+            final @Parameter(
                     description = "The flow id for the base version.",
                     required = true
             )
             @PathParam("flow-id-a") String flowIdA,
 
-            @Parameter(
+            final @Parameter(
                     description = "The base version.",
                     required = true
             )
             @PathParam("version-a") String versionA,
 
-            @Parameter(
+            final @Parameter(
                     description = "The branch id for the compared version.",
                     required = true
             )
             @PathParam("branch-id-b") String branchIdB,
 
-            @Parameter(
+            final @Parameter(
                     description = "The bucket id for the compared version.",
                     required = true
             )
             @PathParam("bucket-id-b") String bucketIdB,
 
-            @Parameter(
+            final @Parameter(
                     description = "The flow id for the compared version.",
                     required = true
             )
             @PathParam("flow-id-b") String flowIdB,
 
-            @Parameter(
+            final @Parameter(
                     description = "The compared version.",
                     required = true
             )
             @PathParam("version-b") String versionB,
-            @QueryParam("offset")
+            final @QueryParam("offset")
             @Parameter(description = "Must be a non-negative number. Specifies the starting point of the listing. 0 means start from the beginning.")
             @DefaultValue("0")
             int offset,
-            @QueryParam("limit")
+            final @QueryParam("limit")
             @Parameter(description = "Limits the number of differences listed. This might lead to partial result. 0 means no limitation is applied.")
             @DefaultValue("1000")
             int limit
     ) {
         authorizeFlow();
-        FlowVersionLocation baseVersionLocation = new FlowVersionLocation(branchIdA, bucketIdA, flowIdA, versionA);
-        FlowVersionLocation comparedVersionLocation = new FlowVersionLocation(branchIdB, bucketIdB, flowIdB, versionB);
+        final FlowVersionLocation baseVersionLocation = new FlowVersionLocation(branchIdA, bucketIdA, flowIdA, versionA);
+        final FlowVersionLocation comparedVersionLocation = new FlowVersionLocation(branchIdB, bucketIdB, flowIdB, versionB);
         final FlowComparisonEntity versionDifference = serviceFacade.getVersionDifference(registryId, baseVersionLocation, comparedVersionLocation);
         // Note: with the current implementation, this is deterministic. However, the internal data structure used in comparison is set, thus
         // later changes might cause discrepancies. Practical use of the endpoint usually remains within one "page" though.
@@ -2791,22 +2791,22 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getVersions(
-            @Parameter(
+            final @Parameter(
                     description = "The registry client id.",
                     required = true
             )
             @PathParam("registry-id") String registryId,
-            @Parameter(
+            final @Parameter(
                     description = "The bucket id.",
                     required = true
             )
             @PathParam("bucket-id") String bucketId,
-            @Parameter(
+            final @Parameter(
                     description = "The flow id.",
                     required = true
             )
             @PathParam("flow-id") String flowId,
-            @Parameter(
+            final @Parameter(
                     description = "The name of a branch to get the flow versions from. If not specified the default branch of the registry client will be used."
             )
             @QueryParam("branch") String branch) {
@@ -2876,27 +2876,27 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getBulletinBoard(
-            @Parameter(
+            final @Parameter(
                     description = "Includes bulletins with an id after this value."
             )
             @QueryParam("after") LongParameter after,
-            @Parameter(
+            final @Parameter(
                     description = "Includes bulletins originating from this sources whose name match this regular expression."
             )
             @QueryParam("sourceName") BulletinBoardPatternParameter sourceName,
-            @Parameter(
+            final @Parameter(
                     description = "Includes bulletins whose message that match this regular expression."
             )
             @QueryParam("message") BulletinBoardPatternParameter message,
-            @Parameter(
+            final @Parameter(
                     description = "Includes bulletins originating from this sources whose id match this regular expression."
             )
             @QueryParam("sourceId") BulletinBoardPatternParameter sourceId,
-            @Parameter(
+            final @Parameter(
                     description = "Includes bulletins originating from this sources whose group id match this regular expression."
             )
             @QueryParam("groupId") BulletinBoardPatternParameter groupId,
-            @Parameter(
+            final @Parameter(
                     description = "The number of bulletins to limit the response to."
             )
             @QueryParam("limit") IntegerParameter limit) throws InterruptedException {
@@ -2934,7 +2934,7 @@ public class FlowResource extends ApplicationResource {
         final BulletinBoardDTO bulletinBoard = serviceFacade.getBulletinBoard(query);
 
         // create the response entity
-        BulletinBoardEntity entity = new BulletinBoardEntity();
+        final BulletinBoardEntity entity = new BulletinBoardEntity();
         entity.setBulletinBoard(bulletinBoard);
 
         // generate the response
@@ -2971,15 +2971,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessorStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The processor id.",
                     required = true
             )
@@ -3040,15 +3040,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getInputPortStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The input port id.",
                     required = true
             )
@@ -3109,15 +3109,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getOutputPortStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The output port id.",
                     required = true
             )
@@ -3178,15 +3178,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getRemoteProcessGroupStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id."
             )
             @PathParam("id") String id) throws InterruptedException {
@@ -3249,19 +3249,19 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessGroupStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether all descendant groups and the status of their content will be included. Optional, defaults to false"
             )
             @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive,
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -3322,15 +3322,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getConnectionStatus(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the status."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The connection id.",
                     required = true
             )
@@ -3391,15 +3391,15 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getConnectionStatistics(
-            @Parameter(
+            final @Parameter(
                     description = "Whether or not to include the breakdown per node. Optional, defaults to false"
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-            @Parameter(
+            final @Parameter(
                     description = "The id of the node where to get the statistics."
             )
             @QueryParam("clusterNodeId") String clusterNodeId,
-            @Parameter(
+            final @Parameter(
                     description = "The connection id.",
                     required = true
             )
@@ -3464,7 +3464,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessorStatusHistory(
-            @Parameter(
+            final @Parameter(
                     description = "The processor id.",
                     required = true
             )
@@ -3508,7 +3508,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessGroupStatusHistory(
-            @Parameter(
+            final @Parameter(
                     description = "The process group id.",
                     required = true
             )
@@ -3552,7 +3552,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getRemoteProcessGroupStatusHistory(
-            @Parameter(
+            final @Parameter(
                     description = "The remote process group id.",
                     required = true
             )
@@ -3596,7 +3596,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getConnectionStatusHistory(
-            @Parameter(
+            final @Parameter(
                     description = "The connection id.",
                     required = true
             )
@@ -3697,37 +3697,37 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response queryHistory(
-            @Parameter(
+            final @Parameter(
                     description = "The offset into the result set.",
                     required = true
             )
             @QueryParam("offset") IntegerParameter offset,
-            @Parameter(
+            final @Parameter(
                     description = "The number of actions to return.",
                     required = true
             )
             @QueryParam("count") IntegerParameter count,
-            @Parameter(
+            final @Parameter(
                     description = "The field to sort on."
             )
             @QueryParam("sortColumn") String sortColumn,
-            @Parameter(
+            final @Parameter(
                     description = "The direction to sort."
             )
             @QueryParam("sortOrder") String sortOrder,
-            @Parameter(
+            final @Parameter(
                     description = "Include actions after this date."
             )
             @QueryParam("startDate") DateTimeParameter startDate,
-            @Parameter(
+            final @Parameter(
                     description = "Include actions before this date."
             )
             @QueryParam("endDate") DateTimeParameter endDate,
-            @Parameter(
+            final @Parameter(
                     description = "Include actions performed by this user."
             )
             @QueryParam("userIdentity") String userIdentity,
-            @Parameter(
+            final @Parameter(
                     description = "Include actions on this component."
             )
             @QueryParam("sourceId") String sourceId) {
@@ -3828,7 +3828,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getAction(
-            @Parameter(
+            final @Parameter(
                     description = "The action id.",
                     required = true
             )
@@ -3976,7 +3976,7 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult(processGroupId);
+        final FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult(processGroupId);
 
         return generateOkResponse(entity).build();
     }
@@ -4011,7 +4011,7 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult();
+        final FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult();
 
         return generateOkResponse(entity).build();
     }
@@ -4046,7 +4046,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchCluster(
-            @Parameter(
+            final @Parameter(
                     description = "Node address to search for.",
                     required = true
             )
@@ -4065,7 +4065,7 @@ public class FlowResource extends ApplicationResource {
         final ClusterDTO cluster = serviceFacade.getCluster();
 
         // check each to see if it matches the search term
-        for (NodeDTO node : cluster.getNodes()) {
+        for (final NodeDTO node : cluster.getNodes()) {
             // ensure the node is connected
             if (!NodeConnectionState.CONNECTED.name().equals(node.getStatus())) {
                 continue;
@@ -4084,7 +4084,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // build the response
-        ClusterSearchResultsEntity results = new ClusterSearchResultsEntity();
+        final ClusterSearchResultsEntity results = new ClusterSearchResultsEntity();
         results.setNodeResults(nodeMatches);
 
         // generate an 200 - OK response
@@ -4092,57 +4092,57 @@ public class FlowResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setProcessorResource(ProcessorResource processorResource) {
+    public void setProcessorResource(final ProcessorResource processorResource) {
         this.processorResource = processorResource;
     }
 
     @Autowired
-    public void setInputPortResource(InputPortResource inputPortResource) {
+    public void setInputPortResource(final InputPortResource inputPortResource) {
         this.inputPortResource = inputPortResource;
     }
 
     @Autowired
-    public void setOutputPortResource(OutputPortResource outputPortResource) {
+    public void setOutputPortResource(final OutputPortResource outputPortResource) {
         this.outputPortResource = outputPortResource;
     }
 
     @Autowired
-    public void setFunnelResource(FunnelResource funnelResource) {
+    public void setFunnelResource(final FunnelResource funnelResource) {
         this.funnelResource = funnelResource;
     }
 
     @Autowired
-    public void setLabelResource(LabelResource labelResource) {
+    public void setLabelResource(final LabelResource labelResource) {
         this.labelResource = labelResource;
     }
 
     @Autowired
-    public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
+    public void setRemoteProcessGroupResource(final RemoteProcessGroupResource remoteProcessGroupResource) {
         this.remoteProcessGroupResource = remoteProcessGroupResource;
     }
 
     @Autowired
-    public void setConnectionResource(ConnectionResource connectionResource) {
+    public void setConnectionResource(final ConnectionResource connectionResource) {
         this.connectionResource = connectionResource;
     }
 
     @Autowired
-    public void setProcessGroupResource(ProcessGroupResource processGroupResource) {
+    public void setProcessGroupResource(final ProcessGroupResource processGroupResource) {
         this.processGroupResource = processGroupResource;
     }
 
     @Autowired
-    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+    public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
     @Autowired
-    public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
+    public void setReportingTaskResource(final ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
     }
 
@@ -4152,7 +4152,7 @@ public class FlowResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

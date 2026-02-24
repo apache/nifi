@@ -39,7 +39,7 @@ public class JerseyPoliciesClient extends AbstractCRUDJerseyClient implements Po
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String action, String resource) throws NiFiRegistryException, IOException {
+    public AccessPolicy getAccessPolicy(final String action, final String resource) throws NiFiRegistryException, IOException {
         if (StringUtils.isBlank(resource) || StringUtils.isBlank(action)) {
             throw new IllegalArgumentException("Resource and action cannot be null");
         }

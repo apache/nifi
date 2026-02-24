@@ -59,7 +59,7 @@ public class SecureFileIT extends IntegrationTestBase {
     public void testAccessStatus() throws Exception {
 
         // Given: the client and server have been configured correctly for two-way TLS
-        String expectedJson = "{" +
+        final String expectedJson = "{" +
                 "\"identity\":\"CN=user1, OU=nifi\"," +
                 "\"anonymous\":false," +
                 "\"resourcePermissions\":{" +
@@ -78,7 +78,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Then: the server returns 200 OK with the expected client identity
         assertEquals(200, response.getStatus());
-        String actualJson = response.readEntity(String.class);
+        final String actualJson = response.readEntity(String.class);
         JSONAssert.assertEquals(expectedJson, actualJson, false);
     }
 
@@ -86,7 +86,7 @@ public class SecureFileIT extends IntegrationTestBase {
     public void testRetrieveResources() throws Exception {
 
         // Given: an empty registry returns these resources
-        String expected = "[" +
+        final String expected = "[" +
                 "{\"identifier\":\"/actuator\",\"name\":\"Actuator\"}," +
                 "{\"identifier\":\"/swagger\",\"name\":\"Swagger\"}," +
                 "{\"identifier\":\"/policies\",\"name\":\"Access Policies\"}," +
@@ -110,11 +110,11 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = Long.valueOf(0);
-        String clientId = UUID.randomUUID().toString();
-        RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
+        final Long initialVersion = Long.valueOf(0);
+        final String clientId = UUID.randomUUID().toString();
+        final RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 
-        Tenant tenant = new Tenant();
+        final Tenant tenant = new Tenant();
         tenant.setIdentity("New User");
         tenant.setRevision(revisionInfo);
 
@@ -126,7 +126,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Then: "201 created" is returned with the expected user
         assertEquals(201, createUserResponse.getStatus());
-        User actualUser = createUserResponse.readEntity(User.class);
+        final User actualUser = createUserResponse.readEntity(User.class);
         assertNotNull(actualUser.getIdentifier());
         assertNotNull(actualUser.getRevision());
         assertNotNull(actualUser.getRevision().getVersion());
@@ -152,11 +152,11 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = Long.valueOf(0);
-        String clientId = UUID.randomUUID().toString();
-        RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
+        final Long initialVersion = Long.valueOf(0);
+        final String clientId = UUID.randomUUID().toString();
+        final RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 
-        Tenant tenant = new Tenant();
+        final Tenant tenant = new Tenant();
         tenant.setIdentity("New Group");
         tenant.setRevision(revisionInfo);
 
@@ -168,7 +168,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Then: 201 created is returned with the expected group
         assertEquals(201, createUserGroupResponse.getStatus());
-        UserGroup actualUserGroup = createUserGroupResponse.readEntity(UserGroup.class);
+        final UserGroup actualUserGroup = createUserGroupResponse.readEntity(UserGroup.class);
         assertNotNull(actualUserGroup.getIdentifier());
         assertNotNull(actualUserGroup.getRevision());
         assertNotNull(actualUserGroup.getRevision().getVersion());

@@ -38,19 +38,19 @@ public class DisableOnCloseInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(final byte[] b) throws IOException {
         checkClosed();
         return wrapped.read(b);
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         checkClosed();
         return wrapped.read(b, off, len);
     }
 
     @Override
-    public long skip(long n) throws IOException {
+    public long skip(final long n) throws IOException {
         checkClosed();
         return wrapped.skip(n);
     }
@@ -72,7 +72,7 @@ public class DisableOnCloseInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readlimit) {
+    public void mark(final int readlimit) {
         if (!closed) {
             wrapped.mark(readlimit);
         }

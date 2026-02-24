@@ -107,15 +107,15 @@ public class ExtractImageMetadata extends AbstractProcessor {
         try {
             session.read(flowfile, in -> {
                 try {
-                    Metadata imageMetadata = ImageMetadataReader.readMetadata(in);
+                    final Metadata imageMetadata = ImageMetadataReader.readMetadata(in);
                     value.set(imageMetadata);
-                } catch (ImageProcessingException ex) {
+                } catch (final ImageProcessingException ex) {
                     throw new ProcessException(ex);
                 }
             });
 
-            Metadata metadata = value.get();
-            Map<String, String> results = getTags(max, metadata);
+            final Metadata metadata = value.get();
+            final Map<String, String> results = getTags(max, metadata);
 
             // Write the results to an attribute
             if (!results.isEmpty()) {
@@ -123,18 +123,18 @@ public class ExtractImageMetadata extends AbstractProcessor {
             }
 
             session.transfer(flowfile, SUCCESS);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             logger.error("Failed to extract image metadata from {}", flowfile, e);
             session.transfer(flowfile, FAILURE);
         }
     }
 
-    private Map<String, String> getTags(Integer max, Metadata metadata) {
-        Map<String, String> results = new HashMap<>();
+    private Map<String, String> getTags(final Integer max, final Metadata metadata) {
+        final Map<String, String> results = new HashMap<>();
         int i = 0;
 
-        for (Directory directory : metadata.getDirectories()) {
-            for (Tag tag : directory.getTags()) {
+        for (final Directory directory : metadata.getDirectories()) {
+            for (final Tag tag : directory.getTags()) {
                 results.put(directory.getName() + "." + tag.getTagName(), tag.getDescription());
 
                 if (max != null) {

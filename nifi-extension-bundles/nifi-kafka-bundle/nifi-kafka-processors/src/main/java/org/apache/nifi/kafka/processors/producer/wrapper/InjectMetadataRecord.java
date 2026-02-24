@@ -79,12 +79,12 @@ public class InjectMetadataRecord extends MapRecord {
         valuesMetadata.put(KEY, record.getValue(messageKeyField));
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
-        for (RecordHeader header : headers) {
+        for (final RecordHeader header : headers) {
             valuesHeaders.put(header.key(), new String(header.value(), headerCharset));
         }
         valuesMetadata.put(HEADERS, valuesHeaders);
 
-        Map<String, Object> valueMap = record.toMap();
+        final Map<String, Object> valueMap = record.toMap();
         valueMap.put(METADATA, valuesMetadata);
 
         return valueMap;
@@ -110,7 +110,7 @@ public class InjectMetadataRecord extends MapRecord {
 
     public static MapRecord toWrapperRecord(final Charset headerCharacterSet, final ByteRecord consumerRecord, final Record record, final Tuple<RecordField, Object> tupleKey) {
         final RecordSchema schema = record.getSchema();
-        RecordSchema finalSchema = InjectMetadataRecord.toWrapperSchema(tupleKey.getKey(), schema);
+        final RecordSchema finalSchema = InjectMetadataRecord.toWrapperSchema(tupleKey.getKey(), schema);
 
         final Map<String, Object> valuesMetadata = new HashMap<>();
         valuesMetadata.put(InjectMetadataRecord.TOPIC, consumerRecord.getTopic());
@@ -122,7 +122,7 @@ public class InjectMetadataRecord extends MapRecord {
         }
 
         final Map<String, Object> valuesHeaders = new HashMap<>();
-        for (RecordHeader header : consumerRecord.getHeaders()) {
+        for (final RecordHeader header : consumerRecord.getHeaders()) {
             valuesHeaders.put(header.key(), new String(header.value(), headerCharacterSet));
         }
         valuesMetadata.put(InjectMetadataRecord.HEADERS, valuesHeaders);

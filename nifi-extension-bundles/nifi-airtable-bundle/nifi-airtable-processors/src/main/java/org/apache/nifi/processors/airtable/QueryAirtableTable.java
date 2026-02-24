@@ -234,7 +234,7 @@ public class QueryAirtableTable extends AbstractProcessor {
         final StateMap state;
         try {
             state = session.getState(Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to get cluster state", e);
         }
 
@@ -249,9 +249,9 @@ public class QueryAirtableTable extends AbstractProcessor {
         try {
             final AirtableTableRetriever tableRetriever = new AirtableTableRetriever(airtableRestService, getRecordsParameters, maxRecordsPerFlowFile);
             retrieveTableResult = tableRetriever.retrieveAll(session);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to read Airtable records", e);
-        } catch (RateLimitExceededException e) {
+        } catch (final RateLimitExceededException e) {
             context.yield();
             throw new ProcessException("Airtable REST API rate limit exceeded while reading records", e);
         }
@@ -260,7 +260,7 @@ public class QueryAirtableTable extends AbstractProcessor {
         newState.put(LAST_QUERY_TIME_WINDOW_END, currentRecordFetchDateTime);
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to update cluster state", e);
         }
 

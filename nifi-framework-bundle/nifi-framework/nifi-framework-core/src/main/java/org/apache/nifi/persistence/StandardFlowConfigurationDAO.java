@@ -197,7 +197,7 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
         }
     }
 
-    private void serializeControllerStateToTempFile(FlowController controller, FlowSerializer<?> serializer, File tempFile) throws IOException {
+    private void serializeControllerStateToTempFile(final FlowController controller, final FlowSerializer<?> serializer, final File tempFile) throws IOException {
         try (final OutputStream fileOut = new FileOutputStream(tempFile);
              final OutputStream outStream = new GZIPOutputStream(fileOut)) {
 

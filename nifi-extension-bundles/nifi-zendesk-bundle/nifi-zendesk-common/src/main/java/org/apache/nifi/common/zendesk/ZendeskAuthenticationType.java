@@ -25,14 +25,14 @@ public enum ZendeskAuthenticationType implements DescribedValue {
     PASSWORD("password", "Password",
         "Password of Zendesk login user.") {
         @Override
-        public String enrichUserName(String userName) {
+        public String enrichUserName(final String userName) {
             return userName;
         }
     },
     TOKEN("token", "Token",
         "Authentication token generated in Zendesk Admin menu for API access.") {
         @Override
-        public String enrichUserName(String userName) {
+        public String enrichUserName(final String userName) {
             return format(ZENDESK_USERNAME_WITH_TOKEN_TEMPLATE, userName);
         }
     };
@@ -43,7 +43,7 @@ public enum ZendeskAuthenticationType implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    ZendeskAuthenticationType(String value, String displayName, String description) {
+    ZendeskAuthenticationType(final String value, final String displayName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;

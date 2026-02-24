@@ -25,7 +25,7 @@ public class DropAllFlowFilesRequestEndpointMerger extends DropRequestEndpointMe
     public static final Pattern POST_URI = Pattern.compile("/nifi-api/process-groups/[a-f0-9\\-]{36}/empty-all-connections-requests");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && GET_DELETE_URI.matcher(uri.getPath()).matches()) {
             return true;
         } else if (("POST".equalsIgnoreCase(method) && POST_URI.matcher(uri.getPath()).matches())) {

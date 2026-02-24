@@ -47,7 +47,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
         return action;
     }
 
-    public void setAction(ActionDTO action) {
+    public void setAction(final ActionDTO action) {
         this.action = action;
     }
 
@@ -58,7 +58,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(final Integer id) {
         this.id = id;
     }
 
@@ -73,7 +73,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -84,7 +84,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -94,7 +94,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

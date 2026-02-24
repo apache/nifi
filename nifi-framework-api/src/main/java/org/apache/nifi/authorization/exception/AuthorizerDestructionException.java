@@ -25,15 +25,15 @@ public class AuthorizerDestructionException extends RuntimeException {
     public AuthorizerDestructionException() {
     }
 
-    public AuthorizerDestructionException(String msg) {
+    public AuthorizerDestructionException(final String msg) {
         super(msg);
     }
 
-    public AuthorizerDestructionException(Throwable cause) {
+    public AuthorizerDestructionException(final Throwable cause) {
         super(cause);
     }
 
-    public AuthorizerDestructionException(String msg, Throwable cause) {
+    public AuthorizerDestructionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

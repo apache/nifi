@@ -49,7 +49,7 @@ public enum SyslogAttributes implements FlowFileAttributeKey {
 
     private String key;
 
-    SyslogAttributes(String key) {
+    SyslogAttributes(final String key) {
         this.key = key;
     }
 

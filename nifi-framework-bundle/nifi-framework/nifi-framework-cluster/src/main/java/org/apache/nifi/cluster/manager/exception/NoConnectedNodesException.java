@@ -27,15 +27,15 @@ public class NoConnectedNodesException extends ClusterException {
     public NoConnectedNodesException() {
     }
 
-    public NoConnectedNodesException(String msg) {
+    public NoConnectedNodesException(final String msg) {
         super(msg);
     }
 
-    public NoConnectedNodesException(Throwable cause) {
+    public NoConnectedNodesException(final Throwable cause) {
         super(cause);
     }
 
-    public NoConnectedNodesException(String msg, Throwable cause) {
+    public NoConnectedNodesException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

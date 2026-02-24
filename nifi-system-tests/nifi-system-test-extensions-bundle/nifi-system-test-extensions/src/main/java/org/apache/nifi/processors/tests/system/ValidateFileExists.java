@@ -50,7 +50,7 @@ public class ValidateFileExists extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         session.adjustCounter("Triggered", 1, true);
 
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }

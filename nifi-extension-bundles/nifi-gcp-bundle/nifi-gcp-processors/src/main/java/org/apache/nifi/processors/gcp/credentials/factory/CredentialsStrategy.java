@@ -54,7 +54,7 @@ public interface CredentialsStrategy {
      * @return GoogleCredentials for the configured strategy
      * @throws IOException on credential creation failures
      */
-    default GoogleCredentials getGoogleCredentials(ConfigurationContext context, HttpTransportFactory transportFactory) throws IOException {
+    default GoogleCredentials getGoogleCredentials(final ConfigurationContext context, final HttpTransportFactory transportFactory) throws IOException {
         return getGoogleCredentials(context.getProperties(), transportFactory);
     }
 }

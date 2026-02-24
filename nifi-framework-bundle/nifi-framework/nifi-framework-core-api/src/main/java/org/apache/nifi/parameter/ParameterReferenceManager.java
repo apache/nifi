@@ -75,7 +75,7 @@ public interface ParameterReferenceManager {
         }
 
         @Override
-        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(ParameterContext parameterContext, String parameterName) {
+        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(final ParameterContext parameterContext, final String parameterName) {
             return Collections.emptyList();
         }
 

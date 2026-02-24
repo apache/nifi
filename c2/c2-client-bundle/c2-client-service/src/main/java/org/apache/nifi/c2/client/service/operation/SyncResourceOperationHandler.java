@@ -53,16 +53,16 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
     private final SyncResourceStrategy syncResourceStrategy;
     private final C2Serializer c2Serializer;
 
-    public SyncResourceOperationHandler(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider, SyncResourceStrategy syncResourceStrategy,
-                                        C2Serializer c2Serializer) {
+    public SyncResourceOperationHandler(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider, final SyncResourceStrategy syncResourceStrategy,
+                                        final C2Serializer c2Serializer) {
         this.c2Client = c2Client;
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.syncResourceStrategy = syncResourceStrategy;
         this.c2Serializer = c2Serializer;
     }
 
-    public static SyncResourceOperationHandler create(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider, SyncResourceStrategy syncResourceStrategy,
-                                                      C2Serializer c2Serializer) {
+    public static SyncResourceOperationHandler create(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider, final SyncResourceStrategy syncResourceStrategy,
+                                                      final C2Serializer c2Serializer) {
         requires(c2Client != null, "C2Client should not be null");
         requires(operandPropertiesProvider != null, "OperandPropertiesProvider should not be not null");
         requires(syncResourceStrategy != null, "Sync resource strategy should not be null");
@@ -86,29 +86,29 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
     }
 
     @Override
-    public C2OperationAck handle(C2Operation operation) {
-        String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
+    public C2OperationAck handle(final C2Operation operation) {
+        final String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        ResourcesGlobalHash resourcesGlobalHash;
+        final ResourcesGlobalHash resourcesGlobalHash;
         try {
             resourcesGlobalHash = getOperationArg(operation, GLOBAL_HASH_FIELD, new TypeReference<>() { }, c2Serializer);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Resources global hash could not be constructed from C2 request");
             return operationAck(operationId, operationState(NOT_APPLIED, "Resources global hash element was not found", e));
         }
 
-        List<ResourceItem> resourceItems;
+        final List<ResourceItem> resourceItems;
         try {
             resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() { }, c2Serializer);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Resource item list could not be constructed from C2 request");
             return operationAck(operationId, operationState(NOT_APPLIED, "Resource item list element was not found", e));
         }
 
-        OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash, resourceItems, c2Client::retrieveResourceItem,
+        final OperationState operationState = syncResourceStrategy.synchronizeResourceRepository(resourcesGlobalHash, resourceItems, c2Client::retrieveResourceItem,
             relativeUrl -> c2Client.getCallbackUrl(null, relativeUrl));
-        C2OperationState resultState = operationState(
+        final C2OperationState resultState = operationState(
             operationState,
             switch (operationState) {
                 case NOT_APPLIED -> "No resource items were retrieved, please check the log for errors";

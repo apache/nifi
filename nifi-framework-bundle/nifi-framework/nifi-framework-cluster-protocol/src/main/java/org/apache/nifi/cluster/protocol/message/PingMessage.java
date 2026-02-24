@@ -33,7 +33,7 @@ public class PingMessage extends ProtocolMessage {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(final Date date) {
         this.date = date;
     }
 
@@ -41,7 +41,7 @@ public class PingMessage extends ProtocolMessage {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 

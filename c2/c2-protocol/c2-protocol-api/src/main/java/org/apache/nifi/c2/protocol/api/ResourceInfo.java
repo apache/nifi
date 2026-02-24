@@ -33,7 +33,7 @@ public class ResourceInfo implements Serializable {
         return hash;
     }
 
-    public void setHash(String hash) {
+    public void setHash(final String hash) {
         this.hash = hash;
     }
 
@@ -45,14 +45,14 @@ public class ResourceInfo implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ResourceInfo resourceInfo = (ResourceInfo) o;
+        final ResourceInfo resourceInfo = (ResourceInfo) o;
         return Objects.equals(hash, resourceInfo.hash);
     }
 

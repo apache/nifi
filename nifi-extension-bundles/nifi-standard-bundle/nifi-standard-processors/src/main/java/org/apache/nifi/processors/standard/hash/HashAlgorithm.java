@@ -48,7 +48,7 @@ public enum HashAlgorithm {
 
     private static final List<String> BROKEN_ALGORITHMS = List.of(MD2.name, MD5.name, SHA1.name);
 
-    HashAlgorithm(String name, int digestBytesLength, String description) {
+    HashAlgorithm(final String name, final int digestBytesLength, final String description) {
         this.name = name;
         this.digestBytesLength = digestBytesLength;
         this.description = description;
@@ -123,7 +123,7 @@ public enum HashAlgorithm {
      * @return the description for dropdown help
      */
     public String buildAllowableValueDescription() {
-        StringBuilder sb = new StringBuilder(name);
+        final StringBuilder sb = new StringBuilder(name);
         sb.append(" (").append(digestBytesLength).append(" byte output)");
         if (!isStrongAlgorithm()) {
             sb.append(" [WARNING -- Cryptographically broken]");
@@ -134,8 +134,8 @@ public enum HashAlgorithm {
         return sb.toString();
     }
 
-    public static HashAlgorithm fromName(String algorithmName) {
-        HashAlgorithm match = Arrays.stream(HashAlgorithm.values())
+    public static HashAlgorithm fromName(final String algorithmName) {
+        final HashAlgorithm match = Arrays.stream(HashAlgorithm.values())
                 .filter(algo -> algorithmName.equalsIgnoreCase(algo.name))
                 .findAny()
                 .orElse(null);

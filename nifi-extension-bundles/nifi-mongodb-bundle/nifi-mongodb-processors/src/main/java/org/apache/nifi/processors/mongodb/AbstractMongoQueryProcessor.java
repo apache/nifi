@@ -108,12 +108,12 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
             .build();
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("results-per-flowfile", RESULTS_PER_FLOWFILE.getName());
     }
 
-    protected Document getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
+    protected Document getQuery(final ProcessContext context, final ProcessSession session, final FlowFile input) {
         Document query = null;
         if (context.getProperty(QUERY).isSet()) {
             query = Document.parse(context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue());
@@ -121,11 +121,11 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
             query = Document.parse("{}");
         } else {
             try {
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                final ByteArrayOutputStream out = new ByteArrayOutputStream();
                 session.exportTo(input, out);
                 out.close();
                 query = Document.parse(new String(out.toByteArray()));
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 getLogger().error("Error reading FlowFile : ", ex);
                 throw new ProcessException(ex);
             }
@@ -134,7 +134,7 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
         return query;
     }
 
-    protected Map<String, String> getAttributes(ProcessContext context, FlowFile input, Document query, MongoCollection collection) {
+    protected Map<String, String> getAttributes(final ProcessContext context, final FlowFile input, final Document query, final MongoCollection collection) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 

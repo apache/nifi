@@ -39,7 +39,7 @@ public class StandardDropboxCredentialServiceTest {
         final StandardDropboxCredentialService standardDropboxCredentialService = new StandardDropboxCredentialService();
         standardDropboxCredentialService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("app-key", StandardDropboxCredentialService.APP_KEY.getName()),
                 Map.entry("app-secret", StandardDropboxCredentialService.APP_SECRET.getName()),
                 Map.entry("access-token", StandardDropboxCredentialService.ACCESS_TOKEN.getName()),

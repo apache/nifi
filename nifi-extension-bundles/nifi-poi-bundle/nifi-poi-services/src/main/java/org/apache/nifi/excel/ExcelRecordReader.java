@@ -47,7 +47,7 @@ public class ExcelRecordReader implements RecordReader {
     private final String timeFormat;
     private final String timestampFormat;
 
-    public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
+    public ExcelRecordReader(final ExcelRecordReaderConfiguration configuration, final InputStream inputStream, final ComponentLog logger) throws MalformedRecordException {
         this.schema = configuration.getSchema();
 
         if (isEmpty(configuration.getDateFormat())) {
@@ -70,21 +70,21 @@ public class ExcelRecordReader implements RecordReader {
 
         try {
             this.rowIterator = new RowIterator(inputStream, configuration, logger);
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             throw new MalformedRecordException("Read initial Record from Excel file failed", e);
         }
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
+    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws MalformedRecordException {
         Row currentRow = null;
         try {
             if (rowIterator.hasNext()) {
                 currentRow = rowIterator.next();
-                Map<String, Object> currentRowValues = getCurrentRowValues(currentRow, coerceTypes, dropUnknownFields);
+                final Map<String, Object> currentRowValues = getCurrentRowValues(currentRow, coerceTypes, dropUnknownFields);
                 return new MapRecord(schema, currentRowValues);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             String exceptionMessage = "Read next Record from Excel XLSX failed";
             if (currentRow != null) {
                 exceptionMessage = String.format("%s on row %s in sheet %s",
@@ -105,15 +105,15 @@ public class ExcelRecordReader implements RecordReader {
         this.rowIterator.close();
     }
 
-    private Map<String, Object> getCurrentRowValues(Row currentRow, boolean coerceTypes, boolean dropUnknownFields) {
+    private Map<String, Object> getCurrentRowValues(final Row currentRow, final boolean coerceTypes, final boolean dropUnknownFields) {
         final List<RecordField> recordFields = schema.getFields();
         final Map<String, Object> currentRowValues = new LinkedHashMap<>();
 
         if (ExcelUtils.hasCells(currentRow)) {
             IntStream.range(0, currentRow.getLastCellNum())
                     .forEach(index -> {
-                        Cell cell = currentRow.getCell(index);
-                        Object cellValue;
+                        final Cell cell = currentRow.getCell(index);
+                        final Object cellValue;
                         if (index >= recordFields.size()) {
                             if (!dropUnknownFields) {
                                 cellValue = getCellValue(cell);
@@ -121,8 +121,8 @@ public class ExcelRecordReader implements RecordReader {
                             }
                         } else {
                             final RecordField recordField = recordFields.get(index);
-                            String fieldName = recordField.getFieldName();
-                            DataType dataType = recordField.getDataType();
+                            final String fieldName = recordField.getFieldName();
+                            final DataType dataType = recordField.getDataType();
                             cellValue = getCellValue(cell);
                             final Object value = coerceTypes ? convert(cellValue, dataType, fieldName)
                                     : convertSimpleIfPossible(cellValue, dataType, fieldName);

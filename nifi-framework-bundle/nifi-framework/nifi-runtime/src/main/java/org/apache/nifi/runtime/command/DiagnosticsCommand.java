@@ -124,7 +124,7 @@ public class DiagnosticsCommand implements Runnable {
         return getDirectorySize(diagnosticDirectory.toPath()) >= maxSizeInBytes;
     }
 
-    private long getDirectorySize(Path path) {
+    private long getDirectorySize(final Path path) {
         long size = 0;
         try (Stream<Path> walk = Files.walk(path)) {
             size = walk
@@ -132,7 +132,7 @@ public class DiagnosticsCommand implements Runnable {
                     .mapToLong(getFileSizeByPathFunction())
                     .sum();
 
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Directory [{}] size calculation failed", path, e);
         }
         return size;
@@ -142,7 +142,7 @@ public class DiagnosticsCommand implements Runnable {
         return path -> {
             try {
                 return Files.size(path);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Failed to get size of file {}", path, e);
                 return 0L;
             }

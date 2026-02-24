@@ -55,7 +55,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     private List<PortSchema> inputPortSchemas;
     private List<PortSchema> outputPortSchemas;
 
-    public ProcessGroupSchema(Map map, String wrapperName) {
+    public ProcessGroupSchema(final Map map, final String wrapperName) {
         super(map, wrapperName);
 
         processors = getOptionalKeyAsList(map, PROCESSORS_KEY, ProcessorSchema::new, wrapperName);
@@ -78,10 +78,10 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
             addValidationIssue(ID_KEY, wrapperName, "must be set to a value not " + ID_DEFAULT + " if not in root group");
         }
 
-        Set<String> portIds = getPortIds();
+        final Set<String> portIds = getPortIds();
         connections.stream().filter(c -> portIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
-        Set<String> funnelIds = new HashSet<>(funnels.stream().map(FunnelSchema::getId).collect(Collectors.toList()));
+        final Set<String> funnelIds = new HashSet<>(funnels.stream().map(FunnelSchema::getId).collect(Collectors.toList()));
         connections.stream().filter(c -> funnelIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
         addIssuesIfNotNull(processors);
@@ -94,8 +94,8 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
-        String id = getId();
+        final Map<String, Object> result = mapSupplier.get();
+        final String id = getId();
         if (!ID_DEFAULT.equals(id)) {
             result.put(ID_KEY, id);
         }
@@ -136,7 +136,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     }
 
     public Set<String> getPortIds() {
-        Set<String> result = new HashSet<>();
+        final Set<String> result = new HashSet<>();
         inputPortSchemas.stream().map(PortSchema::getId).forEachOrdered(result::add);
         outputPortSchemas.stream().map(PortSchema::getId).forEachOrdered(result::add);
         remoteProcessGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).forEachOrdered(result::add);
@@ -149,12 +149,12 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         return comment;
     }
 
-    public void setComment(String comment) {
+    public void setComment(final String comment) {
         this.comment = comment;
     }
 
     @Override
-    protected String getId(Map map, String wrapperName) {
+    protected String getId(final Map map, final String wrapperName) {
         return getOptionalKeyAsType(map, ID_KEY, String.class, wrapperName, ID_DEFAULT);
     }
 
@@ -177,7 +177,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     }
 
     @Override
-    protected boolean isValidId(String value) {
+    protected boolean isValidId(final String value) {
         if (ID_DEFAULT.equals(value)) {
             return true;
         }

@@ -162,7 +162,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("lookup-value-column", LOOKUP_VALUE_COLUMN.getName());
     }

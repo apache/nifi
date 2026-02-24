@@ -49,10 +49,10 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
     private long expiration;
 
     @Override
-    public void onConfigured(IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
+    public void onConfigured(final IdentityProviderConfigurationContext configurationContext) throws SecurityProviderCreationException {
 
-        String rawDebug = configurationContext.getProperty("Enable Debug");
-        boolean enableDebug = (rawDebug != null && rawDebug.equalsIgnoreCase("true"));
+        final String rawDebug = configurationContext.getProperty("Enable Debug");
+        final boolean enableDebug = (rawDebug != null && rawDebug.equalsIgnoreCase("true"));
 
         String rawExpiration = configurationContext.getProperty("Authentication Expiration");
         if (StringUtils.isBlank(rawExpiration)) {
@@ -73,7 +73,7 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
         }
 
         provider = new KerberosAuthenticationProvider();
-        SunJaasKerberosClient client = new SunJaasKerberosClient();
+        final SunJaasKerberosClient client = new SunJaasKerberosClient();
         client.setDebug(enableDebug);
         provider.setKerberosClient(client);
         provider.setUserDetailsService(new KerberosUserDetailsService());
@@ -81,7 +81,7 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
     }
 
     @Override
-    public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
+    public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws InvalidCredentialsException, IdentityAccessException {
 
         if (provider == null) {
             throw new IdentityAccessException("The Kerberos authentication provider is not initialized.");
@@ -94,7 +94,7 @@ public class KerberosIdentityProvider extends BasicAuthIdentityProvider {
 
             // Apply default realm from KerberosIdentityProvider's configuration specified in identity-providers.xml if a principal without a realm was given
             // Otherwise, the default realm configured from the krb5 configuration specified in the nifi.registry.kerberos.krb5.file property will end up being used
-            boolean realmInRawPrincipal = StringUtils.isNotBlank(parsedRealm);
+            final boolean realmInRawPrincipal = StringUtils.isNotBlank(parsedRealm);
             final String identity;
             if (realmInRawPrincipal) {
                 // there's a realm already in the given principal, use it

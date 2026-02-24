@@ -70,7 +70,7 @@ public class ShopifyRestService {
         final URI uri;
         try {
             uri = new URI(cursor);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new ProcessException("Could not create URI from cursor while paging", e);
         }
         return retrieveResponse(uri);
@@ -80,7 +80,7 @@ public class ShopifyRestService {
         return getBaseUri().build().toString();
     }
 
-    private HttpResponseEntity retrieveResponse(URI uri) {
+    private HttpResponseEntity retrieveResponse(final URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)

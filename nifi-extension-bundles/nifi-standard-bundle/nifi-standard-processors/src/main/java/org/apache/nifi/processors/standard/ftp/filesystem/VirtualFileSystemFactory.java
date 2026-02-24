@@ -28,12 +28,12 @@ public class VirtualFileSystemFactory implements FileSystemFactory {
         fileSystem = new DefaultVirtualFileSystem();
     }
 
-    public VirtualFileSystemFactory(VirtualFileSystem fileSystem) {
+    public VirtualFileSystemFactory(final VirtualFileSystem fileSystem) {
         this.fileSystem = fileSystem;
     }
 
     @Override
-    public FileSystemView createFileSystemView(User user) {
+    public FileSystemView createFileSystemView(final User user) {
         return new VirtualFileSystemView(user, fileSystem);
     }
 }

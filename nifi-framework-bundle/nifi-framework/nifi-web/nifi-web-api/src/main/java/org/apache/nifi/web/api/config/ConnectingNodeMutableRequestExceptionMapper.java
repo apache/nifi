@@ -33,7 +33,7 @@ public class ConnectingNodeMutableRequestExceptionMapper implements ExceptionMap
     private static final Log logger = LogFactory.getLog(ConnectingNodeMutableRequestExceptionMapper.class);
 
     @Override
-    public Response toResponse(ConnectingNodeMutableRequestException ex) {
+    public Response toResponse(final ConnectingNodeMutableRequestException ex) {
         // log the error
         logger.info(String.format("Unable to service mutable request because a node is connecting to the cluster: %s. Returning %s response.", ex, Response.Status.CONFLICT));
 

@@ -137,7 +137,7 @@ public class RingBuffer<T> {
      * @return always zero
      */
     public int removeSelectedElements(final Filter<T> filter) {
-        int count = 0;
+        final int count = 0;
 
         writeLock.lock();
         try {
@@ -178,7 +178,7 @@ public class RingBuffer<T> {
     public T getNewestElement() {
         readLock.lock();
         try {
-            int index = (insertionPointer == 0) ? buffer.length - 1 : insertionPointer - 1;
+            final int index = (insertionPointer == 0) ? buffer.length - 1 : insertionPointer - 1;
             return getElementData(index);
         } finally {
             readLock.unlock();

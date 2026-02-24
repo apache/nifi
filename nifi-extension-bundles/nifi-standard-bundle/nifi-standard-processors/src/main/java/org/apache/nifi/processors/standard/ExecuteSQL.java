@@ -173,7 +173,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("compression-format", COMPRESSION_FORMAT.getName());
         config.renameProperty(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, NORMALIZE_NAMES_FOR_AVRO.getName());
@@ -183,7 +183,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
     }
 
     @Override
-    protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
+    protected SqlWriter configureSqlWriter(final ProcessSession session, final ProcessContext context, final FlowFile fileToProcess) {
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();

@@ -58,11 +58,11 @@ public class DefaultProcessorStateStrategyTest {
 
     @Test
     public void testStartProcessorFullyApplied() {
-        ProcessorNode node = mock(ProcessorNode.class);
+        final ProcessorNode node = mock(ProcessorNode.class);
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(node);
         when(node.getProcessGroupIdentifier()).thenReturn(GROUP_ID);
 
-        OperationState result = victim.startProcessor(PROCESSOR_ID);
+        final OperationState result = victim.startProcessor(PROCESSOR_ID);
 
         assertEquals(FULLY_APPLIED, result);
         verify(flowController).startProcessor(GROUP_ID, PROCESSOR_ID, true);
@@ -72,30 +72,30 @@ public class DefaultProcessorStateStrategyTest {
     public void testStartProcessorNotAppliedWhenMissing() {
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(null);
 
-        OperationState result = victim.startProcessor(PROCESSOR_ID);
+        final OperationState result = victim.startProcessor(PROCESSOR_ID);
 
         assertEquals(NOT_APPLIED, result);
     }
 
     @Test
     public void testStartProcessorNotAppliedOnError() {
-        ProcessorNode node = mock(ProcessorNode.class);
+        final ProcessorNode node = mock(ProcessorNode.class);
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(node);
         when(node.getProcessGroupIdentifier()).thenReturn(GROUP_ID);
         doThrow(new RuntimeException("boom")).when(flowController).startProcessor(GROUP_ID, PROCESSOR_ID, true);
 
-        OperationState result = victim.startProcessor(PROCESSOR_ID);
+        final OperationState result = victim.startProcessor(PROCESSOR_ID);
 
         assertEquals(NOT_APPLIED, result);
     }
 
     @Test
     public void testStopProcessorFullyApplied() {
-        ProcessorNode node = mock(ProcessorNode.class);
+        final ProcessorNode node = mock(ProcessorNode.class);
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(node);
         when(node.getProcessGroupIdentifier()).thenReturn(GROUP_ID);
 
-        OperationState result = victim.stopProcessor(PROCESSOR_ID);
+        final OperationState result = victim.stopProcessor(PROCESSOR_ID);
 
         assertEquals(FULLY_APPLIED, result);
         verify(flowController).stopProcessor(GROUP_ID, PROCESSOR_ID);
@@ -103,12 +103,12 @@ public class DefaultProcessorStateStrategyTest {
 
     @Test
     public void testStopProcessorNotAppliedOnError() {
-        ProcessorNode node = mock(ProcessorNode.class);
+        final ProcessorNode node = mock(ProcessorNode.class);
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(node);
         when(node.getProcessGroupIdentifier()).thenReturn(GROUP_ID);
         doThrow(new RuntimeException("boom")).when(flowController).stopProcessor(GROUP_ID, PROCESSOR_ID);
 
-        OperationState result = victim.stopProcessor(PROCESSOR_ID);
+        final OperationState result = victim.stopProcessor(PROCESSOR_ID);
 
         assertEquals(NOT_APPLIED, result);
     }
@@ -117,7 +117,7 @@ public class DefaultProcessorStateStrategyTest {
     public void testStopProcessorNotAppliedWhenMissing() {
         when(flowManager.getProcessorNode(PROCESSOR_ID)).thenReturn(null);
 
-        OperationState result = victim.stopProcessor(PROCESSOR_ID);
+        final OperationState result = victim.stopProcessor(PROCESSOR_ID);
 
         assertEquals(NOT_APPLIED, result);
     }

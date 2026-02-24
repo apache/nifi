@@ -35,7 +35,7 @@ public interface S3EncryptionStrategy {
      * @param requestBuilder the builder of the request to configure
      * @param keySpec key specification
      */
-    default void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    default void configurePutObjectRequest(final PutObjectRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
     }
 
     /**
@@ -43,7 +43,7 @@ public interface S3EncryptionStrategy {
      * @param requestBuilder the builder of the request to configure
      * @param keySpec key specification
      */
-    default void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    default void configureCreateMultipartUploadRequest(final CreateMultipartUploadRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
     }
 
     /**
@@ -51,7 +51,7 @@ public interface S3EncryptionStrategy {
      * @param requestBuilder the builder of the request to configure
      * @param keySpec key specification
      */
-    default void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    default void configureGetObjectRequest(final GetObjectRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
     }
 
     /**
@@ -59,14 +59,14 @@ public interface S3EncryptionStrategy {
      * @param requestBuilder the builder of the request to configure
      * @param keySpec key specification
      */
-    default void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    default void configureUploadPartRequest(final UploadPartRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
     }
 
     /**
      * Create an S3 encryption client builder.
      *
      */
-    default S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
+    default S3EncryptionClient.Builder createEncryptionClientBuilder(final S3EncryptionKeySpec keySpec) {
         return null;
     }
 
@@ -76,7 +76,7 @@ public interface S3EncryptionStrategy {
      * @param keySpec key specification
      * @return ValidationResult instance
      */
-    default ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+    default ValidationResult validateKeySpec(final S3EncryptionKeySpec keySpec) {
         return new ValidationResult.Builder().valid(true).build();
     }
 }

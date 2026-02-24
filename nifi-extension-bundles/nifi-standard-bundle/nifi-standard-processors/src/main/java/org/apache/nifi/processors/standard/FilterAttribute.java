@@ -168,7 +168,7 @@ public class FilterAttribute extends AbstractProcessor {
         session.transfer(updatedFlowFile, REL_SUCCESS);
     }
 
-    private Predicate<String> determineMatchingPredicate(ProcessContext context, FlowFile flowFile) {
+    private Predicate<String> determineMatchingPredicate(final ProcessContext context, final FlowFile flowFile) {
         if (cachedMatchingPredicate != null) {
             return cachedMatchingPredicate;
         }
@@ -180,11 +180,11 @@ public class FilterAttribute extends AbstractProcessor {
         };
     }
 
-    private static Predicate<String> determineMatchingPredicateBasedOnEnumeration(ProcessContext context, FlowFile flowFile) {
+    private static Predicate<String> determineMatchingPredicateBasedOnEnumeration(final ProcessContext context, final FlowFile flowFile) {
         final String attributeSetDeclaration = getAttributeSet(context, flowFile);
         final String delimiter = getDelimiter();
 
-        Set<String> attributeSet = Arrays.stream(attributeSetDeclaration.split(Pattern.quote(delimiter)))
+        final Set<String> attributeSet = Arrays.stream(attributeSetDeclaration.split(Pattern.quote(delimiter)))
                 .map(String::trim)
                 .filter(attributeName -> !attributeName.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
@@ -192,27 +192,27 @@ public class FilterAttribute extends AbstractProcessor {
         return attributeSet::contains;
     }
 
-    private static Predicate<String> determineMatchingPredicateBasedOnRegex(ProcessContext context, FlowFile flowFile) {
-        Pattern attributeRegex = getAttributeRegex(context, flowFile);
+    private static Predicate<String> determineMatchingPredicateBasedOnRegex(final ProcessContext context, final FlowFile flowFile) {
+        final Pattern attributeRegex = getAttributeRegex(context, flowFile);
 
         return attributeRegex.asMatchPredicate();
     }
 
     /* properties */
 
-    private static FilterMode getFilterMode(ProcessContext context) {
+    private static FilterMode getFilterMode(final ProcessContext context) {
         return context
                 .getProperty(FILTER_MODE)
                 .asAllowableValue(FilterMode.class);
     }
 
-    private static MatchingStrategy getMatchingStrategy(ProcessContext context) {
+    private static MatchingStrategy getMatchingStrategy(final ProcessContext context) {
         return context
                 .getProperty(MATCHING_STRATEGY)
                 .asAllowableValue(MatchingStrategy.class);
     }
 
-    private static String getAttributeSet(ProcessContext context, FlowFile flowFile) {
+    private static String getAttributeSet(final ProcessContext context, final FlowFile flowFile) {
         return context.getProperty(ATTRIBUTE_ENUMERATION).evaluateAttributeExpressions(flowFile).getValue();
     }
 
@@ -220,7 +220,7 @@ public class FilterAttribute extends AbstractProcessor {
         return DELIMITER_VALUE;
     }
 
-    private static Pattern getAttributeRegex(ProcessContext context, FlowFile flowFile) {
+    private static Pattern getAttributeRegex(final ProcessContext context, final FlowFile flowFile) {
         return Pattern.compile(
                 context.getProperty(ATTRIBUTE_PATTERN).evaluateAttributeExpressions(flowFile).getValue()
         );

@@ -36,7 +36,7 @@ public class RuleDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -44,7 +44,7 @@ public class RuleDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -52,7 +52,7 @@ public class RuleDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -60,7 +60,7 @@ public class RuleDTO {
         return conditions;
     }
 
-    public void setConditions(Set<ConditionDTO> conditions) {
+    public void setConditions(final Set<ConditionDTO> conditions) {
         this.conditions = conditions;
     }
 
@@ -68,7 +68,7 @@ public class RuleDTO {
         return actions;
     }
 
-    public void setActions(Set<ActionDTO> actions) {
+    public void setActions(final Set<ActionDTO> actions) {
         this.actions = actions;
     }
 

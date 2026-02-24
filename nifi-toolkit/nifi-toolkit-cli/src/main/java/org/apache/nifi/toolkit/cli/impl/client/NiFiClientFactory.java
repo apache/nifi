@@ -164,18 +164,18 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
 
         if (!StringUtils.isBlank(connectionTimeout)) {
             try {
-                Integer timeout = Integer.valueOf(connectionTimeout);
+                final Integer timeout = Integer.valueOf(connectionTimeout);
                 clientConfigBuilder.connectTimeout(timeout);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new MissingOptionException("connectionTimeout has to be an integer");
             }
         }
 
         if (!StringUtils.isBlank(readTimeout)) {
             try {
-                Integer timeout = Integer.valueOf(readTimeout);
+                final Integer timeout = Integer.valueOf(readTimeout);
                 clientConfigBuilder.readTimeout(timeout);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new MissingOptionException("readTimeout has to be an integer");
             }
         }
@@ -223,7 +223,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ControllerClient getControllerClient(RequestConfig requestConfig) {
+        public ControllerClient getControllerClient(final RequestConfig requestConfig) {
             return wrappedClient.getControllerClient(requestConfig);
         }
 
@@ -233,7 +233,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ControllerServicesClient getControllerServicesClient(RequestConfig requestConfig) {
+        public ControllerServicesClient getControllerServicesClient(final RequestConfig requestConfig) {
             return wrappedClient.getControllerServicesClient(requestConfig);
         }
 
@@ -243,7 +243,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public FlowClient getFlowClient(RequestConfig requestConfig) {
+        public FlowClient getFlowClient(final RequestConfig requestConfig) {
             return wrappedClient.getFlowClient(requestConfig);
         }
 
@@ -253,7 +253,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ProcessGroupClient getProcessGroupClient(RequestConfig requestConfig) {
+        public ProcessGroupClient getProcessGroupClient(final RequestConfig requestConfig) {
             return wrappedClient.getProcessGroupClient(requestConfig);
         }
 
@@ -263,7 +263,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ProcessorClient getProcessorClient(RequestConfig requestConfig) {
+        public ProcessorClient getProcessorClient(final RequestConfig requestConfig) {
             return wrappedClient.getProcessorClient(requestConfig);
         }
 
@@ -273,7 +273,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public VersionsClient getVersionsClient(RequestConfig requestConfig) {
+        public VersionsClient getVersionsClient(final RequestConfig requestConfig) {
             return wrappedClient.getVersionsClient(requestConfig);
         }
 
@@ -283,7 +283,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public TenantsClient getTenantsClient(RequestConfig requestConfig) {
+        public TenantsClient getTenantsClient(final RequestConfig requestConfig) {
             return wrappedClient.getTenantsClient(requestConfig);
         }
 
@@ -293,7 +293,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public PoliciesClient getPoliciesClient(RequestConfig requestConfig) {
+        public PoliciesClient getPoliciesClient(final RequestConfig requestConfig) {
             return wrappedClient.getPoliciesClient(requestConfig);
         }
 
@@ -303,7 +303,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig) {
+        public ReportingTasksClient getReportingTasksClient(final RequestConfig requestConfig) {
             return wrappedClient.getReportingTasksClient(requestConfig);
         }
 
@@ -313,7 +313,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ParamProviderClient getParamProviderClient(RequestConfig requestConfig) {
+        public ParamProviderClient getParamProviderClient(final RequestConfig requestConfig) {
             return wrappedClient.getParamProviderClient(requestConfig);
         }
 
@@ -323,7 +323,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ParamContextClient getParamContextClient(RequestConfig requestConfig) {
+        public ParamContextClient getParamContextClient(final RequestConfig requestConfig) {
             return wrappedClient.getParamContextClient(requestConfig);
         }
 
@@ -333,7 +333,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public CountersClient getCountersClient(RequestConfig requestConfig) {
+        public CountersClient getCountersClient(final RequestConfig requestConfig) {
             return wrappedClient.getCountersClient(requestConfig);
         }
 
@@ -343,7 +343,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ConnectionClient getConnectionClient(RequestConfig requestConfig) {
+        public ConnectionClient getConnectionClient(final RequestConfig requestConfig) {
             return wrappedClient.getConnectionClient(requestConfig);
         }
 
@@ -353,7 +353,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public RemoteProcessGroupClient getRemoteProcessGroupClient(RequestConfig requestConfig) {
+        public RemoteProcessGroupClient getRemoteProcessGroupClient(final RequestConfig requestConfig) {
             return wrappedClient.getRemoteProcessGroupClient(requestConfig);
         }
 
@@ -363,7 +363,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public InputPortClient getInputPortClient(RequestConfig requestConfig) {
+        public InputPortClient getInputPortClient(final RequestConfig requestConfig) {
             return wrappedClient.getInputPortClient(requestConfig);
         }
 
@@ -373,7 +373,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public OutputPortClient getOutputPortClient(RequestConfig requestConfig) {
+        public OutputPortClient getOutputPortClient(final RequestConfig requestConfig) {
             return wrappedClient.getOutputPortClient(requestConfig);
         }
 
@@ -383,7 +383,7 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         }
 
         @Override
-        public ProvenanceClient getProvenanceClient(RequestConfig requestConfig) {
+        public ProvenanceClient getProvenanceClient(final RequestConfig requestConfig) {
             return wrappedClient.getProvenanceClient(requestConfig);
         }
 

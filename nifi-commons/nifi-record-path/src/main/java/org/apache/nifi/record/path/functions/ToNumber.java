@@ -32,7 +32,7 @@ public class ToNumber extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final FieldValue fieldValue = valuePath.evaluate(context).findFirst().orElseThrow(() -> new IllegalArgumentException("toNumber function requires an operand"));
         final Object value = fieldValue.getValue();
 

@@ -30,17 +30,17 @@ public interface PropertiesLoader {
 
     Logger logger = LoggerFactory.getLogger(PropertiesLoader.class);
 
-    static Properties load(File file, String propertiesType) {
+    static Properties load(final File file, final String propertiesType) {
         if (file == null || !file.exists() || !file.canRead()) {
             throw new IllegalArgumentException(String.format("{} Properties [%s] not found", propertiesType, file));
         }
 
         logger.info("Loading {} Properties [{}]", propertiesType, file);
-        DuplicateDetectingProperties rawProperties = new DuplicateDetectingProperties();
+        final DuplicateDetectingProperties rawProperties = new DuplicateDetectingProperties();
 
         try (InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             rawProperties.load(inputStream);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(String.format("Loading {} Properties [%s] failed", propertiesType, file), e);
         }
 
@@ -51,10 +51,10 @@ public interface PropertiesLoader {
             throw new IllegalArgumentException("Duplicate property keys with different values were detected in the properties file: " + String.join(", ", rawProperties.duplicateKeySet()));
         }
 
-        Properties properties = new Properties();
+        final Properties properties = new Properties();
         rawProperties.stringPropertyNames()
             .forEach(key -> {
-                String property = rawProperties.getProperty(key);
+                final String property = rawProperties.getProperty(key);
                 properties.setProperty(key, property.trim());
             });
         return properties;

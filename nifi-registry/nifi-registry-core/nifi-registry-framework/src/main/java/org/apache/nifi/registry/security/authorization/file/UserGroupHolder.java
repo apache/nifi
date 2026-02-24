@@ -90,13 +90,13 @@ public class UserGroupHolder {
      * @param users the JAXB Users
      * @return a set of API Users matching the provided JAXB Users
      */
-    private Set<User> createUsers(Users users) {
-        Set<User> allUsers = new HashSet<>();
+    private Set<User> createUsers(final Users users) {
+        final Set<User> allUsers = new HashSet<>();
         if (users == null || users.getUser() == null) {
             return allUsers;
         }
 
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.User user : users.getUser()) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.User user : users.getUser()) {
             final User.Builder builder = new User.Builder()
                     .identity(user.getIdentity())
                     .identifier(user.getIdentifier());
@@ -113,19 +113,19 @@ public class UserGroupHolder {
      * @param groups the JAXB Groups
      * @return a set of API Groups matching the provided JAXB Groups
      */
-    private Set<Group> createGroups(Groups groups,
-                                    Users users) {
-        Set<Group> allGroups = new HashSet<>();
+    private Set<Group> createGroups(final Groups groups,
+                                    final Users users) {
+        final Set<Group> allGroups = new HashSet<>();
         if (groups == null || groups.getGroup() == null) {
             return allGroups;
         }
 
-        for (org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : groups.getGroup()) {
+        for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group group : groups.getGroup()) {
             final Group.Builder builder = new Group.Builder()
                     .identifier(group.getIdentifier())
                     .name(group.getName());
 
-            for (org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User groupUser : group.getUser()) {
+            for (final org.apache.nifi.registry.security.authorization.file.tenants.generated.Group.User groupUser : group.getUser()) {
                 builder.addUser(groupUser.getIdentifier());
             }
 
@@ -159,14 +159,14 @@ public class UserGroupHolder {
         return groupsById;
     }
 
-    public User getUser(String identity) {
+    public User getUser(final String identity) {
         if (identity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }
         return usersByIdentity.get(identity);
     }
 
-    public Set<Group> getGroups(String userIdentity) {
+    public Set<Group> getGroups(final String userIdentity) {
         if (userIdentity == null) {
             throw new IllegalArgumentException("User Identity cannot be null");
         }

@@ -305,7 +305,7 @@ public class PropertyMigrationIT extends NiFiSystemIT {
         return files[0];
     }
 
-    private void moveNars(File source, String regex, File target) {
+    private void moveNars(final File source, final String regex, final File target) {
         final File libNar = findFile(source, regex);
         assertNotNull(libNar);
         final File libNarTarget = new File(target, libNar.getName());

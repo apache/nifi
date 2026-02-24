@@ -209,7 +209,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
                             writeResult.set(recordSetWriter.finishRecordSet());
                             mimeTypeRef.set(recordSetWriter.getMimeType());
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         exceptionHolder.set(e);
                     }
                 });
@@ -262,7 +262,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("filename", FILENAME.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());

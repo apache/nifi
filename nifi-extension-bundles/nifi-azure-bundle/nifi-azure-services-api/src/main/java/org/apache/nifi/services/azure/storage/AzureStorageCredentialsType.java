@@ -30,7 +30,7 @@ public enum AzureStorageCredentialsType implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    AzureStorageCredentialsType(String displayName, String description) {
+    AzureStorageCredentialsType(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

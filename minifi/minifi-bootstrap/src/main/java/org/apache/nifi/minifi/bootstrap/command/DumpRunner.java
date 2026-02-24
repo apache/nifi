@@ -38,7 +38,7 @@ public class DumpRunner implements CommandRunner {
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final CurrentPortProvider currentPortProvider;
 
-    public DumpRunner(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider) {
+    public DumpRunner(final MiNiFiCommandSender miNiFiCommandSender, final CurrentPortProvider currentPortProvider) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
     }
@@ -50,21 +50,21 @@ public class DumpRunner implements CommandRunner {
      * @param args the second parameter is the file to write the dump content to
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         return dump(getArg(args, 1).map(File::new).orElse(null));
     }
 
-    private int dump(File dumpFile) {
-        Integer port = currentPortProvider.getCurrentPort();
+    private int dump(final File dumpFile) {
+        final Integer port = currentPortProvider.getCurrentPort();
         if (port == null) {
             CMD_LOGGER.error("Apache MiNiFi is not currently running");
             return MINIFI_NOT_RUNNING.getStatusCode();
         }
 
-        Optional<String> dump;
+        final Optional<String> dump;
         try {
             dump = miNiFiCommandSender.sendCommand(DUMP_CMD, port);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             CMD_LOGGER.error("Failed to get DUMP response from MiNiFi");
             DEFAULT_LOGGER.error("Exception:", e);
             return ERROR.getStatusCode();
@@ -78,10 +78,10 @@ public class DumpRunner implements CommandRunner {
             });
     }
 
-    private Integer writeDumpToFile(File dumpFile, Optional<String> dump) {
+    private Integer writeDumpToFile(final File dumpFile, final Optional<String> dump) {
         try (FileOutputStream fos = new FileOutputStream(dumpFile)) {
             fos.write(dump.orElse("Dump has empty response").getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             CMD_LOGGER.error("Failed to write DUMP response to file");
             DEFAULT_LOGGER.error("Exception:", e);
             return ERROR.getStatusCode();
@@ -91,7 +91,7 @@ public class DumpRunner implements CommandRunner {
         return OK.getStatusCode();
     }
 
-    private Optional<String> getArg(String[] args, int index) {
+    private Optional<String> getArg(final String[] args, final int index) {
         return Optional.ofNullable(args.length > index ? args[index] : null);
     }
 }

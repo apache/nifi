@@ -115,7 +115,7 @@ public class StandardStatsTracker implements StatsTracker {
 
     private record SampledCpuMetrics(long processingNanos, long cpuNanos) {
 
-        SampledCpuMetrics add(long processingNanos, long cpuNanos) {
+        SampledCpuMetrics add(final long processingNanos, final long cpuNanos) {
             return new SampledCpuMetrics(
                 this.processingNanos + processingNanos,
                 this.cpuNanos + cpuNanos

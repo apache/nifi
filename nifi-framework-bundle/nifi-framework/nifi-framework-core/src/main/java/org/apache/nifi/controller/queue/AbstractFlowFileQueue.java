@@ -112,7 +112,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     public void setBackPressureObjectThreshold(final long threshold) {
         boolean updated = false;
         while (!updated) {
-            MaxQueueSize maxSize = getMaxQueueSize();
+            final MaxQueueSize maxSize = getMaxQueueSize();
             final MaxQueueSize updatedSize = new MaxQueueSize(maxSize.getMaxSize(), maxSize.getMaxBytes(), threshold);
             updated = maxQueueSize.compareAndSet(maxSize, updatedSize);
         }
@@ -129,7 +129,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
         boolean updated = false;
         while (!updated) {
-            MaxQueueSize maxSize = getMaxQueueSize();
+            final MaxQueueSize maxSize = getMaxQueueSize();
             final MaxQueueSize updatedSize = new MaxQueueSize(maxDataSize, maxBytes, maxSize.getMaxCount());
             updated = maxQueueSize.compareAndSet(maxSize, updatedSize);
         }
@@ -482,17 +482,17 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     }
 
     @Override
-    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
         return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
         return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
     @Override
-    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
         return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -502,14 +502,14 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (o == this) {
             return true;
         }
         if (!(o instanceof AbstractFlowFileQueue)) {
             return false;
         }
-        AbstractFlowFileQueue other = (AbstractFlowFileQueue) o;
+        final AbstractFlowFileQueue other = (AbstractFlowFileQueue) o;
         return identifier.equals(other.identifier);
     }
 }

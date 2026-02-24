@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestFileUtils {
     @Test
     public void testSanitizeFilename() {
-        String filename = "This / is / a test";
+        final String filename = "This / is / a test";
         final String sanitizedFilename = FileUtils.sanitizeFilename(filename);
         assertEquals("This___is___a_test", sanitizedFilename);
     }

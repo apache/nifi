@@ -94,7 +94,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     private static JAXBContext initializeJaxbContext() {
         try {
             return JAXBContext.newInstance(JAXB_GENERATED_PATH, AuthorizerFactory.class.getClassLoader());
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }
@@ -128,21 +128,21 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     /***** UserGroupProviderLookup *****/
 
     @Override
-    public UserGroupProvider getUserGroupProvider(String identifier) {
+    public UserGroupProvider getUserGroupProvider(final String identifier) {
         return userGroupProviders.get(identifier);
     }
 
     /***** AccessPolicyProviderLookup *****/
 
     @Override
-    public AccessPolicyProvider getAccessPolicyProvider(String identifier) {
+    public AccessPolicyProvider getAccessPolicyProvider(final String identifier) {
         return accessPolicyProviders.get(identifier);
     }
 
     /***** AuthorizerLookup *****/
 
     @Override
-    public Authorizer getAuthorizer(String identifier) {
+    public Authorizer getAuthorizer(final String identifier) {
         return authorizers.get(identifier);
     }
 
@@ -253,9 +253,9 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                             }
                         }
 
-                    } catch (AuthorizerFactoryException e) {
+                    } catch (final AuthorizerFactoryException e) {
                         throw e;
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         throw new AuthorizerFactoryException("Failed to construct Authorizer.", e);
                     }
                 }
@@ -323,11 +323,11 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
         try (final ExtensionCloseable ignored = ExtensionCloseable.withClassLoader(classLoader)) {
             // attempt to load the class
-            Class<?> rawUserGroupProviderClass = Class.forName(userGroupProviderClassName, true, classLoader);
-            Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
+            final Class<?> rawUserGroupProviderClass = Class.forName(userGroupProviderClassName, true, classLoader);
+            final Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
 
             // otherwise create a new instance
-            Constructor<?> constructor = userGroupProviderClass.getConstructor();
+            final Constructor<?> constructor = userGroupProviderClass.getConstructor();
             instance = (UserGroupProvider) constructor.newInstance();
 
             // method injection
@@ -353,11 +353,11 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
         try (final ExtensionCloseable ignored = ExtensionCloseable.withClassLoader(classLoader)) {
             // attempt to load the class
-            Class<?> rawAccessPolicyProviderClass = Class.forName(accessPolicyProviderClassName, true, classLoader);
-            Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
+            final Class<?> rawAccessPolicyProviderClass = Class.forName(accessPolicyProviderClassName, true, classLoader);
+            final Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
 
             // otherwise create a new instance
-            Constructor<?> constructor = accessPolicyClass.getConstructor();
+            final Constructor<?> constructor = accessPolicyClass.getConstructor();
             instance = (AccessPolicyProvider) constructor.newInstance();
 
             // method injection
@@ -376,7 +376,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName, final String classpathResources) throws Exception {
         final Authorizer instance;
 
-        ClassLoader classLoader;
+        final ClassLoader classLoader;
 
         final ExtensionClassLoader extensionClassLoader = extensionManager.getExtensionClassLoader(authorizerClassName);
         if (extensionClassLoader == null) {
@@ -403,11 +403,11 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
         try (final ExtensionCloseable ignored = ExtensionCloseable.withClassLoader(classLoader)) {
             // attempt to load the class
-            Class<?> rawAuthorizerClass = Class.forName(authorizerClassName, true, classLoader);
-            Class<? extends Authorizer> authorizerClass = rawAuthorizerClass.asSubclass(Authorizer.class);
+            final Class<?> rawAuthorizerClass = Class.forName(authorizerClassName, true, classLoader);
+            final Class<? extends Authorizer> authorizerClass = rawAuthorizerClass.asSubclass(Authorizer.class);
 
             // otherwise create a new instance
-            Constructor<?> constructor = authorizerClass.getConstructor();
+            final Constructor<?> constructor = authorizerClass.getConstructor();
             instance = (Authorizer) constructor.newInstance();
 
             // method injection
@@ -498,11 +498,11 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
             }
 
             @Override
-            public void initialize(AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
+            public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
             }
 
             @Override
-            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+            public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
             }
 
             @Override
@@ -518,7 +518,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     private static class ManagedAuthorizerWrapper implements ManagedAuthorizer, WrappedAuthorizer {
         private final ManagedAuthorizer baseManagedAuthorizer;
 
-        public ManagedAuthorizerWrapper(ManagedAuthorizer baseManagedAuthorizer) {
+        public ManagedAuthorizerWrapper(final ManagedAuthorizer baseManagedAuthorizer) {
             this.baseManagedAuthorizer = baseManagedAuthorizer;
         }
 
@@ -533,12 +533,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
 
         @Override
-        public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+        public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
             baseManagedAuthorizer.inheritFingerprint(fingerprint);
         }
 
         @Override
-        public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+        public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
             baseManagedAuthorizer.checkInheritability(proposedFingerprint);
         }
 
@@ -554,17 +554,17 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     }
 
                     @Override
-                    public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+                    public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
                         baseConfigurableAccessPolicyProvider.inheritFingerprint(fingerprint);
                     }
 
                     @Override
-                    public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+                    public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
                         baseConfigurableAccessPolicyProvider.checkInheritability(proposedFingerprint);
                     }
 
                     @Override
-                    public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    public AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                         if (policyExists(baseConfigurableAccessPolicyProvider, accessPolicy)) {
                             throw new IllegalStateException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
                         }
@@ -572,12 +572,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     }
 
                     @Override
-                    public boolean isConfigurable(AccessPolicy accessPolicy) {
+                    public boolean isConfigurable(final AccessPolicy accessPolicy) {
                         return baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy);
                     }
 
                     @Override
-                    public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    public AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                         if (!baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy)) {
                             throw new IllegalArgumentException("The specified access policy is not support modification.");
                         }
@@ -585,7 +585,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     }
 
                     @Override
-                    public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    public AccessPolicy deleteAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                         if (!baseConfigurableAccessPolicyProvider.isConfigurable(accessPolicy)) {
                             throw new IllegalArgumentException("The specified access policy is not support modification.");
                         }
@@ -598,12 +598,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     }
 
                     @Override
-                    public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+                    public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
                         return baseConfigurableAccessPolicyProvider.getAccessPolicy(identifier);
                     }
 
                     @Override
-                    public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+                    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
                         return baseConfigurableAccessPolicyProvider.getAccessPolicy(resourceIdentifier, action);
                     }
 
@@ -619,17 +619,17 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
+                                public void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
                                     baseConfigurableUserGroupProvider.inheritFingerprint(fingerprint);
                                 }
 
                                 @Override
-                                public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+                                public void checkInheritability(final String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
                                     baseConfigurableUserGroupProvider.checkInheritability(proposedFingerprint);
                                 }
 
                                 @Override
-                                public User addUser(User user) throws AuthorizationAccessException {
+                                public User addUser(final User user) throws AuthorizationAccessException {
                                     if (userExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
                                         throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
                                     }
@@ -637,12 +637,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public boolean isConfigurable(User user) {
+                                public boolean isConfigurable(final User user) {
                                     return baseConfigurableUserGroupProvider.isConfigurable(user);
                                 }
 
                                 @Override
-                                public User updateUser(User user) throws AuthorizationAccessException {
+                                public User updateUser(final User user) throws AuthorizationAccessException {
                                     if (userExists(baseConfigurableUserGroupProvider, user.getIdentifier(), user.getIdentity())) {
                                         throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
                                     }
@@ -653,7 +653,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public User deleteUser(User user) throws AuthorizationAccessException {
+                                public User deleteUser(final User user) throws AuthorizationAccessException {
                                     if (!baseConfigurableUserGroupProvider.isConfigurable(user)) {
                                         throw new IllegalArgumentException("The specified user does not support modification.");
                                     }
@@ -661,7 +661,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public Group addGroup(Group group) throws AuthorizationAccessException {
+                                public Group addGroup(final Group group) throws AuthorizationAccessException {
                                     if (groupExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                         throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
                                     }
@@ -672,12 +672,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public boolean isConfigurable(Group group) {
+                                public boolean isConfigurable(final Group group) {
                                     return baseConfigurableUserGroupProvider.isConfigurable(group);
                                 }
 
                                 @Override
-                                public Group updateGroup(Group group) throws AuthorizationAccessException {
+                                public Group updateGroup(final Group group) throws AuthorizationAccessException {
                                     if (groupExists(baseConfigurableUserGroupProvider, group.getIdentifier(), group.getName())) {
                                         throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
                                     }
@@ -691,7 +691,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                                public Group deleteGroup(final Group group) throws AuthorizationAccessException {
                                     if (!baseConfigurableUserGroupProvider.isConfigurable(group)) {
                                         throw new IllegalArgumentException("The specified group does not support modification.");
                                     }
@@ -704,12 +704,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public User getUser(String identifier) throws AuthorizationAccessException {
+                                public User getUser(final String identifier) throws AuthorizationAccessException {
                                     return baseConfigurableUserGroupProvider.getUser(identifier);
                                 }
 
                                 @Override
-                                public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                                public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
                                     return baseConfigurableUserGroupProvider.getUserByIdentity(identity);
                                 }
 
@@ -719,22 +719,22 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                                 }
 
                                 @Override
-                                public Group getGroup(String identifier) throws AuthorizationAccessException {
+                                public Group getGroup(final String identifier) throws AuthorizationAccessException {
                                     return baseConfigurableUserGroupProvider.getGroup(identifier);
                                 }
 
                                 @Override
-                                public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+                                public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
                                     return baseConfigurableUserGroupProvider.getUserAndGroups(identity);
                                 }
 
                                 @Override
-                                public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+                                public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
                                     baseConfigurableUserGroupProvider.initialize(initializationContext);
                                 }
 
                                 @Override
-                                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+                                public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
                                     baseConfigurableUserGroupProvider.onConfigured(configurationContext);
                                 }
 
@@ -749,12 +749,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     }
 
                     @Override
-                    public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+                    public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
                         baseConfigurableAccessPolicyProvider.initialize(initializationContext);
                     }
 
                     @Override
-                    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+                    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
                         baseConfigurableAccessPolicyProvider.onConfigured(configurationContext);
                     }
 
@@ -769,7 +769,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
 
         @Override
-        public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+        public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
             final AuthorizationResult result = baseManagedAuthorizer.authorize(request);
 
             // audit the authorization request
@@ -779,12 +779,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
 
         @Override
-        public void initialize(AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
+        public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
             baseManagedAuthorizer.initialize(initializationContext);
         }
 
         @Override
-        public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+        public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
             baseManagedAuthorizer.onConfigured(configurationContext);
 
             final AccessPolicyProvider accessPolicyProvider = baseManagedAuthorizer.getAccessPolicyProvider();
@@ -792,21 +792,21 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
             // ensure that only one policy per resource-action exists
             final Set<AccessPolicy> allPolicies = accessPolicyProvider.getAccessPolicies();
-            for (AccessPolicy accessPolicy : allPolicies) {
+            for (final AccessPolicy accessPolicy : allPolicies) {
                 if (policyExists(allPolicies, accessPolicy)) {
                     throw new SecurityProviderCreationException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
                 }
             }
 
             // ensure that only one group exists per identity
-            for (User user : userGroupProvider.getUsers()) {
+            for (final User user : userGroupProvider.getUsers()) {
                 if (userExists(userGroupProvider, user.getIdentifier(), user.getIdentity())) {
                     throw new SecurityProviderCreationException(String.format("Found multiple users/user groups with identity '%s'.", user.getIdentity()));
                 }
             }
 
             // ensure that only one group exists per identity
-            for (Group group : userGroupProvider.getGroups()) {
+            for (final Group group : userGroupProvider.getGroups()) {
                 if (groupExists(userGroupProvider, group.getIdentifier(), group.getName())) {
                     throw new SecurityProviderCreationException(String.format("Found multiple users/user groups with name '%s'.", group.getName()));
                 }
@@ -822,7 +822,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     private static class AuthorizerWrapper implements Authorizer, WrappedAuthorizer {
         private final Authorizer baseAuthorizer;
 
-        public AuthorizerWrapper(Authorizer baseAuthorizer) {
+        public AuthorizerWrapper(final Authorizer baseAuthorizer) {
             this.baseAuthorizer = baseAuthorizer;
         }
 
@@ -832,7 +832,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
 
         @Override
-        public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+        public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
             final AuthorizationResult result = baseAuthorizer.authorize(request);
 
             // audit the authorization request
@@ -842,12 +842,12 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
 
         @Override
-        public void initialize(AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
+        public void initialize(final AuthorizerInitializationContext initializationContext) throws SecurityProviderCreationException {
             baseAuthorizer.initialize(initializationContext);
         }
 
         @Override
-        public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+        public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
             baseAuthorizer.onConfigured(configurationContext);
         }
 
@@ -892,7 +892,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
      * @return true if another access policy exists with the same resource and action, false otherwise
      */
     private static boolean policyExists(final Collection<AccessPolicy> policies, final AccessPolicy checkAccessPolicy) {
-        for (AccessPolicy accessPolicy : policies) {
+        for (final AccessPolicy accessPolicy : policies) {
             if (!accessPolicy.getIdentifier().equals(checkAccessPolicy.getIdentifier())
                     && accessPolicy.getResource().equals(checkAccessPolicy.getResource())
                     && accessPolicy.getAction().equals(checkAccessPolicy.getAction())) {
@@ -911,7 +911,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
      * @return true if another user exists with the same identity, false otherwise
      */
     private static boolean userExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
-        for (User user : userGroupProvider.getUsers()) {
+        for (final User user : userGroupProvider.getUsers()) {
             if (!user.getIdentifier().equals(identifier)
                     && user.getIdentity().equals(identity)) {
                 return true;
@@ -922,7 +922,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
     }
 
     private static boolean groupExists(final UserGroupProvider userGroupProvider, final String identifier, final String identity) {
-        for (Group group : userGroupProvider.getGroups()) {
+        for (final Group group : userGroupProvider.getGroups()) {
             if (!group.getIdentifier().equals(identifier)
                     && group.getName().equals(identity)) {
                 return true;
@@ -940,8 +940,8 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
      * @return true if another user exists with the same identity, false otherwise
      */
     private static boolean allGroupUsersExist(final UserGroupProvider userGroupProvider, final Group group) {
-        for (String userIdentifier : group.getUsers()) {
-            User user = userGroupProvider.getUser(userIdentifier);
+        for (final String userIdentifier : group.getUsers()) {
+            final User user = userGroupProvider.getUser(userIdentifier);
             if (user == null) {
                 return false;
             }

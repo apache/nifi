@@ -55,7 +55,7 @@ public class ExtensionComponent extends DefinedType {
         return buildInfo;
     }
 
-    public void setBuildInfo(BuildInfo buildInfo) {
+    public void setBuildInfo(final BuildInfo buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -65,7 +65,7 @@ public class ExtensionComponent extends DefinedType {
 
     }
 
-    public void setProvidedApiImplementations(List<DefinedType> providedApiImplementations) {
+    public void setProvidedApiImplementations(final List<DefinedType> providedApiImplementations) {
         this.providedApiImplementations = providedApiImplementations;
     }
 
@@ -74,7 +74,7 @@ public class ExtensionComponent extends DefinedType {
         return (tags != null ? Collections.unmodifiableSet(tags) : null);
     }
 
-    public void setTags(Set<String> tags) {
+    public void setTags(final Set<String> tags) {
         this.tags = tags;
     }
 
@@ -83,7 +83,7 @@ public class ExtensionComponent extends DefinedType {
         return seeAlso;
     }
 
-    public void setSeeAlso(Set<String> seeAlso) {
+    public void setSeeAlso(final Set<String> seeAlso) {
         this.seeAlso = seeAlso;
     }
 
@@ -92,7 +92,7 @@ public class ExtensionComponent extends DefinedType {
         return deprecated;
     }
 
-    public void setDeprecated(Boolean deprecated) {
+    public void setDeprecated(final Boolean deprecated) {
         this.deprecated = deprecated;
     }
 
@@ -101,7 +101,7 @@ public class ExtensionComponent extends DefinedType {
         return deprecationReason;
     }
 
-    public void setDeprecationReason(String deprecationReason) {
+    public void setDeprecationReason(final String deprecationReason) {
         this.deprecationReason = deprecationReason;
     }
 
@@ -110,7 +110,7 @@ public class ExtensionComponent extends DefinedType {
         return deprecationAlternatives;
     }
 
-    public void setDeprecationAlternatives(Set<String> deprecationAlternatives) {
+    public void setDeprecationAlternatives(final Set<String> deprecationAlternatives) {
         this.deprecationAlternatives = deprecationAlternatives;
     }
 
@@ -123,7 +123,7 @@ public class ExtensionComponent extends DefinedType {
         return restricted;
     }
 
-    public void setRestricted(Boolean restricted) {
+    public void setRestricted(final Boolean restricted) {
         this.restricted = restricted;
     }
 
@@ -132,7 +132,7 @@ public class ExtensionComponent extends DefinedType {
         return restrictedExplanation;
     }
 
-    public void setRestrictedExplanation(String restrictedExplanation) {
+    public void setRestrictedExplanation(final String restrictedExplanation) {
         this.restrictedExplanation = restrictedExplanation;
     }
 
@@ -141,7 +141,7 @@ public class ExtensionComponent extends DefinedType {
         return explicitRestrictions;
     }
 
-    public void setExplicitRestrictions(Set<Restriction> explicitRestrictions) {
+    public void setExplicitRestrictions(final Set<Restriction> explicitRestrictions) {
         this.explicitRestrictions = explicitRestrictions;
     }
 
@@ -150,7 +150,7 @@ public class ExtensionComponent extends DefinedType {
         return stateful;
     }
 
-    public void setStateful(Stateful stateful) {
+    public void setStateful(final Stateful stateful) {
         this.stateful = stateful;
     }
 
@@ -159,7 +159,7 @@ public class ExtensionComponent extends DefinedType {
         return systemResourceConsiderations;
     }
 
-    public void setSystemResourceConsiderations(List<SystemResourceConsideration> systemResourceConsiderations) {
+    public void setSystemResourceConsiderations(final List<SystemResourceConsideration> systemResourceConsiderations) {
         this.systemResourceConsiderations = systemResourceConsiderations;
     }
 
@@ -168,12 +168,12 @@ public class ExtensionComponent extends DefinedType {
         return additionalDetails;
     }
 
-    public void setAdditionalDetails(boolean additionalDetails) {
+    public void setAdditionalDetails(final boolean additionalDetails) {
         this.additionalDetails = additionalDetails;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }

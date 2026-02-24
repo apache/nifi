@@ -55,21 +55,21 @@ public class ListGoogleDrivePathTest implements OutputChecker {
 
         testSubject = new ListGoogleDrive() {
             @Override
-            protected List<GoogleDriveFileInfo> performListing(ProcessContext context, Long minTimestamp, ListingMode ignoredListingMode) throws IOException {
+            protected List<GoogleDriveFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode ignoredListingMode) throws IOException {
                 return super.performListing(context, minTimestamp, ListingMode.EXECUTION);
             }
 
             @Override
-            public Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
+            public Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
                 return mockDriverService;
             }
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
 
-        String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
+        final String gcpCredentialsControllerServiceId = "gcp_credentials_provider_service";
 
-        GCPCredentialsControllerService gcpCredentialsControllerService = mock(GCPCredentialsControllerService.class, RETURNS_DEEP_STUBS);
+        final GCPCredentialsControllerService gcpCredentialsControllerService = mock(GCPCredentialsControllerService.class, RETURNS_DEEP_STUBS);
         when(gcpCredentialsControllerService.getIdentifier()).thenReturn(gcpCredentialsControllerServiceId);
 
         testRunner.addControllerService(gcpCredentialsControllerServiceId, gcpCredentialsControllerService);
@@ -79,17 +79,17 @@ public class ListGoogleDrivePathTest implements OutputChecker {
 
     @Test
     void testPath() throws Exception {
-        String folderId1 = "folder_id_1";
-        String folderName1 = "Base Folder";
+        final String folderId1 = "folder_id_1";
+        final String folderName1 = "Base Folder";
 
-        String folderId2 = "folder_id_2";
-        String folderName2 = "Folder/with/slashes";
+        final String folderId2 = "folder_id_2";
+        final String folderName2 = "Folder/with/slashes";
 
-        String fileId1 = "file_id_1";
-        String fileName1 = "file_name_1";
+        final String fileId1 = "file_id_1";
+        final String fileName1 = "file_name_1";
 
-        String fileId2 = "file_id_2";
-        String fileName2 = "file_name_2";
+        final String fileId2 = "file_id_2";
+        final String fileName2 = "file_name_2";
 
         testRunner.setProperty(ListGoogleDrive.FOLDER_ID, folderId1);
 
@@ -104,7 +104,7 @@ public class ListGoogleDrivePathTest implements OutputChecker {
                 createFile(fileId2, fileName2, "text/plain")
         );
 
-        Set<Map<String, String>> expectedAttributes = Set.of(
+        final Set<Map<String, String>> expectedAttributes = Set.of(
                 createAttributeMap(fileId1, fileName1, urlEncode(folderName1)),
                 createAttributeMap(fileId2, fileName2, urlEncode(folderName1) + "/" + urlEncode(folderName2))
         );
@@ -114,7 +114,7 @@ public class ListGoogleDrivePathTest implements OutputChecker {
         checkAttributes(ListGoogleDrive.REL_SUCCESS, expectedAttributes);
     }
 
-    private void mockGetFolderName(String folderId, String folderName) throws  IOException {
+    private void mockGetFolderName(final String folderId, final String folderName) throws  IOException {
         when(mockDriverService.files()
                 .get(folderId)
                 .setSupportsAllDrives(true)
@@ -125,7 +125,7 @@ public class ListGoogleDrivePathTest implements OutputChecker {
         );
     }
 
-    private void mockFolderQuery(String folderId, File... files) throws IOException {
+    private void mockFolderQuery(final String folderId, final File... files) throws IOException {
         when(mockDriverService.files()
                 .list()
                 .setSupportsAllDrives(true)
@@ -139,9 +139,9 @@ public class ListGoogleDrivePathTest implements OutputChecker {
     }
 
     private File createFile(
-            String id,
-            String name,
-            String mimeType
+            final String id,
+            final String name,
+            final String mimeType
     ) {
         return new File()
                 .setId(id)
@@ -149,7 +149,7 @@ public class ListGoogleDrivePathTest implements OutputChecker {
                 .setMimeType(mimeType);
     }
 
-    private Map<String, String> createAttributeMap(String fileId, String fileName, String path) {
+    private Map<String, String> createAttributeMap(final String fileId, final String fileName, final String path) {
         return Map.of(
                 GoogleDriveAttributes.ID, fileId,
                 GoogleDriveAttributes.FILENAME, fileName,

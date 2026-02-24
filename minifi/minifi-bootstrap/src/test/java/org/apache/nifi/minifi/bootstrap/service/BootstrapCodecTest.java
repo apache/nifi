@@ -74,8 +74,8 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldThrowIOExceptionIfThereIsNoCommand() {
-        InputStream inputStream = new ByteArrayInputStream(new byte[0]);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final InputStream inputStream = new ByteArrayInputStream(new byte[0]);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         assertThrows(IOException.class, () -> bootstrapCodec.communicate(inputStream, outputStream));
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
@@ -84,9 +84,9 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldInvalidCommandThrowIoException() {
-        String unknown = "unknown";
-        InputStream inputStream = new ByteArrayInputStream(unknown.getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final String unknown = "unknown";
+        final InputStream inputStream = new ByteArrayInputStream(unknown.getBytes(StandardCharsets.UTF_8));
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         assertThrows(IOException.class, () -> bootstrapCodec.communicate(inputStream, outputStream));
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
@@ -95,9 +95,9 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldSetMiNiFiParametersAndWriteOk() throws IOException {
-        String command = "PORT " + VALID_PORT + " " + SECRET;
-        InputStream inputStream = new ByteArrayInputStream(command.getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final String command = "PORT " + VALID_PORT + " " + SECRET;
+        final InputStream inputStream = new ByteArrayInputStream(command.getBytes(StandardCharsets.UTF_8));
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         bootstrapCodec.communicate(inputStream, outputStream);
 
@@ -107,9 +107,9 @@ class BootstrapCodecTest {
 
     @ParameterizedTest(name = "{index} => command={0}, expectedExceptionMessage={1}")
     @MethodSource("portCommandValidationInputs")
-    void testCommunicateShouldFailWhenReceivesPortCommand(String command) {
-        InputStream inputStream = new ByteArrayInputStream(command.getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    void testCommunicateShouldFailWhenReceivesPortCommand(final String command) {
+        final InputStream inputStream = new ByteArrayInputStream(command.getBytes(StandardCharsets.UTF_8));
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         assertThrows(IOException.class, () -> bootstrapCodec.communicate(inputStream, outputStream));
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
@@ -126,8 +126,8 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldFailIfStartedCommandHasOtherThanOneArg() {
-        InputStream inputStream = new ByteArrayInputStream("STARTED".getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final InputStream inputStream = new ByteArrayInputStream("STARTED".getBytes(StandardCharsets.UTF_8));
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         assertThrows(IOException.class, () -> bootstrapCodec.communicate(inputStream, outputStream));
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
@@ -136,8 +136,8 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldFailIfStartedCommandFirstArgIsNotBoolean() {
-        InputStream inputStream = new ByteArrayInputStream("STARTED yes".getBytes(StandardCharsets.UTF_8));
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final InputStream inputStream = new ByteArrayInputStream("STARTED yes".getBytes(StandardCharsets.UTF_8));
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         assertThrows(IOException.class, () -> bootstrapCodec.communicate(inputStream, outputStream));
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
@@ -146,10 +146,10 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldHandleStartedCommand() throws IOException {
-        InputStream inputStream = new ByteArrayInputStream("STARTED true".getBytes(StandardCharsets.UTF_8));
-        PeriodicStatusReporterManager periodicStatusReporterManager = mock(PeriodicStatusReporterManager.class);
-        ConfigurationChangeCoordinator configurationChangeCoordinator = mock(ConfigurationChangeCoordinator.class);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final InputStream inputStream = new ByteArrayInputStream("STARTED true".getBytes(StandardCharsets.UTF_8));
+        final PeriodicStatusReporterManager periodicStatusReporterManager = mock(PeriodicStatusReporterManager.class);
+        final ConfigurationChangeCoordinator configurationChangeCoordinator = mock(ConfigurationChangeCoordinator.class);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         when(runner.getPeriodicStatusReporterManager()).thenReturn(periodicStatusReporterManager);
         when(runner.getConfigurationChangeCoordinator()).thenReturn(configurationChangeCoordinator);
 
@@ -166,10 +166,10 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldHandleShutdownCommand() throws IOException {
-        InputStream inputStream = new ByteArrayInputStream("SHUTDOWN".getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream = new ByteArrayInputStream("SHUTDOWN".getBytes(StandardCharsets.UTF_8));
 
-        PeriodicStatusReporterManager periodicStatusReporterManager = mock(PeriodicStatusReporterManager.class);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final PeriodicStatusReporterManager periodicStatusReporterManager = mock(PeriodicStatusReporterManager.class);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         when(runner.getPeriodicStatusReporterManager()).thenReturn(periodicStatusReporterManager);
 
         bootstrapCodec.communicate(inputStream, outputStream);
@@ -182,9 +182,9 @@ class BootstrapCodecTest {
 
     @Test
     void testCommunicateShouldHandleReloadCommand() throws IOException {
-        InputStream inputStream = new ByteArrayInputStream("RELOAD".getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream = new ByteArrayInputStream("RELOAD".getBytes(StandardCharsets.UTF_8));
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         bootstrapCodec.communicate(inputStream, outputStream);
 
@@ -193,10 +193,10 @@ class BootstrapCodecTest {
 
     @Test
     void testUpdatePropertiesCommandShouldHandleUpdateProperties() throws IOException {
-        InputStream inputStream = new ByteArrayInputStream("UPDATE_PROPERTIES".getBytes(StandardCharsets.UTF_8));
-        C2Operation c2Operation = new C2Operation();
+        final InputStream inputStream = new ByteArrayInputStream("UPDATE_PROPERTIES".getBytes(StandardCharsets.UTF_8));
+        final C2Operation c2Operation = new C2Operation();
         c2Operation.setIdentifier("id");
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
         bootstrapCodec.communicate(inputStream, outputStream);
 
@@ -204,8 +204,8 @@ class BootstrapCodecTest {
         verify(updatePropertiesService).handleUpdate();
     }
 
-    private void mockFinal(String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
-        Field updateConfigurationServiceField = BootstrapCodec.class.getDeclaredField(fieldName);
+    private void mockFinal(final String fieldName, final Object value) throws NoSuchFieldException, IllegalAccessException {
+        final Field updateConfigurationServiceField = BootstrapCodec.class.getDeclaredField(fieldName);
         updateConfigurationServiceField.setAccessible(true);
         updateConfigurationServiceField.set(bootstrapCodec, value);
     }

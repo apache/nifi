@@ -33,7 +33,7 @@ public class GarbageCollectionDiagnosticsDTO implements Cloneable {
         return memoryManagerName;
     }
 
-    public void setMemoryManagerName(String memoryManagerName) {
+    public void setMemoryManagerName(final String memoryManagerName) {
         this.memoryManagerName = memoryManagerName;
     }
 
@@ -42,7 +42,7 @@ public class GarbageCollectionDiagnosticsDTO implements Cloneable {
         return snapshots;
     }
 
-    public void setSnapshots(List<GCDiagnosticsSnapshotDTO> snapshots) {
+    public void setSnapshots(final List<GCDiagnosticsSnapshotDTO> snapshots) {
         this.snapshots = snapshots;
     }
 

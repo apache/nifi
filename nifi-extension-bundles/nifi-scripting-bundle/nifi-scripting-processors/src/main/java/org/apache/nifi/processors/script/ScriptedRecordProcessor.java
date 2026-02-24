@@ -126,7 +126,7 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
@@ -162,7 +162,7 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
         return scriptRunner;
     }
 
-    protected void offerScriptRunner(ScriptRunner scriptRunner) {
+    protected void offerScriptRunner(final ScriptRunner scriptRunner) {
         scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
     }
 }

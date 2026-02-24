@@ -34,7 +34,7 @@ public class PCAP {
     private final PCAPHeader hdr;
     private final List<Packet> packets;
 
-    public PCAP(ByteBufferReader io) {
+    public PCAP(final ByteBufferReader io) {
         this.hdr = new PCAPHeader(io);
         this.packets = new ArrayList<>();
         while (io.hasRemaining()) {
@@ -42,14 +42,14 @@ public class PCAP {
         }
     }
 
-    public PCAP(PCAPHeader hdr, List<Packet> packets) {
+    public PCAP(final PCAPHeader hdr, final List<Packet> packets) {
         this.hdr = hdr;
         this.packets = packets;
     }
 
     public byte[] toByteArray() {
-        int headerBufferSize = PCAPHeader.PCAP_HEADER_LENGTH;
-        ByteBuffer headerBuffer = ByteBuffer.allocate(headerBufferSize);
+        final int headerBufferSize = PCAPHeader.PCAP_HEADER_LENGTH;
+        final ByteBuffer headerBuffer = ByteBuffer.allocate(headerBufferSize);
         headerBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
         headerBuffer.put(this.hdr.magicNumber());
@@ -60,14 +60,14 @@ public class PCAP {
         headerBuffer.put(readLongToNBytes(this.hdr.snaplen(), 4, true));
         headerBuffer.put(readLongToNBytes(this.hdr.network(), 4, true));
 
-        List<byte[]> packetByteArrays = new ArrayList<>();
+        final List<byte[]> packetByteArrays = new ArrayList<>();
 
         int packetBufferSize = 0;
 
-        for (Packet currentPacket : packets) {
-            int currentPacketTotalLength = Packet.PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
+        for (final Packet currentPacket : packets) {
+            final int currentPacketTotalLength = Packet.PACKET_HEADER_LENGTH + currentPacket.rawBody().length;
 
-            ByteBuffer currentPacketBytes = ByteBuffer.allocate(currentPacketTotalLength);
+            final ByteBuffer currentPacketBytes = ByteBuffer.allocate(currentPacketTotalLength);
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsSec(), 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.tsUsec(), 4, false));
             currentPacketBytes.put(readLongToNBytes(currentPacket.inclLen(), 4, false));
@@ -78,14 +78,14 @@ public class PCAP {
             packetBufferSize += currentPacketTotalLength;
         }
 
-        ByteBuffer packetBuffer = ByteBuffer.allocate(packetBufferSize);
+        final ByteBuffer packetBuffer = ByteBuffer.allocate(packetBufferSize);
         packetBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
-        for (byte[] packetByteArray : packetByteArrays) {
+        for (final byte[] packetByteArray : packetByteArrays) {
             packetBuffer.put(packetByteArray);
         }
 
-        ByteBuffer allBytes = ByteBuffer.allocate(headerBufferSize + packetBufferSize);
+        final ByteBuffer allBytes = ByteBuffer.allocate(headerBufferSize + packetBufferSize);
         allBytes.order(ByteOrder.LITTLE_ENDIAN);
 
         allBytes.put(headerBuffer.array());
@@ -94,8 +94,8 @@ public class PCAP {
         return allBytes.array();
     }
 
-    protected static byte[] readIntToNBytes(int input, int numberOfBytes) {
-        byte[] output = new byte[numberOfBytes];
+    protected static byte[] readIntToNBytes(final int input, final int numberOfBytes) {
+        final byte[] output = new byte[numberOfBytes];
         output[0] = (byte) (input & 0xff);
         for (int loop = 1; loop < numberOfBytes; loop++) {
             output[loop] = (byte) (input >>> (8 * loop));
@@ -103,8 +103,8 @@ public class PCAP {
         return output;
     }
 
-    private byte[] readLongToNBytes(long input, int numberOfBytes, boolean isSigned) {
-        byte[] output = new byte[numberOfBytes];
+    private byte[] readLongToNBytes(final long input, final int numberOfBytes, final boolean isSigned) {
+        final byte[] output = new byte[numberOfBytes];
         output[0] = (byte) (input & 0xff);
         for (int loop = 1; loop < numberOfBytes; loop++) {
             if (isSigned) {

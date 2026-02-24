@@ -26,7 +26,7 @@ public class Fields {
 
     }
 
-    public Fields(Set<String> fields) {
+    public Fields(final Set<String> fields) {
         this.fields = fields;
     }
 
@@ -34,7 +34,7 @@ public class Fields {
         return fields;
     }
 
-    public void setFields(Set<String> fields) {
+    public void setFields(final Set<String> fields) {
         this.fields = fields;
     }
 

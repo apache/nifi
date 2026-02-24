@@ -22,7 +22,7 @@ public abstract class Preconditions {
     private Preconditions() {
     }
 
-    public static void requires(boolean criterion, String exceptionMessage) {
+    public static void requires(final boolean criterion, final String exceptionMessage) {
         if (!criterion) {
             throw new IllegalArgumentException(exceptionMessage);
         }

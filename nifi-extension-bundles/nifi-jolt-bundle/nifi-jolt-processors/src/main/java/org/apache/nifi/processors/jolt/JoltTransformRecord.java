@@ -140,7 +140,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile original = session.get();
         if (original == null) {
             return;
@@ -219,7 +219,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
                     while ((record = reader.nextRecord()) != null) {
                         final List<Record> transformedRecords = transform(record, transform);
-                        for (Record transformedRecord : transformedRecords) {
+                        for (final Record transformedRecord : transformedRecords) {
                             writer.write(transformedRecord);
                         }
                     }
@@ -257,7 +257,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("jolt-record-record-reader", RECORD_READER.getName());
         config.renameProperty("jolt-record-record-writer", RECORD_WRITER.getName());
     }
@@ -281,7 +281,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
         // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
         if (normalizedRecordValues instanceof Object[]) {
-            for (Object o : (Object[]) normalizedRecordValues) {
+            for (final Object o : (Object[]) normalizedRecordValues) {
                 if (o != null) {
                     recordList.add(DataTypeUtils.toRecord(o, "r"));
                 }
@@ -292,7 +292,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
         return recordList;
     }
 
-    protected static Object transform(JoltTransform joltTransform, Object input) {
+    protected static Object transform(final JoltTransform joltTransform, final Object input) {
         return joltTransform instanceof ContextualTransform
                 ? ((ContextualTransform) joltTransform).transform(input, Collections.emptyMap()) : ((Transform) joltTransform).transform(input);
     }
@@ -305,13 +305,13 @@ public class JoltTransformRecord extends AbstractJoltTransform {
     @SuppressWarnings("unchecked")
     protected static Object normalizeJoltObjects(final Object o) {
         if (o instanceof Map) {
-            Map<String, Object> m = ((Map<String, Object>) o);
+            final Map<String, Object> m = ((Map<String, Object>) o);
             m.forEach((k, v) -> m.put(k, normalizeJoltObjects(v)));
             return m;
         } else if (o instanceof Object[]) {
             return Arrays.stream(((Object[]) o)).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else if (o instanceof Collection) {
-            Collection<?> c = (Collection<?>) o;
+            final Collection<?> c = (Collection<?>) o;
             return c.stream().map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else {
             return o;
@@ -321,7 +321,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
     @SuppressWarnings("unchecked")
     protected static Object normalizeRecordObjects(final Object o) {
         if (o instanceof Map) {
-            Map<String, Object> m = ((Map<String, Object>) o);
+            final Map<String, Object> m = ((Map<String, Object>) o);
             m.forEach((k, v) -> m.put(k, normalizeRecordObjects(v)));
             return m;
         } else if (o instanceof List) {
@@ -332,9 +332,9 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             }
             return objectArray;
         } else if (o instanceof Collection) {
-            Collection<?> c = (Collection<?>) o;
+            final Collection<?> c = (Collection<?>) o;
             final List<Object> objectList = new ArrayList<>();
-            for (Object obj : c) {
+            for (final Object obj : c) {
                 objectList.add(normalizeRecordObjects(obj));
             }
             return objectList;

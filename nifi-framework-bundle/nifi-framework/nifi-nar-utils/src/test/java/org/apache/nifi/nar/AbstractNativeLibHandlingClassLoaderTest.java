@@ -72,7 +72,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = null;
+        final String expected = null;
 
         testFindLibrary(expected);
     }
@@ -81,13 +81,13 @@ public class AbstractNativeLibHandlingClassLoaderTest {
     public void testFindLibraryShouldReturnDLLOnWindows() throws Exception {
         isOsWindows = true;
 
-        Path expectedNativeLib = createTempFile("dll");
+        final Path expectedNativeLib = createTempFile("dll");
         createTempFile("so");
         createTempFile("lib", "so");
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -98,7 +98,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
         createTempFile("dll");
 
-        String expected = null;
+        final String expected = null;
 
         testFindLibrary(expected);
     }
@@ -110,10 +110,10 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dll");
         createTempFile("so");
         createTempFile("lib", "so");
-        Path expectedNativeLib = createTempFile("dylib");
+        final Path expectedNativeLib = createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -125,9 +125,9 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dll");
         createTempFile("so");
         createTempFile("lib", "so");
-        Path expectedNativeLib = createTempFile("lib", "dylib");
+        final Path expectedNativeLib = createTempFile("lib", "dylib");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -137,10 +137,10 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         isOsMaxOsx = true;
 
         createTempFile("dll");
-        Path expectedNativeLib = createTempFile("so");
+        final Path expectedNativeLib = createTempFile("so");
         createTempFile("lib", "so");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -150,9 +150,9 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         isOsMaxOsx = true;
 
         createTempFile("dll");
-        Path expectedNativeLib = createTempFile("lib", "so");
+        final Path expectedNativeLib = createTempFile("lib", "so");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -165,7 +165,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = null;
+        final String expected = null;
 
         testFindLibrary(expected);
     }
@@ -175,12 +175,12 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         isOsLinux = true;
 
         createTempFile("dll");
-        Path expectedNativeLib = createTempFile("so");
+        final Path expectedNativeLib = createTempFile("so");
         createTempFile("lib", "so");
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
@@ -190,36 +190,36 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         isOsLinux = true;
 
         createTempFile("dll");
-        Path expectedNativeLib = createTempFile("lib", "so");
+        final Path expectedNativeLib = createTempFile("lib", "so");
         createTempFile("dylib");
         createTempFile("lib", "dylib");
 
-        String expected = expectedNativeLib.toFile().getAbsolutePath();
+        final String expected = expectedNativeLib.toFile().getAbsolutePath();
 
         testFindLibrary(expected);
     }
 
-    private void testFindLibrary(String expected) {
-        String actual = createTestSubjectForOS().findLibrary(NATIVE_LIB_NAME, tempDirectory.toFile());
+    private void testFindLibrary(final String expected) {
+        final String actual = createTestSubjectForOS().findLibrary(NATIVE_LIB_NAME, tempDirectory.toFile());
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void testFindLibraryShouldReturnLibLocation() throws Exception {
-        File nativeLibDir = mock(File.class);
+        final File nativeLibDir = mock(File.class);
 
         nativeLibDirs = Collections.singletonList(nativeLibDir);
 
-        Path libPath = createTempFile("mocked").toAbsolutePath();
+        final Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn("libLocation");
         when(testSubjectHelper.createTempCopy("libName", "libLocation")).thenReturn(libPath);
 
-        String expected = libPath.toFile().getAbsolutePath();
+        final String expected = libPath.toFile().getAbsolutePath();
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
-        String actual = testSubject.findLibrary("libName");
+        final String actual = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual);
         verify(testSubjectHelper).findLibrary("libName", nativeLibDir);
@@ -229,22 +229,22 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
     @Test
     public void testFindLibraryShouldReturnFirstFoundLibLocation() throws Exception {
-        File nativeLibDir1 = mock(File.class);
-        File nativeLibDir2 = mock(File.class);
-        File nativeLibDir3 = mock(File.class);
+        final File nativeLibDir1 = mock(File.class);
+        final File nativeLibDir2 = mock(File.class);
+        final File nativeLibDir3 = mock(File.class);
 
         nativeLibDirs = Arrays.asList(nativeLibDir1, nativeLibDir2, nativeLibDir3);
 
-        Path libPath = createTempFile("mocked").toAbsolutePath();
+        final Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir1)).thenReturn(null);
         when(testSubjectHelper.findLibrary("libName", nativeLibDir2)).thenReturn("firstFoundLibLocation");
         when(testSubjectHelper.createTempCopy("libName", "firstFoundLibLocation")).thenReturn(libPath);
 
-        String expected = libPath.toFile().getAbsolutePath();
+        final String expected = libPath.toFile().getAbsolutePath();
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
-        String actual = testSubject.findLibrary("libName");
+        final String actual = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual);
         verify(testSubjectHelper).findLibrary("libName", nativeLibDir1);
@@ -255,17 +255,17 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
     @Test
     public void testFindLibraryShouldReturnCachedLibLocation() throws Exception {
-        File nativeLibDir = mock(File.class);
+        final File nativeLibDir = mock(File.class);
 
         nativeLibDirs = Collections.singletonList(nativeLibDir);
 
-        Path cachedLibPath = createTempFile("cached", "mocked").toAbsolutePath();
+        final Path cachedLibPath = createTempFile("cached", "mocked").toAbsolutePath();
         nativeLibNameToPath.put("libName", cachedLibPath);
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
-        String expected = cachedLibPath.toFile().getAbsolutePath();
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final String expected = cachedLibPath.toFile().getAbsolutePath();
 
-        String actual = testSubject.findLibrary("libName");
+        final String actual = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual);
         verifyNoMoreInteractions(testSubjectHelper);
@@ -273,20 +273,20 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
     @Test
     public void testFindLibraryShouldReturnFoundThenCachedLibLocation() throws Exception {
-        File nativeLibDir = mock(File.class);
+        final File nativeLibDir = mock(File.class);
 
         nativeLibDirs = Collections.singletonList(nativeLibDir);
 
-        Path libPath = createTempFile("mocked").toAbsolutePath();
+        final Path libPath = createTempFile("mocked").toAbsolutePath();
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn("libLocation");
         when(testSubjectHelper.createTempCopy("libName", "libLocation")).thenReturn(libPath);
 
-        String expected = libPath.toFile().getAbsolutePath();
+        final String expected = libPath.toFile().getAbsolutePath();
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
 
-        String actual1 = testSubject.findLibrary("libName");
-        String actual2 = testSubject.findLibrary("libName");
+        final String actual1 = testSubject.findLibrary("libName");
+        final String actual2 = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual1);
         assertEquals(expected, actual2);
@@ -299,10 +299,10 @@ public class AbstractNativeLibHandlingClassLoaderTest {
     public void testFindLibraryShouldReturnNullWhenLibDirNotRegistered() {
         nativeLibDirs = new ArrayList<>();
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
-        String expected = null;
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final String expected = null;
 
-        String actual = testSubject.findLibrary("libName");
+        final String actual = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual);
         verifyNoMoreInteractions(testSubjectHelper);
@@ -310,16 +310,16 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
     @Test
     public void testFindLibraryShouldReturnNullWhenLibNotFound() {
-        File nativeLibDir = mock(File.class);
+        final File nativeLibDir = mock(File.class);
 
         nativeLibDirs = Collections.singletonList(nativeLibDir);
 
         when(testSubjectHelper.findLibrary("libName", nativeLibDir)).thenReturn(null);
 
-        AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
-        String expected = null;
+        final AbstractNativeLibHandlingClassLoader testSubject = createTestSubject();
+        final String expected = null;
 
-        String actual = testSubject.findLibrary("libName");
+        final String actual = testSubject.findLibrary("libName");
 
         assertEquals(expected, actual);
         verify(testSubjectHelper).findLibrary("libName", nativeLibDir);
@@ -328,44 +328,44 @@ public class AbstractNativeLibHandlingClassLoaderTest {
 
     @Test
     public void testToDirShouldReturnNullForNullInput() {
-        File expected = null;
+        final File expected = null;
 
-        File actual = createTestSubject().toDir(null);
+        final File actual = createTestSubject().toDir(null);
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void testToDirShouldReturnParentForFile() throws Exception {
-        Path filePath = createTempFile("mocked").toAbsolutePath();
-        File expected = filePath.getParent().toFile();
+        final Path filePath = createTempFile("mocked").toAbsolutePath();
+        final File expected = filePath.getParent().toFile();
 
-        File actual = createTestSubject().toDir(filePath.toFile());
+        final File actual = createTestSubject().toDir(filePath.toFile());
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void testToDirShouldReturnDirUnchanged() throws Exception {
-        Path dirPath = createTempFile("mocked").getParent();
-        File expected = dirPath.toFile();
+        final Path dirPath = createTempFile("mocked").getParent();
+        final File expected = dirPath.toFile();
 
-        File actual = createTestSubject().toDir(dirPath.toFile());
+        final File actual = createTestSubject().toDir(dirPath.toFile());
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void testGetUsrLibDirsShouldReturnUniqueDirs() throws Exception {
-        Path dir1 = Files.createDirectory(tempDirectory.resolve("dir1"));
-        Path dir2 = Files.createDirectory(tempDirectory.resolve("dir2"));
-        Path dir3 = Files.createDirectory(tempDirectory.resolve("dir3"));
-        Path dir4 = Files.createDirectory(tempDirectory.resolve("dir4"));
+        final Path dir1 = Files.createDirectory(tempDirectory.resolve("dir1"));
+        final Path dir2 = Files.createDirectory(tempDirectory.resolve("dir2"));
+        final Path dir3 = Files.createDirectory(tempDirectory.resolve("dir3"));
+        final Path dir4 = Files.createDirectory(tempDirectory.resolve("dir4"));
 
-        Path file11 = createTempFile(dir1, "usrLib", "file11");
-        Path file12 = createTempFile(dir1, "usrLib", "file12");
-        Path file21 = createTempFile(dir2, "usrLib", "file21");
-        Path file31 = createTempFile(dir3, "usrLib", "file31");
+        final Path file11 = createTempFile(dir1, "usrLib", "file11");
+        final Path file12 = createTempFile(dir1, "usrLib", "file12");
+        final Path file21 = createTempFile(dir2, "usrLib", "file21");
+        final Path file31 = createTempFile(dir3, "usrLib", "file31");
 
         javaLibraryPath = Stream.of(
                 file11,
@@ -379,19 +379,19 @@ public class AbstractNativeLibHandlingClassLoaderTest {
                 .map(File::getAbsolutePath)
                 .collect(Collectors.joining(File.pathSeparator));
 
-        Set<File> expected = new HashSet<>();
+        final Set<File> expected = new HashSet<>();
         expected.add(dir1.toFile());
         expected.add(dir2.toFile());
         expected.add(dir3.toFile());
         expected.add(dir4.toFile());
 
-        Set<File> actual = createTestSubject().getUsrLibDirs();
+        final Set<File> actual = createTestSubject().getUsrLibDirs();
 
         assertEquals(expected, actual);
     }
 
     private AbstractNativeLibHandlingClassLoader createTestSubjectForOS() {
-        AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
+        final AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
             @Override
             public boolean isOsWindows() {
                 return isOsWindows;
@@ -417,14 +417,14 @@ public class AbstractNativeLibHandlingClassLoaderTest {
     }
 
     private AbstractNativeLibHandlingClassLoader createTestSubject() {
-        AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
+        final AbstractNativeLibHandlingClassLoader testSubject = new AbstractNativeLibHandlingClassLoader(new URL[0], nativeLibDirs, "unimportant") {
             @Override
-            public Path createTempCopy(String libname, String libraryOriginalPathString) {
+            public Path createTempCopy(final String libname, final String libraryOriginalPathString) {
                 return testSubjectHelper.createTempCopy(libname, libraryOriginalPathString);
             }
 
             @Override
-            public String findLibrary(String libname, File nativeLibDir) {
+            public String findLibrary(final String libname, final File nativeLibDir) {
                 return testSubjectHelper.findLibrary(libname, nativeLibDir);
             }
 
@@ -454,15 +454,15 @@ public class AbstractNativeLibHandlingClassLoaderTest {
         return testSubject;
     }
 
-    private Path createTempFile(String suffix) throws IOException {
+    private Path createTempFile(final String suffix) throws IOException {
         return createTempFile("", suffix);
     }
 
-    private Path createTempFile(String prefix, String suffix) throws IOException {
+    private Path createTempFile(final String prefix, final String suffix) throws IOException {
         return createTempFile(tempDirectory, prefix, suffix);
     }
 
-    private Path createTempFile(Path tempDirectory, String prefix, String suffix) throws IOException {
+    private Path createTempFile(final Path tempDirectory, final String prefix, final String suffix) throws IOException {
         return Files.createFile(tempDirectory.resolve(prefix + NATIVE_LIB_NAME + "." + suffix));
     }
 }

@@ -53,7 +53,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
         final ListBoxFile testSubject = new ListBoxFile() {
             @Override
-            BoxFolder getFolder(String folderId) {
+            BoxFolder getFolder(final String folderId) {
                 return mockBoxFolder;
             }
         };
@@ -106,7 +106,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
     @Test
     void testMigration() {
-        TestRunner runner = TestRunners.newTestRunner(ListBoxFile.class);
+        final TestRunner runner = TestRunners.newTestRunner(ListBoxFile.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName()),

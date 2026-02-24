@@ -342,7 +342,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         final Set<Bundle> downloadedBundles;
         try {
             downloadedBundles = future.get();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Failed to obtain all necessary extension bundles", e);
             throw new RuntimeException(e);
         }

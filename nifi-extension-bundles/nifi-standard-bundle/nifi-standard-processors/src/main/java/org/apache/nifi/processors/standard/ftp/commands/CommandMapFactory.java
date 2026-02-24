@@ -70,7 +70,7 @@ public class CommandMapFactory {
     private final CountDownLatch sessionFactorySetSignal;
     private final Relationship relationshipSuccess;
 
-    public CommandMapFactory(AtomicReference<ProcessSessionFactory> sessionFactory, CountDownLatch sessionFactorySetSignal, Relationship relationshipSuccess) {
+    public CommandMapFactory(final AtomicReference<ProcessSessionFactory> sessionFactory, final CountDownLatch sessionFactorySetSignal, final Relationship relationshipSuccess) {
         this.sessionFactory = sessionFactory;
         this.sessionFactorySetSignal = sessionFactorySetSignal;
         this.relationshipSuccess = relationshipSuccess;
@@ -130,7 +130,7 @@ public class CommandMapFactory {
         return commandMap;
     }
 
-    private void addToCommandMap(String command, Command instance) {
+    private void addToCommandMap(final String command, final Command instance) {
         commandMap.put(command, instance);
         if (!(instance instanceof NotSupportedCommand)) {
             customHelpCommand.addCommand(command);

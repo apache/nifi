@@ -32,7 +32,7 @@ public class OperationQueue implements Serializable {
     private C2Operation currentOperation;
     private List<C2Operation> remainingOperations;
 
-    public static OperationQueue create(C2Operation currentOperation, Queue<C2Operation> remainingOperations) {
+    public static OperationQueue create(final C2Operation currentOperation, final Queue<C2Operation> remainingOperations) {
         return new OperationQueue(
             currentOperation,
             ofNullable(remainingOperations)
@@ -45,7 +45,7 @@ public class OperationQueue implements Serializable {
     public OperationQueue() {
     }
 
-    public OperationQueue(C2Operation currentOperation, List<C2Operation> remainingOperations) {
+    public OperationQueue(final C2Operation currentOperation, final List<C2Operation> remainingOperations) {
         this.currentOperation = currentOperation;
         this.remainingOperations = remainingOperations;
 
@@ -59,23 +59,23 @@ public class OperationQueue implements Serializable {
         return remainingOperations;
     }
 
-    public void setCurrentOperation(C2Operation currentOperation) {
+    public void setCurrentOperation(final C2Operation currentOperation) {
         this.currentOperation = currentOperation;
     }
 
-    public void setRemainingOperations(List<C2Operation> remainingOperations) {
+    public void setRemainingOperations(final List<C2Operation> remainingOperations) {
         this.remainingOperations = remainingOperations;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        OperationQueue that = (OperationQueue) o;
+        final OperationQueue that = (OperationQueue) o;
         return Objects.equals(currentOperation, that.currentOperation) && Objects.equals(remainingOperations, that.remainingOperations);
     }
 

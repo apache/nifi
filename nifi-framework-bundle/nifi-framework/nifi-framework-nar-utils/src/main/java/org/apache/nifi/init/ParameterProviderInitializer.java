@@ -39,8 +39,8 @@ public class ParameterProviderInitializer implements ConfigurableComponentInitia
 
     @Override
     public void initialize(final ConfigurableComponent component) throws InitializationException {
-        ParameterProvider parameterProvider = (ParameterProvider) component;
-        ParameterProviderInitializationContext context = new MockParameterProviderInitializationContext();
+        final ParameterProvider parameterProvider = (ParameterProvider) component;
+        final ParameterProviderInitializationContext context = new MockParameterProviderInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             parameterProvider.initialize(context);
         }

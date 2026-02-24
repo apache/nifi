@@ -104,7 +104,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         private final boolean enabled;
         private final TestCase testCase;
 
-        TestCaseEnum(boolean enabled, TestCase t) {
+        TestCaseEnum(final boolean enabled, final TestCase t) {
             this.enabled = enabled;
             this.testCase = t;
         }
@@ -206,8 +206,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("dt", RecordFieldType.DATE);
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        final LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        final Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
 
         parser.addRecord(1, "rec1", 101, jdbcDate1);
 
@@ -278,10 +278,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("extra", RecordFieldType.STRING);
         parser.addSchemaField("dt", RecordFieldType.DATE);
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
+        final LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        final Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
+        final LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        final Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
 
         parser.addRecord(1, "rec1", "test", nifiDate1);
         parser.addRecord(2, "rec2", "test", nifiDate2);
@@ -303,7 +303,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testInsert(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testInsert(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
         recreateTable(createPersons);
@@ -316,10 +316,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("dt", RecordFieldType.DATE);
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+        final LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        final Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        final LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        final Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
 
         parser.addRecord(1, "rec1", 101, jdbcDate1);
         parser.addRecord(2, "rec2", 102, jdbcDate2);
@@ -382,10 +382,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("dt", RecordFieldType.DATE);
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+        final LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        final Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        final LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        final Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
 
         parser.addRecord(1, "rec1", jdbcDate1);
         parser.addRecord(2, "rec2", jdbcDate2);
@@ -559,7 +559,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
         final String errorMessage = flowFile.getAttribute("putdatabaserecord.error");
         assertTrue(errorMessage.contains("PERSONS2"));
         runner.enqueue();
@@ -567,10 +567,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testInsertViaSqlTypeOneStatement(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testInsertViaSqlTypeOneStatement(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[]{
+        final String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testInsertViaSqlTypeStatements(sqlStatements, false);
@@ -578,10 +578,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testInsertViaSqlTypeTwoStatementsSemicolon(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testInsertViaSqlTypeTwoStatementsSemicolon(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[]{
+        final String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
         };
@@ -590,10 +590,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testInsertViaSqlTypeThreeStatements(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testInsertViaSqlTypeThreeStatements(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[]{
+        final String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)",
                 "UPDATE PERSONS SET code = 101 WHERE id = 1"
@@ -601,7 +601,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         testInsertViaSqlTypeStatements(sqlStatements, false);
     }
 
-    void testInsertViaSqlTypeStatements(String[] sqlStatements, boolean allowMultipleStatements) throws InitializationException, ProcessException, SQLException {
+    void testInsertViaSqlTypeStatements(final String[] sqlStatements, final boolean allowMultipleStatements) throws InitializationException, ProcessException, SQLException {
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -609,7 +609,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         parser.addSchemaField("sql", RecordFieldType.STRING);
 
-        for (String sqlStatement : sqlStatements) {
+        for (final String sqlStatement : sqlStatements) {
             parser.addRecord(sqlStatement);
         }
 
@@ -619,7 +619,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, "sql");
         runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, String.valueOf(allowMultipleStatements));
 
-        Supplier<Statement> spyStmt = createStatementSpy();
+        final Supplier<Statement> spyStmt = createStatementSpy();
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, "sql");
@@ -666,10 +666,10 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testMultipleInsertsForOneStatementViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testMultipleInsertsForOneStatementViaSqlStatementType(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[]{
+        final String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)"
         };
         testMultipleStatementsViaSqlStatementType(sqlStatements);
@@ -677,17 +677,17 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testMultipleInsertsForTwoStatementsViaSqlStatementType(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testMultipleInsertsForTwoStatementsViaSqlStatementType(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
-        String[] sqlStatements = new String[]{
+        final String[] sqlStatements = new String[]{
                 "INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101)",
                 "INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);"
         };
         testMultipleStatementsViaSqlStatementType(sqlStatements);
     }
 
-    void testMultipleStatementsViaSqlStatementType(String[] sqlStatements) throws InitializationException, ProcessException, SQLException {
+    void testMultipleStatementsViaSqlStatementType(final String[] sqlStatements) throws InitializationException, ProcessException, SQLException {
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -936,7 +936,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testUpdate(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testUpdate(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
         recreateTable(createPersons);
@@ -1031,7 +1031,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testUpdateMultipleSchemas(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testUpdateMultipleSchemas(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
         // Manually create and drop the tables and schemas
@@ -1091,7 +1091,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         // Don't proceed if there was a problem with the asserts
         rs = conn.getMetaData().getSchemas();
-        List<String> schemas = new ArrayList<>();
+        final List<String> schemas = new ArrayList<>();
         while (rs.next()) {
             schemas.add(rs.getString(1));
         }
@@ -1102,7 +1102,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testUpdateAfterInsert(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testUpdateAfterInsert(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
         recreateTable(createPersons);
@@ -1181,7 +1181,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
         assertEquals("Table 'PERSONS' not found or does not have a Primary Key and no Update Keys were specified", flowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR));
     }
 
@@ -1332,11 +1332,11 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     @ParameterizedTest()
     @MethodSource("getTestCases")
-    public void testDelete(TestCase testCase) throws InitializationException, ProcessException, SQLException {
+    public void testDelete(final TestCase testCase) throws InitializationException, ProcessException, SQLException {
         setRunner(testCase);
 
         recreateTable(createPersons);
-        Connection conn = dbcp.getConnection();
+        final Connection conn = dbcp.getConnection();
         Statement stmt = conn.createStatement();
         stmt.execute("INSERT INTO PERSONS VALUES (1, 'rec1', 101, null)");
         stmt.execute("INSERT INTO PERSONS VALUES (2, 'rec2', 102, null)");
@@ -1382,7 +1382,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         setRunner(TestCaseEnum.DEFAULT_2.getTestCase());
 
         recreateTable(createPersons);
-        Connection conn = dbcp.getConnection();
+        final Connection conn = dbcp.getConnection();
         Statement stmt = conn.createStatement();
         stmt.execute("INSERT INTO PERSONS VALUES (1, 'rec1', 101, null)");
         stmt.execute("INSERT INTO PERSONS VALUES (2, 'rec2', null, null)");
@@ -1461,7 +1461,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
-        Connection conn = dbcp.getConnection();
+        final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
         assertTrue(rs.next());
@@ -1500,7 +1500,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, "5");
 
-        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
+        final Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
         runner.enqueue(new byte[0]);
         runner.run();
@@ -1535,7 +1535,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
         runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, PutDatabaseRecord.MAX_BATCH_SIZE.getDefaultValue());
 
-        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
+        final Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
 
         runner.enqueue(new byte[0]);
         runner.run();
@@ -1562,13 +1562,13 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("code", RecordFieldType.INT);
         parser.addSchemaField("dt", RecordFieldType.BIGINT);
 
-        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
-        BigInteger nifiDate1 = BigInteger.valueOf(jdbcDate1.getTime()); // in local TZ
+        final LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        final Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        final BigInteger nifiDate1 = BigInteger.valueOf(jdbcDate1.getTime()); // in local TZ
 
-        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
-        BigInteger nifiDate2 = BigInteger.valueOf(jdbcDate2.getTime()); // in local TZ
+        final LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        final Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+        final BigInteger nifiDate2 = BigInteger.valueOf(jdbcDate2.getTime()); // in local TZ
 
         parser.addRecord(1, "rec1", 101, nifiDate1);
         parser.addRecord(2, "rec2", 102, nifiDate2);
@@ -1682,7 +1682,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP");
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertEquals("rec1", rs.getString(2));
@@ -1729,7 +1729,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP");
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM TEMP");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertEquals(101, rs.getInt(2));
@@ -1748,7 +1748,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     public void testInsertWithBlobClob() throws InitializationException, ProcessException, SQLException, IOException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+        final String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
         recreateTable(createTableWithBlob);
@@ -1756,8 +1756,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
 
-        byte[] bytes = "BLOB".getBytes();
-        Byte[] blobRecordValue = new Byte[bytes.length];
+        final byte[] bytes = "BLOB".getBytes();
+        final Byte[] blobRecordValue = new Byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             blobRecordValue[i] = bytes[i];
         }
@@ -1782,14 +1782,14 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
-        Clob clob = rs.getClob(2);
+        final Clob clob = rs.getClob(2);
         assertNotNull(clob);
-        char[] clobText = new char[5];
-        int numBytes = clob.getCharacterStream().read(clobText);
+        final char[] clobText = new char[5];
+        final int numBytes = clob.getCharacterStream().read(clobText);
         assertEquals(4, numBytes);
         // Ignore last character, meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
         assertEquals("rec1", new String(clobText).substring(0, 4));
-        Blob blob = rs.getBlob(3);
+        final Blob blob = rs.getBlob(3);
         assertEquals("BLOB", new String(blob.getBytes(1, (int) blob.length())));
         assertEquals(101, rs.getInt(4));
 
@@ -1803,9 +1803,9 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_HEXADECIMAL);
 
-        String tableName = "HEX_STRING_TEST";
-        String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
-        String hexStringData = "abCDef";
+        final String tableName = "HEX_STRING_TEST";
+        final String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
+        final String hexStringData = "abCDef";
 
         recreateTable(tableName, createTable);
         final MockRecordParser parser = new MockRecordParser();
@@ -1833,7 +1833,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         assertEquals(1, resultSet.getInt(1));
 
-        Blob blob = resultSet.getBlob(2);
+        final Blob blob = resultSet.getBlob(2);
         assertArrayEquals(new byte[]{(byte) 171, (byte) 205, (byte) 239}, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
@@ -1846,9 +1846,9 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         runner.setProperty(PutDatabaseRecord.BINARY_STRING_FORMAT, PutDatabaseRecord.BINARY_STRING_FORMAT_BASE64);
 
-        String tableName = "BASE64_STRING_TEST";
-        String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
-        byte[] binaryData = {(byte) 10, (byte) 103, (byte) 234};
+        final String tableName = "BASE64_STRING_TEST";
+        final String createTable = "CREATE TABLE " + tableName + " (id integer primary key, binary_data blob)";
+        final byte[] binaryData = {(byte) 10, (byte) 103, (byte) 234};
 
         recreateTable(tableName, createTable);
         final MockRecordParser parser = new MockRecordParser();
@@ -1876,7 +1876,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         assertEquals(1, resultSet.getInt(1));
 
-        Blob blob = resultSet.getBlob(2);
+        final Blob blob = resultSet.getBlob(2);
         assertArrayEquals(binaryData, blob.getBytes(1, (int) blob.length()));
 
         stmt.close();
@@ -1887,7 +1887,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     public void testInsertWithBlobClobObjectArraySource() throws InitializationException, ProcessException, SQLException, IOException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+        final String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
         recreateTable(createTableWithBlob);
@@ -1895,8 +1895,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);
 
-        byte[] bytes = "BLOB".getBytes();
-        Object[] blobRecordValue = new Object[bytes.length];
+        final byte[] bytes = "BLOB".getBytes();
+        final Object[] blobRecordValue = new Object[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             blobRecordValue[i] = bytes[i];
         }
@@ -1921,14 +1921,14 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
-        Clob clob = rs.getClob(2);
+        final Clob clob = rs.getClob(2);
         assertNotNull(clob);
-        char[] clobText = new char[5];
-        int numBytes = clob.getCharacterStream().read(clobText);
+        final char[] clobText = new char[5];
+        final int numBytes = clob.getCharacterStream().read(clobText);
         assertEquals(4, numBytes);
         // Ignore last character, meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
         assertEquals("rec1", new String(clobText).substring(0, 4));
-        Blob blob = rs.getBlob(3);
+        final Blob blob = rs.getBlob(3);
         assertEquals("BLOB", new String(blob.getBytes(1, (int) blob.length())));
         assertEquals(101, rs.getInt(4));
 
@@ -1940,7 +1940,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     public void testInsertWithBlobStringSource() throws InitializationException, ProcessException, SQLException, IOException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+        final String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
         recreateTable(createTableWithBlob);
@@ -1968,14 +1968,14 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
-        Clob clob = rs.getClob(2);
+        final Clob clob = rs.getClob(2);
         assertNotNull(clob);
-        char[] clobText = new char[5];
-        int numBytes = clob.getCharacterStream().read(clobText);
+        final char[] clobText = new char[5];
+        final int numBytes = clob.getCharacterStream().read(clobText);
         assertEquals(4, numBytes);
         // Ignore last character, meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
         assertEquals("rec1", new String(clobText).substring(0, 4));
-        Blob blob = rs.getBlob(3);
+        final Blob blob = rs.getBlob(3);
         assertEquals("BLOB", new String(blob.getBytes(1, (int) blob.length())));
         assertEquals(101, rs.getInt(4));
 
@@ -1987,7 +1987,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     public void testInsertWithBlobIntegerArraySource() throws InitializationException, ProcessException, SQLException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
-        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+        final String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
                 "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))";
 
         recreateTable(createTableWithBlob);
@@ -2102,7 +2102,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM UUID_TEST");
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM UUID_TEST");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertEquals("425085a0-03ef-11ee-be56-0242ac120002", rs.getString(2));
@@ -2133,8 +2133,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
 
-        byte[] longVarBinaryValue1 = new byte[]{97, 98, 99};
-        byte[] longVarBinaryValue2 = new byte[]{100, 101, 102};
+        final byte[] longVarBinaryValue1 = new byte[]{97, 98, 99};
+        final byte[] longVarBinaryValue2 = new byte[]{100, 101, 102};
         parser.addRecord(1, longVarBinaryValue1);
         parser.addRecord(2, longVarBinaryValue2);
 
@@ -2146,7 +2146,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM LONGVARBINARY_TEST");
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM LONGVARBINARY_TEST");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertArrayEquals(longVarBinaryValue1, rs.getBytes(2));
@@ -2303,7 +2303,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
              final Statement stmt = conn.createStatement()) {
             stmt.execute("drop table PERSONS");
             stmt.execute(createPersons);
-        } catch (SQLException ignored) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
     }
@@ -2318,16 +2318,16 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         }
     }
 
-    private void recreateTable(String createSQL) throws ProcessException, SQLException {
+    private void recreateTable(final String createSQL) throws ProcessException, SQLException {
         recreateTable("PERSONS", createSQL);
     }
 
-    private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
+    private void recreateTable(final String tableName, final String createSQL) throws ProcessException, SQLException {
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("drop table " + tableName);
-        } catch (SQLException ignored) {
+        } catch (final SQLException ignored) {
             // Do nothing, may not have existed
         }
         try (conn; stmt) {
@@ -2347,7 +2347,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         final PreparedStatement[] spyStmt = new PreparedStatement[1];
         final Answer<DelegatingConnection<?>> answer = (inv) -> new DelegatingConnection<>((Connection) inv.callRealMethod()) {
             @Override
-            public PreparedStatement prepareStatement(String sql) throws SQLException {
+            public PreparedStatement prepareStatement(final String sql) throws SQLException {
                 spyStmt[0] = spy(getDelegate().prepareStatement(sql));
                 return spyStmt[0];
             }
@@ -2371,13 +2371,14 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     public static class PutDatabaseRecordUnmatchedField extends PutDatabaseRecord {
         @Override
-        SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings, NameNormalizer normalizer) throws IllegalArgumentException {
+        SqlAndIncludedColumns generateInsert(final RecordSchema recordSchema, final String tableName,
+                final TableSchema tableSchema, final DMLSettings settings, final NameNormalizer normalizer) throws IllegalArgumentException {
             return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
         }
     }
 
     public static class TestCase {
-        TestCase(Boolean autoCommit, Boolean rollbackOnFailure, Integer batchSize) {
+        TestCase(final Boolean autoCommit, final Boolean rollbackOnFailure, final Integer batchSize) {
             this.autoCommit = autoCommit;
             this.rollbackOnFailure = rollbackOnFailure;
             this.batchSize = batchSize;

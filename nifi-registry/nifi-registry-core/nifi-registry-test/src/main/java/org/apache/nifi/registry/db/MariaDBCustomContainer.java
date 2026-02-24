@@ -29,7 +29,7 @@ import org.testcontainers.mariadb.MariaDBContainer;
  */
 public class MariaDBCustomContainer extends MariaDBContainer {
 
-    public MariaDBCustomContainer(String dockerImageName) {
+    public MariaDBCustomContainer(final String dockerImageName) {
         super(dockerImageName);
     }
 

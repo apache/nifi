@@ -133,12 +133,12 @@ public class TestReaderLookup {
 
         private String name;
 
-        public MockRecordReaderFactory(String name) {
+        public MockRecordReaderFactory(final String name) {
             this.name = name;
         }
 
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
+        public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
                 throws MalformedRecordException, IOException, SchemaNotFoundException {
             return new MockRecordReader(this.name);
         }
@@ -147,12 +147,12 @@ public class TestReaderLookup {
     private static class MockRecordReader implements RecordReader {
         public String name;
 
-        public MockRecordReader(String name) {
+        public MockRecordReader(final String name) {
             this.name = name;
         }
 
         @Override
-        public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+        public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
             return null;
         }
 

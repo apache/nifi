@@ -38,7 +38,7 @@ final class AMQPPublisher extends AMQPWorker {
      *
      * @param connection instance of AMQP {@link Connection}
      */
-    AMQPPublisher(Connection connection, ComponentLog processorLog) {
+    AMQPPublisher(final Connection connection, final ComponentLog processorLog) {
         super(connection, processorLog);
         getChannel().addReturnListener(new UndeliverableMessageLogger());
         this.connectionString = connection.toString();
@@ -52,14 +52,14 @@ final class AMQPPublisher extends AMQPWorker {
      *
      * @param bytes bytes representing a message.
      * @param properties instance of {@link BasicProperties}
-     * @param exchange the name of AMQP exchange to which messages will be published.
+     * @param exchangeArg the name of AMQP exchange to which messages will be published.
      *            If not provided 'default' exchange will be used.
      * @param routingKey (required) the name of the routingKey to be used by AMQP-based
      *            system to route messages to its final destination (queue).
      */
-    void publish(byte[] bytes, BasicProperties properties, String routingKey, String exchange) {
+    void publish(final byte[] bytes, final BasicProperties properties, final String routingKey, final String exchangeArg) {
         this.validateStringProperty("routingKey", routingKey);
-        exchange = exchange == null ? "" : exchange.trim();
+        final String exchange = exchangeArg == null ? "" : exchangeArg.trim();
 
         if (processorLog.isDebugEnabled()) {
             if (exchange.isEmpty()) {
@@ -70,9 +70,9 @@ final class AMQPPublisher extends AMQPWorker {
 
         try {
             getChannel().basicPublish(exchange, routingKey, true, properties, bytes);
-        } catch (AlreadyClosedException | SocketException e) {
+        } catch (final AlreadyClosedException | SocketException e) {
             throw new AMQPRollbackException("Failed to publish message because the AMQP connection is lost or has been closed", e);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new AMQPException("Failed to publish message to Exchange '" + exchange + "' with Routing Key '" + routingKey + "'.", e);
         }
     }
@@ -96,8 +96,9 @@ final class AMQPPublisher extends AMQPWorker {
      */
     private final class UndeliverableMessageLogger implements ReturnListener {
         @Override
-        public void handleReturn(int replyCode, String replyText, String exchangeName, String routingKey, BasicProperties properties, byte[] message) throws IOException {
-            String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
+        public void handleReturn(final int replyCode, final String replyText, final String exchangeName,
+                final String routingKey, final BasicProperties properties, final byte[] message) throws IOException {
+            final String logMessage = "Message destined for '" + exchangeName + "' exchange with '" + routingKey
                     + "' as routing key came back with replyCode=" + replyCode + " and replyText=" + replyText + ".";
             processorLog.warn(logMessage);
         }

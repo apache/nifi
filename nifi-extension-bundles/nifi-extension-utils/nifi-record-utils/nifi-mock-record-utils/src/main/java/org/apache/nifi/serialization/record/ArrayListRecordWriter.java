@@ -65,7 +65,7 @@ public class ArrayListRecordWriter extends AbstractControllerService implements 
         private final List<Record> records;
         private final OutputStream out;
 
-        public ArrayListRecordSetWriter(final List<Record> records, OutputStream out) {
+        public ArrayListRecordSetWriter(final List<Record> records, final OutputStream out) {
             this.records = records;
             this.out = out;
         }

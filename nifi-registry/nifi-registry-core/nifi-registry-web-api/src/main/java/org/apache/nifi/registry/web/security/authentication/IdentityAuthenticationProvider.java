@@ -45,19 +45,19 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
     protected final IdentityMapper identityMapper;
 
     public IdentityAuthenticationProvider(
-            Authorizer authorizer,
-            IdentityProvider identityProvider,
-            IdentityMapper identityMapper) {
+            final Authorizer authorizer,
+            final IdentityProvider identityProvider,
+            final IdentityMapper identityMapper) {
         this.authorizer = authorizer;
         this.identityProvider = identityProvider;
         this.identityMapper = identityMapper;
     }
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
 
         // Determine if this AuthenticationProvider's identityProvider should be able to support this AuthenticationRequest
-        boolean tokenOriginatedFromThisIdentityProvider = checkTokenOriginatedFromThisIdentityProvider(authentication);
+        final boolean tokenOriginatedFromThisIdentityProvider = checkTokenOriginatedFromThisIdentityProvider(authentication);
 
         if (!tokenOriginatedFromThisIdentityProvider) {
             // Returning null indicates to The Spring Security AuthenticationManager that this AuthenticationProvider
@@ -65,30 +65,30 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
             return null;
         }
 
-        AuthenticationRequestToken authenticationRequestToken = ((AuthenticationRequestToken) authentication);
-        AuthenticationRequest authenticationRequest = authenticationRequestToken.getAuthenticationRequest();
+        final AuthenticationRequestToken authenticationRequestToken = ((AuthenticationRequestToken) authentication);
+        final AuthenticationRequest authenticationRequest = authenticationRequestToken.getAuthenticationRequest();
 
         try {
-            AuthenticationResponse authenticationResponse = identityProvider.authenticate(authenticationRequest);
+            final AuthenticationResponse authenticationResponse = identityProvider.authenticate(authenticationRequest);
             if (authenticationResponse == null) {
                 return null;
             }
             return buildAuthenticatedToken(authenticationRequestToken, authenticationResponse);
-        } catch (InvalidCredentialsException e) {
+        } catch (final InvalidCredentialsException e) {
             throw new BadCredentialsException("Identity Provider authentication failed.", e);
         }
 
     }
 
     @Override
-    public boolean supports(Class<?> authenticationClazz) {
+    public boolean supports(final Class<?> authenticationClazz) {
         // is authenticationClazz a subclass of AuthenticationRequestWrapper?
         return AuthenticationRequestToken.class.isAssignableFrom(authenticationClazz);
     }
 
     protected AuthenticationSuccessToken buildAuthenticatedToken(
-            AuthenticationRequestToken requestToken,
-            AuthenticationResponse response) {
+            final AuthenticationRequestToken requestToken,
+            final AuthenticationResponse response) {
 
         final String mappedIdentity = mapIdentity(response.getIdentity());
 
@@ -100,7 +100,7 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
                         .build()));
     }
 
-    protected boolean checkTokenOriginatedFromThisIdentityProvider(Authentication authentication) {
+    protected boolean checkTokenOriginatedFromThisIdentityProvider(final Authentication authentication) {
         return (authentication instanceof AuthenticationRequestToken
                 && identityProvider.getClass().equals(((AuthenticationRequestToken) authentication).getAuthenticationRequestOrigin()));
     }
@@ -113,7 +113,7 @@ public class IdentityAuthenticationProvider implements AuthenticationProvider {
         return getUserGroups(authorizer, identity);
     }
 
-    protected Set<String> getUserGroups(final String identity, AuthenticationResponse response) {
+    protected Set<String> getUserGroups(final String identity, final AuthenticationResponse response) {
         return Stream
                 .concat(getUserGroups(authorizer, identity).stream(), response.getGroups().stream())
                 .collect(Collectors.toSet());

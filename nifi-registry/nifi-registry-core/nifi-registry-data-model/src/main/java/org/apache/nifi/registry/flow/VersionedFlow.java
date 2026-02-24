@@ -50,7 +50,7 @@ public class VersionedFlow extends BucketItem implements RevisableEntity {
         return versionCount;
     }
 
-    public void setVersionCount(long versionCount) {
+    public void setVersionCount(final long versionCount) {
         this.versionCount = versionCount;
     }
 
@@ -64,7 +64,7 @@ public class VersionedFlow extends BucketItem implements RevisableEntity {
     }
 
     @Override
-    public void setRevision(RevisionInfo revision) {
+    public void setRevision(final RevisionInfo revision) {
         this.revision = revision;
     }
 

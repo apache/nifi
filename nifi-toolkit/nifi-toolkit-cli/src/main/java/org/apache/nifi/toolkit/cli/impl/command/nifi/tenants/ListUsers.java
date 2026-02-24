@@ -43,7 +43,7 @@ public class ListUsers extends AbstractNiFiCommand<UsersResult> {
     }
 
     @Override
-    public UsersResult doExecute(NiFiClient client, Properties properties)
+    public UsersResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final TenantsClient tenantsClient = client.getTenantsClient();
         final UsersEntity usersEntity = tenantsClient.getUsers();

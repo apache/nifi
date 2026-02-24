@@ -29,7 +29,7 @@ import java.io.IOException;
 public class GuidTypeNode extends VariantTypeNode {
     private final String value;
 
-    public GuidTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public GuidTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         value = binaryReader.readGuid();
     }

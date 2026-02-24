@@ -71,11 +71,11 @@ public class TestSiteToSiteProvenanceReportingTask {
     private final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
     private final ConfigurationContext confContext = Mockito.mock(ConfigurationContext.class);
 
-    private MockSiteToSiteProvenanceReportingTask setup(ProvenanceEventRecord event, Map<PropertyDescriptor, String> properties) throws IOException {
+    private MockSiteToSiteProvenanceReportingTask setup(final ProvenanceEventRecord event, final Map<PropertyDescriptor, String> properties) throws IOException {
         return setup(event, properties, 2500);
     }
 
-    private MockSiteToSiteProvenanceReportingTask setup(ProvenanceEventRecord event, Map<PropertyDescriptor, String> properties, long maxEventId) throws IOException {
+    private MockSiteToSiteProvenanceReportingTask setup(final ProvenanceEventRecord event, final Map<PropertyDescriptor, String> properties, final long maxEventId) throws IOException {
         final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
 
         when(context.getStateManager())
@@ -107,7 +107,7 @@ public class TestSiteToSiteProvenanceReportingTask {
             }
             return eventsToReturn;
         }).when(eventAccess).getProvenanceEvents(Mockito.anyLong(), Mockito.anyInt());
-        ProcessGroupStatus pgRoot = new ProcessGroupStatus();
+        final ProcessGroupStatus pgRoot = new ProcessGroupStatus();
         pgRoot.setId("root");
         when(eventAccess.getControllerStatus()).thenReturn(pgRoot);
 
@@ -188,19 +188,19 @@ public class TestSiteToSiteProvenanceReportingTask {
         }
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonValue details = object.get("details");
-        JsonObject msgArray = object.getJsonObject("updatedAttributes");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonValue details = object.get("details");
+        final JsonObject msgArray = object.getJsonObject("updatedAttributes");
         assertNull(details);
         assertEquals(msgArray.getString("abc"), event.getAttributes().get("abc"));
         assertNull(msgArray.get("emptyVal"));
@@ -215,18 +215,18 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonValue details = object.get("details");
-        JsonValue emptyVal = object.getJsonObject("updatedAttributes").get("emptyVal");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonValue details = object.get("details");
+        final JsonValue emptyVal = object.getJsonObject("updatedAttributes").get("emptyVal");
         assertEquals(JsonValue.NULL, details);
         assertEquals(JsonValue.NULL, emptyVal);
     }
@@ -239,9 +239,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -258,9 +258,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "9999");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -277,9 +277,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -305,7 +305,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
-        JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
+        final JsonNode reportedEvent = new ObjectMapper().readTree(task.dataSent.get(0)).get(0);
         assertEquals("A001", reportedEvent.get("componentId").asText());
         assertEquals("Processor in PGA", reportedEvent.get("componentName").asText());
 
@@ -328,9 +328,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -347,9 +347,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "proc.*");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -366,9 +366,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "proc.*");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -385,9 +385,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE, notExistingType, DROP");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -404,9 +404,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE_EXCLUDE, "RECEIVE, notExistingType, DROP");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -423,9 +423,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -444,9 +444,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -465,9 +465,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -485,9 +485,9 @@ public class TestSiteToSiteProvenanceReportingTask {
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
 
-        ProvenanceEventRecord event = createProvenanceEventRecord();
+        final ProvenanceEventRecord event = createProvenanceEventRecord();
 
-        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        final MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
         task.initialize(initContext);
         task.onScheduled(confContext);
         task.onTrigger(context);
@@ -610,7 +610,7 @@ public class TestSiteToSiteProvenanceReportingTask {
     }
 
     public static FlowFile createFlowFile(final long id, final Map<String, String> attributes) {
-        MockFlowFile mockFlowFile = new MockFlowFile(id);
+        final MockFlowFile mockFlowFile = new MockFlowFile(id);
         mockFlowFile.putAttributes(attributes);
         return mockFlowFile;
     }
@@ -649,7 +649,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        public void setup(PropertyContext reportContext) {
+        public void setup(final PropertyContext reportContext) {
             if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);

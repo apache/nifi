@@ -76,9 +76,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
             + "execution(org.apache.nifi.controller.service.ControllerServiceNode createControllerService(org.apache.nifi.web.api.dto.ControllerServiceDTO))")
-    public ControllerServiceNode createControllerServiceAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public ControllerServiceNode createControllerServiceAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the controller service state
-        ControllerServiceNode controllerService = (ControllerServiceNode) proceedingJoinPoint.proceed();
+        final ControllerServiceNode controllerService = (ControllerServiceNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the controller service action...
         final Action action = generateAuditRecord(controllerService, Operation.Add);
@@ -104,7 +104,8 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.controller.service.ControllerServiceNode updateControllerService(org.apache.nifi.web.api.dto.ControllerServiceDTO)) && "
             + "args(controllerServiceDTO) && "
             + "target(controllerServiceDAO)")
-    public Object updateControllerServiceAdvice(ProceedingJoinPoint proceedingJoinPoint, ControllerServiceDTO controllerServiceDTO, ControllerServiceDAO controllerServiceDAO) throws Throwable {
+    public Object updateControllerServiceAdvice(final ProceedingJoinPoint proceedingJoinPoint,
+            final ControllerServiceDTO controllerServiceDTO, final ControllerServiceDAO controllerServiceDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
@@ -121,18 +122,18 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                     ? Collections.emptySet() : controllerServiceDTO.getSensitiveDynamicPropertyNames();
 
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
 
             // create the controller service details
-            FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
             serviceDetails.setType(controllerService.getComponentType());
 
             // create a controller service action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
+            for (final String property : updatedValues.keySet()) {
                 String newValue = updatedValues.get(property);
                 String oldValue = values.get(property);
                 Operation operation = null;
@@ -172,7 +173,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                     actionDetails.setPreviousValue(oldValue);
 
                     // create a configuration action
-                    FlowChangeAction configurationAction = createFlowChangeAction();
+                    final FlowChangeAction configurationAction = createFlowChangeAction();
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(controllerService.getIdentifier());
@@ -190,7 +191,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (isDisabled != updateIsDisabled) {
                 // create a controller service action
-                FlowChangeAction serviceAction = createFlowChangeAction();
+                final FlowChangeAction serviceAction = createFlowChangeAction();
                 serviceAction.setSourceId(controllerService.getIdentifier());
                 serviceAction.setSourceName(controllerService.getName());
                 serviceAction.setSourceType(Component.ControllerService);
@@ -226,7 +227,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             + "execution(java.util.Set<org.apache.nifi.controller.ComponentNode> "
             + "updateControllerServiceReferencingComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, "
             + "org.apache.nifi.controller.service.ControllerServiceState))")
-    public Object updateControllerServiceReferenceAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Object updateControllerServiceReferenceAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the controller service references
         final Set<ComponentNode> referencingComponents = (Set<ComponentNode>) proceedingJoinPoint.proceed();
 
@@ -259,7 +260,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ProcessorNode processor = ((ProcessorNode) component);
 
                 // create the processor details
-                FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
+                final FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
                 processorDetails.setType(processor.getComponentType());
 
                 // create a processor action
@@ -274,7 +275,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ReportingTaskNode reportingTask = ((ReportingTaskNode) component);
 
                 // create the reporting task details
-                FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
+                final FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
                 taskDetails.setType(reportingTask.getComponentType());
 
                 // create a reporting task action
@@ -289,7 +290,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ControllerServiceNode controllerService = ((ControllerServiceNode) component);
 
                 // create the controller service details
-                FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
+                final FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
                 serviceDetails.setType(controllerService.getComponentType());
 
                 // create a controller service action
@@ -316,9 +317,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             + "execution(void deleteControllerService(java.lang.String)) && "
             + "args(controllerServiceId) && "
             + "target(controllerServiceDAO)")
-    public void removeControllerServiceAdvice(ProceedingJoinPoint proceedingJoinPoint, String controllerServiceId, ControllerServiceDAO controllerServiceDAO) throws Throwable {
+    public void removeControllerServiceAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String controllerServiceId, final ControllerServiceDAO controllerServiceDAO) throws Throwable {
         // get the controller service before removing it
-        ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
 
         // remove the controller service
         proceedingJoinPoint.proceed();
@@ -340,7 +341,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation) {
+    private Action generateAuditRecord(final ControllerServiceNode controllerService, final Operation operation) {
         return generateAuditRecord(controllerService, operation, null);
     }
 
@@ -352,12 +353,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation, ActionDetails actionDetails) {
+    private Action generateAuditRecord(final ControllerServiceNode controllerService, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the controller service details
-            FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
             serviceDetails.setType(controllerService.getComponentType());
 
             // create the controller service action for adding this controller service
@@ -383,8 +384,8 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @param controllerServiceDTO dto
      * @return properties
      */
-    private Map<String, String> extractConfiguredPropertyValues(ControllerServiceNode controllerService, ControllerServiceDTO controllerServiceDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (controllerServiceDTO.getName() != null) {
             values.put(NAME, controllerService.getName());
@@ -401,7 +402,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             final Map<String, String> properties = controllerServiceDTO.getProperties();
             final Map<PropertyDescriptor, String> configuredProperties = controllerService.getRawPropertyValues();
 
-            for (String propertyName : properties.keySet()) {
+            for (final String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();
                 String configuredPropertyValue = configuredProperties.get(propertyDescriptor);
@@ -431,8 +432,8 @@ public class ControllerServiceAuditor extends NiFiAuditor {
      * @param specDescriptor example descriptor
      * @return property
      */
-    private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
-        for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+    private PropertyDescriptor locatePropertyDescriptor(final Set<PropertyDescriptor> propertyDescriptors, final PropertyDescriptor specDescriptor) {
+        for (final PropertyDescriptor propertyDescriptor : propertyDescriptors) {
             if (propertyDescriptor.equals(specDescriptor)) {
                 return propertyDescriptor;
             }

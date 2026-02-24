@@ -121,8 +121,8 @@ public class ProcessorResource extends ApplicationResource {
      * @param processorEntities processors
      * @return dtos
      */
-    public Set<ProcessorEntity> populateRemainingProcessorEntitiesContent(Set<ProcessorEntity> processorEntities) {
-        for (ProcessorEntity processorEntity : processorEntities) {
+    public Set<ProcessorEntity> populateRemainingProcessorEntitiesContent(final Set<ProcessorEntity> processorEntities) {
+        for (final ProcessorEntity processorEntity : processorEntities) {
             populateRemainingProcessorEntityContent(processorEntity);
         }
         return processorEntities;
@@ -134,7 +134,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param processorEntity processors
      * @return dtos
      */
-    public ProcessorEntity populateRemainingProcessorEntityContent(ProcessorEntity processorEntity) {
+    public ProcessorEntity populateRemainingProcessorEntityContent(final ProcessorEntity processorEntity) {
         processorEntity.setUri(generateResourceUri("processors", processorEntity.getId()));
 
         // populate remaining content
@@ -150,7 +150,7 @@ public class ProcessorResource extends ApplicationResource {
      * @param processorDiagnosticsEntity processor's diagnostics entity
      * @return processor diagnostics entity
      */
-    public ProcessorDiagnosticsEntity populateRemainingProcessorDiagnosticsEntityContent(ProcessorDiagnosticsEntity processorDiagnosticsEntity) {
+    public ProcessorDiagnosticsEntity populateRemainingProcessorDiagnosticsEntityContent(final ProcessorDiagnosticsEntity processorDiagnosticsEntity) {
         processorDiagnosticsEntity.setUri(generateResourceUri("processors", processorDiagnosticsEntity.getId(), "diagnostics"));
 
         // populate remaining content
@@ -163,9 +163,9 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified processor and its relationships.
      */
-    public ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
+    public ProcessorDTO populateRemainingProcessorContent(final ProcessorDTO processor) {
         // get the config details and see if there is a custom ui for this processor type
-        ProcessorConfigDTO config = processor.getConfig();
+        final ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {
             final BundleDTO bundle = processor.getBundle();
 
@@ -911,7 +911,7 @@ public class ProcessorResource extends ApplicationResource {
             if (processorConfig.getBackoffMechanism() != null) {
                 try {
                     BackoffMechanism.valueOf(processorConfig.getBackoffMechanism());
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new IllegalArgumentException("Backoff Mechanism " + processorConfig.getBackoffMechanism() + " is invalid.");
                 }
             }
@@ -1180,12 +1180,12 @@ public class ProcessorResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

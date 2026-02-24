@@ -41,7 +41,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
         return revision;
     }
 
-    public void setRevision(RevisionDTO revision) {
+    public void setRevision(final RevisionDTO revision) {
         this.revision = revision;
     }
     /**
@@ -54,7 +54,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
         return this.state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -64,7 +64,7 @@ public abstract class ComponentRunStatusEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 

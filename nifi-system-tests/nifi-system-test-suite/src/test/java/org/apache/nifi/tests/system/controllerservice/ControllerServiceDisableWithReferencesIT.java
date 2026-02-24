@@ -109,7 +109,7 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
         Thread.sleep(1000);
 
         // Verify it's in ENABLING state
-        ControllerServiceEntity currentService = getNifiClient().getControllerServicesClient().getControllerService(failureService.getId());
+        final ControllerServiceEntity currentService = getNifiClient().getControllerServicesClient().getControllerService(failureService.getId());
         assertEquals(ENABLING, currentService.getComponent().getState(),
             "Controller Service should be in ENABLING state");
 

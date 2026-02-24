@@ -58,7 +58,7 @@ public class SecureClientZooKeeperFactory implements ZookeeperFactory {
     }
 
     @Override
-    public ZooKeeper newZooKeeper(String connectString, int sessionTimeout, Watcher watcher, boolean canBeReadOnly) throws Exception {
+    public ZooKeeper newZooKeeper(final String connectString, final int sessionTimeout, final Watcher watcher, final boolean canBeReadOnly) throws Exception {
         return new ZooKeeperAdmin(connectString, sessionTimeout, watcher, zkSecureClientConfig);
     }
 }

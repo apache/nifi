@@ -37,7 +37,7 @@ public enum SensitiveProperty {
 
     private final String key;
 
-    SensitiveProperty(String key) {
+    SensitiveProperty(final String key) {
         this.key = key;
     }
 

@@ -133,7 +133,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("record_format", RECORD_FORMAT.getName());
         config.renameProperty("attribute_prefix", ATTRIBUTE_PREFIX.getName());

@@ -40,7 +40,7 @@ public class AvroSchemaTextStrategy implements SchemaAccessStrategy {
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
+    public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws SchemaNotFoundException {
         final String schemaText;
         schemaText = schemaTextPropertyValue.evaluateAttributeExpressions(variables).getValue();
         if (schemaText == null || schemaText.isBlank()) {

@@ -40,7 +40,7 @@ import java.util.List;
 public class JASN1ConverterImpl implements JASN1Converter {
     private final List<JASN1TypeAndValueConverter> jasn1TypeAndValueConverters;
 
-    public JASN1ConverterImpl(LoadingCache<Class, RecordSchema> schemaProvider) {
+    public JASN1ConverterImpl(final LoadingCache<Class, RecordSchema> schemaProvider) {
         jasn1TypeAndValueConverters = Arrays.asList(
                 new BerBooleanConverter(),
                 new BerEnumConverter(),
@@ -59,10 +59,10 @@ public class JASN1ConverterImpl implements JASN1Converter {
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType) {
+    public Object convertValue(final BerType value, final DataType dataType) {
         Object converted = null;
 
-        for (JASN1TypeAndValueConverter jasn1ValueConverter : jasn1TypeAndValueConverters) {
+        for (final JASN1TypeAndValueConverter jasn1ValueConverter : jasn1TypeAndValueConverters) {
             if (jasn1ValueConverter.supportsValue(value, dataType)) {
                 converted = jasn1ValueConverter.convertValue(value, dataType, this);
                 break;
@@ -73,10 +73,10 @@ public class JASN1ConverterImpl implements JASN1Converter {
     }
 
     @Override
-    public DataType convertType(Class<?> type) {
+    public DataType convertType(final Class<?> type) {
         DataType converted = null;
 
-        for (JASN1TypeAndValueConverter jasn1TypeAndValueConverter : jasn1TypeAndValueConverters) {
+        for (final JASN1TypeAndValueConverter jasn1TypeAndValueConverter : jasn1TypeAndValueConverters) {
             if (jasn1TypeAndValueConverter.supportsType(type)) {
                 converted = jasn1TypeAndValueConverter.convertType(type, this);
                 break;

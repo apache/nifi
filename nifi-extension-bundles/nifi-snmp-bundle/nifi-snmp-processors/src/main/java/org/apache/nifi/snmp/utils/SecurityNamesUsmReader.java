@@ -27,7 +27,7 @@ public class SecurityNamesUsmReader implements UsmReader {
 
     private final String usmSecurityNames;
 
-    public SecurityNamesUsmReader(String usmSecurityNames) {
+    public SecurityNamesUsmReader(final String usmSecurityNames) {
         this.usmSecurityNames = usmSecurityNames;
     }
 

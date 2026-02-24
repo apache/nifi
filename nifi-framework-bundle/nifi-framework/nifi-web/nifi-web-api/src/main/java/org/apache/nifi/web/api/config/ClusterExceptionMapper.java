@@ -32,7 +32,7 @@ public class ClusterExceptionMapper implements ExceptionMapper<ClusterException>
     private static final Logger logger = LoggerFactory.getLogger(ClusterExceptionMapper.class);
 
     @Override
-    public Response toResponse(ClusterException exception) {
+    public Response toResponse(final ClusterException exception) {
         // log the error
         logger.error("{}. Returning {} response.", exception, Response.Status.INTERNAL_SERVER_ERROR, exception);
 

@@ -43,16 +43,16 @@ public final class BootstrapClassLoaderUtils {
     }
 
     public static ClassLoader createBootstrapClassLoader() {
-        List<URL> urls = new ArrayList<>();
+        final List<URL> urls = new ArrayList<>();
         try (Stream<Path> files = Files.list(Paths.get(LIB_BOOTSTRAP_DIR))) {
             files.forEach(p -> {
                 try {
                     urls.add(p.toUri().toURL());
-                } catch (MalformedURLException mef) {
+                } catch (final MalformedURLException mef) {
                     LOGGER.warn("Unable to load bootstrap library [{}]", p.getFileName(), mef);
                 }
             });
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             LOGGER.warn("Unable to access lib/bootstrap to create bootstrap classloader", ioe);
         }
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());

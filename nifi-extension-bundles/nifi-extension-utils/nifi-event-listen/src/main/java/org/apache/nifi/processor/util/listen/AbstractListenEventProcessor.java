@@ -280,7 +280,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             } else {
                 event = events.poll();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         }

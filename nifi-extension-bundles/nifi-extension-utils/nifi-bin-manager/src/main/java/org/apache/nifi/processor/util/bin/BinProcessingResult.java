@@ -36,12 +36,12 @@ public class BinProcessingResult {
      */
     private Map<String, String> attributes;
 
-    public BinProcessingResult(boolean isCommitted) {
+    public BinProcessingResult(final boolean isCommitted) {
         this.setCommitted(isCommitted);
         this.setAttributes(new HashMap<>());
     }
 
-    public BinProcessingResult(boolean isCommitted, Map<String, String> attributes) {
+    public BinProcessingResult(final boolean isCommitted, final Map<String, String> attributes) {
         this.setCommitted(isCommitted);
         this.setAttributes(attributes);
     }
@@ -50,7 +50,7 @@ public class BinProcessingResult {
         return isCommitted;
     }
 
-    public void setCommitted(boolean isCommitted) {
+    public void setCommitted(final boolean isCommitted) {
         this.isCommitted = isCommitted;
     }
 
@@ -58,7 +58,7 @@ public class BinProcessingResult {
         return attributes;
     }
 
-    public void setAttributes(Map<String, String> attributes) {
+    public void setAttributes(final Map<String, String> attributes) {
         this.attributes = attributes;
     }
 

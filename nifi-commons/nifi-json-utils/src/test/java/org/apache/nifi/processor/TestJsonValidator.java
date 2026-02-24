@@ -49,56 +49,56 @@ public class TestJsonValidator {
 
     @Test
     public void testFlat() throws JsonProcessingException {
-        String msg = MAPPER.writeValueAsString(Collections.singletonMap("Name", "Crockford, Douglas"));
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
+        final String msg = MAPPER.writeValueAsString(Collections.singletonMap("Name", "Crockford, Douglas"));
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
 
         assertTrue(validationResult.isValid());
     }
 
     @Test
     public void testNested() throws JsonProcessingException {
-        Map<String, Object> outer = new LinkedHashMap<>();
+        final Map<String, Object> outer = new LinkedHashMap<>();
         outer.put("Name", "Crockford, Douglas");
-        Map<String, Object> nested = new LinkedHashMap<>();
+        final Map<String, Object> nested = new LinkedHashMap<>();
         nested.put("Mobile", 987654321);
         nested.put("Email", "mrx@xyz.zyx");
         outer.put("ContactInfo", nested);
-        String msg = MAPPER.writeValueAsString(outer);
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
+        final String msg = MAPPER.writeValueAsString(outer);
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
 
         assertTrue(validationResult.isValid());
     }
 
     @Test
     public void testObjectWithArray() throws JsonProcessingException {
-        Map<String, Object> outer = new LinkedHashMap<>();
+        final Map<String, Object> outer = new LinkedHashMap<>();
         outer.put("name", "Smith, John");
         outer.put("age", 30);
         outer.put("cars", Arrays.asList("Ford", "BMW", "Fiat"));
-        String msg = MAPPER.writeValueAsString(outer);
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
+        final String msg = MAPPER.writeValueAsString(outer);
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
 
         assertTrue(validationResult.isValid());
     }
 
     @Test
     public void testJSONArray() throws JsonProcessingException {
-        String msg = MAPPER.writeValueAsString(Arrays.asList("one", "two", "three"));
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
+        final String msg = MAPPER.writeValueAsString(Arrays.asList("one", "two", "three"));
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, msg, context);
 
         assertTrue(validationResult.isValid());
     }
 
     @Test
     public void testEmpty() {
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, "{}", context);
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, "{}", context);
         assertTrue(validationResult.isValid());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"\"Name\" : \"Smith, John\"", "bncjbhjfjhj"})
-    public void testInvalidJson(String invalidJson) {
-        ValidationResult validationResult = validator.validate(JSON_PROPERTY, invalidJson, context);
+    public void testInvalidJson(final String invalidJson) {
+        final ValidationResult validationResult = validator.validate(JSON_PROPERTY, invalidJson, context);
         assertFalse(validationResult.isValid());
         assertTrue(validationResult.getExplanation().contains("not a valid JSON representation"));
     }

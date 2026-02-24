@@ -35,19 +35,19 @@ public class WStringArrayTypeNode extends VariantTypeNode {
     public static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newFactory();
     private final String value;
 
-    public WStringArrayTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public WStringArrayTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        String raw;
+        final String raw;
         if (length >= 0) {
             raw = binaryReader.readWString(length / 2);
         } else {
-            int binaryLength = binaryReader.readWord();
+            final int binaryLength = binaryReader.readWord();
             raw = binaryReader.readWString(binaryLength / 2);
         }
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stream = new ByteArrayOutputStream();
         try {
-            XMLStreamWriter xmlStreamWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(stream, "UTF-8");
-            for (String s : raw.split("\u0000")) {
+            final XMLStreamWriter xmlStreamWriter = XML_OUTPUT_FACTORY.createXMLStreamWriter(stream, "UTF-8");
+            for (final String s : raw.split("\u0000")) {
                 xmlStreamWriter.writeStartElement("string");
                 try {
                     xmlStreamWriter.writeCharacters(s);
@@ -56,7 +56,7 @@ public class WStringArrayTypeNode extends VariantTypeNode {
                 }
             }
             xmlStreamWriter.close();
-        } catch (XMLStreamException e) {
+        } catch (final XMLStreamException e) {
             throw new IOException(e);
         }
         value = stream.toString(StandardCharsets.UTF_8);

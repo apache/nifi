@@ -48,15 +48,15 @@ public interface QueryHelper {
             .addValidator(Validator.VALID)
             .build();
 
-    default String readQuery(ProcessContext context, ProcessSession session, PropertyDescriptor queryProp, FlowFile input) throws IOException {
-        String queryStr;
+    default String readQuery(final ProcessContext context, final ProcessSession session, final PropertyDescriptor queryProp, final FlowFile input) throws IOException {
+        final String queryStr;
 
         if (context.getProperty(queryProp).isSet()) {
             queryStr = context.getProperty(queryProp).evaluateAttributeExpressions(input).getValue();
         } else if (!context.getProperty(queryProp).isSet() && input == null) {
             queryStr = "{}";
         } else {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             session.exportTo(input, out);
             out.close();
             queryStr = new String(out.toByteArray());

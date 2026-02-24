@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class DoubleTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testDoubleTypeNode() throws IOException {
-        double value = 1.23456;
+        final double value = 1.23456;
         assertEquals(Double.toString(value), new DoubleTypeNode(testBinaryReaderBuilder.putQWord(Double.doubleToLongBits(value)).build(), chunkHeader, parent, -1).getValue());
     }
 }

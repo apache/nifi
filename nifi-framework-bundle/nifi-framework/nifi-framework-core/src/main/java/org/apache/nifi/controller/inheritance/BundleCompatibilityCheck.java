@@ -40,7 +40,7 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
         return checkBundles(proposedFlow, flowController.getExtensionManager());
     }
 
-    private FlowInheritability checkBundles(final DataFlow proposedFlow, ExtensionManager extensionManager) {
+    private FlowInheritability checkBundles(final DataFlow proposedFlow, final ExtensionManager extensionManager) {
         final VersionedDataflow dataflow = proposedFlow.getVersionedDataflow();
         if (dataflow == null) {
             return FlowInheritability.inheritable();

@@ -81,7 +81,7 @@ public class JwtService {
             }
 
             return jws;
-        } catch (JwtException e) {
+        } catch (final JwtException e) {
             throw new JwtException("There was an error validating the JWT", e);
         }
     }
@@ -142,7 +142,8 @@ public class JwtService {
                 null);
     }
 
-    public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis, Collection<String> groups) throws JwtException {
+    public String generateSignedToken(final String identity, final String preferredUsername, final String issuer,
+            final String audience, final long expirationMillis, final Collection<String> groups) throws JwtException {
         if (identity == null || StringUtils.isEmpty(identity)) {
             String errorMessage = "Cannot generate a JWT for a token with an empty identity";
             errorMessage = issuer != null ? errorMessage + " issued by " + issuer + "." : ".";
@@ -152,8 +153,8 @@ public class JwtService {
 
         // Compute expiration
         final Calendar now = Calendar.getInstance();
-        long expirationMillisRelativeToNow = validateTokenExpiration(expirationMillis, identity);
-        long expirationMillisSinceEpoch = now.getTimeInMillis() + expirationMillisRelativeToNow;
+        final long expirationMillisRelativeToNow = validateTokenExpiration(expirationMillis, identity);
+        final long expirationMillisSinceEpoch = now.getTimeInMillis() + expirationMillisRelativeToNow;
         final Calendar expiration = new Calendar.Builder().setInstant(expirationMillisSinceEpoch).build();
 
         try {
@@ -174,7 +175,7 @@ public class JwtService {
                     .issuedAt(now.getTime())
                     .expiration(expiration.getTime())
                     .signWith(Keys.hmacShaKeyFor(keyBytes), SIGNATURE_ALGORITHM).compact();
-        } catch (NullPointerException e) {
+        } catch (final NullPointerException e) {
             final String errorMessage = "Could not retrieve the signing key for JWT for " + identity;
             logger.error(errorMessage, e);
             throw new JwtException(errorMessage, e);
@@ -190,22 +191,22 @@ public class JwtService {
         try {
             keyService.deleteKey(userIdentity);
             logger.info("Deleted token from database.");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Unable to delete token for user: [{}].", userIdentity);
             throw e;
         }
     }
 
-    private static long validateTokenExpiration(long proposedTokenExpiration, String identity) {
+    private static long validateTokenExpiration(final long proposedTokenExpiration, final String identity) {
         final long maxExpiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
         final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
 
         if (proposedTokenExpiration > maxExpiration) {
             logger.warn("Max token expiration exceeded. Setting expiration to {} from {} for {}", maxExpiration, proposedTokenExpiration, identity);
-            proposedTokenExpiration = maxExpiration;
+            return maxExpiration;
         } else if (proposedTokenExpiration < minExpiration) {
             logger.warn("Min token expiration not met. Setting expiration to {} from {} for {}", minExpiration, proposedTokenExpiration, identity);
-            proposedTokenExpiration = minExpiration;
+            return minExpiration;
         }
 
         return proposedTokenExpiration;

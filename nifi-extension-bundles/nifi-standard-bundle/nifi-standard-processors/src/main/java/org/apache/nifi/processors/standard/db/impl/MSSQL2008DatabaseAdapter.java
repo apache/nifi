@@ -33,18 +33,19 @@ public class MSSQL2008DatabaseAdapter extends MSSQLDatabaseAdapter {
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause, final String orderByClause, final Long limit, final Long offset) {
         return getSelectStatement(tableName, columnNames, whereClause, orderByClause, limit, offset, null);
     }
 
     @Override
-    public String getSelectStatement(String tableName, String columnNames, String whereClause, String orderByClause, Long limit, Long offset, String columnForPartitioning) {
+    public String getSelectStatement(final String tableName, final String columnNames, final String whereClause,
+            final String orderByClause, final Long limit, final Long offset, final String columnForPartitioning) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
 
         final StringBuilder query = new StringBuilder("SELECT ");
-        boolean useColumnForPartitioning = !StringUtils.isEmpty(columnForPartitioning);
+        final boolean useColumnForPartitioning = !StringUtils.isEmpty(columnForPartitioning);
         // If this is a limit query and not a paging query then use TOP in MS SQL
         if (limit != null && !useColumnForPartitioning) {
 

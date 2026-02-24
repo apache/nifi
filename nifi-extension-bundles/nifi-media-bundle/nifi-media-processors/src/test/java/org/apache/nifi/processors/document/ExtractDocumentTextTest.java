@@ -44,10 +44,10 @@ public class ExtractDocumentTextTest {
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
-        for (MockFlowFile mockFile : successFiles) {
-            String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
-            String trimmedResult = result.trim();
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
+        for (final MockFlowFile mockFile : successFiles) {
+            final String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
+            final String trimmedResult = result.trim();
             assertTrue(trimmedResult.startsWith("A Simple PDF File"));
         }
     }
@@ -59,10 +59,10 @@ public class ExtractDocumentTextTest {
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
-        for (MockFlowFile mockFile : successFiles) {
-            String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
-            String trimmedResult = result.trim();
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
+        for (final MockFlowFile mockFile : successFiles) {
+            final String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
+            final String trimmedResult = result.trim();
             assertTrue(trimmedResult.startsWith("A Simple WORD DOC File"));
         }
     }
@@ -74,10 +74,10 @@ public class ExtractDocumentTextTest {
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
-        for (MockFlowFile mockFile : successFiles) {
-            String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
-            String trimmedResult = result.trim();
+        final List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
+        for (final MockFlowFile mockFile : successFiles) {
+            final String result = new String(mockFile.toByteArray(), StandardCharsets.UTF_8);
+            final String trimmedResult = result.trim();
             assertTrue(trimmedResult.startsWith("A Simple WORD DOCX File"));
         }
     }

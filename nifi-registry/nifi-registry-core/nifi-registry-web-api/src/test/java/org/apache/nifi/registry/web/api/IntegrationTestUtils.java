@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IntegrationTestUtils {
 
-    public static void assertBucketsEqual(Bucket expected, Bucket actual, boolean checkServerSetFields) {
+    public static void assertBucketsEqual(final Bucket expected, final Bucket actual, final boolean checkServerSetFields) {
         assertNotNull(actual);
         assertEquals(expected.getName(), actual.getName());
         assertEquals(expected.getDescription(), actual.getDescription());
@@ -43,7 +43,7 @@ class IntegrationTestUtils {
         }
     }
 
-    public static void assertFlowsEqual(VersionedFlow expected, VersionedFlow actual, boolean checkServerSetFields) {
+    public static void assertFlowsEqual(final VersionedFlow expected, final VersionedFlow actual, final boolean checkServerSetFields) {
         assertNotNull(actual);
         assertEquals(expected.getName(), actual.getName());
         assertEquals(expected.getDescription(), actual.getDescription());
@@ -58,7 +58,7 @@ class IntegrationTestUtils {
         }
     }
 
-    public static void assertFlowSnapshotsEqual(VersionedFlowSnapshot expected, VersionedFlowSnapshot actual, boolean checkServerSetFields) {
+    public static void assertFlowSnapshotsEqual(final VersionedFlowSnapshot expected, final VersionedFlowSnapshot actual, final boolean checkServerSetFields) {
 
         assertNotNull(actual);
 
@@ -78,7 +78,7 @@ class IntegrationTestUtils {
     }
 
     public static void assertFlowSnapshotMetadataEqual(
-            VersionedFlowSnapshotMetadata expected, VersionedFlowSnapshotMetadata actual, boolean checkServerSetFields) {
+            final VersionedFlowSnapshotMetadata expected, final VersionedFlowSnapshotMetadata actual, final boolean checkServerSetFields) {
 
         assertNotNull(actual);
         assertEquals(expected.getBucketIdentifier(), actual.getBucketIdentifier());
@@ -90,7 +90,7 @@ class IntegrationTestUtils {
         }
     }
 
-    private static void assertVersionedProcessGroupsEqual(VersionedProcessGroup expected, VersionedProcessGroup actual) {
+    private static void assertVersionedProcessGroupsEqual(final VersionedProcessGroup expected, final VersionedProcessGroup actual) {
         assertNotNull(actual);
 
         assertEquals(((VersionedComponent) expected), ((VersionedComponent) actual));
@@ -108,7 +108,7 @@ class IntegrationTestUtils {
         assertSetsEqual(expected.getControllerServices(), actual.getControllerServices());
     }
 
-    private static void assertSetsEqual(Set<? extends VersionedComponent> expected, Set<? extends VersionedComponent> actual) {
+    private static void assertSetsEqual(final Set<? extends VersionedComponent> expected, final Set<? extends VersionedComponent> actual) {
         if (expected != null) {
             assertNotNull(actual);
             assertEquals(expected.size(), actual.size());

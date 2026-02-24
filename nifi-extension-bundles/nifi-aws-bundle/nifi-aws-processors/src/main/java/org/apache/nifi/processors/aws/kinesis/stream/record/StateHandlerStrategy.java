@@ -58,7 +58,7 @@ class StateHandlerStrategy {
         return create(record, flowFileContext);
     }
 
-    private void completeAllAvailableFlowFileStates(BatchProcessingContext flowFileContext) throws FlowFileCompletionException {
+    private void completeAllAvailableFlowFileStates(final BatchProcessingContext flowFileContext) throws FlowFileCompletionException {
         FlowFileState previousStateForDifferentSchema;
         while ((previousStateForDifferentSchema = pop()) != null) {
             stateFinalizerAction.complete(previousStateForDifferentSchema, flowFileContext);

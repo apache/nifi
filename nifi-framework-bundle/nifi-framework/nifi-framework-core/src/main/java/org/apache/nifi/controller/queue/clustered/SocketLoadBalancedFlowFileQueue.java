@@ -210,8 +210,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         }
     }
 
-    private FlowFilePartitioner getPartitionerForLoadBalancingStrategy(LoadBalanceStrategy strategy, String partitioningAttribute) {
-        FlowFilePartitioner partitioner = switch (strategy) {
+    private FlowFilePartitioner getPartitionerForLoadBalancingStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
+        final FlowFilePartitioner partitioner = switch (strategy) {
             case DO_NOT_LOAD_BALANCE -> new LocalPartitionPartitioner();
             case PARTITION_BY_ATTRIBUTE -> new CorrelationAttributePartitioner(partitioningAttribute);
             case ROUND_ROBIN -> new RoundRobinPartitioner();
@@ -294,7 +294,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             logger.debug("Queue {} on node {} was previously offloaded, resetting offloaded status to {}",
                     this, clusterCoordinator.getLocalNodeIdentifier(), offloaded);
             // reset the partitioner based on the load balancing strategy, since offloading previously changed the partitioner
-            FlowFilePartitioner partitioner = getPartitionerForLoadBalancingStrategy(getLoadBalanceStrategy(), getPartitioningAttribute());
+            final FlowFilePartitioner partitioner = getPartitionerForLoadBalancingStrategy(getLoadBalanceStrategy(), getPartitioningAttribute());
             setFlowFilePartitioner(partitioner);
             logger.debug("Queue {} is no longer offloaded, restored load balance strategy to {} and partitioning attribute to \"{}\"",
                     this, getLoadBalanceStrategy(), getPartitioningAttribute());
@@ -486,7 +486,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                         final FlowFileQueueContents queueContents = new FlowFileQueueContents(Collections.emptyList(), Collections.singletonList(updatedSwapLocation), swapSummary.getQueueSize());
                         rebalancingPartition.rebalance(queueContents);
                     }
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     logger.error("Failed to determine whether or not any Swap Files exist for FlowFile Queue {} and Partition {}", getIdentifier(), partitionName, e);
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.ERROR, "FlowFile Swapping", "Failed to determine whether or not any Swap Files exist for FlowFile Queue " +
@@ -502,7 +502,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             long totalLastQueueDate = 0L;
 
             for (final SwapSummary summary : summaries) {
-                Long summaryMaxId = summary.getMaxFlowFileId();
+                final Long summaryMaxId = summary.getMaxFlowFileId();
                 if (summaryMaxId != null && (maxId == null || summaryMaxId > maxId)) {
                     maxId = summaryMaxId;
                 }
@@ -543,10 +543,10 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
-    public long getTotalQueuedDuration(long fromTimestamp) {
+    public long getTotalQueuedDuration(final long fromTimestamp) {
         long sum = 0L;
-        for (QueuePartition queuePartition : queuePartitions) {
-            long totalActiveQueuedDuration = queuePartition.getTotalActiveQueuedDuration(fromTimestamp);
+        for (final QueuePartition queuePartition : queuePartitions) {
+            final long totalActiveQueuedDuration = queuePartition.getTotalActiveQueuedDuration(fromTimestamp);
             sum += totalActiveQueuedDuration;
         }
         return sum;
@@ -555,7 +555,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public long getMinLastQueueDate() {
         long min = 0;
-        for (QueuePartition queuePartition : queuePartitions) {
+        for (final QueuePartition queuePartition : queuePartitions) {
             min = min == 0 ? queuePartition.getMinLastQueueDate() : Long.min(min, queuePartition.getMinLastQueueDate());
         }
         return min;
@@ -948,14 +948,14 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
         return flowFiles;
     }
 
     @Override
-    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords, pollStrategy);
         onAbort(expiredRecords);
         return flowFiles;
@@ -1040,7 +1040,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             provRepo.registerEvents(provenanceEvents);
 
             adjustSize(-expired.size(), -expired.stream().mapToLong(FlowFileRecord::getSize).sum());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Encountered {} expired FlowFiles but failed to update FlowFile Repository. This FlowFiles may re-appear in the queue after NiFi is restarted and will be expired again at " +
                     "that point.", expiredRecords.size(), e);
         }

@@ -39,7 +39,7 @@ public class ParameterStatusDTO {
         return status;
     }
 
-    public void setStatus(ParameterStatus status) {
+    public void setStatus(final ParameterStatus status) {
         this.status = status;
     }
 }

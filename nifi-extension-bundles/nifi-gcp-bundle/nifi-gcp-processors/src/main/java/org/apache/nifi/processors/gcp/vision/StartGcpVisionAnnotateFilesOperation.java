@@ -82,7 +82,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
@@ -93,7 +93,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
     }
 
     @Override
-    OperationFuture<?, ?> startOperation(AsyncBatchAnnotateFilesRequest.Builder builder) {
+    OperationFuture<?, ?> startOperation(final AsyncBatchAnnotateFilesRequest.Builder builder) {
         return getVisionClient().asyncBatchAnnotateFilesAsync(builder.build());
     }
 

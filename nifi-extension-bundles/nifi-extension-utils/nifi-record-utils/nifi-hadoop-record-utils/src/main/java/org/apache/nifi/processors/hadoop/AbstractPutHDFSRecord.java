@@ -200,7 +200,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected void preProcessConfiguration(Configuration config, ProcessContext context) {
+    protected void preProcessConfiguration(final Configuration config, final ProcessContext context) {
         // Set umask once, to avoid thread safety issues doing it in onTrigger
         final PropertyValue umaskProp = context.getProperty(UMASK);
         final short dfsUmask;
@@ -271,13 +271,13 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // write to tempFile first and on success rename to destFile
                 final Path tempFile = new Path(directoryPath, "." + filenameValue) {
                     @Override
-                    public FileSystem getFileSystem(Configuration conf) {
+                    public FileSystem getFileSystem(final Configuration conf) {
                         return fileSystem;
                     }
                 };
                 final Path destFile = new Path(directoryPath, filenameValue) {
                     @Override
-                    public FileSystem getFileSystem(Configuration conf) {
+                    public FileSystem getFileSystem(final Configuration conf) {
                         return fileSystem;
                     }
                 };
@@ -309,7 +309,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                         // handle this separately from the other IOExceptions which normally route to retry
                         try {
                             recordReader = recordReaderFactory.createRecordReader(flowFileIn, in, getLogger());
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             final RecordReaderFactoryException rrfe = new RecordReaderFactoryException("Unable to create RecordReader", e);
                             exceptionHolder.set(rrfe);
                             return;
@@ -319,7 +319,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                         recordWriter = createHDFSRecordWriter(context, flowFile, configuration, tempFile, recordReader.getSchema());
                         writeResult.set(recordWriter.write(recordSet));
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         exceptionHolder.set(e);
                     } finally {
                         IOUtils.closeQuietly(recordReader);
@@ -371,12 +371,12 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
                 session.transfer(putFlowFile, REL_SUCCESS);
 
-            } catch (IOException | FlowFileAccessException e) {
+            } catch (final IOException | FlowFileAccessException e) {
                 deleteQuietly(fileSystem, tempDotCopyFile);
                 getLogger().error("Failed to write", e);
                 session.transfer(session.penalize(putFlowFile), REL_RETRY);
                 context.yield();
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 deleteQuietly(fileSystem, tempDotCopyFile);
                 getLogger().error("Failed to write", t);
                 session.transfer(putFlowFile, REL_FAILURE);
@@ -387,7 +387,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("compression-type", COMPRESSION_TYPE.getName());
         config.renameProperty("overwrite", OVERWRITE.getName());
@@ -448,7 +448,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
         if (file != null) {
             try {
                 fileSystem.delete(file, false);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Unable to remove file {}", file, e);
             }
         }
@@ -468,7 +468,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             if (remoteOwner != null || remoteGroup != null) {
                 fileSystem.setOwner(path, remoteOwner, remoteGroup);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Could not change owner or group of {} on", path, e);
         }
     }
@@ -488,7 +488,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             if (!fileSystem.getFileStatus(directory).isDirectory()) {
                 throw new FailureException(directory.toString() + " already exists and is not a directory");
             }
-        } catch (FileNotFoundException fe) {
+        } catch (final FileNotFoundException fe) {
             if (!fileSystem.mkdirs(directory)) {
                 throw new FailureException(directory.toString() + " could not be created");
             }

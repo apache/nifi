@@ -222,7 +222,7 @@ public class TestPutSplunkHTTP {
 
     @Test
     void testMigrateProperties() {
-        TestRunner testRunner = TestRunners.newTestRunner(PutSplunkHTTP.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(PutSplunkHTTP.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("source", PutSplunkHTTP.SOURCE.getName()),
                 Map.entry("source-type", PutSplunkHTTP.SOURCE_TYPE.getName()),
@@ -258,7 +258,7 @@ public class TestPutSplunkHTTP {
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
-    private void givenSplunkReturnsWithApplicationFailure(int code) {
+    private void givenSplunkReturnsWithApplicationFailure(final int code) {
         final InputStream inputStream = new ByteArrayInputStream("non-json-content".getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(code);
         Mockito.when(response.getContent()).thenReturn(inputStream);

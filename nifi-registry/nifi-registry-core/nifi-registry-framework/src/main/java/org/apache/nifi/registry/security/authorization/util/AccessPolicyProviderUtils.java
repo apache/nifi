@@ -146,10 +146,10 @@ public final class AccessPolicyProviderUtils {
      * @return a map from resource identifier to policies
      */
     public static Map<String, Set<AccessPolicy>> createResourcePolicyMap(final Set<AccessPolicy> allPolicies) {
-        Map<String, Set<AccessPolicy>> resourcePolicies = new HashMap<>();
+        final Map<String, Set<AccessPolicy>> resourcePolicies = new HashMap<>();
 
-        for (AccessPolicy policy : allPolicies) {
-            Set<AccessPolicy> policies = resourcePolicies.computeIfAbsent(policy.getResource(), k -> new HashSet<>());
+        for (final AccessPolicy policy : allPolicies) {
+            final Set<AccessPolicy> policies = resourcePolicies.computeIfAbsent(policy.getResource(), k -> new HashSet<>());
             policies.add(policy);
         }
 
@@ -163,8 +163,8 @@ public final class AccessPolicyProviderUtils {
      * @return the Map from policy identifier to AccessPolicy
      */
     public static Map<String, AccessPolicy> createPoliciesByIdMap(final Set<AccessPolicy> policies) {
-        Map<String, AccessPolicy> policyMap = new HashMap<>();
-        for (AccessPolicy policy : policies) {
+        final Map<String, AccessPolicy> policyMap = new HashMap<>();
+        for (final AccessPolicy policy : policies) {
             policyMap.put(policy.getIdentifier(), policy);
         }
         return policyMap;
@@ -189,7 +189,7 @@ public final class AccessPolicyProviderUtils {
             return null;
         }
 
-        for (AccessPolicy accessPolicy : resourcePolicies) {
+        for (final AccessPolicy accessPolicy : resourcePolicies) {
             if (accessPolicy.getAction() == action) {
                 return accessPolicy;
             }

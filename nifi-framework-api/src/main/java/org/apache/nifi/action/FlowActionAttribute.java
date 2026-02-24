@@ -47,7 +47,7 @@ public enum FlowActionAttribute {
 
     private final String key;
 
-    FlowActionAttribute(String key) {
+    FlowActionAttribute(final String key) {
         this.key = key;
     }
 

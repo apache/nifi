@@ -54,7 +54,7 @@ public class SubstringEvaluator extends StringEvaluator {
                 final int endIndexValue = endIndex.evaluate(evaluationContext).getValue().intValue();
                 return new StringQueryResult(subjectValue.substring(startIndexValue, endIndexValue));
             }
-        } catch (IndexOutOfBoundsException e) {
+        } catch (final IndexOutOfBoundsException e) {
             return new StringQueryResult("");
         }
     }

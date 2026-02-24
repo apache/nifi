@@ -46,7 +46,7 @@ public class FlowAnalysisRuleViolationDTO {
         return enforcementPolicy;
     }
 
-    public void setEnforcementPolicy(String enforcementPolicy) {
+    public void setEnforcementPolicy(final String enforcementPolicy) {
         this.enforcementPolicy = enforcementPolicy;
     }
 
@@ -57,7 +57,7 @@ public class FlowAnalysisRuleViolationDTO {
         return scope;
     }
 
-    public void setScope(String scope) {
+    public void setScope(final String scope) {
         this.scope = scope;
     }
 
@@ -68,7 +68,7 @@ public class FlowAnalysisRuleViolationDTO {
         return subjectId;
     }
 
-    public void setSubjectId(String subjectId) {
+    public void setSubjectId(final String subjectId) {
         this.subjectId = subjectId;
     }
 
@@ -79,7 +79,7 @@ public class FlowAnalysisRuleViolationDTO {
         return subjectDisplayName;
     }
 
-    public void setSubjectDisplayName(String subjectDisplayName) {
+    public void setSubjectDisplayName(final String subjectDisplayName) {
         this.subjectDisplayName = subjectDisplayName;
     }
 
@@ -91,7 +91,7 @@ public class FlowAnalysisRuleViolationDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -102,7 +102,7 @@ public class FlowAnalysisRuleViolationDTO {
         return ruleId;
     }
 
-    public void setRuleId(String ruleId) {
+    public void setRuleId(final String ruleId) {
         this.ruleId = ruleId;
     }
 
@@ -113,7 +113,7 @@ public class FlowAnalysisRuleViolationDTO {
         return issueId;
     }
 
-    public void setIssueId(String issueId) {
+    public void setIssueId(final String issueId) {
         this.issueId = issueId;
     }
 
@@ -124,7 +124,7 @@ public class FlowAnalysisRuleViolationDTO {
         return violationMessage;
     }
 
-    public void setViolationMessage(String violationMessage) {
+    public void setViolationMessage(final String violationMessage) {
         this.violationMessage = violationMessage;
     }
 
@@ -135,7 +135,7 @@ public class FlowAnalysisRuleViolationDTO {
         return subjectComponentType;
     }
 
-    public void setSubjectComponentType(String subjectComponentType) {
+    public void setSubjectComponentType(final String subjectComponentType) {
         this.subjectComponentType = subjectComponentType;
     }
 
@@ -146,7 +146,7 @@ public class FlowAnalysisRuleViolationDTO {
         return enabled;
     }
 
-    public void setEnabled(boolean enabled) {
+    public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -157,7 +157,7 @@ public class FlowAnalysisRuleViolationDTO {
         return subjectPermissionDto;
     }
 
-    public void setSubjectPermissionDto(PermissionsDTO subjectPermissionDto) {
+    public void setSubjectPermissionDto(final PermissionsDTO subjectPermissionDto) {
         this.subjectPermissionDto = subjectPermissionDto;
     }
 }

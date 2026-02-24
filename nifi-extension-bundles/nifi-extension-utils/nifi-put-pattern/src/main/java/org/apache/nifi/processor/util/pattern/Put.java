@@ -54,9 +54,9 @@ public class Put<FC, C extends AutoCloseable> {
      * @param flowFiles FlowFiles fetched from {@link PartialFunctions.FetchFlowFiles}.
      * @param result Route incoming FlowFiles if necessary.
      */
-    protected void putFlowFiles(ProcessContext context, ProcessSession session,
-                                        FC functionContext, C connection, List<FlowFile> flowFiles, RoutingResult result) throws ProcessException {
-        for (FlowFile flowFile : flowFiles) {
+    protected void putFlowFiles(final ProcessContext context, final ProcessSession session,
+                                        final FC functionContext, final C connection, final List<FlowFile> flowFiles, final RoutingResult result) throws ProcessException {
+        for (final FlowFile flowFile : flowFiles) {
             putFlowFile.apply(context, session, functionContext, connection, flowFile, result);
         }
     }
@@ -78,7 +78,7 @@ public class Put<FC, C extends AutoCloseable> {
      * @param functionContext function context should be instantiated per onTrigger call.
      * @throws ProcessException Each partial function can throw ProcessException if onTrigger should stop immediately.
      */
-    public void onTrigger(ProcessContext context, ProcessSession session, FC functionContext) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session, final FC functionContext) throws ProcessException {
 
         validateCompositePattern();
 
@@ -101,7 +101,7 @@ public class Put<FC, C extends AutoCloseable> {
                 // Execute the core function.
                 try {
                     putFlowFiles(context, session, functionContext, connection, flowFiles, result);
-                } catch (DiscontinuedException ignored) {
+                } catch (final DiscontinuedException ignored) {
                     // Whether it was an error or semi normal is depends on the implementation and reason why it wanted to discontinue.
                     // So, no logging is needed here.
                 }
@@ -135,7 +135,7 @@ public class Put<FC, C extends AutoCloseable> {
                 // Transfer FlowFiles.
                 transferFlowFiles.apply(context, session, functionContext, result);
 
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 if (onFailed != null) {
                     onFailed.apply(context, session, functionContext, connection, e);
                 }
@@ -146,9 +146,9 @@ public class Put<FC, C extends AutoCloseable> {
                 }
             }
 
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // Throw uncaught exception as RuntimeException so that this processor will be yielded.
             final String msg = String.format("Failed to execute due to %s", e);
             logger.error(msg, e);
@@ -162,7 +162,7 @@ public class Put<FC, C extends AutoCloseable> {
      * If not specified, single FlowFile is fetched on each onTrigger.
      * @param f Function to fetch incoming FlowFiles.
      */
-    public void fetchFlowFiles(PartialFunctions.FetchFlowFiles<FC> f) {
+    public void fetchFlowFiles(final PartialFunctions.FetchFlowFiles<FC> f) {
         fetchFlowFiles = f;
     }
 
@@ -172,7 +172,7 @@ public class Put<FC, C extends AutoCloseable> {
      * The created connection instance is automatically closed when onTrigger is finished.
      * @param f Function to initiate a connection to a data storage.
      */
-    public void initConnection(PartialFunctions.InitConnection<FC, C> f) {
+    public void initConnection(final PartialFunctions.InitConnection<FC, C> f) {
         initConnection = f;
     }
 
@@ -180,7 +180,7 @@ public class Put<FC, C extends AutoCloseable> {
      * Specify a function that puts an incoming FlowFile to target data storage.
      * @param f a function to put a FlowFile to target storage.
      */
-    public void putFlowFile(PutFlowFile<FC, C> f) {
+    public void putFlowFile(final PutFlowFile<FC, C> f) {
         this.putFlowFile = f;
     }
 
@@ -188,7 +188,7 @@ public class Put<FC, C extends AutoCloseable> {
      * Specify an optional function that adjust routed FlowFiles before transfer it.
      * @param f a function to adjust route.
      */
-    public void adjustRoute(PartialFunctions.AdjustRoute<FC> f) {
+    public void adjustRoute(final PartialFunctions.AdjustRoute<FC> f) {
         this.adjustRoute = f;
     }
 
@@ -197,7 +197,7 @@ public class Put<FC, C extends AutoCloseable> {
      * If the result is failed, return true and do sth.
      * @param f Function to be called to adjust if the result is failed
      */
-    public void adjustFailed(PartialFunctions.AdjustFailed f) {
+    public void adjustFailed(final PartialFunctions.AdjustFailed f) {
         this.adjustFailed = f;
     }
 
@@ -206,7 +206,7 @@ public class Put<FC, C extends AutoCloseable> {
      * If not specified routed FlowFiles are simply transferred to its destination by default.
      * @param f a function to transfer routed FlowFiles.
      */
-    public void transferFlowFiles(PartialFunctions.TransferFlowFiles<FC> f) {
+    public void transferFlowFiles(final PartialFunctions.TransferFlowFiles<FC> f) {
         this.transferFlowFiles = f;
     }
 
@@ -214,7 +214,7 @@ public class Put<FC, C extends AutoCloseable> {
      * Specify an optional function which will be called if input FlowFiles were successfully put to a target storage.
      * @param f Function to be called when a put operation finishes successfully.
      */
-    public void onCompleted(PartialFunctions.OnCompleted<FC, C> f) {
+    public void onCompleted(final PartialFunctions.OnCompleted<FC, C> f) {
         onCompleted = f;
     }
 
@@ -222,7 +222,7 @@ public class Put<FC, C extends AutoCloseable> {
      * Specify an optional function which will be called if input FlowFiles failed being put to a target storage.
      * @param f Function to be called when a put operation failed.
      */
-    public void onFailed(PartialFunctions.OnFailed<FC, C> f) {
+    public void onFailed(final PartialFunctions.OnFailed<FC, C> f) {
         onFailed = f;
     }
 
@@ -231,11 +231,11 @@ public class Put<FC, C extends AutoCloseable> {
      * Typically useful when a special cleanup operation is needed for the connection.
      * @param f Function to be called when a put operation finished regardless of whether it succeeded or not.
      */
-    public void cleanup(PartialFunctions.Cleanup<FC, C> f) {
+    public void cleanup(final PartialFunctions.Cleanup<FC, C> f) {
         cleanup = f;
     }
 
-    public void setLogger(ComponentLog logger) {
+    public void setLogger(final ComponentLog logger) {
         this.logger = logger;
     }
 

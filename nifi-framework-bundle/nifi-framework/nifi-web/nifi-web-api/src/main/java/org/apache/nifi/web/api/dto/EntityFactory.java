@@ -579,11 +579,11 @@ public final class EntityFactory {
     }
 
     public FlowAnalysisRuleEntity createFlowAnalysisRuleEntity(
-        FlowAnalysisRuleDTO flowAnalysisRuleDTO,
-        RevisionDTO revision,
-        PermissionsDTO permissions,
-        PermissionsDTO operatePermissions,
-        List<BulletinEntity> bulletins
+        final FlowAnalysisRuleDTO flowAnalysisRuleDTO,
+        final RevisionDTO revision,
+        final PermissionsDTO permissions,
+        final PermissionsDTO operatePermissions,
+        final List<BulletinEntity> bulletins
     ) {
         final FlowAnalysisRuleEntity entity = new FlowAnalysisRuleEntity();
         entity.setRevision(revision);

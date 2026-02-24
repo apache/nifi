@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class FloatTypeNodeTest extends BxmlNodeTestBase {
     @Test
     public void testFloatTypeNode() throws IOException {
-        float value = 5.432f;
+        final float value = 5.432f;
         assertEquals(Float.toString(value),
                 new FloatTypeNode(testBinaryReaderBuilder.putDWord(Float.floatToIntBits(value)).build(), chunkHeader, parent, -1).getValue());
     }

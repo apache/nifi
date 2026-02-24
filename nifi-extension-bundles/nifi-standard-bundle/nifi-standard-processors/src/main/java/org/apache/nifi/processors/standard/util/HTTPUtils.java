@@ -27,7 +27,7 @@ public class HTTPUtils {
     public static final String HTTP_SSL_CERT = "http.subject.dn";
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";
 
-    public static String getURI(Map<String, String> map) {
+    public static String getURI(final Map<String, String> map) {
         final String client = map.get(HTTP_REMOTE_HOST);
         final String server = map.get(HTTP_LOCAL_NAME);
         final String port = map.get(HTTP_PORT);

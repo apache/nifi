@@ -21,11 +21,11 @@ package org.apache.nifi.action;
  */
 public class FlowActionReporterCreationException extends RuntimeException {
 
-    public FlowActionReporterCreationException(String message) {
+    public FlowActionReporterCreationException(final String message) {
         super(message);
     }
 
-    public FlowActionReporterCreationException(String message, Throwable cause) {
+    public FlowActionReporterCreationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 

@@ -124,7 +124,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(final byte[] b, final int off, final int len) throws IOException {
                 bcos.write(b, off, len);
                 bytesWritten += len;
                 scc.setLength(initialLength + bytesWritten);

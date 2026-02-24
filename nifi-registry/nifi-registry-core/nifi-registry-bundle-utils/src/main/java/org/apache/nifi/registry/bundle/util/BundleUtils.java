@@ -22,13 +22,13 @@ public class BundleUtils {
         return (value == null || value.isBlank());
     }
 
-    public static void validateNotNull(String fieldName, Object value) {
+    public static void validateNotNull(final String fieldName, final Object value) {
         if (value == null) {
             throw new IllegalArgumentException(fieldName + " is required");
         }
     }
 
-    public static void validateNotBlank(String fieldName, String value) {
+    public static void validateNotBlank(final String fieldName, final String value) {
         if (isBlank(value)) {
             throw new IllegalArgumentException(fieldName + " is required");
         }

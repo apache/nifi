@@ -55,7 +55,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        final MockFlowFile ff = ffs.get(0);
 
         ff.assertContentEquals(CONTENT);
 
@@ -93,7 +93,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS);
-        MockFlowFile ff = ffs.get(0);
+        final MockFlowFile ff = ffs.get(0);
 
         ff.assertAttributeEquals(StorageAttributes.ENCRYPTION_ALGORITHM_ATTR,
                 "AES256");

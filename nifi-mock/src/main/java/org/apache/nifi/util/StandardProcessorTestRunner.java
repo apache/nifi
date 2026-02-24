@@ -117,19 +117,19 @@ public class StandardProcessorTestRunner implements TestRunner {
         this(processor, null);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName) {
+    StandardProcessorTestRunner(final Processor processor, final String processorName) {
         this(processor, processorName, null, null);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, KerberosContext kerberosContext) {
+    StandardProcessorTestRunner(final Processor processor, final String processorName, final KerberosContext kerberosContext) {
         this(processor, processorName, null, kerberosContext);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger) {
+    StandardProcessorTestRunner(final Processor processor, final String processorName, final MockComponentLog logger) {
         this(processor, processorName, logger, null);
     }
 
-    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
+    StandardProcessorTestRunner(final Processor processor, final String processorName, final MockComponentLog logger, final KerberosContext kerberosContext) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -198,7 +198,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void run(int iterations) {
+    public void run(final int iterations) {
         run(iterations, true);
     }
 
@@ -349,14 +349,14 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void assertAllFlowFiles(FlowFileValidator validator) {
+    public void assertAllFlowFiles(final FlowFileValidator validator) {
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             session.assertAllFlowFiles(validator);
         }
     }
 
     @Override
-    public void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator) {
+    public void assertAllFlowFiles(final Relationship relationship, final FlowFileValidator validator) {
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             session.assertAllFlowFiles(relationship, validator);
         }
@@ -364,14 +364,14 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void assertAttributes(
-        Relationship relationship,
-        Set<String> checkedAttributeNames,
-        Set<Map<String, String>> expectedAttributes
+        final Relationship relationship,
+        final Set<String> checkedAttributeNames,
+        final Set<Map<String, String>> expectedAttributes
     ) {
         assertTransferCount(relationship, expectedAttributes.size());
-        List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+        final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
 
-        Set<Map<String, String>> actualAttributes = flowFiles.stream()
+        final Set<Map<String, String>> actualAttributes = flowFiles.stream()
             .map(flowFile -> flowFile.getAttributes().entrySet().stream()
                 .filter(attributeNameAndValue -> checkedAttributeNames.contains(attributeNameAndValue.getKey()))
                 .filter(entry -> entry.getKey() != null && entry.getValue() != null)
@@ -384,11 +384,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void assertContents(Relationship relationship, List<String> expectedContent) {
+    public void assertContents(final Relationship relationship, final List<String> expectedContent) {
         assertTransferCount(relationship, expectedContent.size());
-        List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+        final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
 
-        List<String> actualContent = flowFiles.stream()
+        final List<String> actualContent = flowFiles.stream()
             .map(MockFlowFile::getContent)
             .collect(Collectors.toList());
 
@@ -653,7 +653,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setIncomingConnection(boolean hasIncomingConnection) {
+    public void setIncomingConnection(final boolean hasIncomingConnection) {
         context.setIncomingConnection(hasIncomingConnection);
     }
 
@@ -663,22 +663,22 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void addConnection(Relationship relationship) {
+    public void addConnection(final Relationship relationship) {
         context.addConnection(relationship);
     }
 
     @Override
-    public void addConnection(String relationshipName) {
+    public void addConnection(final String relationshipName) {
         addConnection(new Relationship.Builder().name(relationshipName).build());
     }
 
     @Override
-    public void removeConnection(Relationship relationship) {
+    public void removeConnection(final Relationship relationship) {
         context.removeConnection(relationship);
     }
 
     @Override
-    public void removeConnection(String relationshipName) {
+    public void removeConnection(final String relationshipName) {
         removeConnection(new Relationship.Builder().name(relationshipName).build());
     }
 
@@ -948,12 +948,12 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public boolean removeProperty(PropertyDescriptor descriptor) {
+    public boolean removeProperty(final PropertyDescriptor descriptor) {
         return context.removeProperty(descriptor);
     }
 
     @Override
-    public boolean removeProperty(String property) {
+    public boolean removeProperty(final String property) {
         return context.removeProperty(property);
     }
 
@@ -979,7 +979,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public boolean removeProperty(ControllerService service, String propertyName) {
+    public boolean removeProperty(final ControllerService service, final String propertyName) {
         final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
         if (descriptor == null) {
             return false;
@@ -1029,7 +1029,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setClustered(boolean clustered) {
+    public void setClustered(final boolean clustered) {
         context.setClustered(clustered);
     }
 
@@ -1039,7 +1039,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setPrimaryNode(boolean primaryNode) {
+    public void setPrimaryNode(final boolean primaryNode) {
         if (context.isPrimary() != primaryNode) {
             try {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, processor,
@@ -1067,7 +1067,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setEnvironmentVariableValue(String name, String value) {
+    public void setEnvironmentVariableValue(final String name, final String value) {
         environmentVariables.put(name, value);
     }
 
@@ -1078,7 +1078,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void setParameterContextValue(String name, String value) {
+    public void setParameterContextValue(final String name, final String value) {
         contextParameters.put(name, value);
     }
 
@@ -1089,7 +1089,7 @@ public class StandardProcessorTestRunner implements TestRunner {
      * @param predicate conditions
      */
     @Override
-    public void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate) {
+    public void assertAllConditionsMet(final String relationshipName, final Predicate<MockFlowFile> predicate) {
         assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), predicate);
     }
 
@@ -1100,7 +1100,7 @@ public class StandardProcessorTestRunner implements TestRunner {
      * @param predicate conditions
      */
     @Override
-    public void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate) {
+    public void assertAllConditionsMet(final Relationship relationship, final Predicate<MockFlowFile> predicate) {
 
         if (predicate == null) {
             Assertions.fail("predicate cannot be null");
@@ -1112,7 +1112,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             Assertions.fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
         }
 
-        for (MockFlowFile flowFile : flowFiles) {
+        for (final MockFlowFile flowFile : flowFiles) {
             if (!predicate.test(flowFile)) {
                 Assertions.fail("FlowFile " + flowFile + " does not meet all condition");
             }
@@ -1126,14 +1126,14 @@ public class StandardProcessorTestRunner implements TestRunner {
      * @param runSchedule Run schedule duration in milliseconds.
      */
     @Override
-    public void setRunSchedule(long runSchedule) {
+    public void setRunSchedule(final long runSchedule) {
         this.runSchedule = runSchedule;
     }
 
     @Override
     public void assertProvenanceEvent(final ProvenanceEventType eventType) {
-        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
-        Set<ProvenanceEventType> actualEventTypes = getProvenanceEvents().stream()
+        final Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
+        final Set<ProvenanceEventType> actualEventTypes = getProvenanceEvents().stream()
                         .map(ProvenanceEventRecord::getEventType)
                         .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);

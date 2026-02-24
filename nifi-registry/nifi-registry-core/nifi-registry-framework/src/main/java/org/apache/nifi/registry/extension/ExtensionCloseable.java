@@ -22,7 +22,7 @@ import java.io.IOException;
 public class ExtensionCloseable implements Closeable {
     private final ClassLoader toSet;
 
-    private ExtensionCloseable(ClassLoader toSet) {
+    private ExtensionCloseable(final ClassLoader toSet) {
         this.toSet = toSet;
     }
 

@@ -274,7 +274,7 @@ class ReaderRecordProcessorTest {
     void testIOExceptionDuringReaderCreation() {
         final RecordReaderFactory failingReaderFactory = new MockRecordParser() {
             @Override
-            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws IOException {
+            public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException {
                 throw new IOException("Failed to create reader");
             }
         };
@@ -375,14 +375,14 @@ class ReaderRecordProcessorTest {
     private static RecordReaderFactory getMalformedRecordExceptionReader() {
         return new MockRecordParser() {
             @Override
-            public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) {
+            public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) {
                 return new RecordReader() {
                     @Override
                     public void close() {
                     }
 
                     @Override
-                    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
+                    public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws MalformedRecordException {
                         throw new MalformedRecordException("Test exception");
                     }
 

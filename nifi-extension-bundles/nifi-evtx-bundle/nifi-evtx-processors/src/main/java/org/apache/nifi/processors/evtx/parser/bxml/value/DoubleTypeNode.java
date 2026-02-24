@@ -30,9 +30,9 @@ import java.io.IOException;
 public class DoubleTypeNode extends VariantTypeNode {
     private final double value;
 
-    public DoubleTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public DoubleTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        UnsignedLong unsignedLong = binaryReader.readQWord();
+        final UnsignedLong unsignedLong = binaryReader.readQWord();
         value = Double.longBitsToDouble(unsignedLong.longValue());
     }
 

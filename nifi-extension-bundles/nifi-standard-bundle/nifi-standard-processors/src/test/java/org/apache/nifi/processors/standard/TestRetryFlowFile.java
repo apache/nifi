@@ -172,7 +172,7 @@ public class TestRetryFlowFile {
     @Test
     public void testReuseFail() {
         runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.FAIL_ON_REUSE.getValue());
-        Map<String, String> inputAttributes = new HashMap<>();
+        final Map<String, String> inputAttributes = new HashMap<>();
         inputAttributes.put("flowfile.retries", "2");
         inputAttributes.put("flowfile.retries.uuid", "1122334455");
         runner.enqueue("", inputAttributes);
@@ -186,7 +186,7 @@ public class TestRetryFlowFile {
     @Test
     public void testReuseWarn() {
         runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.WARN_ON_REUSE.getValue());
-        Map<String, String> inputAttributes = new HashMap<>();
+        final Map<String, String> inputAttributes = new HashMap<>();
         inputAttributes.put("flowfile.retries", "2");
         inputAttributes.put("flowfile.retries.uuid", "1122334455");
         runner.enqueue("", inputAttributes);
@@ -206,7 +206,7 @@ public class TestRetryFlowFile {
     @Test
     public void testReuseReset() {
         runner.setProperty(RetryFlowFile.REUSE_MODE, RetryFlowFile.RESET_ON_REUSE.getValue());
-        Map<String, String> inputAttributes = new HashMap<>();
+        final Map<String, String> inputAttributes = new HashMap<>();
         inputAttributes.put("flowfile.retries", "2");
         inputAttributes.put("flowfile.retries.uuid", "1122334455");
         runner.enqueue("", inputAttributes);
@@ -226,7 +226,7 @@ public class TestRetryFlowFile {
     @Test
     public void testAlternativeAttributeMaxRetries() {
         runner.setProperty(RetryFlowFile.MAXIMUM_RETRIES, "${retry.max}");
-        Map<String, String> attributeMap = new HashMap<>();
+        final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("retry.max", "3");
         attributeMap.put("flowfile.retries", "2");
         runner.enqueue("", attributeMap);
@@ -248,7 +248,7 @@ public class TestRetryFlowFile {
     @Test
     public void testInvalidAlternativeAttributeMaxRetries() {
         runner.setProperty(RetryFlowFile.MAXIMUM_RETRIES, "${retry.max}");
-        Map<String, String> attributeMap = new HashMap<>();
+        final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("retry.max", "NiFi");
         attributeMap.put("flowfile.retries", "2");
         runner.enqueue("", attributeMap);

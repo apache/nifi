@@ -282,10 +282,10 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     }
 
     private String sha256Hex(final String input) {
-        MessageDigest digest;
+        final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
         final byte[] hash = digest.digest(
@@ -367,7 +367,7 @@ public class StandardProtobufReader extends SchemaRegistryService implements Rec
     static class PropertyMessageNameResolver extends AbstractControllerService implements MessageNameResolver {
         private final PropertyContext context;
 
-        PropertyMessageNameResolver(PropertyContext context) {
+        PropertyMessageNameResolver(final PropertyContext context) {
             this.context = context;
         }
 

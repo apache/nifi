@@ -177,7 +177,7 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
      *
      * @param requestHeaderSize maximum HTTP request header size
      */
-    public void setRequestHeaderSize(int requestHeaderSize) {
+    public void setRequestHeaderSize(final int requestHeaderSize) {
         this.requestHeaderSize = requestHeaderSize;
     }
 

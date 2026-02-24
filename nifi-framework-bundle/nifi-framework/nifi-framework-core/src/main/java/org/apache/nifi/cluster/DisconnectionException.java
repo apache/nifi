@@ -27,15 +27,15 @@ public class DisconnectionException extends RuntimeException {
     public DisconnectionException() {
     }
 
-    public DisconnectionException(String msg) {
+    public DisconnectionException(final String msg) {
         super(msg);
     }
 
-    public DisconnectionException(Throwable cause) {
+    public DisconnectionException(final Throwable cause) {
         super(cause);
     }
 
-    public DisconnectionException(String msg, Throwable cause) {
+    public DisconnectionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

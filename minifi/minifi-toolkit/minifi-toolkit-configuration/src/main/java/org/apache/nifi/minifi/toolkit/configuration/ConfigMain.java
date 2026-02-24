@@ -42,17 +42,17 @@ public class ConfigMain {
     private final PathInputStreamFactory pathInputStreamFactory;
     private final PathOutputStreamFactory pathOutputStreamFactory;
 
-    public ConfigMain(PathInputStreamFactory pathInputStreamFactory, PathOutputStreamFactory pathOutputStreamFactory) {
+    public ConfigMain(final PathInputStreamFactory pathInputStreamFactory, final PathOutputStreamFactory pathOutputStreamFactory) {
         this.pathInputStreamFactory = pathInputStreamFactory;
         this.pathOutputStreamFactory = pathOutputStreamFactory;
         this.commandMap = createCommandMap();
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         System.exit(new ConfigMain(FileInputStream::new, FileOutputStream::new).execute(args));
     }
 
-    public int execute(String[] args) {
+    public int execute(final String[] args) {
         if (args.length < 1 || !commandMap.containsKey(args[0].toLowerCase())) {
             printUsage();
             return ERR_INVALID_ARGS;
@@ -71,14 +71,14 @@ public class ConfigMain {
         private final Function<String[], Integer> function;
         private final String description;
 
-        public Command(Function<String[], Integer> function, String description) {
+        public Command(final Function<String[], Integer> function, final String description) {
             this.function = function;
             this.description = description;
         }
     }
 
     public Map<String, Command> createCommandMap() {
-        Map<String, Command> result = new TreeMap<>();
+        final Map<String, Command> result = new TreeMap<>();
         result.put(TRANSFORM_YML,
                 new TransformYamlCommandFactory(pathInputStreamFactory, pathOutputStreamFactory).create());
         result.put(TRANSFORM_NIFI,

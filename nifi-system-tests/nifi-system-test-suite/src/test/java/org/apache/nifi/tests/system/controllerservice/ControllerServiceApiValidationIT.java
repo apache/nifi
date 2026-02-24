@@ -41,8 +41,8 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
         runStatusEntity.setRevision(fakeServiceEntity.getRevision());
         getNifiClient().getControllerServicesClient().activateControllerService(fakeServiceEntity.getId(), runStatusEntity);
         getClientUtil().waitForControllerServicesEnabled("root");
-        String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
-        String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
+        final String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
+        final String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
 
         assertEquals("ENABLED", controllerStatus);
         assertEquals("Stopped", processorStatus);
@@ -59,8 +59,8 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
         runStatusEntity.setRevision(fakeServiceEntity.getRevision());
         getNifiClient().getControllerServicesClient().activateControllerService(fakeServiceEntity.getId(), runStatusEntity);
         getClientUtil().waitForControllerServicesEnabled("root");
-        String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
-        String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
+        final String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
+        final String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
 
         assertEquals("ENABLED", controllerStatus);
         assertEquals("Stopped", processorStatus);
@@ -127,8 +127,8 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
         runStatusEntity.setRevision(fakeServiceEntity.getRevision());
         getNifiClient().getControllerServicesClient().activateControllerService(fakeServiceEntity.getId(), runStatusEntity);
         getClientUtil().waitForControllerServicesEnabled("root");
-        String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
-        String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
+        final String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
+        final String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
 
         assertEquals("ENABLED", controllerStatus);
         assertEquals("Stopped", processorStatus);
@@ -145,8 +145,8 @@ public class ControllerServiceApiValidationIT extends NiFiSystemIT {
         runStatusEntity.setRevision(fakeServiceEntity.getRevision());
         getNifiClient().getControllerServicesClient().activateControllerService(fakeServiceEntity.getId(), runStatusEntity);
         getClientUtil().waitForControllerServicesEnabled("root");
-        String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
-        String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
+        final String controllerStatus = getNifiClient().getControllerServicesClient().getControllerService(fakeServiceEntity.getId()).getStatus().getRunStatus();
+        final String processorStatus = getNifiClient().getProcessorClient().getProcessor(fakeProcessorEntity.getId()).getStatus().getRunStatus();
 
         assertEquals("ENABLED", controllerStatus);
         assertEquals("Stopped", processorStatus);

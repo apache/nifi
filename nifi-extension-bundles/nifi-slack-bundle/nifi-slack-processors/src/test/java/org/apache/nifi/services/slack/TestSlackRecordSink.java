@@ -77,7 +77,7 @@ public class TestSlackRecordSink {
 
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-        String url = mockWebServer.url("/api/").toString();
+        final String url = mockWebServer.url("/api/").toString();
 
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
 

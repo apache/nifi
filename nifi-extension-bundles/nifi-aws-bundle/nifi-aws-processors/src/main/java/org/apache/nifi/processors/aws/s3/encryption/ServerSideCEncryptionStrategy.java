@@ -35,35 +35,35 @@ public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
     private static final String SSE_CUSTOMER_ALGORITHM = "AES256";
 
     @Override
-    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configurePutObjectRequest(final PutObjectRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
         requestBuilder.sseCustomerKey(keySpec.material());
         requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configureCreateMultipartUploadRequest(final CreateMultipartUploadRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
         requestBuilder.sseCustomerKey(keySpec.material());
         requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configureGetObjectRequest(final GetObjectRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
         requestBuilder.sseCustomerKey(keySpec.material());
         requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+    public void configureUploadPartRequest(final UploadPartRequest.Builder requestBuilder, final S3EncryptionKeySpec keySpec) {
         requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
         requestBuilder.sseCustomerKey(keySpec.material());
         requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+    public ValidationResult validateKeySpec(final S3EncryptionKeySpec keySpec) {
         if (StringUtils.isBlank(keySpec.material())) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
@@ -72,14 +72,14 @@ public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
                     .build();
         }
 
-        byte[] keyMaterial;
+        final byte[] keyMaterial;
 
         try {
             if (!Base64.isBase64(keySpec.material())) {
                 throw new Exception();
             }
             keyMaterial = Base64.decodeBase64(keySpec.material());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
                     .valid(false)

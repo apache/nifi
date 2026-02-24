@@ -35,8 +35,8 @@ import static org.apache.nifi.schema.access.SchemaField.SCHEMA_NAME;
 
 public class TestSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     @Override
-    public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) {
-        List<RecordField> fields = Collections.singletonList(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) {
+        final List<RecordField> fields = Collections.singletonList(new RecordField("msg", RecordFieldType.STRING.getDataType()));
         return new SimpleRecordSchema(fields);
     }
 

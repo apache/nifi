@@ -248,7 +248,7 @@ public class SocketClientProtocol implements ClientProtocol {
         FlowFileCodec codec = new StandardFlowFileCodec();
         try {
             codec = (FlowFileCodec) RemoteResourceInitiator.initiateResourceNegotiation(codec, dis, dos);
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             throw new ProtocolException(e.toString());
         }
         logger.debug("{} negotiated FlowFileCodec {} with {}", this, codec, commsSession);

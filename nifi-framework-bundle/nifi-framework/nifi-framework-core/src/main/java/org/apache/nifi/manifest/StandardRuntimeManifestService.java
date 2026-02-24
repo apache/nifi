@@ -108,7 +108,7 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
     }
 
     @Override
-    public RuntimeManifest getManifestForBundle(String group, String artifact, String version) {
+    public RuntimeManifest getManifestForBundle(final String group, final String artifact, final String version) {
         final Set<Bundle> allBundles = extensionManager.getAllBundles();
         final RuntimeManifestBuilder manifestBuilder = createRuntimeManifestBuilder();
 
@@ -252,10 +252,10 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return Optional.ofNullable(propertyDescription.getDependencies()).orElse(List.of())
                 .stream()
                 .map(value -> {
-                    DependentValues dependentValues = new DependentValues();
+                    final DependentValues dependentValues = new DependentValues();
                     dependentValues.setValues(value.getDependentValues());
 
-                    Dependency dependency = new Dependency();
+                    final Dependency dependency = new Dependency();
                     dependency.setPropertyName(value.getName());
                     dependency.setPropertyDisplayName(value.getDisplayName());
                     dependency.setDependentValues(dependentValues);
@@ -279,7 +279,7 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return Optional.ofNullable(propertyDescription.getAllowableValues()).orElse(List.of())
             .stream()
             .map(value -> {
-                AllowableValue allowableValue = new AllowableValue();
+                final AllowableValue allowableValue = new AllowableValue();
                 allowableValue.setValue(value);
                 allowableValue.setDisplayName(value);
                 return allowableValue;
@@ -363,7 +363,7 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
     }
 
     @Override
-    public Map<String, File> discoverAdditionalDetails(String group, String artifact, String version) {
+    public Map<String, File> discoverAdditionalDetails(final String group, final String artifact, final String version) {
         final BundleCoordinate bundleCoordinate = new BundleCoordinate(group, artifact, version);
         final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
 

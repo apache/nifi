@@ -29,25 +29,25 @@ public class BinlogLifecycleListener implements BinaryLogClient.LifecycleListene
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
     @Override
-    public void onConnect(BinaryLogClient binaryLogClient) {
+    public void onConnect(final BinaryLogClient binaryLogClient) {
         client.set(binaryLogClient);
         exception.set(null);
     }
 
     @Override
-    public void onCommunicationFailure(BinaryLogClient binaryLogClient, Exception e) {
+    public void onCommunicationFailure(final BinaryLogClient binaryLogClient, final Exception e) {
         client.set(binaryLogClient);
         exception.set(e);
     }
 
     @Override
-    public void onEventDeserializationFailure(BinaryLogClient binaryLogClient, Exception e) {
+    public void onEventDeserializationFailure(final BinaryLogClient binaryLogClient, final Exception e) {
         client.set(binaryLogClient);
         exception.set(e);
     }
 
     @Override
-    public void onDisconnect(BinaryLogClient binaryLogClient) {
+    public void onDisconnect(final BinaryLogClient binaryLogClient) {
         client.set(binaryLogClient);
     }
 

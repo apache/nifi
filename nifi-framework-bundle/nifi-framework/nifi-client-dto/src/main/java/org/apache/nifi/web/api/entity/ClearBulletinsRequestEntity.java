@@ -43,7 +43,7 @@ public class ClearBulletinsRequestEntity extends Entity {
         return fromTimestamp;
     }
 
-    public void setFromTimestamp(Instant fromTimestamp) {
+    public void setFromTimestamp(final Instant fromTimestamp) {
         this.fromTimestamp = fromTimestamp;
     }
 }

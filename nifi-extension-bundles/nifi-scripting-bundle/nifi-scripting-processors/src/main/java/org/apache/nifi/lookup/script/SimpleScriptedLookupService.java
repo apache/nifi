@@ -58,7 +58,7 @@ public class SimpleScriptedLookupService extends BaseScriptedLookupService imple
 
     @Override
     @SuppressWarnings("unchecked")
-    public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<String> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         // Delegate the lookup() call to the scripted LookupService
         return lookupService.get().lookup(coordinates);
     }

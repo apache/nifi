@@ -66,7 +66,7 @@ public class GetSNMPHandler {
 
     public Optional<SNMPSingleResponse> get(final Map<String, String> flowFileAttributes, final Target target) throws IOException {
         final PDU pdu = getPduFactory.createPDU(target);
-        VariableBinding[] variableBindings = SNMPUtils.addGetVariables(flowFileAttributes);
+        final VariableBinding[] variableBindings = SNMPUtils.addGetVariables(flowFileAttributes);
         if (variableBindings.length == 0) {
             return Optional.empty();
         }
@@ -99,7 +99,7 @@ public class GetSNMPHandler {
         return responsePdu;
     }
 
-    private void evaluateSubtreeErrors(String oid, List<TreeEvent> subtree) {
+    private void evaluateSubtreeErrors(final String oid, final List<TreeEvent> subtree) {
         if (subtree.isEmpty()) {
             throw new SNMPWalkException(String.format(EMPTY_SUBTREE_EXCEPTION_MESSAGE, oid));
         }

@@ -81,7 +81,7 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
 
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
         assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         assertEquals("0", results.get(1).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
     }
@@ -118,7 +118,7 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "100 millis");
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
         assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         assertEquals("0", results.get(1).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         runner.clearTransferState();
@@ -139,7 +139,7 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "200 millis");
         runner.run();
-        long startTimer = System.currentTimeMillis();
+        final long startTimer = System.currentTimeMillis();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
         assertEquals("2", results.getFirst().getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
@@ -149,7 +149,7 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
         createSecondTable();
 
         runner.run();
-        long endTimer = System.currentTimeMillis();
+        final long endTimer = System.currentTimeMillis();
         // Expect 1 or 2 tables (whether execution has taken longer than the refresh time)
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, (endTimer - startTimer > 200) ? 2 : 1);
         results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);

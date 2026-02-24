@@ -54,7 +54,7 @@ public class AhoCorasick<T> implements Search<T> {
 
     private Node addMatch(final SearchTerm<T> term, final int offset, final Node current) {
         final int index = term.get(offset);
-        boolean atEnd = (offset == (term.size() - 1));
+        final boolean atEnd = (offset == (term.size() - 1));
         if (current.getNeighbor(index) == null) {
             if (atEnd) {
                 current.setNeighbor(new Node(term), index);

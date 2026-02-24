@@ -32,7 +32,7 @@ public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<Co
     public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/status");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_STATUS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
@@ -42,13 +42,14 @@ public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<Co
     }
 
     @Override
-    protected ControllerStatusDTO getDto(ControllerStatusEntity entity) {
+    protected ControllerStatusDTO getDto(final ControllerStatusEntity entity) {
         return entity.getControllerStatus();
     }
 
     @Override
-    protected void mergeResponses(ControllerStatusDTO clientDto, Map<NodeIdentifier, ControllerStatusDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        ControllerStatusDTO mergedStatus = clientDto;
+    protected void mergeResponses(final ControllerStatusDTO clientDto, final Map<NodeIdentifier, ControllerStatusDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
+        final ControllerStatusDTO mergedStatus = clientDto;
         for (final Map.Entry<NodeIdentifier, ControllerStatusDTO> entry : dtoMap.entrySet()) {
             final ControllerStatusDTO nodeStatus = entry.getValue();
 

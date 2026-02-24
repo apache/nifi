@@ -34,12 +34,12 @@ public class FilteredPropertiesValidationContextAdapter extends ValidationContex
 
     private final Map<PropertyDescriptor, String> properties;
 
-    public FilteredPropertiesValidationContextAdapter(ValidationContext validationContext, Set<PropertyDescriptor> removedProperties) {
+    public FilteredPropertiesValidationContextAdapter(final ValidationContext validationContext, final Set<PropertyDescriptor> removedProperties) {
         super(validationContext);
         properties = new HashMap<>();
-        Map<PropertyDescriptor, String> parentProperties = super.getProperties();
+        final Map<PropertyDescriptor, String> parentProperties = super.getProperties();
         if (parentProperties != null) {
-            for (Map.Entry<PropertyDescriptor, String> propertyEntry: parentProperties.entrySet()) {
+            for (final Map.Entry<PropertyDescriptor, String> propertyEntry: parentProperties.entrySet()) {
                 if (!removedProperties.contains(propertyEntry.getKey())) {
                     properties.put(propertyEntry.getKey(), propertyEntry.getValue());
                 }
@@ -62,7 +62,7 @@ public class FilteredPropertiesValidationContextAdapter extends ValidationContex
     }
 
     @Override
-    public PropertyValue getProperty(PropertyDescriptor descriptor) {
+    public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         if (properties.keySet().contains(descriptor)) {
             return super.getProperty(descriptor);
         }

@@ -27,12 +27,12 @@ public class SystemTestAuthorizer implements Authorizer {
     }
 
     @Override
-    public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
 
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
     }
 

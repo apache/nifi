@@ -38,9 +38,9 @@ public class TestEventTypeValidator {
 
     @Test
     public void nullInputShouldProperlyFail() {
-        String subject = "subject";
-        String input = null;
-        ValidationResult result = eventTypeValidator.validate(subject, input, context);
+        final String subject = "subject";
+        final String input = null;
+        final ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
         assertEquals(null, result.getInput());
@@ -50,9 +50,9 @@ public class TestEventTypeValidator {
 
     @Test
     public void emptyInputShouldProperlyFail() {
-        String subject = "subject";
-        String input = "";
-        ValidationResult result = eventTypeValidator.validate(subject, input, context);
+        final String subject = "subject";
+        final String input = "";
+        final ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
         assertEquals("", result.getInput());
@@ -62,9 +62,9 @@ public class TestEventTypeValidator {
 
     @Test
     public void validEventTypesShouldProperlyValidate() {
-        String input = "  append, Create, CLOSE";
-        String subject = "subject";
-        ValidationResult result = eventTypeValidator.validate(subject, input, context);
+        final String input = "  append, Create, CLOSE";
+        final String subject = "subject";
+        final ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
         assertEquals("  append, Create, CLOSE", result.getInput());
@@ -74,9 +74,9 @@ public class TestEventTypeValidator {
 
     @Test
     public void inputWithInvalidEventTypeShouldProperlyDisplayEventsInExplanation() {
-        String subject = "subject";
-        String input = "append, CREATE, invalidValue1, rename, metadata, unlink";
-        ValidationResult result = eventTypeValidator.validate(subject, input, context);
+        final String subject = "subject";
+        final String input = "append, CREATE, invalidValue1, rename, metadata, unlink";
+        final ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
         assertEquals("append, CREATE, invalidValue1, rename, metadata, unlink", result.getInput());
@@ -86,9 +86,9 @@ public class TestEventTypeValidator {
 
     @Test
     public void inputWithMultipleInvalidEventTypeShouldProperlyDisplayEventsInExplanation() {
-        String subject = "subject";
-        String input = "append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2";
-        ValidationResult result = eventTypeValidator.validate(subject, input, context);
+        final String subject = "subject";
+        final String input = "append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2";
+        final ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
         assertEquals("append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2", result.getInput());

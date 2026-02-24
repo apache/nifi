@@ -25,15 +25,15 @@ public class ConnectingNodeMutableRequestException extends MutableRequestExcepti
     public ConnectingNodeMutableRequestException() {
     }
 
-    public ConnectingNodeMutableRequestException(String msg) {
+    public ConnectingNodeMutableRequestException(final String msg) {
         super(msg);
     }
 
-    public ConnectingNodeMutableRequestException(Throwable cause) {
+    public ConnectingNodeMutableRequestException(final Throwable cause) {
         super(cause);
     }
 
-    public ConnectingNodeMutableRequestException(String msg, Throwable cause) {
+    public ConnectingNodeMutableRequestException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

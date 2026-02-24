@@ -37,7 +37,7 @@ public class ExplicitRestrictionDTO {
         return requiredPermission;
     }
 
-    public void setRequiredPermission(RequiredPermissionDTO requiredPermission) {
+    public void setRequiredPermission(final RequiredPermissionDTO requiredPermission) {
         this.requiredPermission = requiredPermission;
     }
 
@@ -50,7 +50,7 @@ public class ExplicitRestrictionDTO {
         return explanation;
     }
 
-    public void setExplanation(String explanation) {
+    public void setExplanation(final String explanation) {
         this.explanation = explanation;
     }
 }

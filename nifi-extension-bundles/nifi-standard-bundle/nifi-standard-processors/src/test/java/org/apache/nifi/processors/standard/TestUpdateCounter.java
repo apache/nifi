@@ -39,7 +39,7 @@ public class TestUpdateCounter {
     public void testwithFileName() {
         runner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
         runner.setProperty(UpdateCounter.DELTA, "1");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         runner.enqueue("", attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
@@ -56,7 +56,7 @@ public class TestUpdateCounter {
 
         runner.enqueue(new byte[0], attributes);
         runner.run();
-        Long counter = runner.getCounterValue("test");
+        final Long counter = runner.getCounterValue("test");
         assertEquals(java.util.Optional.ofNullable(counter), java.util.Optional.of(40L));
         runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }

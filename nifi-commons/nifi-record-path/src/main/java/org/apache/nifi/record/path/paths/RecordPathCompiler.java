@@ -495,7 +495,7 @@ public class RecordPathCompiler {
         throw new RecordPathException("Encountered unexpected token " + tree);
     }
 
-    private static RecordPathSegment[] getArgumentsForStringFunction(boolean absolute, Tree argumentListTree) {
+    private static RecordPathSegment[] getArgumentsForStringFunction(final boolean absolute, final Tree argumentListTree) {
         final int numArgs = argumentListTree.getChildCount();
 
         final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];

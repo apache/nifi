@@ -29,7 +29,7 @@ public abstract class PropertyUtil {
 
     }
 
-    public static Optional<String> resolvePropertyValue(String name, Map<?, ?> properties) {
+    public static Optional<String> resolvePropertyValue(final String name, final Map<?, ?> properties) {
         return Optional.of(name)
             .flatMap(n -> getPropertyValue(n, properties))
             .or(() -> Optional.of(name.toUpperCase())
@@ -37,7 +37,7 @@ public abstract class PropertyUtil {
                 .flatMap(n -> getPropertyValue(n, properties)));
     }
 
-    private static Optional<String> getPropertyValue(String name, Map<?, ?> properties) {
+    private static Optional<String> getPropertyValue(final String name, final Map<?, ?> properties) {
         return keyPermutations(name)
             .filter(properties::containsKey)
             .findFirst()
@@ -45,7 +45,7 @@ public abstract class PropertyUtil {
             .map(String::valueOf);
     }
 
-    private static Stream<String> keyPermutations(String name) {
+    private static Stream<String> keyPermutations(final String name) {
         return Stream.of(name, name.replace(DOT, UNDERSCORE), name.replace(HYPHEN, UNDERSCORE), name.replace(DOT, UNDERSCORE).replace(HYPHEN, UNDERSCORE)).distinct();
     }
 

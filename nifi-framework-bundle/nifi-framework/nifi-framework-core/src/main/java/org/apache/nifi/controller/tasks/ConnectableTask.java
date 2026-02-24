@@ -134,7 +134,7 @@ public class ConnectableTask {
      * @return true if there is work to do, otherwise false
      */
     private boolean isWorkToDo() {
-        boolean hasNonLoopConnection = Connectables.hasNonLoopConnection(connectable);
+        final boolean hasNonLoopConnection = Connectables.hasNonLoopConnection(connectable);
 
         if (connectable.getConnectableType() == ConnectableType.FUNNEL) {
             // Handle Funnel as a special case because it will never be a 'source' component,

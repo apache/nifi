@@ -95,7 +95,7 @@ public class ZendeskRecordSinkTest {
 
         sinkZendeskTicket = new TestZendeskRecordSink();
 
-        WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
+        final WebClientServiceProvider webClientServiceProvider = new StandardWebClientServiceProvider();
         testRunner.addControllerService("web-client-service-provider", webClientServiceProvider);
         testRunner.enableControllerService(webClientServiceProvider);
 
@@ -113,60 +113,60 @@ public class ZendeskRecordSinkTest {
     }
 
     private void initSingleTestRecord() {
-        List<RecordField> fields = new ArrayList<>();
+        final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("description", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("subject", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("priority", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("type", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("dynamicPropertySource1", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("dynamicPropertySource2", RecordFieldType.STRING.getDataType()));
-        RecordSchema schema = new SimpleRecordSchema(fields);
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        Map<String, Object> valueMap = new HashMap<>();
+        final Map<String, Object> valueMap = new HashMap<>();
         valueMap.put("description", "This is a test comment body.");
         valueMap.put("subject", "Test subject");
         valueMap.put("priority", "High");
         valueMap.put("type", "Development");
         valueMap.put("dynamicPropertySource1", "This is a dynamic property 1");
         valueMap.put("dynamicPropertySource2", "This is a dynamic property 2");
-        Record record = new MapRecord(schema, valueMap);
+        final Record record = new MapRecord(schema, valueMap);
 
         recordSet = RecordSet.of(schema, record);
     }
 
     private void initMultipleTestRecord() {
-        List<RecordField> fields = new ArrayList<>();
+        final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("description", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("priority", RecordFieldType.STRING.getDataType()));
 
-        RecordSchema schema = new SimpleRecordSchema(fields);
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        Map<String, Object> valueMap1 = new HashMap<>();
+        final Map<String, Object> valueMap1 = new HashMap<>();
         valueMap1.put("description", "This is a test comment body.");
         valueMap1.put("priority", "High");
-        Record record1 = new MapRecord(schema, valueMap1);
+        final Record record1 = new MapRecord(schema, valueMap1);
 
-        Map<String, Object> valueMap2 = new HashMap<>();
+        final Map<String, Object> valueMap2 = new HashMap<>();
         valueMap2.put("description", "This is another test comment body.");
         valueMap2.put("priority", "Low");
-        Record record2 = new MapRecord(schema, valueMap2);
+        final Record record2 = new MapRecord(schema, valueMap2);
 
         recordSet = RecordSet.of(schema, record1, record2);
     }
 
     private void initDuplicateRecords() {
-        List<RecordField> fields = new ArrayList<>();
+        final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("description", RecordFieldType.STRING.getDataType()));
 
-        RecordSchema schema = new SimpleRecordSchema(fields);
+        final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        Map<String, Object> valueMap1 = new HashMap<>();
+        final Map<String, Object> valueMap1 = new HashMap<>();
         valueMap1.put("description", "This is a test comment body.");
-        Record record1 = new MapRecord(schema, valueMap1);
+        final Record record1 = new MapRecord(schema, valueMap1);
 
-        Map<String, Object> valueMap2 = new HashMap<>();
+        final Map<String, Object> valueMap2 = new HashMap<>();
         valueMap2.put("description", "This is a test comment body.");
-        Record record2 = new MapRecord(schema, valueMap2);
+        final Record record2 = new MapRecord(schema, valueMap2);
 
         recordSet = RecordSet.of(schema, record1, record2);
     }
@@ -187,17 +187,17 @@ public class ZendeskRecordSinkTest {
                 .build());
 
         initSingleTestRecord();
-        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+        final WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
-        String expectedBody =
+        final String expectedBody =
                 """
                         {
                           "ticket" : {
@@ -226,17 +226,17 @@ public class ZendeskRecordSinkTest {
                 .build());
 
         initMultipleTestRecord();
-        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+        final WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKETS_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(2, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
-        String expectedBody =
+        final String expectedBody =
                 """
                         {
                           "tickets" : [ {
@@ -270,17 +270,17 @@ public class ZendeskRecordSinkTest {
                 .build());
 
         initSingleTestRecord();
-        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+        final WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
-        String expectedBody =
+        final String expectedBody =
                 """
                         {
                           "ticket" : {
@@ -316,17 +316,17 @@ public class ZendeskRecordSinkTest {
                 .build());
 
         initSingleTestRecord();
-        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+        final WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
-        String expectedBody =
+        final String expectedBody =
                 """
                         {
                           "ticket" : {
@@ -359,17 +359,17 @@ public class ZendeskRecordSinkTest {
                 .build());
 
         initDuplicateRecords();
-        WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
+        final WriteResult writeResult = sinkZendeskTicket.sendData(recordSet, Collections.emptyMap(), false);
 
         // then
-        RecordedRequest recordedRequest = server.takeRequest();
+        final RecordedRequest recordedRequest = server.takeRequest();
         assertEquals(ZENDESK_CREATE_TICKET_RESOURCE, recordedRequest.getTarget());
 
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
-        String expectedBody =
+        final String expectedBody =
                 """
                         {
                           "ticket" : {
@@ -411,8 +411,8 @@ public class ZendeskRecordSinkTest {
 
     class TestZendeskRecordSink extends ZendeskRecordSink {
         @Override
-        HttpUriBuilder uriBuilder(String resourcePath) {
-            HttpUrl url = server.url(resourcePath);
+        HttpUriBuilder uriBuilder(final String resourcePath) {
+            final HttpUrl url = server.url(resourcePath);
             return new StandardHttpUriBuilder()
                     .scheme(url.scheme())
                     .host(url.host())

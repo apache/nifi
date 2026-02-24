@@ -38,7 +38,7 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
     private final BlockingQueue<RawBinlogEvent> queue;
     private final BinaryLogClient client;
 
-    public BinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q) {
+    public BinlogEventListener(final BinaryLogClient client, final BlockingQueue<RawBinlogEvent> q) {
         this.client = client;
         this.queue = q;
     }
@@ -52,8 +52,8 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
     }
 
     @Override
-    public void onEvent(Event event) {
-        RawBinlogEvent ep = new RawBinlogEvent(event, client.getBinlogFilename());
+    public void onEvent(final Event event) {
+        final RawBinlogEvent ep = new RawBinlogEvent(event, client.getBinlogFilename());
         try {
             while (!stopNow.get()) {
                 if (queue.offer(ep, QUEUE_OFFER_TIMEOUT_MSEC, TimeUnit.MILLISECONDS)) {
@@ -62,7 +62,7 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
             }
 
             logger.info("Stopped while waiting to enqueue event");
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             logger.warn("Interrupted while adding event to the queue", e);
         }
     }

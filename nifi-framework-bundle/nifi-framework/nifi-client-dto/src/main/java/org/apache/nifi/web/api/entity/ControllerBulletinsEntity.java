@@ -43,7 +43,7 @@ public class ControllerBulletinsEntity extends Entity {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinEntity> bulletins) {
+    public void setBulletins(final List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 
@@ -55,7 +55,7 @@ public class ControllerBulletinsEntity extends Entity {
         return controllerServiceBulletins;
     }
 
-    public void setControllerServiceBulletins(List<BulletinEntity> controllerServiceBulletins) {
+    public void setControllerServiceBulletins(final List<BulletinEntity> controllerServiceBulletins) {
         this.controllerServiceBulletins = controllerServiceBulletins;
     }
 
@@ -67,7 +67,7 @@ public class ControllerBulletinsEntity extends Entity {
         return reportingTaskBulletins;
     }
 
-    public void setReportingTaskBulletins(List<BulletinEntity> reportingTaskBulletins) {
+    public void setReportingTaskBulletins(final List<BulletinEntity> reportingTaskBulletins) {
         this.reportingTaskBulletins = reportingTaskBulletins;
     }
 
@@ -79,7 +79,7 @@ public class ControllerBulletinsEntity extends Entity {
         return flowAnalysisRuleBulletins;
     }
 
-    public void setFlowAnalysisRuleBulletins(List<BulletinEntity> flowAnalysisRuleBulletins) {
+    public void setFlowAnalysisRuleBulletins(final List<BulletinEntity> flowAnalysisRuleBulletins) {
         this.flowAnalysisRuleBulletins = flowAnalysisRuleBulletins;
     }
 
@@ -91,7 +91,7 @@ public class ControllerBulletinsEntity extends Entity {
         return parameterProviderBulletins;
     }
 
-    public void setParameterProviderBulletins(List<BulletinEntity> parameterProviderBulletins) {
+    public void setParameterProviderBulletins(final List<BulletinEntity> parameterProviderBulletins) {
         this.parameterProviderBulletins = parameterProviderBulletins;
     }
 
@@ -103,7 +103,7 @@ public class ControllerBulletinsEntity extends Entity {
         return flowRegistryClientBulletins;
     }
 
-    public void setFlowRegistryClientBulletins(List<BulletinEntity> flowRegistryClientBulletins) {
+    public void setFlowRegistryClientBulletins(final List<BulletinEntity> flowRegistryClientBulletins) {
         this.flowRegistryClientBulletins = flowRegistryClientBulletins;
     }
 

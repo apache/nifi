@@ -130,7 +130,7 @@ public class RecordBin {
 
                 this.out = new ByteCountingOutputStream(rawOut);
 
-                RecordSchema outputSchema = writerFactory.getSchema(flowFile.getAttributes(), recordReader.getSchema());
+                final RecordSchema outputSchema = writerFactory.getSchema(flowFile.getAttributes(), recordReader.getSchema());
                 recordWriter = writerFactory.createWriter(logger, outputSchema, out, flowFile);
                 recordWriter.beginRecordSet();
             }
@@ -211,7 +211,7 @@ public class RecordBin {
                 return this.fragmentCount == thresholds.getFragmentCount();
             }
 
-            int maxRecords = thresholds.getMaxRecords();
+            final int maxRecords = thresholds.getMaxRecords();
 
             if (recordCount >= maxRecords) {
                 return true;
@@ -233,7 +233,7 @@ public class RecordBin {
             return currentCount;
         }
 
-        int requiredCount = thresholds.getMinRecords();
+        final int requiredCount = thresholds.getMinRecords();
 
         this.requiredRecordCount = requiredCount;
         return requiredCount;
@@ -267,7 +267,7 @@ public class RecordBin {
             if (recordWriter != null) {
                 try {
                     recordWriter.close();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     logger.warn("Failed to close Record Writer", e);
                 }
             }
@@ -296,7 +296,7 @@ public class RecordBin {
             if (recordWriter != null) {
                 try {
                     recordWriter.close();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     logger.warn("Failed to close Record Writer", e);
                 }
             }
@@ -312,7 +312,7 @@ public class RecordBin {
     /**
      * Ensure that at least one FlowFile has a fragment.count attribute and that they all have the same value, if they have a value.
      */
-    private void validateFragmentCount(String countAttributeName) {
+    private void validateFragmentCount(final String countAttributeName) {
         Integer expectedFragmentCount = thresholds.getFragmentCount();
         for (final FlowFile flowFile : flowFiles) {
             final String countVal = flowFile.getAttribute(countAttributeName);
@@ -375,7 +375,7 @@ public class RecordBin {
                 validateFragmentCount(countAttr.get());
 
                 // If using defragment mode, and we don't have enough FlowFiles, then we need to fail this bin.
-                Integer expectedFragmentCount = thresholds.getFragmentCount();
+                final Integer expectedFragmentCount = thresholds.getFragmentCount();
                 if (expectedFragmentCount != flowFiles.size()) {
                     logger.error("Could not merge bin with {} FlowFiles because the '{}' attribute had a value of '{}' but only {} of {} FlowFiles were encountered before this bin was evicted "
                                     + "(due to to Max Bin Age being reached or due to the Maximum Number of Bins being exceeded).",

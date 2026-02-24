@@ -26,7 +26,7 @@ public class RawBinlogEvent {
     private Event event;
     private String binlogFilename;
 
-    public RawBinlogEvent(Event event, String binlogFilename) {
+    public RawBinlogEvent(final Event event, final String binlogFilename) {
         this.event = event;
         this.binlogFilename = binlogFilename;
     }
@@ -35,7 +35,7 @@ public class RawBinlogEvent {
         return event;
     }
 
-    public void setEvent(Event event) {
+    public void setEvent(final Event event) {
         this.event = event;
     }
 

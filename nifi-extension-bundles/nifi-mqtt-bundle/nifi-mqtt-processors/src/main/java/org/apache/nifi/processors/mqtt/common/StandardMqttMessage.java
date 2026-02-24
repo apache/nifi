@@ -24,7 +24,7 @@ public class StandardMqttMessage {
     private int qos;
     private boolean retained;
 
-    public StandardMqttMessage(byte[] payload, int qos, boolean retained) {
+    public StandardMqttMessage(final byte[] payload, final int qos, final boolean retained) {
         this.payload = payload;
         this.qos = qos;
         this.retained = retained;

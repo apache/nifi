@@ -76,7 +76,7 @@ public class WaitNotifyProtocol {
             return counts;
         }
 
-        public void setCounts(Map<String, Long> counts) {
+        public void setCounts(final Map<String, Long> counts) {
             this.counts = counts;
         }
 
@@ -84,7 +84,7 @@ public class WaitNotifyProtocol {
             return attributes;
         }
 
-        public void setAttributes(Map<String, String> attributes) {
+        public void setAttributes(final Map<String, String> attributes) {
             this.attributes = attributes;
         }
 
@@ -114,7 +114,7 @@ public class WaitNotifyProtocol {
             return releasableCount;
         }
 
-        public void setReleasableCount(long releasableCount) {
+        public void setReleasableCount(final long releasableCount) {
             this.releasableCount = releasableCount;
         }
 
@@ -203,11 +203,11 @@ public class WaitNotifyProtocol {
                 return signal;
             }
 
-            long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
+            final long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
             logger.info("Waiting for {} ms to retry... {}.{}", waitMillis, signalId, deltas);
             try {
                 Thread.sleep(waitMillis);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 final String msg = String.format("Interrupted while waiting for retrying signal [%s] counter [%s].", signalId, deltas);
                 throw new ConcurrentModificationException(msg, e);
             }
@@ -271,7 +271,7 @@ public class WaitNotifyProtocol {
                 signal.setAttributes(attributes);
                 signal.getCounts().put(DEFAULT_COUNT_NAME, 1L);
                 return signal;
-            } catch (Exception attrE) {
+            } catch (final Exception attrE) {
                 final String msg = String.format("Cached value for %s was not a serialized Signal nor FlowFileAttributes. Error messages: \"%s\", \"%s\"",
                         signalId, jsonE.getMessage(), attrE.getMessage());
                 throw new DeserializationException(msg);

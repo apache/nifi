@@ -89,7 +89,7 @@ public enum ResourceType implements DescribedValue {
     ResourceType(
             final String allowableValueDisplayName,
             final String allowableValueDescription,
-            String propertyDisplayName, String propertyDescription, List<ShopifyResource> resources
+            final String propertyDisplayName, final String propertyDescription, final List<ShopifyResource> resources
     ) {
         this.allowableValueDisplayName = allowableValueDisplayName;
         this.allowableValueDescription = allowableValueDescription;

@@ -32,7 +32,7 @@ abstract class AbstractBoxProcessor extends AbstractProcessor {
             .build();
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, BOX_CLIENT_SERVICE.getName());
     }
 }

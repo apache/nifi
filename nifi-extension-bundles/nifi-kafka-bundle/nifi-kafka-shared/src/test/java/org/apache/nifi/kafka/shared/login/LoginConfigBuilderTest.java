@@ -25,9 +25,9 @@ class LoginConfigBuilderTest {
 
     @Test
     void createExampleJaasConfigTest() {
-        String expectedConfig = "test.class.name required booleanFlag=true numberFlag=1 stringFlag=\"string-flag\";";
+        final String expectedConfig = "test.class.name required booleanFlag=true numberFlag=1 stringFlag=\"string-flag\";";
 
-        LoginConfigBuilder builder = new LoginConfigBuilder("test.class.name", REQUIRED);
+        final LoginConfigBuilder builder = new LoginConfigBuilder("test.class.name", REQUIRED);
         builder.append("booleanFlag", Boolean.TRUE);
         builder.append("numberFlag", 1);
         builder.append("stringFlag", "string-flag");

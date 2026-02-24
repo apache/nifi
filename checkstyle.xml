@@ -134,10 +134,9 @@
         <module name="GenericWhitespace"/>
         <module name="ParenPad"/>
         <module name="TypecastParenPad"/>
-        <module name="UnusedLocalVariable"/>
-        <module name="InnerAssignment"/>
-        <module name="AvoidNestedBlocks">
-            <property name="allowInSwitchCase" value="true"/>
+        <module name="FinalParameters">
+            <property name="tokens" value="METHOD_DEF,CTOR_DEF,LITERAL_CATCH,FOR_EACH_CLAUSE"/>
         </module>
+        <module name="FinalLocalVariable"/>
     </module>
 </module>

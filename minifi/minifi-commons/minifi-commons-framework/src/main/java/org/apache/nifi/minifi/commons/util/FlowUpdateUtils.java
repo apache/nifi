@@ -44,7 +44,7 @@ public abstract class FlowUpdateUtils {
     private FlowUpdateUtils() {
     }
 
-    public static void backup(Path current, Path backup) throws IOException {
+    public static void backup(final Path current, final Path backup) throws IOException {
         if (current != null && exists(current)) {
             copy(current, backup, REPLACE_EXISTING);
         } else {
@@ -52,7 +52,7 @@ public abstract class FlowUpdateUtils {
         }
     }
 
-    public static void persist(byte[] flowConfig, Path flowPath, boolean compress) throws IOException {
+    public static void persist(final byte[] flowConfig, final Path flowPath, final boolean compress) throws IOException {
         LOGGER.debug("Persisting flow to path {} with content\n{}\n and compress {}", flowPath, new String(flowConfig, UTF_8), compress);
         try (ByteArrayInputStream flowInputStream = new ByteArrayInputStream(flowConfig);
              OutputStream fileOut = compress
@@ -63,11 +63,11 @@ public abstract class FlowUpdateUtils {
         LOGGER.info("Updated configuration was written to: {}", flowPath);
     }
 
-    public static void revert(Path backupFlowConfigFile, Path currentFlowConfigFile) {
+    public static void revert(final Path backupFlowConfigFile, final Path currentFlowConfigFile) {
         if (backupFlowConfigFile != null && exists(backupFlowConfigFile)) {
             try {
                 copy(backupFlowConfigFile, currentFlowConfigFile, REPLACE_EXISTING);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.error("Revert to previous flow failed. Please stop MiNiFi and revert the flow manually");
                 throw new UncheckedIOException("Failed to revert flow", e);
             }
@@ -77,11 +77,11 @@ public abstract class FlowUpdateUtils {
         }
     }
 
-    public static void removeIfExists(Path flowConfigFile) {
+    public static void removeIfExists(final Path flowConfigFile) {
         if (flowConfigFile != null) {
             try {
                 deleteIfExists(flowConfigFile);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.warn("Unable to remove flow configuration backup file", e);
             }
         }

@@ -25,15 +25,15 @@ public class ProviderDestructionException extends RuntimeException {
     public ProviderDestructionException() {
     }
 
-    public ProviderDestructionException(String msg) {
+    public ProviderDestructionException(final String msg) {
         super(msg);
     }
 
-    public ProviderDestructionException(Throwable cause) {
+    public ProviderDestructionException(final Throwable cause) {
         super(cause);
     }
 
-    public ProviderDestructionException(String msg, Throwable cause) {
+    public ProviderDestructionException(final String msg, final Throwable cause) {
         super(msg, cause);
     }
 }

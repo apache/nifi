@@ -36,7 +36,7 @@ public class HttpServletContentRequestContext implements ContentRequestContext {
     private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
     private static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
-    public HttpServletContentRequestContext(HttpServletRequest request) {
+    public HttpServletContentRequestContext(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
         final UriBuilder refUriBuilder = UriBuilder.fromUri(ref);
 
@@ -76,7 +76,7 @@ public class HttpServletContentRequestContext implements ContentRequestContext {
      * @param keys http header keys
      * @return the value for the first key found
      */
-    private String getFirstHeaderValue(HttpServletRequest httpServletRequest, final String... keys) {
+    private String getFirstHeaderValue(final HttpServletRequest httpServletRequest, final String... keys) {
         if (keys == null) {
             return null;
         }

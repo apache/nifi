@@ -71,7 +71,7 @@ public class PublishKafkaMultipleFFIT {
         final String[] suffixes = {
                 "-A", "-B", "-C"
         };
-        for (String suffix : suffixes) {
+        for (final String suffix : suffixes) {
             runner.enqueue(TEST_RECORD_VALUE + suffix);
         }
         runner.run();

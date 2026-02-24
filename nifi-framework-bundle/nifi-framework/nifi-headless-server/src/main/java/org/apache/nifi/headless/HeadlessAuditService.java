@@ -32,37 +32,37 @@ import java.util.Map;
  */
 public class HeadlessAuditService implements AuditService {
     @Override
-    public void addActions(Collection<Action> actions) {
+    public void addActions(final Collection<Action> actions) {
 
     }
 
     @Override
-    public Map<String, List<PreviousValue>> getPreviousValues(String componentId) {
+    public Map<String, List<PreviousValue>> getPreviousValues(final String componentId) {
         return null;
     }
 
     @Override
-    public void deletePreviousValues(String propertyName, String componentId) {
+    public void deletePreviousValues(final String propertyName, final String componentId) {
 
     }
 
     @Override
-    public History getActions(HistoryQuery actionQuery) {
+    public History getActions(final HistoryQuery actionQuery) {
         return null;
     }
 
     @Override
-    public History getActions(int firstActionId, int maxActions) {
+    public History getActions(final int firstActionId, final int maxActions) {
         return null;
     }
 
     @Override
-    public Action getAction(Integer actionId) {
+    public Action getAction(final Integer actionId) {
         return null;
     }
 
     @Override
-    public void purgeActions(Date end, Action purgeAction) {
+    public void purgeActions(final Date end, final Action purgeAction) {
 
     }
 }

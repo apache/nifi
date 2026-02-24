@@ -204,7 +204,7 @@ public class TestDBCPConnectionPoolLookup {
 
         private final MockConnection connection;
 
-        public MockDBCPService(MockConnection connection) {
+        public MockDBCPService(final MockConnection connection) {
             this.connection = connection;
         }
 
@@ -214,7 +214,7 @@ public class TestDBCPConnectionPoolLookup {
         }
 
         @Override
-        public Connection getConnection(Map<String, String> attributes) throws ProcessException {
+        public Connection getConnection(final Map<String, String> attributes) throws ProcessException {
             return connection;
         }
     }

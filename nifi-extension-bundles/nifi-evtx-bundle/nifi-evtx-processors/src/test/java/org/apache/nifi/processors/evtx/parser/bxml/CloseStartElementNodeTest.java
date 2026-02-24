@@ -50,7 +50,7 @@ public class CloseStartElementNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         closeStartElementNode.accept(mock);
         verify(mock).visit(closeStartElementNode);
         verifyNoMoreInteractions(mock);

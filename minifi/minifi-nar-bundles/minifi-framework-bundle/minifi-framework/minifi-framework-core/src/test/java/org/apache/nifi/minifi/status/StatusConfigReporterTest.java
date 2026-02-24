@@ -101,10 +101,10 @@ public class StatusConfigReporterTest {
     public void processorStatusHealth() throws Exception {
         populateProcessor(false, false);
 
-        String statusRequest = "processor:all:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "processor:all:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, false, false, false, false);
@@ -116,10 +116,10 @@ public class StatusConfigReporterTest {
     public void individualProcessorStatusHealth() throws Exception {
         populateProcessor(false, false);
 
-        String statusRequest = "processor:UpdateAttributeProcessorId:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "processor:UpdateAttributeProcessorId:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, false, false, false, false);
@@ -131,10 +131,10 @@ public class StatusConfigReporterTest {
     public void processorStatusWithValidationErrors() throws Exception {
         populateProcessor(true, false);
 
-        String statusRequest = "processor:all:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "processor:all:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, true, false, false, false);
@@ -146,10 +146,10 @@ public class StatusConfigReporterTest {
     public void processorStatusAll() throws Exception {
         populateProcessor(true, true);
 
-        String statusRequest = "processor:all:health, stats, bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "processor:all:health, stats, bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, true, true, true, true);
@@ -161,10 +161,10 @@ public class StatusConfigReporterTest {
     public void connectionStatusHealth() throws Exception {
         populateConnection();
 
-        String statusRequest = "connection:all:health";
-        FlowStatusReport status = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "connection:all:health";
+        final FlowStatusReport status = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addConnectionStatus(expected, true, false);
@@ -176,10 +176,10 @@ public class StatusConfigReporterTest {
     public void connectionStatusAll() throws Exception {
         populateConnection();
 
-        String statusRequest = "connection:all:health, stats";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "connection:all:health, stats";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
         addConnectionStatus(expected, true, true);
 
@@ -193,10 +193,10 @@ public class StatusConfigReporterTest {
 
         populateProcessor(false, false);
 
-        String statusRequest = "connection:connectionId:health; processor:UpdateAttributeProcessorId:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "connection:connectionId:health; processor:UpdateAttributeProcessorId:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         addConnectionStatus(expected, true, false);
 
         addProcessorStatus(expected, true, false, false, false, false);
@@ -210,10 +210,10 @@ public class StatusConfigReporterTest {
     public void provenanceReportingTaskStatusHealth() throws Exception {
         populateReportingTask(false, false);
 
-        String statusRequest = "provenanceReporting:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "provenanceReporting:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
         addReportingTaskStatus(expected, true, false, false, false);
 
@@ -224,10 +224,10 @@ public class StatusConfigReporterTest {
     public void provenanceReportingTaskStatusBulletins() throws Exception {
         populateReportingTask(true, false);
 
-        String statusRequest = "provenanceReporting:bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "provenanceReporting:bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addReportingTaskStatus(expected, false, false, true, true);
@@ -239,10 +239,10 @@ public class StatusConfigReporterTest {
     public void provenanceReportingTaskStatusAll() throws Exception {
         populateReportingTask(true, true);
 
-        String statusRequest = "provenanceReporting:health,bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "provenanceReporting:health,bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addReportingTaskStatus(expected, true, true, true, true);
@@ -254,10 +254,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticHeap() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:heap";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:heap";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, true, false, false, false, false);
@@ -269,10 +269,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticProcessorStats() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:processorStats";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:processorStats";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, true, false, false, false);
@@ -284,10 +284,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticFlowFileRepo() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:flowfilerepositoryusage";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:flowfilerepositoryusage";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, true, false, false);
@@ -299,10 +299,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticContentRepo() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:contentrepositoryusage";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:contentrepositoryusage";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, false, true, false);
@@ -314,10 +314,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticGarbageCollection() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:garbagecollection";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:garbagecollection";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, false, false, true);
@@ -329,10 +329,10 @@ public class StatusConfigReporterTest {
     public void systemDiagnosticAll() throws Exception {
         populateSystemDiagnostics();
 
-        String statusRequest = "systemDiagnostics:garbagecollection, heap, processorstats, contentrepositoryusage, flowfilerepositoryusage";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "systemDiagnostics:garbagecollection, heap, processorstats, contentrepositoryusage, flowfilerepositoryusage";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, true, true, true, true, true);
@@ -344,10 +344,10 @@ public class StatusConfigReporterTest {
     public void instanceStatusHealth() throws Exception {
         populateInstance(false);
 
-        String statusRequest = "instance:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "instance:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
         addInstanceStatus(expected, true, false, false, false);
 
@@ -358,10 +358,10 @@ public class StatusConfigReporterTest {
     public void instanceStatusBulletins() throws Exception {
         populateInstance(true);
 
-        String statusRequest = "instance:bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "instance:bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, false, false, true, true);
@@ -373,10 +373,10 @@ public class StatusConfigReporterTest {
     public void instanceStatusStats() throws Exception {
         populateInstance(false);
 
-        String statusRequest = "instance:stats";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "instance:stats";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, false, true, false, false);
@@ -388,10 +388,10 @@ public class StatusConfigReporterTest {
     public void instanceStatusAll() throws Exception {
         populateInstance(true);
 
-        String statusRequest = "instance:stats, bulletins, health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "instance:stats, bulletins, health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, true, true, true, true);
@@ -403,10 +403,10 @@ public class StatusConfigReporterTest {
     public void controllerServiceStatusHealth() throws Exception {
         populateControllerService(false, false);
 
-        String statusRequest = "controllerServices:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "controllerServices:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, false, false, false);
@@ -418,10 +418,10 @@ public class StatusConfigReporterTest {
     public void controllerServiceStatusBulletins() throws Exception {
         populateControllerService(false, true);
 
-        String statusRequest = "controllerServices:bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "controllerServices:bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, false, false, true, true);
@@ -433,11 +433,11 @@ public class StatusConfigReporterTest {
     public void controllerServiceStatusAll() throws Exception {
         populateControllerService(true, true);
 
-        String statusRequest = "controllerServices:bulletins, health";
+        final String statusRequest = "controllerServices:bulletins, health";
 
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, true, true, true);
@@ -449,10 +449,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusHealth() throws Exception {
         populateRemoteProcessGroup(false, false);
 
-        String statusRequest = "remoteProcessGroup:all:health";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:health";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, true, false, false, false, false, false);
@@ -464,10 +464,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusBulletins() throws Exception {
         populateRemoteProcessGroup(true, false);
 
-        String statusRequest = "remoteProcessGroup:all:bulletins";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:bulletins";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, false, false, true, true);
@@ -479,10 +479,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusInputPorts() throws Exception {
         populateRemoteProcessGroup(false, false);
 
-        String statusRequest = "remoteProcessGroup:all:inputPorts";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:inputPorts";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, true, false, false, false, false);
@@ -494,10 +494,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusOutputPorts() throws Exception {
         populateRemoteProcessGroup(false, false);
 
-        String statusRequest = "remoteProcessGroup:all:outputPorts";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:outputPorts";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, true, false, false, false);
@@ -509,10 +509,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusStats() throws Exception {
         populateRemoteProcessGroup(false, false);
 
-        String statusRequest = "remoteProcessGroup:all:stats";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:stats";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, false, true, false, false);
@@ -524,10 +524,10 @@ public class StatusConfigReporterTest {
     public void remoteProcessGroupStatusAll() throws Exception {
         populateRemoteProcessGroup(true, true);
 
-        String statusRequest = "remoteProcessGroup:all:health, bulletins, inputPorts, outputPorts, stats";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final String statusRequest = "remoteProcessGroup:all:health, bulletins, inputPorts, outputPorts, stats";
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, true, true);
@@ -547,13 +547,13 @@ public class StatusConfigReporterTest {
         populateProcessor(true, false);
         populateRemoteProcessGroup(false, true);
 
-        String statusRequest = "controllerServices:bulletins,health; processor:all:health,stats,bulletins; instance:bulletins,health,stats ; systemDiagnostics:garbagecollection, heap, " +
+        final String statusRequest = "controllerServices:bulletins,health; processor:all:health,stats,bulletins; instance:bulletins,health,stats ; systemDiagnostics:garbagecollection, heap, " +
                 "processorstats, contentrepositoryusage, flowfilerepositoryusage; connection:all:health,stats; provenanceReporting:health,bulletins; remoteProcessGroup:all:health, " +
                 "bulletins, inputPorts, outputPorts, stats";
 
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
+        final FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
-        FlowStatusReport expected = new FlowStatusReport();
+        final FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, true, true, false);
@@ -572,18 +572,18 @@ public class StatusConfigReporterTest {
      *************************/
 
     private void addBulletinsToInstance() {
-        Bulletin bulletin = mock(Bulletin.class);
+        final Bulletin bulletin = mock(Bulletin.class);
         when(bulletin.getTimestamp()).thenReturn(new Date(1464019245000L));
         when(bulletin.getMessage()).thenReturn("Bulletin message");
 
-        List<Bulletin> bulletinList = new ArrayList<>();
+        final List<Bulletin> bulletinList = new ArrayList<>();
         bulletinList.add(bulletin);
 
         when(bulletinRepo.findBulletinsForController()).thenReturn(bulletinList);
     }
 
     private void populateSystemDiagnostics() {
-        SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
+        final SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
         addGarbageCollectionToSystemDiagnostics(systemDiagnostics);
         addHeapSystemDiagnostics(systemDiagnostics);
         addContentRepoToSystemDiagnostics(systemDiagnostics);
@@ -592,8 +592,8 @@ public class StatusConfigReporterTest {
         when(mockFlowController.getSystemDiagnostics()).thenReturn(systemDiagnostics);
     }
 
-    private void populateControllerService(boolean validationErrors, boolean addBulletins) {
-        ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+    private void populateControllerService(final boolean validationErrors, final boolean addBulletins) {
+        final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
         addControllerServiceHealth(controllerServiceNode);
         if (validationErrors) {
             addValidationErrors(controllerServiceNode);
@@ -602,45 +602,45 @@ public class StatusConfigReporterTest {
         if (addBulletins) {
             addBulletins("Bulletin message", controllerServiceNode.getIdentifier());
         }
-        Set<ControllerServiceNode> controllerServiceNodes = new HashSet<>();
+        final Set<ControllerServiceNode> controllerServiceNodes = new HashSet<>();
         controllerServiceNodes.add(controllerServiceNode);
         when(mockFlowController.getFlowManager().getAllControllerServices()).thenReturn(controllerServiceNodes);
     }
 
-    private void populateInstance(boolean addBulletins) {
+    private void populateInstance(final boolean addBulletins) {
         setRootGroupStatusVariables();
         if (addBulletins) {
             addBulletinsToInstance();
         }
     }
 
-    private void populateReportingTask(boolean addBulletins, boolean validationErrors) {
+    private void populateReportingTask(final boolean addBulletins, final boolean validationErrors) {
         if (addBulletins) {
             addBulletins("Bulletin message", "ReportProvenance");
         }
 
-        ReportingTaskNode reportingTaskNode = mock(ReportingTaskNode.class);
+        final ReportingTaskNode reportingTaskNode = mock(ReportingTaskNode.class);
         addReportingTaskNodeVariables(reportingTaskNode);
 
-        Set<ReportingTaskNode> reportingTaskNodes = new HashSet<>();
+        final Set<ReportingTaskNode> reportingTaskNodes = new HashSet<>();
         reportingTaskNodes.add(reportingTaskNode);
 
         when(mockFlowController.getAllReportingTasks()).thenReturn(reportingTaskNodes);
 
         if (validationErrors) {
-            ValidationResult validationResult = new ValidationResult.Builder()
+            final ValidationResult validationResult = new ValidationResult.Builder()
                     .input("input")
                     .subject("subject")
                     .explanation("is not valid")
                     .build();
 
-            ValidationResult validationResult2 = new ValidationResult.Builder()
+            final ValidationResult validationResult2 = new ValidationResult.Builder()
                     .input("input2")
                     .subject("subject2")
                     .explanation("is not valid too")
                     .build();
 
-            List<ValidationResult> validationResultList = new ArrayList<>();
+            final List<ValidationResult> validationResultList = new ArrayList<>();
             validationResultList.add(validationResult);
             validationResultList.add(validationResult2);
 
@@ -651,7 +651,7 @@ public class StatusConfigReporterTest {
     }
 
     private void populateConnection() {
-        ConnectionStatus connectionStatus = new ConnectionStatus();
+        final ConnectionStatus connectionStatus = new ConnectionStatus();
         connectionStatus.setQueuedBytes(100);
         connectionStatus.setId("connectionId");
         connectionStatus.setName("connectionName");
@@ -661,18 +661,18 @@ public class StatusConfigReporterTest {
         connectionStatus.setOutputCount(3);
         connectionStatus.setOutputBytes(4);
 
-        Collection<ConnectionStatus> statusCollection = new ArrayList<>();
+        final Collection<ConnectionStatus> statusCollection = new ArrayList<>();
         statusCollection.add(connectionStatus);
 
         when(rootGroupStatus.getConnectionStatus()).thenReturn(statusCollection);
     }
 
-    private void populateProcessor(boolean validationErrors, boolean addBulletins) {
+    private void populateProcessor(final boolean validationErrors, final boolean addBulletins) {
         if (addBulletins) {
             addBulletins("Bulletin message", "UpdateAttributeProcessorId");
         }
 
-        ProcessorStatus processorStatus = new ProcessorStatus();
+        final ProcessorStatus processorStatus = new ProcessorStatus();
         processorStatus.setType("org.apache.nifi.processors.attributes.UpdateAttribute");
         processorStatus.setId("UpdateAttributeProcessorId");
         processorStatus.setName("UpdateAttributeProcessorName");
@@ -685,29 +685,29 @@ public class StatusConfigReporterTest {
         processorStatus.setInvocations(6);
         processorStatus.setProcessingNanos(7);
 
-        Collection<ProcessorStatus> statusCollection = new ArrayList<>();
+        final Collection<ProcessorStatus> statusCollection = new ArrayList<>();
         statusCollection.add(processorStatus);
 
         mockProcessorEmptyValidation(processorStatus.getId(), processGroup);
         when(rootGroupStatus.getProcessorStatus()).thenReturn(statusCollection);
 
-        ProcessorNode processorNode = mock(ProcessorNode.class);
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
         when(processGroup.getProcessor(processorStatus.getId())).thenReturn(processorNode);
 
         if (validationErrors) {
-            ValidationResult validationResult = new ValidationResult.Builder()
+            final ValidationResult validationResult = new ValidationResult.Builder()
                     .input("input")
                     .subject("subject")
                     .explanation("is not valid")
                     .build();
 
-            ValidationResult validationResult2 = new ValidationResult.Builder()
+            final ValidationResult validationResult2 = new ValidationResult.Builder()
                     .input("input2")
                     .subject("subject2")
                     .explanation("is not valid too")
                     .build();
 
-            List<ValidationResult> validationResultList = new ArrayList<>();
+            final List<ValidationResult> validationResultList = new ArrayList<>();
             validationResultList.add(validationResult);
             validationResultList.add(validationResult2);
 
@@ -717,10 +717,10 @@ public class StatusConfigReporterTest {
         }
     }
 
-    private void populateRemoteProcessGroup(boolean addBulletins, boolean addAuthIssues) {
+    private void populateRemoteProcessGroup(final boolean addBulletins, final boolean addAuthIssues) {
         when(mockFlowController.getFlowManager().getGroup(mockFlowController.getFlowManager().getRootGroupId())).thenReturn(processGroup);
 
-        RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
         when(processGroup.getRemoteProcessGroup(any())).thenReturn(remoteProcessGroup);
 
         RemoteGroupPort remoteGroupPort = mock(RemoteGroupPort.class);
@@ -737,7 +737,7 @@ public class StatusConfigReporterTest {
 
         when(remoteProcessGroup.getOutputPorts()).thenReturn(Collections.singleton(remoteGroupPort));
 
-        RemoteProcessGroupStatus remoteProcessGroupStatus = new RemoteProcessGroupStatus();
+        final RemoteProcessGroupStatus remoteProcessGroupStatus = new RemoteProcessGroupStatus();
         addRemoteProcessGroupStatus(remoteProcessGroupStatus);
         if (addBulletins) {
             addBulletins("Bulletin message", remoteProcessGroupStatus.getId());
@@ -759,10 +759,10 @@ public class StatusConfigReporterTest {
         when(rootGroupStatus.getFlowFilesReceived()).thenReturn(8);
     }
 
-    private void addGarbageCollectionToSystemDiagnostics(SystemDiagnostics systemDiagnostics) {
-        Map<String, GarbageCollection> garbageCollectionMap = new HashMap<>();
+    private void addGarbageCollectionToSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
+        final Map<String, GarbageCollection> garbageCollectionMap = new HashMap<>();
 
-        GarbageCollection garbageCollection1 = new GarbageCollection();
+        final GarbageCollection garbageCollection1 = new GarbageCollection();
         garbageCollection1.setCollectionCount(1);
         garbageCollection1.setCollectionTime(10);
         garbageCollection1.setName("garbage 1");
@@ -771,10 +771,10 @@ public class StatusConfigReporterTest {
         systemDiagnostics.setGarbageCollection(garbageCollectionMap);
     }
 
-    private void addContentRepoToSystemDiagnostics(SystemDiagnostics systemDiagnostics) {
-        Map<String, StorageUsage> stringStorageUsageMap = new HashMap<>();
+    private void addContentRepoToSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
+        final Map<String, StorageUsage> stringStorageUsageMap = new HashMap<>();
 
-        StorageUsage repoUsage1 = new StorageUsage();
+        final StorageUsage repoUsage1 = new StorageUsage();
         repoUsage1.setFreeSpace(30);
         repoUsage1.setTotalSpace(100);
         repoUsage1.setIdentifier("Content repo1");
@@ -783,15 +783,15 @@ public class StatusConfigReporterTest {
         systemDiagnostics.setContentRepositoryStorageUsage(stringStorageUsageMap);
     }
 
-    private void addFlowFileRepoToSystemDiagnostics(SystemDiagnostics systemDiagnostics) {
-        StorageUsage repoUsage = new StorageUsage();
+    private void addFlowFileRepoToSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
+        final StorageUsage repoUsage = new StorageUsage();
         repoUsage.setFreeSpace(30);
         repoUsage.setTotalSpace(100);
         repoUsage.setIdentifier("FlowFile repo");
         systemDiagnostics.setFlowFileRepositoryStorageUsage(repoUsage);
     }
 
-    private void addHeapSystemDiagnostics(SystemDiagnostics systemDiagnostics) {
+    private void addHeapSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
         systemDiagnostics.setMaxHeap(5);
         systemDiagnostics.setTotalHeap(3);
         systemDiagnostics.setUsedHeap(2);
@@ -800,25 +800,25 @@ public class StatusConfigReporterTest {
         systemDiagnostics.setUsedNonHeap(6);
     }
 
-    private void addProcessorInfoToSystemDiagnostics(SystemDiagnostics systemDiagnostics) {
+    private void addProcessorInfoToSystemDiagnostics(final SystemDiagnostics systemDiagnostics) {
         systemDiagnostics.setProcessorLoadAverage(80.9);
         systemDiagnostics.setAvailableProcessors(5);
     }
 
-    private void mockProcessorEmptyValidation(String id, ProcessGroup processGroup) {
-        ProcessorNode processorNode = mock(ProcessorNode.class);
+    private void mockProcessorEmptyValidation(final String id, final ProcessGroup processGroup) {
+        final ProcessorNode processorNode = mock(ProcessorNode.class);
         when(processGroup.getProcessor(id)).thenReturn(processorNode);
         when(processorNode.getValidationErrors()).thenReturn(Collections.emptyList());
     }
 
-    private void addControllerServiceHealth(ControllerServiceNode controllerServiceNode) {
+    private void addControllerServiceHealth(final ControllerServiceNode controllerServiceNode) {
         when(controllerServiceNode.getName()).thenReturn("mockControllerService");
         when(controllerServiceNode.getIdentifier()).thenReturn("mockControllerService");
         when(controllerServiceNode.getState()).thenReturn(ControllerServiceState.ENABLED);
         when(controllerServiceNode.getValidationErrors()).thenReturn(Collections.emptyList());
     }
 
-    private void addReportingTaskNodeVariables(ReportingTaskNode reportingTaskNode) {
+    private void addReportingTaskNodeVariables(final ReportingTaskNode reportingTaskNode) {
         when(reportingTaskNode.getValidationErrors()).thenReturn(Collections.emptyList());
         when(reportingTaskNode.getActiveThreadCount()).thenReturn(1);
         when(reportingTaskNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
@@ -827,7 +827,7 @@ public class StatusConfigReporterTest {
 
     }
 
-    private void addRemoteProcessGroupStatus(RemoteProcessGroupStatus remoteProcessGroupStatus) {
+    private void addRemoteProcessGroupStatus(final RemoteProcessGroupStatus remoteProcessGroupStatus) {
         remoteProcessGroupStatus.setName("rpg1");
         remoteProcessGroupStatus.setId("rpg1");
         remoteProcessGroupStatus.setTransmissionStatus(TransmissionStatus.Transmitting);
@@ -839,32 +839,32 @@ public class StatusConfigReporterTest {
         remoteProcessGroupStatus.setSentCount(5);
     }
 
-    private void addBulletins(String message, String sourceId) {
-        Bulletin bulletin = mock(Bulletin.class);
+    private void addBulletins(final String message, final String sourceId) {
+        final Bulletin bulletin = mock(Bulletin.class);
         when(bulletin.getTimestamp()).thenReturn(new Date(1464019245000L));
         when(bulletin.getMessage()).thenReturn(message);
 
-        List<Bulletin> bulletinList = new ArrayList<>();
+        final List<Bulletin> bulletinList = new ArrayList<>();
         bulletinList.add(bulletin);
 
-        BulletinQueryAnswer bulletinQueryAnswer = new BulletinQueryAnswer(sourceId, bulletinList);
+        final BulletinQueryAnswer bulletinQueryAnswer = new BulletinQueryAnswer(sourceId, bulletinList);
         when(bulletinRepo.findBulletins(any())).then(bulletinQueryAnswer);
     }
 
-    private void addValidationErrors(ComponentNode connectable) {
-        ValidationResult validationResult = new ValidationResult.Builder()
+    private void addValidationErrors(final ComponentNode connectable) {
+        final ValidationResult validationResult = new ValidationResult.Builder()
                 .input("input")
                 .subject("subject")
                 .explanation("is not valid")
                 .build();
 
-        ValidationResult validationResult2 = new ValidationResult.Builder()
+        final ValidationResult validationResult2 = new ValidationResult.Builder()
                 .input("input2")
                 .subject("subject2")
                 .explanation("is not valid too")
                 .build();
 
-        List<ValidationResult> validationResultList = new ArrayList<>();
+        final List<ValidationResult> validationResultList = new ArrayList<>();
         validationResultList.add(validationResult);
         validationResultList.add(validationResult2);
         when(connectable.getValidationErrors()).thenReturn(validationResultList);
@@ -875,14 +875,14 @@ public class StatusConfigReporterTest {
         final List<Bulletin> bulletinList;
         String idToMatch = "";
 
-        private BulletinQueryAnswer(String idToMatch, List<Bulletin> bulletinList) {
+        private BulletinQueryAnswer(final String idToMatch, final List<Bulletin> bulletinList) {
             this.idToMatch = idToMatch;
             this.bulletinList = bulletinList;
         }
 
         @Override
-        public Object answer(InvocationOnMock invocationOnMock) {
-            BulletinQuery bulletinQuery = (BulletinQuery) invocationOnMock.getArguments()[0];
+        public Object answer(final InvocationOnMock invocationOnMock) {
+            final BulletinQuery bulletinQuery = (BulletinQuery) invocationOnMock.getArguments()[0];
             if (idToMatch.equals(bulletinQuery.getSourceIdPattern().toString())) {
                 return bulletinList;
             }

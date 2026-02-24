@@ -33,7 +33,7 @@ public class NormalSubstitutionNode extends BxmlNodeWithToken {
     @SuppressWarnings("PMD.UnusedPrivateField")
     private final int type;
 
-    public NormalSubstitutionNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public NormalSubstitutionNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         index = binaryReader.readWord();
         type = binaryReader.read();
@@ -56,7 +56,7 @@ public class NormalSubstitutionNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

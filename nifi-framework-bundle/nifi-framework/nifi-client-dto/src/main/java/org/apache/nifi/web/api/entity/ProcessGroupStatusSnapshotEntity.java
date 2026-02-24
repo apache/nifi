@@ -36,7 +36,7 @@ public class ProcessGroupStatusSnapshotEntity extends Entity implements Readable
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ public class ProcessGroupStatusSnapshotEntity extends Entity implements Readable
         return processGroupStatusSnapshot;
     }
 
-    public void setProcessGroupStatusSnapshot(ProcessGroupStatusSnapshotDTO processGroupStatusSnapshot) {
+    public void setProcessGroupStatusSnapshot(final ProcessGroupStatusSnapshotDTO processGroupStatusSnapshot) {
         this.processGroupStatusSnapshot = processGroupStatusSnapshot;
     }
 
@@ -59,7 +59,7 @@ public class ProcessGroupStatusSnapshotEntity extends Entity implements Readable
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 

@@ -22,7 +22,7 @@ public class SimpleEntry<K, V> implements Map.Entry<K, V> {
     private final K key;
     private V value;
 
-    public SimpleEntry(K key, V value) {
+    public SimpleEntry(final K key, final V value) {
         this.key = key;
         this.value = value;
     }
@@ -38,8 +38,8 @@ public class SimpleEntry<K, V> implements Map.Entry<K, V> {
     }
 
     @Override
-    public V setValue(V value) {
-        V old = this.value;
+    public V setValue(final V value) {
+        final V old = this.value;
         this.value = value;
         return old;
     }

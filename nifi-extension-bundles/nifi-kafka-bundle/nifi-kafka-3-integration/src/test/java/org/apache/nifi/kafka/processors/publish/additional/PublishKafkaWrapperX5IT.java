@@ -84,7 +84,7 @@ public class PublishKafkaWrapperX5IT extends AbstractPublishKafkaIT {
             final KafkaFuture<Void> overrideTopicFuture = topics.values().get(OVERRIDE_TOPIC);
             testTopicFuture.get(1, TimeUnit.SECONDS);
             overrideTopicFuture.get(1, TimeUnit.SECONDS);
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+        } catch (final ExecutionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
         }
     }
@@ -119,7 +119,7 @@ public class PublishKafkaWrapperX5IT extends AbstractPublishKafkaIT {
             consumer.subscribe(Arrays.asList(TEST_TOPIC, OVERRIDE_TOPIC));
             final ConsumerRecords<String, String> records = consumer.poll(DURATION_POLL);
             assertEquals(1, records.count());
-            for (ConsumerRecord<String, String> record : records) {
+            for (final ConsumerRecord<String, String> record : records) {
                 // kafka record metadata
                 assertEquals(OVERRIDE_TOPIC, record.topic());
                 assertEquals(OVERRIDE_PARTITION, record.partition());

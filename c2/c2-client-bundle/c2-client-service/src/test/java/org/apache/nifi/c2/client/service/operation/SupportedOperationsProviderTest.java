@@ -37,35 +37,35 @@ class SupportedOperationsProviderTest {
 
     @Test
     void testSupportedOperationsAreProvided() {
-        C2OperationHandler describeManifestOperationHandler = mock(C2OperationHandler.class);
-        C2OperationHandler describeConfigurationOperationHandler = mock(C2OperationHandler.class);
-        Map<String, Object> describeManifestProperties = Collections.singletonMap("availableProperties", Arrays.asList("property1", "property2"));
-        Map<String, Object> describeConfigurationProperties = Collections.emptyMap();
+        final C2OperationHandler describeManifestOperationHandler = mock(C2OperationHandler.class);
+        final C2OperationHandler describeConfigurationOperationHandler = mock(C2OperationHandler.class);
+        final Map<String, Object> describeManifestProperties = Collections.singletonMap("availableProperties", Arrays.asList("property1", "property2"));
+        final Map<String, Object> describeConfigurationProperties = Collections.emptyMap();
         when(describeManifestOperationHandler.getProperties()).thenReturn(describeManifestProperties);
         when(describeManifestOperationHandler.getOperandType()).thenReturn(OperandType.MANIFEST);
         when(describeConfigurationOperationHandler.getProperties()).thenReturn(describeConfigurationProperties);
         when(describeConfigurationOperationHandler.getOperandType()).thenReturn(OperandType.CONFIGURATION);
 
-        Map<OperationType, Map<OperandType, C2OperationHandler>> operationHandlers = new HashMap<>();
+        final Map<OperationType, Map<OperandType, C2OperationHandler>> operationHandlers = new HashMap<>();
         operationHandlers.put(OperationType.PAUSE, Collections.emptyMap());
-        Map<OperandType, C2OperationHandler> operandHandlers = new HashMap<>();
+        final Map<OperandType, C2OperationHandler> operandHandlers = new HashMap<>();
         operandHandlers.put(OperandType.MANIFEST, describeManifestOperationHandler);
         operandHandlers.put(OperandType.CONFIGURATION, describeConfigurationOperationHandler);
         operationHandlers.put(OperationType.DESCRIBE, operandHandlers);
 
-        SupportedOperationsProvider supportedOperationsProvider = new SupportedOperationsProvider(operationHandlers);
+        final SupportedOperationsProvider supportedOperationsProvider = new SupportedOperationsProvider(operationHandlers);
 
-        SupportedOperation pauseOperation = new SupportedOperation();
+        final SupportedOperation pauseOperation = new SupportedOperation();
         pauseOperation.setType(OperationType.PAUSE);
         pauseOperation.setProperties(Collections.emptyMap());
-        SupportedOperation describeOperation = new SupportedOperation();
+        final SupportedOperation describeOperation = new SupportedOperation();
         describeOperation.setType(OperationType.DESCRIBE);
-        Map<OperandType, Map<String, Object>> operands = new HashMap<>();
+        final Map<OperandType, Map<String, Object>> operands = new HashMap<>();
         operands.put(OperandType.MANIFEST, describeManifestProperties);
         operands.put(OperandType.CONFIGURATION, describeConfigurationProperties);
         describeOperation.setProperties(operands);
 
-        Set<SupportedOperation> expected = new HashSet<>(Arrays.asList(pauseOperation, describeOperation));
+        final Set<SupportedOperation> expected = new HashSet<>(Arrays.asList(pauseOperation, describeOperation));
         assertEquals(expected, supportedOperationsProvider.getSupportedOperations());
     }
 }

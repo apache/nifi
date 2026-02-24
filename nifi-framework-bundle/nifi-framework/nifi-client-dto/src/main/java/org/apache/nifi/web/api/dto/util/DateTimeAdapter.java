@@ -32,13 +32,13 @@ public class DateTimeAdapter extends XmlAdapter<String, Date> {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT);
 
     @Override
-    public String marshal(Date date) throws Exception {
+    public String marshal(final Date date) throws Exception {
         final ZonedDateTime zonedDateTime = date.toInstant().atZone(ZoneId.systemDefault());
         return DATE_TIME_FORMATTER.format(zonedDateTime);
     }
 
     @Override
-    public Date unmarshal(String date) throws Exception {
+    public Date unmarshal(final String date) throws Exception {
         final ZonedDateTime zonedDateTime = ZonedDateTime.parse(date, DATE_TIME_FORMATTER);
         return Date.from(zonedDateTime.toInstant());
     }

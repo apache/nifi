@@ -39,7 +39,7 @@ public class FlowChangePurgeDetails implements PurgeDetails {
      * Establishes the end data for this purge action
      * @param endDate date at which the purge ends
      */
-    public void setEndDate(Date endDate) {
+    public void setEndDate(final Date endDate) {
         this.endDate = endDate;
     }
 

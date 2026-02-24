@@ -35,7 +35,7 @@ public class BucketMetadata {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -43,7 +43,7 @@ public class BucketMetadata {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -51,7 +51,7 @@ public class BucketMetadata {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -59,7 +59,7 @@ public class BucketMetadata {
         return flowMetadata;
     }
 
-    public void setFlowMetadata(List<FlowMetadata> flowMetadata) {
+    public void setFlowMetadata(final List<FlowMetadata> flowMetadata) {
         this.flowMetadata = flowMetadata;
     }
 

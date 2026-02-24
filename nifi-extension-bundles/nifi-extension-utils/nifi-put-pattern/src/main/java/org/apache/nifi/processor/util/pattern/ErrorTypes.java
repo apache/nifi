@@ -66,7 +66,7 @@ public enum ErrorTypes {
 
     private final Destination destination;
     private final Penalty penalty;
-    ErrorTypes(Destination destination, Penalty penalty) {
+    ErrorTypes(final Destination destination, final Penalty penalty) {
         this.destination = destination;
         this.penalty = penalty;
     }
@@ -105,7 +105,7 @@ public enum ErrorTypes {
         private final Destination destination;
         private final Penalty penalty;
 
-        public Result(Destination destination, Penalty penalty) {
+        public Result(final Destination destination, final Penalty penalty) {
             this.destination = destination;
             this.penalty = penalty;
         }
@@ -127,7 +127,7 @@ public enum ErrorTypes {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) {
                 return true;
             }
@@ -135,7 +135,7 @@ public enum ErrorTypes {
                 return false;
             }
 
-            Result result = (Result) o;
+            final Result result = (Result) o;
 
             if (destination != result.destination) {
                 return false;

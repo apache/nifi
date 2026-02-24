@@ -38,7 +38,7 @@ public class StatusHistoryEntity extends Entity implements ReadablePermission {
         return statusHistory;
     }
 
-    public void setStatusHistory(StatusHistoryDTO statusHistory) {
+    public void setStatusHistory(final StatusHistoryDTO statusHistory) {
         this.statusHistory = statusHistory;
     }
 
@@ -48,7 +48,7 @@ public class StatusHistoryEntity extends Entity implements ReadablePermission {
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

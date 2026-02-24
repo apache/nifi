@@ -41,7 +41,7 @@ public class ClusterSummaryDTO {
         return isClustered;
     }
 
-    public void setClustered(Boolean clustered) {
+    public void setClustered(final Boolean clustered) {
         isClustered = clustered;
     }
 
@@ -54,7 +54,7 @@ public class ClusterSummaryDTO {
         return isConnectedToCluster;
     }
 
-    public void setConnectedToCluster(Boolean connectedToCluster) {
+    public void setConnectedToCluster(final Boolean connectedToCluster) {
         isConnectedToCluster = connectedToCluster;
     }
 
@@ -63,7 +63,7 @@ public class ClusterSummaryDTO {
         return connectedNodeCount;
     }
 
-    public void setConnectedNodeCount(Integer connectedNodeCount) {
+    public void setConnectedNodeCount(final Integer connectedNodeCount) {
         this.connectedNodeCount = connectedNodeCount;
     }
 
@@ -72,7 +72,7 @@ public class ClusterSummaryDTO {
         return totalNodeCount;
     }
 
-    public void setTotalNodeCount(Integer totalNodeCount) {
+    public void setTotalNodeCount(final Integer totalNodeCount) {
         this.totalNodeCount = totalNodeCount;
     }
 
@@ -85,7 +85,7 @@ public class ClusterSummaryDTO {
         return connectedNodes;
     }
 
-    public void setConnectedNodes(String connectedNodes) {
+    public void setConnectedNodes(final String connectedNodes) {
         this.connectedNodes = connectedNodes;
     }
 }

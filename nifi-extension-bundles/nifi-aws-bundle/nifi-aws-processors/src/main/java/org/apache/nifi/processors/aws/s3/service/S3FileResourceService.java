@@ -107,7 +107,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
     }
 
     @Override
-    public FileResource getFileResource(Map<String, String> attributes) {
+    public FileResource getFileResource(final Map<String, String> attributes) {
         final AwsCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
                 .asControllerService(AwsCredentialsProviderService.class);
         final S3Client client = getS3Client(attributes, awsCredentialsProviderService.getAwsCredentialsProvider());
@@ -142,13 +142,13 @@ public class S3FileResourceService extends AbstractControllerService implements 
         final ResponseInputStream<GetObjectResponse> responseStream;
         try {
             responseStream = client.getObject(request);
-        } catch (NoSuchKeyException e) {
+        } catch (final NoSuchKeyException e) {
             throw new ProcessException(String.format("Object '%s/%s' does not exist in s3", bucketName, key));
         }
         return new FileResource(responseStream, responseStream.response().contentLength());
     }
 
-    protected S3Client getS3Client(Map<String, String> attributes, AwsCredentialsProvider credentialsProvider) {
+    protected S3Client getS3Client(final Map<String, String> attributes, final AwsCredentialsProvider credentialsProvider) {
         final Region region = RegionUtil.getRegion(context, attributes);
         return clientCache.get(region, ignored -> S3Client.builder()
                 .region(region)

@@ -149,7 +149,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("application-default-credentials", LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
         config.renameProperty("compute-engine-credentials", LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName());
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());

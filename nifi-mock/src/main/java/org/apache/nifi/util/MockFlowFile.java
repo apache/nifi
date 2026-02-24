@@ -94,7 +94,7 @@ public class MockFlowFile implements FlowFile {
         this.penalized = toCopy.isPenalized();
     }
 
-    void setPenalized(boolean penalized) {
+    void setPenalized(final boolean penalized) {
         this.penalized = penalized;
     }
 
@@ -337,7 +337,7 @@ public class MockFlowFile implements FlowFile {
         return lastEnqueuedDate;
     }
 
-    public void setLastEnqueuedDate(long lastEnqueuedDate) {
+    public void setLastEnqueuedDate(final long lastEnqueuedDate) {
         this.lastEnqueuedDate = lastEnqueuedDate;
     }
 
@@ -351,7 +351,7 @@ public class MockFlowFile implements FlowFile {
         return enqueuedIndex;
     }
 
-    public void setEnqueuedIndex(long enqueuedIndex) {
+    public void setEnqueuedIndex(final long enqueuedIndex) {
         this.enqueuedIndex = enqueuedIndex;
     }
 
@@ -361,15 +361,15 @@ public class MockFlowFile implements FlowFile {
             return false;
         }
 
-        String value = attributes.get(attributeName);
+        final String value = attributes.get(attributeName);
         return Objects.equals(expectedValue, value);
     }
 
-    public boolean isContentEqual(String expected) {
+    public boolean isContentEqual(final String expected) {
         return isContentEqual(expected, StandardCharsets.UTF_8);
     }
 
-    public boolean isContentEqual(String expected, final Charset charset) {
+    public boolean isContentEqual(final String expected, final Charset charset) {
         final String value = new String(this.data, charset);
         return Objects.equals(expected, value);
     }

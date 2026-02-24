@@ -76,7 +76,7 @@ public class GetAwsTranslateJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        GetAwsTranslateJobStatus processor = new GetAwsTranslateJobStatus() {
+        final GetAwsTranslateJobStatus processor = new GetAwsTranslateJobStatus() {
             @Override
             public TranslateClient getClient(final ProcessContext context) {
                 return mockTranslateClient;

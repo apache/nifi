@@ -58,7 +58,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
         runner.setProperty(QueryDatabaseTableRecord.DB_TYPE, "Generic");
         runner.getStateManager().clear(Scope.CLUSTER);
-        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
         runner.setProperty(QueryDatabaseTableRecord.RECORD_WRITER_FACTORY, "writer");
         runner.setProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION, "8");
@@ -567,7 +567,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.clearTransferState();
 
         // Run again with a cleaned state. Should get all rows split into batches
-        int ffCount = (int) Math.ceil(rowCount / 9D);
+        final int ffCount = (int) Math.ceil(rowCount / 9D);
         runner.getStateManager().clear(Scope.CLUSTER);
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, ffCount);
@@ -599,7 +599,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "9");
-        int maxFragments = 3;
+        final int maxFragments = 3;
         runner.setProperty(QueryDatabaseTableRecord.MAX_FRAGMENTS, Integer.toString(maxFragments));
 
         runner.run();
@@ -642,7 +642,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
@@ -727,7 +727,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         // Initial run with no previous state. Should get all 10 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "10");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();

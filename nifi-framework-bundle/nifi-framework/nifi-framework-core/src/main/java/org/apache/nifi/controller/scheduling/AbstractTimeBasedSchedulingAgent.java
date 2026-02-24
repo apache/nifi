@@ -51,7 +51,7 @@ public abstract class AbstractTimeBasedSchedulingAgent extends AbstractSchedulin
     }
 
     @Override
-    public void doScheduleOnce(final Connectable connectable, final LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+    public void doScheduleOnce(final Connectable connectable, final LifecycleState scheduleState, final Callable<Future<Void>> stopCallback) {
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
         final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState);
 
@@ -59,8 +59,8 @@ public abstract class AbstractTimeBasedSchedulingAgent extends AbstractSchedulin
             connectableTask.invoke();
             try {
                 stopCallback.call();
-            } catch (Exception e) {
-                String errorMessage = "Error while stopping " + connectable + " after running once.";
+            } catch (final Exception e) {
+                final String errorMessage = "Error while stopping " + connectable + " after running once.";
                 logger.error(errorMessage, e);
                 throw new ProcessException(errorMessage, e);
             }
@@ -88,7 +88,7 @@ public abstract class AbstractTimeBasedSchedulingAgent extends AbstractSchedulin
     }
 
     @Override
-    public void incrementMaxThreadCount(int toAdd) {
+    public void incrementMaxThreadCount(final int toAdd) {
         final int corePoolSize = flowEngine.getCorePoolSize();
         if (toAdd < 0 && corePoolSize + toAdd < 1) {
             throw new IllegalStateException("Cannot remove " + (-toAdd) + " threads from pool because there are only " + corePoolSize + " threads in the pool");

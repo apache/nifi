@@ -102,12 +102,12 @@ public class ClusterCoordinationProtocolSenderListener implements ClusterCoordin
     }
 
     @Override
-    public void offload(OffloadMessage msg) throws ProtocolException {
+    public void offload(final OffloadMessage msg) throws ProtocolException {
         sender.offload(msg);
     }
 
     @Override
-    public void disconnect(DisconnectMessage msg) throws ProtocolException {
+    public void disconnect(final DisconnectMessage msg) throws ProtocolException {
         sender.disconnect(msg);
     }
 

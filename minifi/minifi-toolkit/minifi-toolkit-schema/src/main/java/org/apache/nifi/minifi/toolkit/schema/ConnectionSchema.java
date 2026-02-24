@@ -48,10 +48,10 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
     private String flowfileExpiration = DEFAULT_FLOWFILE_EXPIRATION;
     private String queuePrioritizerClass;
 
-    public ConnectionSchema(Map map) {
+    public ConnectionSchema(final Map map) {
         super(map, "Connection(id: {id}, name: {name})");
 
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
         // In case of older version, these may not be available until after construction, validated in getValidationIssues()
         sourceId = getOptionalKeyAsType(map, SOURCE_ID_KEY, String.class, wrapperName, "");
         destinationId = getOptionalKeyAsType(map, DESTINATION_ID_KEY, String.class, wrapperName, "");
@@ -66,7 +66,7 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(SOURCE_ID_KEY, sourceId);
         result.put(SOURCE_RELATIONSHIP_NAMES_KEY, sourceRelationshipNames);
         result.put(DESTINATION_ID_KEY, destinationId);
@@ -82,7 +82,7 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -90,7 +90,7 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -114,14 +114,14 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
         return queuePrioritizerClass;
     }
 
-    public void setNeedsSourceRelationships(boolean needsSourceRelationships) {
+    public void setNeedsSourceRelationships(final boolean needsSourceRelationships) {
         this.needsSourceRelationships = needsSourceRelationships;
     }
 
     @Override
     public List<String> getValidationIssues() {
-        String wrapperName = getWrapperName();
-        List<String> validationIssues = super.getValidationIssues();
+        final String wrapperName = getWrapperName();
+        final List<String> validationIssues = super.getValidationIssues();
         StringUtil.doIfNullOrEmpty(getSourceId(), id -> validationIssues.add(getIssueText(SOURCE_ID_KEY, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED)));
         StringUtil.doIfNullOrEmpty(getDestinationId(), id -> validationIssues.add(getIssueText(DESTINATION_ID_KEY, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED)));
         if (needsSourceRelationships && sourceRelationshipNames.isEmpty()) {

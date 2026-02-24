@@ -303,7 +303,7 @@ public class ParameterContextResource extends AbstractParameterResource {
             }
     )
     public Response updateParameterContext(
-            @PathParam("id") String contextId,
+            final @PathParam("id") String contextId,
             @Parameter(description = "The updated Parameter Context", required = true) final ParameterContextEntity requestEntity) {
 
         // Validate request
@@ -743,7 +743,7 @@ public class ParameterContextResource extends AbstractParameterResource {
 
     private void validateControllerServiceReferences(final ParameterContextEntity requestEntity, final AuthorizableLookup lookup, final ParameterContext parameterContext, final NiFiUser user) {
         final Set<ParameterEntity> parametersEntities = requestEntity.getComponent().getParameters();
-        for (ParameterEntity parameterEntity : parametersEntities) {
+        for (final ParameterEntity parameterEntity : parametersEntities) {
             final String parameterName = parameterEntity.getParameter().getName();
             final List<ParameterReferencedControllerServiceData> referencedControllerServiceDataSet =
                 parameterContext.getParameterReferenceManager().getReferencedControllerServiceData(parameterContext, parameterName);
@@ -766,7 +766,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                                 currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
                                 currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
                             }
-                        } catch (ResourceNotFoundException e) {
+                        } catch (final ResourceNotFoundException e) {
                             // the currently referenced controller service no longer exists, we can just
                             // skip the authorization check, and move on to setting the new parameter value
                             logger.debug("Current Controller Service with ID {} not found, skipping authorization check", currentParameterValue);
@@ -1424,24 +1424,24 @@ public class ParameterContextResource extends AbstractParameterResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
     @Qualifier("clusterComponentLifecycle")
     @Autowired(required = false)
-    public void setClusterComponentLifecycle(ComponentLifecycle componentLifecycle) {
+    public void setClusterComponentLifecycle(final ComponentLifecycle componentLifecycle) {
         this.clusterComponentLifecycle = componentLifecycle;
     }
 
     @Qualifier("localComponentLifecycle")
     @Autowired
-    public void setLocalComponentLifecycle(ComponentLifecycle componentLifecycle) {
+    public void setLocalComponentLifecycle(final ComponentLifecycle componentLifecycle) {
         this.localComponentLifecycle = componentLifecycle;
     }
 

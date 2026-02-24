@@ -195,7 +195,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Max message buffer size", MAX_MESSAGE_BUFFER_SIZE_MB.getName());
     }

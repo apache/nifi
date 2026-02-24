@@ -96,7 +96,7 @@ public class FlowSynchronizationUtils {
         if (isValueSensitive(value)) {
             try {
                 return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
-            } catch (EncryptionException e) {
+            } catch (final EncryptionException e) {
                 final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
                         "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
                 logger.error(moreDescriptiveMessage, e);

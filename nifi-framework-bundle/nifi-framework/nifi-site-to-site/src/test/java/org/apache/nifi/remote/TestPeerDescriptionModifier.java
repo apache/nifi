@@ -35,7 +35,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testNoConfiguration() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
         assertFalse(modifier.isModificationNeeded(SiteToSiteTransportProtocol.RAW));
@@ -44,30 +44,30 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testInvalidNoHostname() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-host.when", "true");
         final NiFiProperties properties = new NiFiProperties(props);
 
-        IllegalArgumentException illegalArgumentException =
+        final IllegalArgumentException illegalArgumentException =
                 assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
         assertEquals("Found an invalid Site-to-Site route definition [no-host] 'hostname' is not specified.", illegalArgumentException.getMessage());
     }
 
     @Test
     public void testInvalidNoPort() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-port.when", "true");
         props.put("nifi.remote.route.raw.no-port.hostname", "proxy.example.com");
         final NiFiProperties properties = new NiFiProperties(props);
 
-        IllegalArgumentException illegalArgumentException =
+        final IllegalArgumentException illegalArgumentException =
                 assertThrows(IllegalArgumentException.class, () ->  new PeerDescriptionModifier(properties));
         assertEquals("Found an invalid Site-to-Site route definition [no-port] 'port' is not specified.", illegalArgumentException.getMessage());
     }
 
     @Test
     public void testInvalidConfigurationName() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.raw.invalid-name.when", "true");
         props.put("nifi.remote.route.raw.invalid-name.hostname", "proxy.example.com");
         props.put("nifi.remote.route.raw.invalid-name.port", "8081");
@@ -75,7 +75,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.invalid-name.unsupported", "true");
         final NiFiProperties properties = new NiFiProperties(props);
 
-        IllegalArgumentException illegalArgumentException =
+        final IllegalArgumentException illegalArgumentException =
                 assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
         assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.raw.invalid-name.unsupported'." +
                 " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
@@ -84,10 +84,10 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testInvalidPropertyKeyNoProtocol() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-        IllegalArgumentException illegalArgumentException =
+        final IllegalArgumentException illegalArgumentException =
                 assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
         assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.'." +
                 " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
@@ -96,10 +96,10 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testInvalidPropertyKeyNoName() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.http.", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-        IllegalArgumentException illegalArgumentException =
+        final IllegalArgumentException illegalArgumentException =
                 assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
         assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.http.'." +
                 " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
@@ -108,7 +108,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testInvalidExpression() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.raw.invalid-el.when", "${nonExistingFunction()}");
         props.put("nifi.remote.route.raw.invalid-el.hostname", "proxy.example.com");
         props.put("nifi.remote.route.raw.invalid-el.port", "8081");
@@ -118,7 +118,7 @@ public class TestPeerDescriptionModifier {
         final PeerDescription source = new PeerDescription("client", 12345, true);
         final PeerDescription target = new PeerDescription("nifi0", 8081, true);
 
-        AttributeExpressionLanguageException attributeExpressionLanguageException =
+        final AttributeExpressionLanguageException attributeExpressionLanguageException =
                 assertThrows(AttributeExpressionLanguageException.class,
                         () -> modifier.modify(source, target,
                                 SiteToSiteTransportProtocol.RAW, PeerDescriptionModifier.RequestType.Peers, new HashMap<>()));
@@ -127,7 +127,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testDefaultIsNotSecure() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-port.when", "true");
         props.put("nifi.remote.route.raw.no-port.hostname", "proxy.example.com");
         props.put("nifi.remote.route.raw.no-port.port", "8443");
@@ -143,7 +143,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testRawPortToNode() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
 
         // RAW S2S route configs.
         // Port number to Node
@@ -197,7 +197,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testRawServerNameToNode() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
 
         // RAW S2S route configs.
         // Server name to Node
@@ -249,7 +249,7 @@ public class TestPeerDescriptionModifier {
 
     @Test
     public void testHttpsTerminate() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
 
         // https://nifi0.example.com -> http://nifi0:8080
         // https://nifi1.example.com -> http://nifi1:8080

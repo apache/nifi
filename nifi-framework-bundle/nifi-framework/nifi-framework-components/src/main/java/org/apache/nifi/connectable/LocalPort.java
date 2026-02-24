@@ -236,7 +236,7 @@ public class LocalPort extends AbstractPort {
     }
 
     private void transferSingleFlowFile(final ProcessSession session) {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -340,7 +340,7 @@ public class LocalPort extends AbstractPort {
     }
 
     @Override
-    public Set<Connection> getConnections(Relationship relationship) {
+    public Set<Connection> getConnections(final Relationship relationship) {
         readLock.lock();
         try {
             return super.getConnections(relationship);

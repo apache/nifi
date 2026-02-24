@@ -31,37 +31,37 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestTenantHelper {
     @Test
     public void testSelectExistingTenantsWithEmptyNamesAndIds() throws Exception {
-        String names = "";
-        String ids = "";
+        final String names = "";
+        final String ids = "";
 
-        List<Tenant> allTenants = Arrays.asList(
+        final List<Tenant> allTenants = Arrays.asList(
             createTenant("__1", "__1"),
             createTenant("__2", "__2")
         );
 
-        List<Tenant> expected = Collections.emptyList();
+        final List<Tenant> expected = Collections.emptyList();
 
         testSelectExistingTenants(names, ids, allTenants, expected);
     }
 
     @Test
     public void testSelectExistingTenantsWithNames() throws Exception {
-        String names = "name1,name3";
-        String ids = "";
+        final String names = "name1,name3";
+        final String ids = "";
 
-        Tenant tenantFoundByName1 = createTenant("__1", "name1");
-        Tenant tenantNotFound2 = createTenant("__2", "__2");
-        Tenant tenantFoundByName3 = createTenant("__3", "name3");
-        Tenant tenantNotFound4 = createTenant("__4", "__4");
+        final Tenant tenantFoundByName1 = createTenant("__1", "name1");
+        final Tenant tenantNotFound2 = createTenant("__2", "__2");
+        final Tenant tenantFoundByName3 = createTenant("__3", "name3");
+        final Tenant tenantNotFound4 = createTenant("__4", "__4");
 
-        List<Tenant> allTenants = Arrays.asList(
+        final List<Tenant> allTenants = Arrays.asList(
             tenantFoundByName1,
             tenantNotFound2,
             tenantFoundByName3,
             tenantNotFound4
         );
 
-        List<Tenant> expected = Arrays.asList(
+        final List<Tenant> expected = Arrays.asList(
             tenantFoundByName1,
             tenantFoundByName3
         );
@@ -71,22 +71,22 @@ public class TestTenantHelper {
 
     @Test
     public void testSelectExistingTenantsWithIds() throws Exception {
-        String names = "";
-        String ids = "id1,id2";
+        final String names = "";
+        final String ids = "id1,id2";
 
-        Tenant tenantFoundById1 = createTenant("id1", "__1");
-        Tenant tenantFoundById2 = createTenant("id2", "__2");
-        Tenant tenantNotFound3 = createTenant("__3", "__3");
-        Tenant tenantNotFound4 = createTenant("__4", "__4");
+        final Tenant tenantFoundById1 = createTenant("id1", "__1");
+        final Tenant tenantFoundById2 = createTenant("id2", "__2");
+        final Tenant tenantNotFound3 = createTenant("__3", "__3");
+        final Tenant tenantNotFound4 = createTenant("__4", "__4");
 
-        List<Tenant> allTenants = Arrays.asList(
+        final List<Tenant> allTenants = Arrays.asList(
             tenantFoundById1,
             tenantFoundById2,
             tenantNotFound3,
             tenantNotFound4
         );
 
-        List<Tenant> expected = Arrays.asList(
+        final List<Tenant> expected = Arrays.asList(
             tenantFoundById1,
             tenantFoundById2
         );
@@ -96,22 +96,22 @@ public class TestTenantHelper {
 
     @Test
     public void testSelectExistingTenantsWithComplexScenario() throws Exception {
-        String names = "name1,name3";
-        String ids = "id1,id2";
+        final String names = "name1,name3";
+        final String ids = "id1,id2";
 
-        Tenant tenantFoundByIdAndName = createTenant("id1", "name1");
-        Tenant tenantFoundById = createTenant("id2", "_2_");
-        Tenant tenantFoundByName = createTenant("__3", "name3");
-        Tenant tenantNotFound = createTenant("__4", "__4");
+        final Tenant tenantFoundByIdAndName = createTenant("id1", "name1");
+        final Tenant tenantFoundById = createTenant("id2", "_2_");
+        final Tenant tenantFoundByName = createTenant("__3", "name3");
+        final Tenant tenantNotFound = createTenant("__4", "__4");
 
-        List<Tenant> allTenants = Arrays.asList(
+        final List<Tenant> allTenants = Arrays.asList(
             tenantFoundByIdAndName,
             tenantFoundById,
             tenantFoundByName,
             tenantNotFound
         );
 
-        List<Tenant> expected = Arrays.asList(
+        final List<Tenant> expected = Arrays.asList(
             tenantFoundByIdAndName,
             tenantFoundById,
             tenantFoundByName
@@ -122,20 +122,20 @@ public class TestTenantHelper {
 
     @Test
     public void testSelectExistingTenantsWithComma() throws Exception {
-        String names = "\"OU=platform, CN=service\",name2";
-        String ids = "";
+        final String names = "\"OU=platform, CN=service\",name2";
+        final String ids = "";
 
-        Tenant tenantFoundByNameWithComma = createTenant("id1", "OU=platform, CN=service");
-        Tenant tenantFoundByName = createTenant("id2", "name2");
-        Tenant tenantNotFound = createTenant("__3", "__3");
+        final Tenant tenantFoundByNameWithComma = createTenant("id1", "OU=platform, CN=service");
+        final Tenant tenantFoundByName = createTenant("id2", "name2");
+        final Tenant tenantNotFound = createTenant("__3", "__3");
 
-        List<Tenant> allTenants = Arrays.asList(
+        final List<Tenant> allTenants = Arrays.asList(
                 tenantFoundByNameWithComma,
                 tenantFoundByName,
                 tenantNotFound
         );
 
-        List<Tenant> expected = Arrays.asList(
+        final List<Tenant> expected = Arrays.asList(
                 tenantFoundByNameWithComma,
                 tenantFoundByName
         );
@@ -143,16 +143,16 @@ public class TestTenantHelper {
         testSelectExistingTenants(names, ids, allTenants, expected);
     }
 
-    private void testSelectExistingTenants(String names, String ids, List<Tenant> allTenants, List<Tenant> expectedTenants) throws IOException {
-        Set<Tenant> expected = new HashSet<>(expectedTenants);
+    private void testSelectExistingTenants(final String names, final String ids, final List<Tenant> allTenants, final List<Tenant> expectedTenants) throws IOException {
+        final Set<Tenant> expected = new HashSet<>(expectedTenants);
 
-        Set<Tenant> actual = TenantHelper.selectExistingTenants(names, ids, allTenants);
+        final Set<Tenant> actual = TenantHelper.selectExistingTenants(names, ids, allTenants);
 
         assertEquals(expected, actual);
     }
 
-    private Tenant createTenant(String identifier, String identity) {
-        Tenant tenant = new Tenant();
+    private Tenant createTenant(final String identifier, final String identity) {
+        final Tenant tenant = new Tenant();
 
         tenant.setIdentifier(identifier);
         tenant.setIdentity(identity);

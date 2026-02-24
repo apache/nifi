@@ -42,7 +42,7 @@ public final class NiFiUserUtils {
         final SecurityContext context = SecurityContextHolder.getContext();
         final Authentication authentication = context.getAuthentication();
         if (authentication != null) {
-            Object principal = authentication.getPrincipal();
+            final Object principal = authentication.getPrincipal();
             if (principal instanceof NiFiUserDetails) {
                 user = ((NiFiUserDetails) principal).getNiFiUser();
             }
@@ -53,7 +53,7 @@ public final class NiFiUserUtils {
 
     public static String getNiFiUserIdentity() {
         // get the nifi user to extract the username
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
             return "unknown";
         } else {

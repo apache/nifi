@@ -81,7 +81,7 @@ public class TestParseSyslog5424 {
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
         assertNotNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
@@ -92,7 +92,7 @@ public class TestParseSyslog5424 {
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
         assertNotNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
@@ -103,7 +103,7 @@ public class TestParseSyslog5424 {
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
         assertNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 

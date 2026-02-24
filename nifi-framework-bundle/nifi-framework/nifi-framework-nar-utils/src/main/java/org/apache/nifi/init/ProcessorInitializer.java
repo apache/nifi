@@ -37,9 +37,9 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
     }
 
     @Override
-    public void initialize(ConfigurableComponent component) {
-        Processor processor = (Processor) component;
-        ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
+    public void initialize(final ConfigurableComponent component) {
+        final Processor processor = (Processor) component;
+        final ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), initializationContext.getIdentifier())) {
             processor.initialize(initializationContext);
         }

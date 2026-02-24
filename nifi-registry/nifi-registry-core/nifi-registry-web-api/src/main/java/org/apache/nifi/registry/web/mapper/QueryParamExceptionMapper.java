@@ -32,7 +32,7 @@ public class QueryParamExceptionMapper implements ExceptionMapper<ParamException
     private static final Logger logger = LoggerFactory.getLogger(QueryParamExceptionMapper.class);
 
     @Override
-    public Response toResponse(ParamException.QueryParamException exception) {
+    public Response toResponse(final ParamException.QueryParamException exception) {
         logger.info("{}. Returning {} response.", exception, Response.Status.BAD_REQUEST);
 
         if (logger.isDebugEnabled()) {

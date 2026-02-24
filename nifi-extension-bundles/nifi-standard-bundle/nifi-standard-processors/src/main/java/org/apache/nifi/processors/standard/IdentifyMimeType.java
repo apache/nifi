@@ -144,7 +144,7 @@ public class IdentifyMimeType extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         final String configFileProperty = "config-file";
         final String configBodyProperty = "config-body";
 
@@ -169,7 +169,7 @@ public class IdentifyMimeType extends AbstractProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException {
-        String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
+        final String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
 
         if (configStrategy.equals(PRESET.getValue())) {
             this.detector = config.getDetector();
@@ -178,7 +178,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             try {
                 this.detector = createCustomMimeTypes(configStrategy, context);
                 this.mimeTypes = (MimeTypes) this.detector;
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 context.yield();
                 throw new ProcessException("Failed to load configuration", e);
             }
@@ -214,7 +214,7 @@ public class IdentifyMimeType extends AbstractProcessor {
              final TikaInputStream tikaStream = TikaInputStream.get(flowFileStream)) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
-            Metadata metadata = new Metadata();
+            final Metadata metadata = new Metadata();
             if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
                 metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
             }
@@ -223,7 +223,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             mediaTypeString = mediaType.getBaseType().toString();
             extension = lookupExtension(mediaTypeString, logger);
             charset = identifyCharset(tikaStream, metadata, mediaType);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException("Failed to identify MIME type from content stream", e);
         }
 
@@ -238,12 +238,12 @@ public class IdentifyMimeType extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private String lookupExtension(String mediaTypeString, ComponentLog logger) {
+    private String lookupExtension(final String mediaTypeString, final ComponentLog logger) {
         String extension = "";
         try {
-            MimeType mimeType = mimeTypes.forName(mediaTypeString);
+            final MimeType mimeType = mimeTypes.forName(mediaTypeString);
             extension = mimeType.getExtension();
-        } catch (MimeTypeException e) {
+        } catch (final MimeTypeException e) {
             logger.warn("MIME type extension lookup failed", e);
         }
 
@@ -254,7 +254,7 @@ public class IdentifyMimeType extends AbstractProcessor {
         return extension;
     }
 
-    private Charset identifyCharset(TikaInputStream tikaStream, Metadata metadata, MediaType mediaType) throws IOException {
+    private Charset identifyCharset(final TikaInputStream tikaStream, final Metadata metadata, final MediaType mediaType) throws IOException {
         // only mime-types text/* have a charset parameter
         if (mediaType.getType().equals("text")) {
             metadata.add(HttpHeaders.CONTENT_TYPE, mediaType.toString());
@@ -265,14 +265,14 @@ public class IdentifyMimeType extends AbstractProcessor {
         }
     }
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
-        String configStrategy = validationContext.getProperty(CONFIG_STRATEGY).getValue();
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Set<ValidationResult> results = new HashSet<>();
+        final String configStrategy = validationContext.getProperty(CONFIG_STRATEGY).getValue();
 
         if (!configStrategy.equals(PRESET.getValue())) {
             try {
                 createCustomMimeTypes(configStrategy, validationContext);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 results.add(new ValidationResult.Builder()
                         .subject(CUSTOM_MIME_CONFIGURATION.getDisplayName())
                         .input(validationContext.getProperty(CUSTOM_MIME_CONFIGURATION).getValue())
@@ -284,7 +284,7 @@ public class IdentifyMimeType extends AbstractProcessor {
         return results;
     }
 
-    private MimeTypes createCustomMimeTypes(String configStrategy, PropertyContext context) throws MimeTypeException, IOException {
+    private MimeTypes createCustomMimeTypes(final String configStrategy, final PropertyContext context) throws MimeTypeException, IOException {
         try (final InputStream customInputStream = context.getProperty(CUSTOM_MIME_CONFIGURATION).asResource().read()) {
             if (configStrategy.equals(REPLACE.getValue())) {
                 return MimeTypesFactory.create(customInputStream);

@@ -30,7 +30,7 @@ public class StatusRunner implements CommandRunner {
     private final MiNiFiParameters miNiFiParameters;
     private final MiNiFiStatusProvider miNiFiStatusProvider;
 
-    public StatusRunner(MiNiFiParameters miNiFiParameters, MiNiFiStatusProvider miNiFiStatusProvider) {
+    public StatusRunner(final MiNiFiParameters miNiFiParameters, final MiNiFiStatusProvider miNiFiStatusProvider) {
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiStatusProvider = miNiFiStatusProvider;
     }
@@ -41,12 +41,12 @@ public class StatusRunner implements CommandRunner {
      * @return status code
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         return status();
     }
 
     private int status() {
-        MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
+        final MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
         if (status.isRespondingToPing()) {
             CMD_LOGGER.info("Apache MiNiFi is currently running, listening to Bootstrap on port {}, PID={}",
                 status.getPort(), status.getPid() == null ? "unknown" : status.getPid());

@@ -38,7 +38,7 @@ public class ProcessGroupStatusEntity extends Entity implements ReadablePermissi
         return processGroupStatus;
     }
 
-    public void setProcessGroupStatus(ProcessGroupStatusDTO processGroupStatus) {
+    public void setProcessGroupStatus(final ProcessGroupStatusDTO processGroupStatus) {
         this.processGroupStatus = processGroupStatus;
     }
 
@@ -48,7 +48,7 @@ public class ProcessGroupStatusEntity extends Entity implements ReadablePermissi
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

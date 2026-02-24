@@ -34,7 +34,7 @@ public class PropertyResourceDefinition implements Serializable {
         return cardinality;
     }
 
-    public void setCardinality(ResourceCardinality cardinality) {
+    public void setCardinality(final ResourceCardinality cardinality) {
         this.cardinality = cardinality;
     }
 
@@ -43,7 +43,7 @@ public class PropertyResourceDefinition implements Serializable {
         return resourceTypes;
     }
 
-    public void setResourceTypes(Set<ResourceType> resourceTypes) {
+    public void setResourceTypes(final Set<ResourceType> resourceTypes) {
         this.resourceTypes = resourceTypes;
     }
 

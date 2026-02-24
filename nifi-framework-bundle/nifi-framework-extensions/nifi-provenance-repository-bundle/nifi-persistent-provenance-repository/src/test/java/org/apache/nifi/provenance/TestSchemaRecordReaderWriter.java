@@ -96,7 +96,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
             4, 80, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 40_000, 80_000, 99_000
         };
 
-        boolean loopForever = true;
+        final boolean loopForever = true;
         while (loopForever) {
             final long start = System.nanoTime();
             for (int i = 0; i < 1000; i++) {
@@ -169,7 +169,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
             // to avoid actually writing them out.
             final ByteArraySchemaRecordWriter writer = new ByteArraySchemaRecordWriter(journalFile, idGenerator, tocWriter, false, 0) {
                 @Override
-                public void writeHeader(long firstEventId, DataOutputStream out) throws IOException {
+                public void writeHeader(final long firstEventId, final DataOutputStream out) throws IOException {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     recordSchema.writeTo(baos);
 
@@ -258,7 +258,7 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
 
         final ByteArraySchemaRecordWriter writer = new ByteArraySchemaRecordWriter(journalFile, idGenerator, tocWriter, false, 0) {
             @Override
-            public void writeHeader(long firstEventId, DataOutputStream out) throws IOException {
+            public void writeHeader(final long firstEventId, final DataOutputStream out) throws IOException {
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 recordSchema.writeTo(baos);
 
@@ -363,12 +363,12 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
     }
 
     @Override
-    protected RecordWriter createWriter(File file, TocWriter tocWriter, boolean compressed, int uncompressedBlockSize) throws IOException {
+    protected RecordWriter createWriter(final File file, final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
         return new ByteArraySchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize);
     }
 
     @Override
-    protected RecordReader createReader(InputStream in, String journalFilename, TocReader tocReader, int maxAttributeSize) throws IOException {
+    protected RecordReader createReader(final InputStream in, final String journalFilename, final TocReader tocReader, final int maxAttributeSize) throws IOException {
         return new ByteArraySchemaRecordReader(in, journalFilename, tocReader, maxAttributeSize);
     }
 }

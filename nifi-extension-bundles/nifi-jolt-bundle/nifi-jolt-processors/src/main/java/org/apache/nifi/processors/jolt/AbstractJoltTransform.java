@@ -121,14 +121,14 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) {
-        int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
+        final int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
         transformCache = Caffeine.newBuilder()
                 .maximumSize(maxTransformsToCache)
                 .build();
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
@@ -190,7 +190,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                     }
                 }
             } catch (final Exception e) {
-                String message = String.format("Specification not valid for the selected transformation: %s", e.getMessage());
+                final String message = String.format("Specification not valid for the selected transformation: %s", e.getMessage());
                 results.add(new ValidationResult.Builder()
                         .valid(false)
                         .subject(JOLT_SPEC.getDisplayName())
@@ -223,7 +223,7 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
         return transformCache.get(specString, currString -> {
             try {
                 return createTransform(context, flowFile);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Transform creation failed", e);
             }
             return null;

@@ -78,7 +78,7 @@ public class ConnectionFactoryConfigIT {
 
     @Test
     public void testJndiJmsConnectionFactoryControllerService() throws InitializationException {
-        String queueName = "queue-jndi-service";
+        final String queueName = "queue-jndi-service";
 
         configureJndiJmsConnectionFactoryControllerService(publisher, queueName);
         configureJndiJmsConnectionFactoryControllerService(consumer, queueName);
@@ -90,7 +90,7 @@ public class ConnectionFactoryConfigIT {
 
     @Test
     public void testJMSConnectionFactoryControllerService() throws InitializationException {
-        String queueName = "queue-jms-service";
+        final String queueName = "queue-jms-service";
 
         configureJMSConnectionFactoryControllerService(publisher, queueName);
         configureJMSConnectionFactoryControllerService(consumer, queueName);
@@ -102,7 +102,7 @@ public class ConnectionFactoryConfigIT {
 
     @Test
     public void testLocalJndiJmsConnectionFactoryConfig() {
-        String queueName = "queue-jndi-local";
+        final String queueName = "queue-jndi-local";
 
         configureLocalJndiJmsConnectionFactory(publisher, queueName);
         configureLocalJndiJmsConnectionFactory(consumer, queueName);
@@ -114,7 +114,7 @@ public class ConnectionFactoryConfigIT {
 
     @Test
     public void testLocalJMSConnectionFactoryConfig() {
-        String queueName = "queue-jms-local";
+        final String queueName = "queue-jms-local";
 
         configureLocalJMSConnectionFactory(publisher, queueName);
         configureLocalJMSConnectionFactory(consumer, queueName);
@@ -124,8 +124,8 @@ public class ConnectionFactoryConfigIT {
         assertResult();
     }
 
-    private void configureJndiJmsConnectionFactoryControllerService(TestRunner runner, String queueName) throws InitializationException {
-        JndiJmsConnectionFactoryProvider cfProvider = new JndiJmsConnectionFactoryProvider();
+    private void configureJndiJmsConnectionFactoryControllerService(final TestRunner runner, final String queueName) throws InitializationException {
+        final JndiJmsConnectionFactoryProvider cfProvider = new JndiJmsConnectionFactoryProvider();
         runner.addControllerService(CONTROLLER_SERVICE_ID, cfProvider);
         runner.setProperty(cfProvider, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, PROP_JNDI_INITIAL_CONTEXT_FACTORY);
         runner.setProperty(cfProvider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, PROP_JNDI_PROVIDER_URL);
@@ -135,8 +135,8 @@ public class ConnectionFactoryConfigIT {
         runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureJMSConnectionFactoryControllerService(TestRunner runner, String queueName) throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+    private void configureJMSConnectionFactoryControllerService(final TestRunner runner, final String queueName) throws InitializationException {
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CONTROLLER_SERVICE_ID, cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, PROP_JMS_CONNECTION_FACTORY_IMPL);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, PROP_JMS_BROKER_URI);
@@ -145,14 +145,14 @@ public class ConnectionFactoryConfigIT {
         runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureLocalJndiJmsConnectionFactory(TestRunner runner, String queueName) {
+    private void configureLocalJndiJmsConnectionFactory(final TestRunner runner, final String queueName) {
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, PROP_JNDI_INITIAL_CONTEXT_FACTORY);
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, PROP_JNDI_PROVIDER_URL);
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME, PROP_JNDI_CONNECTION_FACTORY_NAME);
         runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);
     }
 
-    private void configureLocalJMSConnectionFactory(TestRunner runner, String queueName) {
+    private void configureLocalJMSConnectionFactory(final TestRunner runner, final String queueName) {
         runner.setProperty(JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, PROP_JMS_CONNECTION_FACTORY_IMPL);
         runner.setProperty(JMSConnectionFactoryProperties.JMS_BROKER_URI, PROP_JMS_BROKER_URI);
         runner.setProperty(AbstractJMSProcessor.DESTINATION, queueName);

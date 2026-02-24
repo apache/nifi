@@ -29,7 +29,7 @@ public class UiExtensionMapping {
 
     private final Map<String, List<UiExtension>> uiExtensions = new ConcurrentHashMap<>();
 
-    public UiExtensionMapping(Map<String, List<UiExtension>> uiExtensions) {
+    public UiExtensionMapping(final Map<String, List<UiExtension>> uiExtensions) {
         this.uiExtensions.putAll(uiExtensions);
     }
 
@@ -84,7 +84,7 @@ public class UiExtensionMapping {
      *
      * @param uiExtensions the additional UI extension mappings.
      */
-    public synchronized void addUiExtensions(Map<String, List<UiExtension>> uiExtensions) {
+    public synchronized void addUiExtensions(final Map<String, List<UiExtension>> uiExtensions) {
         this.uiExtensions.putAll(uiExtensions);
     }
 

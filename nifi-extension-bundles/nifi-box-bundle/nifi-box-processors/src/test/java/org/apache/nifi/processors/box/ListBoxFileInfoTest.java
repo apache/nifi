@@ -203,7 +203,7 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
     }
 
     private void mockMultipleFilesResponse() {
-        List<String> pathParts = Arrays.asList("path", "to", "file");
+        final List<String> pathParts = Arrays.asList("path", "to", "file");
 
         doReturn(Arrays.asList(
                 createFileInfo(TEST_FILE_ID + "1", TEST_FILENAME + "1", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME),

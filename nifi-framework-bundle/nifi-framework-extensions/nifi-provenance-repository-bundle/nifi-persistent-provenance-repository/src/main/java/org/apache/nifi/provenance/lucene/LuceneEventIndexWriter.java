@@ -61,7 +61,7 @@ public class LuceneEventIndexWriter implements EventIndexWriter {
     }
 
     @Override
-    public boolean index(List<Document> documents, final int commitThreshold) throws IOException {
+    public boolean index(final List<Document> documents, final int commitThreshold) throws IOException {
         if (documents.isEmpty()) {
             return false;
         }

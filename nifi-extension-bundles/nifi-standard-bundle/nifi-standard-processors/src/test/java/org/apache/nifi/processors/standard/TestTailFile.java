@@ -76,7 +76,7 @@ public class TestTailFile {
         file.delete();
         assertTrue(file.createNewFile());
 
-        File existingFile = new File("target/existing-log.txt");
+        final File existingFile = new File("target/existing-log.txt");
         existingFile.delete();
         assertTrue(existingFile.createNewFile());
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(existingFile)))) {
@@ -89,7 +89,7 @@ public class TestTailFile {
             writer.flush();
         }
 
-        File directory = new File("target/testDir");
+        final File directory = new File("target/testDir");
         if (!directory.exists()) {
             assertTrue(directory.mkdirs());
         }
@@ -144,11 +144,11 @@ public class TestTailFile {
     @Test
     public void testNULContentWithReReadOnNulDefault() throws Exception {
         // GIVEN
-        String content1 = "first_line_with_nul\0\n";
-        Integer reposition = null;
-        String content2 = "second_line\n";
+        final String content1 = "first_line_with_nul\0\n";
+        final Integer reposition = null;
+        final String content2 = "second_line\n";
 
-        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "second_line\n");
+        final List<String> expected = Arrays.asList("first_line_with_nul\0\n", "second_line\n");
 
         // WHEN
         // THEN
@@ -160,11 +160,11 @@ public class TestTailFile {
         // GIVEN
         runner.setProperty(TailFile.REREAD_ON_NUL, "false");
 
-        String content1 = "first_line_with_nul\0\n";
-        Integer reposition = "first_line_with_nul".length();
-        String content2 = "!!overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n";
+        final String content1 = "first_line_with_nul\0\n";
+        final Integer reposition = "first_line_with_nul".length();
+        final String content2 = "!!overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n";
 
-        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n");
+        final List<String> expected = Arrays.asList("first_line_with_nul\0\n", "overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n");
 
         // WHEN
         // THEN
@@ -176,18 +176,18 @@ public class TestTailFile {
         // GIVEN
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");
 
-        String content1 = "first_line_with_nul\0\n";
-        Integer reposition = "first_line_with_nul".length();
-        String content2 = " overwrite_nul_and_continue_first_line\n";
+        final String content1 = "first_line_with_nul\0\n";
+        final Integer reposition = "first_line_with_nul".length();
+        final String content2 = " overwrite_nul_and_continue_first_line\n";
 
-        List<String> expected = List.of("first_line_with_nul overwrite_nul_and_continue_first_line\n");
+        final List<String> expected = List.of("first_line_with_nul overwrite_nul_and_continue_first_line\n");
 
         // WHEN
         // THEN
         testNULContent(content1, reposition, content2, expected);
     }
 
-    private void testNULContent(String content1, Integer reposition, String content2, List<String> expected) throws IOException {
+    private void testNULContent(final String content1, final Integer reposition, final String content2, final List<String> expected) throws IOException {
         // GIVEN
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
         raf.write(content1.getBytes());
@@ -203,8 +203,8 @@ public class TestTailFile {
         // THEN
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, expected.size());
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
-        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        final List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
         assertEquals(expected, lines);
     }
 
@@ -241,8 +241,8 @@ public class TestTailFile {
         runner.run(1, true, false);
 
         runner.assertTransferCount(TailFile.REL_SUCCESS, 3);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
-        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        final List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
         assertEquals(Arrays.asList("a\n", "bc\n", "d\n"), lines);
     }
 
@@ -972,12 +972,12 @@ public class TestTailFile {
 
         // I manually add a third file to tail here
         // I'll remove it later in the test
-        File thirdFile = new File("target/logging.txt");
+        final File thirdFile = new File("target/logging.txt");
         if (thirdFile.exists()) {
             thirdFile.delete();
         }
         assertTrue(thirdFile.createNewFile());
-        RandomAccessFile thirdFileRaf = new RandomAccessFile(thirdFile, "rw");
+        final RandomAccessFile thirdFileRaf = new RandomAccessFile(thirdFile, "rw");
         thirdFileRaf.write("hey\n".getBytes());
 
         otherRaf.write("hi\n".getBytes());
@@ -985,15 +985,15 @@ public class TestTailFile {
 
         runner.run(1);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 3);
-        Optional<MockFlowFile> thirdFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
+        final Optional<MockFlowFile> thirdFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
                 .stream().filter(mockFlowFile -> mockFlowFile.isAttributeEqual("tailfile.original.path", thirdFile.getPath())).findFirst();
         assertTrue(thirdFileFF.isPresent());
         thirdFileFF.get().assertContentEquals("hey\n");
-        Optional<MockFlowFile> otherFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
+        final Optional<MockFlowFile> otherFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
                 .stream().filter(mockFlowFile -> mockFlowFile.isAttributeEqual("tailfile.original.path", otherFile.getPath())).findFirst();
         assertTrue(otherFileFF.isPresent());
         otherFileFF.get().assertContentEquals("hi\n");
-        Optional<MockFlowFile> fileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
+        final Optional<MockFlowFile> fileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
                 .stream().filter(mockFlowFile -> mockFlowFile.isAttributeEqual("tailfile.original.path", file.getPath())).findFirst();
         assertTrue(fileFF.isPresent());
         fileFF.get().assertContentEquals("hello\n");
@@ -1022,12 +1022,12 @@ public class TestTailFile {
         otherRaf.write("2\n".getBytes());
 
         // I also add a new file here
-        File fourthFile = new File("target/testDir/logging.txt");
+        final File fourthFile = new File("target/testDir/logging.txt");
         if (fourthFile.exists()) {
             fourthFile.delete();
         }
         assertTrue(fourthFile.createNewFile());
-        RandomAccessFile fourthFileRaf = new RandomAccessFile(fourthFile, "rw");
+        final RandomAccessFile fourthFileRaf = new RandomAccessFile(fourthFile, "rw");
         fourthFileRaf.write("3\n".getBytes());
         fourthFileRaf.close();
 
@@ -1051,15 +1051,15 @@ public class TestTailFile {
 
         initializeFile("target/log_1.txt", "firstLine\n");
 
-        Runnable task = () -> {
+        final Runnable task = () -> {
             try {
                 initializeFile("target/log_2.txt", "newFile\n");
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 fail();
             }
         };
 
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         executor.schedule(task, 2, TimeUnit.SECONDS);
 
         runner.setRunSchedule(2000);
@@ -1080,8 +1080,8 @@ public class TestTailFile {
         runner.setProperty(TailFile.FILENAME, "log_[0-9]*\\.txt");
         runner.setProperty(TailFile.RECURSIVE, "false");
 
-        String logFile1 = Paths.get("target", "log_1.txt").toString();
-        String logFile2 = Paths.get("target", "log_2.txt").toString();
+        final String logFile1 = Paths.get("target", "log_1.txt").toString();
+        final String logFile2 = Paths.get("target", "log_2.txt").toString();
 
         initializeFile(logFile1, "firstLine\n");
         initializeFile(logFile2, "secondLine\n");
@@ -1146,7 +1146,7 @@ public class TestTailFile {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
 
-        File myOtherFile = new File("target/logging.txt");
+        final File myOtherFile = new File("target/logging.txt");
         if (myOtherFile.exists()) {
             myOtherFile.delete();
         }
@@ -1159,11 +1159,11 @@ public class TestTailFile {
 
         runner.run(1);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
-        Optional<MockFlowFile> myOtherFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
+        final Optional<MockFlowFile> myOtherFileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
                 .stream().filter(mockFlowFile -> mockFlowFile.isAttributeEqual("tailfile.original.path", myOtherFile.getPath())).findFirst();
         assertTrue(myOtherFileFF.isPresent());
         myOtherFileFF.get().assertContentEquals("hey\n");
-        Optional<MockFlowFile> fileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
+        final Optional<MockFlowFile> fileFF = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS)
                 .stream().filter(mockFlowFile -> mockFlowFile.isAttributeEqual("tailfile.original.path", file.getPath())).findFirst();
         assertTrue(fileFF.isPresent());
         fileFF.get().assertContentEquals("hello\n");
@@ -1299,22 +1299,22 @@ public class TestTailFile {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void assertNumberOfStateMapEntries(int expectedNumberOfLogFiles) throws IOException {
+    private void assertNumberOfStateMapEntries(final int expectedNumberOfLogFiles) throws IOException {
         final int numberOfStateKeysPerFile = 6;
-        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        final StateMap states = runner.getStateManager().getState(Scope.LOCAL);
         assertEquals(numberOfStateKeysPerFile * expectedNumberOfLogFiles, states.toMap().size());
     }
 
-    private void assertFilenamesInStateMap(Collection<String> expectedFilenames) throws IOException {
-        StateMap states = runner.getStateManager().getState(Scope.LOCAL);
-        Set<String> filenames = states.toMap().entrySet().stream()
+    private void assertFilenamesInStateMap(final Collection<String> expectedFilenames) throws IOException {
+        final StateMap states = runner.getStateManager().getState(Scope.LOCAL);
+        final Set<String> filenames = states.toMap().entrySet().stream()
                 .filter(entry -> entry.getKey().endsWith("filename"))
                 .map(Entry::getValue)
                 .collect(Collectors.toSet());
         assertEquals(new HashSet<>(expectedFilenames), filenames);
     }
 
-    private void cleanFiles(String directory) {
+    private void cleanFiles(final String directory) {
         final File targetDir = new File(directory);
         if (targetDir.exists()) {
             final File[] files = targetDir.listFiles((dir, name) -> name.startsWith("log") || name.endsWith("log"));
@@ -1330,20 +1330,20 @@ public class TestTailFile {
         cleanFiles("target/testDir");
     }
 
-    private RandomAccessFile initializeFile(String path, String data) throws IOException {
-        File file = new File(path);
+    private RandomAccessFile initializeFile(final String path, final String data) throws IOException {
+        final File file = new File(path);
         if (file.exists()) {
             file.delete();
         }
         assertTrue(file.createNewFile());
-        RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
+        final RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
         randomAccessFile.write(data.getBytes());
         randomAccessFile.close();
         return randomAccessFile;
     }
 
-    private void deleteFile(String path) {
-        File file = new File(path);
+    private void deleteFile(final String path) {
+        final File file = new File(path);
         assertTrue(file.delete());
     }
 

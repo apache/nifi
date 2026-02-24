@@ -35,7 +35,7 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
     private static final String ROLE_SESSION_NAME_KEY = "awsRoleSessionName";
 
     @Override
-    public String getConfiguration(PropertyContext context) {
+    public String getConfiguration(final PropertyContext context) {
         final AwsRoleSource roleSource = context.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS, REQUIRED);
 

@@ -45,7 +45,7 @@ public class LogoutAccessToken extends AbstractNiFiRegistryCommand<VoidResult> {
     }
 
     @Override
-    public VoidResult doExecute(NiFiRegistryClient client, Properties properties)
+    public VoidResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException, CommandException {
         final String bearerToken = getRequiredArg(properties, CommandOption.BEARER_TOKEN);
         client.getAccessClient().logout(bearerToken);

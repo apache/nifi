@@ -30,7 +30,7 @@ public class KustoIngestQueryResponse {
         return error;
     }
 
-    public void setError(boolean error) {
+    public void setError(final boolean error) {
         this.error = error;
     }
 

@@ -81,7 +81,7 @@ public interface ConfigurableUserGroupProvider extends UserGroupProvider {
      * @param user the user
      * @return is configurable
      */
-    default boolean isConfigurable(User user) {
+    default boolean isConfigurable(final User user) {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -125,7 +125,7 @@ public interface ConfigurableUserGroupProvider extends UserGroupProvider {
      * @param group the group
      * @return is configurable
      */
-    default boolean isConfigurable(Group group) {
+    default boolean isConfigurable(final Group group) {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }

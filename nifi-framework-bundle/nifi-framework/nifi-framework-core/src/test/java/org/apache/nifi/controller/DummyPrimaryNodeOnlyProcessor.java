@@ -29,5 +29,5 @@ import org.apache.nifi.processor.exception.ProcessException;
 @PrimaryNodeOnly
 public class DummyPrimaryNodeOnlyProcessor extends AbstractProcessor {
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException { }
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException { }
 }

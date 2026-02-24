@@ -35,9 +35,9 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
     private volatile Cache<String, StatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
-    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
-            StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
-            long predictionIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
+    public CachingConnectionStatusAnalyticsEngine(final FlowManager flowManager, final StatusHistoryRepository statusRepository,
+            final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+            final long predictionIntervalMillis, final long queryIntervalMillis, final String scoreName, final double scoreThreshold) {
 
         super(flowManager, statusRepository,  statusAnalyticsModelMapFactory, predictionIntervalMillis,
                            queryIntervalMillis, scoreName, scoreThreshold);
@@ -52,7 +52,7 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
      * @return StatusAnalytics analytics object for given connection with id
      */
     @Override
-    public StatusAnalytics getStatusAnalytics(String identifier) {
+    public StatusAnalytics getStatusAnalytics(final String identifier) {
 
         StatusAnalytics connectionStatusAnalytics = cache.getIfPresent(identifier);
         if (connectionStatusAnalytics == null) {

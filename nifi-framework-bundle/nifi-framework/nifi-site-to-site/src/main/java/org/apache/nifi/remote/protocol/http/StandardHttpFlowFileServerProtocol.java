@@ -67,9 +67,9 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
+    protected HandshakeProperties doHandshake(final Peer peer) throws IOException, HandshakeException {
 
-        HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         final String transactionId = commsSession.getTransactionId();
 
         HandshakeProperties confirmed = null;
@@ -89,8 +89,8 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession, String explanation) throws IOException {
-        HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
+    protected void writeTransactionResponse(final boolean isTransfer, final ResponseCode response, final CommunicationsSession commsSession, final String explanation) throws IOException {
+        final HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
 
         commSession.setResponseCode(response);
         if (isTransfer) {
@@ -132,16 +132,16 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected Response readTransactionResponse(boolean isTransfer, CommunicationsSession commsSession) throws IOException {
+    protected Response readTransactionResponse(final boolean isTransfer, final CommunicationsSession commsSession) throws IOException {
         // Returns Response based on current status.
-        HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
+        final HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Transaction.TransactionState currentStatus = commSession.getStatus();
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        final Transaction.TransactionState currentStatus = commSession.getStatus();
         if (isTransfer) {
             switch (currentStatus) {
                 case DATA_EXCHANGED:
-                    String clientChecksum = commSession.getChecksum();
+                    final String clientChecksum = commSession.getChecksum();
                     logger.debug("readTransactionResponse. clientChecksum={}", clientChecksum);
                     ResponseCode.CONFIRM_TRANSACTION.writeResponse(new DataOutputStream(bos), clientChecksum);
                     break;
@@ -159,7 +159,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
                     break;
                 case TRANSACTION_CONFIRMED:
                     // Checksum was successfully validated at client side, or BAD_CHECKSUM is returned.
-                    ResponseCode responseCode = commSession.getResponseCode();
+                    final ResponseCode responseCode = commSession.getResponseCode();
                     logger.debug("readTransactionResponse. responseCode={}", responseCode);
                     if (responseCode.containsMessage()) {
                         responseCode.writeResponse(new DataOutputStream(bos), "");
@@ -170,16 +170,16 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
             }
         }
 
-        ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+        final ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
         return Response.read(new DataInputStream(bis));
     }
 
-    private int holdTransaction(Peer peer, FlowFileTransaction transaction) {
+    private int holdTransaction(final Peer peer, final FlowFileTransaction transaction) {
         // We don't commit the session here yet,
         // to avoid losing sent flow files in case some issue happens at client side while it is processing,
         // hold the transaction until we confirm additional request from client.
-        HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        String transactionId = commSession.getTransactionId();
+        final HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String transactionId = commSession.getTransactionId();
         logger.debug("{} Holding transaction. transactionId={}", this, transactionId);
         transactionManager.holdTransaction(transactionId, transaction, handshakeProperties);
 
@@ -187,32 +187,32 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
+    protected int commitTransferTransaction(final Peer peer, final FlowFileTransaction transaction) throws IOException {
         return holdTransaction(peer, transaction);
     }
 
     @Override
-    public int commitTransferTransaction(Peer peer, String clientChecksum) throws IOException, IllegalStateException {
+    public int commitTransferTransaction(final Peer peer, final String clientChecksum) throws IOException, IllegalStateException {
         logger.debug("{} Committing the transfer transaction. peer={} clientChecksum={}", this, peer, clientChecksum);
-        HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        String transactionId = commSession.getTransactionId();
-        FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
+        final HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String transactionId = commSession.getTransactionId();
+        final FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
         commSession.setChecksum(clientChecksum);
         commSession.setStatus(Transaction.TransactionState.DATA_EXCHANGED);
         return super.commitTransferTransaction(peer, transaction);
     }
 
     @Override
-    protected int commitReceiveTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
+    protected int commitReceiveTransaction(final Peer peer, final FlowFileTransaction transaction) throws IOException {
         return holdTransaction(peer, transaction);
     }
 
     @Override
-    public int commitReceiveTransaction(Peer peer) throws IOException, IllegalStateException {
+    public int commitReceiveTransaction(final Peer peer) throws IOException, IllegalStateException {
         logger.debug("{} Committing the receive transaction. peer={}", this, peer);
-        HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        String transactionId = commSession.getTransactionId();
-        FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
+        final HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String transactionId = commSession.getTransactionId();
+        final FlowFileTransaction transaction = transactionManager.finalizeTransaction(transactionId);
         commSession.setStatus(Transaction.TransactionState.TRANSACTION_CONFIRMED);
         return super.commitReceiveTransaction(peer, transaction);
     }
@@ -228,7 +228,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, final NodeInformation self) throws IOException {
+    public void sendPeerList(final Peer peer, final Optional<ClusterNodeInformation> clusterNodeInfo, final NodeInformation self) throws IOException {
     }
 
     @Override

@@ -32,7 +32,7 @@ public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         setupHazelcastMapCacheClient();
         enableServices();
 
-        HazelcastInstance instance =
+        final HazelcastInstance instance =
             Hazelcast.getAllHazelcastInstances().stream().findFirst().get();
 
         assertFalse(instance.getConfig().getNetworkConfig().getJoin().isAutoDetectionEnabled());

@@ -35,35 +35,35 @@ import static org.apache.nifi.jasn1.JASN1Utils.toGetterMethod;
 public class BerRecordConverter implements JASN1TypeAndValueConverter {
     private final LoadingCache<Class, RecordSchema> schemaCache;
 
-    public BerRecordConverter(LoadingCache<Class, RecordSchema> schemaCache) {
+    public BerRecordConverter(final LoadingCache<Class, RecordSchema> schemaCache) {
         this.schemaCache = schemaCache;
     }
 
     @Override
-    public boolean supportsType(Class<?> berType) {
+    public boolean supportsType(final Class<?> berType) {
         // Needs to be the last to check
         return true;
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
-        Supplier<RecordSchema> recordSchemaSupplier = () -> schemaCache.get(berType);
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
+        final Supplier<RecordSchema> recordSchemaSupplier = () -> schemaCache.get(berType);
         return RecordFieldType.RECORD.getRecordDataType(recordSchemaSupplier);
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
+    public boolean supportsValue(final BerType value, final DataType dataType) {
         return RecordFieldType.RECORD.equals(dataType.getFieldType());
     }
 
     @Override
-    public Object convertValue(BerType berRecord, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType berRecord, final DataType dataType, final JASN1Converter converter) {
         final Class modelClass = berRecord.getClass();
         final RecordSchema recordSchema = schemaCache.get(modelClass);
         final MapRecord record = new MapRecord(recordSchema, new HashMap<>());
 
-        for (RecordField field : recordSchema.getFields()) {
-            String fieldName = field.getFieldName();
+        for (final RecordField field : recordSchema.getFields()) {
+            final String fieldName = field.getFieldName();
 
             final Object value = invokeGetter(berRecord, toGetterMethod(fieldName));
             if (value instanceof BerType) {

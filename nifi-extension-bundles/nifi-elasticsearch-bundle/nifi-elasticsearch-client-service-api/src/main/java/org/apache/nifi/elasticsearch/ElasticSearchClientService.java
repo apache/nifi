@@ -271,7 +271,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     @Override
-    default void migrateProperties(PropertyConfiguration config) {
+    default void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("el-cs-http-hosts", HTTP_HOSTS.getName());
         config.renameProperty("el-cs-ssl-context-service", PROP_SSL_CONTEXT_SERVICE.getName());
         config.renameProperty("authorization-scheme", AUTHORIZATION_SCHEME.getName());

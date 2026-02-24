@@ -223,7 +223,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+        for (final JsonNode node : response.get(JSON_FIELD_VALUE)) {
             final String name = node.get(JSON_FIELD_NAME).asText();
             result.add(name.replace(REFS_HEADS_PREFIX, EMPTY_STRING));
         }
@@ -240,7 +240,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+        for (final JsonNode node : response.get(JSON_FIELD_VALUE)) {
             if (OBJECT_TYPE_TREE.equalsIgnoreCase(node.get(JSON_FIELD_GIT_OBJECT_TYPE).asText())) {
                 final String path = node.get(JSON_FIELD_PATH).asText();
                 // Azure DevOps returns the requested directory as part of the
@@ -267,7 +267,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                 .build();
         final JsonNode response = executeGet(uri);
         final Set<String> result = new HashSet<>();
-        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+        for (final JsonNode node : response.get(JSON_FIELD_VALUE)) {
             if (OBJECT_TYPE_BLOB.equalsIgnoreCase(node.get(JSON_FIELD_GIT_OBJECT_TYPE).asText())) {
                 final String path = node.get(JSON_FIELD_PATH).asText();
                 final String[] parts = path.split(FORWARD_SLASH);
@@ -290,7 +290,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
                 .build();
         final JsonNode response = executeGet(uri);
         final List<GitCommit> result = new ArrayList<>();
-        for (JsonNode node : response.get(JSON_FIELD_VALUE)) {
+        for (final JsonNode node : response.get(JSON_FIELD_VALUE)) {
             final String sha = node.get(JSON_FIELD_COMMIT_ID).asText();
             final String author = node.get(JSON_FIELD_AUTHOR).get(JSON_FIELD_NAME).asText();
             final String message = node.get(JSON_FIELD_COMMENT).asText();
@@ -418,7 +418,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         try {
             final JsonNode pushResponse = MAPPER.readTree(response.body());
             return pushResponse.get(SEGMENT_COMMITS).get(0).get(JSON_FIELD_COMMIT_ID).asText();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowRegistryException("Failed to create content", e);
         }
     }
@@ -468,11 +468,11 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
      * @return A formatted error message.
      * @throws FlowRegistryException if the error response cannot be parsed.
      */
-    private String getErrorMessage(HttpResponseEntity responseEntity) throws FlowRegistryException {
+    private String getErrorMessage(final HttpResponseEntity responseEntity) throws FlowRegistryException {
         try {
             final Object response = MAPPER.readValue(responseEntity.body(), Object.class);
             return "[HTTP " + responseEntity.statusCode() + "] - " + response.toString();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new FlowRegistryException("Failed to parse error response", e);
         }
     }
@@ -631,7 +631,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         try {
             return MAPPER.readTree(response.body());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowRegistryException("Request to %s failed".formatted(uri), e);
         }
     }
@@ -657,7 +657,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         try {
             return MAPPER.readTree(response.body());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowRegistryException("Request to %s failed".formatted(uri), e);
         }
     }

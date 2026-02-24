@@ -58,7 +58,7 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
     }
 
     @Override
-    public StringResult doExecute(NiFiRegistryClient client, Properties properties) throws IOException, NiFiRegistryException, ParseException {
+    public StringResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException {
         final PoliciesClient policiesClient = client.getPoliciesClient();
 
         final String bucketName = getArg(properties, CommandOption.BUCKET_NAME);
@@ -87,32 +87,32 @@ public class UpdateBucketPolicy extends AbstractNiFiRegistryCommand<StringResult
         } else {
             try {
                 client.getBucketClient().get(bucketId);
-            } catch (NiFiRegistryException e) {
+            } catch (final NiFiRegistryException e) {
                 throw new IllegalArgumentException("Specified bucket does not exist");
             }
         }
         AccessPolicy accessPolicy;
-        String resource = "/buckets/" + bucketId;
+        final String resource = "/buckets/" + bucketId;
         try {
             accessPolicy = policiesClient.getAccessPolicy(policyAction, resource);
-        } catch (NiFiRegistryException e) {
+        } catch (final NiFiRegistryException e) {
             accessPolicy = new AccessPolicy();
             accessPolicy.setResource(resource);
             accessPolicy.setAction(policyAction);
         }
         if (!StringUtils.isBlank(userNames) || !StringUtils.isBlank(userIds)) {
-            Set<Tenant> users = TenantHelper.selectExistingTenants(userNames,
+            final Set<Tenant> users = TenantHelper.selectExistingTenants(userNames,
                     userIds, client.getTenantsClient().getUsers());
             //Overwrite users, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUsers(users);
         }
         if (!StringUtils.isBlank(groupNames) || !StringUtils.isBlank(groupIds)) {
-            Set<Tenant> groups = TenantHelper.selectExistingTenants(groupNames,
+            final Set<Tenant> groups = TenantHelper.selectExistingTenants(groupNames,
                     groupIds, client.getTenantsClient().getUserGroups());
             //Overwrite user-groups, similar to CreateOrUpdateAccessPolicy of Registry
             accessPolicy.setUserGroups(groups);
         }
-        AccessPolicy updatedPolicy = StringUtils.isBlank(accessPolicy.getIdentifier())
+        final AccessPolicy updatedPolicy = StringUtils.isBlank(accessPolicy.getIdentifier())
                 ? policiesClient.createAccessPolicy(accessPolicy)
                 : policiesClient.updateAccessPolicy(accessPolicy);
         return new StringResult(updatedPolicy.getIdentifier(), getContext().isInteractive());

@@ -111,26 +111,26 @@ public class ParseEvtxTest {
 
     @Test
     public void testGetNameFile() {
-        String basename = "basename";
+        final String basename = "basename";
         assertEquals(basename + ".xml", parseEvtx.getName(basename, null, null, ParseEvtx.XML_EXTENSION));
     }
 
     @Test
     public void testGetNameFileChunk() {
-        String basename = "basename";
+        final String basename = "basename";
         assertEquals(basename + "-chunk1.xml", parseEvtx.getName(basename, 1, null, ParseEvtx.XML_EXTENSION));
     }
 
     @Test
     public void testGetNameFileChunkRecord() {
-        String basename = "basename";
+        final String basename = "basename";
         assertEquals(basename + "-chunk1-record2.xml", parseEvtx.getName(basename, 1, 2, ParseEvtx.XML_EXTENSION));
     }
 
     @Test
     public void testGetBasenameEvtxExtension() {
-        String basename = "basename";
-        FlowFile flowFile = mock(FlowFile.class);
+        final String basename = "basename";
+        final FlowFile flowFile = mock(FlowFile.class);
 
         when(flowFile.getAttribute(CoreAttributes.FILENAME.key())).thenReturn(basename + ".evtx");
 
@@ -140,9 +140,9 @@ public class ParseEvtxTest {
 
     @Test
     public void testGetBasenameExtension() {
-        String basename = "basename.wrongextension";
-        FlowFile flowFile = mock(FlowFile.class);
-        ComponentLog componentLog = mock(ComponentLog.class);
+        final String basename = "basename.wrongextension";
+        final FlowFile flowFile = mock(FlowFile.class);
+        final ComponentLog componentLog = mock(ComponentLog.class);
 
         when(flowFile.getAttribute(CoreAttributes.FILENAME.key())).thenReturn(basename);
 
@@ -161,25 +161,25 @@ public class ParseEvtxTest {
 
     @Test
     public void testProcessFileGranularity() throws IOException, MalformedChunkException {
-        String basename = "basename";
-        int chunkNum = 5;
-        int offset = 10001;
-        byte[] badChunk = {8};
+        final String basename = "basename";
+        final int chunkNum = 5;
+        final int offset = 10001;
+        final byte[] badChunk = {8};
 
-        RootNodeHandler rootNodeHandler = mock(RootNodeHandler.class);
+        final RootNodeHandler rootNodeHandler = mock(RootNodeHandler.class);
         when(rootNodeHandlerFactory.create(out)).thenReturn(rootNodeHandler);
-        ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
-        ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
-        Record record1 = mock(Record.class);
-        Record record2 = mock(Record.class);
-        Record record3 = mock(Record.class);
-        RootNode rootNode1 = mock(RootNode.class);
-        RootNode rootNode2 = mock(RootNode.class);
-        RootNode rootNode3 = mock(RootNode.class);
-        ProcessSession session = mock(ProcessSession.class);
-        FlowFile flowFile = mock(FlowFile.class);
-        AtomicReference<Exception> reference = new AtomicReference<>();
-        MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
+        final ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
+        final ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
+        final Record record1 = mock(Record.class);
+        final Record record2 = mock(Record.class);
+        final Record record3 = mock(Record.class);
+        final RootNode rootNode1 = mock(RootNode.class);
+        final RootNode rootNode2 = mock(RootNode.class);
+        final RootNode rootNode3 = mock(RootNode.class);
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = mock(FlowFile.class);
+        final AtomicReference<Exception> reference = new AtomicReference<>();
+        final MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
 
         when(record1.getRootNode()).thenReturn(rootNode1);
         when(record2.getRootNode()).thenReturn(rootNode2);
@@ -205,31 +205,31 @@ public class ParseEvtxTest {
 
     @Test
     public void testProcessChunkGranularity() throws IOException, MalformedChunkException {
-        String basename = "basename";
-        int chunkNum = 5;
-        int offset = 10001;
-        byte[] badChunk = {8};
+        final String basename = "basename";
+        final int chunkNum = 5;
+        final int offset = 10001;
+        final byte[] badChunk = {8};
 
-        RootNodeHandler rootNodeHandler1 = mock(RootNodeHandler.class);
-        RootNodeHandler rootNodeHandler2 = mock(RootNodeHandler.class);
-        OutputStream out2 = mock(OutputStream.class);
+        final RootNodeHandler rootNodeHandler1 = mock(RootNodeHandler.class);
+        final RootNodeHandler rootNodeHandler2 = mock(RootNodeHandler.class);
+        final OutputStream out2 = mock(OutputStream.class);
         when(rootNodeHandlerFactory.create(out)).thenReturn(rootNodeHandler1);
         when(rootNodeHandlerFactory.create(out2)).thenReturn(rootNodeHandler2);
-        ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
-        ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
-        Record record1 = mock(Record.class);
-        Record record2 = mock(Record.class);
-        Record record3 = mock(Record.class);
-        RootNode rootNode1 = mock(RootNode.class);
-        RootNode rootNode2 = mock(RootNode.class);
-        RootNode rootNode3 = mock(RootNode.class);
-        ProcessSession session = mock(ProcessSession.class);
-        FlowFile flowFile = mock(FlowFile.class);
-        FlowFile created1 = mock(FlowFile.class);
-        FlowFile updated1 = mock(FlowFile.class);
-        FlowFile created2 = mock(FlowFile.class);
-        FlowFile updated2 = mock(FlowFile.class);
-        MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
+        final ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
+        final ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
+        final Record record1 = mock(Record.class);
+        final Record record2 = mock(Record.class);
+        final Record record3 = mock(Record.class);
+        final RootNode rootNode1 = mock(RootNode.class);
+        final RootNode rootNode2 = mock(RootNode.class);
+        final RootNode rootNode3 = mock(RootNode.class);
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = mock(FlowFile.class);
+        final FlowFile created1 = mock(FlowFile.class);
+        final FlowFile updated1 = mock(FlowFile.class);
+        final FlowFile created2 = mock(FlowFile.class);
+        final FlowFile updated2 = mock(FlowFile.class);
+        final MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
 
         when(session.create(flowFile)).thenReturn(created1).thenReturn(created2).thenReturn(null);
 
@@ -268,36 +268,36 @@ public class ParseEvtxTest {
 
     @Test
     public void testProcess1RecordGranularity() throws IOException, MalformedChunkException {
-        String basename = "basename";
-        int chunkNum = 5;
-        int offset = 10001;
-        byte[] badChunk = {8};
+        final String basename = "basename";
+        final int chunkNum = 5;
+        final int offset = 10001;
+        final byte[] badChunk = {8};
 
-        RootNodeHandler rootNodeHandler1 = mock(RootNodeHandler.class);
-        RootNodeHandler rootNodeHandler2 = mock(RootNodeHandler.class);
-        RootNodeHandler rootNodeHandler3 = mock(RootNodeHandler.class);
-        OutputStream out2 = mock(OutputStream.class);
-        OutputStream out3 = mock(OutputStream.class);
+        final RootNodeHandler rootNodeHandler1 = mock(RootNodeHandler.class);
+        final RootNodeHandler rootNodeHandler2 = mock(RootNodeHandler.class);
+        final RootNodeHandler rootNodeHandler3 = mock(RootNodeHandler.class);
+        final OutputStream out2 = mock(OutputStream.class);
+        final OutputStream out3 = mock(OutputStream.class);
         when(rootNodeHandlerFactory.create(out)).thenReturn(rootNodeHandler1);
         when(rootNodeHandlerFactory.create(out2)).thenReturn(rootNodeHandler2);
         when(rootNodeHandlerFactory.create(out3)).thenReturn(rootNodeHandler3);
-        ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
-        ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
-        Record record1 = mock(Record.class);
-        Record record2 = mock(Record.class);
-        Record record3 = mock(Record.class);
-        RootNode rootNode1 = mock(RootNode.class);
-        RootNode rootNode2 = mock(RootNode.class);
-        RootNode rootNode3 = mock(RootNode.class);
-        ProcessSession session = mock(ProcessSession.class);
-        FlowFile flowFile = mock(FlowFile.class);
-        FlowFile created1 = mock(FlowFile.class);
-        FlowFile updated1 = mock(FlowFile.class);
-        FlowFile created2 = mock(FlowFile.class);
-        FlowFile updated2 = mock(FlowFile.class);
-        FlowFile created3 = mock(FlowFile.class);
-        FlowFile updated3 = mock(FlowFile.class);
-        MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
+        final ChunkHeader chunkHeader1 = mock(ChunkHeader.class);
+        final ChunkHeader chunkHeader2 = mock(ChunkHeader.class);
+        final Record record1 = mock(Record.class);
+        final Record record2 = mock(Record.class);
+        final Record record3 = mock(Record.class);
+        final RootNode rootNode1 = mock(RootNode.class);
+        final RootNode rootNode2 = mock(RootNode.class);
+        final RootNode rootNode3 = mock(RootNode.class);
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = mock(FlowFile.class);
+        final FlowFile created1 = mock(FlowFile.class);
+        final FlowFile updated1 = mock(FlowFile.class);
+        final FlowFile created2 = mock(FlowFile.class);
+        final FlowFile updated2 = mock(FlowFile.class);
+        final FlowFile created3 = mock(FlowFile.class);
+        final FlowFile updated3 = mock(FlowFile.class);
+        final MalformedChunkException malformedChunkException = new MalformedChunkException("Test", null, offset, chunkNum, badChunk);
 
         when(session.create(flowFile)).thenReturn(created1).thenReturn(created2).thenReturn(created3).thenReturn(null);
 
@@ -342,64 +342,64 @@ public class ParseEvtxTest {
 
     @Test
     public void fileGranularityLifecycleTest() throws IOException {
-        String baseName = "testFileName";
-        String name = baseName + ".evtx";
-        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        final String baseName = "testFileName";
+        final String name = baseName + ".evtx";
+        final TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
         testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.FILE);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), name);
         testRunner.enqueue(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"), attributes);
         testRunner.run();
 
-        List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
+        final List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
+        final MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
         // We expect the same bad chunks no matter the granularity
-        List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
+        final List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
         assertEquals(2, badChunkFlowFiles.size());
         badChunkFlowFiles.get(0).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 1, null, ParseEvtx.EVTX_EXTENSION));
         badChunkFlowFiles.get(1).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 2, null, ParseEvtx.EVTX_EXTENSION));
 
-        List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
+        final List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
         validateFlowFiles(failureFlowFiles);
         // We expect the same number of records to come out no matter the granularity
         assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, validateFlowFiles(failureFlowFiles));
 
         // Whole file fails if there is a failure parsing
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
         assertEquals(0, successFlowFiles.size());
     }
 
     @Test
     public void chunkGranularityLifecycleTest() throws IOException {
-        String baseName = "testFileName";
-        String name = baseName + ".evtx";
-        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
-        Map<String, String> attributes = new HashMap<>();
+        final String baseName = "testFileName";
+        final String name = baseName + ".evtx";
+        final TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), name);
         testRunner.enqueue(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"), attributes);
         testRunner.run();
 
-        List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
+        final List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
+        final MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
         // We expect the same bad chunks no matter the granularity
-        List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
+        final List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
         assertEquals(2, badChunkFlowFiles.size());
         badChunkFlowFiles.get(0).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 1, null, ParseEvtx.EVTX_EXTENSION));
         badChunkFlowFiles.get(1).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 2, null, ParseEvtx.EVTX_EXTENSION));
 
-        List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
+        final List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
 
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
         assertEquals(9, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
@@ -408,32 +408,32 @@ public class ParseEvtxTest {
 
     @Test
     public void recordGranularityLifecycleTest() throws IOException {
-        String baseName = "testFileName";
-        String name = baseName + ".evtx";
-        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        final String baseName = "testFileName";
+        final String name = baseName + ".evtx";
+        final TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
         testRunner.setProperty(ParseEvtx.GRANULARITY, ParseEvtx.RECORD);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), name);
         testRunner.enqueue(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"), attributes);
         testRunner.run();
 
-        List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
+        final List<MockFlowFile> originalFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_ORIGINAL);
         assertEquals(1, originalFlowFiles.size());
-        MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
+        final MockFlowFile originalFlowFile = originalFlowFiles.getFirst();
         originalFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), name);
         originalFlowFile.assertContentEquals(this.getClass().getClassLoader().getResourceAsStream("application-logs.evtx"));
 
         // We expect the same bad chunks no matter the granularity
-        List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
+        final List<MockFlowFile> badChunkFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_BAD_CHUNK);
         assertEquals(2, badChunkFlowFiles.size());
         badChunkFlowFiles.get(0).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 1, null, ParseEvtx.EVTX_EXTENSION));
         badChunkFlowFiles.get(1).assertAttributeEquals(CoreAttributes.FILENAME.key(), parseEvtx.getName(baseName, 2, null, ParseEvtx.EVTX_EXTENSION));
 
-        List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
+        final List<MockFlowFile> failureFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
         // Whole file fails if there is a failure parsing
-        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
+        final List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ParseEvtx.REL_SUCCESS);
         assertEquals(EXPECTED_SUCCESSFUL_EVENT_COUNT, successFlowFiles.size());
 
         // We expect the same number of records to come out no matter the granularity
@@ -471,52 +471,52 @@ public class ParseEvtxTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void testValidEvents(String granularity, String filename, int expectedCount) {
-        TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+    private void testValidEvents(final String granularity, final String filename, final int expectedCount) {
+        final TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
         testRunner.setProperty(ParseEvtx.GRANULARITY, granularity);
-        Map<String, String> attributes = new HashMap<>();
-        ClassLoader classLoader = this.getClass().getClassLoader();
-        InputStream resourceAsStream = classLoader.getResourceAsStream(filename);
+        final Map<String, String> attributes = new HashMap<>();
+        final ClassLoader classLoader = this.getClass().getClassLoader();
+        final InputStream resourceAsStream = classLoader.getResourceAsStream(filename);
         testRunner.enqueue(resourceAsStream, attributes);
         testRunner.run();
 
         testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, expectedCount);
     }
 
-    private int validateFlowFiles(List<MockFlowFile> successFlowFiles) {
+    private int validateFlowFiles(final List<MockFlowFile> successFlowFiles) {
         assertFalse(successFlowFiles.isEmpty());
         int totalSize = 0;
-        for (MockFlowFile successFlowFile : successFlowFiles) {
+        for (final MockFlowFile successFlowFile : successFlowFiles) {
             // Verify valid XML output
             final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
-            Document document = documentProvider.parse(successFlowFile.getContentStream());
-            Element documentElement = document.getDocumentElement();
+            final Document document = documentProvider.parse(successFlowFile.getContentStream());
+            final Element documentElement = document.getDocumentElement();
             assertEquals(XmlRootNodeHandler.EVENTS, documentElement.getTagName());
-            NodeList eventNodes = documentElement.getChildNodes();
-            int length = eventNodes.getLength();
+            final NodeList eventNodes = documentElement.getChildNodes();
+            final int length = eventNodes.getLength();
             totalSize += length;
             assertTrue(length > 0);
             for (int i = 0; i < length; i++) {
-                Node eventNode = eventNodes.item(i);
+                final Node eventNode = eventNodes.item(i);
                 assertEquals("Event", eventNode.getNodeName());
 
-                NodeList eventChildNodes = eventNode.getChildNodes();
+                final NodeList eventChildNodes = eventNode.getChildNodes();
                 assertEquals(2, eventChildNodes.getLength());
 
-                Node systemNode = eventChildNodes.item(0);
+                final Node systemNode = eventChildNodes.item(0);
                 assertEquals("System", systemNode.getNodeName());
 
-                NodeList childNodes = systemNode.getChildNodes();
+                final NodeList childNodes = systemNode.getChildNodes();
                 String userId = "";
                 for (int i1 = 0; i1 < childNodes.getLength(); i1++) {
-                    Node systemChild = childNodes.item(i1);
+                    final Node systemChild = childNodes.item(i1);
                     if ("Security".equals(systemChild.getNodeName())) {
                         userId = systemChild.getAttributes().getNamedItem("UserID").getNodeValue();
                     }
                 }
 
-                Node eventDataNode = eventChildNodes.item(1);
-                String eventDataNodeNodeName = eventDataNode.getNodeName();
+                final Node eventDataNode = eventChildNodes.item(1);
+                final String eventDataNodeNodeName = eventDataNode.getNodeName();
                 assertTrue(DATA_TAGS.contains(eventDataNodeNodeName));
                 assertTrue(userId.isEmpty() || userId.startsWith("S-"));
             }

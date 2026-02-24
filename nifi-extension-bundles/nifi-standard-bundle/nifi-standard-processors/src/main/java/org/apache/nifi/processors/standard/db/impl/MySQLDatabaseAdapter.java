@@ -62,7 +62,7 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getUpsertStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
@@ -73,19 +73,19 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = String.join(", ", columnNames);
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedInsertValues = columnNames.stream()
+        final String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        List<String> updateValues = new ArrayList<>();
-        for (String columnName : columnNames) {
+        final List<String> updateValues = new ArrayList<>();
+        for (final String columnName : columnNames) {
             updateValues.add(columnName + " = ?");
         }
-        String parameterizedUpdateValues = String.join(", ", updateValues);
+        final String parameterizedUpdateValues = String.join(", ", updateValues);
 
-        StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
+        final StringBuilder statementStringBuilder = new StringBuilder("INSERT INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
@@ -96,7 +96,7 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getInsertIgnoreStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+    public String getInsertIgnoreStatement(final String table, final List<String> columnNames, final Collection<String> uniqueKeyColumnNames) {
         if (StringUtils.isEmpty(table)) {
             throw new IllegalArgumentException("Table name cannot be null or blank");
         }
@@ -107,13 +107,13 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
             throw new IllegalArgumentException("Key column names cannot be null or empty");
         }
 
-        String columns = String.join(", ", columnNames);
+        final String columns = String.join(", ", columnNames);
 
-        String parameterizedInsertValues = columnNames.stream()
+        final String parameterizedInsertValues = columnNames.stream()
                 .map(__ -> "?")
                 .collect(Collectors.joining(", "));
 
-        StringBuilder statementStringBuilder = new StringBuilder("INSERT IGNORE INTO ")
+        final StringBuilder statementStringBuilder = new StringBuilder("INSERT IGNORE INTO ")
                 .append(table)
                 .append("(").append(columns).append(")")
                 .append(" VALUES ")
@@ -128,17 +128,17 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
 
     @Override
     public String getAlterTableStatement(final String tableName, final List<ColumnDescription> columnsToAdd) {
-        List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
-        for (ColumnDescription column : columnsToAdd) {
-            String dataType = getSQLForDataType(column.getDataType());
-            StringBuilder sb = new StringBuilder("ADD COLUMN ")
+        final List<String> columnsAndDatatypes = new ArrayList<>(columnsToAdd.size());
+        for (final ColumnDescription column : columnsToAdd) {
+            final String dataType = getSQLForDataType(column.getDataType());
+            final StringBuilder sb = new StringBuilder("ADD COLUMN ")
                     .append(column.getColumnName())
                     .append(" ")
                     .append(dataType);
             columnsAndDatatypes.add(sb.toString());
         }
 
-        StringBuilder alterTableStatement = new StringBuilder();
+        final StringBuilder alterTableStatement = new StringBuilder();
         return alterTableStatement.append("ALTER TABLE ")
                 .append(tableName)
                 .append(" ")
@@ -147,7 +147,7 @@ public class MySQLDatabaseAdapter extends GenericDatabaseAdapter {
     }
 
     @Override
-    public String getSQLForDataType(int sqlType) {
+    public String getSQLForDataType(final int sqlType) {
         return switch (sqlType) {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML -> "TEXT";

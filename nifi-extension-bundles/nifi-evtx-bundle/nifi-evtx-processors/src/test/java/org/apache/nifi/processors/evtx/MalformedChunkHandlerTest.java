@@ -51,19 +51,19 @@ public class MalformedChunkHandlerTest {
 
     @Test
     public void testHandle() {
-        String name = "name";
-        byte[] badChunk = {8};
-        FlowFile original = mock(FlowFile.class);
-        FlowFile updated1 = mock(FlowFile.class);
-        FlowFile updated2 = mock(FlowFile.class);
-        FlowFile updated3 = mock(FlowFile.class);
-        FlowFile updated4 = mock(FlowFile.class);
-        ProcessSession session = mock(ProcessSession.class);
+        final String name = "name";
+        final byte[] badChunk = {8};
+        final FlowFile original = mock(FlowFile.class);
+        final FlowFile updated1 = mock(FlowFile.class);
+        final FlowFile updated2 = mock(FlowFile.class);
+        final FlowFile updated3 = mock(FlowFile.class);
+        final FlowFile updated4 = mock(FlowFile.class);
+        final ProcessSession session = mock(ProcessSession.class);
 
         when(session.create(original)).thenReturn(updated1);
         when(session.putAttribute(updated1, CoreAttributes.FILENAME.key(), name)).thenReturn(updated2);
         when(session.putAttribute(updated2, CoreAttributes.MIME_TYPE.key(), MediaType.APPLICATION_BINARY.toString())).thenReturn(updated3);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
         when(session.write(eq(updated3), any(OutputStreamCallback.class))).thenAnswer(invocation -> {
             ((OutputStreamCallback) invocation.getArguments()[1]).process(out);
             return updated4;

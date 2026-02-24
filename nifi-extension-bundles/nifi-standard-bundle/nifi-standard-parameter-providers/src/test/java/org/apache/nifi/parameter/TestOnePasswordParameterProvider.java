@@ -88,7 +88,7 @@ public class TestOnePasswordParameterProvider {
                   }
                 ]
                 """;
-        InputStream response = new ByteArrayInputStream(responseBody.getBytes());
+        final InputStream response = new ByteArrayInputStream(responseBody.getBytes());
         when(httpEntity.body()).thenReturn(response);
 
         // list items
@@ -111,7 +111,7 @@ public class TestOnePasswordParameterProvider {
                   }
                 ]
                 """;
-        InputStream responseItems = new ByteArrayInputStream(responseBodyItems.getBytes());
+        final InputStream responseItems = new ByteArrayInputStream(responseBodyItems.getBytes());
         when(httpEntityItems.body()).thenReturn(responseItems);
 
         // get item
@@ -157,7 +157,7 @@ public class TestOnePasswordParameterProvider {
                   "title": "POSTGRES"
                 }
                 """;
-        InputStream responseItem = new ByteArrayInputStream(responseBodyItem.getBytes());
+        final InputStream responseItem = new ByteArrayInputStream(responseBodyItem.getBytes());
         when(httpEntityItem.body()).thenReturn(responseItem);
 
         properties = new HashMap<>();

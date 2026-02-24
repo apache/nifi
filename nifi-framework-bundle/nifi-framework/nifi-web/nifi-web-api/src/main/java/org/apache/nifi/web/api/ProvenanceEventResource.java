@@ -459,7 +459,7 @@ public class ProvenanceEventResource extends ApplicationResource {
         entity.setProvenanceEvent(event);
 
         // generate the response
-        URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
+        final URI uri = URI.create(generateResourceUri("provenance-events", event.getId()));
         return generateCreatedResponse(uri, entity).build();
     }
 
@@ -488,7 +488,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             required = true
         )
         @PathParam("componentId") final String componentId,
-        @Parameter(
+        final @Parameter(
                 description = "The number of events to limit the response to. Defaults to 10."
         )
         @DefaultValue("10")
@@ -506,12 +506,12 @@ public class ProvenanceEventResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 

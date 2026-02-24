@@ -43,7 +43,7 @@ public class GetFlowAnalysisRules extends AbstractNiFiCommand<FlowAnalysisRulesR
     }
 
     @Override
-    public FlowAnalysisRulesResult doExecute(NiFiClient client, Properties properties)
+    public FlowAnalysisRulesResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final ControllerClient controllerClient = client.getControllerClient();
         final FlowAnalysisRulesEntity tasksEntity = controllerClient.getFlowAnalysisRules();

@@ -76,7 +76,7 @@ public class ScriptedRecordSetWriterTest {
             }
         });
 
-        MockScriptedWriter recordSetWriterFactory = new MockScriptedWriter();
+        final MockScriptedWriter recordSetWriterFactory = new MockScriptedWriter();
         runner.addControllerService("writer", recordSetWriterFactory);
         runner.setProperty(recordSetWriterFactory, "Script Engine", "Groovy");
         runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
@@ -84,37 +84,37 @@ public class ScriptedRecordSetWriterTest {
         runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.MODULES, (String) null);
         runner.enableControllerService(recordSetWriterFactory);
 
-        RecordSchema schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(new MockComponentLog("id", recordSetWriterFactory), schema, outputStream, Collections.emptyMap());
+        final RecordSchema schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(new MockComponentLog("id", recordSetWriterFactory), schema, outputStream, Collections.emptyMap());
         assertNotNull(recordSetWriter);
 
-        SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
+        final SimpleRecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("code", RecordFieldType.INT.getDataType())));
-        MapRecord[] records = createMapRecords(recordSchema);
+        final MapRecord[] records = createMapRecords(recordSchema);
 
         recordSetWriter.write(RecordSet.of(recordSchema, records));
 
-        DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        Document document = documentBuilder.parse(new ByteArrayInputStream(outputStream.toByteArray()));
-        XPathFactory xpathfactory = XPathFactory.newInstance();
-        XPath xpath = xpathfactory.newXPath();
+        final DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        final Document document = documentBuilder.parse(new ByteArrayInputStream(outputStream.toByteArray()));
+        final XPathFactory xpathfactory = XPathFactory.newInstance();
+        final XPath xpath = xpathfactory.newXPath();
         assertEquals("1", xpath.evaluate("//record[1]/id/text()", document));
         assertEquals("200", xpath.evaluate("//record[2]/code/text()", document));
         assertEquals("Ramon", xpath.evaluate("//record[3]/name/text()", document));
     }
 
-    private static MapRecord[] createMapRecords(SimpleRecordSchema recordSchema) {
-        Map<String, Object> map = new LinkedHashMap<>(3);
+    private static MapRecord[] createMapRecords(final SimpleRecordSchema recordSchema) {
+        final Map<String, Object> map = new LinkedHashMap<>(3);
         map.put("id", 1);
         map.put("name", "John");
         map.put("code", 100);
-        Map<String, Object> map1 = new LinkedHashMap<>(3);
+        final Map<String, Object> map1 = new LinkedHashMap<>(3);
         map1.put("id", 2);
         map1.put("name", "Mary");
         map1.put("code", 200);
-        Map<String, Object> map2 = new LinkedHashMap<>(3);
+        final Map<String, Object> map2 = new LinkedHashMap<>(3);
         map2.put("id", 3);
         map2.put("name", "Ramon");
         map2.put("code", 300);

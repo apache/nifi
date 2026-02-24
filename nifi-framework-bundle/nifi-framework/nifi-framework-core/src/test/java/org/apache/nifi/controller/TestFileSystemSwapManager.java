@@ -190,45 +190,45 @@ public class TestFileSystemSwapManager {
 
     public static class NopResourceClaimManager implements ResourceClaimManager {
         @Override
-        public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant, boolean writable) {
+        public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant, final boolean writable) {
             return null;
         }
 
         @Override
-        public ResourceClaim getResourceClaim(String container, String section, String id) {
+        public ResourceClaim getResourceClaim(final String container, final String section, final String id) {
             return null;
         }
 
         @Override
-        public int getClaimantCount(ResourceClaim claim) {
+        public int getClaimantCount(final ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int decrementClaimantCount(ResourceClaim claim) {
+        public int decrementClaimantCount(final ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int incrementClaimantCount(ResourceClaim claim) {
+        public int incrementClaimantCount(final ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int incrementClaimantCount(ResourceClaim claim, boolean newClaim) {
+        public int incrementClaimantCount(final ResourceClaim claim, final boolean newClaim) {
             return 0;
         }
 
         @Override
-        public void markDestructable(ResourceClaim claim) {
+        public void markDestructable(final ResourceClaim claim) {
         }
 
         @Override
-        public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements) {
+        public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements) {
         }
 
         @Override
-        public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements, long timeout, TimeUnit unit) {
+        public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements, final long timeout, final TimeUnit unit) {
         }
 
         @Override
@@ -236,7 +236,7 @@ public class TestFileSystemSwapManager {
         }
 
         @Override
-        public void freeze(ResourceClaim claim) {
+        public void freeze(final ResourceClaim claim) {
         }
 
         @Override

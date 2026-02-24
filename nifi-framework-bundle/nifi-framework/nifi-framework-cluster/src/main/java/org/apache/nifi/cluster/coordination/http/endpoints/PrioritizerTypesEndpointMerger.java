@@ -30,7 +30,7 @@ public class PrioritizerTypesEndpointMerger extends AbstractNodeStatusEndpoint<P
     public static final String PRIORITIZER_TYPES_URI_PATTERN = "/nifi-api/flow/prioritizers";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PRIORITIZER_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class PrioritizerTypesEndpointMerger extends AbstractNodeStatusEndpoint<P
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(PrioritizerTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final PrioritizerTypesEntity entity) {
         return entity.getPrioritizerTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

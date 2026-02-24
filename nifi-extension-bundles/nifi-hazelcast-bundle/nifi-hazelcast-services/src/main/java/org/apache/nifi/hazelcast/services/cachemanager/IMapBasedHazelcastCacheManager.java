@@ -89,7 +89,7 @@ abstract class IMapBasedHazelcastCacheManager extends AbstractControllerService 
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("hazelcast-cluster-name", HAZELCAST_CLUSTER_NAME.getName());
     }
 

@@ -32,9 +32,9 @@ import java.util.Set;
 public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<RemoteProcessGroupEntity>, ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
 
     @Override
-    public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
+    public void merge(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        for (Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
             final RemoteProcessGroupEntity entityStatus = entry.getValue();
             if (entityStatus != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
@@ -62,8 +62,8 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
     }
 
     @Override
-    public void mergeStatus(RemoteProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, RemoteProcessGroupStatusDTO status,
-                            boolean statusReadablePermission, NodeIdentifier statusNodeIdentifier) {
+    public void mergeStatus(final RemoteProcessGroupStatusDTO clientStatus, final boolean clientStatusReadablePermission, final RemoteProcessGroupStatusDTO status,
+                            final boolean statusReadablePermission, final NodeIdentifier statusNodeIdentifier) {
         StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
                 statusNodeIdentifier.getApiPort());
     }

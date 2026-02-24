@@ -18,7 +18,7 @@ package org.apache.nifi.websocket;
 
 public class WebSocketConfigurationException extends Exception {
 
-    public WebSocketConfigurationException(String message) {
+    public WebSocketConfigurationException(final String message) {
         super(message);
     }
 }

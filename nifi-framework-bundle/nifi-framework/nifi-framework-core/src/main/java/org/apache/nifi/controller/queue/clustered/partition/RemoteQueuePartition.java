@@ -101,7 +101,7 @@ public class RemoteQueuePartition implements QueuePartition {
     }
 
     @Override
-    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+    public long getTotalActiveQueuedDuration(final long fromTimestamp) {
         return priorityQueue.getTotalQueuedDuration(fromTimestamp);
     }
 
@@ -141,7 +141,7 @@ public class RemoteQueuePartition implements QueuePartition {
     }
 
     @Override
-    public FlowFileQueueContents packageForRebalance(String newPartitionName) {
+    public FlowFileQueueContents packageForRebalance(final String newPartitionName) {
         return priorityQueue.packageForRebalance(newPartitionName);
     }
 

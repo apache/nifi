@@ -155,7 +155,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public Future<Void> runProcessorOnce(ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
+    public Future<Void> runProcessorOnce(final ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
         throw new UnsupportedOperationException();
     }
 
@@ -341,7 +341,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         }
 
         CompletableFuture<Void> future = null;
-        for (ControllerServiceNode controllerServiceNode : services) {
+        for (final ControllerServiceNode controllerServiceNode : services) {
             final CompletableFuture<Void> serviceFuture = this.disableControllerService(controllerServiceNode);
 
             if (future == null) {

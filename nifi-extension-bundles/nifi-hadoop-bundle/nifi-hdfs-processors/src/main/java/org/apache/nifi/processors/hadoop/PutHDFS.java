@@ -272,7 +272,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
         final PropertyValue codec = validationContext.getProperty(COMPRESSION_CODEC);
         final boolean isCodecSet = codec.isSet() && !CompressionType.NONE.name().equals(codec.getValue());
@@ -316,7 +316,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -370,7 +370,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                         if (fileStatus.hasAcl()) {
                             checkAclStatus(getAclStatus(dirPath));
                         }
-                    } catch (FileNotFoundException fe) {
+                    } catch (final FileNotFoundException fe) {
                         targetDirCreated = hdfs.mkdirs(dirPath);
                         if (!targetDirCreated) {
                             throw new IOException(dirPath.toString() + " could not be created");
@@ -445,7 +445,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         writer.appendAllFrom(reader, false); // append flowfile content
                                         writer.flush();
                                         getLogger().info("Successfully appended avro record");
-                                    } catch (Exception e) {
+                                    } catch (final Exception e) {
                                         getLogger().error("Error occurred during appending to existing avro file", e);
                                         throw new ProcessException(e);
                                     }
@@ -460,12 +460,12 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                 if (fos != null) {
                                     fos.close();
                                 }
-                            } catch (Throwable t) {
+                            } catch (final Throwable t) {
                                 // when talking to remote HDFS clusters, we don't notice problems until fos.close()
                                 if (createdFile != null) {
                                     try {
                                         hdfs.delete(createdFile, false);
-                                    } catch (Throwable ignored) {
+                                    } catch (final Throwable ignored) {
                                     }
                                 }
                                 throw t;
@@ -521,7 +521,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     if (tempDotCopyFile != null) {
                         try {
                             hdfs.delete(tempDotCopyFile, false);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             getLogger().error("Unable to remove temporary file {}", tempDotCopyFile, e);
                         }
                     }
@@ -555,7 +555,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("writing-strategy", WRITING_STRATEGY.getName());
         config.renameProperty("Permissions umask", UMASK.getName());
@@ -569,7 +569,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         return REL_FAILURE;
     }
 
-    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
+    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Path dirPath) {
         final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
         return blockSizeProp != null ? blockSizeProp.longValue() : getFileSystem().getDefaultBlockSize(dirPath);
     }
@@ -579,7 +579,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         return bufferSizeProp != null ? bufferSizeProp.intValue() : getConfiguration().getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
     }
 
-    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
+    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Path dirPath) {
         final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
         return replicationProp != null ? replicationProp.shortValue() : getFileSystem()
                 .getDefaultReplication(dirPath);
@@ -608,7 +608,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
             if (owner != null || group != null) {
                 hdfs.setOwner(name, owner, group);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Could not change owner or group of {} on HDFS", name, e);
         }
     }

@@ -38,12 +38,13 @@ public class LabelEndpointMerger extends AbstractSingleEntityEndpoint<LabelEntit
     }
 
     @Override
-    protected void mergeResponses(LabelEntity clientEntity, Map<NodeIdentifier, LabelEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final LabelEntity clientEntity, final Map<NodeIdentifier, LabelEntity> entityMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         labelEntityMerger.merge(clientEntity, entityMap);
     }
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (LABEL_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && LABELS_URI_PATTERN.matcher(uri.getPath()).matches()) {

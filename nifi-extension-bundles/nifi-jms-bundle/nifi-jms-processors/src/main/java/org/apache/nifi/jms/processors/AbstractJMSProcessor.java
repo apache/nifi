@@ -176,12 +176,12 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     private final AtomicBoolean shutdownWorkers = new AtomicBoolean(false);
     private final AtomicInteger clientIdCounter = new AtomicInteger(1);
 
-    protected static String getClientId(ProcessContext context) {
+    protected static String getClientId(final ProcessContext context) {
         return context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .description("Additional configuration property for the Connection Factory")
                 .name(propertyDescriptorName)
@@ -210,7 +210,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return new ConnectionFactoryConfigValidator(validationContext).validateConnectionFactoryConfig();
     }
 
@@ -225,12 +225,12 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         T worker = workerPool.poll();
         if (worker == null) {
             try {
                 worker = buildTargetResource(context);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 getLogger().error("Failed to initialize JMS Connection Factory", e);
                 context.yield();
                 throw e;
@@ -252,10 +252,10 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                         worker.shutdown();
                     }
                     // Safe to cast. Method #buildTargetResource(ProcessContext context) sets only CachingConnectionFactory
-                    CachingConnectionFactory currentCF = (CachingConnectionFactory) worker.jmsTemplate.getConnectionFactory();
+                    final CachingConnectionFactory currentCF = (CachingConnectionFactory) worker.jmsTemplate.getConnectionFactory();
                     connectionFactoryProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
                     worker = buildTargetResource(context);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     getLogger().error("Failed to rebuild:  {}", connectionFactoryProvider);
                     worker = null;
                 }
@@ -328,7 +328,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
      * in an instance of the {@link CachingConnectionFactory} used to construct
      * {@link JmsTemplate} used by this Processor.
      */
-    private T buildTargetResource(ProcessContext context) {
+    private T buildTargetResource(final ProcessContext context) {
         final ConnectionFactory connectionFactory = connectionFactoryProvider.getConnectionFactory();
 
         final UserCredentialsConnectionFactoryAdapter cfCredentialsAdapter = new UserCredentialsConnectionFactoryAdapter();
@@ -339,7 +339,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         final CachingConnectionFactory cachingFactory = new CachingConnectionFactory(cfCredentialsAdapter);
         setClientId(context, cachingFactory);
 
-        JmsTemplate jmsTemplate = new JmsTemplate();
+        final JmsTemplate jmsTemplate = new JmsTemplate();
         jmsTemplate.setConnectionFactory(cachingFactory);
         jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
@@ -354,7 +354,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
      * @param connectionFactory the connection factory.
      * @since NIFI-6915
      */
-    protected void setClientId(ProcessContext context, final SingleConnectionFactory connectionFactory) {
+    protected void setClientId(final ProcessContext context, final SingleConnectionFactory connectionFactory) {
         String clientId = getClientId(context);
         if (clientId != null) {
             clientId = clientId + "-" + clientIdCounter.getAndIncrement();
@@ -370,7 +370,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         private final PropertyValue jndiInitialContextFactoryProperty;
         private final PropertyValue jmsConnectionFactoryImplProperty;
 
-        ConnectionFactoryConfigValidator(ValidationContext validationContext) {
+        ConnectionFactoryConfigValidator(final ValidationContext validationContext) {
             this.validationContext = validationContext;
 
             connectionFactoryServiceProperty = validationContext.getProperty(CF_SERVICE);
@@ -379,7 +379,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
         }
 
         List<ValidationResult> validateConnectionFactoryConfig() {
-            List<ValidationResult> results = new ArrayList<>();
+            final List<ValidationResult> results = new ArrayList<>();
 
             if (!(connectionFactoryServiceProperty.isSet() || jndiInitialContextFactoryProperty.isSet() || jmsConnectionFactoryImplProperty.isSet())) {
                 results.add(new ValidationResult.Builder()
@@ -426,9 +426,9 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             return hasLocalConnectionFactoryConfig(JMSConnectionFactoryProperties.getPropertyDescriptors());
         }
 
-        private boolean hasLocalConnectionFactoryConfig(List<PropertyDescriptor> localConnectionFactoryProperties) {
-            for (PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
-                PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
+        private boolean hasLocalConnectionFactoryConfig(final List<PropertyDescriptor> localConnectionFactoryProperties) {
+            for (final PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
+                final PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
                 if (propertyValue.isSet()) {
                     return true;
                 }
@@ -436,10 +436,11 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             return false;
         }
 
-        private void validateLocalConnectionFactoryConfig(List<PropertyDescriptor> localConnectionFactoryProperties, PropertyDescriptor indicatorProperty, List<ValidationResult> results) {
-            for (PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
+        private void validateLocalConnectionFactoryConfig(final List<PropertyDescriptor> localConnectionFactoryProperties,
+                final PropertyDescriptor indicatorProperty, final List<ValidationResult> results) {
+            for (final PropertyDescriptor propertyDescriptor : localConnectionFactoryProperties) {
                 if (propertyDescriptor.isRequired()) {
-                    PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
+                    final PropertyValue propertyValue = validationContext.getProperty(propertyDescriptor);
                     if (!propertyValue.isSet()) {
                         results.add(new ValidationResult.Builder()
                                 .subject("Connection Factory config")

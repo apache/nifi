@@ -29,7 +29,7 @@ public class GarbageCollection implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -37,7 +37,7 @@ public class GarbageCollection implements Cloneable {
         return collectionTime;
     }
 
-    public void setCollectionTime(long collectionTime) {
+    public void setCollectionTime(final long collectionTime) {
         this.collectionTime = collectionTime;
     }
 
@@ -45,7 +45,7 @@ public class GarbageCollection implements Cloneable {
         return collectionCount;
     }
 
-    public void setCollectionCount(long collectionCount) {
+    public void setCollectionCount(final long collectionCount) {
         this.collectionCount = collectionCount;
     }
 

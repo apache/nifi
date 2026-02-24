@@ -312,7 +312,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcs-bucket", BUCKET.getName());
         config.renameProperty("gcs-key", KEY.getName());

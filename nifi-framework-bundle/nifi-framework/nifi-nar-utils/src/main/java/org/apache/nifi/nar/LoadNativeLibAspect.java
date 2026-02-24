@@ -47,8 +47,8 @@ public class LoadNativeLibAspect {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Around("call(void java.lang.System.load(String)) || call(void java.lang.Runtime.load(String))")
-    public void around(ProceedingJoinPoint joinPoint) throws Throwable {
-        String origLibPathStr = (String) joinPoint.getArgs()[0];
+    public void around(final ProceedingJoinPoint joinPoint) throws Throwable {
+        final String origLibPathStr = (String) joinPoint.getArgs()[0];
 
         if (origLibPathStr == null || origLibPathStr.isEmpty()) {
             logger.info("Native library path specified as null or empty string, proceeding normally");
@@ -56,7 +56,7 @@ public class LoadNativeLibAspect {
             return;
         }
 
-        Path origLibPath = Paths.get(origLibPathStr);
+        final Path origLibPath = Paths.get(origLibPathStr);
 
         if (!Files.exists(origLibPath)) {
             logger.info("Native library does not exist, proceeding normally");
@@ -64,13 +64,13 @@ public class LoadNativeLibAspect {
             return;
         }
 
-        String libFileName = origLibPath.getFileName().toString();
+        final String libFileName = origLibPath.getFileName().toString();
 
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        String prefix = contextClassLoader.getClass().getName() + "@" + contextClassLoader.hashCode() + "_";
-        String suffix = "_" + libFileName;
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        final String prefix = contextClassLoader.getClass().getName() + "@" + contextClassLoader.hashCode() + "_";
+        final String suffix = "_" + libFileName;
 
-        Path tempLibPath = Files.createTempFile(prefix, suffix);
+        final Path tempLibPath = Files.createTempFile(prefix, suffix);
         Files.copy(origLibPath, tempLibPath, REPLACE_EXISTING);
 
         logger.info("Loading native library via absolute path (original lib: {}, copied lib: {}", origLibPath, tempLibPath);

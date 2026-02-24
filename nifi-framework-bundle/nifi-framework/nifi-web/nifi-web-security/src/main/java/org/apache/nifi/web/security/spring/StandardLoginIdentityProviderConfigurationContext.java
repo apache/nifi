@@ -29,7 +29,7 @@ public class StandardLoginIdentityProviderConfigurationContext implements LoginI
     private final String identifier;
     private final Map<String, String> properties;
 
-    public StandardLoginIdentityProviderConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardLoginIdentityProviderConfigurationContext(final String identifier, final Map<String, String> properties) {
         this.identifier = identifier;
         this.properties = properties;
     }
@@ -45,7 +45,7 @@ public class StandardLoginIdentityProviderConfigurationContext implements LoginI
     }
 
     @Override
-    public String getProperty(String property) {
+    public String getProperty(final String property) {
         return properties.get(property);
     }
 

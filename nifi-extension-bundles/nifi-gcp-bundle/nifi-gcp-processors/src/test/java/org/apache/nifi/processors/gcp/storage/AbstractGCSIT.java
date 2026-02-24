@@ -63,7 +63,7 @@ public abstract class AbstractGCSIT {
 
             // Create the bucket
             storage.create(BucketInfo.of(BUCKET));
-        } catch (StorageException e) {
+        } catch (final StorageException e) {
             fail("Can't create bucket " + BUCKET + ": " + e.getLocalizedMessage());
         }
 
@@ -76,7 +76,7 @@ public abstract class AbstractGCSIT {
     public static void tearDown() {
         try {
             // Empty the bucket before deleting it.
-            Iterable<Blob> blobIterable = storage.list(BUCKET, Storage.BlobListOption.versions(true)).iterateAll();
+            final Iterable<Blob> blobIterable = storage.list(BUCKET, Storage.BlobListOption.versions(true)).iterateAll();
 
             for (final Blob blob : blobIterable) {
                 storage.delete(blob.getBlobId());
@@ -92,7 +92,7 @@ public abstract class AbstractGCSIT {
         }
     }
 
-    protected static TestRunner buildNewRunner(Processor processor) throws Exception {
+    protected static TestRunner buildNewRunner(final Processor processor) throws Exception {
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
         final TestRunner runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("gcpCredentialsControllerService", credentialsControllerService);
@@ -115,7 +115,7 @@ public abstract class AbstractGCSIT {
      * @param bytes The content of the file to be uploaded
      * @throws StorageException if the file can't be created for some reason
      */
-    protected void putTestFile(String key, byte[] bytes) throws StorageException {
+    protected void putTestFile(final String key, final byte[] bytes) throws StorageException {
         storage.create(BlobInfo.newBuilder(BlobId.of(BUCKET, key))
                 .build(), bytes
         );
@@ -129,7 +129,7 @@ public abstract class AbstractGCSIT {
      * @param bytes The content of the file to be uploaded
      * @throws StorageException if the file can't be created for some reason
      */
-    protected void putTestFileEncrypted(String key, byte[] bytes) throws StorageException {
+    protected void putTestFileEncrypted(final String key, final byte[] bytes) throws StorageException {
         storage.create(BlobInfo.newBuilder(BlobId.of(BUCKET, key))
                 .build(), bytes, Storage.BlobTargetOption.encryptionKey(ENCRYPTION_KEY));
     }
@@ -141,7 +141,7 @@ public abstract class AbstractGCSIT {
      * @return true if the file exists, false if it doesn't
      * @throws StorageException if there are any issues accessing the file or connecting to GCS.
      */
-    protected boolean fileExists(String key) throws StorageException {
+    protected boolean fileExists(final String key) throws StorageException {
         return (storage.get(BlobId.of(BUCKET, key)) != null);
     }
 
@@ -154,7 +154,7 @@ public abstract class AbstractGCSIT {
      * @return true if the file exists and the content of the file is equal to {@code bytes}, false otherwise.
      * @throws StorageException if there are any issues accessing the file or connecting to GCS.
      */
-    protected boolean fileEquals(String key, byte[] bytes) throws StorageException {
+    protected boolean fileEquals(final String key, final byte[] bytes) throws StorageException {
         return (fileExists(key) && Arrays.equals(storage.readAllBytes(BlobId.of(BUCKET, key)), bytes));
     }
 
@@ -167,7 +167,7 @@ public abstract class AbstractGCSIT {
      * @return true if the file exists and the content of the file is equal to {@code bytes}, false otherwise.
      * @throws StorageException if there are any issues accessing the file or connecting to GCS.
      */
-    protected boolean fileEqualsEncrypted(String key, byte[] bytes) throws StorageException {
+    protected boolean fileEqualsEncrypted(final String key, final byte[] bytes) throws StorageException {
         return (fileExists(key) && Arrays.equals(
                 storage.readAllBytes(BlobId.of(BUCKET, key), Storage.BlobSourceOption.decryptionKey(ENCRYPTION_KEY)),
                 bytes));

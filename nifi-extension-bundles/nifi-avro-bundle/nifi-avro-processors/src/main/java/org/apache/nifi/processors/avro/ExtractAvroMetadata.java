@@ -125,7 +125,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
     );
 
     @Override
-    protected void init(ProcessorInitializationContext context) {
+    protected void init(final ProcessorInitializationContext context) {
         super.init(context);
     }
 
@@ -170,7 +170,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                         throw new ProcessException("Avro schema was null");
                     }
 
-                    for (String key : reader.getMetaKeys()) {
+                    for (final String key : reader.getMetaKeys()) {
                         if (requestedMetadataKeys.contains(key)) {
                             avroMetadata.put(key, reader.getMetaString(key));
                         }
@@ -181,7 +181,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                         avroMetadata.put(SCHEMA_FINGERPRINT_ATTR, Hex.encodeHexString(rawFingerprint));
                         avroMetadata.put(SCHEMA_TYPE_ATTR, schema.getType().getName());
                         avroMetadata.put(SCHEMA_NAME_ATTR, schema.getName());
-                    } catch (NoSuchAlgorithmException e) {
+                    } catch (final NoSuchAlgorithmException e) {
                         // shouldn't happen since allowable values are valid algorithms
                         throw new ProcessException(e);
                     }
@@ -192,7 +192,7 @@ public class ExtractAvroMetadata extends AbstractProcessor {
                             while (reader.nextBlock() != null) {
                                 recordCount += reader.getBlockCount();
                             }
-                        } catch (NoSuchElementException ignored) {
+                        } catch (final NoSuchElementException ignored) {
                             // happens at end of file
                         }
                         avroMetadata.put(ITEM_COUNT_ATTR, String.valueOf(recordCount));

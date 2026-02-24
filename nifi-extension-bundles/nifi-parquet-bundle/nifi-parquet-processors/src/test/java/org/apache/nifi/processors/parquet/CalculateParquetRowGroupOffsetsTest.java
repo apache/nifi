@@ -58,7 +58,7 @@ public class CalculateParquetRowGroupOffsetsTest {
 
     @Test
     public void testSinglePartition() throws Exception {
-        File parquetFile = ParquetTestUtils.createUsersParquetFile(10);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(10);
         runner.enqueue(parquetFile.toPath(), PRESERVED_ATTRIBUTES);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
@@ -75,7 +75,7 @@ public class CalculateParquetRowGroupOffsetsTest {
 
     @Test
     public void testEachRowGroupGoesToSeparatePartition() throws Exception {
-        File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(1000);
         runner.enqueue(parquetFile.toPath(), PRESERVED_ATTRIBUTES);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4);
@@ -107,7 +107,7 @@ public class CalculateParquetRowGroupOffsetsTest {
 
     @Test
     public void testZeroContentOutput() throws Exception {
-        File parquetFile = ParquetTestUtils.createUsersParquetFile(500);
+        final File parquetFile = ParquetTestUtils.createUsersParquetFile(500);
         runner.setProperty(PROP_ZERO_CONTENT_OUTPUT, "true");
         runner.enqueue(parquetFile.toPath(), PRESERVED_ATTRIBUTES);
         runner.run();

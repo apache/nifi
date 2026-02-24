@@ -43,7 +43,7 @@ public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
 
     @PostConstruct
     public void initDatabase() throws SQLException, ScriptException {
-        DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mysqlContainer(), "");
+        final DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mysqlContainer(), "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }
 }

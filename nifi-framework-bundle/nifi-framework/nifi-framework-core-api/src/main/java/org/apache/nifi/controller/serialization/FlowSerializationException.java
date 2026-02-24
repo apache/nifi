@@ -24,19 +24,19 @@ public class FlowSerializationException extends RuntimeException {
 
     private static final long serialVersionUID = 128934798237L;
 
-    public FlowSerializationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public FlowSerializationException(final String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 
-    public FlowSerializationException(Throwable cause) {
+    public FlowSerializationException(final Throwable cause) {
         super(cause);
     }
 
-    public FlowSerializationException(String message, Throwable cause) {
+    public FlowSerializationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public FlowSerializationException(String message) {
+    public FlowSerializationException(final String message) {
         super(message);
     }
 

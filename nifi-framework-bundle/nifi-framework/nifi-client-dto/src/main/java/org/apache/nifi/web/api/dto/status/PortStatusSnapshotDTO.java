@@ -48,7 +48,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -60,7 +60,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -72,7 +72,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -84,7 +84,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -96,7 +96,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -111,7 +111,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return runStatus;
     }
 
-    public void setRunStatus(String runStatus) {
+    public void setRunStatus(final String runStatus) {
         this.runStatus = runStatus;
     }
 
@@ -123,7 +123,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return input;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
@@ -135,7 +135,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return output;
     }
 
-    public void setOutput(String output) {
+    public void setOutput(final String output) {
         this.output = output;
     }
 
@@ -144,7 +144,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(Integer flowFilesIn) {
+    public void setFlowFilesIn(final Integer flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -153,7 +153,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return bytesIn;
     }
 
-    public void setBytesIn(Long bytesIn) {
+    public void setBytesIn(final Long bytesIn) {
         this.bytesIn = bytesIn;
     }
 
@@ -162,7 +162,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(Integer flowFilesOut) {
+    public void setFlowFilesOut(final Integer flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -171,7 +171,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         return bytesOut;
     }
 
-    public void setBytesOut(Long bytesOut) {
+    public void setBytesOut(final Long bytesOut) {
         this.bytesOut = bytesOut;
     }
 

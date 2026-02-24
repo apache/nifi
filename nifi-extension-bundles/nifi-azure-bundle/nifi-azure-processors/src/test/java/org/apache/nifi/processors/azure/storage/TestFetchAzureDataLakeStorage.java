@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestFetchAzureDataLakeStorage {
     @Test
     void testMigration() {
-        TestRunner runner = TestRunners.newTestRunner(FetchAzureDataLakeStorage.class);
+        final TestRunner runner = TestRunners.newTestRunner(FetchAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
                 Map.ofEntries(

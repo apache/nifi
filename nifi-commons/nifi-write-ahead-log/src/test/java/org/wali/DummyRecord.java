@@ -65,7 +65,7 @@ public class DummyRecord {
         return swapLocation;
     }
 
-    public void setSwapLocation(String swapLocation) {
+    public void setSwapLocation(final String swapLocation) {
         this.swapLocation = swapLocation;
     }
 

@@ -119,14 +119,14 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
+        final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
         String packagingFormat = NOT_PACKAGED;
         if (null != mimeType) {
             if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(mimeType)) {
@@ -169,12 +169,12 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), fileName);
 
         try {
-            StopWatch stopWatch = new StopWatch(true);
+            final StopWatch stopWatch = new StopWatch(true);
             flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, configuration, compressionType, codec);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, RELATIONSHIP_SUCCESS);
             getLogger().info("Transferred flowfile {} to {}", flowFile, RELATIONSHIP_SUCCESS);
-        } catch (ProcessException e) {
+        } catch (final ProcessException e) {
             getLogger().error("Failed to create Sequence File. Transferring {} to 'failure'", flowFile, e);
             session.transfer(flowFile, RELATIONSHIP_FAILURE);
         }
@@ -182,7 +182,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("compression type", COMPRESSION_TYPE.getName());
     }

@@ -42,13 +42,13 @@ public class DeleteParamProvider extends AbstractNiFiCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_PROVIDER_ID.createOption());
     }
 
     @Override
-    public StringResult doExecute(NiFiClient client, Properties properties)
+    public StringResult doExecute(final NiFiClient client, final Properties properties)
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String paramProviderId = getRequiredArg(properties, CommandOption.PARAM_PROVIDER_ID);
 

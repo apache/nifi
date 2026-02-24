@@ -61,7 +61,7 @@ public abstract class BucketItem extends LinkableEntity {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -70,7 +70,7 @@ public abstract class BucketItem extends LinkableEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -79,7 +79,7 @@ public abstract class BucketItem extends LinkableEntity {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -88,7 +88,7 @@ public abstract class BucketItem extends LinkableEntity {
         return bucketIdentifier;
     }
 
-    public void setBucketIdentifier(String bucketIdentifier) {
+    public void setBucketIdentifier(final String bucketIdentifier) {
         this.bucketIdentifier = bucketIdentifier;
     }
 
@@ -97,7 +97,7 @@ public abstract class BucketItem extends LinkableEntity {
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -106,7 +106,7 @@ public abstract class BucketItem extends LinkableEntity {
         return createdTimestamp;
     }
 
-    public void setCreatedTimestamp(long createdTimestamp) {
+    public void setCreatedTimestamp(final long createdTimestamp) {
         this.createdTimestamp = createdTimestamp;
     }
 
@@ -115,7 +115,7 @@ public abstract class BucketItem extends LinkableEntity {
         return modifiedTimestamp;
     }
 
-    public void setModifiedTimestamp(long modifiedTimestamp) {
+    public void setModifiedTimestamp(final long modifiedTimestamp) {
         this.modifiedTimestamp = modifiedTimestamp;
     }
 
@@ -129,7 +129,7 @@ public abstract class BucketItem extends LinkableEntity {
         return permissions;
     }
 
-    public void setPermissions(Permissions permissions) {
+    public void setPermissions(final Permissions permissions) {
         this.permissions = permissions;
     }
 

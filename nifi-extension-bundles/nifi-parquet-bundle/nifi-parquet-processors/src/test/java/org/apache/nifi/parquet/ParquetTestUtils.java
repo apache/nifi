@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ParquetTestUtils {
 
-    public static File createUsersParquetFile(int numUsers) throws IOException {
+    public static File createUsersParquetFile(final int numUsers) throws IOException {
         return createUsersParquetFile(IntStream
                 .range(0, numUsers)
                 .mapToObj(ParquetTestUtils::createUser)
@@ -52,11 +52,11 @@ public class ParquetTestUtils {
         );
     }
 
-    public static Map<String, Object> createUser(int i) {
+    public static Map<String, Object> createUser(final int i) {
         return Map.of("name", "Bob" + i, "favorite_number", i, "favorite_color", "blue" + i);
     }
 
-    private static File createUsersParquetFile(Collection<Map<String, Object>> users) throws IOException {
+    private static File createUsersParquetFile(final Collection<Map<String, Object>> users) throws IOException {
         final Schema schema = getSchema();
         final File parquetFile = new File("target/TestParquetReader-testReadUsers-" + System.currentTimeMillis());
 
@@ -67,7 +67,7 @@ public class ParquetTestUtils {
                 user.forEach(record::put);
                 try {
                     writer.write(record);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException(e);
                 }
             });
@@ -104,7 +104,7 @@ public class ParquetTestUtils {
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createAllTemporalTypesParquetFile(int numRecords, File directory) throws IOException {
+    public static File createAllTemporalTypesParquetFile(final int numRecords, final File directory) throws IOException {
         // Create schemas for all temporal logical types
         final Schema dateSchema = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
         final Schema timeMillisSchema = LogicalTypes.timeMillis().addToSchema(Schema.create(Schema.Type.INT));

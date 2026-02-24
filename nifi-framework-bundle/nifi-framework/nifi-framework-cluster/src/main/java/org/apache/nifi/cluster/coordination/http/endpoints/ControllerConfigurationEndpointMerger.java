@@ -35,8 +35,8 @@ public class ControllerConfigurationEndpointMerger extends AbstractSingleEntityE
     }
 
     @Override
-    protected void mergeResponses(ControllerConfigurationEntity clientEntity, Map<NodeIdentifier, ControllerConfigurationEntity> entityMap, Set<NodeResponse> successfulResponses,
-                                  Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ControllerConfigurationEntity clientEntity, final Map<NodeIdentifier, ControllerConfigurationEntity> entityMap, final Set<NodeResponse> successfulResponses,
+                                  final Set<NodeResponse> problematicResponses) {
         entityMap.values().stream().forEach(controllerConfigurationDTO -> PermissionsDtoMerger.mergePermissions(clientEntity.getPermissions(), controllerConfigurationDTO.getPermissions()));
         if (!clientEntity.getPermissions().getCanRead() && clientEntity.getComponent() != null) {
             clientEntity.setComponent(null);
@@ -44,7 +44,7 @@ public class ControllerConfigurationEndpointMerger extends AbstractSingleEntityE
     }
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return ("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && CONTROLLER_CONFIGURATION_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 }

@@ -83,7 +83,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
         return trackingRangeValue;
     }
 
-    public void setTrackingRangeValue(String trackingRangeValue) {
+    public void setTrackingRangeValue(final String trackingRangeValue) {
         this.trackingRangeValue = trackingRangeValue;
     }
 
@@ -91,7 +91,7 @@ public class PaginatedJsonQueryParameters extends JsonQueryParameters {
         return finished;
     }
 
-    public void setFinished(boolean finished) {
+    public void setFinished(final boolean finished) {
         this.finished = finished;
     }
 }

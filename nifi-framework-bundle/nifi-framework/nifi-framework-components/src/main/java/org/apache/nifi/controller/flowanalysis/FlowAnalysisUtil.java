@@ -25,7 +25,7 @@ import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 public class FlowAnalysisUtil {
     public static final String ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE = "*****";
 
-    public static NiFiRegistryFlowMapper createMapper(ExtensionManager extensionManager) {
+    public static NiFiRegistryFlowMapper createMapper(final ExtensionManager extensionManager) {
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapPropertyDescriptors(true)
             .mapControllerServiceReferencesToVersionedId(true)
@@ -38,12 +38,12 @@ public class FlowAnalysisUtil {
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager, flowMappingOptions) {
             @Override
-            public String getGroupId(String groupId) {
+            public String getGroupId(final String groupId) {
                 return groupId;
             }
 
             @Override
-            protected String encrypt(String value) {
+            protected String encrypt(final String value) {
                 return ENCRYPTED_SENSITIVE_VALUE_SUBSTITUTE;
             }
         };

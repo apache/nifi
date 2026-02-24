@@ -88,7 +88,7 @@ public class SecurityUtil {
                 kerberosUser.login();
             }
             return kerberosUser.doAs((PrivilegedExceptionAction<UserGroupInformation>) () -> {
-                Subject subject = Subject.current();
+                final Subject subject = Subject.current();
                 Validate.notEmpty(
                         subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
                         "No Subject was found matching the given principal");
@@ -149,20 +149,20 @@ public class SecurityUtil {
      */
     public static <T> T callWithUgi(final UserGroupInformation ugi, final PrivilegedExceptionAction<T> action) throws IOException {
         try {
-            T result;
+            final T result;
             if (ugi == null) {
                 try {
                     result = action.run();
-                } catch (IOException | RuntimeException e) {
+                } catch (final IOException | RuntimeException e) {
                     throw e;
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new RuntimeException(e);
                 }
             }  else {
                 result = ugi.doAs(action);
             }
             return result;
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new IOException(e);
         }
     }

@@ -42,12 +42,12 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
      * @return The next available CDC sequence ID for use by the CDC processor
      */
     @Override
-    public long writeEvent(final ProcessSession session, String transitUri, final UpdateRowsEventInfo eventInfo, final long currentSequenceId, Relationship relationship,
+    public long writeEvent(final ProcessSession session, final String transitUri, final UpdateRowsEventInfo eventInfo, final long currentSequenceId, final Relationship relationship,
                            final EventWriterConfiguration eventWriterConfiguration) {
         long seqId = currentSequenceId;
-        for (Map.Entry<Serializable[], Serializable[]> row : eventInfo.getRows()) {
+        for (final Map.Entry<Serializable[], Serializable[]> row : eventInfo.getRows()) {
             configureEventWriter(eventWriterConfiguration, session, eventInfo);
-            OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
+            final OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
 
             try {
                 super.startJson(outputStream, eventInfo);
@@ -57,7 +57,7 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
                 writeRow(eventInfo, row, bitSet);
 
                 super.endJson();
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new UncheckedIOException("Write JSON start array failed", ioe);
             }
 
@@ -73,22 +73,22 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
         return seqId;
     }
 
-    protected void writeRow(UpdateRowsEventInfo event, Map.Entry<Serializable[], Serializable[]> row, BitSet includedColumns) throws IOException {
+    protected void writeRow(final UpdateRowsEventInfo event, final Map.Entry<Serializable[], Serializable[]> row, final BitSet includedColumns) throws IOException {
 
         jsonGenerator.writeArrayFieldStart("columns");
         int i = includedColumns.nextSetBit(0);
         while (i != -1) {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeNumberField("id", i + 1);
-            ColumnDefinition columnDefinition = event.getColumnByIndex(i);
+            final ColumnDefinition columnDefinition = event.getColumnByIndex(i);
             Integer columnType = null;
             if (columnDefinition != null) {
                 jsonGenerator.writeStringField("name", columnDefinition.getName());
                 columnType = columnDefinition.getType();
                 jsonGenerator.writeNumberField("column_type", columnType);
             }
-            Serializable[] oldRow = row.getKey();
-            Serializable[] newRow = row.getValue();
+            final Serializable[] oldRow = row.getKey();
+            final Serializable[] newRow = row.getValue();
 
             if (oldRow[i] == null) {
                 jsonGenerator.writeNullField("last_value");

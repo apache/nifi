@@ -50,7 +50,7 @@ public class SNMPV2cTestRunnerFactory implements SNMPTestRunnerFactory {
     }
 
     @Override
-    public TestRunner createSnmpSetTestRunner(int agentPort, final String oid, final String oidValue) {
+    public TestRunner createSnmpSetTestRunner(final int agentPort, final String oid, final String oidValue) {
         final TestRunner runner = TestRunners.newTestRunner(SetSNMP.class);
         final SNMPConfiguration snmpConfiguration = snmpV2cConfigurationFactory.createSnmpGetSetConfiguration(agentPort);
         runner.setProperty(SetSNMP.AGENT_HOST, snmpConfiguration.getTargetHost());

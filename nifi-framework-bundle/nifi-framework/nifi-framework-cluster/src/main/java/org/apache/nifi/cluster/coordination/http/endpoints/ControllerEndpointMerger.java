@@ -40,12 +40,13 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
     }
 
     @Override
-    protected ControllerDTO getDto(ControllerEntity entity) {
+    protected ControllerDTO getDto(final ControllerEntity entity) {
         return entity.getController();
     }
 
     @Override
-    protected void mergeResponses(ControllerDTO clientDto, Map<NodeIdentifier, ControllerDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ControllerDTO clientDto, final Map<NodeIdentifier, ControllerDTO> dtoMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         final Map<String, Map<NodeIdentifier, PortDTO>> inputPortMap = new HashMap<>(); // map of port id to map of node id to port dto
         final Map<String, Map<NodeIdentifier, PortDTO>> outputPortMap = new HashMap<>(); // map of port id to map of node id to port dto
 
@@ -64,7 +65,7 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
          */
 
         // merge input ports
-        for (Map<NodeIdentifier, PortDTO> inputPortByNodeId : inputPortMap.values()) {
+        for (final Map<NodeIdentifier, PortDTO> inputPortByNodeId : inputPortMap.values()) {
             final Collection<PortDTO> nodeInputPorts = inputPortByNodeId.values();
             if (!nodeInputPorts.isEmpty()) {
                 final PortDTO inputPort = nodeInputPorts.iterator().next();
@@ -76,7 +77,7 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
         }
 
         // merge output ports
-        for (Map<NodeIdentifier, PortDTO> outputPortByNodeId : outputPortMap.values()) {
+        for (final Map<NodeIdentifier, PortDTO> outputPortByNodeId : outputPortMap.values()) {
             final Collection<PortDTO> nodeOutputPorts = outputPortByNodeId.values();
             if (!nodeOutputPorts.isEmpty()) {
                 final PortDTO outputPort = nodeOutputPorts.iterator().next();
@@ -102,7 +103,7 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
     }
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 }

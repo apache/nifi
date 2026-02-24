@@ -37,7 +37,7 @@ public class OpenStartElementNode extends BxmlNodeWithToken {
     private final String tagName;
     private final int tagLength;
 
-    public OpenStartElementNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public OpenStartElementNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         if ((getFlags() & 0x0b) != 0) {
             throw new IOException("Invalid flag detected");
@@ -49,10 +49,10 @@ public class OpenStartElementNode extends BxmlNodeWithToken {
         if ((getFlags() & 0x04) > 0) {
             tagLength += 4;
         }
-        String string = getChunkHeader().getString(stringOffset);
+        final String string = getChunkHeader().getString(stringOffset);
         if (stringOffset > getOffset() - chunkHeader.getOffset()) {
-            int initialPosition = binaryReader.getPosition();
-            NameStringNode nameStringNode = chunkHeader.addNameStringNode(stringOffset, binaryReader);
+            final int initialPosition = binaryReader.getPosition();
+            final NameStringNode nameStringNode = chunkHeader.addNameStringNode(stringOffset, binaryReader);
             tagLength += binaryReader.getPosition() - initialPosition;
             tagName = nameStringNode.getString();
         } else {
@@ -77,7 +77,7 @@ public class OpenStartElementNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

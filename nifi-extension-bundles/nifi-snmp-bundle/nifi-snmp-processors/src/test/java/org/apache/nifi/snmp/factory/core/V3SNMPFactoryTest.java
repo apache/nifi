@@ -49,7 +49,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final Snmp snmpManager = createInstanceWithRetries(snmpFactory::createSnmpManagerInstance, 5);
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
-        USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
+        final USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
         assertNotNull(address);
         assertTrue(usm.hasUser(null, new OctetString("SHAAES128")));
     }

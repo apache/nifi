@@ -70,7 +70,7 @@ public class TestConvertRecord {
     static {
         try {
             PERSON_SCHEMA = Files.readString(Paths.get("src/test/resources/TestConvertRecord/schema/person.avsc"));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -294,7 +294,7 @@ public class TestConvertRecord {
 
     @Test
     public void testCSVFormattingWithEL() throws InitializationException {
-        CSVReader csvReader = new CSVReader();
+        final CSVReader csvReader = new CSVReader();
         runner.addControllerService("csv-reader", csvReader);
         runner.setProperty(csvReader, CSVUtils.VALUE_SEPARATOR, "${csv.in.delimiter}");
         runner.setProperty(csvReader, CSVUtils.QUOTE_CHAR, "${csv.in.quote}");
@@ -302,7 +302,7 @@ public class TestConvertRecord {
         runner.setProperty(csvReader, CSVUtils.COMMENT_MARKER, "${csv.in.comment}");
         runner.enableControllerService(csvReader);
 
-        CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
+        final CSVRecordSetWriter csvWriter = new CSVRecordSetWriter();
         runner.addControllerService("csv-writer", csvWriter);
         runner.setProperty(csvWriter, CSVUtils.VALUE_SEPARATOR, "${csv.out.delimiter}");
         runner.setProperty(csvWriter, CSVUtils.QUOTE_CHAR, "${csv.out.quote}");
@@ -312,13 +312,13 @@ public class TestConvertRecord {
         runner.setProperty(ConvertRecord.RECORD_READER, "csv-reader");
         runner.setProperty(ConvertRecord.RECORD_WRITER, "csv-writer");
 
-        String ffContent = """
+        final String ffContent = """
                 ~ comment
                 id|username|password
                 123|'John'|^|^'^^
                 """;
 
-        Map<String, String> ffAttributes = new HashMap<>();
+        final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("csv.in.delimiter", "|");
         ffAttributes.put("csv.in.quote", "'");
         ffAttributes.put("csv.in.escape", "^");
@@ -333,7 +333,7 @@ public class TestConvertRecord {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
 
-        String expected = """
+        final String expected = """
                 `id`\t`username`\t`password`
                 `123`\t`John`\t`|'^`
                 """;
@@ -423,7 +423,7 @@ public class TestConvertRecord {
         final String timezone = System.getProperty("user.timezone");
         System.setProperty("user.timezone", "EST");
         try {
-            JsonTreeReader jsonTreeReader = new JsonTreeReader();
+            final JsonTreeReader jsonTreeReader = new JsonTreeReader();
             runner.addControllerService("json-reader", jsonTreeReader);
             runner.setProperty(jsonTreeReader, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd");
             runner.setProperty(jsonTreeReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
@@ -444,7 +444,7 @@ public class TestConvertRecord {
                     """);
             runner.enableControllerService(jsonTreeReader);
 
-            AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
+            final AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
             runner.addControllerService("avro-writer", avroWriter);
             runner.enableControllerService(avroWriter);
 
@@ -458,7 +458,7 @@ public class TestConvertRecord {
             runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 1);
 
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
-            DataFileStream<GenericRecord> avroStream = new DataFileStream<>(flowFile.getContentStream(), new NonCachingDatumReader<>());
+            final DataFileStream<GenericRecord> avroStream = new DataFileStream<>(flowFile.getContentStream(), new NonCachingDatumReader<>());
 
             assertTrue(avroStream.hasNext());
             assertEquals(1, avroStream.next().get("date")); // see https://avro.apache.org/docs/1.10.0/spec.html#Date

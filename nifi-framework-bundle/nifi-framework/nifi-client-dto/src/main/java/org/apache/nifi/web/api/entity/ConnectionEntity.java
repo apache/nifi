@@ -51,7 +51,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
     }
 
     @Override
-    public void setComponent(ConnectionDTO component) {
+    public void setComponent(final ConnectionDTO component) {
         this.component = component;
     }
 
@@ -64,7 +64,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return status;
     }
 
-    public void setStatus(ConnectionStatusDTO status) {
+    public void setStatus(final ConnectionStatusDTO status) {
         this.status = status;
     }
 
@@ -77,7 +77,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return bends;
     }
 
-    public void setBends(List<PositionDTO> bends) {
+    public void setBends(final List<PositionDTO> bends) {
         this.bends = bends;
     }
 
@@ -90,7 +90,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return labelIndex;
     }
 
-    public void setLabelIndex(Integer labelIndex) {
+    public void setLabelIndex(final Integer labelIndex) {
         this.labelIndex = labelIndex;
     }
 
@@ -103,7 +103,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return zIndex;
     }
 
-    public void setzIndex(Long zIndex) {
+    public void setzIndex(final Long zIndex) {
         this.zIndex = zIndex;
     }
 
@@ -116,7 +116,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -129,7 +129,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -142,7 +142,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return sourceGroupId;
     }
 
-    public void setSourceGroupId(String sourceGroupId) {
+    public void setSourceGroupId(final String sourceGroupId) {
         this.sourceGroupId = sourceGroupId;
     }
 
@@ -157,7 +157,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return sourceType;
     }
 
-    public void setSourceType(String sourceType) {
+    public void setSourceType(final String sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -170,7 +170,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return destinationGroupId;
     }
 
-    public void setDestinationGroupId(String destinationGroupId) {
+    public void setDestinationGroupId(final String destinationGroupId) {
         this.destinationGroupId = destinationGroupId;
     }
 
@@ -185,7 +185,7 @@ public class ConnectionEntity extends ComponentEntity implements Permissible<Con
         return destinationType;
     }
 
-    public void setDestinationType(String destinationType) {
+    public void setDestinationType(final String destinationType) {
         this.destinationType = destinationType;
     }
 }

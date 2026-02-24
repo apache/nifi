@@ -104,7 +104,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("syslog-5424-reader-raw-message", ADD_RAW.getName());
     }
@@ -145,7 +145,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
             fields.add(new RecordField(RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
         }
 
-        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(RFC_5424_SCHEMA_NAME).build();
+        final SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(RFC_5424_SCHEMA_NAME).build();
         return new SimpleRecordSchema(fields, schemaIdentifier);
     }
 
@@ -154,7 +154,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
             @Override
-            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
+            public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) {
                 return recordSchema;
             }
 

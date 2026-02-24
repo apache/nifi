@@ -28,7 +28,7 @@ public enum AuthorizationScheme implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    AuthorizationScheme(String displayName, String description) {
+    AuthorizationScheme(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

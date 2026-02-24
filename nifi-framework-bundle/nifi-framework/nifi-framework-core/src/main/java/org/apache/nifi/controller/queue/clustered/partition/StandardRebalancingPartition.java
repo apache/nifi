@@ -72,7 +72,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public long getTotalActiveQueuedDuration(long fromTimestamp) {
+    public long getTotalActiveQueuedDuration(final long fromTimestamp) {
         return queue.getTotalQueuedDuration(fromTimestamp);
     }
 
@@ -102,7 +102,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public void dropFlowFiles(DropFlowFileRequest dropRequest, String requestor) {
+    public void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         queue.dropFlowFiles(dropRequest, requestor);
     }
 
@@ -169,7 +169,7 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public FlowFileQueueContents packageForRebalance(String newPartitionName) {
+    public FlowFileQueueContents packageForRebalance(final String newPartitionName) {
         return queue.packageForRebalance(newPartitionName);
     }
 

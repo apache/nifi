@@ -29,7 +29,7 @@ import java.io.IOException;
 public class UnsignedByteTypeNode extends VariantTypeNode {
     private int value;
 
-    public UnsignedByteTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public UnsignedByteTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
         value = Byte.toUnsignedInt((byte) binaryReader.read());
     }

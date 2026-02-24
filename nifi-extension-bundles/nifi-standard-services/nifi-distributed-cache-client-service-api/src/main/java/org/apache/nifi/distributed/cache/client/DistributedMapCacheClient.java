@@ -116,8 +116,8 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @param <V>             The value type
      * @throws IOException if unable to communicate with the remote instance
      */
-    default <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-        for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+    default <K, V> void putAll(final Map<K, V> keysAndValues, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+        for (final Map.Entry<K, V> entry : keysAndValues.entrySet()) {
             put(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
         }
     }
@@ -152,13 +152,13 @@ public interface DistributedMapCacheClient extends ControllerService {
      * otherwise returns <code>null</code>
      * @throws IOException ex
      */
-    default <K, V> Map<K, V> subMap(Set<K> keys, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    default <K, V> Map<K, V> subMap(final Set<K> keys, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         // Default behavior is to iterate over the keys, calling get(key) and putting it into the results map
         if (keys == null) {
             return null;
         }
-        Map<K, V> results = new HashMap<>(keys.size());
-        for (K key : keys) {
+        final Map<K, V> results = new HashMap<>(keys.size());
+        for (final K key : keys) {
             results.put(key, get(key, keySerializer, valueDeserializer));
         }
         return results;
@@ -197,7 +197,7 @@ public interface DistributedMapCacheClient extends ControllerService {
      * null can also indicate that the map previously associated null with the key
      * @throws IOException ex
      */
-    default <K, V> V removeAndGet(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    default <K, V> V removeAndGet(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -209,7 +209,7 @@ public interface DistributedMapCacheClient extends ControllerService {
      * @return a Set of all keys currently in the cache
      * @throws IOException ex
      */
-    default <K> Set<K> keySet(Deserializer<K> keyDeserializer) throws IOException {
+    default <K> Set<K> keySet(final Deserializer<K> keyDeserializer) throws IOException {
         throw new UnsupportedOperationException();
     }
 }

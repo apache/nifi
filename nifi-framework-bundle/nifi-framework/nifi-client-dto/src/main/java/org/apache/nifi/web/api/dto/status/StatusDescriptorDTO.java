@@ -57,7 +57,7 @@ public class StatusDescriptorDTO {
         return field;
     }
 
-    public void setField(String field) {
+    public void setField(final String field) {
         this.field = field;
     }
 
@@ -70,7 +70,7 @@ public class StatusDescriptorDTO {
         return label;
     }
 
-    public void setLabel(String label) {
+    public void setLabel(final String label) {
         this.label = label;
     }
 
@@ -83,7 +83,7 @@ public class StatusDescriptorDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -96,7 +96,7 @@ public class StatusDescriptorDTO {
         return formatter;
     }
 
-    public void setFormatter(String formatter) {
+    public void setFormatter(final String formatter) {
         this.formatter = formatter;
     }
 

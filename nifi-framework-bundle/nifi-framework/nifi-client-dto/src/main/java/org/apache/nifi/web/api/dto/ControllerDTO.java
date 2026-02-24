@@ -57,7 +57,7 @@ public class ControllerDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -72,7 +72,7 @@ public class ControllerDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -85,7 +85,7 @@ public class ControllerDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -98,7 +98,7 @@ public class ControllerDTO {
         return inputPorts;
     }
 
-    public void setInputPorts(Set<PortDTO> inputPorts) {
+    public void setInputPorts(final Set<PortDTO> inputPorts) {
         this.inputPorts = inputPorts;
     }
 
@@ -111,7 +111,7 @@ public class ControllerDTO {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<PortDTO> outputPorts) {
+    public void setOutputPorts(final Set<PortDTO> outputPorts) {
         this.outputPorts = outputPorts;
     }
 
@@ -124,7 +124,7 @@ public class ControllerDTO {
         return instanceId;
     }
 
-    public void setInstanceId(String instanceId) {
+    public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
 
@@ -156,7 +156,7 @@ public class ControllerDTO {
         return remoteSiteHttpListeningPort;
     }
 
-    public void setRemoteSiteHttpListeningPort(Integer remoteSiteHttpListeningPort) {
+    public void setRemoteSiteHttpListeningPort(final Integer remoteSiteHttpListeningPort) {
         this.remoteSiteHttpListeningPort = remoteSiteHttpListeningPort;
     }
 
@@ -169,7 +169,7 @@ public class ControllerDTO {
         return siteToSiteSecure;
     }
 
-    public void setSiteToSiteSecure(Boolean siteToSiteSecure) {
+    public void setSiteToSiteSecure(final Boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
     }
 
@@ -182,7 +182,7 @@ public class ControllerDTO {
         return runningCount;
     }
 
-    public void setRunningCount(Integer runningCount) {
+    public void setRunningCount(final Integer runningCount) {
         this.runningCount = runningCount;
     }
 
@@ -195,7 +195,7 @@ public class ControllerDTO {
         return stoppedCount;
     }
 
-    public void setStoppedCount(Integer stoppedCount) {
+    public void setStoppedCount(final Integer stoppedCount) {
         this.stoppedCount = stoppedCount;
     }
 
@@ -208,7 +208,7 @@ public class ControllerDTO {
         return activeRemotePortCount;
     }
 
-    public void setActiveRemotePortCount(Integer activeRemotePortCount) {
+    public void setActiveRemotePortCount(final Integer activeRemotePortCount) {
         this.activeRemotePortCount = activeRemotePortCount;
     }
 
@@ -221,7 +221,7 @@ public class ControllerDTO {
         return inactiveRemotePortCount;
     }
 
-    public void setInactiveRemotePortCount(Integer inactiveRemotePortCount) {
+    public void setInactiveRemotePortCount(final Integer inactiveRemotePortCount) {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
@@ -234,7 +234,7 @@ public class ControllerDTO {
         return inputPortCount;
     }
 
-    public void setInputPortCount(Integer inputPortCount) {
+    public void setInputPortCount(final Integer inputPortCount) {
         this.inputPortCount = inputPortCount;
     }
 
@@ -247,7 +247,7 @@ public class ControllerDTO {
         return invalidCount;
     }
 
-    public void setInvalidCount(Integer invalidCount) {
+    public void setInvalidCount(final Integer invalidCount) {
         this.invalidCount = invalidCount;
     }
 
@@ -260,7 +260,7 @@ public class ControllerDTO {
         return disabledCount;
     }
 
-    public void setDisabledCount(Integer disabledCount) {
+    public void setDisabledCount(final Integer disabledCount) {
         this.disabledCount = disabledCount;
     }
 
@@ -273,7 +273,7 @@ public class ControllerDTO {
         return outputPortCount;
     }
 
-    public void setOutputPortCount(Integer outputPortCount) {
+    public void setOutputPortCount(final Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
     }
 

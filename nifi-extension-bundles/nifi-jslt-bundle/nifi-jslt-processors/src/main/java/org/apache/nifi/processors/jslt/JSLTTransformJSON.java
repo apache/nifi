@@ -172,7 +172,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("jslt-transform-transformation", JSLT_TRANSFORM.getName());
         config.renameProperty("jslt-transform-transformation-strategy", TRANSFORMATION_STRATEGY.getName());
         config.renameProperty("jslt-transform-pretty_print", PRETTY_PRINT.getName());
@@ -181,7 +181,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final PropertyValue transformProperty = validationContext.getProperty(JSLT_TRANSFORM);
@@ -198,7 +198,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         return results;
     }
 
-    private ValidationResult validateJSLT(PropertyDescriptor property, PropertyValue value) {
+    private ValidationResult validateJSLT(final PropertyDescriptor property, final PropertyValue value) {
         final ValidationResult.Builder builder = new ValidationResult.Builder().subject(property.getDisplayName());
         try {
             final String transform = readTransform(value);
@@ -213,7 +213,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
+        final int maxTransformsToCache = context.getProperty(TRANSFORM_CACHE_SIZE).asInteger();
         transformCache = Caffeine.newBuilder()
                 .maximumSize(maxTransformsToCache)
                 .build();
@@ -252,8 +252,8 @@ public class JSLTTransformJSON extends AbstractProcessor {
 
             transformed = session.write(original, (inputStream, outputStream) -> {
                 boolean topLevelArray = false;
-                JsonParser jsonParser;
-                JsonNode firstJsonNode;
+                final JsonParser jsonParser;
+                final JsonNode firstJsonNode;
                 if (EACH_OBJECT.equals(transformationStrategy)) {
                     jsonParser = jsonFactory.createParser(inputStream);
                     jsonParser.setCodec(JSON_OBJECT_MAPPER);
@@ -320,7 +320,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         }
     }
 
-    private Expression getJstlExpression(String transform, String jsltFilter) {
+    private Expression getJstlExpression(final String transform, final String jsltFilter) {
         Parser parser = new Parser(new StringReader(transform))
                 .withSource("<inline>");
         if (jsltFilter != null && !jsltFilter.isEmpty() && !jsltFilter.equals(JSLT_FILTER_DEFAULT)) {
@@ -369,7 +369,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
         return getJsonNode(jsonParser);
     }
 
-    private JsonNode getJsonNode(JsonParser jsonParser) throws IOException {
+    private JsonNode getJsonNode(final JsonParser jsonParser) throws IOException {
         while (true) {
             final JsonToken token = jsonParser.nextToken();
             if (token == null) {

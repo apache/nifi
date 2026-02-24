@@ -125,15 +125,16 @@ public class ParseEvtx extends AbstractProcessor {
         this(FileHeader::new, new MalformedChunkHandler(REL_BAD_CHUNK), XmlRootNodeHandler::new, new ResultProcessor(REL_SUCCESS, REL_FAILURE));
     }
 
-    public ParseEvtx(FileHeaderFactory fileHeaderFactory, MalformedChunkHandler malformedChunkHandler, RootNodeHandlerFactory rootNodeHandlerFactory, ResultProcessor resultProcessor) {
+    public ParseEvtx(final FileHeaderFactory fileHeaderFactory, final MalformedChunkHandler malformedChunkHandler,
+            final RootNodeHandlerFactory rootNodeHandlerFactory, final ResultProcessor resultProcessor) {
         this.fileHeaderFactory = fileHeaderFactory;
         this.malformedChunkHandler = malformedChunkHandler;
         this.rootNodeHandlerFactory = rootNodeHandlerFactory;
         this.resultProcessor = resultProcessor;
     }
 
-    protected String getName(String basename, Object chunkNumber, Object recordNumber, String extension) {
-        StringBuilder stringBuilder = new StringBuilder(basename);
+    protected String getName(final String basename, final Object chunkNumber, final Object recordNumber, final String extension) {
+        final StringBuilder stringBuilder = new StringBuilder(basename);
         if (chunkNumber != null) {
             stringBuilder.append("-chunk");
             stringBuilder.append(chunkNumber);
@@ -146,8 +147,8 @@ public class ParseEvtx extends AbstractProcessor {
         return stringBuilder.toString();
     }
 
-    protected String getBasename(FlowFile flowFile, ComponentLog logger) {
-        String basename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+    protected String getBasename(final FlowFile flowFile, final ComponentLog logger) {
+        final String basename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         if (basename.endsWith(EVTX_EXTENSION)) {
             return basename.substring(0, basename.length() - EVTX_EXTENSION.length());
         } else {
@@ -157,19 +158,19 @@ public class ParseEvtx extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        ComponentLog logger = getLogger();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final ComponentLog logger = getLogger();
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
-        String basename = getBasename(flowFile, logger);
-        String granularity = context.getProperty(GRANULARITY).getValue();
+        final String basename = getBasename(flowFile, logger);
+        final String granularity = context.getProperty(GRANULARITY).getValue();
         if (FILE.equals(granularity)) {
             // File granularity will emit a FlowFile for each input
-            FlowFile original = session.clone(flowFile);
-            AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
-            FlowFile updated = session.write(flowFile, (in, out) -> processFileGranularity(session, logger, original, basename, exceptionReference, in, out));
+            final FlowFile original = session.clone(flowFile);
+            final AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
+            final FlowFile updated = session.write(flowFile, (in, out) -> processFileGranularity(session, logger, original, basename, exceptionReference, in, out));
             session.transfer(original, REL_ORIGINAL);
             resultProcessor.process(session, logger, updated, exceptionReference.get(), getName(basename, null, null, XML_EXTENSION));
         } else {
@@ -187,89 +188,89 @@ public class ParseEvtx extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("granularity", GRANULARITY.getName());
     }
 
-    protected void processFileGranularity(ProcessSession session, ComponentLog componentLog, FlowFile original, String basename,
-                                          AtomicReference<Exception> exceptionReference, InputStream in, OutputStream out) throws IOException {
-        FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
+    protected void processFileGranularity(final ProcessSession session, final ComponentLog componentLog, final FlowFile original, final String basename,
+                                          final AtomicReference<Exception> exceptionReference, final InputStream in, final OutputStream out) throws IOException {
+        final FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
         try (RootNodeHandler rootNodeHandler = rootNodeHandlerFactory.create(out)) {
             while (fileHeader.hasNext()) {
                 try {
-                    ChunkHeader chunkHeader = fileHeader.next();
+                    final ChunkHeader chunkHeader = fileHeader.next();
                     try {
                         while (chunkHeader.hasNext()) {
                             rootNodeHandler.handle(chunkHeader.next().getRootNode());
                         }
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         malformedChunkHandler.handle(original, session, getName(basename, chunkHeader.getChunkNumber(), null, EVTX_EXTENSION), chunkHeader.getBinaryReader().getBytes());
                         exceptionReference.set(e);
                     }
-                } catch (MalformedChunkException e) {
+                } catch (final MalformedChunkException e) {
                     malformedChunkHandler.handle(original, session, getName(basename, e.getChunkNum(), null, EVTX_EXTENSION), e.getBadChunk());
                 }
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             exceptionReference.set(e);
         }
     }
 
-    protected void processChunkGranularity(ProcessSession session, ComponentLog componentLog, FlowFile flowFile, String basename, InputStream in) throws IOException {
-        FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
+    protected void processChunkGranularity(final ProcessSession session, final ComponentLog componentLog, final FlowFile flowFile, final String basename, final InputStream in) throws IOException {
+        final FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
         while (fileHeader.hasNext()) {
             try {
-                ChunkHeader chunkHeader = fileHeader.next();
+                final ChunkHeader chunkHeader = fileHeader.next();
                 FlowFile updated = session.create(flowFile);
-                AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
+                final AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
                 updated = session.write(updated, out -> {
                     try (RootNodeHandler rootNodeHandler = rootNodeHandlerFactory.create(out)) {
                         while (chunkHeader.hasNext()) {
                             try {
                                 rootNodeHandler.handle(chunkHeader.next().getRootNode());
-                            } catch (IOException e) {
+                            } catch (final IOException e) {
                                 exceptionReference.set(e);
                                 break;
                             }
                         }
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         exceptionReference.set(e);
                     }
                 });
-                Exception exception = exceptionReference.get();
+                final Exception exception = exceptionReference.get();
                 resultProcessor.process(session, componentLog, updated, exception, getName(basename, chunkHeader.getChunkNumber(), null, XML_EXTENSION));
                 if (exception != null) {
                     malformedChunkHandler.handle(flowFile, session, getName(basename, chunkHeader.getChunkNumber(), null, EVTX_EXTENSION), chunkHeader.getBinaryReader().getBytes());
                 }
-            } catch (MalformedChunkException e) {
+            } catch (final MalformedChunkException e) {
                 malformedChunkHandler.handle(flowFile, session, getName(basename, e.getChunkNum(), null, EVTX_EXTENSION), e.getBadChunk());
             }
         }
     }
 
-    protected void processRecordGranularity(ProcessSession session, ComponentLog componentLog, FlowFile flowFile, String basename, InputStream in) throws IOException {
-        FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
+    protected void processRecordGranularity(final ProcessSession session, final ComponentLog componentLog, final FlowFile flowFile, final String basename, final InputStream in) throws IOException {
+        final FileHeader fileHeader = fileHeaderFactory.create(in, componentLog);
         while (fileHeader.hasNext()) {
             try {
-                ChunkHeader chunkHeader = fileHeader.next();
+                final ChunkHeader chunkHeader = fileHeader.next();
                 while (chunkHeader.hasNext()) {
                     FlowFile updated = session.create(flowFile);
-                    AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
+                    final AtomicReference<Exception> exceptionReference = new AtomicReference<>(null);
                     try {
-                        Record record = chunkHeader.next();
+                        final Record record = chunkHeader.next();
                         updated = session.write(updated, out -> {
                             try (RootNodeHandler rootNodeHandler = rootNodeHandlerFactory.create(out)) {
                                 try {
                                     rootNodeHandler.handle(record.getRootNode());
-                                } catch (IOException e) {
+                                } catch (final IOException e) {
                                     exceptionReference.set(e);
                                 }
-                            } catch (IOException e) {
+                            } catch (final IOException e) {
                                 exceptionReference.set(e);
                             }
                         });
                         resultProcessor.process(session, componentLog, updated, exceptionReference.get(), getName(basename, chunkHeader.getChunkNumber(), record.getRecordNum(), XML_EXTENSION));
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         exceptionReference.set(e);
                         session.remove(updated);
                     }
@@ -277,7 +278,7 @@ public class ParseEvtx extends AbstractProcessor {
                         malformedChunkHandler.handle(flowFile, session, getName(basename, chunkHeader.getChunkNumber(), null, EVTX_EXTENSION), chunkHeader.getBinaryReader().getBytes());
                     }
                 }
-            } catch (MalformedChunkException e) {
+            } catch (final MalformedChunkException e) {
                 malformedChunkHandler.handle(flowFile, session, getName(basename, e.getChunkNum(), null, EVTX_EXTENSION), e.getBadChunk());
             }
         }

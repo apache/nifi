@@ -22,7 +22,7 @@ public final class ConversionUtil {
     public static String toIPV4(final byte[] buffer, final int offset, final int length) {
         try {
             return InetAddress.getByAddress(Arrays.copyOfRange(buffer, offset, offset + length)).getHostAddress();
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             return String.valueOf(toInt(buffer, offset, length));
         }
     }

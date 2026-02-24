@@ -85,7 +85,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
     );
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
         final long minCount = validationContext.getProperty(COUNT_MIN).asLong();
@@ -119,7 +119,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
     }
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(VersionedProcessGroup pg, FlowAnalysisRuleContext context) {
+    public Collection<GroupAnalysisResult> analyzeProcessGroup(final VersionedProcessGroup pg, final FlowAnalysisRuleContext context) {
         final Collection<ConnectionViolation> violations = new ArrayList<>();
 
         final long minCount = context.getProperty(COUNT_MIN).asLong();
@@ -175,7 +175,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
         private final String configurationItem;
         private final String violationMessage;
 
-        BackpressureViolationType(String id, String configurationItem, String violationMessage) {
+        BackpressureViolationType(final String id, final String configurationItem, final String violationMessage) {
             this.id = id;
             this.configurationItem = configurationItem;
             this.violationMessage = violationMessage;

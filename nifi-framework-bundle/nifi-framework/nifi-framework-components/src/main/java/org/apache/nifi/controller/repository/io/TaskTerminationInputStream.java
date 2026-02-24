@@ -57,13 +57,13 @@ public class TaskTerminationInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(final byte[] b) throws IOException {
         verifyNotTerminated();
         return delegate.read(b);
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         verifyNotTerminated();
         return delegate.read(b, off, len);
     }
@@ -75,7 +75,7 @@ public class TaskTerminationInputStream extends InputStream {
     }
 
     @Override
-    public long skip(long n) throws IOException {
+    public long skip(final long n) throws IOException {
         verifyNotTerminated();
         return delegate.skip(n);
     }
@@ -87,7 +87,7 @@ public class TaskTerminationInputStream extends InputStream {
     }
 
     @Override
-    public synchronized void mark(int readlimit) {
+    public synchronized void mark(final int readlimit) {
         verifyNotTerminated();
         delegate.mark(readlimit);
     }

@@ -44,7 +44,7 @@ public class ProvenanceLinkDTO {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -57,7 +57,7 @@ public class ProvenanceLinkDTO {
         return targetId;
     }
 
-    public void setTargetId(String targetId) {
+    public void setTargetId(final String targetId) {
         this.targetId = targetId;
     }
 
@@ -70,7 +70,7 @@ public class ProvenanceLinkDTO {
         return flowFileUuid;
     }
 
-    public void setFlowFileUuid(String flowFileUuid) {
+    public void setFlowFileUuid(final String flowFileUuid) {
         this.flowFileUuid = flowFileUuid;
     }
 
@@ -85,7 +85,7 @@ public class ProvenanceLinkDTO {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -98,7 +98,7 @@ public class ProvenanceLinkDTO {
         return millis;
     }
 
-    public void setMillis(Long millis) {
+    public void setMillis(final Long millis) {
         this.millis = millis;
     }
 }

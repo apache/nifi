@@ -21,7 +21,7 @@ public class ConfigTransformException extends Exception {
 
     private final int errorCode;
 
-    public ConfigTransformException(String message, int errorCode, Throwable throwable) {
+    public ConfigTransformException(final String message, final int errorCode, final Throwable throwable) {
         super(message, throwable);
         this.errorCode = errorCode;
     }

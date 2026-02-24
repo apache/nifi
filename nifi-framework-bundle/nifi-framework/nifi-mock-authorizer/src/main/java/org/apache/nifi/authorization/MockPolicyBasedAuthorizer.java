@@ -39,7 +39,7 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
 
     }
 
-    public MockPolicyBasedAuthorizer(Set<Group> groups, Set<User> users, Set<AccessPolicy> policies) {
+    public MockPolicyBasedAuthorizer(final Set<Group> groups, final Set<User> users, final Set<AccessPolicy> policies) {
         if (groups != null) {
             this.groups.addAll(groups);
         }
@@ -52,29 +52,29 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     }
 
     @Override
-    public Group doAddGroup(Group group) throws AuthorizationAccessException {
+    public Group doAddGroup(final Group group) throws AuthorizationAccessException {
         groups.add(group);
         return group;
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         return groups.stream().filter(g -> g.getIdentifier().equals(identifier)).findFirst().get();
     }
 
     @Override
-    public Group getGroupByName(String name) throws AuthorizationAccessException {
+    public Group getGroupByName(final String name) throws AuthorizationAccessException {
         return groups.stream().filter(g -> g.getName().equals(name)).findFirst().get();
     }
 
     @Override
-    public Group doUpdateGroup(Group group) throws AuthorizationAccessException {
+    public Group doUpdateGroup(final Group group) throws AuthorizationAccessException {
         deleteGroup(group);
         return addGroup(group);
     }
 
     @Override
-    public Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public Group deleteGroup(final Group group) throws AuthorizationAccessException {
         groups.remove(group);
         return group;
     }
@@ -85,29 +85,29 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     }
 
     @Override
-    public User doAddUser(User user) throws AuthorizationAccessException {
+    public User doAddUser(final User user) throws AuthorizationAccessException {
         users.add(user);
         return user;
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         return users.stream().filter(u -> u.getIdentifier().equals(identifier)).findFirst().get();
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         return users.stream().filter(u -> u.getIdentity().equals(identity)).findFirst().get();
     }
 
     @Override
-    public User doUpdateUser(User user) throws AuthorizationAccessException {
+    public User doUpdateUser(final User user) throws AuthorizationAccessException {
         deleteUser(user);
         return addUser(user);
     }
 
     @Override
-    public User deleteUser(User user) throws AuthorizationAccessException {
+    public User deleteUser(final User user) throws AuthorizationAccessException {
         users.remove(user);
         return user;
     }
@@ -118,24 +118,24 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     }
 
     @Override
-    protected AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    protected AccessPolicy doAddAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         policies.add(accessPolicy);
         return accessPolicy;
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+    public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
         return policies.stream().filter(p -> p.getIdentifier().equals(identifier)).findFirst().get();
     }
 
     @Override
-    public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+    public AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
         deleteAccessPolicy(accessPolicy);
         return addAccessPolicy(accessPolicy);
     }
 
     @Override
-    public AccessPolicy deleteAccessPolicy(AccessPolicy policy) throws AuthorizationAccessException {
+    public AccessPolicy deleteAccessPolicy(final AccessPolicy policy) throws AuthorizationAccessException {
         policies.remove(policy);
         return policy;
     }
@@ -149,20 +149,20 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     public UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException {
         return new UsersAndAccessPolicies() {
             @Override
-            public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) {
+            public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) {
                 return policies.stream()
                         .filter(policy -> policy.getResource().equals(resourceIdentifier) && policy.getAction().equals(action))
                         .findFirst().orElse(null);
             }
 
             @Override
-            public User getUser(String identity) {
+            public User getUser(final String identity) {
                 return getUserByIdentity(identity);
             }
 
             @Override
-            public Set<Group> getGroups(String userIdentity) {
-                User user = getUserByIdentity(userIdentity);
+            public Set<Group> getGroups(final String userIdentity) {
+                final User user = getUserByIdentity(userIdentity);
                 if (user == null) {
                     return new HashSet<>();
                 } else {
@@ -175,21 +175,21 @@ public class MockPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer imp
     }
 
     @Override
-    public void auditAccessAttempt(AuthorizationRequest request, AuthorizationResult result) {
+    public void auditAccessAttempt(final AuthorizationRequest request, final AuthorizationResult result) {
         audited.add(request);
     }
 
-    public boolean isAudited(AuthorizationRequest request) {
+    public boolean isAudited(final AuthorizationRequest request) {
         return audited.contains(request);
     }
 
     @Override
-    public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+    public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
 
     }
 
     @Override
-    public void doOnConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    public void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
     }
 

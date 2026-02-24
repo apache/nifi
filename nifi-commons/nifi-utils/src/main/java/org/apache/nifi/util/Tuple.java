@@ -21,7 +21,7 @@ public class Tuple<A, B> {
     final A key;
     final B value;
 
-    public Tuple(A key, B value) {
+    public Tuple(final A key, final B value) {
         this.key = key;
         this.value = value;
     }

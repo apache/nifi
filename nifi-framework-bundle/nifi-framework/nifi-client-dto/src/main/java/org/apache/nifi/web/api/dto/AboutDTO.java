@@ -54,7 +54,7 @@ public class AboutDTO {
         return title;
     }
 
-    public void setTitle(String title) {
+    public void setTitle(final String title) {
         this.title = title;
     }
 
@@ -69,7 +69,7 @@ public class AboutDTO {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -82,7 +82,7 @@ public class AboutDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -95,7 +95,7 @@ public class AboutDTO {
         return contentViewerUrl;
     }
 
-    public void setContentViewerUrl(String contentViewerUrl) {
+    public void setContentViewerUrl(final String contentViewerUrl) {
         this.contentViewerUrl = contentViewerUrl;
     }
 
@@ -111,7 +111,7 @@ public class AboutDTO {
         return timezone;
     }
 
-    public void setTimezone(Date timezone) {
+    public void setTimezone(final Date timezone) {
         this.timezone = timezone;
     }
 
@@ -121,7 +121,7 @@ public class AboutDTO {
         return buildTag;
     }
 
-    public void setBuildTag(String buildTag) {
+    public void setBuildTag(final String buildTag) {
         this.buildTag = buildTag;
     }
 
@@ -131,7 +131,7 @@ public class AboutDTO {
         return buildRevision;
     }
 
-    public void setBuildRevision(String buildRevision) {
+    public void setBuildRevision(final String buildRevision) {
         this.buildRevision = buildRevision;
     }
 
@@ -141,7 +141,7 @@ public class AboutDTO {
         return buildBranch;
     }
 
-    public void setBuildBranch(String buildBranch) {
+    public void setBuildBranch(final String buildBranch) {
         this.buildBranch = buildBranch;
     }
 
@@ -153,7 +153,7 @@ public class AboutDTO {
         return buildTimestamp;
     }
 
-    public void setBuildTimestamp(Date buildTimestamp) {
+    public void setBuildTimestamp(final Date buildTimestamp) {
         this.buildTimestamp = buildTimestamp;
     }
 }

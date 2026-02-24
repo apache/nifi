@@ -86,14 +86,14 @@ public class JASN1ReaderTest {
     @DisabledOnOs({ OS.WINDOWS })
     @Test
     public void testCanLoadClassCompiledFromAsn() throws Exception {
-        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+        final ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(Paths.get("src", "test", "resources", "test.asn").toString());
 
         testSubject.onEnabled(context);
 
-        String actualRootModelName = testSubject.guessRootClassName("ORG-APACHE-NIFI-JASN1-TEST.RootType");
-        Class<?> actual = testSubject.customClassLoader.loadClass(actualRootModelName);
+        final String actualRootModelName = testSubject.guessRootClassName("ORG-APACHE-NIFI-JASN1-TEST.RootType");
+        final Class<?> actual = testSubject.customClassLoader.loadClass(actualRootModelName);
 
         assertEquals("org.apache.nifi.jasn1.test.RootType", actualRootModelName);
         assertNotNull(actual);
@@ -101,7 +101,7 @@ public class JASN1ReaderTest {
 
     @Test
     public void testAsnFileDoesntExist() {
-        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+        final ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue()).thenReturn(
                 new StringJoiner(",")
@@ -110,11 +110,11 @@ public class JASN1ReaderTest {
                         .toString()
         );
 
-        ProcessException processException = assertThrows(
+        final ProcessException processException = assertThrows(
                 ProcessException.class,
                 () -> testSubject.onEnabled(context)
         );
-        Throwable cause = processException.getCause();
+        final Throwable cause = processException.getCause();
 
         assertEquals(FileNotFoundException.class, cause.getClass());
         assertTrue(cause.getMessage().contains("doesnt_exist.asn"));
@@ -126,9 +126,9 @@ public class JASN1ReaderTest {
      * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantParseAsn() {
-        String asnFile = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
+        final String asnFile = Paths.get("src", "test", "resources", "cant_parse.asn").toString();
 
-        List<String> expectedErrorMessages = Arrays.asList(
+        final List<String> expectedErrorMessages = Arrays.asList(
                 "line 11:5: unexpected token: field3",
                 "line 17:33: unexpected token: ["
         );
@@ -143,9 +143,9 @@ public class JASN1ReaderTest {
      * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantCompileAsn() {
-        String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
+        final String asnFiles = Paths.get("src", "test", "resources", "cant_compile.asn").toString();
 
-        List<String> expectedErrorMessages = Arrays.asList(
+        final List<String> expectedErrorMessages = Arrays.asList(
                 ".*com\\.beanit\\.asn1bean\\.ber\\.types\\.BerInteger.*com\\.beanit\\.asn1bean\\.ber\\.BerLength.*",
                 ".*boolean.*java\\.io\\.OutputStream.*",
                 ".*-Xdiags:verbose.*"
@@ -161,9 +161,9 @@ public class JASN1ReaderTest {
      * In case of changes to this test additionalDetails.md may need to be updated as well.
      */
     public void testCantCompileAsnOnMac() {
-        String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
+        final String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
 
-        List<String> expectedErrorMessages = Collections.singletonList(
+        final List<String> expectedErrorMessages = Collections.singletonList(
                 ".*SAMENAMEWithDifferentCase.*SAMENAMEWithDifferentCase.*"
         );
 
@@ -184,7 +184,7 @@ public class JASN1ReaderTest {
         final JASN1Reader jasn1Reader = new JASN1Reader();
         jasn1Reader.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        final Map<String, String> expected = Map.ofEntries(
                 Map.entry("root-model-name", JASN1Reader.ROOT_MODEL_NAME.getName()),
                 Map.entry("root-model-class-name", JASN1Reader.ROOT_CLASS_NAME.getName()),
                 Map.entry("asn-files", JASN1Reader.ASN_FILES.getName())
@@ -196,8 +196,8 @@ public class JASN1ReaderTest {
         assertEquals(expected, propertiesRenamed);
     }
 
-    private void testParseError(String asnFile, List<String> expectedErrorMessages) {
-        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+    private void testParseError(final String asnFile, final List<String> expectedErrorMessages) {
+        final ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFile);
@@ -207,16 +207,16 @@ public class JASN1ReaderTest {
                 () -> testSubject.onEnabled(context)
         );
 
-        ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
         verify(testSubject.logger, atLeastOnce()).error(eq("{} - {}"), anyString(), errorCaptor.capture());
 
-        List<String> actualErrorMessages = errorCaptor.getAllValues();
+        final List<String> actualErrorMessages = errorCaptor.getAllValues();
 
         assertEquals(expectedErrorMessages, actualErrorMessages);
     }
 
-    private void testCompileError(String asnFiles, List<String> expectedErrorMessages) {
-        ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
+    private void testCompileError(final String asnFiles, final List<String> expectedErrorMessages) {
+        final ConfigurationContext context = mock(ConfigurationContext.class, RETURNS_DEEP_STUBS);
         when(context.getProperty(ASN_FILES).isSet()).thenReturn(true);
         when(context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue())
                 .thenReturn(asnFiles);
@@ -226,15 +226,15 @@ public class JASN1ReaderTest {
                 () -> testSubject.onEnabled(context)
         );
 
-        ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
+        final ArgumentCaptor<String> errorCaptor = ArgumentCaptor.forClass(String.class);
         verify(testSubject.logger, atLeastOnce()).error(errorCaptor.capture());
 
-        List<String> actualErrorMessages = errorCaptor.getAllValues();
+        final List<String> actualErrorMessages = errorCaptor.getAllValues();
         assertEquals(expectedErrorMessages.size(), actualErrorMessages.size());
 
         for (int errorMessageIndex = 0; errorMessageIndex < actualErrorMessages.size(); errorMessageIndex++) {
-            String expectedErrorMessage = expectedErrorMessages.get(errorMessageIndex);
-            String actualErrorMessage = actualErrorMessages.get(errorMessageIndex);
+            final String expectedErrorMessage = expectedErrorMessages.get(errorMessageIndex);
+            final String actualErrorMessage = actualErrorMessages.get(errorMessageIndex);
             assertTrue(actualErrorMessage.matches(expectedErrorMessage), "Expected string matching '" + expectedErrorMessage + "', got '" + actualErrorMessage + "'");
         }
     }

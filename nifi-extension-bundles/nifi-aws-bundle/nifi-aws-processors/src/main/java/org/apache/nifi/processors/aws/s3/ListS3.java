@@ -347,7 +347,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     @OnScheduled
-    public void initTrackingStrategy(ProcessContext context) throws IOException {
+    public void initTrackingStrategy(final ProcessContext context) throws IOException {
         final String listingStrategy = context.getProperty(LISTING_STRATEGY).getValue();
         final boolean isTrackingTimestampsStrategy = BY_TIMESTAMPS.getValue().equals(listingStrategy);
         final boolean isTrackingEntityStrategy = BY_ENTITIES.getValue().equals(listingStrategy);
@@ -361,7 +361,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             try {
                 listedEntityTracker.clearListedEntities();
                 listedEntityTracker = null;
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException("Failed to reset previously listed entities", e);
             }
         }
@@ -374,13 +374,13 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     @OnScheduled
-    public void initObjectAgeThresholds(ProcessContext context) {
+    public void initObjectAgeThresholds(final ProcessContext context) {
         minObjectAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         maxObjectAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
         config.renameProperty("delimiter", DELIMITER.getName());
@@ -404,9 +404,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     private static Validator createRequesterPaysValidator() {
         return (subject, input, context) -> {
-            boolean requesterPays = Boolean.parseBoolean(input);
-            boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
-            boolean valid = !requesterPays || !useVersions;
+            final boolean requesterPays = Boolean.parseBoolean(input);
+            final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
+            final boolean valid = !requesterPays || !useVersions;
             return new ValidationResult.Builder()
                     .input(input)
                     .subject(subject)
@@ -417,9 +417,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
     private static Validator createMaxAgeValidator() {
         return (subject, input, context) -> {
-            Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
-            long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-            boolean valid = input != null && maxAge > minAge;
+            final Double  maxAge = input != null ? FormatUtils.getPreciseTimeDuration(input, TimeUnit.MILLISECONDS) : null;
+            final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+            final boolean valid = input != null && maxAge > minAge;
             return new ValidationResult.Builder()
                     .input(input)
                     .subject(subject)
@@ -440,8 +440,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     private Set<String> extractKeys(final StateMap stateMap) {
-        Set<String> keys = new HashSet<>();
-        for (Map.Entry<String, String>  entry : stateMap.toMap().entrySet()) {
+        final Set<String> keys = new HashSet<>();
+        for (final Map.Entry<String, String>  entry : stateMap.toMap().entrySet()) {
             if (entry.getKey().startsWith(CURRENT_KEY_PREFIX)) {
                 keys.add(entry.getValue());
             }
@@ -482,7 +482,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         try {
             session.setState(state, Scope.CLUSTER);
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
     }
@@ -502,10 +502,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private void listNoTracking(ProcessContext context, ProcessSession session) {
+    private void listNoTracking(final ProcessContext context, final ProcessSession session) {
         final S3Client client = getClient(context);
 
-        S3BucketLister bucketLister = getS3BucketLister(context, client);
+        final S3BucketLister bucketLister = getS3BucketLister(context, client);
 
         final long startNanos = System.nanoTime();
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -534,8 +534,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             do {
                 final List<ObjectVersion> objectVersionList = bucketLister.listVersions();
-                for (ObjectVersion objectVersion : objectVersionList) {
-                    long lastModified = objectVersion.lastModified().toEpochMilli();
+                for (final ObjectVersion objectVersion : objectVersionList) {
+                    final long lastModified = objectVersion.lastModified().toEpochMilli();
                     if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
                             || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
@@ -582,10 +582,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private void listByTrackingTimestamps(ProcessContext context, ProcessSession session) {
+    private void listByTrackingTimestamps(final ProcessContext context, final ProcessSession session) {
         try {
             restoreState(session);
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             getLogger().error("Failed to restore processor state; yielding", ioe);
             context.yield();
             return;
@@ -622,7 +622,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
             do {
                 final List<ObjectVersion> objectVersionList = bucketLister.listVersions();
-                for (ObjectVersion objectVersion : objectVersionList) {
+                for (final ObjectVersion objectVersion : objectVersionList) {
                     final long lastModified = objectVersion.lastModified().toEpochMilli();
                     if (lastModified < listingTimestamp
                             || lastModified == listingTimestamp && currentKeys.contains(objectVersion.key())
@@ -693,9 +693,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
+    private void listByTrackingEntities(final ProcessContext context, final ProcessSession session) {
         listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
-            S3BucketLister bucketLister = getS3BucketLister(context, getClient(context));
+            final S3BucketLister bucketLister = getS3BucketLister(context, getClient(context));
             final long currentTime = System.currentTimeMillis();
 
             return bucketLister.listVersions()
@@ -722,24 +722,24 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         @Override
         protected void createRecordsForEntities(
-            ProcessContext context,
-            ProcessSession session,
-            List<ListableEntityWrapper<ObjectVersion>> updatedEntities
+            final ProcessContext context,
+            final ProcessSession session,
+            final List<ListableEntityWrapper<ObjectVersion>> updatedEntities
         ) {
             publishListing(context, session, updatedEntities);
         }
 
         @Override
         protected void createFlowFilesForEntities(
-            ProcessContext context,
-            ProcessSession session,
-            List<ListableEntityWrapper<ObjectVersion>> updatedEntities,
-            Function<ListableEntityWrapper<ObjectVersion>, Map<String, String>> createAttributes
+            final ProcessContext context,
+            final ProcessSession session,
+            final List<ListableEntityWrapper<ObjectVersion>> updatedEntities,
+            final Function<ListableEntityWrapper<ObjectVersion>, Map<String, String>> createAttributes
         ) {
             publishListing(context, session, updatedEntities);
         }
 
-        private void publishListing(ProcessContext context, ProcessSession session, List<ListableEntityWrapper<ObjectVersion>> updatedEntities) {
+        private void publishListing(final ProcessContext context, final ProcessSession session, final List<ListableEntityWrapper<ObjectVersion>> updatedEntities) {
             final String region = getRegion(context).id();
             final S3ObjectWriter writer;
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
@@ -754,8 +754,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
                 int listCount = 0;
-                for (ListableEntityWrapper<ObjectVersion> updatedEntity : updatedEntities) {
-                    ObjectVersion objectVersion = updatedEntity.getRawEntity();
+                for (final ListableEntityWrapper<ObjectVersion> updatedEntity : updatedEntities) {
+                    final ObjectVersion objectVersion = updatedEntity.getRawEntity();
 
                     final S3Client client = getClient(context);
                     final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
@@ -784,7 +784,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private Map<String, String> getTagging(ProcessContext context, S3Client client, String bucket, ObjectVersion objectVersion) {
+    private Map<String, String> getTagging(final ProcessContext context, final S3Client client, final String bucket, final ObjectVersion objectVersion) {
         Map<String, String> tagging = null;
         if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
             try {
@@ -803,7 +803,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return tagging;
     }
 
-    private Map<String, String> getUserMetadata(ProcessContext context, S3Client client, String bucket, ObjectVersion objectVersion) {
+    private Map<String, String> getUserMetadata(final ProcessContext context, final S3Client client, final String bucket, final ObjectVersion objectVersion) {
         Map<String, String> userMetadata = null;
         if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
             try {
@@ -821,7 +821,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return userMetadata;
     }
 
-    private S3BucketLister getS3BucketLister(ProcessContext context, S3Client client) {
+    private S3BucketLister getS3BucketLister(final ProcessContext context, final S3Client client) {
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
@@ -866,27 +866,27 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         private ListObjectsRequest.Builder listObjectsRequestBuilder;
         private ListObjectsResponse listObjectsResponse;
 
-        public S3ObjectBucketLister(S3Client client) {
+        public S3ObjectBucketLister(final S3Client client) {
             this.client = client;
         }
 
         @Override
-        public void setBucketName(String bucketName) {
+        public void setBucketName(final String bucketName) {
             listObjectsRequestBuilder = ListObjectsRequest.builder().bucket(bucketName);
         }
 
         @Override
-        public void setPrefix(String prefix) {
+        public void setPrefix(final String prefix) {
             listObjectsRequestBuilder.prefix(prefix);
         }
 
         @Override
-        public void setDelimiter(String delimiter) {
+        public void setDelimiter(final String delimiter) {
             listObjectsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
-        public void setRequesterPays(boolean requesterPays) {
+        public void setRequesterPays(final boolean requesterPays) {
             listObjectsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
@@ -914,27 +914,27 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         private ListObjectsV2Request.Builder listObjectsRequestBuilder;
         private ListObjectsV2Response listObjectsResponse;
 
-        public S3ObjectBucketListerVersion2(S3Client client) {
+        public S3ObjectBucketListerVersion2(final S3Client client) {
             this.client = client;
         }
 
         @Override
-        public void setBucketName(String bucketName) {
+        public void setBucketName(final String bucketName) {
             listObjectsRequestBuilder = ListObjectsV2Request.builder().bucket(bucketName);
         }
 
         @Override
-        public void setPrefix(String prefix) {
+        public void setPrefix(final String prefix) {
             listObjectsRequestBuilder.prefix(prefix);
         }
 
         @Override
-        public void setDelimiter(String delimiter) {
+        public void setDelimiter(final String delimiter) {
             listObjectsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
-        public void setRequesterPays(boolean requesterPays) {
+        public void setRequesterPays(final boolean requesterPays) {
             listObjectsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
@@ -962,27 +962,27 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         private ListObjectVersionsRequest.Builder listVersionsRequestBuilder;
         private ListObjectVersionsResponse listVersionsResponse;
 
-        public S3VersionBucketLister(S3Client client) {
+        public S3VersionBucketLister(final S3Client client) {
             this.client = client;
         }
 
         @Override
-        public void setBucketName(String bucketName) {
+        public void setBucketName(final String bucketName) {
             listVersionsRequestBuilder = ListObjectVersionsRequest.builder().bucket(bucketName);
         }
 
         @Override
-        public void setPrefix(String prefix) {
+        public void setPrefix(final String prefix) {
             listVersionsRequestBuilder.prefix(prefix);
         }
 
         @Override
-        public void setDelimiter(String delimiter) {
+        public void setDelimiter(final String delimiter) {
             listVersionsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
-        public void setRequesterPays(boolean requesterPays) {
+        public void setRequesterPays(final boolean requesterPays) {
             listVersionsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
@@ -1072,7 +1072,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, String region, String bucket) throws IOException {
+        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging,
+                final Map<String, String> userMetadata, final String region, final String bucket) throws IOException {
             recordWriter.write(createRecordForListing(objectVersion, tagging, userMetadata, bucket));
         }
 
@@ -1097,7 +1098,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         public void finishListingExceptionally(final Exception cause) {
             try {
                 recordWriter.close();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Failed to write listing as Records", e);
             }
 
@@ -1109,7 +1110,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return false;
         }
 
-        private Record createRecordForListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, String bucket) {
+        private Record createRecordForListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, final String bucket) {
             final Map<String, Object> values = new HashMap<>();
             values.put(KEY, objectVersion.key());
             values.put(BUCKET, bucket);
@@ -1152,7 +1153,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, final String region, String bucket) {
+        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, final String region, final String bucket) {
             // Create the attributes
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), objectVersion.key());

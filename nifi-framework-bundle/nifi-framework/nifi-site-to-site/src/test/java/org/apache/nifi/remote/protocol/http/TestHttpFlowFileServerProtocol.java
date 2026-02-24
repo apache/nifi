@@ -117,7 +117,7 @@ public class TestHttpFlowFileServerProtocol {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer();
         ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).getHandshakeParams().clear();
-        HandshakeException handshakeException =
+        final HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.MISSING_PROPERTY, handshakeException.getResponseCode());
         assertFalse(serverProtocol.isHandshakeSuccessful());
@@ -134,7 +134,7 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(true).when(processGroup).isRootGroup();
 
         serverProtocol.setRootProcessGroup(processGroup);
-        HandshakeException handshakeException =
+        final HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.UNKNOWN_PORT, handshakeException.getResponseCode());
         assertFalse(serverProtocol.isHandshakeSuccessful());
@@ -155,7 +155,7 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(authResult).when(port).checkUserAuthorization(any(String.class));
 
         serverProtocol.setRootProcessGroup(processGroup);
-        HandshakeException handshakeException =
+        final HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.UNAUTHORIZED, handshakeException.getResponseCode());
         assertFalse(serverProtocol.isHandshakeSuccessful());
@@ -177,7 +177,7 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(true).when(authResult).isAuthorized();
 
         serverProtocol.setRootProcessGroup(processGroup);
-        HandshakeException handshakeException =
+        final HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.PORT_NOT_IN_VALID_STATE, handshakeException.getResponseCode());
         assertFalse(serverProtocol.isHandshakeSuccessful());
@@ -208,7 +208,7 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(true).when(flowFileQueue).isFull();
 
         serverProtocol.setRootProcessGroup(processGroup);
-        HandshakeException handshakeException =
+        final HandshakeException handshakeException =
                 assertThrows(HandshakeException.class, () -> serverProtocol.handshake(peer));
         assertEquals(ResponseCode.PORTS_DESTINATION_FULL, handshakeException.getResponseCode());
         assertFalse(serverProtocol.isHandshakeSuccessful());
@@ -322,7 +322,7 @@ public class TestHttpFlowFileServerProtocol {
         });
 
         // Commit transaction
-        IOException ioException =
+        final IOException ioException =
                 assertThrows(IOException.class, () -> serverProtocol.commitTransferTransaction(peer, "client-sent-wrong-checksum"));
         assertTrue(ioException.getMessage().contains("CRC32 Checksum"));
     }
@@ -486,7 +486,7 @@ public class TestHttpFlowFileServerProtocol {
 
         // Commit transaction
         commsSession.setResponseCode(ResponseCode.BAD_CHECKSUM);
-        IOException ioException = assertThrows(IOException.class, () ->  serverProtocol.commitReceiveTransaction(peer));
+        final IOException ioException = assertThrows(IOException.class, () ->  serverProtocol.commitReceiveTransaction(peer));
         assertTrue(ioException.getMessage().contains("Received a BadChecksum response"));
     }
 

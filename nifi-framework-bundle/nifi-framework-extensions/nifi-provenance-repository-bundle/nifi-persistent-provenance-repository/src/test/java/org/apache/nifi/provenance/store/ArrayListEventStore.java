@@ -50,7 +50,7 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public synchronized StorageResult addEvents(Iterable<ProvenanceEventRecord> events) {
+    public synchronized StorageResult addEvents(final Iterable<ProvenanceEventRecord> events) {
         final Map<ProvenanceEventRecord, StorageSummary> storageLocations = new HashMap<>();
 
         for (final ProvenanceEventRecord event : events) {
@@ -89,7 +89,7 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public synchronized Optional<ProvenanceEventRecord> getEvent(long id) {
+    public synchronized Optional<ProvenanceEventRecord> getEvent(final long id) {
         if (events.size() <= id) {
             return Optional.empty();
         }
@@ -98,12 +98,12 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxResults) throws IOException {
         return getEvents(firstRecordId, maxResults, EventAuthorizer.GRANT_ALL, EventTransformer.EMPTY_TRANSFORMER);
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxResults, EventAuthorizer authorizer, EventTransformer transformer) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxResults, final EventAuthorizer authorizer, final EventTransformer transformer) throws IOException {
         final List<ProvenanceEventRecord> events = new ArrayList<>();
         for (int i = 0; i < maxResults; i++) {
             final Optional<ProvenanceEventRecord> eventOption = getEvent(firstRecordId + i);
@@ -144,7 +144,7 @@ public class ArrayListEventStore implements EventStore {
     }
 
     @Override
-    public void reindexLatestEvents(EventIndex eventIndex) {
+    public void reindexLatestEvents(final EventIndex eventIndex) {
     }
 
     @Override

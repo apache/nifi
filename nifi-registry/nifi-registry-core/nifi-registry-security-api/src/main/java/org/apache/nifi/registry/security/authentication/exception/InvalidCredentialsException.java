@@ -22,11 +22,11 @@ package org.apache.nifi.registry.security.authentication.exception;
  */
 public class InvalidCredentialsException extends RuntimeException {
 
-    public InvalidCredentialsException(String message, Throwable cause) {
+    public InvalidCredentialsException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public InvalidCredentialsException(String message) {
+    public InvalidCredentialsException(final String message) {
         super(message);
     }
 

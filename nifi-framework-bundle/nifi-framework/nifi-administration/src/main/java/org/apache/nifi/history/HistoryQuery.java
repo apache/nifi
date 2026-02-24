@@ -36,7 +36,7 @@ public class HistoryQuery {
         return endDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(final Date endDate) {
         this.endDate = endDate;
     }
 
@@ -44,7 +44,7 @@ public class HistoryQuery {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -52,7 +52,7 @@ public class HistoryQuery {
         return startDate;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(final Date startDate) {
         this.startDate = startDate;
     }
 
@@ -60,7 +60,7 @@ public class HistoryQuery {
         return userIdentity;
     }
 
-    public void setUserIdentity(String userIdentity) {
+    public void setUserIdentity(final String userIdentity) {
         this.userIdentity = userIdentity;
     }
 
@@ -68,7 +68,7 @@ public class HistoryQuery {
         return offset;
     }
 
-    public void setOffset(Integer offset) {
+    public void setOffset(final Integer offset) {
         this.offset = offset;
     }
 
@@ -76,7 +76,7 @@ public class HistoryQuery {
         return count;
     }
 
-    public void setCount(Integer count) {
+    public void setCount(final Integer count) {
         this.count = count;
     }
 
@@ -84,7 +84,7 @@ public class HistoryQuery {
         return sortColumn;
     }
 
-    public void setSortColumn(String sortColumn) {
+    public void setSortColumn(final String sortColumn) {
         this.sortColumn = sortColumn;
     }
 
@@ -92,7 +92,7 @@ public class HistoryQuery {
         return sortOrder;
     }
 
-    public void setSortOrder(String sortOrder) {
+    public void setSortOrder(final String sortOrder) {
         this.sortOrder = sortOrder;
     }
 

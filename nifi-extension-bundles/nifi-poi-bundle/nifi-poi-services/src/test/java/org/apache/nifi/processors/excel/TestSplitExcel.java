@@ -73,10 +73,10 @@ public class TestSplitExcel {
     public static void cleanUpAfterAll() {
         final Path tempDir = Path.of(System.getProperty("java.io.tmpdir")).resolve("poifiles");
         try (DirectoryStream<Path> directoryStream = newDirectoryStream(tempDir, "tmp-[0-9]*.xlsx")) {
-            for (Path tmpFile : directoryStream) {
+            for (final Path tmpFile : directoryStream) {
                 Files.deleteIfExists(tmpFile);
             }
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
         }
     }
 
@@ -87,7 +87,7 @@ public class TestSplitExcel {
 
     @Test
     void testSingleSheet() throws IOException {
-        Path singleSheet = Paths.get("src/test/resources/excel/dates.xlsx");
+        final Path singleSheet = Paths.get("src/test/resources/excel/dates.xlsx");
         runner.enqueue(singleSheet);
 
         runner.run();
@@ -99,8 +99,8 @@ public class TestSplitExcel {
 
     @Test
     void testMultisheet() throws IOException {
-        Path multisheet = Paths.get("src/test/resources/excel/twoSheets.xlsx");
-        String fileName = multisheet.toFile().getName();
+        final Path multisheet = Paths.get("src/test/resources/excel/twoSheets.xlsx");
+        final String fileName = multisheet.toFile().getName();
         runner.enqueue(multisheet);
 
         runner.run();
@@ -109,13 +109,13 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT);
-        String expectedSheetNamesPrefix = "TestSheet";
-        List<String> expectedSheetSuffixes = List.of("A", "B");
-        List<Integer> expectedTotalRows = List.of(4, 3);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT);
+        final String expectedSheetNamesPrefix = "TestSheet";
+        final List<String> expectedSheetSuffixes = List.of("A", "B");
+        final List<Integer> expectedTotalRows = List.of(4, 3);
 
         for (int index = 0; index < flowFiles.size(); index++) {
-            MockFlowFile flowFile = flowFiles.get(index);
+            final MockFlowFile flowFile = flowFiles.get(index);
             assertNotNull(flowFile.getAttribute(FRAGMENT_ID.key()));
             assertEquals(Integer.toString(index), flowFile.getAttribute(FRAGMENT_INDEX.key()));
             assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(FRAGMENT_COUNT.key()));
@@ -127,7 +127,7 @@ public class TestSplitExcel {
 
     @Test
     void testNonExcel() throws IOException {
-        Path nonExcel = Paths.get("src/test/resources/excel/notExcel.txt");
+        final Path nonExcel = Paths.get("src/test/resources/excel/notExcel.txt");
         runner.enqueue(nonExcel);
 
         runner.run();
@@ -139,8 +139,8 @@ public class TestSplitExcel {
 
     @Test
     void testWithEmptySheet() throws IOException {
-        Path sheetsWithEmptySheet = Paths.get("src/test/resources/excel/sheetsWithEmptySheet.xlsx");
-        String fileName = sheetsWithEmptySheet.toFile().getName();
+        final Path sheetsWithEmptySheet = Paths.get("src/test/resources/excel/sheetsWithEmptySheet.xlsx");
+        final String fileName = sheetsWithEmptySheet.toFile().getName();
         runner.enqueue(sheetsWithEmptySheet);
 
         runner.run();
@@ -149,12 +149,12 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT);
-        List<String> expectedSheetSuffixes = List.of("TestSheetA", "TestSheetB", "emptySheet");
-        List<Integer> expectedTotalRows = List.of(4, 3, 0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT);
+        final List<String> expectedSheetSuffixes = List.of("TestSheetA", "TestSheetB", "emptySheet");
+        final List<Integer> expectedTotalRows = List.of(4, 3, 0);
 
         for (int index = 0; index < flowFiles.size(); index++) {
-            MockFlowFile flowFile = flowFiles.get(index);
+            final MockFlowFile flowFile = flowFiles.get(index);
             assertNotNull(flowFile.getAttribute(FRAGMENT_ID.key()));
             assertEquals(Integer.toString(index), flowFile.getAttribute(FRAGMENT_INDEX.key()));
             assertEquals(Integer.toString(flowFiles.size()), flowFile.getAttribute(FRAGMENT_COUNT.key()));
@@ -166,7 +166,7 @@ public class TestSplitExcel {
 
     @Test
     void testDataWithSharedFormula() throws IOException {
-        Path dataWithSharedFormula = Paths.get("src/test/resources/excel/dataWithSharedFormula.xlsx");
+        final Path dataWithSharedFormula = Paths.get("src/test/resources/excel/dataWithSharedFormula.xlsx");
         runner.enqueue(dataWithSharedFormula);
 
         runner.run();
@@ -175,12 +175,12 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
 
-        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT)) {
+        for (final MockFlowFile flowFile : runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT)) {
             try (XSSFWorkbook workbook = new XSSFWorkbook(flowFile.getContentStream())) {
-                Sheet firstSheet = workbook.sheetIterator().next();
+                final Sheet firstSheet = workbook.sheetIterator().next();
 
                 // Start from the second row as the first row has column header names
-                List<Cell> formulaCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
+                final List<Cell> formulaCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
                         .limit(firstSheet.getLastRowNum())
                         .map(firstSheet::getRow)
                         .filter(Objects::nonNull)
@@ -188,10 +188,10 @@ public class TestSplitExcel {
                         .filter(Objects::nonNull)
                         .toList();
 
-                for (Cell formulaCell : formulaCells) {
-                    Row row = formulaCell.getRow();
-                    Sheet sheet = row.getSheet();
-                    String messagePrefix = String.format("Cell %s in row %s in sheet %s",
+                for (final Cell formulaCell : formulaCells) {
+                    final Row row = formulaCell.getRow();
+                    final Sheet sheet = row.getSheet();
+                    final String messagePrefix = String.format("Cell %s in row %s in sheet %s",
                             formulaCell.getColumnIndex(), row.getRowNum(), sheet.getSheetName());
 
                     // If copy cell formula is set to true the cell types would be FORMULA and the numeric value would be 0.0.
@@ -204,7 +204,7 @@ public class TestSplitExcel {
 
     @ParameterizedTest
     @EnumSource(InputFileType.class)
-    void testCopyDateTime(InputFileType inputFileType) throws Exception {
+    void testCopyDateTime(final InputFileType inputFileType) throws Exception {
         final LocalDateTime localDateTime = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
         final LocalDateTime nonValidExcelDate = LocalDateTime.of(1899, 12, 31, 0, 0, 0);
 
@@ -235,7 +235,7 @@ public class TestSplitExcel {
         try (Workbook workbook = InputFileType.XLSX == inputFileType ? new XSSFWorkbook(flowFile.getContentStream()) : new HSSFWorkbook(flowFile.getContentStream())) {
             final Sheet firstSheet = workbook.sheetIterator().next();
 
-            List<List<Cell>> dateCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
+            final List<List<Cell>> dateCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
                     .limit(firstSheet.getLastRowNum())
                     .map(firstSheet::getRow)
                     .filter(Objects::nonNull)
@@ -279,14 +279,14 @@ public class TestSplitExcel {
         }
     }
 
-    private static void populateSheet(Sheet sheet, Object[][] data) {
+    private static void populateSheet(final Sheet sheet, final Object[][] data) {
         int rowCount = 0;
-        for (Object[] dataRow : data) {
-            Row row = sheet.createRow(rowCount++);
+        for (final Object[] dataRow : data) {
+            final Row row = sheet.createRow(rowCount++);
             int columnCount = 0;
 
-            for (Object field : dataRow) {
-                Cell cell = row.createCell(columnCount++);
+            for (final Object field : dataRow) {
+                final Cell cell = row.createCell(columnCount++);
                 switch (field) {
                     case String string -> cell.setCellValue(string);
                     case Integer integer -> cell.setCellValue(integer.doubleValue());
@@ -299,14 +299,14 @@ public class TestSplitExcel {
         }
     }
 
-    void setCellStyles(Sheet sheet, Workbook workbook) {
-        CreationHelper creationHelper = workbook.getCreationHelper();
-        CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
+    void setCellStyles(final Sheet sheet, final Workbook workbook) {
+        final CreationHelper creationHelper = workbook.getCreationHelper();
+        final CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
         dayMonthYearCellStyle.setDataFormat(creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
-        CellStyle hourMinuteSecond = workbook.createCellStyle();
+        final CellStyle hourMinuteSecond = workbook.createCellStyle();
         hourMinuteSecond.setDataFormat((short) 21); // 21 represents format h:mm:ss
         for (int rowNum = sheet.getFirstRowNum() + 1; rowNum < sheet.getLastRowNum() + 1; rowNum++) {
-            Row row = sheet.getRow(rowNum);
+            final Row row = sheet.getRow(rowNum);
             row.getCell(1).setCellStyle(dayMonthYearCellStyle);
             row.getCell(2).setCellStyle(hourMinuteSecond);
         }

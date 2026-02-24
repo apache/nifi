@@ -196,7 +196,7 @@ public class ConnectionLoadBalanceServer {
             }
         }
 
-        private static boolean isTlsError(Throwable e) {
+        private static boolean isTlsError(final Throwable e) {
             if (e == null) {
                 return false;
             } else {
@@ -219,7 +219,7 @@ public class ConnectionLoadBalanceServer {
          * @param e               the exception
          * @return true if the error was printed at ERROR severity and reported to the event reporter
          */
-        private boolean handleTlsError(String channelDescription, Throwable e) {
+        private boolean handleTlsError(final String channelDescription, final Throwable e) {
             final String populatedMessage = "Failed to communicate over Channel " + channelDescription + " due to " + e.getLocalizedMessage();
             // If the exception has been seen recently, log as debug
             if (tlsErrorRecentlySeen()) {
@@ -245,7 +245,7 @@ public class ConnectionLoadBalanceServer {
          * @return true if the time since the last similar exception occurred is below the threshold
          */
         private boolean tlsErrorRecentlySeen() {
-            long now = System.currentTimeMillis();
+            final long now = System.currentTimeMillis();
             return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
         }
     }

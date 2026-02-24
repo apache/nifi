@@ -802,7 +802,7 @@ public final class DtoFactory {
             return null;
         }
 
-        boolean isAuthorized = connectable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        final boolean isAuthorized = connectable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
 
         final ConnectableDTO dto = new ConnectableDTO();
         dto.setId(connectable.getIdentifier());
@@ -883,7 +883,7 @@ public final class DtoFactory {
     * @param user user
     * @return dto
     */
-    public TenantDTO createTenantDTO(User user) {
+    public TenantDTO createTenantDTO(final User user) {
         if (user == null) {
             return null;
         }
@@ -902,7 +902,7 @@ public final class DtoFactory {
     * @param userGroup user group
     * @return dto
     */
-    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<TenantEntity> users, final Set<AccessPolicySummaryEntity> accessPolicies) {
+    public UserGroupDTO createUserGroupDto(final Group userGroup, final Set<TenantEntity> users, final Set<AccessPolicySummaryEntity> accessPolicies) {
         if (userGroup == null) {
             return null;
         }
@@ -940,7 +940,7 @@ public final class DtoFactory {
     * @param userGroup user
     * @return dto
     */
-    public TenantDTO createTenantDTO(Group userGroup) {
+    public TenantDTO createTenantDTO(final Group userGroup) {
         if (userGroup == null) {
             return null;
         }
@@ -1039,7 +1039,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    private ValidationStatus getRemoteProcessGroupValidationStatus(RemoteProcessGroup remoteProcessGroup) {
+    private ValidationStatus getRemoteProcessGroupValidationStatus(final RemoteProcessGroup remoteProcessGroup) {
         final boolean hasAuthIssue = remoteProcessGroup.getAuthorizationIssue() != null && !remoteProcessGroup.getAuthorizationIssue().isEmpty();
         final Collection<ValidationResult> validationResults = remoteProcessGroup.validate();
         final boolean hasValidationIssue = validationResults != null && !validationResults.isEmpty();
@@ -1209,7 +1209,7 @@ public final class DtoFactory {
 
         snapshot.setLoadBalanceStatus(connectionStatus.getLoadBalanceStatus());
 
-        ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
+        final ConnectionStatusPredictions predictions = connectionStatus.getPredictions();
         ConnectionStatusPredictionsSnapshotDTO predictionsDTO = null;
         if (predictions != null) {
             predictionsDTO = new ConnectionStatusPredictionsSnapshotDTO();
@@ -1258,7 +1258,7 @@ public final class DtoFactory {
 
         snapshot.setId(connection.getIdentifier());
 
-        Map<String, Long> predictions = statusAnalytics.getPredictions();
+        final Map<String, Long> predictions = statusAnalytics.getPredictions();
         snapshot.setPredictedMillisUntilBytesBackpressure(predictions.get("timeToBytesBackpressureMillis"));
         snapshot.setPredictedMillisUntilCountBackpressure(predictions.get("timeToCountBackpressureMillis"));
         snapshot.setPredictedBytesAtNextInterval(predictions.get("nextIntervalBytes"));
@@ -1601,7 +1601,7 @@ public final class DtoFactory {
 
         dto.setInherited(!containingParameterContext.getIdentifier().equals(parameterContext.getIdentifier()));
 
-        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
+        final ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
         dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
         return dto;
@@ -2833,7 +2833,7 @@ public final class DtoFactory {
             // differences were found, so now let's add back in any BUNDLE_CHANGED differences
             // since they were initially filtered out as an environment-specific change
             bundleDifferencesByComponent.forEach((key, value) -> {
-                List<DifferenceDTO> values = value.stream().toList();
+                final List<DifferenceDTO> values = value.stream().toList();
                 differencesByComponent.merge(key, values, (v1, v2) -> {
                     v1.addAll(v2);
                     return v1;
@@ -2873,7 +2873,7 @@ public final class DtoFactory {
     }
 
     private ComponentDifferenceDTO createBundleDifference(final FlowDifference difference) {
-        VersionedComponent component = difference.getComponentB();
+        final VersionedComponent component = difference.getComponentB();
 
         final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
         dto.setComponentType(component.getComponentType().toString());
@@ -4323,7 +4323,7 @@ public final class DtoFactory {
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
 
-        String description = propertyDescriptor.getExpressionLanguageScope().getDescription();
+        final String description = propertyDescriptor.getExpressionLanguageScope().getDescription();
         dto.setExpressionLanguageScope(description);
 
         // set the identifies controller service is applicable
@@ -5050,7 +5050,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowAnalysisRuleDTO createFlowAnalysisRuleDto(FlowAnalysisRuleNode flowAnalysisRuleNode) {
+    public FlowAnalysisRuleDTO createFlowAnalysisRuleDto(final FlowAnalysisRuleNode flowAnalysisRuleNode) {
         final BundleCoordinate bundleCoordinate = flowAnalysisRuleNode.getBundleCoordinate();
         final List<Bundle> compatibleBundles = extensionManager.getBundles(flowAnalysisRuleNode.getCanonicalClassName()).stream().filter(bundle -> {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
@@ -5180,11 +5180,11 @@ public final class DtoFactory {
         this.entityFactory = entityFactory;
     }
 
-    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+    public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
     }
 
-    public void setExtensionManager(ExtensionManager extensionManager) {
+    public void setExtensionManager(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
     }
 

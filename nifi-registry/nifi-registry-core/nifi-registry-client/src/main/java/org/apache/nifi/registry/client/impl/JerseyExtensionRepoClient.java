@@ -309,13 +309,13 @@ public class JerseyExtensionRepoClient extends AbstractJerseyClient implements E
             try {
                 final String sha256 = getRequestBuilder(target).accept(MediaType.TEXT_PLAIN_TYPE).get(String.class);
                 return Optional.of(sha256);
-            } catch (NotFoundException nfe) {
+            } catch (final NotFoundException nfe) {
                 return Optional.empty();
             }
         });
     }
 
-    private void validate(String bucketName, String groupId, String artifactId, String version) {
+    private void validate(final String bucketName, final String groupId, final String artifactId, final String version) {
         if (StringUtils.isBlank(bucketName)) {
             throw new IllegalArgumentException("Bucket name cannot be null or blank");
         }

@@ -64,7 +64,7 @@ public class DBCPConnectionPoolLookup
     }
 
     @Override
-    public Connection getConnection(Map<String, String> attributes) {
+    public Connection getConnection(final Map<String, String> attributes) {
         return lookupService(attributes).getConnection(attributes);
     }
 

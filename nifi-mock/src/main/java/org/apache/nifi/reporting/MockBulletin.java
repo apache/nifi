@@ -18,7 +18,7 @@ package org.apache.nifi.reporting;
 
 public class MockBulletin extends Bulletin {
 
-    protected MockBulletin(long id) {
+    protected MockBulletin(final long id) {
         super(id);
     }
 }

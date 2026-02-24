@@ -23,11 +23,11 @@ package org.apache.nifi.web;
 @SuppressWarnings("serial")
 public class InvalidRevisionException extends RuntimeException {
 
-    public InvalidRevisionException(String message) {
+    public InvalidRevisionException(final String message) {
         super(message);
     }
 
-    public InvalidRevisionException(String message, Throwable cause) {
+    public InvalidRevisionException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

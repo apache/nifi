@@ -56,8 +56,8 @@ public class OffloadIT extends NiFiSystemIT {
 
     private void testIteration() throws NiFiClientException, IOException, InterruptedException {
         ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        ProcessorEntity sleep = getClientUtil().createProcessor("Sleep");
-        ConnectionEntity connectionEntity = getClientUtil().createConnection(generate, sleep, "success");
+        final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep");
+        final ConnectionEntity connectionEntity = getClientUtil().createConnection(generate, sleep, "success");
 
         getClientUtil().setAutoTerminatedRelationships(sleep, "success");
         generate = getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("File Size", "1 KB"));

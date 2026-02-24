@@ -120,7 +120,7 @@ public class SetSNMP extends AbstractSNMPProcessor {
                     processSession.transfer(flowFile, REL_FAILURE);
                     processSession.getProvenanceReporter().receive(flowFile, "/set");
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
                 processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
                 context.yield();
@@ -139,7 +139,7 @@ public class SetSNMP extends AbstractSNMPProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
         config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());

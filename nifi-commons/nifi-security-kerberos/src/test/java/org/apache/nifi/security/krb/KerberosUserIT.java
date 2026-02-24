@@ -56,8 +56,8 @@ public class KerberosUserIT {
     private static final String principal3Password = "changeme";
 
     @BeforeAll
-    public static void setupClass(@TempDir Path tmpDir) throws Exception {
-        File kdcFolder = tmpDir.resolve("mini-kdc_").toFile();
+    public static void setupClass(final @TempDir Path tmpDir) throws Exception {
+        final File kdcFolder = tmpDir.resolve("mini-kdc_").toFile();
         kdcFolder.mkdirs();
 
         kdc = new KDCServer(kdcFolder);
@@ -167,17 +167,17 @@ public class KerberosUserIT {
         }
         assertTrue(performedRelogin);
 
-        Subject subject = user1.doAs((PrivilegedAction<Subject>) Subject::current);
+        final Subject subject = user1.doAs((PrivilegedAction<Subject>) Subject::current);
 
         // verify only a single KerberosTicket exists in the Subject after relogin
-        Set<KerberosTicket> kerberosTickets = subject.getPrivateCredentials(KerberosTicket.class);
+        final Set<KerberosTicket> kerberosTickets = subject.getPrivateCredentials(KerberosTicket.class);
         assertEquals(1, kerberosTickets.size());
 
         // verify the new ticket lifetime is valid for the current time
-        KerberosTicket kerberosTicket = kerberosTickets.iterator().next();
-        long currentTimeMillis = System.currentTimeMillis();
-        long startMilli = kerberosTicket.getStartTime().toInstant().toEpochMilli();
-        long endMilli = kerberosTicket.getEndTime().toInstant().toEpochMilli();
+        final KerberosTicket kerberosTicket = kerberosTickets.iterator().next();
+        final long currentTimeMillis = System.currentTimeMillis();
+        final long startMilli = kerberosTicket.getStartTime().toInstant().toEpochMilli();
+        final long endMilli = kerberosTicket.getEndTime().toInstant().toEpochMilli();
         logger.info("New ticket is valid for {}", TimeUnit.MILLISECONDS.toSeconds(endMilli - startMilli) + " seconds");
         assertTrue(startMilli < currentTimeMillis);
         assertTrue(endMilli > currentTimeMillis);

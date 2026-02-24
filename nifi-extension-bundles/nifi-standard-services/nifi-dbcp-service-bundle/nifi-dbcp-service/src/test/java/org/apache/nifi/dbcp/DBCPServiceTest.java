@@ -262,7 +262,7 @@ public class DBCPServiceTest {
         final Collection<ValidationResult> validationResults = runner.validate(service);
         assertEquals(0, validationResults.size());
 
-        AssertionFailedError thrown = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
+        final AssertionFailedError thrown = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
 
         // Verify the underlying cause is what we expect
         assertTrue(thrown.getMessage().contains("ProcessException"));

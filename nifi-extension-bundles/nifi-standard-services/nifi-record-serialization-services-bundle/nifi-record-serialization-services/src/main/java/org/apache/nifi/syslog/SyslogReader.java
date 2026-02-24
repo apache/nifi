@@ -101,7 +101,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration propertyConfiguration) {
+    public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
         super.migrateProperties(propertyConfiguration);
         propertyConfiguration.renameProperty("syslog-5424-reader-raw-message", ADD_RAW.getName());
     }
@@ -137,7 +137,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
             fields.add(new RecordField(RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
         }
 
-        SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(GENERIC_SYSLOG_SCHEMA_NAME).build();
+        final SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(GENERIC_SYSLOG_SCHEMA_NAME).build();
         final RecordSchema schema = new SimpleRecordSchema(fields, schemaIdentifier);
         return schema;
     }
@@ -147,7 +147,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
             @Override
-            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
+            public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) {
                 return recordSchema;
             }
 

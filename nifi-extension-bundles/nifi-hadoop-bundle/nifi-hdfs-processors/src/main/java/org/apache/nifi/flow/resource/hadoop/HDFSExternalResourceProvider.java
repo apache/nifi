@@ -197,9 +197,9 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
 
         // If kerberos is enabled, create the file system as the kerberos principal
         // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
-        FileSystem fs;
-        UserGroupInformation ugi;
-        KerberosUser kerberosUser;
+        final FileSystem fs;
+        final UserGroupInformation ugi;
+        final KerberosUser kerberosUser;
 
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {

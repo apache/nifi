@@ -93,7 +93,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     protected void setUp() throws Exception {
         final PutDropbox testSubject = new PutDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
+            public DbxClientV2 getDropboxApiClient(final ProcessContext context, final String id) {
                 return mockDropboxClient;
             }
         };
@@ -129,8 +129,8 @@ public class PutDropboxTest extends AbstractDropboxTest {
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.SEND);
     }
@@ -161,8 +161,8 @@ public class PutDropboxTest extends AbstractDropboxTest {
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
         assertProvenanceEvent(ProvenanceEventType.SEND);
 
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         assertOutFlowFileAttributes(ff0, "/");
     }
 
@@ -187,8 +187,8 @@ public class PutDropboxTest extends AbstractDropboxTest {
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_FAILURE);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals(ERROR_MESSAGE, "Dropbox error");
         assertNoProvenanceEvent();
     }
@@ -230,7 +230,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
 
     @Test
     void testFileUploadLargeFile() throws Exception {
-        MockFlowFile mockFlowFile = getMockFlowFile(LARGE_CONTENT_30B);
+        final MockFlowFile mockFlowFile = getMockFlowFile(LARGE_CONTENT_30B);
 
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
         testRunner.setProperty(PutDropbox.CHUNKED_UPLOAD_SIZE, CHUNKED_UPLOAD_SIZE_IN_BYTES + " B");
@@ -275,11 +275,11 @@ public class PutDropboxTest extends AbstractDropboxTest {
         assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
-    private void mockFileUpload(String folder, String filename) throws Exception {
+    private void mockFileUpload(final String folder, final String filename) throws Exception {
         mockFileUpload(folder, filename, WriteMode.ADD);
     }
 
-    private void mockFileUpload(String folder, String filename, WriteMode writeMode) throws Exception {
+    private void mockFileUpload(final String folder, final String filename, final WriteMode writeMode) throws Exception {
         when(mockDropboxClient.files())
                 .thenReturn(mockDbxUserFilesRequest);
 
@@ -295,7 +295,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(createFileMetadata(FILE_ID_1, filename, folder, CREATED_TIME));
     }
 
-    private void mockFileUploadError(DbxException exception) throws Exception {
+    private void mockFileUploadError(final DbxException exception) throws Exception {
         when(mockDropboxClient.files())
                 .thenReturn(mockDbxUserFilesRequest);
 
@@ -311,19 +311,19 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenThrow(exception);
     }
 
-    private UploadErrorException getException(WriteError writeErrorReason) {
+    private UploadErrorException getException(final WriteError writeErrorReason) {
         return new UploadErrorException("route", "requestId", new LocalizedText("upload error", "en-us"),
                 path(new UploadWriteFailed(writeErrorReason, "uploadSessionId")));
     }
 
-    private MockFlowFile getMockFlowFile(String content) {
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
+    private MockFlowFile getMockFlowFile(final String content) {
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(content.getBytes(UTF_8));
         return inputFlowFile;
     }
 
     private void runWithFlowFile() {
-        MockFlowFile mockFlowFile = getMockFlowFile(CONTENT);
+        final MockFlowFile mockFlowFile = getMockFlowFile(CONTENT);
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
     }

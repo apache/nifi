@@ -25,7 +25,7 @@ public abstract class CachedJMSConnectionFactoryHandler implements JMSConnection
 
     private volatile ConnectionFactory connectionFactory;
 
-    protected CachedJMSConnectionFactoryHandler(ComponentLog logger) {
+    protected CachedJMSConnectionFactoryHandler(final ComponentLog logger) {
         this.logger = logger;
     }
 
@@ -43,7 +43,7 @@ public abstract class CachedJMSConnectionFactoryHandler implements JMSConnection
     }
 
     @Override
-    public synchronized void resetConnectionFactory(ConnectionFactory cachedFactory) {
+    public synchronized void resetConnectionFactory(final ConnectionFactory cachedFactory) {
         if (cachedFactory == connectionFactory) {
             logger.debug("Resetting connection factory");
             connectionFactory = null;

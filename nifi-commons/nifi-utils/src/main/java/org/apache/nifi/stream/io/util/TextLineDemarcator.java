@@ -41,7 +41,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
      * Constructs an instance of demarcator with provided {@link InputStream}
      * and default buffer size.
      */
-    public TextLineDemarcator(InputStream is) {
+    public TextLineDemarcator(final InputStream is) {
         this(is, INIT_BUFFER_SIZE);
     }
 
@@ -49,7 +49,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
      * Constructs an instance of demarcator with provided {@link InputStream}
      * and initial buffer size.
      */
-    public TextLineDemarcator(InputStream is, int initialBufferSize) {
+    public TextLineDemarcator(final InputStream is, final int initialBufferSize) {
         super(is, Integer.MAX_VALUE, initialBufferSize);
     }
 
@@ -81,7 +81,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
      *
      * @return offset info
      */
-    public OffsetInfo nextOffsetInfo(byte[] startsWith) throws IOException {
+    public OffsetInfo nextOffsetInfo(final byte[] startsWith) throws IOException {
         OffsetInfo offsetInfo = null;
         byte previousByteVal = 0;
         byte[] data = null;
@@ -106,7 +106,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
                     previousByteVal = byteVal;
                     if (delimiterSize > 0) {
                         this.index = i + 1;
-                        int size = Math.max(1, this.index - this.mark);
+                        final int size = Math.max(1, this.index - this.mark);
                         offsetInfo = new OffsetInfo(this.offset, size, delimiterSize);
                         this.offset += size;
                         if (startsWith != null) {
@@ -120,7 +120,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
             } else {
                 delimiterSize = previousByteVal == CR || previousByteVal == LF ? 1 : 0;
                 if (offsetInfo == null) {
-                    int size = this.index - this.mark;
+                    final int size = this.index - this.mark;
                     if (size > 0) {
                         offsetInfo = new OffsetInfo(this.offset, size, delimiterSize);
                         this.offset += size;
@@ -137,7 +137,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
                 offsetInfo.setStartsWithMatch(false);
             } else {
                 for (int i = 0; i < startsWith.length; i++) {
-                    byte sB = startsWith[i];
+                    final byte sB = startsWith[i];
                     if (sB != data[i]) {
                         offsetInfo.setStartsWithMatch(false);
                         break;
@@ -170,7 +170,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
 
         private boolean startsWithMatch = true;
 
-        private OffsetInfo(long startOffset, long length, int crlfLength) {
+        private OffsetInfo(final long startOffset, final long length, final int crlfLength) {
             this.startOffset = startOffset;
             this.length = length;
             this.crlfLength = crlfLength;
@@ -192,7 +192,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
             return this.startsWithMatch;
         }
 
-        void setStartsWithMatch(boolean startsWithMatch) {
+        void setStartsWithMatch(final boolean startsWithMatch) {
             this.startsWithMatch = startsWithMatch;
         }
 

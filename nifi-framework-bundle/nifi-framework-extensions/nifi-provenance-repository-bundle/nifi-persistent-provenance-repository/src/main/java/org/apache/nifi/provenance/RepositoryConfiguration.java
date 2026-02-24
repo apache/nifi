@@ -76,7 +76,7 @@ public class RepositoryConfiguration {
         return compressionBlockBytes;
     }
 
-    public void setCompressionBlockBytes(int compressionBlockBytes) {
+    public void setCompressionBlockBytes(final int compressionBlockBytes) {
         this.compressionBlockBytes = compressionBlockBytes;
     }
 
@@ -335,7 +335,7 @@ public class RepositoryConfiguration {
      *
      * @param alwaysSync whether or not to perform an 'fsync' for all updates to disk
      */
-    public void setAlwaysSync(boolean alwaysSync) {
+    public void setAlwaysSync(final boolean alwaysSync) {
         this.alwaysSync = alwaysSync;
     }
 
@@ -351,11 +351,11 @@ public class RepositoryConfiguration {
      * Sets the maximum number of characters to include in any attribute. If an attribute in a Provenance
      * Event has more than this number of characters, it will be truncated when it is retrieved.
      */
-    public void setMaxAttributeChars(int maxAttributeChars) {
+    public void setMaxAttributeChars(final int maxAttributeChars) {
         this.maxAttributeChars = maxAttributeChars;
     }
 
-    public void setWarmCacheFrequencyMinutes(Integer frequencyMinutes) {
+    public void setWarmCacheFrequencyMinutes(final Integer frequencyMinutes) {
         this.warmCacheFrequencyMinutes = frequencyMinutes;
     }
 
@@ -367,7 +367,7 @@ public class RepositoryConfiguration {
         return debugFrequency;
     }
 
-    public void setDebugFrequency(int debugFrequency) {
+    public void setDebugFrequency(final int debugFrequency) {
         this.debugFrequency = debugFrequency;
     }
 

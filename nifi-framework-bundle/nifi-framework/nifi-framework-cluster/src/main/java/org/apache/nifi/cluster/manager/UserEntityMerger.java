@@ -30,7 +30,7 @@ import java.util.Set;
 public class UserEntityMerger implements ComponentEntityMerger<UserEntity> {
 
     @Override
-    public void merge(UserEntity clientEntity, Map<NodeIdentifier, UserEntity> entityMap) {
+    public void merge(final UserEntity clientEntity, final Map<NodeIdentifier, UserEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
     }
 

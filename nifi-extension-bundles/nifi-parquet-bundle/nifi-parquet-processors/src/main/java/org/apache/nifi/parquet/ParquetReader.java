@@ -59,7 +59,7 @@ public class ParquetReader extends AbstractControllerService implements RecordRe
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME, AVRO_ADD_LIST_ELEMENT_RECORDS.getName());
         config.renameProperty(OLD_AVRO_READ_COMPATIBILITY_PROPERTY_NAME, AVRO_READ_COMPATIBILITY.getName());
     }

@@ -68,10 +68,10 @@ import static org.mockito.Mockito.when;
 public class TestSiteToSiteStatusReportingTask {
     private ReportingContext context;
 
-    public MockSiteToSiteStatusReportingTask initTask(Map<PropertyDescriptor, String> customProperties,
-            ProcessGroupStatus pgStatus) throws InitializationException, IOException {
+    public MockSiteToSiteStatusReportingTask initTask(final Map<PropertyDescriptor, String> customProperties,
+            final ProcessGroupStatus pgStatus) throws InitializationException, IOException {
         final MockSiteToSiteStatusReportingTask task = new MockSiteToSiteStatusReportingTask();
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
@@ -108,18 +108,18 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(16, task.dataSent.size());
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
-        JsonString componentId = firstElement.getJsonString("componentId");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        final JsonString componentId = firstElement.getJsonString("componentId");
         assertEquals(pgStatus.getId(), componentId.getString());
-        JsonNumber terminatedThreads = firstElement.getJsonNumber("terminatedThreadCount");
+        final JsonNumber terminatedThreads = firstElement.getJsonNumber("terminatedThreadCount");
         assertEquals(1, terminatedThreads.longValue());
-        JsonString versionedFlowState = firstElement.getJsonString("versionedFlowState");
+        final JsonString versionedFlowState = firstElement.getJsonString("versionedFlowState");
         assertEquals("UP_TO_DATE", versionedFlowState.getString());
     }
 
@@ -132,13 +132,13 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(ProcessGroup|RootProcessGroup)");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size()); // Only root pg and 3 child pgs
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
         assertEquals(pgStatus.getId(), componentId.getString());
     }
 
@@ -151,18 +151,18 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonString backpressure = object.getJsonString("isBackPressureEnabled");
-        JsonString source = object.getJsonString("sourceName");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonString backpressure = object.getJsonString("isBackPressureEnabled");
+        final JsonString source = object.getJsonString("sourceName");
         assertEquals("true", backpressure.getString());
         assertEquals("source", source.getString());
-        JsonString dataSizeThreshold = object.getJsonString("backPressureDataSizeThreshold");
-        JsonNumber bytesThreshold = object.getJsonNumber("backPressureBytesThreshold");
+        final JsonString dataSizeThreshold = object.getJsonString("backPressureDataSizeThreshold");
+        final JsonNumber bytesThreshold = object.getJsonNumber("backPressureBytesThreshold");
         assertEquals("1 KB", dataSizeThreshold.getString());
         assertEquals(1024, bytesThreshold.intValue());
         assertNull(object.get("destinationName"));
@@ -178,13 +178,13 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonValue destination = object.get("destinationName");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonValue destination = object.get("destinationName");
         assertEquals(destination, JsonValue.NULL);
 
     }
@@ -198,13 +198,13 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());  // 3 processors for each of 4 groups
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
         assertEquals("root.1.processor.1", componentId.getString());
     }
 
@@ -217,19 +217,19 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(10, task.dataSent.size());  // 3 + (3 * 3) + (3 * 3 * 3) = 39, or 10 batches of 4
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonString componentId = jsonReader.readArray().getJsonObject(0).getJsonString("componentId");
         assertEquals("root.1.1.processor.1", componentId.getString());
     }
 
     @Test
     public void testPortStatus() throws IOException, InitializationException {
-        ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
@@ -237,37 +237,37 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "false");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonString runStatus = object.getJsonString("runStatus");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonString runStatus = object.getJsonString("runStatus");
         assertEquals(RunStatus.Stopped.name(), runStatus.getString());
-        boolean isTransmitting = object.getBoolean("transmitting");
+        final boolean isTransmitting = object.getBoolean("transmitting");
         assertFalse(isTransmitting);
-        JsonNumber inputBytes = object.getJsonNumber("inputBytes");
+        final JsonNumber inputBytes = object.getJsonNumber("inputBytes");
         assertEquals(5, inputBytes.intValue());
         assertNull(object.get("activeThreadCount"));
     }
 
     @Test
     public void testPortStatusWithNullValues() throws IOException, InitializationException {
-        ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
+        final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonValue activeThreadCount = object.get("activeThreadCount");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonValue activeThreadCount = object.get("activeThreadCount");
         assertEquals(activeThreadCount, JsonValue.NULL);
     }
 
@@ -280,16 +280,16 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
-        JsonNumber activeThreadCount = firstElement.getJsonNumber("activeThreadCount");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        final JsonNumber activeThreadCount = firstElement.getJsonNumber("activeThreadCount");
         assertEquals(1L, activeThreadCount.longValue());
-        JsonString transmissionStatus = firstElement.getJsonString("transmissionStatus");
+        final JsonString transmissionStatus = firstElement.getJsonString("transmissionStatus");
         assertEquals("Transmitting", transmissionStatus.getString());
     }
 
@@ -303,14 +303,14 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
-        JsonValue targetURI = firstElement.get("targetURI");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject firstElement = jsonReader.readArray().getJsonObject(0);
+        final JsonValue targetURI = firstElement.get("targetURI");
         assertEquals(targetURI, JsonValue.NULL);
     }
 
@@ -323,21 +323,21 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonString parentName = object.getJsonString("parentName");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonString parentName = object.getJsonString("parentName");
         assertTrue(parentName.getString().startsWith("Awesome.1-"));
-        JsonString parentPath = object.getJsonString("parentPath");
+        final JsonString parentPath = object.getJsonString("parentPath");
         assertTrue(parentPath.getString().startsWith("NiFi Flow / Awesome.1"));
-        JsonString runStatus = object.getJsonString("runStatus");
+        final JsonString runStatus = object.getJsonString("runStatus");
         assertEquals(RunStatus.Running.name(), runStatus.getString());
-        JsonNumber inputBytes = object.getJsonNumber("inputBytes");
+        final JsonNumber inputBytes = object.getJsonNumber("inputBytes");
         assertEquals(9, inputBytes.intValue());
-        JsonObject counterMap = object.getJsonObject("counters");
+        final JsonObject counterMap = object.getJsonObject("counters");
         assertNotNull(counterMap);
         assertEquals(10, counterMap.getInt("counter1"));
         assertEquals(5, counterMap.getInt("counter2"));
@@ -354,13 +354,13 @@ public class TestSiteToSiteStatusReportingTask {
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
+        final MockSiteToSiteStatusReportingTask task = initTask(properties, pgStatus);
         task.onTrigger(context);
 
         final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
-        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject object = jsonReader.readArray().getJsonObject(0);
-        JsonValue type = object.get("processorType");
+        final JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        final JsonObject object = jsonReader.readArray().getJsonObject(0);
+        final JsonValue type = object.get("processorType");
         assertEquals(type, JsonValue.NULL);
     }
 
@@ -368,14 +368,14 @@ public class TestSiteToSiteStatusReportingTask {
      * Test component generator methods
      ***********************************/
 
-    public static ProcessGroupStatus generateProcessGroupStatus(String id, String namePrefix,
-            int maxRecursion, int currentDepth) {
-        Collection<ConnectionStatus> cStatus = new ArrayList<>();
-        Collection<PortStatus> ipStatus = new ArrayList<>();
-        Collection<PortStatus> opStatus = new ArrayList<>();
-        Collection<ProcessorStatus> pStatus = new ArrayList<>();
-        Collection<RemoteProcessGroupStatus> rpgStatus = new ArrayList<>();
-        Collection<ProcessGroupStatus> childPgStatus = new ArrayList<>();
+    public static ProcessGroupStatus generateProcessGroupStatus(final String id, final String namePrefix,
+            final int maxRecursion, final int currentDepth) {
+        final Collection<ConnectionStatus> cStatus = new ArrayList<>();
+        final Collection<PortStatus> ipStatus = new ArrayList<>();
+        final Collection<PortStatus> opStatus = new ArrayList<>();
+        final Collection<ProcessorStatus> pStatus = new ArrayList<>();
+        final Collection<RemoteProcessGroupStatus> rpgStatus = new ArrayList<>();
+        final Collection<ProcessGroupStatus> childPgStatus = new ArrayList<>();
 
         if (currentDepth < maxRecursion) {
             for (int i = 1; i < 4; i++) {
@@ -399,7 +399,7 @@ public class TestSiteToSiteStatusReportingTask {
             opStatus.add(generatePortStatus(id + ".op." + i, namePrefix + ".op." + i));
         }
 
-        ProcessGroupStatus pgStatus = new ProcessGroupStatus();
+        final ProcessGroupStatus pgStatus = new ProcessGroupStatus();
         pgStatus.setId(id);
         pgStatus.setName(namePrefix + "-" + UUID.randomUUID());
         pgStatus.setInputPortStatus(ipStatus);
@@ -429,8 +429,8 @@ public class TestSiteToSiteStatusReportingTask {
         return pgStatus;
     }
 
-    public static PortStatus generatePortStatus(String id, String namePrefix) {
-        PortStatus pStatus = new PortStatus();
+    public static PortStatus generatePortStatus(final String id, final String namePrefix) {
+        final PortStatus pStatus = new PortStatus();
         pStatus.setId(id);
         pStatus.setName(namePrefix + "-" + UUID.randomUUID());
         pStatus.setActiveThreadCount(null);
@@ -448,8 +448,8 @@ public class TestSiteToSiteStatusReportingTask {
         return pStatus;
     }
 
-    public static ProcessorStatus generateProcessorStatus(String id, String namePrefix) {
-        ProcessorStatus pStatus = new ProcessorStatus();
+    public static ProcessorStatus generateProcessorStatus(final String id, final String namePrefix) {
+        final ProcessorStatus pStatus = new ProcessorStatus();
         pStatus.setId(id);
         pStatus.setName(namePrefix + "-" + UUID.randomUUID());
         pStatus.setActiveThreadCount(0);
@@ -475,8 +475,8 @@ public class TestSiteToSiteStatusReportingTask {
         return pStatus;
     }
 
-    public static RemoteProcessGroupStatus generateRemoteProcessGroupStatus(String id, String namePrefix) {
-        RemoteProcessGroupStatus rpgStatus = new RemoteProcessGroupStatus();
+    public static RemoteProcessGroupStatus generateRemoteProcessGroupStatus(final String id, final String namePrefix) {
+        final RemoteProcessGroupStatus rpgStatus = new RemoteProcessGroupStatus();
         rpgStatus.setId(id);
         rpgStatus.setName(namePrefix + "-" + UUID.randomUUID());
         rpgStatus.setActiveRemotePortCount(0);
@@ -493,8 +493,8 @@ public class TestSiteToSiteStatusReportingTask {
         return rpgStatus;
     }
 
-    public static ConnectionStatus generateConnectionStatus(String id, String namePrefix) {
-        ConnectionStatus cStatus = new ConnectionStatus();
+    public static ConnectionStatus generateConnectionStatus(final String id, final String namePrefix) {
+        final ConnectionStatus cStatus = new ConnectionStatus();
         cStatus.setId(id);
         cStatus.setName(namePrefix + "-" + UUID.randomUUID());
         cStatus.setBackPressureDataSizeThreshold("1 KB"); // sets backPressureBytesThreshold too
@@ -516,7 +516,7 @@ public class TestSiteToSiteStatusReportingTask {
     }
 
     public static FlowFile createFlowFile(final long id, final Map<String, String> attributes) {
-        MockFlowFile mockFlowFile = new MockFlowFile(id);
+        final MockFlowFile mockFlowFile = new MockFlowFile(id);
         mockFlowFile.putAttributes(attributes);
         return mockFlowFile;
     }
@@ -529,7 +529,7 @@ public class TestSiteToSiteStatusReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        public void setup(PropertyContext reportContext) {
+        public void setup(final PropertyContext reportContext) {
             if (siteToSiteClient == null) {
                 final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
                 final Transaction transaction = Mockito.mock(Transaction.class);

@@ -110,7 +110,7 @@ public class GetAzureEventHubTest {
 
     @Test
     void testMigration() {
-        TestRunner testRunner = TestRunners.newTestRunner(GetAzureEventHub.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(GetAzureEventHub.class);
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         final Map<String, String> expected = Map.ofEntries(
                 Map.entry("Event Hub Consumer Group", GetAzureEventHub.CONSUMER_GROUP.getName()),

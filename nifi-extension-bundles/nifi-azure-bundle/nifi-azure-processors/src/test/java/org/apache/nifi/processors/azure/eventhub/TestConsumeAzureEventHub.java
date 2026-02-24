@@ -492,7 +492,7 @@ public class TestConsumeAzureEventHub {
 
     @Test
     void testMigration() {
-        TestRunner testRunner = TestRunners.newTestRunner(ConsumeAzureEventHub.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(ConsumeAzureEventHub.class);
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         final Map<String, String> expected = Map.ofEntries(
                 Map.entry("event-hub-namespace", ConsumeAzureEventHub.NAMESPACE.getName()),
@@ -579,8 +579,8 @@ public class TestConsumeAzureEventHub {
         when(checkpointStore.updateCheckpoint(any(Checkpoint.class))).thenReturn(Mono.empty());
     }
 
-    private Record toRecord(String value) {
-        Map<String, Object> map = new HashMap<>();
+    private Record toRecord(final String value) {
+        final Map<String, Object> map = new HashMap<>();
         map.put("value", value);
         return new MapRecord(new SimpleRecordSchema(Collections.singletonList(
                 new RecordField("value", RecordFieldType.STRING.getDataType()))), map);
@@ -600,7 +600,7 @@ public class TestConsumeAzureEventHub {
         return writerFactory;
     }
 
-    private void setupRecordWriter(String throwErrorWith) throws Exception {
+    private void setupRecordWriter(final String throwErrorWith) throws Exception {
         final RecordSetWriterFactory writerFactory = setRecordWriterProperty();
         final AtomicReference<OutputStream> outRef = new AtomicReference<>();
         when(writerFactory.createWriter(any(), any(), any(), any(FlowFile.class))).thenAnswer(invocation -> {
@@ -617,11 +617,11 @@ public class TestConsumeAzureEventHub {
         });
     }
 
-    private void setupRecordReader(List<EventData> eventDataList) throws Exception {
+    private void setupRecordReader(final List<EventData> eventDataList) throws Exception {
         setupRecordReader(eventDataList, -1, null);
     }
 
-    private void setupRecordReader(List<EventData> eventDataList, int throwExceptionAt, String writeFailureWith) throws Exception {
+    private void setupRecordReader(final List<EventData> eventDataList, final int throwExceptionAt, final String writeFailureWith) throws Exception {
         when(readerFactory.getIdentifier()).thenReturn(RecordReaderFactory.class.getName());
 
         testRunner.addControllerService(RecordReaderFactory.class.getName(), readerFactory);

@@ -83,11 +83,11 @@ public class AbstractBoxFileTest {
         testRunner.setProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE, mockBoxClientService.getIdentifier());
     }
 
-    protected BoxFile.Info createFileInfo(String path, Long createdTime) {
+    protected BoxFile.Info createFileInfo(final String path, final Long createdTime) {
         return createFileInfo(path, createdTime, singletonList(mockBoxFolderInfo));
     }
 
-    protected BoxFile.Info createFileInfo(String path, Long createdTime, List<Info> pathCollection) {
+    protected BoxFile.Info createFileInfo(final String path, final Long createdTime, final List<Info> pathCollection) {
         when(mockBoxFolderInfo.getName()).thenReturn(path);
         when(mockBoxFolderInfo.getID()).thenReturn("not0");
 
@@ -100,9 +100,9 @@ public class AbstractBoxFileTest {
         return mockFileInfo;
     }
 
-    protected void assertProvenanceEvent(ProvenanceEventType eventType) {
-        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
-        Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
+    protected void assertProvenanceEvent(final ProvenanceEventType eventType) {
+        final Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
+        final Set<ProvenanceEventType> actualEventTypes = testRunner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)
                 .collect(toSet());
         assertEquals(expectedEventTypes, actualEventTypes);
@@ -112,11 +112,11 @@ public class AbstractBoxFileTest {
         assertTrue(testRunner.getProvenanceEvents().isEmpty());
     }
 
-    protected void assertOutFlowFileAttributes(MockFlowFile flowFile) {
+    protected void assertOutFlowFileAttributes(final MockFlowFile flowFile) {
         assertOutFlowFileAttributes(flowFile, "/" + TEST_FOLDER_NAME);
     }
 
-    protected void assertOutFlowFileAttributes(MockFlowFile flowFile, String path) {
+    protected void assertOutFlowFileAttributes(final MockFlowFile flowFile, final String path) {
         flowFile.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
         flowFile.assertAttributeEquals(CoreAttributes.PATH.key(), path);

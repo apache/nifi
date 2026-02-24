@@ -42,7 +42,7 @@ public final class SocketConfiguration {
         return socketTimeout;
     }
 
-    public void setSocketTimeout(Integer socketTimeout) {
+    public void setSocketTimeout(final Integer socketTimeout) {
         this.socketTimeout = socketTimeout;
     }
 
@@ -50,7 +50,7 @@ public final class SocketConfiguration {
         return reuseAddress;
     }
 
-    public void setReuseAddress(Boolean reuseAddress) {
+    public void setReuseAddress(final Boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
     }
 
@@ -58,7 +58,7 @@ public final class SocketConfiguration {
         return keepAlive;
     }
 
-    public void setKeepAlive(Boolean keepAlive) {
+    public void setKeepAlive(final Boolean keepAlive) {
         this.keepAlive = keepAlive;
     }
 
@@ -66,7 +66,7 @@ public final class SocketConfiguration {
         return oobInline;
     }
 
-    public void setOobInline(Boolean oobInline) {
+    public void setOobInline(final Boolean oobInline) {
         this.oobInline = oobInline;
     }
 
@@ -74,7 +74,7 @@ public final class SocketConfiguration {
         return receiveBufferSize;
     }
 
-    public void setReceiveBufferSize(Integer receiveBufferSize) {
+    public void setReceiveBufferSize(final Integer receiveBufferSize) {
         this.receiveBufferSize = receiveBufferSize;
     }
 
@@ -82,7 +82,7 @@ public final class SocketConfiguration {
         return sendBufferSize;
     }
 
-    public void setSendBufferSize(Integer sendBufferSize) {
+    public void setSendBufferSize(final Integer sendBufferSize) {
         this.sendBufferSize = sendBufferSize;
     }
 
@@ -90,7 +90,7 @@ public final class SocketConfiguration {
         return tcpNoDelay;
     }
 
-    public void setTcpNoDelay(Boolean tcpNoDelay) {
+    public void setTcpNoDelay(final Boolean tcpNoDelay) {
         this.tcpNoDelay = tcpNoDelay;
     }
 
@@ -98,7 +98,7 @@ public final class SocketConfiguration {
         return trafficClass;
     }
 
-    public void setTrafficClass(Integer trafficClass) {
+    public void setTrafficClass(final Integer trafficClass) {
         this.trafficClass = trafficClass;
     }
 

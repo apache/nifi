@@ -39,7 +39,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
         return previousGroupId;
     }
 
-    public void setPreviousGroupId(String previousGroupId) {
+    public void setPreviousGroupId(final String previousGroupId) {
         this.previousGroupId = previousGroupId;
     }
 
@@ -52,7 +52,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
         return previousGroup;
     }
 
-    public void setPreviousGroup(String previousGroup) {
+    public void setPreviousGroup(final String previousGroup) {
         this.previousGroup = previousGroup;
     }
 
@@ -65,7 +65,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -78,7 +78,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
         return group;
     }
 
-    public void setGroup(String group) {
+    public void setGroup(final String group) {
         this.group = group;
     }
 }

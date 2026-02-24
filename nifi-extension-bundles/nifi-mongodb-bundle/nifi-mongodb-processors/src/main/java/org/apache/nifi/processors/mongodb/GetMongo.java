@@ -112,7 +112,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
     private boolean sendEmpty;
 
     @OnScheduled
-    public void onScheduled(PropertyContext context) {
+    public void onScheduled(final PropertyContext context) {
         sendEmpty = context.getProperty(SEND_EMPTY_RESULTS).asBoolean();
     }
 
@@ -127,18 +127,18 @@ public class GetMongo extends AbstractMongoQueryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("get-mongo-send-empty", SEND_EMPTY_RESULTS.getName());
         config.renameProperty("use-pretty-printing", USE_PRETTY_PRINTING.getName());
     }
 
     //Turn a list of Mongo result documents into a String representation of a JSON array
-    private String buildBatch(List<Document> documents, String jsonTypeSetting, String prettyPrintSetting) throws IOException {
-        StringBuilder builder = new StringBuilder();
+    private String buildBatch(final List<Document> documents, final String jsonTypeSetting, final String prettyPrintSetting) throws IOException {
+        final StringBuilder builder = new StringBuilder();
         for (int index = 0; index < documents.size(); index++) {
-            Document document = documents.get(index);
-            String asJson;
+            final Document document = documents.get(index);
+            final String asJson;
             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
                 asJson = getObjectWriter(objectMapper, prettyPrintSetting).writeValueAsString(document);
             } else {
@@ -152,7 +152,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         return "[" + builder.toString() + "]";
     }
 
-    private ObjectWriter getObjectWriter(ObjectMapper mapper, String ppSetting) {
+    private ObjectWriter getObjectWriter(final ObjectMapper mapper, final String ppSetting) {
         return ppSetting.equals(YES_PP.getValue()) ? mapper.writerWithDefaultPrettyPrinter()
                 : mapper.writer();
     }
@@ -172,7 +172,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         final Document query;
         try {
             query = getQuery(context, session, input);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("Error parsing query.", ex);
             if (input != null) {
                 session.transfer(input, REL_FAILURE);
@@ -215,7 +215,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             configureMapper(jsonTypeSetting, dateFormat);
 
             if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
-                int sizePerBatch = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
+                final int sizePerBatch = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
                 List<Document> batch = new ArrayList<>();
 
                 while (cursor.hasNext()) {
@@ -225,7 +225,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                         try {
                             writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
                             batch = new ArrayList<>();
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             logger.error("Error building batch", e);
                         }
                     }
@@ -235,7 +235,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
                 if (!batch.isEmpty()) {
                     try {
                         writeBatch(buildBatch(batch, jsonTypeSetting, usePrettyPrint), input, context, session, attributes, REL_SUCCESS);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         logger.error("Error building batch", e);
                     }
                 }

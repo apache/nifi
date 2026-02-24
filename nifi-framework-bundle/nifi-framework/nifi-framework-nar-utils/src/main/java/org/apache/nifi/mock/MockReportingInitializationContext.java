@@ -43,7 +43,7 @@ public class MockReportingInitializationContext implements ReportingInitializati
     }
 
     @Override
-    public long getSchedulingPeriod(TimeUnit timeUnit) {
+    public long getSchedulingPeriod(final TimeUnit timeUnit) {
         return 0;
     }
 

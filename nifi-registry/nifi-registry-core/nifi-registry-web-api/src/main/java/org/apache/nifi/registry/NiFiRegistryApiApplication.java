@@ -58,7 +58,7 @@ public class NiFiRegistryApiApplication extends SpringBootServletInitializer {
     private EventService eventService;
 
     @Override
-    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+    protected SpringApplicationBuilder configure(final SpringApplicationBuilder application) {
         final Properties defaultProperties = new Properties();
 
         // Spring Boot 2.1.0 disabled bean overriding so this re-enables it
@@ -85,14 +85,14 @@ public class NiFiRegistryApiApplication extends SpringBootServletInitializer {
 
         @Override
         public void onApplicationEvent(final ApplicationReadyEvent event) {
-            Event registryStartEvent = new StandardEvent.Builder()
+            final Event registryStartEvent = new StandardEvent.Builder()
                     .eventType(EventType.REGISTRY_START)
                     .build();
             eventService.publish(registryStartEvent);
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SpringApplication.run(NiFiRegistryApiApplication.class, args);
     }
 

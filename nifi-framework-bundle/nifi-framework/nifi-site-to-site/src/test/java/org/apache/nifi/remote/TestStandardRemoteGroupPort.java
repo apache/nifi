@@ -331,9 +331,9 @@ public class TestStandardRemoteGroupPort {
 
         // Execute onTrigger while offering new flow files.
         final List<MockFlowFile> flowFiles = new ArrayList<>();
-        for (int numOfPackets : expectedNumberOfPackets) {
-            int startF = flowFiles.size();
-            int endF = startF + numOfPackets;
+        for (final int numOfPackets : expectedNumberOfPackets) {
+            final int startF = flowFiles.size();
+            final int endF = startF + numOfPackets;
             IntStream.range(startF, endF).forEach(f -> {
                 final StringBuilder flowFileContents = new StringBuilder("0123456789");
                 for (int c = 0; c < f; c++) {
@@ -364,7 +364,7 @@ public class TestStandardRemoteGroupPort {
             final List<DataPacket> dataPackets = sentPackets.get(i);
             assertEquals(expectedNumberOfPackets[i], dataPackets.size());
 
-            for (DataPacket dataPacket : dataPackets) {
+            for (final DataPacket dataPacket : dataPackets) {
                 final FlowFile flowFile = flowFiles.get(f);
 
                 // Assert sent packet

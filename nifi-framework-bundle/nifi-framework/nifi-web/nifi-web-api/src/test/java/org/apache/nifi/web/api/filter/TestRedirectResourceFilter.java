@@ -33,15 +33,15 @@ public class TestRedirectResourceFilter {
 
     @Test
     public void testUnmatched() throws Exception {
-        String path = "unmatched";
-        String baseUri = "http://example.com:8080/nifi-api/";
+        final String path = "unmatched";
+        final String baseUri = "http://example.com:8080/nifi-api/";
 
-        UriInfo uriInfo = mock(UriInfo.class);
+        final UriInfo uriInfo = mock(UriInfo.class);
         when(uriInfo.getPath()).thenReturn(path);
         when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
         when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path));
 
-        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        final ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(invocation -> {
@@ -49,21 +49,21 @@ public class TestRedirectResourceFilter {
             return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
-        RedirectResourceFilter filter = new RedirectResourceFilter();
+        final RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);
     }
 
     @Test
     public void testController() throws Exception {
-        String path = "controller";
-        String baseUri = "http://example.com:8080/nifi-api/";
+        final String path = "controller";
+        final String baseUri = "http://example.com:8080/nifi-api/";
 
-        UriInfo uriInfo = mock(UriInfo.class);
+        final UriInfo uriInfo = mock(UriInfo.class);
         when(uriInfo.getPath()).thenReturn(path);
         when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
         when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path));
 
-        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        final ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(invocation -> {
@@ -72,23 +72,23 @@ public class TestRedirectResourceFilter {
             return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
-        RedirectResourceFilter filter = new RedirectResourceFilter();
+        final RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);
 
     }
 
     @Test
     public void testControllerWithParams() throws Exception {
-        String path = "controller";
-        String baseUri = "http://example.com:8080/nifi-api/";
-        String query = "?a=1&b=23&cde=456";
+        final String path = "controller";
+        final String baseUri = "http://example.com:8080/nifi-api/";
+        final String query = "?a=1&b=23&cde=456";
 
-        UriInfo uriInfo = mock(UriInfo.class);
+        final UriInfo uriInfo = mock(UriInfo.class);
         when(uriInfo.getPath()).thenReturn(path);
         when(uriInfo.getBaseUri()).thenReturn(new URI(baseUri));
         when(uriInfo.getRequestUri()).thenReturn(new URI(baseUri + path + query));
 
-        ContainerRequestContext request = mock(ContainerRequestContext.class);
+        final ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
         doAnswer(invocation -> {
@@ -97,7 +97,7 @@ public class TestRedirectResourceFilter {
             return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
-        RedirectResourceFilter filter = new RedirectResourceFilter();
+        final RedirectResourceFilter filter = new RedirectResourceFilter();
         filter.filter(request);
 
     }

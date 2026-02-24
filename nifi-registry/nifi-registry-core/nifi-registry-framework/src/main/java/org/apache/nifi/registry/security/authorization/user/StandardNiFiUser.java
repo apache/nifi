@@ -51,7 +51,7 @@ public class StandardNiFiUser implements NiFiUser {
      * @param clientAddress the address the request originated from
      * @return an anonymous user instance with the identity "anonymous"
      */
-    public static StandardNiFiUser populateAnonymousUser(NiFiUser chain, String clientAddress) {
+    public static StandardNiFiUser populateAnonymousUser(final NiFiUser chain, final String clientAddress) {
         return new Builder().identity(ANONYMOUS_IDENTITY).chain(chain).clientAddress(clientAddress).anonymous(true).build();
     }
 
@@ -81,7 +81,7 @@ public class StandardNiFiUser implements NiFiUser {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

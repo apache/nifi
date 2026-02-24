@@ -95,11 +95,11 @@ class GitFlowMetaData {
      */
     private Map<String, Bucket> buckets = new HashMap<>();
 
-    public void setRemoteToPush(String remoteToPush) {
+    public void setRemoteToPush(final String remoteToPush) {
         this.remoteToPush = remoteToPush;
     }
 
-    public void setRemoteCredential(String userName, String password) {
+    public void setRemoteCredential(final String userName, final String password) {
         this.credentialsProvider = new UsernamePasswordCredentialsProvider(userName, password);
     }
 
@@ -139,9 +139,9 @@ class GitFlowMetaData {
         return builder.build();
     }
 
-    private static boolean hasAtLeastOneReference(Repository repo) throws IOException {
+    private static boolean hasAtLeastOneReference(final Repository repo) throws IOException {
         logger.info("Checking references for repository {}", repo);
-        for (Ref ref : repo.getRefDatabase().getRefs()) {
+        for (final Ref ref : repo.getRefDatabase().getRefs()) {
             if (ref.getObjectId() == null) {
                 continue;
             }
@@ -157,7 +157,7 @@ class GitFlowMetaData {
      * @return true if the local repository exists, false otherwise
      * @throws IOException if the .git directory of the local repository cannot be opened
      */
-    public boolean localRepoExists(File localRepo) throws IOException {
+    public boolean localRepoExists(final File localRepo) throws IOException {
         if (!localRepo.isDirectory()) {
             logger.info("{} is not a directory or does not exist.", localRepo.getPath());
             return false;
@@ -183,7 +183,7 @@ class GitFlowMetaData {
      * @param remoteRepository the URI value of the 'Remote Clone Repository' configuration
      * @throws IOException if creating the repository fails
      */
-    public void remoteRepoExists(String remoteRepository) throws GitAPIException, IOException {
+    public void remoteRepoExists(final String remoteRepository) throws GitAPIException, IOException {
         final Git git = new Git(FileRepositoryBuilder.create(new File(remoteRepository)));
         final LsRemoteCommand lsCmd = git.lsRemote();
         lsCmd.setRemote(remoteRepository);
@@ -198,7 +198,7 @@ class GitFlowMetaData {
      * @param remoteRepository the URI value of the 'Remote Clone Repository' configuration
      * @throws GitAPIException if unable to call the remote repository
      */
-    public void cloneRepository(File localRepo, String remoteRepository) throws GitAPIException {
+    public void cloneRepository(final File localRepo, final String remoteRepository) throws GitAPIException {
         logger.info("Cloning the repository {} in {}", remoteRepository, localRepo.getPath());
         Git.cloneRepository()
                 .setURI(remoteRepository)
@@ -207,7 +207,7 @@ class GitFlowMetaData {
                 .call();
     }
 
-    public void loadGitRepository(File gitProjectRootDir) throws IOException, GitAPIException {
+    public void loadGitRepository(final File gitProjectRootDir) throws IOException, GitAPIException {
         gitRepo = openRepository(gitProjectRootDir);
 
         try (final Git git = new Git(gitRepo)) {
@@ -225,7 +225,7 @@ class GitFlowMetaData {
 
             boolean isLatestCommit = true;
             try {
-                for (RevCommit commit : git.log().call()) {
+                for (final RevCommit commit : git.log().call()) {
                     final String shortCommitId = commit.getId().abbreviate(7).name();
                     logger.debug("Processing a commit: {}", shortCommitId);
                     final RevTree tree = commit.getTree();
@@ -260,7 +260,7 @@ class GitFlowMetaData {
                         isLatestCommit = false;
                     }
                 }
-            } catch (NoHeadException e) {
+            } catch (final NoHeadException e) {
                 logger.debug("'{}' does not have any commit yet. Starting with empty buckets.", gitProjectRootDir);
             }
 
@@ -285,7 +285,7 @@ class GitFlowMetaData {
             final Long offeredTimestamp;
             try {
                 offeredTimestamp = pushQueue.take();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 logger.warn("Waiting for push request has been interrupted due to {}", e.getMessage(), e);
                 return;
             }
@@ -298,10 +298,10 @@ class GitFlowMetaData {
 
             try {
                 final Iterable<PushResult> pushResults = pushCommand.call();
-                for (PushResult pushResult : pushResults) {
+                for (final PushResult pushResult : pushResults) {
                     logger.debug(pushResult.getMessages());
                 }
-            } catch (GitAPIException e) {
+            } catch (final GitAPIException e) {
                 logger.error(format("Failed to push commits to %s due to %s", remoteToPush, e), e);
             }
 
@@ -309,9 +309,10 @@ class GitFlowMetaData {
     }
 
     @SuppressWarnings("unchecked")
-    private void loadBuckets(Repository gitRepo, RevCommit commit, boolean isLatestCommit, Map<String, ObjectId> bucketObjectIds, Map<String, ObjectId> flowSnapshotObjectIds) throws IOException {
+    private void loadBuckets(final Repository gitRepo, final RevCommit commit, final boolean isLatestCommit,
+            final Map<String, ObjectId> bucketObjectIds, final Map<String, ObjectId> flowSnapshotObjectIds) throws IOException {
         final Yaml yaml = new Yaml();
-        for (String bucketFilePath : bucketObjectIds.keySet()) {
+        for (final String bucketFilePath : bucketObjectIds.keySet()) {
             final ObjectId bucketObjectId = bucketObjectIds.get(bucketFilePath);
             final Map<String, Object> bucketMeta;
             try (InputStream bucketIn = gitRepo.newObjectReader().open(bucketObjectId).openStream()) {
@@ -322,7 +323,7 @@ class GitFlowMetaData {
                 continue;
             }
 
-            int layoutVersion = (int) bucketMeta.get(LAYOUT_VERSION);
+            final int layoutVersion = (int) bucketMeta.get(LAYOUT_VERSION);
             if (layoutVersion > CURRENT_LAYOUT_VERSION) {
                 logger.warn("{} has unsupported {} {}. This Registry can only support {} or lower. Skipping it.",
                         bucketFilePath, LAYOUT_VERSION, layoutVersion, CURRENT_LAYOUT_VERSION);
@@ -360,8 +361,9 @@ class GitFlowMetaData {
     }
 
     @SuppressWarnings("unchecked")
-    private void loadFlows(RevCommit commit, boolean isLatestCommit, Bucket bucket, String backetFilePath, Map<String, Object> flows, Map<String, ObjectId> flowSnapshotObjectIds) {
-        for (String flowId : flows.keySet()) {
+    private void loadFlows(final RevCommit commit, final boolean isLatestCommit, final Bucket bucket, final String backetFilePath,
+            final Map<String, Object> flows, final Map<String, ObjectId> flowSnapshotObjectIds) {
+        for (final String flowId : flows.keySet()) {
             final Map<String, Object> flowMeta = (Map<String, Object>) flows.get(flowId);
 
             if (!validateRequiredValue(flowMeta, backetFilePath + ":" + flowId, VER, FILE)) {
@@ -420,8 +422,8 @@ class GitFlowMetaData {
         }
     }
 
-    private boolean validateRequiredValue(final Map<String, Object> map, String nameOfMap, Object... keys) {
-        for (Object key : keys) {
+    private boolean validateRequiredValue(final Map<String, Object> map, final String nameOfMap, final Object... keys) {
+        for (final Object key : keys) {
             if (!map.containsKey(key)) {
                 logger.warn("{} does not have {}. Skipping it.", nameOfMap, key);
                 return false;
@@ -430,11 +432,11 @@ class GitFlowMetaData {
         return true;
     }
 
-    public Bucket getBucketOrCreate(String bucketId) {
+    public Bucket getBucketOrCreate(final String bucketId) {
         return buckets.computeIfAbsent(bucketId, k -> new Bucket(bucketId));
     }
 
-    public Optional<Bucket> getBucket(String bucketId) {
+    public Optional<Bucket> getBucket(final String bucketId) {
         return Optional.ofNullable(buckets.get(bucketId));
     }
 
@@ -467,7 +469,7 @@ class GitFlowMetaData {
      *                    After a commit is created, new commit rev id and flow snapshot file object id are set to this pointer.
      *                    It can be null if none of flow content is modified.
      */
-    void commit(String author, String message, Bucket bucket, Flow.FlowPointer flowPointer) throws GitAPIException, IOException {
+    void commit(final String author, final String message, final Bucket bucket, final Flow.FlowPointer flowPointer) throws GitAPIException, IOException {
         try (final Git git = new Git(gitRepo)) {
             // Execute add command for newly added files (if any).
             git.add().addFilepattern(".").call();
@@ -526,7 +528,7 @@ class GitFlowMetaData {
         }
     }
 
-    byte[] getContent(String objectId) throws IOException {
+    byte[] getContent(final String objectId) throws IOException {
         final ObjectId flowSnapshotObjectId = gitRepo.resolve(objectId);
         final ObjectStream objStream = gitRepo.newObjectReader().open(flowSnapshotObjectId).openStream();
         return IOUtils.toByteArray(objStream);

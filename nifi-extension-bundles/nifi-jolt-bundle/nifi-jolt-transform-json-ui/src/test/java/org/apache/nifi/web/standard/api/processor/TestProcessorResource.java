@@ -90,7 +90,7 @@ public class TestProcessorResource extends JerseyTest {
         Mockito.when(niFiWebConfigurationContext.updateComponent(any(NiFiWebConfigurationRequestContext.class), AdditionalMatchers.or(any(String.class), isNull()),
                 any(Map.class))).thenReturn(componentDetails);
 
-        Response response = client().target(getBaseUri())
+        final Response response = client().target(getBaseUri())
                 .path("/standard/processor/properties")
                 .queryParam("processorId", "1")
                 .queryParam("clientId", "1")
@@ -99,7 +99,7 @@ public class TestProcessorResource extends JerseyTest {
                 .put(Entity.json(JsonUtils.toJsonString(properties)));
 
         assertNotNull(response);
-        JsonNode jsonNode = response.readEntity(JsonNode.class);
+        final JsonNode jsonNode = response.readEntity(JsonNode.class);
         assertNotNull(jsonNode);
         assertEquals("jolt-transform-chain", jsonNode.get("properties").get("Jolt Transform").asText());
     }
@@ -118,7 +118,7 @@ public class TestProcessorResource extends JerseyTest {
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
-        JsonNode value = client().target(getBaseUri())
+        final JsonNode value = client().target(getBaseUri())
                 .path("/standard/processor/details")
                 .queryParam("processorId", "1")
                 .request()
@@ -136,7 +136,7 @@ public class TestProcessorResource extends JerseyTest {
         }
 
         @Override
-        public void dispose(HttpServletRequest t) {
+        public void dispose(final HttpServletRequest t) {
         }
     }
 
@@ -147,7 +147,7 @@ public class TestProcessorResource extends JerseyTest {
         }
 
         @Override
-        public void dispose(ServletContext t) {
+        public void dispose(final ServletContext t) {
         }
     }
 

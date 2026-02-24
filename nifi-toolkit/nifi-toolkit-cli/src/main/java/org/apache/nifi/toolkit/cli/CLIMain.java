@@ -65,7 +65,7 @@ public class CLIMain {
     public static final String BANNER_FILE = "nifi-banner.txt";
     public static final String SESSION_PERSISTENCE_FILE = ".nifi-cli.config";
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         if (args == null || args.length == 0) {
             runInteractiveCLI();
         } else {
@@ -74,7 +74,7 @@ public class CLIMain {
             try {
                 final int returnCode = runSingleCommand(args);
                 System.exit(returnCode);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // shouldn't really get here, but just in case
                 e.printStackTrace();
                 System.exit(-1);
@@ -125,9 +125,9 @@ public class CLIMain {
                     final ParsedLine parsedLine = reader.getParsedLine();
                     final String[] parsedArgs = parsedLine.words().toArray(new String[parsedLine.words().size()]);
                     commandProcessor.process(parsedArgs);
-                } catch (UserInterruptException ignored) {
+                } catch (final UserInterruptException ignored) {
                     // Ignore
-                } catch (EndOfFileException e) {
+                } catch (final EndOfFileException e) {
                     return;
                 }
             }
@@ -179,7 +179,7 @@ public class CLIMain {
                     output.println("Session loaded from " + sessionState.getAbsolutePath());
                     output.println();
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 session = inMemorySession;
 
                 if (isInteractive) {

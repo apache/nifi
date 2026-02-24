@@ -289,43 +289,43 @@ class TestMapRecord {
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
-        List<RecordField> nestedFields = new ArrayList<>();
+        final List<RecordField> nestedFields = new ArrayList<>();
         nestedFields.add(new RecordField("test", RecordFieldType.STRING.getDataType()));
-        RecordSchema nestedSchema = new SimpleRecordSchema(nestedFields);
-        RecordDataType nestedType = new RecordDataType(nestedSchema);
+        final RecordSchema nestedSchema = new SimpleRecordSchema(nestedFields);
+        final RecordDataType nestedType = new RecordDataType(nestedSchema);
         fields.add(new RecordField("nested", nestedType));
         fields.add(new RecordField("list", new ArrayDataType(nestedType)));
-        RecordSchema fullSchema = new SimpleRecordSchema(fields);
+        final RecordSchema fullSchema = new SimpleRecordSchema(fields);
 
-        Map<String, Object> nestedValues = new HashMap<>();
+        final Map<String, Object> nestedValues = new HashMap<>();
         nestedValues.put("test", NESTED_RECORD_VALUE);
-        Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
-        Map<String, Object> values = new HashMap<>();
+        final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+        final Map<String, Object> values = new HashMap<>();
         values.put("foo", FOO_TEST_VAL);
         values.put("nested", nestedRecord);
 
-        List<Record> list = new ArrayList<>();
+        final List<Record> list = new ArrayList<>();
         for (int x = 0; x < 5; x++) {
             list.add(new MapRecord(nestedSchema, nestedValues));
         }
         values.put("list", list);
 
-        Record record = new MapRecord(fullSchema, values);
+        final Record record = new MapRecord(fullSchema, values);
 
-        Map<String, Object> fullConversion = ((MapRecord) record).toMap(true);
+        final Map<String, Object> fullConversion = ((MapRecord) record).toMap(true);
         assertEquals(FOO_TEST_VAL, fullConversion.get("foo"));
         assertInstanceOf(Map.class, fullConversion.get("nested"));
 
-        Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
+        final Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
         assertEquals(NESTED_RECORD_VALUE, nested.get("test"));
 
         assertInstanceOf(List.class, fullConversion.get("list"));
-        List recordList = (List) fullConversion.get("list");
+        final List recordList = (List) fullConversion.get("list");
         assertEquals(5, recordList.size());
-        for (Object rec : recordList) {
+        for (final Object rec : recordList) {
             assertInstanceOf(Map.class, rec);
-            Map<String, Object> map = (Map<String, Object>) rec;
+            final Map<String, Object> map = (Map<String, Object>) rec;
             assertEquals(1, map.size());
             assertEquals(NESTED_RECORD_VALUE, map.get("test"));
         }
@@ -338,24 +338,24 @@ class TestMapRecord {
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
-        List<RecordField> nestedFields = new ArrayList<>();
+        final List<RecordField> nestedFields = new ArrayList<>();
         nestedFields.add(new RecordField("test", RecordFieldType.STRING.getDataType()));
-        RecordSchema nestedSchema = new SimpleRecordSchema(nestedFields);
-        RecordDataType nestedType = new RecordDataType(nestedSchema);
+        final RecordSchema nestedSchema = new SimpleRecordSchema(nestedFields);
+        final RecordDataType nestedType = new RecordDataType(nestedSchema);
         fields.add(new RecordField("nested", nestedType));
         fields.add(new RecordField("array", new ArrayDataType(nestedType)));
-        RecordSchema fullSchema = new SimpleRecordSchema(fields);
+        final RecordSchema fullSchema = new SimpleRecordSchema(fields);
 
-        Map<String, Object> nestedValues = new HashMap<>();
+        final Map<String, Object> nestedValues = new HashMap<>();
         nestedValues.put("test", nestedRecordValue);
-        Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
-        Map<String, Object> values = new HashMap<>();
+        final Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+        final Map<String, Object> values = new HashMap<>();
         values.put("foo", testValue);
         values.put("nested", nestedRecord);
 
         values.put("array", new Object[0]);
 
-        Record record = new MapRecord(fullSchema, values);
+        final Record record = new MapRecord(fullSchema, values);
 
         Map<String, Object> fullConversion = null;
         fullConversion = ((MapRecord) record).toMap(true);
@@ -363,38 +363,38 @@ class TestMapRecord {
         assertEquals(testValue, fullConversion.get("foo"));
         assertInstanceOf(Map.class, fullConversion.get("nested"));
 
-        Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
+        final Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
         assertEquals(nestedRecordValue, nested.get("test"));
 
-        Object arrayFieldName = fullConversion.get("array");
+        final Object arrayFieldName = fullConversion.get("array");
         assertInstanceOf(Object[].class, arrayFieldName);
-        Object[] recordArray = (Object[]) arrayFieldName;
+        final Object[] recordArray = (Object[]) arrayFieldName;
         assertEquals(0, recordArray.length);
     }
 
     @ParameterizedTest
     @MethodSource("provideLocalDates")
-    void testGettingLocalDate(final String input, final String format, LocalDate expectedDate) {
+    void testGettingLocalDate(final String input, final String format, final LocalDate expectedDate) {
         executeDateTimeTest(input, format, expectedDate, MapRecord::getAsLocalDate);
     }
 
     @ParameterizedTest
     @MethodSource("provideLocalDateTimes")
-    void testGettingLocalDateTime(final String input, final String format, LocalDateTime expectedDateTime) {
+    void testGettingLocalDateTime(final String input, final String format, final LocalDateTime expectedDateTime) {
         executeDateTimeTest(input, format, expectedDateTime, MapRecord::getAsLocalDateTime);
     }
 
     @ParameterizedTest
     @MethodSource("provideOffsetDateTimes")
-    void testGettingOffsetDateTime(final String input, final String format, OffsetDateTime expectedOffsetDateTime) {
+    void testGettingOffsetDateTime(final String input, final String format, final OffsetDateTime expectedOffsetDateTime) {
         executeDateTimeTest(input, format, expectedOffsetDateTime, MapRecord::getAsOffsetDateTime);
     }
 
     private <T> void executeDateTimeTest(final String input,
         final String format,
         final Object expectedDateTime,
-        TriFunction<MapRecord, String, String, T> dateTimeFunction) {
+        final TriFunction<MapRecord, String, String, T> dateTimeFunction) {
         // create a `MapRecord` from the input
         final List<RecordField> fields = new ArrayList<>();
         final String timestampFieldName = "timestamp";

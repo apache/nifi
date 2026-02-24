@@ -34,7 +34,7 @@ public class StandardProtobufModule extends ProtobufModule {
     }
 
     @Override
-    public void setupModule(SetupContext context) {
+    public void setupModule(final SetupContext context) {
         super.setupModule(context);
 
         final TelemetryMessageSerializer telemetryMessageSerializer = new TelemetryMessageSerializer(protobufJacksonConfig);

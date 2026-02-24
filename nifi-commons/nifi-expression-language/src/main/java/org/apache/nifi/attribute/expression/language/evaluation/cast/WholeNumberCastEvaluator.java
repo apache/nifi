@@ -53,7 +53,7 @@ public class WholeNumberCastEvaluator extends WholeNumberEvaluator {
                 return (WholeNumberQueryResult) result;
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
-                NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
+                final NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
                 switch (parseType) {
                     case DECIMAL:
                         final Double doubleResultValue = Double.valueOf(trimmed);
@@ -62,7 +62,7 @@ public class WholeNumberCastEvaluator extends WholeNumberEvaluator {
                         Long longResultValue;
                         try {
                             longResultValue = Long.valueOf(trimmed);
-                        } catch (NumberFormatException e) {
+                        } catch (final NumberFormatException e) {
                             // Will only occur if trimmed is a hex number
                             longResultValue = Long.decode(trimmed);
                         }

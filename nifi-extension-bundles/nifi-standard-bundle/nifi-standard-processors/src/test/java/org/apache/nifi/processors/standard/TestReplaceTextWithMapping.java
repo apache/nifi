@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class TestReplaceTextWithMapping {
 
     public TestRunner getRunner() {
-        TestRunner runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
+        final TestRunner runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
 
         /*
          * we have to disable validation of expression language because the processor will
@@ -57,8 +57,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are apple\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are apple\n"
                 + "violets are blueberry\n"
                 + "something else is grape\n"
                 + "I'm not good at writing poems";
@@ -71,15 +71,15 @@ public class TestReplaceTextWithMapping {
         final String mappingFile = Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-mapping.txt").toFile().getAbsolutePath();
         runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, mappingFile);
 
-        String text = "${foo} red ${baz}";
+        final String text = "${foo} red ${baz}";
 
         runner.enqueue(text.getBytes());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo} apple ${baz}";
+        final String outputString = new String(out.toByteArray());
+        final String expected = "${foo} apple ${baz}";
         assertEquals(expected, outputString);
     }
 
@@ -91,15 +91,15 @@ public class TestReplaceTextWithMapping {
         runner.setProperty(ReplaceTextWithMapping.REGEX, "\\|(.*?)\\|");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
 
-        String text = "${foo}|red|${baz}";
+        final String text = "${foo}|red|${baz}";
 
         runner.enqueue(text.getBytes());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo}|apple|${baz}";
+        final String outputString = new String(out.toByteArray());
+        final String expected = "${foo}|apple|${baz}";
         assertEquals(expected, outputString);
     }
 
@@ -111,15 +111,15 @@ public class TestReplaceTextWithMapping {
         runner.setProperty(ReplaceTextWithMapping.REGEX, ".*\\|(.*?)\\|.*");
         runner.setProperty(ReplaceTextWithMapping.MATCHING_GROUP_FOR_LOOKUP_KEY, "1");
 
-        String text = "${foo}|red|${baz}";
+        final String text = "${foo}|red|${baz}";
 
         runner.enqueue(text.getBytes());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "${foo}|apple|${baz}";
+        final String outputString = new String(out.toByteArray());
+        final String expected = "${foo}|apple|${baz}";
         assertEquals(expected, outputString);
     }
 
@@ -135,8 +135,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -apple-\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "-roses- are -apple-\n"
                 + "violets are -blueberry-\n"
                 + "something else is -grape-\n"
                 + "I'm not good at writing poems";
@@ -155,8 +155,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red apple\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are red apple\n"
                 + "violets are blue blueberry\n"
                 + "something else is green grape\n"
                 + "I'm not good at writing poems";
@@ -191,8 +191,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -red$2 apple-\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "-roses- are -red$2 apple-\n"
                 + "violets are -blue$2 blueberry-\n"
                 + "something else is -green$2 grape-\n"
                 + "I'm not good at writing poems";
@@ -210,8 +210,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red$1 apple\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are red$1 apple\n"
                 + "violets are blue$1 blueberry\n"
                 + "something else is green$1 grape\n"
                 + "I'm not good at writing poems";
@@ -230,8 +230,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are red$d apple\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are red$d apple\n"
                 + "violets are blue$d blueberry\n"
                 + "something else is green$d grape\n"
                 + "I'm not good at writing poems";
@@ -250,8 +250,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "-roses- are -$1 apple-\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "-roses- are -$1 apple-\n"
                 + "violets are -$1 blueberry-\n"
                 + "something else is -$1 grape-\n"
                 + "I'm not good at writing poems";
@@ -268,8 +268,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are $1 apple\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are $1 apple\n"
                 + "violets are $1 blueberry\n"
                 + "something else is $1 grape\n"
                 + "I'm not good at writing poems";
@@ -286,8 +286,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are \n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are \n"
                 + "violets are \n"
                 + "something else is \n"
                 + "I'm not good at writing poems";
@@ -304,8 +304,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = "roses are really red\n"
+        final String outputString = new String(out.toByteArray());
+        final String expected = "roses are really red\n"
                 + "violets are super blue\n"
                 + "something else is ultra green\n"
                 + "I'm not good at writing poems";
@@ -325,8 +325,8 @@ public class TestReplaceTextWithMapping {
 
         runner.assertAllFlowFilesTransferred(ReplaceTextWithMapping.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceTextWithMapping.REL_SUCCESS).get(0);
-        String outputString = new String(out.toByteArray());
-        String expected = new String(Files.readAllBytes(path));
+        final String outputString = new String(out.toByteArray());
+        final String expected = new String(Files.readAllBytes(path));
         assertEquals(expected, outputString);
     }
 

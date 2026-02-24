@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 public class UpdateOperationResponse implements OperationResponse {
     private final long took;
 
-    public UpdateOperationResponse(long took) {
+    public UpdateOperationResponse(final long took) {
         this.took = took;
     }
 

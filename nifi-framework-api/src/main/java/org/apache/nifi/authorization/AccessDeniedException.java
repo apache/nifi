@@ -22,15 +22,15 @@ package org.apache.nifi.authorization;
 public class AccessDeniedException extends RuntimeException {
     private static final long serialVersionUID = -5683444815269084134L;
 
-    public AccessDeniedException(Throwable cause) {
+    public AccessDeniedException(final Throwable cause) {
         super(cause);
     }
 
-    public AccessDeniedException(String message, Throwable cause) {
+    public AccessDeniedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public AccessDeniedException(String message) {
+    public AccessDeniedException(final String message) {
         super(message);
     }
 

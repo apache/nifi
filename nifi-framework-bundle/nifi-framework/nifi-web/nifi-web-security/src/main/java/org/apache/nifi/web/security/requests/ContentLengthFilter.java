@@ -49,9 +49,9 @@ public class ContentLengthFilter implements Filter {
     }
 
     @Override
-    public void init(FilterConfig config) throws ServletException {
-        String maxLength = config.getInitParameter(MAX_LENGTH_INIT_PARAM);
-        int length = maxLength == null ? MAX_LENGTH_DEFAULT : Integer.parseInt(maxLength);
+    public void init(final FilterConfig config) throws ServletException {
+        final String maxLength = config.getInitParameter(MAX_LENGTH_INIT_PARAM);
+        final int length = maxLength == null ? MAX_LENGTH_DEFAULT : Integer.parseInt(maxLength);
         if (length < 0) {
             throw new ServletException("Invalid max request length.");
         }
@@ -60,9 +60,9 @@ public class ContentLengthFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String httpMethod = httpRequest.getMethod();
+    public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain) throws IOException, ServletException {
+        final HttpServletRequest httpRequest = (HttpServletRequest) request;
+        final String httpMethod = httpRequest.getMethod();
 
         // If the request is in the framework allow list, do not evaluate or block based on content length
         if (!isSubjectToFilter(httpRequest)) {
@@ -74,15 +74,15 @@ public class ContentLengthFilter implements Filter {
         // Check the HTTP method because the spec says clients don't have to send a content-length header for methods
         // that don't use it.  So even though an attacker may provide a large body in a GET request, the body should go
         // unread and a size filter is unneeded at best.  See RFC 2616 section 14.13, and RFC 1945 section 10.4.
-        boolean willExamine = maxContentLength > 0 && (httpMethod.equalsIgnoreCase("POST") || httpMethod.equalsIgnoreCase("PUT"));
+        final boolean willExamine = maxContentLength > 0 && (httpMethod.equalsIgnoreCase("POST") || httpMethod.equalsIgnoreCase("PUT"));
         if (!willExamine) {
             logger.debug("No length check of request with method {} and maximum {}", httpMethod, formatSize(maxContentLength));
             chain.doFilter(request, response);
             return;
         }
 
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
-        int contentLength = request.getContentLength();
+        final HttpServletResponse httpResponse = (HttpServletResponse) response;
+        final int contentLength = request.getContentLength();
         if (contentLength > maxContentLength) {
             // Request with a client-specified length greater than our max is rejected:
             httpResponse.setContentType("text/plain");
@@ -115,8 +115,8 @@ public class ContentLengthFilter implements Filter {
      * @param request the incoming request
      * @return true if this request should be filtered
      */
-    private boolean isSubjectToFilter(HttpServletRequest request) {
-        for (String uriPrefix : BYPASS_URI_PREFIXES) {
+    private boolean isSubjectToFilter(final HttpServletRequest request) {
+        for (final String uriPrefix : BYPASS_URI_PREFIXES) {
             if (request.getRequestURI().startsWith(uriPrefix)) {
                 logger.debug("Incoming request {} matches filter bypass prefix {}; content length filter is not applied", request.getRequestURI(), uriPrefix);
                 return false;
@@ -131,7 +131,7 @@ public class ContentLengthFilter implements Filter {
      * @param byteSize the size in bytes
      * @return a String representing the size in the most appropriate unit, with the units
      */
-    private static String formatSize(int byteSize) {
+    private static String formatSize(final int byteSize) {
         return FormatUtils.formatDataSize(byteSize);
     }
 
@@ -139,7 +139,7 @@ public class ContentLengthFilter implements Filter {
     private static class LimitedContentLengthRequest extends HttpServletRequestWrapper {
         private int maxRequestLength;
 
-        public LimitedContentLengthRequest(HttpServletRequest request, int maxLength) {
+        public LimitedContentLengthRequest(final HttpServletRequest request, final int maxLength) {
             super(request);
             maxRequestLength = maxLength;
         }
@@ -161,13 +161,13 @@ public class ContentLengthFilter implements Filter {
                 }
 
                 @Override
-                public void setReadListener(ReadListener readListener) {
+                public void setReadListener(final ReadListener readListener) {
                     originalStream.setReadListener(readListener);
                 }
 
                 @Override
                 public int read() throws IOException {
-                    int read = originalStream.read();
+                    final int read = originalStream.read();
                     if (read == -1) {
                         return read;
                     }

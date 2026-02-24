@@ -75,11 +75,11 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
     private ProvenanceReportingSchema provenanceReportingProperties;
     private ProvenanceRepositorySchema provenanceRepositorySchema;
 
-    public ConfigSchemaV2(Map map) {
+    public ConfigSchemaV2(final Map map) {
         this(map, Collections.emptyList());
     }
 
-    public ConfigSchemaV2(Map map, List<String> validationIssues) {
+    public ConfigSchemaV2(final Map map, final List<String> validationIssues) {
         validationIssues.stream().forEach(this::addValidationIssue);
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
@@ -104,17 +104,17 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
         addIssuesIfNotNull(provenanceReportingProperties);
         addIssuesIfNotNull(provenanceRepositorySchema);
 
-        List<ProcessGroupSchemaV2> allProcessGroups = getAllProcessGroups(processGroupSchema);
-        List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
-        List<RemoteProcessGroupSchemaV2> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
+        final List<ProcessGroupSchemaV2> allProcessGroups = getAllProcessGroups(processGroupSchema);
+        final List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
+        final List<RemoteProcessGroupSchemaV2> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
 
-        List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
-        List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
-        List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
-        List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
+        final List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
+        final List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
+        final List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
+        final List<String> allRemoteInputPortIds = allRemoteProcessGroups.stream().filter(r -> r.getInputPorts() != null)
                 .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList());
-        List<String> allInputPortIds = allProcessGroups.stream().flatMap(p -> p.getInputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
-        List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
+        final List<String> allInputPortIds = allProcessGroups.stream().flatMap(p -> p.getInputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
+        final List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
 
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_IDS, allProcessorIds);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS, allFunnelIds);
@@ -123,31 +123,31 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_OUTPUT_PORT_IDS, allOutputPortIds);
 
         // Potential connection sources and destinations need to have unique ids
-        CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds),
+        final CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds),
                 new HashSet<>(allOutputPortIds), new HashSet<>(allFunnelIds));
         if (!overlapResults.getDuplicates().isEmpty()) {
             addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.getDuplicates().stream().sorted().collect(Collectors.joining(", ")));
         }
 
         allConnectionSchemas.forEach(c -> {
-            String destinationId = c.getDestinationId();
+            final String destinationId = c.getDestinationId();
             if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.getElements().contains(destinationId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_DESTINATION_ID + destinationId);
             }
-            String sourceId = c.getSourceId();
+            final String sourceId = c.getSourceId();
             if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.getElements().contains(sourceId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_SOURCE_ID + sourceId);
             }
         });
     }
 
-    public static List<ProcessGroupSchemaV2> getAllProcessGroups(ProcessGroupSchemaV2 processGroupSchema) {
-        List<ProcessGroupSchemaV2> result = new ArrayList<>();
+    public static List<ProcessGroupSchemaV2> getAllProcessGroups(final ProcessGroupSchemaV2 processGroupSchema) {
+        final List<ProcessGroupSchemaV2> result = new ArrayList<>();
         addProcessGroups(processGroupSchema, result);
         return result;
     }
 
-    private static void addProcessGroups(ProcessGroupSchemaV2 processGroupSchema, List<ProcessGroupSchemaV2> result) {
+    private static void addProcessGroups(final ProcessGroupSchemaV2 processGroupSchema, final List<ProcessGroupSchemaV2> result) {
         result.add(processGroupSchema);
         processGroupSchema.getProcessGroupSchemas().forEach(p -> addProcessGroups(p, result));
     }
@@ -159,7 +159,7 @@ public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<Conf
 
     @Override
     public ConfigSchema convert() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(VERSION, getVersion());
         putIfNotNull(result, FLOW_CONTROLLER_PROPS_KEY, flowControllerProperties);
         putIfNotNull(result, CORE_PROPS_KEY, coreProperties.convert());

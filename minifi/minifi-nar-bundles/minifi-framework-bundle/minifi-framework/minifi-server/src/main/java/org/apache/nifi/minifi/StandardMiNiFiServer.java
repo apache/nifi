@@ -74,7 +74,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
     @Override
     protected void validateFlow() {
-        List<ValidationResult> validationErrors = validate(getFlowController().getFlowManager());
+        final List<ValidationResult> validationErrors = validate(getFlowController().getFlowManager());
         if (!validationErrors.isEmpty()) {
             logger.error("Validation errors found when loading the flow: {}", validationErrors);
             throw new IllegalStateException("Unable to start flow due to validation errors");
@@ -83,7 +83,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     @Override
-    public void stop(boolean reload) {
+    public void stop(final boolean reload) {
         super.stop();
         if (bootstrapListener != null) {
             try {
@@ -92,7 +92,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
                 } else {
                     bootstrapListener.stop();
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
@@ -105,13 +105,13 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     @Override
-    public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
+    public FlowStatusReport getStatusReport(final String requestString) throws StatusRequestException {
         return StatusConfigReporter.getStatus(getFlowController(), requestString, logger);
     }
 
     private void initC2() {
         if (Boolean.parseBoolean(getNiFiProperties().getProperty(MiNiFiProperties.C2_ENABLE.getKey(), MiNiFiProperties.C2_ENABLE.getDefaultValue()))) {
-            NiFiProperties niFiProperties = getNiFiProperties();
+            final NiFiProperties niFiProperties = getNiFiProperties();
             enabledFlowIngestors(niFiProperties).ifPresentOrElse(
                 flowIngestors -> {
                     logger.warn("Due to enabled flow ingestor(s) [{}] C2 client is not created. Please disable flow ingestors when using C2", flowIngestors);
@@ -127,7 +127,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
         }
     }
 
-    private Optional<String> enabledFlowIngestors(NiFiProperties niFiProperties) {
+    private Optional<String> enabledFlowIngestors(final NiFiProperties niFiProperties) {
         return ofNullable(niFiProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_NOTIFIER_INGESTORS.getKey(), EMPTY))
             .map(String::trim)
             .filter(StringUtils::isNotBlank);
@@ -140,25 +140,25 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     private void initBootstrapListener() {
-        String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
+        final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
         if (bootstrapPort != null) {
             try {
-                int port = Integer.parseInt(bootstrapPort);
+                final int port = Integer.parseInt(bootstrapPort);
 
                 if (port < 1 || port > 65535) {
                     throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
                 }
 
                 bootstrapListener = new BootstrapListener(this, port);
-                NiFiProperties niFiProperties = getNiFiProperties();
+                final NiFiProperties niFiProperties = getNiFiProperties();
 
                 // Default to 0 for random ephemeral port number
                 final String listenerBootstrapPortProperty = niFiProperties.getProperty(LISTENER_BOOTSTRAP_PORT, "0");
                 final int listenerBootstrapPort = Integer.parseInt(listenerBootstrapPortProperty);
                 bootstrapListener.start(listenerBootstrapPort);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new UncheckedIOException("Failed to start MiNiFi because of Bootstrap listener initialization error", e);
-            } catch (NumberFormatException e) {
+            } catch (final NumberFormatException e) {
                 throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
         } else {
@@ -171,7 +171,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
         if (bootstrapListener != null) {
             try {
                 bootstrapListener.sendStartedStatus(true);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
@@ -179,10 +179,10 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
     private void startNarAutoUnloader() {
         try {
-            NiFiProperties properties = getNiFiProperties();
-            ExtensionManager extensionManager = ExtensionManagerHolder.getExtensionManager();
-            NarUnpackMode unpackMode = properties.isUnpackNarsToUberJar() ? UNPACK_TO_UBER_JAR : UNPACK_INDIVIDUAL_JARS;
-            NarLoader narLoader = new StandardNarLoader(
+            final NiFiProperties properties = getNiFiProperties();
+            final ExtensionManager extensionManager = ExtensionManagerHolder.getExtensionManager();
+            final NarUnpackMode unpackMode = properties.isUnpackNarsToUberJar() ? UNPACK_TO_UBER_JAR : UNPACK_INDIVIDUAL_JARS;
+            final NarLoader narLoader = new StandardNarLoader(
                     properties.getExtensionsWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
                     (ExtensionDiscoveringManager) extensionManager,
@@ -190,10 +190,10 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
                     null,
                     unpackMode);
 
-            NarAutoUnloaderTaskFactory narAutoUnLoaderTaskFactory = new NarAutoUnloaderTaskFactory(properties, extensionManager, narLoader);
+            final NarAutoUnloaderTaskFactory narAutoUnLoaderTaskFactory = new NarAutoUnloaderTaskFactory(properties, extensionManager, narLoader);
             narAutoUnloader = new NarAutoUnloader(narAutoUnLoaderTaskFactory);
             narAutoUnloader.start();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
     }

@@ -360,7 +360,7 @@ public class RedisUtils {
         }
 
         final JedisClientConfiguration jedisClientConfiguration = builder.build();
-        JedisConnectionFactory connectionFactory;
+        final JedisConnectionFactory connectionFactory;
 
         if (RedisType.STANDALONE == redisMode) {
             LOGGER.info("Connecting to Redis in standalone mode at {}", connectionString);
@@ -406,7 +406,7 @@ public class RedisUtils {
         // need to call this to initialize the pool/connections
         try {
             connectionFactory.afterPropertiesSet();
-        } catch (PoolException e) {
+        } catch (final PoolException e) {
             LOGGER.warn("Could not pre-warm Redis pool (no Redis running?) – will connect lazily", e);
         }
 
@@ -457,7 +457,7 @@ public class RedisUtils {
         return poolConfig;
     }
 
-    public static List<ValidationResult> validate(ValidationContext validationContext) {
+    public static List<ValidationResult> validate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
         final String redisMode = validationContext.getProperty(RedisUtils.REDIS_MODE).getValue();
@@ -520,7 +520,7 @@ public class RedisUtils {
         try {
             Integer.parseInt(number);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }

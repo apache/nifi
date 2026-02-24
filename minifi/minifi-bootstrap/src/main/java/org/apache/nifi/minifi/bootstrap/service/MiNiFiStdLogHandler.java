@@ -46,30 +46,30 @@ public class MiNiFiStdLogHandler {
 
     public MiNiFiStdLogHandler() {
         loggingExecutor = Executors.newFixedThreadPool(2, runnable -> {
-            Thread t = Executors.defaultThreadFactory().newThread(runnable);
+            final Thread t = Executors.defaultThreadFactory().newThread(runnable);
             t.setDaemon(true);
             t.setName("MiNiFi logging handler");
             return t;
         });
     }
 
-    public void initLogging(Process process) {
+    public void initLogging(final Process process) {
         LOGGER.debug("Initializing MiNiFi's standard output/error loggers...");
         Optional.ofNullable(loggingFutures)
             .map(Set::stream)
             .orElse(Stream.empty())
             .forEach(future -> future.cancel(false));
 
-        Set<Future<?>> futures = new HashSet<>();
+        final Set<Future<?>> futures = new HashSet<>();
         futures.add(getFuture(process.getInputStream(), STDOUT));
         futures.add(getFuture(process.getErrorStream(), ERROR));
         loggingFutures = futures;
     }
 
     @NotNull
-    private Future<?> getFuture(InputStream in, LoggerType loggerType) {
+    private Future<?> getFuture(final InputStream in, final LoggerType loggerType) {
         return loggingExecutor.submit(() -> {
-            Logger logger = LoggerFactory.getLogger(loggerType.getLoggerName());
+            final Logger logger = LoggerFactory.getLogger(loggerType.getLoggerName());
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -79,7 +79,7 @@ public class MiNiFiStdLogHandler {
                         logger.info(line);
                     }
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOGGER.warn(READ_FAILURE_MESSAGE, loggerType.getDisplayName());
                 LOGGER.warn(EXCEPTION_MESSAGE, e);
             }
@@ -98,7 +98,7 @@ public class MiNiFiStdLogHandler {
         final String displayName;
         final String loggerName;
 
-        LoggerType(String displayName, String loggerName) {
+        LoggerType(final String displayName, final String loggerName) {
             this.displayName = displayName;
             this.loggerName = loggerName;
         }

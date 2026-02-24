@@ -50,13 +50,13 @@ public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
             )
     );
 
-    private static Long parseLongOrNull(String attribute) {
+    private static Long parseLongOrNull(final String attribute) {
         final String trimmedAttribute = attribute.trim();
 
         if (isInteger.test(trimmedAttribute)) {
             try {
                 return Long.parseLong(trimmedAttribute);
-            } catch (NumberFormatException ignored) {
+            } catch (final NumberFormatException ignored) {
                 return null;
             }
         }
@@ -64,7 +64,7 @@ public class PriorityAttributePrioritizer implements FlowFilePrioritizer {
     }
 
     @Override
-    public int compare(FlowFile o1, FlowFile o2) {
+    public int compare(final FlowFile o1, final FlowFile o2) {
         return composedComparator.compare(o1, o2);
     }
 }

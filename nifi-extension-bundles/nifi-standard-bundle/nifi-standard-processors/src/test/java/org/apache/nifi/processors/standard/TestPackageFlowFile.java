@@ -47,7 +47,7 @@ public class TestPackageFlowFile {
 
     @Test
     public void testOne() throws IOException {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), SAMPLE_ATTR_FILENAME);
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
         attributes.put(EXTRA_ATTR_KEY, EXTRA_ATTR_VALUE);
@@ -64,10 +64,10 @@ public class TestPackageFlowFile {
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
         // content can be unpacked with FlowFileUnpackagerV3
-        FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
+        final FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
         try (ByteArrayInputStream bais = new ByteArrayInputStream(outputFlowFile.toByteArray());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
+            final Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
             // verify attributes in package
             Assertions.assertEquals(5, unpackedAttributes.size());
             Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
@@ -82,9 +82,9 @@ public class TestPackageFlowFile {
 
     @Test
     public void testMany() throws IOException {
-        int FILE_COUNT = 10;
+        final int FILE_COUNT = 10;
         runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(FILE_COUNT));
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
         for (int i = 0; i < FILE_COUNT; i++) {
@@ -102,11 +102,11 @@ public class TestPackageFlowFile {
                 outputFlowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
 
         // content can be unpacked with FlowFileUnpackagerV3
-        FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
+        final FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
         try (ByteArrayInputStream bais = new ByteArrayInputStream(outputFlowFile.toByteArray());
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             for (int i = 0; i < FILE_COUNT; i++) {
-                Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
+                final Map<String, String> unpackedAttributes = unpackager.unpackageFlowFile(bais, baos);
                 // verify attributes in package
                 Assertions.assertEquals(4, unpackedAttributes.size());
                 Assertions.assertNotNull(unpackedAttributes.get(CoreAttributes.UUID.key()));
@@ -122,10 +122,10 @@ public class TestPackageFlowFile {
 
     @Test
     public void testBatchSize() {
-        int FILE_COUNT = 10;
-        int BATCH_SIZE = 2;
+        final int FILE_COUNT = 10;
+        final int BATCH_SIZE = 2;
         runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(BATCH_SIZE));
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
         for (int i = 0; i < FILE_COUNT; i++) {
@@ -141,11 +141,11 @@ public class TestPackageFlowFile {
 
     @Test
     public void testBatchContentSize() {
-        int FILE_COUNT = 10;
-        int BATCH_CONTENT_SIZE = 7 * SAMPLE_CONTENT.length();
+        final int FILE_COUNT = 10;
+        final int BATCH_CONTENT_SIZE = 7 * SAMPLE_CONTENT.length();
         runner.setProperty(PackageFlowFile.BATCH_SIZE, Integer.toString(FILE_COUNT));
         runner.setProperty(PackageFlowFile.BATCH_CONTENT_SIZE, BATCH_CONTENT_SIZE + " B");
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), SAMPLE_ATTR_MIME_TYPE);
 
         for (int i = 0; i < FILE_COUNT; i++) {

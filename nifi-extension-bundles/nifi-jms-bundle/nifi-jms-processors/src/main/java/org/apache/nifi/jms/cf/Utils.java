@@ -30,11 +30,11 @@ public final class Utils {
      * constructor.
      */
     @SuppressWarnings("unchecked")
-    static <T> T newDefaultInstance(String className) {
+    static <T> T newDefaultInstance(final String className) {
         try {
-            Class<T> clazz = (Class<T>) Class.forName(className, false, Thread.currentThread().getContextClassLoader());
+            final Class<T> clazz = (Class<T>) Class.forName(className, false, Thread.currentThread().getContextClassLoader());
             return clazz.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException("Failed to load and/or instantiate class '" + className + "'", e);
         }
     }
@@ -47,11 +47,11 @@ public final class Utils {
      * @param targetClass instance of target class
      * @return instance of {@link Method}
      */
-    public static Method findMethod(String name, Class<?> targetClass) {
+    public static Method findMethod(final String name, final Class<?> targetClass) {
         Class<?> searchType = targetClass;
         while (searchType != null) {
-            Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
-            for (Method method : methods) {
+            final Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
+            for (final Method method : methods) {
                 if (name.equals(method.getName())) {
                     return method;
                 }
@@ -69,12 +69,12 @@ public final class Utils {
      * @param targetClass instance of target class
      * @return Array of {@link Method}
      */
-    public static Method[] findMethods(String name, Class<?> targetClass) {
+    public static Method[] findMethods(final String name, final Class<?> targetClass) {
         Class<?> searchType = targetClass;
-        List<Method> fittingMethods = new ArrayList<>();
+        final List<Method> fittingMethods = new ArrayList<>();
         while (searchType != null) {
-            Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
-            for (Method method : methods) {
+            final Method[] methods = (searchType.isInterface() ? searchType.getMethods() : searchType.getDeclaredMethods());
+            for (final Method method : methods) {
                 if (name.equals(method.getName())) {
                     fittingMethods.add(method);
                 }

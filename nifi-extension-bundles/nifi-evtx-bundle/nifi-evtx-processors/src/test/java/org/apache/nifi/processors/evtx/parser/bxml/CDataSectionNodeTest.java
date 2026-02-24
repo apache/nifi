@@ -54,7 +54,7 @@ public class CDataSectionNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         cDataSectionNode.accept(mock);
         verify(mock).visit(cDataSectionNode);
         verifyNoMoreInteractions(mock);

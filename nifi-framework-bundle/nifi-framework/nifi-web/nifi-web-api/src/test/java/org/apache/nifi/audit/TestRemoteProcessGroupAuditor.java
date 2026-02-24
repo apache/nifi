@@ -66,7 +66,7 @@ public class TestRemoteProcessGroupAuditor {
         when(authentication.getName()).thenReturn("user-id");
     }
 
-    private Collection<Action> updateProcessGroupConfiguration(RemoteProcessGroupDTO inputRPGDTO, RemoteProcessGroup existingRPG) throws Throwable {
+    private Collection<Action> updateProcessGroupConfiguration(final RemoteProcessGroupDTO inputRPGDTO, final RemoteProcessGroup existingRPG) throws Throwable {
         final RemoteProcessGroupAuditor auditor = new RemoteProcessGroupAuditor();
         final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
         final String remoteProcessGroupId = "remote-process-group-id";
@@ -98,7 +98,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgument(0);
+            final Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());
@@ -403,7 +403,7 @@ public class TestRemoteProcessGroupAuditor {
 
     }
 
-    private Collection<Action> updateProcessGroupInputPortConfiguration(RemoteProcessGroupPortDTO inputRPGPortDTO, RemoteGroupPort existingRPGPort) throws Throwable {
+    private Collection<Action> updateProcessGroupInputPortConfiguration(final RemoteProcessGroupPortDTO inputRPGPortDTO, final RemoteGroupPort existingRPGPort) throws Throwable {
         final RemoteProcessGroup existingRPG = defaultRemoteProcessGroup();
         final RemoteProcessGroupAuditor auditor = new RemoteProcessGroupAuditor();
         final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
@@ -444,7 +444,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgument(0);
+            final Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());

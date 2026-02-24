@@ -33,7 +33,7 @@ public class ExtensionRepoBucket extends LinkableEntity implements Comparable<Ex
         return bucketName;
     }
 
-    public void setBucketName(String bucketName) {
+    public void setBucketName(final String bucketName) {
         this.bucketName = bucketName;
     }
 
@@ -48,7 +48,7 @@ public class ExtensionRepoBucket extends LinkableEntity implements Comparable<Ex
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

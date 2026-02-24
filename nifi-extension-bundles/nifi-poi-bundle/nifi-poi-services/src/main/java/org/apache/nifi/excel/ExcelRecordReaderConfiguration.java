@@ -82,53 +82,53 @@ public class ExcelRecordReaderConfiguration {
         private boolean avoidTempFiles;
         private InputFileType inputFileType;
 
-        public Builder withSchema(RecordSchema schema) {
+        public Builder withSchema(final RecordSchema schema) {
             this.schema = schema;
             return this;
         }
 
-        public Builder withRequiredSheets(List<String> requiredSheets) {
+        public Builder withRequiredSheets(final List<String> requiredSheets) {
             this.requiredSheets = requiredSheets;
             return this;
         }
 
-        public Builder withFirstRow(int firstRow) {
+        public Builder withFirstRow(final int firstRow) {
             this.firstRow = firstRow;
             return this;
         }
 
-        public Builder withDateFormat(String dateFormat) {
+        public Builder withDateFormat(final String dateFormat) {
             this.dateFormat = dateFormat;
             return this;
         }
 
-        public Builder withTimeFormat(String timeFormat) {
+        public Builder withTimeFormat(final String timeFormat) {
             this.timeFormat = timeFormat;
             return this;
         }
 
-        public Builder withTimestampFormat(String timestampFormat) {
+        public Builder withTimestampFormat(final String timestampFormat) {
             this.timestampFormat = timestampFormat;
             return this;
         }
 
-        public Builder withPassword(String password) {
+        public Builder withPassword(final String password) {
             this.password = password;
             return this;
         }
 
-        public Builder withAvoidTempFiles(boolean avoidTempFiles) {
+        public Builder withAvoidTempFiles(final boolean avoidTempFiles) {
             this.avoidTempFiles = avoidTempFiles;
             return this;
         }
 
-        public Builder withInputFileType(InputFileType inputFileType) {
+        public Builder withInputFileType(final InputFileType inputFileType) {
             this.inputFileType = inputFileType;
             return this;
         }
 
         public ExcelRecordReaderConfiguration build() {
-            ExcelRecordReaderConfiguration excelRecordReaderConfiguration = new ExcelRecordReaderConfiguration();
+            final ExcelRecordReaderConfiguration excelRecordReaderConfiguration = new ExcelRecordReaderConfiguration();
             excelRecordReaderConfiguration.schema = this.schema;
             excelRecordReaderConfiguration.timeFormat = this.timeFormat;
             excelRecordReaderConfiguration.timestampFormat = this.timestampFormat;

@@ -157,7 +157,7 @@ public class FlowEncryptorCommandTest {
         return formattedPath.replaceAll(BACKSLASH_PATTERN, ESCAPED_BACKSLASH);
     }
 
-    private static URL getResourceUrl(String resource) throws FileNotFoundException {
+    private static URL getResourceUrl(final String resource) throws FileNotFoundException {
         final URL resourceUrl = FlowEncryptorCommand.class.getResource(resource);
         if (resourceUrl == null) {
             throw new FileNotFoundException(String.format("Resource [%s] not found", resource));

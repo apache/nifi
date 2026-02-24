@@ -36,29 +36,29 @@ public class RootNode extends BxmlNode {
     private final int substitutionCount;
     private final List<VariantTypeNode> substitutions;
 
-    public RootNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public RootNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         init();
         substitutionCount = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid substitution count.");
-        List<VariantTypeSizeAndFactory> substitutionVariantFactories = new ArrayList<>(substitutionCount);
+        final List<VariantTypeSizeAndFactory> substitutionVariantFactories = new ArrayList<>(substitutionCount);
         for (long i = 0; i < substitutionCount; i++) {
             try {
-                int substitutionSize = binaryReader.readWord();
-                int substitutionType = binaryReader.readWord();
+                final int substitutionSize = binaryReader.readWord();
+                final int substitutionType = binaryReader.readWord();
                 substitutionVariantFactories.add(new VariantTypeSizeAndFactory(substitutionSize, ValueNode.factories.get(substitutionType)));
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 throw new IOException(e);
             }
         }
-        List<VariantTypeNode> substitutions = new ArrayList<>();
-        for (VariantTypeSizeAndFactory substitutionVariantFactory : substitutionVariantFactories) {
+        final List<VariantTypeNode> substitutions = new ArrayList<>();
+        for (final VariantTypeSizeAndFactory substitutionVariantFactory : substitutionVariantFactories) {
             substitutions.add(substitutionVariantFactory.factory.create(binaryReader, chunkHeader, this, substitutionVariantFactory.size));
         }
         this.substitutions = Collections.unmodifiableList(substitutions);
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 
@@ -75,7 +75,7 @@ public class RootNode extends BxmlNode {
         private final int size;
         private final VariantTypeNodeFactory factory;
 
-        public VariantTypeSizeAndFactory(int size, VariantTypeNodeFactory factory) {
+        public VariantTypeSizeAndFactory(final int size, final VariantTypeNodeFactory factory) {
             this.size = size;
             this.factory = factory;
         }

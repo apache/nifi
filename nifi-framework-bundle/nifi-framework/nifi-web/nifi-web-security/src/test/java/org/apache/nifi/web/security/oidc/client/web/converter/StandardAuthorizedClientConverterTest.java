@@ -171,12 +171,12 @@ class StandardAuthorizedClientConverterTest {
     private static class StringPropertyEncryptor implements PropertyEncryptor {
 
         @Override
-        public String encrypt(String property) {
+        public String encrypt(final String property) {
             return property;
         }
 
         @Override
-        public String decrypt(String encryptedProperty) {
+        public String decrypt(final String encryptedProperty) {
             return encryptedProperty;
         }
     }

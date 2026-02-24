@@ -51,7 +51,7 @@ public class MulticastProtocolMessage extends ProtocolMessage {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -59,7 +59,7 @@ public class MulticastProtocolMessage extends ProtocolMessage {
         return protocolMessage;
     }
 
-    public void setProtocolMessage(ProtocolMessage protocolMessage) {
+    public void setProtocolMessage(final ProtocolMessage protocolMessage) {
         this.protocolMessage = protocolMessage;
     }
 

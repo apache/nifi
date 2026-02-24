@@ -140,7 +140,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -180,7 +180,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.errorMessage", e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failure to fetch file from Azure Data Lake Storage", e);
             // other exception, no available statusCode or errorCode
             flowFile = session.putAttribute(flowFile, "azure.datalake.storage.errorMessage", e.getMessage());
@@ -190,7 +190,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
         config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());

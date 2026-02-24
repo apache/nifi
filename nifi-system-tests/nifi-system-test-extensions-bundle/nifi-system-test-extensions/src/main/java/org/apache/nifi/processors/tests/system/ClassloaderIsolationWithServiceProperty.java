@@ -67,7 +67,7 @@ public class ClassloaderIsolationWithServiceProperty extends AbstractProcessor i
     }
 
     @Override
-    public String getClassloaderIsolationKey(PropertyContext context) {
+    public String getClassloaderIsolationKey(final PropertyContext context) {
         final KeyProviderService service = context.getProperty(KEY_PROVIDER_SERVICE).asControllerService(KeyProviderService.class);
         return service.getKeyField();
     }

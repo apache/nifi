@@ -60,7 +60,7 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
     private final long lastModified;
     private final String etag;
 
-    private ADLSFileInfo(Builder builder) {
+    private ADLSFileInfo(final Builder builder) {
         this.fileSystem = builder.fileSystem;
         this.filePath = builder.filePath;
         this.length = builder.length;
@@ -122,7 +122,7 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
 
     @Override
     public Record toRecord() {
-        Map<String, Object> values = new HashMap<>();
+        final Map<String, Object> values = new HashMap<>();
         values.put(FILESYSTEM, getFileSystem());
         values.put(FILE_PATH, getFilePath());
         values.put(DIRECTORY, getDirectory());
@@ -134,14 +134,14 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
     }
 
     @Override
-    public boolean equals(Object other) {
+    public boolean equals(final Object other) {
         if (this == other) {
             return true;
         }
         if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        ADLSFileInfo otherFileInfo = (ADLSFileInfo) other;
+        final ADLSFileInfo otherFileInfo = (ADLSFileInfo) other;
         return Objects.equals(fileSystem, otherFileInfo.fileSystem)
                 && Objects.equals(filePath, otherFileInfo.filePath);
     }
@@ -152,7 +152,7 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
     }
 
     @Override
-    public int compareTo(ADLSFileInfo other) {
+    public int compareTo(final ADLSFileInfo other) {
         return COMPARATOR.compare(this, other);
     }
 
@@ -163,27 +163,27 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
         private long lastModified;
         private String etag;
 
-        public Builder fileSystem(String fileSystem) {
+        public Builder fileSystem(final String fileSystem) {
             this.fileSystem = fileSystem;
             return this;
         }
 
-        public Builder filePath(String filePath) {
+        public Builder filePath(final String filePath) {
             this.filePath = filePath;
             return this;
         }
 
-        public Builder length(long length) {
+        public Builder length(final long length) {
             this.length = length;
             return this;
         }
 
-        public Builder lastModified(long lastModified) {
+        public Builder lastModified(final long lastModified) {
             this.lastModified = lastModified;
             return this;
         }
 
-        public Builder etag(String etag) {
+        public Builder etag(final String etag) {
             this.etag = etag;
             return this;
         }

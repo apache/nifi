@@ -41,7 +41,7 @@ public class TestExecuteGraphQuery {
 
     @BeforeEach
     public void setUp() throws Exception {
-        MockCypherClientService service = new MockCypherClientService();
+        final MockCypherClientService service = new MockCypherClientService();
         runner = TestRunners.newTestRunner(ExecuteGraphQuery.class);
         runner.addControllerService("clientService", service);
         runner.enableControllerService(service);
@@ -79,12 +79,12 @@ public class TestExecuteGraphQuery {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private void testExecute(int success, int failure, int original) throws Exception {
+    private void testExecute(final int success, final int failure, final int original) throws Exception {
         runner.run(1, true, true);
         runner.assertTransferCount(ExecuteGraphQuery.REL_SUCCESS, success);
         runner.assertTransferCount(ExecuteGraphQuery.REL_FAILURE, failure);
         runner.assertTransferCount(ExecuteGraphQuery.REL_ORIGINAL, original);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteGraphQuery.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteGraphQuery.REL_SUCCESS);
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.LABELS_ADDED));
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.NODES_CREATED));
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.NODES_DELETED));
@@ -92,13 +92,13 @@ public class TestExecuteGraphQuery {
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.RELATIONS_DELETED));
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.PROPERTIES_SET));
         assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.ROWS_RETURNED));
-        byte[] raw = runner.getContentAsByteArray(flowFiles.getFirst());
-        String str = new String(raw);
-        List<Map<String, Object>> parsed = new ObjectMapper().readValue(str, new TypeReference<>() {
+        final byte[] raw = runner.getContentAsByteArray(flowFiles.getFirst());
+        final String str = new String(raw);
+        final List<Map<String, Object>> parsed = new ObjectMapper().readValue(str, new TypeReference<>() {
         });
         assertNotNull(parsed);
         assertEquals(2, parsed.size());
-        for (Map<String, Object> result : parsed) {
+        for (final Map<String, Object> result : parsed) {
             assertEquals(2, result.size());
             assertTrue(result.containsKey("name"));
             assertTrue(result.containsKey("age"));

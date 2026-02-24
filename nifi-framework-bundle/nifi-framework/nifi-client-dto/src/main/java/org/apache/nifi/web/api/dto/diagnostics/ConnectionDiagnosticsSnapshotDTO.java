@@ -35,7 +35,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         return totalFlowFileCount;
     }
 
-    public void setTotalFlowFileCount(int totalFlowFileCount) {
+    public void setTotalFlowFileCount(final int totalFlowFileCount) {
         this.totalFlowFileCount = totalFlowFileCount;
     }
 
@@ -44,7 +44,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         return totalByteCount;
     }
 
-    public void setTotalByteCount(long totalByteCount) {
+    public void setTotalByteCount(final long totalByteCount) {
         this.totalByteCount = totalByteCount;
     }
 
@@ -62,7 +62,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         return localQueuePartition;
     }
 
-    public void setLocalQueuePartition(LocalQueuePartitionDTO localQueuePartition) {
+    public void setLocalQueuePartition(final LocalQueuePartitionDTO localQueuePartition) {
         this.localQueuePartition = localQueuePartition;
     }
 
@@ -70,7 +70,7 @@ public class ConnectionDiagnosticsSnapshotDTO {
         return remoteQueuePartitions;
     }
 
-    public void setRemoteQueuePartitions(List<RemoteQueuePartitionDTO> remoteQueuePartitions) {
+    public void setRemoteQueuePartitions(final List<RemoteQueuePartitionDTO> remoteQueuePartitions) {
         this.remoteQueuePartitions = remoteQueuePartitions;
     }
 }

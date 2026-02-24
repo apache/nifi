@@ -38,7 +38,7 @@ public class RemoteQueuePartitionDTO {
         return nodeId;
     }
 
-    public void setNodeIdentifier(String nodeId) {
+    public void setNodeIdentifier(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -47,7 +47,7 @@ public class RemoteQueuePartitionDTO {
         return totalFlowFileCount;
     }
 
-    public void setTotalFlowFileCount(int totalFlowFileCount) {
+    public void setTotalFlowFileCount(final int totalFlowFileCount) {
         this.totalFlowFileCount = totalFlowFileCount;
     }
 
@@ -56,7 +56,7 @@ public class RemoteQueuePartitionDTO {
         return totalByteCount;
     }
 
-    public void setTotalByteCount(long totalByteCount) {
+    public void setTotalByteCount(final long totalByteCount) {
         this.totalByteCount = totalByteCount;
     }
 
@@ -65,7 +65,7 @@ public class RemoteQueuePartitionDTO {
         return activeQueueFlowFileCount;
     }
 
-    public void setActiveQueueFlowFileCount(int activeQueueFlowFileCount) {
+    public void setActiveQueueFlowFileCount(final int activeQueueFlowFileCount) {
         this.activeQueueFlowFileCount = activeQueueFlowFileCount;
     }
 
@@ -74,7 +74,7 @@ public class RemoteQueuePartitionDTO {
         return activeQueueByteCount;
     }
 
-    public void setActiveQueueByteCount(long activeQueueByteCount) {
+    public void setActiveQueueByteCount(final long activeQueueByteCount) {
         this.activeQueueByteCount = activeQueueByteCount;
     }
 
@@ -83,7 +83,7 @@ public class RemoteQueuePartitionDTO {
         return swapFlowFileCount;
     }
 
-    public void setSwapFlowFileCount(int swapFlowFileCount) {
+    public void setSwapFlowFileCount(final int swapFlowFileCount) {
         this.swapFlowFileCount = swapFlowFileCount;
     }
 
@@ -92,7 +92,7 @@ public class RemoteQueuePartitionDTO {
         return swapByteCount;
     }
 
-    public void setSwapByteCount(long swapByteCount) {
+    public void setSwapByteCount(final long swapByteCount) {
         this.swapByteCount = swapByteCount;
     }
 
@@ -101,7 +101,7 @@ public class RemoteQueuePartitionDTO {
         return swapFiles;
     }
 
-    public void setSwapFiles(int swapFiles) {
+    public void setSwapFiles(final int swapFiles) {
         this.swapFiles = swapFiles;
     }
 
@@ -110,7 +110,7 @@ public class RemoteQueuePartitionDTO {
         return inFlightFlowFileCount;
     }
 
-    public void setInFlightFlowFileCount(int inFlightFlowFileCount) {
+    public void setInFlightFlowFileCount(final int inFlightFlowFileCount) {
         this.inFlightFlowFileCount = inFlightFlowFileCount;
     }
 
@@ -119,7 +119,7 @@ public class RemoteQueuePartitionDTO {
         return inFlightByteCount;
     }
 
-    public void setInFlightByteCount(long inFlightByteCount) {
+    public void setInFlightByteCount(final long inFlightByteCount) {
         this.inFlightByteCount = inFlightByteCount;
     }
 }

@@ -27,7 +27,7 @@ public class UpdatableProperty implements Serializable {
     private final String propertyValue;
     private final String validator;
 
-    public UpdatableProperty(String propertyName, String propertyValue, String validator) {
+    public UpdatableProperty(final String propertyName, final String propertyValue, final String validator) {
         this.propertyName = propertyName;
         this.propertyValue = propertyValue;
         this.validator = validator;
@@ -46,14 +46,14 @@ public class UpdatableProperty implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        UpdatableProperty that = (UpdatableProperty) o;
+        final UpdatableProperty that = (UpdatableProperty) o;
         return Objects.equals(propertyName, that.propertyName) && Objects.equals(propertyValue, that.propertyValue) && Objects.equals(validator,
             that.validator);
     }

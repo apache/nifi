@@ -36,7 +36,7 @@ public class AboutEntity extends Entity {
         return about;
     }
 
-    public void setAbout(AboutDTO about) {
+    public void setAbout(final AboutDTO about) {
         this.about = about;
     }
 

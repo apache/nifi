@@ -213,7 +213,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             setBaseUrl(ClusterUrlParser.resolveBaseUrl(clusterUrl));
             try {
                 return getController();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 lastException = e;
                 logger.warn("Failed to get controller from {}", clusterUrl, e);
             }
@@ -305,7 +305,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         final int responseCode = response.statusCode();
         logger.debug("initiateTransaction responseCode={}", responseCode);
 
-        String transactionUrl;
+        final String transactionUrl;
         if (responseCode == HTTP_CREATED) {
             response.body().close();
 
@@ -336,7 +336,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         return transactionUrl;
     }
 
-    private IOException toIOException(ExecutionException e) {
+    private IOException toIOException(final ExecutionException e) {
         final Throwable cause = e.getCause();
         if (cause instanceof IOException) {
             return (IOException) cause;
@@ -432,7 +432,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             response = transactionFuture.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException e) {
             throw toIOException(e);
-        } catch (TimeoutException | InterruptedException e) {
+        } catch (final TimeoutException | InterruptedException e) {
             throw new IOException(e);
         }
 

@@ -134,13 +134,13 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                 "applied when the JSON output format is set to Standard JSON.")
         .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
         .addValidator((subject, input, context) -> {
-            ValidationResult.Builder result = new ValidationResult.Builder()
+            final ValidationResult.Builder result = new ValidationResult.Builder()
                 .subject(subject)
                 .input(input);
             try {
                 new SimpleDateFormat(input).format(new Date());
                 result.valid(true);
-            } catch (Exception ex) {
+            } catch (final Exception ex) {
                 result.valid(false)
                     .explanation(ex.getMessage());
             }
@@ -196,12 +196,12 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     @OnScheduled
-    public final void createClient(ProcessContext context) {
+    public final void createClient(final ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("mongo-client-service", CLIENT_SERVICE.getName());
         config.renameProperty("json-type", JSON_TYPE.getName());
         config.renameProperty("results-per-flowfile", RESULTS_PER_FLOWFILE.getName());
@@ -248,9 +248,9 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         return clientService.getURI();
     }
 
-    protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
-                              Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
-        String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue();
+    protected void writeBatch(final String payload, final FlowFile parent, final ProcessContext context, final ProcessSession session,
+                              final Map<String, String> extraAttributes, final Relationship rel) throws UnsupportedEncodingException {
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue();
 
         FlowFile flowFile = parent != null ? session.create(parent) : session.create();
         flowFile = session.importFrom(new ByteArrayInputStream(payload.getBytes(charset)), flowFile);
@@ -261,12 +261,12 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         session.transfer(flowFile, rel);
     }
 
-    protected synchronized void configureMapper(String setting, String dateFormat) {
+    protected synchronized void configureMapper(final String setting, final String dateFormat) {
         objectMapper = new ObjectMapper();
 
         if (setting.equals(JSON_TYPE_STANDARD)) {
             objectMapper.registerModule(ObjectIdSerializer.getModule());
-            DateFormat df = new SimpleDateFormat(dateFormat);
+            final DateFormat df = new SimpleDateFormat(dateFormat);
             objectMapper.setDateFormat(df);
         }
     }
@@ -279,7 +279,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
      * @return true if the incoming files update mode matches with updateMethodToMatch
      */
     protected boolean updateModeMatches(
-        UpdateMethod updateMethodToMatch, UpdateMethod configuredUpdateMethod, FlowFile flowFile) {
+        final UpdateMethod updateMethodToMatch, final UpdateMethod configuredUpdateMethod, final FlowFile flowFile) {
 
         return updateMethodToMatch == configuredUpdateMethod
             || (UpdateMethod.UPDATE_FF_ATTRIBUTE == configuredUpdateMethod

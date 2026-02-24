@@ -30,7 +30,7 @@ public class AttributesAndState implements Map<String, String> {
     private final Map<String, String> stateMap;
     private final Map<String, String> attributes;
 
-    public AttributesAndState(Map<String, String> attributes, Map<String, String> state) {
+    public AttributesAndState(final Map<String, String> attributes, final Map<String, String> state) {
         stateMap = state;
         this.attributes = attributes;
     }
@@ -50,32 +50,32 @@ public class AttributesAndState implements Map<String, String> {
     }
 
     @Override
-    public boolean containsKey(Object key) {
+    public boolean containsKey(final Object key) {
         return attributes.containsKey(key);
     }
 
     @Override
-    public boolean containsValue(Object value) {
+    public boolean containsValue(final Object value) {
         return attributes.containsValue(value);
     }
 
     @Override
-    public String get(Object key) {
+    public String get(final Object key) {
         return attributes.get(key);
     }
 
     @Override
-    public String put(String key, String value) {
+    public String put(final String key, final String value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public String remove(Object key) {
+    public String remove(final Object key) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void putAll(Map<? extends String, ? extends String> m) {
+    public void putAll(final Map<? extends String, ? extends String> m) {
         throw new UnsupportedOperationException();
     }
 

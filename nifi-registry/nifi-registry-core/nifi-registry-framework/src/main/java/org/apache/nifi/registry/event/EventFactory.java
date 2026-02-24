@@ -47,7 +47,7 @@ public class EventFactory {
         return bucketEvent(bucket, EventType.DELETE_BUCKET);
     }
 
-    private static Event bucketEvent(final Bucket bucket, EventType eventType) {
+    private static Event bucketEvent(final Bucket bucket, final EventType eventType) {
         return new StandardEvent.Builder()
                 .eventType(eventType)
                 .addField(EventFieldName.BUCKET_ID, bucket.getIdentifier())
@@ -71,7 +71,7 @@ public class EventFactory {
         return flowEvent(versionedFlow, EventType.DELETE_FLOW);
     }
 
-    private static Event flowEvent(final VersionedFlow versionedFlow, EventType eventType) {
+    private static Event flowEvent(final VersionedFlow versionedFlow, final EventType eventType) {
         return new StandardEvent.Builder()
                 .eventType(eventType)
                 .addField(EventFieldName.BUCKET_ID, versionedFlow.getBucketIdentifier())

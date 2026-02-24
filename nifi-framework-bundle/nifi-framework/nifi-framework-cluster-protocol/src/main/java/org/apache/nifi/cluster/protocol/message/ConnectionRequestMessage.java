@@ -30,7 +30,7 @@ public class ConnectionRequestMessage extends ProtocolMessage {
         return connectionRequest;
     }
 
-    public void setConnectionRequest(ConnectionRequest connectionRequest) {
+    public void setConnectionRequest(final ConnectionRequest connectionRequest) {
         this.connectionRequest = connectionRequest;
     }
 

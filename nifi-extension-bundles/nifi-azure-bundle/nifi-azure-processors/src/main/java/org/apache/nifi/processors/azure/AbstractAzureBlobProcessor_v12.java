@@ -87,12 +87,12 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
     }
 
@@ -101,11 +101,11 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         clientFactory = null;
     }
 
-    protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
+    protected BlobServiceClient getStorageClient(final PropertyContext context, final FlowFile flowFile) {
         return getStorageClient(context, BLOB_STORAGE_CREDENTIALS_SERVICE, flowFile);
     }
 
-    protected BlobServiceClient getStorageClient(PropertyContext context, PropertyDescriptor storageCredentialsServiceProperty, FlowFile flowFile) {
+    protected BlobServiceClient getStorageClient(final PropertyContext context, final PropertyDescriptor storageCredentialsServiceProperty, final FlowFile flowFile) {
         final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
 
         final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(storageCredentialsServiceProperty).asControllerService(AzureStorageCredentialsService_v12.class);
@@ -114,22 +114,22 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         return clientFactory.getStorageClient(credentialsDetails);
     }
 
-    protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {
+    protected Map<String, String> createBlobAttributesMap(final BlobClient blobClient) {
         final Map<String, String> attributes = new HashMap<>();
         applyStandardBlobAttributes(attributes, blobClient);
         applyBlobMetadata(attributes, blobClient);
         return attributes;
     }
 
-    protected void applyStandardBlobAttributes(Map<String, String> attributes, BlobClient blobClient) {
-        String primaryUri = blobClient.getBlobUrl().replace("%2F", "/");
+    protected void applyStandardBlobAttributes(final Map<String, String> attributes, final BlobClient blobClient) {
+        final String primaryUri = blobClient.getBlobUrl().replace("%2F", "/");
         attributes.put(ATTR_NAME_CONTAINER, blobClient.getContainerName());
         attributes.put(ATTR_NAME_BLOBNAME, blobClient.getBlobName());
         attributes.put(ATTR_NAME_PRIMARY_URI, primaryUri);
     }
 
-    protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
-        Supplier<BlobProperties> props = new Supplier<>() {
+    protected void applyBlobMetadata(final Map<String, String> attributes, final BlobClient blobClient) {
+        final Supplier<BlobProperties> props = new Supplier<>() {
             BlobProperties properties;
 
             @Override

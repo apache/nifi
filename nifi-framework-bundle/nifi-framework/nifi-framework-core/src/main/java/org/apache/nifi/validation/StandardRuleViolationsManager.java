@@ -50,8 +50,8 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     private final ConcurrentMap<String, ConcurrentMap<RuleViolationKey, RuleViolation>> subjectIdToRuleViolation = new ConcurrentHashMap<>();
 
     @Override
-    public void upsertComponentViolations(String componentId, Collection<RuleViolation> violations) {
-        ConcurrentMap<RuleViolationKey, RuleViolation> componentRuleViolations = subjectIdToRuleViolation
+    public void upsertComponentViolations(final String componentId, final Collection<RuleViolation> violations) {
+        final ConcurrentMap<RuleViolationKey, RuleViolation> componentRuleViolations = subjectIdToRuleViolation
             .computeIfAbsent(componentId, __ -> new ConcurrentHashMap<>());
 
         synchronized (componentRuleViolations) {
@@ -67,7 +67,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
             // Sweep
             componentRuleViolations.entrySet().removeIf(keyAndViolation -> {
-                RuleViolation violation = keyAndViolation.getValue();
+                final RuleViolation violation = keyAndViolation.getValue();
 
                 return violation.getScope().equals(componentId)
                     && !violation.isAvailable();
@@ -77,9 +77,9 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
     @Override
     public synchronized void upsertGroupViolations(
-        VersionedProcessGroup processGroup,
-        Collection<RuleViolation> groupViolations,
-        Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
+        final VersionedProcessGroup processGroup,
+        final Collection<RuleViolation> groupViolations,
+        final Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations
     ) {
         // Mark
         hideGroupViolations(processGroup);
@@ -102,7 +102,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
         // Add 'componentToRuleViolations' to the sored map.
         componentToRuleViolations.forEach((component, componentViolations) -> {
-            ConcurrentMap<RuleViolationKey, RuleViolation> componentRuleViolations = subjectIdToRuleViolation
+            final ConcurrentMap<RuleViolationKey, RuleViolation> componentRuleViolations = subjectIdToRuleViolation
                 .computeIfAbsent(component.getIdentifier(), __ -> new ConcurrentHashMap<>());
 
             componentViolations.forEach(componentViolation -> componentRuleViolations
@@ -114,8 +114,8 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
         purgeGroupViolations(processGroup);
     }
 
-    private void hideGroupViolations(VersionedProcessGroup processGroup) {
-        String groupId = processGroup.getIdentifier();
+    private void hideGroupViolations(final VersionedProcessGroup processGroup) {
+        final String groupId = processGroup.getIdentifier();
 
         subjectIdToRuleViolation.values().stream()
             .map(Map::values).flatMap(Collection::stream)
@@ -125,12 +125,12 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
         processGroup.getProcessGroups().forEach(childProcessGroup -> hideGroupViolations(childProcessGroup));
     }
 
-    private void purgeGroupViolations(VersionedProcessGroup processGroup) {
-        String groupId = processGroup.getIdentifier();
+    private void purgeGroupViolations(final VersionedProcessGroup processGroup) {
+        final String groupId = processGroup.getIdentifier();
 
         subjectIdToRuleViolation.values().forEach(violationMap ->
             violationMap.entrySet().removeIf(keyAndViolation -> {
-                RuleViolation violation = keyAndViolation.getValue();
+                final RuleViolation violation = keyAndViolation.getValue();
 
                 return violation.getScope().equals(groupId)
                     && !violation.isAvailable();
@@ -140,8 +140,8 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
-    public Collection<RuleViolation> getRuleViolationsForSubject(String subjectId) {
-        Set<RuleViolation> ruleViolationsForSubject = Optional.ofNullable(subjectIdToRuleViolation.get(subjectId))
+    public Collection<RuleViolation> getRuleViolationsForSubject(final String subjectId) {
+        final Set<RuleViolation> ruleViolationsForSubject = Optional.ofNullable(subjectIdToRuleViolation.get(subjectId))
             .map(Map::values)
             .map(HashSet::new)
             .orElse(new HashSet<>());
@@ -150,8 +150,8 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
-    public Collection<RuleViolation> getRuleViolationsForGroup(String groupId) {
-        Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
+    public Collection<RuleViolation> getRuleViolationsForGroup(final String groupId) {
+        final Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
             .map(Map::values).flatMap(Collection::stream)
             .filter(violation -> groupId.equals(violation.getGroupId()))
             .collect(Collectors.toSet());
@@ -160,8 +160,8 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
-    public Collection<RuleViolation> getRuleViolationsForGroups(Collection<String> groupIds) {
-        Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
+    public Collection<RuleViolation> getRuleViolationsForGroups(final Collection<String> groupIds) {
+        final Set<RuleViolation> groupViolations = subjectIdToRuleViolation.values().stream()
                 .map(Map::values).flatMap(Collection::stream)
                 .filter(violation -> groupIds.contains(violation.getGroupId()))
                 .collect(Collectors.toSet());
@@ -171,7 +171,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
 
     @Override
     public Collection<RuleViolation> getAllRuleViolations() {
-        Set<RuleViolation> allRuleViolations = subjectIdToRuleViolation.values().stream()
+        final Set<RuleViolation> allRuleViolations = subjectIdToRuleViolation.values().stream()
             .map(Map::values).flatMap(Collection::stream)
             .collect(Collectors.toSet());
 
@@ -179,12 +179,12 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
-    public void removeRuleViolationsForSubject(String subjectId) {
+    public void removeRuleViolationsForSubject(final String subjectId) {
         subjectIdToRuleViolation.remove(subjectId);
     }
 
     @Override
-    public void removeRuleViolationsForRule(String ruleId) {
+    public void removeRuleViolationsForRule(final String ruleId) {
         subjectIdToRuleViolation.values().stream()
             .forEach(
                 violationMap -> violationMap

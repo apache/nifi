@@ -31,8 +31,8 @@ public class CurrentTestStandardProcessorTestRunner {
      */
     @Test
     public void testOnScheduledCalledAfterRunFinished() {
-        SlowRunProcessor processor = new SlowRunProcessor();
-        StandardProcessorTestRunner runner = new StandardProcessorTestRunner(processor);
+        final SlowRunProcessor processor = new SlowRunProcessor();
+        final StandardProcessorTestRunner runner = new StandardProcessorTestRunner(processor);
         final int iterations = 5;
         runner.run(iterations);
         // if the counter is not equal to iterations, the the processor must have been unscheduled
@@ -50,7 +50,7 @@ public class CurrentTestStandardProcessorTestRunner {
         private int counter = 0;
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
             try {
                 // be slow
@@ -60,7 +60,7 @@ public class CurrentTestStandardProcessorTestRunner {
                     // increment counter
                     ++counter;
                 }
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
 
         }

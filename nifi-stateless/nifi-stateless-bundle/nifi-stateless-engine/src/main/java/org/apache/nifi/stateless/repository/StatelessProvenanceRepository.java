@@ -173,7 +173,7 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier, final NiFiUser user) {
+    public ComputeLineageSubmission retrieveLineageSubmission(final String lineageIdentifier, final NiFiUser user) {
         throw new UnsupportedOperationException();
     }
 
@@ -198,12 +198,12 @@ public class StatelessProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(final String containerName) throws IOException {
         return maxSize - ringBuffer.getSize();
     }
 
     @Override
-    public String getContainerFileStoreName(String containerName) {
+    public String getContainerFileStoreName(final String containerName) {
         return null;
     }
 

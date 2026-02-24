@@ -45,7 +45,7 @@ public class EntityListing {
      *
      * @param latestTimestamp the timestamp of the modification date of the newest file that was contained in the listing
      */
-    public void setLatestTimestamp(Date latestTimestamp) {
+    public void setLatestTimestamp(final Date latestTimestamp) {
         this.latestTimestamp = latestTimestamp;
     }
 
@@ -64,7 +64,7 @@ public class EntityListing {
      *
      * @param matchingIdentifiers the identifiers that have last modified date matching the latest timestamp
      */
-    public void setMatchingIdentifiers(Collection<String> matchingIdentifiers) {
+    public void setMatchingIdentifiers(final Collection<String> matchingIdentifiers) {
         this.matchingIdentifiers = matchingIdentifiers;
     }
 

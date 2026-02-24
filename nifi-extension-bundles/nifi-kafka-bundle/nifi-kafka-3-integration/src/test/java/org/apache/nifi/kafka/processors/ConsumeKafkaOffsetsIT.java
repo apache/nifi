@@ -65,7 +65,7 @@ class ConsumeKafkaOffsetsIT extends AbstractConsumeKafkaIT {
                 getKafkaConsumerProperties(kafkaContainer.getBootstrapServers(), groupId, false))) {
             final Map<TopicPartition, OffsetAndMetadata> committedOffsets = consumer.committed(topicPartitions);
             assertEquals(1, committedOffsets.entrySet().size());
-            Map.Entry<TopicPartition, OffsetAndMetadata> entry = committedOffsets.entrySet().iterator().next();
+            final Map.Entry<TopicPartition, OffsetAndMetadata> entry = committedOffsets.entrySet().iterator().next();
             assertEquals(topic, entry.getKey().topic());
             assertNull(entry.getValue());
         }
@@ -83,7 +83,7 @@ class ConsumeKafkaOffsetsIT extends AbstractConsumeKafkaIT {
                 getKafkaConsumerProperties(kafkaContainer.getBootstrapServers(), groupId, false))) {
             final Map<TopicPartition, OffsetAndMetadata> committedOffsets = consumer.committed(topicPartitions);
             assertEquals(1, committedOffsets.entrySet().size());
-            Map.Entry<TopicPartition, OffsetAndMetadata> entry = committedOffsets.entrySet().iterator().next();
+            final Map.Entry<TopicPartition, OffsetAndMetadata> entry = committedOffsets.entrySet().iterator().next();
             assertEquals(topic, entry.getKey().topic());
             assertEquals(values.length, entry.getValue().offset());
         }
@@ -97,7 +97,7 @@ class ConsumeKafkaOffsetsIT extends AbstractConsumeKafkaIT {
 
         runner.run(1, false, true);
         final Collection<ProducerRecord<String, String>> records = new ArrayList<>();
-        for (String value : values) {
+        for (final String value : values) {
             records.add(new ProducerRecord<>(topic, null, (String) null, value, Collections.emptyList()));
         }
         produce(topic, records);

@@ -29,16 +29,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class PropertyDescriptorDtoMerger {
-    public static void merge(PropertyDescriptorDTO clientPropertyDescriptor, Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap) {
+    public static void merge(final PropertyDescriptorDTO clientPropertyDescriptor, final Map<NodeIdentifier, PropertyDescriptorDTO> dtoMap) {
         if (clientPropertyDescriptor.getAllowableValues() != null) {
-            Map<AllowableValueDTO, List<AllowableValueEntity>> allowableValueDtoToEntities = new LinkedHashMap<>();
+            final Map<AllowableValueDTO, List<AllowableValueEntity>> allowableValueDtoToEntities = new LinkedHashMap<>();
 
             addEntities(clientPropertyDescriptor, allowableValueDtoToEntities);
             dtoMap.values().forEach(propertyDescriptorDTO -> addEntities(propertyDescriptorDTO, allowableValueDtoToEntities));
 
             // Consider each allowable value from the client property descriptor. In the event of a duplicate allowable value, each entry will still
             // be included in the merged list. Also ensure that each allowable value is present in all nodes property descriptors.
-            List<AllowableValueEntity> mergedAllowableValues = clientPropertyDescriptor.getAllowableValues().stream()
+            final List<AllowableValueEntity> mergedAllowableValues = clientPropertyDescriptor.getAllowableValues().stream()
                 .map(allowableValueEntity -> allowableValueDtoToEntities.getOrDefault(allowableValueEntity.getAllowableValue(), Collections.emptyList()))
                 .filter(entities -> !entities.isEmpty() && allNodesHaveAllowableValue(entities.getFirst(), dtoMap))
                 .map(AllowableValueEntityMerger::merge)
@@ -55,7 +55,7 @@ public class PropertyDescriptorDtoMerger {
                             .anyMatch(allowableValueEntity -> allowableValueEntity.getAllowableValue().equals(entity.getAllowableValue())));
     }
 
-    private static void addEntities(PropertyDescriptorDTO propertyDescriptorDTO, Map<AllowableValueDTO, List<AllowableValueEntity>> dtoToEntities) {
+    private static void addEntities(final PropertyDescriptorDTO propertyDescriptorDTO, final Map<AllowableValueDTO, List<AllowableValueEntity>> dtoToEntities) {
         propertyDescriptorDTO.getAllowableValues().forEach(
             allowableValueEntity -> dtoToEntities.computeIfAbsent(allowableValueEntity.getAllowableValue(), __ -> new ArrayList<>()).add(allowableValueEntity)
         );

@@ -38,7 +38,7 @@ public class ComponentDifferenceGroup {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -47,7 +47,7 @@ public class ComponentDifferenceGroup {
         return componentName;
     }
 
-    public void setComponentName(String componentName) {
+    public void setComponentName(final String componentName) {
         this.componentName = componentName;
     }
 
@@ -56,7 +56,7 @@ public class ComponentDifferenceGroup {
         return componentType;
     }
 
-    public void setComponentType(String componentType) {
+    public void setComponentType(final String componentType) {
         this.componentType = componentType;
     }
 
@@ -65,7 +65,7 @@ public class ComponentDifferenceGroup {
         return processGroupId;
     }
 
-    public void setProcessGroupId(String processGroupId) {
+    public void setProcessGroupId(final String processGroupId) {
         this.processGroupId = processGroupId;
     }
 
@@ -74,19 +74,19 @@ public class ComponentDifferenceGroup {
         return differences;
     }
 
-    public void setDifferences(Set<ComponentDifference> differences) {
+    public void setDifferences(final Set<ComponentDifference> differences) {
         this.differences = differences;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ComponentDifferenceGroup that = (ComponentDifferenceGroup) o;
+        final ComponentDifferenceGroup that = (ComponentDifferenceGroup) o;
         return Objects.equals(componentId, that.componentId)
                 && Objects.equals(componentName, that.componentName)
                 && Objects.equals(componentType, that.componentType)

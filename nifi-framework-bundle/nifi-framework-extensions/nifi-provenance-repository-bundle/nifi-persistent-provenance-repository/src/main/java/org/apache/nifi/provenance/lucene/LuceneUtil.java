@@ -106,7 +106,7 @@ public class LuceneUtil {
                 throw new IllegalArgumentException("Empty search value not allowed (for term '" + searchTerm.getSearchableField().getFriendlyName() + "')");
             }
 
-            Occur occur = searchTerm.isInverted().booleanValue() ? BooleanClause.Occur.MUST_NOT : BooleanClause.Occur.MUST;
+            final Occur occur = searchTerm.isInverted().booleanValue() ? BooleanClause.Occur.MUST_NOT : BooleanClause.Occur.MUST;
 
             if (occur.equals(BooleanClause.Occur.MUST)) {
                 occurMust = true;
@@ -188,15 +188,15 @@ public class LuceneUtil {
      *         {@link Document}s as value.
      */
     public static Map<String, List<Document>> groupDocsByStorageFileName(final List<Document> documents) {
-        Map<String, List<Document>> documentGroups = new HashMap<>();
-        for (Document document : documents) {
-            String fileName = document.get(FieldNames.STORAGE_FILENAME);
+        final Map<String, List<Document>> documentGroups = new HashMap<>();
+        for (final Document document : documents) {
+            final String fileName = document.get(FieldNames.STORAGE_FILENAME);
             if (!documentGroups.containsKey(fileName)) {
                 documentGroups.put(fileName, new ArrayList<>());
             }
             documentGroups.get(fileName).add(document);
         }
-        for (List<Document> groupedDocuments : documentGroups.values()) {
+        for (final List<Document> groupedDocuments : documentGroups.values()) {
             sortDocsForRetrieval(groupedDocuments);
         }
         return documentGroups;
@@ -208,28 +208,28 @@ public class LuceneUtil {
      * @param field the string to be indexed
      * @return a string that can be indexed which is within Lucene's byte size limit, or null if anything goes wrong
      */
-    public static String truncateIndexField(String field) {
+    public static String truncateIndexField(final String field) {
         if (field == null) {
             return field;
         }
 
-        Charset charset = Charset.defaultCharset();
-        byte[] bytes = field.getBytes(charset);
+        final Charset charset = Charset.defaultCharset();
+        final byte[] bytes = field.getBytes(charset);
         if (bytes.length <= IndexWriter.MAX_TERM_LENGTH) {
             return field;
         }
 
         // chop the field to maximum allowed byte length
-        ByteBuffer bbuf = ByteBuffer.wrap(bytes, 0, IndexWriter.MAX_TERM_LENGTH);
+        final ByteBuffer bbuf = ByteBuffer.wrap(bytes, 0, IndexWriter.MAX_TERM_LENGTH);
 
         try {
             // decode the chopped byte buffer back into original charset
-            CharsetDecoder decoder = charset.newDecoder();
+            final CharsetDecoder decoder = charset.newDecoder();
             decoder.onMalformedInput(CodingErrorAction.IGNORE);
             decoder.reset();
-            CharBuffer cbuf = decoder.decode(bbuf);
+            final CharBuffer cbuf = decoder.decode(bbuf);
             return cbuf.toString();
-        } catch (CharacterCodingException ignored) { }
+        } catch (final CharacterCodingException ignored) { }
 
         // if we get here, something bad has happened
         return null;

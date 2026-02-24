@@ -63,7 +63,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public boolean hasRemoteProcessGroup(String remoteProcessGroupId) {
+    public boolean hasRemoteProcessGroup(final String remoteProcessGroupId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null;
     }
@@ -75,8 +75,8 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      * @return The remote process group
      */
     @Override
-    public RemoteProcessGroup createRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public RemoteProcessGroup createRemoteProcessGroup(final String groupId, final RemoteProcessGroupDTO remoteProcessGroupDTO) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Remote Process Group is being added.");
@@ -88,7 +88,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = flowController.getFlowManager().createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        final RemoteProcessGroup remoteProcessGroup = flowController.getFlowManager().createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
         remoteProcessGroup.initialize();
 
         // set other properties
@@ -107,7 +107,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      * @return The remote process group
      */
     @Override
-    public RemoteProcessGroup getRemoteProcessGroup(String remoteProcessGroupId) {
+    public RemoteProcessGroup getRemoteProcessGroup(final String remoteProcessGroupId) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
 
         return remoteProcessGroup;
@@ -119,14 +119,14 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      * @return The remote process groups
      */
     @Override
-    public Set<RemoteProcessGroup> getRemoteProcessGroups(String groupId) {
+    public Set<RemoteProcessGroup> getRemoteProcessGroups(final String groupId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
         final Set<RemoteProcessGroup> remoteProcessGroups = group.getRemoteProcessGroups();
         return remoteProcessGroups;
     }
 
     @Override
-    public void verifyUpdate(RemoteProcessGroupDTO remoteProcessGroup) {
+    public void verifyUpdate(final RemoteProcessGroupDTO remoteProcessGroup) {
         verifyUpdate(locateRemoteProcessGroup(remoteProcessGroup.getId()), remoteProcessGroup);
     }
 
@@ -134,7 +134,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      * Verifies the specified remote group can be updated, if necessary.
      */
     @SuppressWarnings("unchecked")
-    private void verifyUpdate(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDto) {
+    private void verifyUpdate(final RemoteProcessGroup remoteProcessGroup, final RemoteProcessGroupDTO remoteProcessGroupDto) {
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupDto.isTransmitting())) {
             if (!remoteProcessGroup.isTransmitting() && remoteProcessGroupDto.isTransmitting()) {
@@ -164,7 +164,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public void verifyUpdateInputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
+    public void verifyUpdateInputPort(final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort port = remoteProcessGroup.getInputPort(remoteProcessGroupPortDto.getId());
 
@@ -177,7 +177,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public void verifyUpdateOutputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
+    public void verifyUpdateOutputPort(final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort port = remoteProcessGroup.getOutputPort(remoteProcessGroupPortDto.getId());
 
@@ -192,7 +192,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Verified the specified remote port can be updated, if necessary.
      */
-    private void verifyUpdatePort(RemoteGroupPort port, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
+    private void verifyUpdatePort(final RemoteGroupPort port, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         // see if the remote process group can start/stop transmitting
         if (isNotNull(remoteProcessGroupPortDto.isTransmitting())) {
             if (!port.isRunning() && remoteProcessGroupPortDto.isTransmitting()) {
@@ -220,7 +220,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Validates the proposed configuration for the specified remote port.
      */
-    private List<String> validateProposedRemoteProcessGroupPortConfiguration(RemoteGroupPort remoteGroupPort, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
+    private List<String> validateProposedRemoteProcessGroupPortConfiguration(final RemoteGroupPort remoteGroupPort, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         final List<String> validationErrors = new ArrayList<>();
 
         // ensure the proposed port configuration is valid
@@ -258,24 +258,24 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Validates the proposed configuration for the specified remote group.
      */
-    private List<String> validateProposedRemoteProcessGroupConfiguration(RemoteProcessGroupDTO remoteProcessGroupDTO) {
+    private List<String> validateProposedRemoteProcessGroupConfiguration(final RemoteProcessGroupDTO remoteProcessGroupDTO) {
         final List<String> validationErrors = new ArrayList<>();
 
         if (isNotNull(remoteProcessGroupDTO.getCommunicationsTimeout())) {
-            Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(remoteProcessGroupDTO.getCommunicationsTimeout());
+            final Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(remoteProcessGroupDTO.getCommunicationsTimeout());
             if (!yieldMatcher.matches()) {
                 validationErrors.add("Communications timeout is not a valid time duration (ie 30 sec, 5 min)");
             }
         }
         if (isNotNull(remoteProcessGroupDTO.getYieldDuration())) {
-            Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(remoteProcessGroupDTO.getYieldDuration());
+            final Matcher yieldMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(remoteProcessGroupDTO.getYieldDuration());
             if (!yieldMatcher.matches()) {
                 validationErrors.add("Yield duration is not a valid time duration (ie 30 sec, 5 min)");
             }
         }
-        String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
-        String proxyUser = remoteProcessGroupDTO.getProxyUser();
-        String proxyHost = remoteProcessGroupDTO.getProxyHost();
+        final String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
+        final String proxyUser = remoteProcessGroupDTO.getProxyUser();
+        final String proxyHost = remoteProcessGroupDTO.getProxyHost();
 
         if (isNotNull(remoteProcessGroupDTO.getProxyPort())) {
             if (isEmpty(proxyHost)) {
@@ -304,7 +304,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public RemoteGroupPort updateRemoteProcessGroupInputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
+    public RemoteGroupPort updateRemoteProcessGroupInputPort(final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort port = remoteProcessGroup.getInputPort(remoteProcessGroupPortDto.getId());
 
@@ -324,7 +324,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public RemoteGroupPort updateRemoteProcessGroupOutputPort(String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
+    public RemoteGroupPort updateRemoteProcessGroupOutputPort(final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         final RemoteGroupPort port = remoteProcessGroup.getOutputPort(remoteProcessGroupPortDto.getId());
 
@@ -350,7 +350,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
      * @param remoteProcessGroup If remoteProcessGroupPortDto has updated isTransmitting input,
      *                           this method will start or stop the port in this remoteProcessGroup as necessary.
      */
-    private void updatePort(RemoteGroupPort port, RemoteProcessGroupPortDTO remoteProcessGroupPortDto, RemoteProcessGroup remoteProcessGroup) {
+    private void updatePort(final RemoteGroupPort port, final RemoteProcessGroupPortDTO remoteProcessGroupPortDto, final RemoteProcessGroup remoteProcessGroup) {
         if (isNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount())) {
             port.setMaxConcurrentTasks(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount());
         }
@@ -377,12 +377,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
-        RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
+    public RemoteProcessGroup updateRemoteProcessGroup(final RemoteProcessGroupDTO remoteProcessGroupDTO) {
+        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
         return updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
     }
 
-    private RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDTO) {
+    private RemoteProcessGroup updateRemoteProcessGroup(final RemoteProcessGroup remoteProcessGroup, final RemoteProcessGroupDTO remoteProcessGroupDTO) {
         // verify the update request
         verifyUpdate(remoteProcessGroup, remoteProcessGroupDTO);
 
@@ -460,30 +460,30 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     }
 
     @Override
-    public void verifyDelete(String remoteProcessGroupId) {
-        RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
+    public void verifyDelete(final String remoteProcessGroupId) {
+        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         remoteProcessGroup.verifyCanDelete();
     }
 
     @Override
-    public void deleteRemoteProcessGroup(String remoteProcessGroupId) {
-        RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
+    public void deleteRemoteProcessGroup(final String remoteProcessGroupId) {
+        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         remoteProcessGroup.getProcessGroup().removeRemoteProcessGroup(remoteProcessGroup);
     }
 
     @Override
-    public StateMap getState(String remoteProcessGroupId, Scope scope) {
+    public StateMap getState(final String remoteProcessGroupId, final Scope scope) {
         final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
         return componentStateDAO.getState(remoteProcessGroup, scope);
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
     @Autowired
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
     }
 }

@@ -141,7 +141,7 @@ public class TestMergeContent {
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
         // create a reader for the merged content
-        byte[] data = runner.getContentAsByteArray(bundle);
+        final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
         assertEquals(3, users.size());
@@ -247,7 +247,7 @@ public class TestMergeContent {
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
         // create a reader for the merged content
-        byte[] data = runner.getContentAsByteArray(bundle);
+        final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
         assertEquals(1, users.size());
@@ -299,7 +299,7 @@ public class TestMergeContent {
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
         // create a reader for the merged content
-        byte[] data = runner.getContentAsByteArray(bundle);
+        final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
         assertEquals(3, users.size());
@@ -353,7 +353,7 @@ public class TestMergeContent {
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
         // create a reader for the merged content
-        byte[] data = runner.getContentAsByteArray(bundle);
+        final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
         assertEquals(3, users.size());
@@ -407,7 +407,7 @@ public class TestMergeContent {
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
         // create a reader for the merged content
-        byte[] data = runner.getContentAsByteArray(bundle);
+        final byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 
         assertEquals(2, users.size());
@@ -415,28 +415,29 @@ public class TestMergeContent {
         assertTrue(users.containsKey("John"));
     }
 
-    private Map<String, GenericRecord> getGenericRecordMap(byte[] data, Schema schema, String key) throws IOException {
+    private Map<String, GenericRecord> getGenericRecordMap(final byte[] data, final Schema schema, final String key) throws IOException {
         // create a reader for the merged contet
-        DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
-        SeekableByteArrayInput input = new SeekableByteArrayInput(data);
-        DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(input, datumReader);
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
+        final SeekableByteArrayInput input = new SeekableByteArrayInput(data);
+        final DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(input, datumReader);
 
         // read all the records into a map to verify all the records are there
-        Map<String, GenericRecord> records = new HashMap<>();
+        final Map<String, GenericRecord> records = new HashMap<>();
         while (dataFileReader.hasNext()) {
-            GenericRecord user = dataFileReader.next();
+            final GenericRecord user = dataFileReader.next();
             records.put(user.get(key).toString(), user);
         }
         return records;
     }
 
-    private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter) throws IOException {
+    private ByteArrayOutputStream serializeAvroRecord(final Schema schema, final GenericRecord user2, final DatumWriter<GenericRecord> datumWriter) throws IOException {
         return serializeAvroRecord(schema, user2, datumWriter, null);
     }
 
-    private ByteArrayOutputStream serializeAvroRecord(Schema schema, GenericRecord user2, DatumWriter<GenericRecord> datumWriter, Map<String, String> metadata) throws IOException {
-        ByteArrayOutputStream out2 = new ByteArrayOutputStream();
-        DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<>(datumWriter);
+    private ByteArrayOutputStream serializeAvroRecord(final Schema schema, final GenericRecord user2,
+            final DatumWriter<GenericRecord> datumWriter, final Map<String, String> metadata) throws IOException {
+        final ByteArrayOutputStream out2 = new ByteArrayOutputStream();
+        final DataFileWriter<GenericRecord> dataFileWriter2 = new DataFileWriter<>(datumWriter);
         if (metadata != null) {
             metadata.forEach(dataFileWriter2::setMeta);
         }
@@ -596,13 +597,13 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.FOOTER, "");
 
         Collection<ValidationResult> results = new HashSet<>();
-        ProcessContext context = runner.getProcessContext();
+        final ProcessContext context = runner.getProcessContext();
         if (context instanceof MockProcessContext mockContext) {
             results = mockContext.validate();
         }
 
         assertEquals(3, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("cannot be empty"));
         }
     }
@@ -618,13 +619,13 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.FOOTER, doesNotExistFile);
 
         Collection<ValidationResult> results = new HashSet<>();
-        ProcessContext context = runner.getProcessContext();
+        final ProcessContext context = runner.getProcessContext();
         if (context instanceof MockProcessContext mockContext) {
             results = mockContext.validate();
         }
 
         assertEquals(3, results.size());
-        for (ValidationResult vr : results) {
+        for (final ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile) + " does not exist"));
         }
     }
@@ -1221,7 +1222,7 @@ public class TestMergeContent {
                 try {
                     // Bin not released yet, wait and check again
                     Thread.sleep(pollInterval.toMillis());
-                } catch (InterruptedException ie) {
+                } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Polling interrupted", ie);
                 }

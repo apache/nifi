@@ -33,11 +33,11 @@ public class TestStandardLogRepository {
 
     @Test
     public void testLogRepository() {
-        StandardLogRepository repo = new StandardLogRepository();
-        MockLogObserver observer = new MockLogObserver();
+        final StandardLogRepository repo = new StandardLogRepository();
+        final MockLogObserver observer = new MockLogObserver();
         repo.addObserver(LogLevel.DEBUG, observer);
 
-        IOException exception = new IOException("exception");
+        final IOException exception = new IOException("exception");
 
         repo.addLogMessage(LogLevel.DEBUG, "Testing {} to get exception message <{}>", new Object[]{observer.getClass().getName(), exception});
         repo.addLogMessage(LogLevel.DEBUG, "Testing {} to get exception message", new Object[]{observer.getClass().getName()}, exception);
@@ -48,10 +48,10 @@ public class TestStandardLogRepository {
 
     @Test
     public void testLogRepositoryLogsFirstFlowFileUuid() {
-        StandardLogRepository repo = new StandardLogRepository();
-        MockLogObserver observer = new MockLogObserver();
+        final StandardLogRepository repo = new StandardLogRepository();
+        final MockLogObserver observer = new MockLogObserver();
         repo.addObserver(LogLevel.DEBUG, observer);
-        MockFlowFile mockFlowFile = new MockFlowFile(1L);
+        final MockFlowFile mockFlowFile = new MockFlowFile(1L);
 
         repo.addLogMessage(LogLevel.INFO, "Testing {} being shown in exception message", new Object[]{mockFlowFile});
 
@@ -60,11 +60,11 @@ public class TestStandardLogRepository {
 
     @Test
     public void testLogRepositoryDoesntLogMultipleFlowFileUuids() {
-        StandardLogRepository repo = new StandardLogRepository();
-        MockLogObserver observer = new MockLogObserver();
+        final StandardLogRepository repo = new StandardLogRepository();
+        final MockLogObserver observer = new MockLogObserver();
         repo.addObserver(LogLevel.DEBUG, observer);
-        MockFlowFile mockFlowFile1 = new MockFlowFile(1L);
-        MockFlowFile mockFlowFile2 = new MockFlowFile(2L);
+        final MockFlowFile mockFlowFile1 = new MockFlowFile(1L);
+        final MockFlowFile mockFlowFile2 = new MockFlowFile(2L);
 
         repo.addLogMessage(LogLevel.INFO, "Testing {} {} FlowFiles are not being shown in exception message", new Object[]{mockFlowFile1, mockFlowFile2});
 
@@ -73,13 +73,13 @@ public class TestStandardLogRepository {
 
     @Test
     public void testLogRepositoryAfterLogLevelChange() {
-        StandardLogRepository repo = new StandardLogRepository();
-        MockLogObserver observer = new MockLogObserver();
+        final StandardLogRepository repo = new StandardLogRepository();
+        final MockLogObserver observer = new MockLogObserver();
         repo.addObserver(LogLevel.ERROR, observer);
 
         repo.setObservationLevel(LogLevel.ERROR);
 
-        IOException exception = new IOException("exception");
+        final IOException exception = new IOException("exception");
 
         repo.addLogMessage(LogLevel.ERROR, "Testing {} to get exception message <{}>", new Object[]{observer.getClass().getName(), exception});
 
@@ -91,7 +91,7 @@ public class TestStandardLogRepository {
         private final List<LogMessage> messages = new ArrayList<>();
 
         @Override
-        public void onLogMessage(LogMessage message) {
+        public void onLogMessage(final LogMessage message) {
             messages.add(message);
         }
 

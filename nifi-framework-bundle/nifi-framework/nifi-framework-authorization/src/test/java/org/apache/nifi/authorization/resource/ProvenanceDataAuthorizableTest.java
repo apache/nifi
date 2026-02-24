@@ -45,7 +45,7 @@ public class ProvenanceDataAuthorizableTest {
 
     @BeforeEach
     public void setup() {
-        Authorizable testProcessorAuthorizable;
+        final Authorizable testProcessorAuthorizable;
         testProcessorAuthorizable = mock(Authorizable.class);
         when(testProcessorAuthorizable.getParentAuthorizable()).thenReturn(null);
         when(testProcessorAuthorizable.getResource()).thenReturn(ResourceFactory.getComponentResource(ResourceType.Processor, "id", "name"));

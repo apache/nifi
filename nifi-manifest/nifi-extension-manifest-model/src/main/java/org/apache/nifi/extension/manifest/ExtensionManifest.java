@@ -47,7 +47,7 @@ public class ExtensionManifest {
     public ExtensionManifest() {
     }
 
-    public ExtensionManifest(String systemApiVersion, List<Extension> extensions) {
+    public ExtensionManifest(final String systemApiVersion, final List<Extension> extensions) {
         this.systemApiVersion = systemApiVersion;
         this.extensions = extensions;
     }
@@ -57,7 +57,7 @@ public class ExtensionManifest {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -66,7 +66,7 @@ public class ExtensionManifest {
         return artifactId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(final String artifactId) {
         this.artifactId = artifactId;
     }
 
@@ -75,7 +75,7 @@ public class ExtensionManifest {
         return version;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(final String version) {
         this.version = version;
     }
 
@@ -84,7 +84,7 @@ public class ExtensionManifest {
         return parentNar;
     }
 
-    public void setParentNar(ParentNar parentNar) {
+    public void setParentNar(final ParentNar parentNar) {
         this.parentNar = parentNar;
     }
 
@@ -93,7 +93,7 @@ public class ExtensionManifest {
         return systemApiVersion;
     }
 
-    public void setSystemApiVersion(String systemApiVersion) {
+    public void setSystemApiVersion(final String systemApiVersion) {
         this.systemApiVersion = systemApiVersion;
     }
 
@@ -102,7 +102,7 @@ public class ExtensionManifest {
         return buildInfo;
     }
 
-    public void setBuildInfo(BuildInfo buildInfo) {
+    public void setBuildInfo(final BuildInfo buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -111,7 +111,7 @@ public class ExtensionManifest {
         return extensions;
     }
 
-    public void setExtensions(List<Extension> extensions) {
+    public void setExtensions(final List<Extension> extensions) {
         this.extensions = extensions;
     }
 

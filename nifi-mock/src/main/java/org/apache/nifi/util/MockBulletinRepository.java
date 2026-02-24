@@ -28,7 +28,7 @@ import java.util.List;
 public class MockBulletinRepository implements BulletinRepository {
 
     @Override
-    public void addBulletin(Bulletin bulletin) {
+    public void addBulletin(final Bulletin bulletin) {
         // TODO: Implement
 
     }
@@ -46,13 +46,13 @@ public class MockBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+    public List<Bulletin> findBulletins(final BulletinQuery bulletinQuery) {
         // TODO: Implement
         return new ArrayList<>();
     }
 
     @Override
-    public List<Bulletin> findBulletinsForSource(String sourceId) {
+    public List<Bulletin> findBulletinsForSource(final String sourceId) {
         // TODO: Implement
         return null;
     }
@@ -63,13 +63,13 @@ public class MockBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
+    public List<Bulletin> findBulletinsForGroupBySource(final String groupId) {
         // TODO: Implement
         return null;
     }
 
     @Override
-    public List<Bulletin> findBulletinsForGroupBySource(String groupId, int maxPerComponent) {
+    public List<Bulletin> findBulletinsForGroupBySource(final String groupId, final int maxPerComponent) {
         // TODO: Implement
         return null;
     }
@@ -81,7 +81,7 @@ public class MockBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public List<Bulletin> findBulletinsForController(int max) {
+    public List<Bulletin> findBulletinsForController(final int max) {
         // TODO: Implement
         return null;
     }
@@ -92,13 +92,13 @@ public class MockBulletinRepository implements BulletinRepository {
     }
 
     @Override
-    public int clearBulletinsForComponent(String sourceId, Instant fromTimestamp) throws IllegalArgumentException {
+    public int clearBulletinsForComponent(final String sourceId, final Instant fromTimestamp) throws IllegalArgumentException {
         // Mock implementation - would typically track bulletins and clear them
         return 0;
     }
 
     @Override
-    public int clearBulletinsForComponents(Collection<String> sourceIds, Instant fromTimestamp) throws IllegalArgumentException {
+    public int clearBulletinsForComponents(final Collection<String> sourceIds, final Instant fromTimestamp) throws IllegalArgumentException {
         // Mock implementation - would typically track bulletins and clear them
         return 0;
     }

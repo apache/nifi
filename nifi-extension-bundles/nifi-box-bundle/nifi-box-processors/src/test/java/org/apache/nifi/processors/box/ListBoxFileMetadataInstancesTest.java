@@ -57,7 +57,7 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest {
     void setUp() throws Exception {
         final ListBoxFileMetadataInstances testSubject = new ListBoxFileMetadataInstances() {
             @Override
-            BoxFile getBoxFile(String fileId) {
+            BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };

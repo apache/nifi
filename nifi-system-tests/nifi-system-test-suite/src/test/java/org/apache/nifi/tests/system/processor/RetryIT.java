@@ -168,7 +168,7 @@ public class RetryIT extends NiFiSystemIT {
     public void testRetryHappensWhenOnlyChildRelationshipHasRetryConfigured() throws NiFiClientException, IOException, InterruptedException {
         //Create a GenerateFlowFile processor
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
-        Map<String, String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put("Text", "abc\n123\nxyz\n321");
         properties.put("Batch Size", "1");
         getClientUtil().updateProcessorProperties(generateFlowFile, properties);
@@ -228,7 +228,7 @@ public class RetryIT extends NiFiSystemIT {
     public void testRetryHappensWhenOnlyParentRelationshipHasRetryConfigured() throws NiFiClientException, IOException, InterruptedException {
         //Create a GenerateFlowFile processor
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
-        Map<String, String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put("Text", "abc\n123\nxyz");
         properties.put("Batch Size", "1");
         getClientUtil().updateProcessorProperties(generateFlowFile, properties);
@@ -288,7 +288,7 @@ public class RetryIT extends NiFiSystemIT {
     public void testRetryHappensOnlyOnceWhenBothChildAndParentRelationshipHasRetryConfigured() throws NiFiClientException, IOException, InterruptedException {
         //Create a GenerateFlowFile processor
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
-        Map<String, String> properties = new HashMap<>();
+        final Map<String, String> properties = new HashMap<>();
         properties.put("Text", "abc\n123\nxyz\n321\ndfg");
         properties.put("Batch Size", "1");
         getClientUtil().updateProcessorProperties(generateFlowFile, properties);

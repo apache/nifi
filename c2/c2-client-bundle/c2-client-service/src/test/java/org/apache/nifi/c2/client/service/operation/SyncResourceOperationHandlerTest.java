@@ -78,8 +78,8 @@ public class SyncResourceOperationHandlerTest {
 
     @ParameterizedTest(name = "c2Client={0} operandPropertiesProvider={1} syncResourceStrategy={2} c2Serializer={3}")
     @MethodSource("invalidConstructorArguments")
-    public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
-                                                                            SyncResourceStrategy syncResourceStrategy, C2Serializer c2Serializer) {
+    public void testAttemptingCreateWithInvalidParametersWillThrowException(final C2Client c2Client, final OperandPropertiesProvider operandPropertiesProvider,
+                                                                            final SyncResourceStrategy syncResourceStrategy, final C2Serializer c2Serializer) {
         assertThrows(IllegalArgumentException.class, () -> SyncResourceOperationHandler.create(c2Client, operandPropertiesProvider, syncResourceStrategy, c2Serializer));
     }
 
@@ -91,9 +91,9 @@ public class SyncResourceOperationHandlerTest {
 
     @Test
     public void testResourcesGlobalHashArgumentIsNull() {
-        C2Operation inputOperation = operation(null, List.of(new ResourceItem()));
+        final C2Operation inputOperation = operation(null, List.of(new ResourceItem()));
 
-        C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
+        final C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
 
         assertEquals(OPERATION_ID, c2OperationAck.getOperationId());
         assertEquals(NOT_APPLIED, c2OperationAck.getOperationState().getState());
@@ -102,11 +102,11 @@ public class SyncResourceOperationHandlerTest {
 
     @Test
     public void testResourceListArgumentIsNull() {
-        ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
-        C2Operation inputOperation = operation(resourcesGlobalHash, null);
+        final ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
+        final C2Operation inputOperation = operation(resourcesGlobalHash, null);
         when(mockC2Serializer.convert(eq(resourcesGlobalHash), any())).thenReturn(ofNullable(resourcesGlobalHash));
 
-        C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
+        final C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
 
         assertEquals(OPERATION_ID, c2OperationAck.getOperationId());
         assertEquals(NOT_APPLIED, c2OperationAck.getOperationState().getState());
@@ -115,12 +115,12 @@ public class SyncResourceOperationHandlerTest {
 
     @Test
     public void testArgumentConversionFailure() {
-        ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
-        List<ResourceItem> resourceItems = List.of(new ResourceItem());
-        C2Operation inputOperation = operation(resourcesGlobalHash, resourceItems);
+        final ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
+        final List<ResourceItem> resourceItems = List.of(new ResourceItem());
+        final C2Operation inputOperation = operation(resourcesGlobalHash, resourceItems);
         when(mockC2Serializer.convert(eq(resourcesGlobalHash), any())).thenReturn(empty());
 
-        C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
+        final C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
 
         assertEquals(OPERATION_ID, c2OperationAck.getOperationId());
         assertEquals(NOT_APPLIED, c2OperationAck.getOperationState().getState());
@@ -129,15 +129,15 @@ public class SyncResourceOperationHandlerTest {
 
     @ParameterizedTest(name = "operationState={0}")
     @MethodSource("synchronizeStrategyArguments")
-    public void testSynchronizeResourceStrategyExecutions(OperationState operationState) {
-        ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
-        List<ResourceItem> resourceItems = List.of(new ResourceItem());
-        C2Operation inputOperation = operation(resourcesGlobalHash, resourceItems);
+    public void testSynchronizeResourceStrategyExecutions(final OperationState operationState) {
+        final ResourcesGlobalHash resourcesGlobalHash = new ResourcesGlobalHash();
+        final List<ResourceItem> resourceItems = List.of(new ResourceItem());
+        final C2Operation inputOperation = operation(resourcesGlobalHash, resourceItems);
         when(mockC2Serializer.convert(eq(resourcesGlobalHash), any())).thenReturn(Optional.of(resourcesGlobalHash));
         when(mockC2Serializer.convert(eq(resourceItems), any())).thenReturn(Optional.of(resourceItems));
         when(mockSyncResourceStrategy.synchronizeResourceRepository(eq(resourcesGlobalHash), eq(resourceItems), any(), any())).thenReturn(operationState);
 
-        C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
+        final C2OperationAck c2OperationAck = testHandler.handle(inputOperation);
 
         assertEquals(OPERATION_ID, c2OperationAck.getOperationId());
         assertEquals(operationState, c2OperationAck.getOperationState().getState());
@@ -156,10 +156,10 @@ public class SyncResourceOperationHandlerTest {
         return Stream.of(OperationState.values()).map(Arguments::of);
     }
 
-    private C2Operation operation(ResourcesGlobalHash resourcesGlobalHash, List<ResourceItem> resourceItems) {
-        C2Operation c2Operation = new C2Operation();
+    private C2Operation operation(final ResourcesGlobalHash resourcesGlobalHash, final List<ResourceItem> resourceItems) {
+        final C2Operation c2Operation = new C2Operation();
         c2Operation.setIdentifier(OPERATION_ID);
-        Map<String, Object> arguments = new HashMap<>();
+        final Map<String, Object> arguments = new HashMap<>();
         arguments.put(GLOBAL_HASH_FIELD, resourcesGlobalHash);
         arguments.put(RESOURCE_LIST_FIELD, resourceItems);
         c2Operation.setArgs(arguments);

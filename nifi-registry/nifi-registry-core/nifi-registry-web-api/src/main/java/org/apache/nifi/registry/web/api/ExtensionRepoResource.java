@@ -517,7 +517,7 @@ public class ExtensionRepoResource extends ApplicationResource {
             throw new ResourceNotFoundException("An extension bundle version does not exist with the specific group, artifact, and version");
         } else {
             BundleVersionMetadata latestVersionMetadata = null;
-            for (BundleVersionMetadata versionMetadata : bundleVersions) {
+            for (final BundleVersionMetadata versionMetadata : bundleVersions) {
                 if (latestVersionMetadata == null || versionMetadata.getTimestamp() > latestVersionMetadata.getTimestamp()) {
                     latestVersionMetadata = versionMetadata;
                 }

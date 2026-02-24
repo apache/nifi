@@ -80,10 +80,10 @@ public class StartRunner implements CommandRunner {
 
     private int listenPort;
 
-    public StartRunner(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
-                       PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler,
-                       MiNiFiParameters miNiFiParameters, File bootstrapConfigFile, RunMiNiFi runMiNiFi,
-                       MiNiFiExecCommandProvider miNiFiExecCommandProvider, ConfigurationChangeListener configurationChangeListener) {
+    public StartRunner(final CurrentPortProvider currentPortProvider, final BootstrapFileProvider bootstrapFileProvider,
+                       final PeriodicStatusReporterManager periodicStatusReporterManager, final MiNiFiStdLogHandler miNiFiStdLogHandler,
+                       final MiNiFiParameters miNiFiParameters, final File bootstrapConfigFile, final RunMiNiFi runMiNiFi,
+                       final MiNiFiExecCommandProvider miNiFiExecCommandProvider, final ConfigurationChangeListener configurationChangeListener) {
         this.currentPortProvider = currentPortProvider;
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.periodicStatusReporterManager = periodicStatusReporterManager;
@@ -103,10 +103,10 @@ public class StartRunner implements CommandRunner {
      * @return status code
      */
     @Override
-    public int runCommand(String[] args) {
+    public int runCommand(final String[] args) {
         try {
             start();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             CMD_LOGGER.error("Exception happened during MiNiFi startup", e);
             return ERROR.getStatusCode();
         }
@@ -114,19 +114,19 @@ public class StartRunner implements CommandRunner {
     }
 
     private void start() throws IOException, InterruptedException, ConfigurationChangeException {
-        Integer port = currentPortProvider.getCurrentPort();
+        final Integer port = currentPortProvider.getCurrentPort();
         if (port != null) {
             CMD_LOGGER.info("Apache MiNiFi is already running, listening to Bootstrap on port {}", port);
             return;
         }
 
-        File prevLockFile = bootstrapFileProvider.getLockFile();
+        final File prevLockFile = bootstrapFileProvider.getLockFile();
         if (prevLockFile.exists() && !prevLockFile.delete()) {
             CMD_LOGGER.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
 
-        BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
-        String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
+        final BootstrapProperties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        final String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
 
         generateMiNiFiProperties(bootstrapFileProvider.getProtectedBootstrapProperties(), confDir);
         regenerateFlowConfiguration(bootstrapProperties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey()));
@@ -137,15 +137,15 @@ public class StartRunner implements CommandRunner {
                 if (process.isAlive()) {
                     handleReload();
                 } else {
-                    Runtime runtime = Runtime.getRuntime();
+                    final Runtime runtime = Runtime.getRuntime();
                     try {
                         runtime.removeShutdownHook(shutdownHook);
-                    } catch (IllegalStateException ise) {
+                    } catch (final IllegalStateException ise) {
                         DEFAULT_LOGGER.trace("The virtual machine is already in the process of shutting down", ise);
                     }
 
                     if (runMiNiFi.isAutoRestartNiFi() && needRestart()) {
-                        File reloadFile = bootstrapFileProvider.getReloadLockFile();
+                        final File reloadFile = bootstrapFileProvider.getReloadLockFile();
                         if (reloadFile.exists()) {
                             DEFAULT_LOGGER.info("Currently reloading configuration. Will wait to restart MiNiFi.");
                             Thread.sleep(5000L);
@@ -168,12 +168,12 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private Process restartMiNifi(String confDir) throws IOException {
-        Process process;
-        boolean previouslyStarted = runMiNiFi.isNiFiStarted();
+    private Process restartMiNifi(final String confDir) throws IOException {
+        final Process process;
+        final boolean previouslyStarted = runMiNiFi.isNiFiStarted();
         boolean configChangeSuccessful = true;
         if (!previouslyStarted) {
-            File bootstrapSwapConfigFile = bootstrapFileProvider.getBootstrapConfSwapFile();
+            final File bootstrapSwapConfigFile = bootstrapFileProvider.getBootstrapConfSwapFile();
             if (bootstrapSwapConfigFile.exists()) {
                 if (!revertBootstrapConfig(confDir, bootstrapSwapConfigFile)) {
                     return null;
@@ -192,7 +192,7 @@ public class StartRunner implements CommandRunner {
         CMD_LOGGER.info("Restarting Apache MiNiFi...");
         process = startMiNiFiProcess(getProcessBuilder());
 
-        boolean started = waitForStart();
+        final boolean started = waitForStart();
 
         final long pid = process.pid();
         if (started) {
@@ -204,13 +204,13 @@ public class StartRunner implements CommandRunner {
         return process;
     }
 
-    private boolean revertBootstrapConfig(String confDir, File bootstrapSwapConfigFile) throws IOException {
+    private boolean revertBootstrapConfig(final String confDir, final File bootstrapSwapConfigFile) throws IOException {
         DEFAULT_LOGGER.info("Bootstrap Swap file exists, MiNiFi failed trying to change configuration. Reverting to old configuration.");
 
         Files.copy(bootstrapSwapConfigFile.toPath(), bootstrapConfigFile.toPath(), REPLACE_EXISTING);
         try {
             miNiFiPropertiesGenerator.generateMinifiProperties(confDir, bootstrapFileProvider.getBootstrapProperties());
-        } catch (ConfigurationChangeException e) {
+        } catch (final ConfigurationChangeException e) {
             DEFAULT_LOGGER.error("Unable to create MiNiFi properties file. Will not attempt to restart MiNiFi. Swap File should be cleaned up manually.");
             return false;
         }
@@ -223,14 +223,14 @@ public class StartRunner implements CommandRunner {
     }
 
     private boolean needRestart() throws IOException {
-        boolean needRestart = true;
-        File statusFile = bootstrapFileProvider.getStatusFile();
+        final boolean needRestart = true;
+        final File statusFile = bootstrapFileProvider.getStatusFile();
         if (!statusFile.exists()) {
             DEFAULT_LOGGER.info("Status File no longer exists. Will not restart MiNiFi");
             return false;
         }
 
-        File lockFile = bootstrapFileProvider.getLockFile();
+        final File lockFile = bootstrapFileProvider.getLockFile();
         if (lockFile.exists()) {
             DEFAULT_LOGGER.info("A shutdown was initiated. Will not restart MiNiFi");
             return false;
@@ -245,12 +245,12 @@ public class StartRunner implements CommandRunner {
                 deleteSwapFile(bootstrapFileProvider.getBootstrapConfSwapFile());
                 runMiNiFi.setReloading(false);
             }
-        } catch (InterruptedException ie) {
+        } catch (final InterruptedException ie) {
             DEFAULT_LOGGER.warn("Thread interrupted while handling reload");
         }
     }
 
-    private void deleteSwapFile(File file) {
+    private void deleteSwapFile(final File file) {
         if (file.exists()) {
             DEFAULT_LOGGER.info("MiNiFi has finished reloading successfully and {} file exists. Deleting old configuration.", file.getName());
 
@@ -262,29 +262,29 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private void generateMiNiFiProperties(BootstrapProperties bootstrapProperties, String confDir) {
+    private void generateMiNiFiProperties(final BootstrapProperties bootstrapProperties, final String confDir) {
         DEFAULT_LOGGER.debug("Generating minifi.properties from bootstrap.conf");
         try {
             miNiFiPropertiesGenerator.generateMinifiProperties(confDir, bootstrapProperties);
-        } catch (ConfigurationChangeException e) {
+        } catch (final ConfigurationChangeException e) {
             throw new StartupFailureException("Unable to create MiNiFi properties file", e);
         }
     }
 
-    private void regenerateFlowConfiguration(String flowConfigFileLocation) throws ConfigurationChangeException, IOException {
-        Path flowConfigFile = Path.of(flowConfigFileLocation).toAbsolutePath();
-        String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(flowConfigFile.toString());
-        Path rawConfigFile = flowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION);
+    private void regenerateFlowConfiguration(final String flowConfigFileLocation) throws ConfigurationChangeException, IOException {
+        final Path flowConfigFile = Path.of(flowConfigFileLocation).toAbsolutePath();
+        final String currentFlowConfigFileBaseName = FilenameUtils.getBaseName(flowConfigFile.toString());
+        final Path rawConfigFile = flowConfigFile.getParent().resolve(currentFlowConfigFileBaseName + RAW_EXTENSION);
         if (Files.exists(rawConfigFile)) {
             DEFAULT_LOGGER.debug("Regenerating flow configuration {} from raw flow configuration {}", flowConfigFile, rawConfigFile);
             configurationChangeListener.handleChange(Files.newInputStream(rawConfigFile));
         }
     }
 
-    private Process startMiNiFi(BootstrapProperties bootstrapProperties) throws IOException {
-        int bootstrapListenPort = parseBootstrapListenPort(bootstrapProperties);
+    private Process startMiNiFi(final BootstrapProperties bootstrapProperties) throws IOException {
+        final int bootstrapListenPort = parseBootstrapListenPort(bootstrapProperties);
 
-        MiNiFiListener listener = new MiNiFiListener();
+        final MiNiFiListener listener = new MiNiFiListener();
         listenPort = listener.start(runMiNiFi, bootstrapListenPort, bootstrapFileProvider, configurationChangeListener);
 
         CMD_LOGGER.info("Starting Apache MiNiFi...");
@@ -292,14 +292,14 @@ public class StartRunner implements CommandRunner {
         return startMiNiFiProcess(getProcessBuilder());
     }
 
-    private int parseBootstrapListenPort(BootstrapProperties bootstrapProperties) {
-        String bootstrapListenPort = bootstrapProperties.getProperty(NIFI_BOOTSTRAP_LISTEN_PORT);
-        int parsedBootstrapListenPort = Optional.ofNullable(bootstrapListenPort)
+    private int parseBootstrapListenPort(final BootstrapProperties bootstrapProperties) {
+        final String bootstrapListenPort = bootstrapProperties.getProperty(NIFI_BOOTSTRAP_LISTEN_PORT);
+        final int parsedBootstrapListenPort = Optional.ofNullable(bootstrapListenPort)
             .map(String::trim)
             .map(port -> {
                 try {
                     return Integer.parseInt(port);
-                } catch (NumberFormatException e) {
+                } catch (final NumberFormatException e) {
                     throw new IllegalArgumentException("Unable to parse Bootstrap listen port, please provide a valid port for " + NIFI_BOOTSTRAP_LISTEN_PORT);
                 }
             })
@@ -309,10 +309,10 @@ public class StartRunner implements CommandRunner {
     }
 
     private ProcessBuilder getProcessBuilder() throws IOException {
-        ProcessBuilder builder = new ProcessBuilder();
-        File workingDir = getWorkingDir();
+        final ProcessBuilder builder = new ProcessBuilder();
+        final File workingDir = getWorkingDir();
 
-        List<String> cmd = miNiFiExecCommandProvider.getMiNiFiExecCommand(listenPort, workingDir);
+        final List<String> cmd = miNiFiExecCommandProvider.getMiNiFiExecCommand(listenPort, workingDir);
 
         builder.command(cmd);
         builder.directory(workingDir);
@@ -338,9 +338,9 @@ public class StartRunner implements CommandRunner {
     }
 
     private File getWorkingDir() throws IOException {
-        BootstrapProperties props = bootstrapFileProvider.getBootstrapProperties();
-        File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
-        File binDir = bootstrapConfigAbsoluteFile.getParentFile();
+        final BootstrapProperties props = bootstrapFileProvider.getBootstrapProperties();
+        final File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
+        final File binDir = bootstrapConfigAbsoluteFile.getParentFile();
 
         return Optional.ofNullable(props.getProperty("working.dir"))
             .map(File::new)
@@ -350,18 +350,18 @@ public class StartRunner implements CommandRunner {
     private boolean waitForStart() {
         lock.lock();
         try {
-            long startTime = System.nanoTime();
+            final long startTime = System.nanoTime();
             while (miNiFiParameters.getMinifiPid() < 1 && miNiFiParameters.getMiNiFiPort() < 1 || !runMiNiFi.isNiFiStarted()) {
                 DEFAULT_LOGGER.debug("Waiting MiNiFi to start Pid={}, port={}, isNifiStarted={}",
                     miNiFiParameters.getMinifiPid(), miNiFiParameters.getMiNiFiPort(), runMiNiFi.isNiFiStarted());
                 try {
                     startupCondition.await(1, TimeUnit.SECONDS);
-                } catch (InterruptedException ie) {
+                } catch (final InterruptedException ie) {
                     return false;
                 }
 
-                long waitNanos = System.nanoTime() - startTime;
-                long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
+                final long waitNanos = System.nanoTime() - startTime;
+                final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
                 if (waitSeconds > STARTUP_WAIT_SECONDS) {
                     return false;
                 }

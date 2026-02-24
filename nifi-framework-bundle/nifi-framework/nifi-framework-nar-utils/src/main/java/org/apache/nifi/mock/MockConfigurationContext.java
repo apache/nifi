@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class MockConfigurationContext implements ConfigurationContext {
 
     @Override
-    public PropertyValue getProperty(PropertyDescriptor property) {
+    public PropertyValue getProperty(final PropertyDescriptor property) {
         return null;
     }
 

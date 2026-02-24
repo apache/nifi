@@ -54,7 +54,7 @@ public class PersistentUuidGenerator implements IdGenerator {
             }
             final String uuid = fileLines.get(0);
             return uuid;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IllegalStateException(String.format("Could not read file %s for persisted identifier.", persistenceLocation), e);
 
         }
@@ -68,7 +68,7 @@ public class PersistentUuidGenerator implements IdGenerator {
             Files.write(persistenceLocation.toPath(), Arrays.asList(uuid));
             logger.debug("Created identifier {} at {}", uuid, persistenceLocation);
             return uuid;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IllegalStateException(String.format("Could not create file %s as persistence file.", persistenceLocation), e);
         }
     }

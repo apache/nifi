@@ -37,7 +37,7 @@ public class EvaluationContextEntity {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public void setClientId(final String clientId) {
         this.clientId = clientId;
     }
 
@@ -45,7 +45,7 @@ public class EvaluationContextEntity {
         return revision;
     }
 
-    public void setRevision(Long revision) {
+    public void setRevision(final Long revision) {
         this.revision = revision;
     }
 
@@ -53,7 +53,7 @@ public class EvaluationContextEntity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 
@@ -61,7 +61,7 @@ public class EvaluationContextEntity {
         return processorId;
     }
 
-    public void setProcessorId(String processorId) {
+    public void setProcessorId(final String processorId) {
         this.processorId = processorId;
     }
 
@@ -69,7 +69,7 @@ public class EvaluationContextEntity {
         return ruleOrder;
     }
 
-    public void setRuleOrder(List<String> ruleOrder) {
+    public void setRuleOrder(final List<String> ruleOrder) {
         this.ruleOrder = ruleOrder;
     }
 
@@ -77,7 +77,7 @@ public class EvaluationContextEntity {
         return flowFilePolicy;
     }
 
-    public void setFlowFilePolicy(String flowFilePolicy) {
+    public void setFlowFilePolicy(final String flowFilePolicy) {
         this.flowFilePolicy = flowFilePolicy;
     }
 

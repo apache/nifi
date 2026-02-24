@@ -90,9 +90,9 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         // Assert all the sessions were committed
-        MockSessionFactory runnerSessionFactory = (MockSessionFactory) runner.getProcessSessionFactory();
-        Set<MockProcessSession> sessions = runnerSessionFactory.getCreatedSessions();
-        for (MockProcessSession session : sessions) {
+        final MockSessionFactory runnerSessionFactory = (MockSessionFactory) runner.getProcessSessionFactory();
+        final Set<MockProcessSession> sessions = runnerSessionFactory.getCreatedSessions();
+        for (final MockProcessSession session : sessions) {
             session.assertCommitted();
         }
 
@@ -119,9 +119,9 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
         // Check fragment attributes
-        List<MockFlowFile> resultFFs = runner.getFlowFilesForRelationship(REL_SUCCESS);
-        MockFlowFile ff1 = resultFFs.get(0);
-        MockFlowFile ff2 = resultFFs.get(1);
+        final List<MockFlowFile> resultFFs = runner.getFlowFilesForRelationship(REL_SUCCESS);
+        final MockFlowFile ff1 = resultFFs.get(0);
+        final MockFlowFile ff2 = resultFFs.get(1);
         assertEquals(ff1.getAttribute(FRAGMENT_ID), ff2.getAttribute(FRAGMENT_ID));
         assertEquals("0", ff1.getAttribute(FRAGMENT_INDEX));
         assertEquals("2", ff1.getAttribute(FRAGMENT_COUNT));
@@ -382,7 +382,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2");
         flowFile.assertAttributeExists("generatetablefetch.limit");
         flowFile.assertAttributeEquals("generatetablefetch.limit", null);
@@ -408,7 +408,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "true");
         runner.run();
         runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GenerateTableFetch.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertEquals("ID,BUCKET", flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("1=1", flowFile.getAttribute("generatetablefetch.whereClause"));
@@ -508,13 +508,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.enqueue("".getBytes(), Map.of("maxValueCol", "id"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
-        StateManager stateManager = runner.getStateManager();
+        final StateManager stateManager = runner.getStateManager();
         stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 0 AND id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
     }
 
@@ -530,7 +530,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE", "maxValueCol", "id"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
-        StateManager stateManager = runner.getStateManager();
+        final StateManager stateManager = runner.getStateManager();
         stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         runner.run();
@@ -575,7 +575,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.enqueue("".getBytes(), Map.of("tableName", "TEST_QUERY_DB_TABLE"));
 
         // Pre-populate the state with a key for column name (not fully-qualified)
-        StateManager stateManager = runner.getStateManager();
+        final StateManager stateManager = runner.getStateManager();
         stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         runner.run();
@@ -610,13 +610,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setEnvironmentVariableValue("maxValueCol", "id");
 
         // Pre-populate the state with a key for column name (not fully-qualified)
-        StateManager stateManager = runner.getStateManager();
+        final StateManager stateManager = runner.getStateManager();
         stateManager.setState(Map.of("id", "0"), Scope.CLUSTER);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables (i.e. Expression Language,
         // even when not referring to flow file attributes), the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
@@ -685,8 +685,8 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        String query = new String(flowFile.toByteArray());
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        final String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
@@ -707,13 +707,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String, String> attrs = Map.of("maxval.id", "1");
+        final Map<String, String> attrs = Map.of("maxval.id", "1");
         runner.setIncomingConnection(true);
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        String query = new String(flowFile.toByteArray());
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
+        final String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
@@ -735,7 +735,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "${table.name}");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty("initial.maxvalue.ID", "${maxval.id}");
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("maxval.id", "1");
         attrs.put("table.name", "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(true);

@@ -45,7 +45,7 @@ public class ListExtensions extends AbstractNiFiRegistryCommand<ExtensionMetadat
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.EXT_TAGS.createOption());
         addOption(CommandOption.EXT_TYPE.createOption());
     }
@@ -95,7 +95,7 @@ public class ListExtensions extends AbstractNiFiRegistryCommand<ExtensionMetadat
             try {
                 final ExtensionType extensionType = ExtensionType.valueOf(extensionTypeArg);
                 builder.extensionType(extensionType);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 final String supportedTypes = Arrays.stream(ExtensionType.values())
                         .map(Enum::toString)
                         .collect(Collectors.joining(", "));

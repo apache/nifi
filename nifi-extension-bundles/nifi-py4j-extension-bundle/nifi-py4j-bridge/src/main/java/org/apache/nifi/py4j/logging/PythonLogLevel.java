@@ -61,7 +61,7 @@ public enum PythonLogLevel {
      * @param logLevel Framework Log Level
      * @return Python Log Level
      */
-    public static PythonLogLevel valueOf(LogLevel logLevel) {
+    public static PythonLogLevel valueOf(final LogLevel logLevel) {
         return FRAMEWORK_LEVELS.getOrDefault(logLevel, WARNING);
     }
 }

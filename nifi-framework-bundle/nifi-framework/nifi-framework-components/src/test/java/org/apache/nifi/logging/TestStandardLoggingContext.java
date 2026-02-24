@@ -38,7 +38,7 @@ class TestStandardLoggingContext {
 
     @Test
     void testNullComponent_ShouldReturnOptionalEmpty() {
-        LoggingContext context = new StandardLoggingContext();
+        final LoggingContext context = new StandardLoggingContext();
 
         assertTrue(context.getLogFileSuffix().isEmpty());
     }
@@ -46,7 +46,7 @@ class TestStandardLoggingContext {
     @Test
     void testComponentWithProcessGroups_WithoutPerProcessGroupLogging_ShouldReturnOptionalEmpty() {
         //component with pg with no setting returns optional empty
-        LoggingContext context = new StandardLoggingContext(processor);
+        final LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
         when(processGroup.getLogFileSuffix()).thenReturn(null, (String[]) null);
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE, Boolean.TRUE);
@@ -57,7 +57,7 @@ class TestStandardLoggingContext {
 
     @Test
     void testComponentWithProcessGroup_WithPerProcessGroupLogging_ShouldReturnLogFileSuffix() {
-        LoggingContext context = new StandardLoggingContext(processor);
+        final LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
         when(processGroup.getLogFileSuffix()).thenReturn(LOG_FILE_SUFFIX);
 
@@ -66,7 +66,7 @@ class TestStandardLoggingContext {
 
     @Test
     void testComponentWithProcessGroups_WithPerProcessGroupLoggingSetOnParent_ShouldReturnLogFileSuffix() {
-        LoggingContext context = new StandardLoggingContext(processor);
+        final LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE);
         when(processGroup.getParent()).thenReturn(processGroup);

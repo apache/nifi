@@ -100,11 +100,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         scheduleProcessorsEntity.setId(groupId);
         scheduleProcessorsEntity.setState(desiredState.name());
 
-        URI scheduleGroupUri;
+        final URI scheduleGroupUri;
         try {
             scheduleGroupUri = new URI(exampleUri.getScheme(), exampleUri.getUserInfo(), exampleUri.getHost(),
                 exampleUri.getPort(), "/nifi-api/flow/process-groups/" + groupId, null, exampleUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -117,7 +117,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         if (desiredState == ScheduledState.RUNNING) {
             try {
                 waitForProcessorValidation(user, exampleUri, groupId, componentMap, pause);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new LifecycleManagementException("Interrupted while waiting for processors to complete validation");
             }
@@ -193,11 +193,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             return true;
         }
 
-        URI groupUri;
+        final URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
                     originalUri.getPort(), "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -299,7 +299,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
                 "/nifi-api/process-groups/" + groupId, null, originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -349,7 +349,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
                 "/nifi-api/flow/process-groups/" + groupId + "/status", null, originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -395,7 +395,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
                 "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -449,7 +449,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
      */
     @SuppressWarnings("unchecked")
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
-        T entity = (T) nodeResponse.getUpdatedEntity();
+        final T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity != null) {
             return entity;
         }
@@ -576,11 +576,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         activateServicesEntity.setId(groupId);
         activateServicesEntity.setState(desiredState.name());
 
-        URI controllerServicesUri;
+        final URI controllerServicesUri;
         try {
             controllerServicesUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
                 originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", null, originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -593,7 +593,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         if (desiredState == ControllerServiceState.ENABLED) {
             try {
                 waitForControllerServiceValidation(user, originalUri, groupId, affectedServiceIds, pause);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new LifecycleManagementException("Interrupted while waiting for Controller Services to complete validation");
             }
@@ -635,12 +635,12 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                                                        final Set<String> serviceIds, final Pause pause)
             throws InterruptedException {
 
-        URI groupUri;
+        final URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
                     originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services",
                 "includeAncestorGroups=false&includeDescendantGroups=true&includeReferencingComponents=false", originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
@@ -712,12 +712,12 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             return true;
         }
 
-        URI groupUri;
+        final URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
                 originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services",
                 "includeAncestorGroups=false&includeDescendantGroups=true&includeReferencingComponents=false", originalUri.getFragment());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new RuntimeException(e);
         }
 

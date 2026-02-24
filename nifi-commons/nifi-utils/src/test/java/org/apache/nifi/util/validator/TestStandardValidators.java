@@ -38,8 +38,8 @@ public class TestStandardValidators {
 
     @Test
     public void testNonBlankValidator() {
-        Validator val = StandardValidators.NON_BLANK_VALIDATOR;
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.NON_BLANK_VALIDATOR;
+        final ValidationContext vc = mock(ValidationContext.class);
         ValidationResult vr = val.validate("foo", "", vc);
         assertFalse(vr.isValid());
 
@@ -52,8 +52,8 @@ public class TestStandardValidators {
 
     @Test
     public void testNonEmptyELValidator() {
-        Validator val = StandardValidators.NON_EMPTY_EL_VALIDATOR;
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.NON_EMPTY_EL_VALIDATOR;
+        final ValidationContext vc = mock(ValidationContext.class);
         Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
 
         ValidationResult vr = val.validate("foo", "", vc);
@@ -72,8 +72,8 @@ public class TestStandardValidators {
 
     @Test
     public void testHostnamePortListValidator() {
-        Validator val = StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR;
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR;
+        final ValidationContext vc = mock(ValidationContext.class);
         Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
 
         ValidationResult vr = val.validate("foo", "", vc);
@@ -107,7 +107,7 @@ public class TestStandardValidators {
 
     @Test
     public void testTimePeriodValidator() {
-        Validator val = StandardValidators
+        final Validator val = StandardValidators
             .createTimePeriodValidator(1L, TimeUnit.SECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         ValidationResult vr;
 
@@ -134,7 +134,7 @@ public class TestStandardValidators {
 
     @Test
     public void testDataSizeBoundsValidator() {
-        Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
+        final Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
         ValidationResult vr;
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
@@ -465,8 +465,8 @@ public class TestStandardValidators {
 
     @Test
     public void testiso8061InstantValidator() {
-        Validator val = StandardValidators.ISO8601_INSTANT_VALIDATOR;
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.ISO8601_INSTANT_VALIDATOR;
+        final ValidationContext vc = mock(ValidationContext.class);
         ValidationResult vr = val.validate("foo", "", vc);
         assertFalse(vr.isValid());
 
@@ -479,8 +479,8 @@ public class TestStandardValidators {
 
     @Test
     public void testURIListValidator() {
-        Validator val = StandardValidators.URI_LIST_VALIDATOR;
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.URI_LIST_VALIDATOR;
+        final ValidationContext vc = mock(ValidationContext.class);
         ValidationResult vr = val.validate("foo", null, vc);
         assertFalse(vr.isValid());
 
@@ -499,8 +499,8 @@ public class TestStandardValidators {
 
     @Test
     public void testRegexMatchingValidatorWithoutEL() {
-        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"));
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"));
+        final ValidationContext vc = mock(ValidationContext.class);
         when(vc.isExpressionLanguagePresent(any())).thenReturn(false);
         when(vc.isExpressionLanguageSupported(any())).thenReturn(false);
 
@@ -515,8 +515,8 @@ public class TestStandardValidators {
 
     @Test
     public void testRegexMatchingValidatorWithEL() {
-        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
+        final ValidationContext vc = mock(ValidationContext.class);
         when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
         when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
 
@@ -531,53 +531,53 @@ public class TestStandardValidators {
 
     @Test
     public void testRegexMatchingValidatorWithELError() {
-        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
+        final ValidationContext vc = mock(ValidationContext.class);
         when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
         when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
 
-        ValidationResult vr = val.validate("foo", "invalid", vc);
+        final ValidationResult vr = val.validate("foo", "invalid", vc);
         assertFalse(vr.isValid());
         assertTrue(vr.getExplanation().contains("Failed to evaluate the Attribute Expression Language"));
     }
 
     @Test
     public void testRegexMatchingValidatorWithELWithoutEvaluation() {
-        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), false);
-        ValidationContext vc = mock(ValidationContext.class);
+        final Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), false);
+        final ValidationContext vc = mock(ValidationContext.class);
         when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
         when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
 
-        ValidationResult vr = val.validate("foo", "valid", vc);
+        final ValidationResult vr = val.validate("foo", "valid", vc);
         assertTrue(vr.isValid());
         assertEquals("Expression Language Present", vr.getExplanation());
     }
 
     private void validatePropertyIsValid(final Validator val, final String input, final ValidationContext vc) {
-        ValidationResult vr = val.validate("foo", input, vc);
+        final ValidationResult vr = val.validate("foo", input, vc);
         assertTrue(vr.isValid());
     }
 
     private void validatePropertyIsInvalid(final Validator val, final String input, final ValidationContext vc) {
-        ValidationResult vr = val.validate("foo", input, vc);
+        final ValidationResult vr = val.validate("foo", input, vc);
         assertFalse(vr.isValid());
     }
 
-    private void validatePropertyWithELIsValid(Validator val, String input, ValidationContext vc) {
-        PropertyValue property = mock(PropertyValue.class);
+    private void validatePropertyWithELIsValid(final Validator val, final String input, final ValidationContext vc) {
+        final PropertyValue property = mock(PropertyValue.class);
         when(vc.newPropertyValue(input)).thenReturn(property);
         when(property.evaluateAttributeExpressions()).thenReturn(property);
         when(property.evaluateAttributeExpressions().getValue()).thenReturn(input);
-        ValidationResult vr = val.validate("foo", input, vc);
+        final ValidationResult vr = val.validate("foo", input, vc);
         assertTrue(vr.isValid());
     }
 
-    private void validatePropertyWithELIsInvalid(Validator val, String input, ValidationContext vc) {
-        PropertyValue property = mock(PropertyValue.class);
+    private void validatePropertyWithELIsInvalid(final Validator val, final String input, final ValidationContext vc) {
+        final PropertyValue property = mock(PropertyValue.class);
         when(vc.newPropertyValue(input)).thenReturn(property);
         when(property.evaluateAttributeExpressions()).thenReturn(property);
         when(property.evaluateAttributeExpressions().getValue()).thenReturn(input);
-        ValidationResult vr = val.validate("foo", input, vc);
+        final ValidationResult vr = val.validate("foo", input, vc);
         assertFalse(vr.isValid());
     }
 }

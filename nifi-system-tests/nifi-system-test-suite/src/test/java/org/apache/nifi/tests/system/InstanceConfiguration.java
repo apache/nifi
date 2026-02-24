@@ -31,7 +31,7 @@ public class InstanceConfiguration {
     private final Map<String, String> nifiPropertiesOverrides;
     private final boolean unpackPythonExtensions;
 
-    private InstanceConfiguration(Builder builder) {
+    private InstanceConfiguration(final Builder builder) {
         this.bootstrapConfigFile = builder.bootstrapConfigFile;
         this.instanceDirectory = builder.instanceDirectory;
         this.flowJsonGz = builder.flowJsonGz;
@@ -156,7 +156,7 @@ public class InstanceConfiguration {
             return stateDirectory(new File(stateDirectoryName));
         }
 
-        public Builder autoStart(boolean autoStart) {
+        public Builder autoStart(final boolean autoStart) {
             this.autoStart = autoStart;
             return this;
         }

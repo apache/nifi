@@ -192,8 +192,7 @@ public class SimpleRecordSchema implements RecordSchema {
     public int hashCode() {
         int computed = this.hashCode;
         if (computed == 0) {
-            computed = calculateHashCode();
-            this.hashCode = computed;
+            computed = this.hashCode = calculateHashCode();
         }
 
         return computed;

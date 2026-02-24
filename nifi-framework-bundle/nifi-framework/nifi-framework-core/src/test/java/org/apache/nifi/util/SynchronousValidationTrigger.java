@@ -23,12 +23,12 @@ import org.apache.nifi.controller.ComponentNode;
 public class SynchronousValidationTrigger implements ValidationTrigger {
 
     @Override
-    public void triggerAsync(ComponentNode component) {
+    public void triggerAsync(final ComponentNode component) {
         trigger(component);
     }
 
     @Override
-    public void trigger(ComponentNode component) {
+    public void trigger(final ComponentNode component) {
         component.performValidation();
     }
 

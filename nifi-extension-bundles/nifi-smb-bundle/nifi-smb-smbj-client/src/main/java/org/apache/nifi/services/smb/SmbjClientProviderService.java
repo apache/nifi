@@ -157,13 +157,13 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
         try {
             session = connection.authenticate(authenticationContext);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Could not create session for share " + getServiceLocation(), e);
         }
 
         try {
             share = session.connectShare(shareName);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             closeSession(session);
             throw new IOException("Could not connect to share " + getServiceLocation(), e);
         }
@@ -177,7 +177,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("hostname", HOSTNAME.getName());
         config.renameProperty("domain", DOMAIN.getName());
         config.renameProperty("username", USERNAME.getName());
@@ -195,7 +195,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             if (session != null) {
                 session.close();
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Could not close session to {}", getServiceLocation(), e);
         }
     }

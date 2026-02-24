@@ -448,14 +448,14 @@ public class TestForkRecord {
         runner.run();
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
-        String expectedContent = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-transactions.json"));
+        final String expectedContent = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-transactions.json"));
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertContentEquals(expectedContent);
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertAttributeEquals("record.count", "6");
     }
 
     @Test
     public void testExtractWithParentFieldsAndInferredSchema() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+        final TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("record-reader", jsonReader);
@@ -485,7 +485,7 @@ public class TestForkRecord {
 
     @Test
     public void testExtractFieldsAndInferredSchema() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+        final TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("record-reader", jsonReader);
@@ -515,7 +515,7 @@ public class TestForkRecord {
 
     @Test
     public void testExtractFieldsWithParentsAndFieldConflictAndInferredSchema() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+        final TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("record-reader", jsonReader);
@@ -562,17 +562,17 @@ public class TestForkRecord {
 
         RecordSchema schema;
 
-        public JsonRecordReader(RecordSchema schema) {
+        public JsonRecordReader(final RecordSchema schema) {
             this.schema = schema;
         }
 
         @Override
-        public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException {
+        public RecordReader createRecordReader(final FlowFile flowFile, final InputStream in, final ComponentLog logger) throws MalformedRecordException, IOException {
             return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null, jsonParserFactory);
         }
 
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
+        public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
                 throws MalformedRecordException, IOException {
             return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null, null, jsonParserFactory);
         }
@@ -582,13 +582,13 @@ public class TestForkRecord {
 
         RecordSchema schema;
 
-        public CustomRecordWriter(final String header, final boolean quoteValues, RecordSchema schema) {
+        public CustomRecordWriter(final String header, final boolean quoteValues, final RecordSchema schema) {
             super(header, quoteValues);
             this.schema = schema;
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
+        public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema) {
             return this.schema;
         }
 

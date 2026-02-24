@@ -75,9 +75,9 @@ public class TenantsResource extends ApplicationResource {
     private final Authorizer authorizer;
 
     public TenantsResource(
-            NiFiServiceFacade serviceFacade,
-            Authorizer authorizer,
-            NiFiProperties properties,
+            final NiFiServiceFacade serviceFacade,
+            final Authorizer authorizer,
+            final NiFiProperties properties,
             @Autowired(required = false) final RequestReplicator requestReplicator,
             @Autowired(required = false) final ClusterCoordinator clusterCoordinator,
             @Autowired(required = false) final FlowController flowController
@@ -96,8 +96,8 @@ public class TenantsResource extends ApplicationResource {
      * @param userEntities users
      * @return user entities
      */
-    public Set<UserEntity> populateRemainingUserEntitiesContent(Set<UserEntity> userEntities) {
-        for (UserEntity userEntity : userEntities) {
+    public Set<UserEntity> populateRemainingUserEntitiesContent(final Set<UserEntity> userEntities) {
+        for (final UserEntity userEntity : userEntities) {
             populateRemainingUserEntityContent(userEntity);
         }
         return userEntities;
@@ -109,7 +109,7 @@ public class TenantsResource extends ApplicationResource {
      * @param userEntity userEntity
      * @return userEntity
      */
-    public UserEntity populateRemainingUserEntityContent(UserEntity userEntity) {
+    public UserEntity populateRemainingUserEntityContent(final UserEntity userEntity) {
         userEntity.setUri(generateResourceUri("tenants", "users", userEntity.getId()));
         return userEntity;
     }
@@ -186,7 +186,7 @@ public class TenantsResource extends ApplicationResource {
 
                     // get revision from the config
                     final RevisionDTO revisionDTO = userEntity.getRevision();
-                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userEntity.getComponent().getId());
+                    final Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userEntity.getComponent().getId());
 
                     // create the user and generate the json
                     final UserEntity entity = serviceFacade.createUser(revision, userEntity.getComponent());
@@ -477,8 +477,8 @@ public class TenantsResource extends ApplicationResource {
      * @param userGroupEntities user groups
      * @return user group entities
      */
-    public Set<UserGroupEntity> populateRemainingUserGroupEntitiesContent(Set<UserGroupEntity> userGroupEntities) {
-        for (UserGroupEntity userGroupEntity : userGroupEntities) {
+    public Set<UserGroupEntity> populateRemainingUserGroupEntitiesContent(final Set<UserGroupEntity> userGroupEntities) {
+        for (final UserGroupEntity userGroupEntity : userGroupEntities) {
             populateRemainingUserGroupEntityContent(userGroupEntity);
         }
         return userGroupEntities;
@@ -490,7 +490,7 @@ public class TenantsResource extends ApplicationResource {
      * @param userGroupEntity userGroupEntity
      * @return userGroupEntity
      */
-    public UserGroupEntity populateRemainingUserGroupEntityContent(UserGroupEntity userGroupEntity) {
+    public UserGroupEntity populateRemainingUserGroupEntityContent(final UserGroupEntity userGroupEntity) {
         userGroupEntity.setUri(generateResourceUri("tenants", "user-groups", userGroupEntity.getId()));
         return userGroupEntity;
     }
@@ -567,7 +567,7 @@ public class TenantsResource extends ApplicationResource {
 
                     // get revision from the config
                     final RevisionDTO revisionDTO = userGroupEntity.getRevision();
-                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userGroupEntity.getComponent().getId());
+                    final Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userGroupEntity.getComponent().getId());
 
                     // create the user group and generate the json
                     final UserGroupEntity entity = serviceFacade.createUserGroup(revision, userGroupEntity.getComponent());
@@ -881,7 +881,7 @@ public class TenantsResource extends ApplicationResource {
             }
     )
     public Response searchTenants(
-            @Parameter(
+            final @Parameter(
                     description = "Identity to search for.",
                     required = true
             )

@@ -34,12 +34,12 @@ public class LoginFilter implements Filter {
     private ServletContext servletContext;
 
     @Override
-    public void init(FilterConfig filterConfig) {
+    public void init(final FilterConfig filterConfig) {
         servletContext = filterConfig.getServletContext();
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException {
+    public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain filterChain) throws IOException {
         final boolean supportsOidc = Boolean.parseBoolean(servletContext.getInitParameter("oidc-supported"));
 
         final HttpServletResponse httpResponse = (HttpServletResponse) response;

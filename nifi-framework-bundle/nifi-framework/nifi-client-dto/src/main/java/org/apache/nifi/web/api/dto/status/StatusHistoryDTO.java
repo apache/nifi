@@ -49,7 +49,7 @@ public class StatusHistoryDTO {
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 
@@ -61,7 +61,7 @@ public class StatusHistoryDTO {
         return componentDetails;
     }
 
-    public void setComponentDetails(Map<String, String> componentDetails) {
+    public void setComponentDetails(final Map<String, String> componentDetails) {
         this.componentDetails = componentDetails;
     }
 
@@ -70,7 +70,7 @@ public class StatusHistoryDTO {
         return fieldDescriptors;
     }
 
-    public void setFieldDescriptors(List<StatusDescriptorDTO> fieldDescriptors) {
+    public void setFieldDescriptors(final List<StatusDescriptorDTO> fieldDescriptors) {
         this.fieldDescriptors = fieldDescriptors;
     }
 
@@ -81,7 +81,7 @@ public class StatusHistoryDTO {
         return aggregateSnapshots;
     }
 
-    public void setAggregateSnapshots(List<StatusSnapshotDTO> aggregateSnapshots) {
+    public void setAggregateSnapshots(final List<StatusSnapshotDTO> aggregateSnapshots) {
         this.aggregateSnapshots = aggregateSnapshots;
     }
 
@@ -91,7 +91,7 @@ public class StatusHistoryDTO {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeStatusSnapshotsDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeStatusSnapshotsDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 }

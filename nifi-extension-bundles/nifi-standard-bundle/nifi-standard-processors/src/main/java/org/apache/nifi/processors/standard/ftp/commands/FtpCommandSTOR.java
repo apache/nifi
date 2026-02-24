@@ -54,7 +54,7 @@ public class FtpCommandSTOR extends AbstractCommand {
     private final CountDownLatch sessionFactorySetSignal;
     private final Relationship relationshipSuccess;
 
-    public FtpCommandSTOR(AtomicReference<ProcessSessionFactory> sessionFactory, CountDownLatch sessionFactorySetSignal, Relationship relationshipSuccess) {
+    public FtpCommandSTOR(final AtomicReference<ProcessSessionFactory> sessionFactory, final CountDownLatch sessionFactorySetSignal, final Relationship relationshipSuccess) {
         this.sessionFactory = sessionFactory;
         this.sessionFactorySetSignal = sessionFactorySetSignal;
         this.relationshipSuccess = relationshipSuccess;
@@ -64,13 +64,13 @@ public class FtpCommandSTOR extends AbstractCommand {
     public void execute(final FtpIoSession ftpSession, final FtpServerContext context, final FtpRequest request) {
         try {
             executeCommand(ftpSession, context, request);
-        } catch (DetailedFtpCommandException ftpCommandException) {
+        } catch (final DetailedFtpCommandException ftpCommandException) {
             ftpSession.write(LocalizedDataTransferFtpReply.translate(ftpSession, request, context,
                     ftpCommandException.getFtpReturnCode(),
                     ftpCommandException.getSubId(),
                     ftpCommandException.getMessage(),
                     ftpCommandException.getFtpFile()));
-        } catch (FtpCommandException ftpCommandException) {
+        } catch (final FtpCommandException ftpCommandException) {
             ftpSession.write(new DefaultFtpReply(ftpCommandException.getFtpReturnCode(), ftpCommandException.getMessage()));
         } finally {
             ftpSession.resetState();
@@ -78,7 +78,7 @@ public class FtpCommandSTOR extends AbstractCommand {
         }
     }
 
-    private void executeCommand(FtpIoSession ftpSession, FtpServerContext context, FtpRequest request)
+    private void executeCommand(final FtpIoSession ftpSession, final FtpServerContext context, final FtpRequest request)
             throws FtpCommandException {
 
         final String fileName = getArgument(request);
@@ -105,9 +105,9 @@ public class FtpCommandSTOR extends AbstractCommand {
     }
 
     private void checkDataConnection(final FtpIoSession ftpSession) throws FtpCommandException {
-        DataConnectionFactory dataConnectionFactory = ftpSession.getDataConnection();
+        final DataConnectionFactory dataConnectionFactory = ftpSession.getDataConnection();
         if (dataConnectionFactory instanceof IODataConnectionFactory) {
-            InetAddress address = ((IODataConnectionFactory) dataConnectionFactory)
+            final InetAddress address = ((IODataConnectionFactory) dataConnectionFactory)
                     .getInetAddress();
             if (address == null) {
                 throw new FtpCommandException(FtpReply.REPLY_503_BAD_SEQUENCE_OF_COMMANDS, "PORT or PASV must be issued first");
@@ -119,7 +119,7 @@ public class FtpCommandSTOR extends AbstractCommand {
         FtpFile ftpFile = null;
         try {
             ftpFile = ftpSession.getFileSystemView().getFile(fileName);
-        } catch (FtpException e) {
+        } catch (final FtpException e) {
             LOG.error("Exception getting file object", e);
         }
         if (ftpFile == null) {
@@ -145,7 +145,7 @@ public class FtpCommandSTOR extends AbstractCommand {
         final DataConnection dataConnection;
         try {
             dataConnection = ftpSession.getDataConnection().openConnection();
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             LOG.error("Exception getting the input data stream", exception);
             throw new DetailedFtpCommandException(FtpReply.REPLY_425_CANT_OPEN_DATA_CONNECTION,
                     "STOR",
@@ -162,23 +162,23 @@ public class FtpCommandSTOR extends AbstractCommand {
         final ProcessSession processSession;
         try {
             processSession = createProcessSession();
-        } catch (InterruptedException | TimeoutException exception) {
+        } catch (final InterruptedException | TimeoutException exception) {
             LOG.error("ProcessSession could not be acquired, command STOR aborted.", exception);
             throw new FtpCommandException(FtpReply.REPLY_425_CANT_OPEN_DATA_CONNECTION, "File transfer failed.");
         }
-        FlowFile flowFile = processSession.create();
+        final FlowFile flowFile = processSession.create();
         long transferredBytes = 0L;
         try (OutputStream flowFileOutputStream = processSession.write(flowFile)) {
             transferredBytes = dataConnection.transferFromClient(ftpSession.getFtpletSession(), flowFileOutputStream);
             LOG.info("File received {}", ftpFile.getAbsolutePath());
-        } catch (SocketException socketException) {
+        } catch (final SocketException socketException) {
             LOG.error("Socket exception during data transfer", socketException);
             processSession.rollback();
             throw new DetailedFtpCommandException(FtpReply.REPLY_426_CONNECTION_CLOSED_TRANSFER_ABORTED,
                     "STOR",
                     ftpFile.getAbsolutePath(),
                     ftpFile);
-        } catch (IOException ioException) {
+        } catch (final IOException ioException) {
             LOG.error("IOException during data transfer", ioException);
             processSession.rollback();
             throw new DetailedFtpCommandException(FtpReply.REPLY_551_REQUESTED_ACTION_ABORTED_PAGE_TYPE_UNKNOWN,
@@ -189,7 +189,7 @@ public class FtpCommandSTOR extends AbstractCommand {
 
         try {
             // notify the statistics component
-            ServerFtpStatistics ftpStat = (ServerFtpStatistics) context.getFtpStatistics();
+            final ServerFtpStatistics ftpStat = (ServerFtpStatistics) context.getFtpStatistics();
             ftpStat.setUpload(ftpSession, ftpFile, transferredBytes);
 
             processSession.putAttribute(flowFile, CoreAttributes.FILENAME.key(), ftpFile.getName());
@@ -198,7 +198,7 @@ public class FtpCommandSTOR extends AbstractCommand {
             processSession.getProvenanceReporter().modifyContent(flowFile);
 
             processSession.transfer(flowFile, relationshipSuccess);
-        } catch (Exception exception) {
+        } catch (final Exception exception) {
             processSession.rollback();
             LOG.error("Process session error. ", exception);
         }
@@ -212,14 +212,14 @@ public class FtpCommandSTOR extends AbstractCommand {
         });
     }
 
-    private String getPath(FtpFile ftpFile) {
-        String absolutePath = ftpFile.getAbsolutePath();
-        int endIndex = absolutePath.length() - ftpFile.getName().length();
+    private String getPath(final FtpFile ftpFile) {
+        final String absolutePath = ftpFile.getAbsolutePath();
+        final int endIndex = absolutePath.length() - ftpFile.getName().length();
         return ftpFile.getAbsolutePath().substring(0, endIndex);
     }
 
     private ProcessSession createProcessSession() throws InterruptedException, TimeoutException {
-        ProcessSessionFactory processSessionFactory = getProcessSessionFactory();
+        final ProcessSessionFactory processSessionFactory = getProcessSessionFactory();
         return processSessionFactory.createSession();
     }
 

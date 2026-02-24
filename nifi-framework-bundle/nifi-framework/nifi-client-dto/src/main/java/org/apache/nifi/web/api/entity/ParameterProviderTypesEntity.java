@@ -36,7 +36,7 @@ public class ParameterProviderTypesEntity extends Entity {
         return parameterProviderTypes;
     }
 
-    public void setParameterProviderTypes(Set<DocumentedTypeDTO> parameterProviderTypes) {
+    public void setParameterProviderTypes(final Set<DocumentedTypeDTO> parameterProviderTypes) {
         this.parameterProviderTypes = parameterProviderTypes;
     }
 

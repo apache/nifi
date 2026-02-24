@@ -82,17 +82,17 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
     }
 
     @Override
-    public UserGroupProvider getUserGroupProvider(String identifier) {
+    public UserGroupProvider getUserGroupProvider(final String identifier) {
         return userGroupProviders.get(identifier);
     }
 
     @Override
-    public AccessPolicyProvider getAccessPolicyProvider(String identifier) {
+    public AccessPolicyProvider getAccessPolicyProvider(final String identifier) {
         return accessPolicyProviders.get(identifier);
     }
 
     @Override
-    public Authorizer getAuthorizer(String identifier) {
+    public Authorizer getAuthorizer(final String identifier) {
         return authorizers.get(identifier);
     }
 
@@ -281,9 +281,9 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             Thread.currentThread().setContextClassLoader(userGroupProviderClassLoader);
 
             // attempt to load the class
-            Class<?> rawUserGroupProviderClass = Class.forName(userGroupProviderClassName, true, userGroupProviderClassLoader);
-            Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
-            Constructor<? extends UserGroupProvider> constructor = userGroupProviderClass.getConstructor();
+            final Class<?> rawUserGroupProviderClass = Class.forName(userGroupProviderClassName, true, userGroupProviderClassLoader);
+            final Class<? extends UserGroupProvider> userGroupProviderClass = rawUserGroupProviderClass.asSubclass(UserGroupProvider.class);
+            final Constructor<? extends UserGroupProvider> constructor = userGroupProviderClass.getConstructor();
             instance = constructor.newInstance();
 
             performMethodInjection(instance, userGroupProviderClass);
@@ -324,9 +324,9 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             Thread.currentThread().setContextClassLoader(accessPolicyProviderClassLoader);
 
             // attempt to load the class
-            Class<?> rawAccessPolicyProviderClass = Class.forName(accessPolicyProviderClassName, true, accessPolicyProviderClassLoader);
-            Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
-            Constructor<? extends AccessPolicyProvider> constructor = accessPolicyClass.getConstructor();
+            final Class<?> rawAccessPolicyProviderClass = Class.forName(accessPolicyProviderClassName, true, accessPolicyProviderClassLoader);
+            final Class<? extends AccessPolicyProvider> accessPolicyClass = rawAccessPolicyProviderClass.asSubclass(AccessPolicyProvider.class);
+            final Constructor<? extends AccessPolicyProvider> constructor = accessPolicyClass.getConstructor();
             instance = constructor.newInstance();
 
             performMethodInjection(instance, accessPolicyClass);
@@ -362,7 +362,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
         if (StringUtils.isNotEmpty(classpathResources)) {
             logger.info("Replacing Authorizer ClassLoader for '{}' to include additional resources: {}", identifier, classpathResources);
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
             authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
@@ -375,9 +375,9 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             Thread.currentThread().setContextClassLoader(authorizerClassLoader);
 
             // attempt to load the class
-            Class<?> rawAuthorizerClass = Class.forName(authorizerClassName, true, authorizerClassLoader);
-            Class<? extends Authorizer> authorizerClass = rawAuthorizerClass.asSubclass(Authorizer.class);
-            Constructor<? extends Authorizer> constructor = authorizerClass.getConstructor();
+            final Class<?> rawAuthorizerClass = Class.forName(authorizerClassName, true, authorizerClassLoader);
+            final Class<? extends Authorizer> authorizerClass = rawAuthorizerClass.asSubclass(Authorizer.class);
+            final Constructor<? extends Authorizer> constructor = authorizerClass.getConstructor();
             instance = constructor.newInstance();
 
             performMethodInjection(instance, authorizerClass);
@@ -479,11 +479,11 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             }
 
             @Override
-            public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+            public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
             }
 
             @Override
-            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+            public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
             }
 
             @Override
@@ -504,12 +504,12 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
     @Override
     public void destroy() {
-        List<Exception> errors = new ArrayList<>();
+        final List<Exception> errors = new ArrayList<>();
 
         authorizers.forEach((identifier, object) -> {
             try {
                 object.preDestruction();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 errors.add(e);
                 logger.error("Authorizer [{}] destruction failed", identifier, e);
             }
@@ -518,7 +518,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         accessPolicyProviders.forEach((identifier, object) -> {
             try {
                 object.preDestruction();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 errors.add(e);
                 logger.error("Access Policy Provider [{}] destruction failed", identifier, e);
             }
@@ -527,19 +527,19 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         userGroupProviders.forEach((identifier, object) -> {
             try {
                 object.preDestruction();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 errors.add(e);
                 logger.error("User Group Provider [{}] destruction failed", identifier, e);
             }
         });
 
         if (!errors.isEmpty()) {
-            List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
+            final List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
             throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.getFirst());
         }
     }
 
-    public void setExtensionManager(ExtensionManager extensionManager) {
+    public void setExtensionManager(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
     }
 

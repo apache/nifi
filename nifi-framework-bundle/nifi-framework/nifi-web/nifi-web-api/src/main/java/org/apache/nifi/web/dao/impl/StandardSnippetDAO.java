@@ -52,7 +52,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     private FlowController flowController;
     private SnippetUtils snippetUtils;
 
-    private StandardSnippet locateSnippet(String snippetId) {
+    private StandardSnippet locateSnippet(final String snippetId) {
         final StandardSnippet snippet = flowController.getSnippetManager().getSnippet(snippetId);
 
         if (snippet == null) {
@@ -72,10 +72,10 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
 
             // get the existing snippet
-            Snippet existingSnippet = getSnippet(snippetId);
+            final Snippet existingSnippet = getSnippet(snippetId);
 
             // get the process group
-            ProcessGroup existingSnippetProcessGroup = flowController.getFlowManager().getGroup(existingSnippet.getParentGroupId());
+            final ProcessGroup existingSnippetProcessGroup = flowController.getFlowManager().getGroup(existingSnippet.getParentGroupId());
 
             // ensure the group could be found
             if (existingSnippetProcessGroup == null) {
@@ -100,7 +100,7 @@ public class StandardSnippetDAO implements SnippetDAO {
                 // instantiate the snippet and return the contents
                 flowController.getFlowManager().instantiateSnippet(processGroup, snippetContents);
                 return snippetContents;
-            } catch (IllegalStateException ise) {
+            } catch (final IllegalStateException ise) {
                 // illegal state will be thrown from instantiateSnippet when there is an issue with the snippet _before_ any of the
                 // components are actually created. if we've received this exception we want to attempt to roll back any of the
                 // policies that we've already cloned for this request
@@ -109,7 +109,7 @@ public class StandardSnippetDAO implements SnippetDAO {
                 // rethrow the same exception
                 throw ise;
             }
-        } catch (ProcessorInstantiationException pie) {
+        } catch (final ProcessorInstantiationException pie) {
             throw new NiFiCoreException(String.format("Unable to copy snippet because processor type '%s' is unknown to this NiFi.",
                     StringUtils.substringAfterLast(pie.getMessage(), ".")));
         }
@@ -158,7 +158,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public void verifyDeleteSnippetComponents(String snippetId) {
+    public void verifyDeleteSnippetComponents(final String snippetId) {
         final Snippet snippet = locateSnippet(snippetId);
 
         // ensure the parent group exist
@@ -172,7 +172,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public void deleteSnippetComponents(String snippetId) {
+    public void deleteSnippetComponents(final String snippetId) {
         // verify the action
         verifyDeleteSnippetComponents(snippetId);
 
@@ -190,24 +190,24 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public Snippet getSnippet(String snippetId) {
+    public Snippet getSnippet(final String snippetId) {
         return locateSnippet(snippetId);
     }
 
     @Override
-    public boolean hasSnippet(String snippetId) {
+    public boolean hasSnippet(final String snippetId) {
         return flowController.getSnippetManager().getSnippet(snippetId) != null;
     }
 
     @Override
-    public void dropSnippet(String snippetId) {
+    public void dropSnippet(final String snippetId) {
         // drop the snippet itself
         final StandardSnippet snippet = locateSnippet(snippetId);
         flowController.getSnippetManager().removeSnippet(snippet);
     }
 
     @Override
-    public void verifyUpdateSnippetComponent(SnippetDTO snippetDTO) {
+    public void verifyUpdateSnippetComponent(final SnippetDTO snippetDTO) {
         final Snippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
@@ -302,7 +302,7 @@ public class StandardSnippetDAO implements SnippetDAO {
                 processorConfig.setSensitiveDynamicPropertyNames(sensitiveDynamicPropertyNames);
 
                 // look for sensitive properties get the actual value
-                for (Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
+                for (final Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
                     final PropertyDescriptor descriptor = entry.getKey();
 
                     if (descriptor.isSensitive()) {
@@ -341,7 +341,7 @@ public class StandardSnippetDAO implements SnippetDAO {
             final Map<String, String> componentProperties,
             final Set<String> sensitiveDynamicPropertyNames
     ) {
-        for (Entry<PropertyDescriptor, String> entry : componentPropertyValues.entrySet()) {
+        for (final Entry<PropertyDescriptor, String> entry : componentPropertyValues.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
             if (descriptor.isSensitive()) {
@@ -354,12 +354,12 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Autowired
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
     }
 
     @Autowired
-    public void setSnippetUtils(SnippetUtils snippetUtils) {
+    public void setSnippetUtils(final SnippetUtils snippetUtils) {
         this.snippetUtils = snippetUtils;
     }
 

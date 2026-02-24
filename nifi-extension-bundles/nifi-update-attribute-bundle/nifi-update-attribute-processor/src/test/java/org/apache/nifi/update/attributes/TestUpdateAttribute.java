@@ -709,7 +709,7 @@ public class TestUpdateAttribute {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("attribute.1", "value.1");
         flowFile.assertAttributeNotExists("attribute.2");
         flowFile.assertAttributeNotExists("attributex2");
@@ -867,7 +867,7 @@ public class TestUpdateAttribute {
         runner.enqueue(new byte[0], Map.of("butter", "("));
         try {
             runner.run();
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             assertEquals(ProcessException.class, t.getCause().getClass());
         }
     }
@@ -880,7 +880,7 @@ public class TestUpdateAttribute {
         runner.enqueue(new byte[0], Map.of("test", "chocolate"));
         try {
             runner.run();
-        } catch (AssertionError e) {
+        } catch (final AssertionError e) {
             assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
         }
     }

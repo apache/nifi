@@ -47,7 +47,7 @@ public class StatusAnalyticsModelMapFactory {
     final ExtensionManager extensionManager;
     final NiFiProperties niFiProperties;
 
-    public StatusAnalyticsModelMapFactory(ExtensionManager extensionManager, NiFiProperties niFiProperties) {
+    public StatusAnalyticsModelMapFactory(final ExtensionManager extensionManager, final NiFiProperties niFiProperties) {
         this.extensionManager = extensionManager;
         this.niFiProperties = niFiProperties;
     }
@@ -57,10 +57,10 @@ public class StatusAnalyticsModelMapFactory {
      * @return Connection Status Model Map
      */
     public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getConnectionStatusModelMap() {
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
-        StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
-        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
-        Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
+        final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
+        final StatusMetricExtractFunction extract = getConnectionStatusExtractFunction();
+        final Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> countModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
+        final Tuple<StatusAnalyticsModel, StatusMetricExtractFunction> byteModelFunction = new Tuple<>(createModelInstance(extensionManager, niFiProperties), extract);
         modelMap.put(QUEUED_COUNT_METRIC, countModelFunction);
         modelMap.put(QUEUED_BYTES_METRIC, byteModelFunction);
         return modelMap;
@@ -72,7 +72,7 @@ public class StatusAnalyticsModelMapFactory {
      * @param nifiProperties NiFi Properties object
      * @return statusAnalyticsModel
      */
-    private StatusAnalyticsModel createModelInstance(ExtensionManager extensionManager, NiFiProperties nifiProperties) {
+    private StatusAnalyticsModel createModelInstance(final ExtensionManager extensionManager, final NiFiProperties nifiProperties) {
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION, NiFiProperties.DEFAULT_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create Analytics Model because the NiFi Properties is missing the following property: "
@@ -93,29 +93,29 @@ public class StatusAnalyticsModelMapFactory {
 
         return (metric, statusHistory) -> {
 
-            List<Double> values = new ArrayList<>();
-            List<Double[]> features = new ArrayList<>();
-            Random rand = new Random();
-            StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(statusHistory);
+            final List<Double> values = new ArrayList<>();
+            final List<Double[]> features = new ArrayList<>();
+            final Random rand = new Random();
+            final StatusHistoryDTO statusHistoryDTO = StatusHistoryUtil.createStatusHistoryDTO(statusHistory);
 
-            for (StatusSnapshotDTO snap : statusHistoryDTO.getAggregateSnapshots()) {
-                List<Double> featureArray = new ArrayList<>();
-                Long snapValue = snap.getStatusMetrics().get(metric);
-                long snapTime = snap.getTimestamp().getTime();
+            for (final StatusSnapshotDTO snap : statusHistoryDTO.getAggregateSnapshots()) {
+                final List<Double> featureArray = new ArrayList<>();
+                final Long snapValue = snap.getStatusMetrics().get(metric);
+                final long snapTime = snap.getTimestamp().getTime();
 
                 featureArray.add((double) snapTime);
-                Double randomError = +(rand.nextInt(1000) * .0000001);
+                final Double randomError = +(rand.nextInt(1000) * .0000001);
                 if (metric.equals(QUEUED_COUNT_METRIC)) {
 
-                    Long inputCount = snap.getStatusMetrics().get(INPUT_COUNT_METRIC);
-                    Long outputCount = snap.getStatusMetrics().get(OUTPUT_COUNT_METRIC);
-                    Double inOutRatio = ((double) outputCount / (double) inputCount) + randomError;
+                    final Long inputCount = snap.getStatusMetrics().get(INPUT_COUNT_METRIC);
+                    final Long outputCount = snap.getStatusMetrics().get(OUTPUT_COUNT_METRIC);
+                    final Double inOutRatio = ((double) outputCount / (double) inputCount) + randomError;
                     featureArray.add(Double.isNaN(inOutRatio) ? randomError : inOutRatio);
 
                 } else {
-                    Long inputBytes = snap.getStatusMetrics().get(INPUT_BYTES_METRIC);
-                    Long outputBytes = snap.getStatusMetrics().get(OUTPUT_BYTES_METRIC);
-                    Double inOutRatio = ((double) outputBytes / (double) inputBytes) + randomError;
+                    final Long inputBytes = snap.getStatusMetrics().get(INPUT_BYTES_METRIC);
+                    final Long outputBytes = snap.getStatusMetrics().get(OUTPUT_BYTES_METRIC);
+                    final Double inOutRatio = ((double) outputBytes / (double) inputBytes) + randomError;
                     featureArray.add(Double.isNaN(inOutRatio) ? randomError : inOutRatio);
                 }
 

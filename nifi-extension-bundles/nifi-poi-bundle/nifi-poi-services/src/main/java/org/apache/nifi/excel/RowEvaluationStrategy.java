@@ -27,7 +27,7 @@ public enum RowEvaluationStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    RowEvaluationStrategy(String displayName, String description) {
+    RowEvaluationStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

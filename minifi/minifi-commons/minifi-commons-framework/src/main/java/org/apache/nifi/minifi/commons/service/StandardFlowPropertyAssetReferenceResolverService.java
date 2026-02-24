@@ -39,12 +39,12 @@ public class StandardFlowPropertyAssetReferenceResolverService implements FlowPr
 
     private final Function<String, Optional<Path>> assetPathResolver;
 
-    public StandardFlowPropertyAssetReferenceResolverService(Function<String, Optional<Path>> assetPathResolver) {
+    public StandardFlowPropertyAssetReferenceResolverService(final Function<String, Optional<Path>> assetPathResolver) {
         this.assetPathResolver = assetPathResolver;
     }
 
     @Override
-    public void resolveAssetReferenceProperties(VersionedDataflow flow) {
+    public void resolveAssetReferenceProperties(final VersionedDataflow flow) {
         fetchFlowComponents(flow).forEach(component -> {
             component.getProperties().entrySet().stream()
                 .filter(e -> isAssetReference(e.getValue()))
@@ -52,20 +52,20 @@ public class StandardFlowPropertyAssetReferenceResolverService implements FlowPr
         });
     }
 
-    private boolean isAssetReference(String value) {
+    private boolean isAssetReference(final String value) {
         return value != null
                 && value.startsWith(ASSET_REFERENCE_PREFIX)
                 && value.endsWith(ASSET_REFERENCE_SUFFIX);
     }
 
-    private Stream<? extends VersionedConfigurableExtension> fetchFlowComponents(VersionedDataflow flow) {
+    private Stream<? extends VersionedConfigurableExtension> fetchFlowComponents(final VersionedDataflow flow) {
         return concat(
                 ofNullable(flow.getControllerServices()).orElse(List.of()).stream(),
                 fetchComponentsRecursively(flow.getRootGroup())
         );
     }
 
-    private Stream<? extends VersionedConfigurableExtension> fetchComponentsRecursively(VersionedProcessGroup processGroup) {
+    private Stream<? extends VersionedConfigurableExtension> fetchComponentsRecursively(final VersionedProcessGroup processGroup) {
         return concat(
                 Stream.of(
                         ofNullable(processGroup.getProcessors()).orElse(Set.of()),
@@ -77,8 +77,8 @@ public class StandardFlowPropertyAssetReferenceResolverService implements FlowPr
         );
     }
 
-    private String getAssetAbsolutePathOrThrowIllegalStateException(String assetReference) {
-        String resourceId = assetReference.replace(ASSET_REFERENCE_PREFIX, EMPTY_STRING)
+    private String getAssetAbsolutePathOrThrowIllegalStateException(final String assetReference) {
+        final String resourceId = assetReference.replace(ASSET_REFERENCE_PREFIX, EMPTY_STRING)
                 .replace(ASSET_REFERENCE_SUFFIX, EMPTY_STRING);
         return assetPathResolver.apply(resourceId)
                 .map(Path::toString)

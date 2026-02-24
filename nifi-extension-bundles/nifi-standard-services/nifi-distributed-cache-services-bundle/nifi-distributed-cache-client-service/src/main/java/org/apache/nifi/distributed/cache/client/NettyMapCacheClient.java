@@ -176,7 +176,7 @@ public class NettyMapCacheClient extends CacheClient {
      * @return the value in the cache for the given key, if one exists
      * @throws IOException if unable to communicate with the remote instance
      */
-    public <K, V> Map<K, V> subMap(Collection<byte[]> keys, final MapValuesInboundAdapter<K, V> mapAdapter) throws IOException {
+    public <K, V> Map<K, V> subMap(final Collection<byte[]> keys, final MapValuesInboundAdapter<K, V> mapAdapter) throws IOException {
         final OutboundAdapter outboundAdapter = new OutboundAdapter()
                 .minimumVersion(ProtocolVersion.V3.value())
                 .write(MapOperation.SUBMAP.value())

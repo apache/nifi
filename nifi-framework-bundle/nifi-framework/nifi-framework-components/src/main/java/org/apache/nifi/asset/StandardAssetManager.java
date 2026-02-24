@@ -54,7 +54,7 @@ public class StandardAssetManager implements AssetManager {
         if (!assetStorageLocation.exists()) {
             try {
                 Files.createDirectories(assetStorageLocation.toPath());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException("The Asset Manager's [%s] property is set to [%s] but the directory does not exist and cannot be created"
                         .formatted(ASSET_STORAGE_LOCATION_PROPERTY, storageLocation), e);
             }
@@ -146,7 +146,7 @@ public class StandardAssetManager implements AssetManager {
             if (children != null && children.length == 0) {
                 try {
                     Files.delete(parentDir.toPath());
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     logger.warn("Failed to remove empty asset directory {}", parentDir.getAbsolutePath(), e);
                 }
             }

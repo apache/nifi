@@ -40,7 +40,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(ConnectionStatisticsSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final ConnectionStatisticsSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -58,7 +58,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeConnectionStatisticsSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeConnectionStatisticsSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 
@@ -70,7 +70,7 @@ public class ConnectionStatisticsDTO implements Cloneable {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 

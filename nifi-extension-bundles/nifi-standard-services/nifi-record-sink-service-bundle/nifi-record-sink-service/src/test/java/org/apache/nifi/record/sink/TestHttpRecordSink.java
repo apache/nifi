@@ -109,7 +109,7 @@ public class TestHttpRecordSink {
 
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-        String url = mockWebServer.url("/api/test").toString();
+        final String url = mockWebServer.url("/api/test").toString();
 
         testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
 
@@ -131,9 +131,9 @@ public class TestHttpRecordSink {
     }
 
     private void setupOAuth2TokenProvider() throws InitializationException {
-        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+        final String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
 
-        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        final OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
         when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
         when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(OAUTH_ACCESS_TOKEN);
 
@@ -233,14 +233,14 @@ public class TestHttpRecordSink {
         testSendData(2, 5);
     }
 
-    public void testSendData(int recordCount, int maxBatchSize) throws Exception {
+    public void testSendData(final int recordCount, final int maxBatchSize) throws Exception {
         testSendData(recordCount, maxBatchSize, null, null);
     }
 
-    public void testSendData(int recordCount, int maxBatchSize,
-                             String expectedContentType, String expectedAuthorization) throws Exception {
-        RecordSet recordSetIn = createRecordSetWithSize(recordCount);
-        int expectedRequestCount = maxBatchSize == 0
+    public void testSendData(final int recordCount, final int maxBatchSize,
+                             final String expectedContentType, final String expectedAuthorization) throws Exception {
+        final RecordSet recordSetIn = createRecordSetWithSize(recordCount);
+        final int expectedRequestCount = maxBatchSize == 0
                 ? 1
                 : recordCount / maxBatchSize + ((recordCount % maxBatchSize == 0) ? 0 : 1);
         testRunner.setProperty(httpRecordSink, HttpRecordSink.MAX_BATCH_SIZE, String.valueOf(maxBatchSize));
@@ -261,9 +261,9 @@ public class TestHttpRecordSink {
         assertEquals(expectedRequestCount, mockWebServer.getRequestCount());
 
         for (int i = 0; i < expectedRequestCount; i++) {
-            RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            String requestBody = recordedRequest.getBody().utf8();
-            Person[] people =
+            final RecordedRequest recordedRequest = mockWebServer.takeRequest();
+            final String requestBody = recordedRequest.getBody().utf8();
+            final Person[] people =
                     (maxBatchSize == 1)
                             ? new Person[] {
                                 // For maxBatchSize 1, person is not in a Json array
@@ -276,10 +276,10 @@ public class TestHttpRecordSink {
                 assertTrue(people[personIndex].matchesRecord(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() +
                         " Actual: {" + people[personIndex].toString() + "} order of fields can be ignored.");
             }
-            String actualContentTypeHeader = recordedRequest.getHeaders().get(HttpHeader.CONTENT_TYPE.toString());
+            final String actualContentTypeHeader = recordedRequest.getHeaders().get(HttpHeader.CONTENT_TYPE.toString());
             assertEquals(expectedContentType != null ? expectedContentType : "application/json", actualContentTypeHeader);
 
-            String actualAuthorizationHeader = recordedRequest.getHeaders().get(HttpHeader.AUTHORIZATION.toString());
+            final String actualAuthorizationHeader = recordedRequest.getHeaders().get(HttpHeader.AUTHORIZATION.toString());
             assertEquals("Bearer " + (expectedAuthorization != null ? expectedAuthorization : OAUTH_ACCESS_TOKEN),
                     actualAuthorizationHeader);
         }
@@ -290,7 +290,7 @@ public class TestHttpRecordSink {
         public String name;
         public boolean active;
 
-        public boolean matchesRecord(Record record) {
+        public boolean matchesRecord(final Record record) {
             return id == record.getAsInt(ID)
                     && name.equals(record.getAsString(NAME))
                     && active == record.getAsBoolean(ACTIVE);

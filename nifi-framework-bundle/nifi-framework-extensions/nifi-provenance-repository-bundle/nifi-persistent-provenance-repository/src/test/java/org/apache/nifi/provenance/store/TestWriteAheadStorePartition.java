@@ -116,7 +116,7 @@ public class TestWriteAheadStorePartition {
             partition.addEvents(Collections.singleton(TestUtil.createEvent()));
         }
 
-        long maxEventId = partition.getMaxEventId();
+        final long maxEventId = partition.getMaxEventId();
         assertTrue(maxEventId > 0);
         partition.close();
 

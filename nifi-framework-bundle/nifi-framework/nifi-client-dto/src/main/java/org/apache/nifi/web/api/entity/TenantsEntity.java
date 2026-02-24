@@ -39,7 +39,7 @@ public class TenantsEntity extends Entity {
         return users;
     }
 
-    public void setUsers(Collection<TenantEntity> users) {
+    public void setUsers(final Collection<TenantEntity> users) {
         this.users = users;
     }
 
@@ -52,7 +52,7 @@ public class TenantsEntity extends Entity {
         return userGroups;
     }
 
-    public void setUserGroups(Collection<TenantEntity> userGroups) {
+    public void setUserGroups(final Collection<TenantEntity> userGroups) {
         this.userGroups = userGroups;
     }
 }

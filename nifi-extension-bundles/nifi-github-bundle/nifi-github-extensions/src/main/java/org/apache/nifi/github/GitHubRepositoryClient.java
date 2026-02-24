@@ -110,11 +110,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         gitHubBuilder.withAbuseLimitHandler(new GitHubAbuseLimitHandler() {
             @Override
-            public void onError(GitHubConnectorResponse connectorResponse) throws IOException {
+            public void onError(final GitHubConnectorResponse connectorResponse) throws IOException {
                 String message;
                 try (final InputStream stream = connectorResponse.bodyStream()) {
                     message = new String(stream.readAllBytes());
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     message = "Failed to read response body";
                 }
                 logger.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
@@ -454,7 +454,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         logger.debug("Deleting file [{}] in repo [{}] on branch [{}]", resolvedPath, repository.getName(), branch);
         return execute(() -> {
             try {
-                GHContent ghContent = repository.getFileContent(resolvedPath);
+                final GHContent ghContent = repository.getFileContent(resolvedPath);
                 ghContent.delete(commitMessage, branch);
                 return ghContent.read();
             } catch (final FileNotFoundException fnf) {

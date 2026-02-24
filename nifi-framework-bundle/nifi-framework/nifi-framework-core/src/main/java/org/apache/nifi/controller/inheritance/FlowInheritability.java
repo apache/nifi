@@ -47,7 +47,7 @@ public interface FlowInheritability {
         };
     }
 
-    static FlowInheritability notInheritable(String explanation) {
+    static FlowInheritability notInheritable(final String explanation) {
         return new FlowInheritability() {
             @Override
             public boolean isInheritable() {

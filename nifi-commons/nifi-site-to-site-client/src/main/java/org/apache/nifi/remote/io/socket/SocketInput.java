@@ -54,7 +54,7 @@ public class SocketInput implements CommunicationsInput {
     public void setTimeout(final int millis) {
         try {
             socket.setSoTimeout(millis);
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
             LOG.warn("Failed to set socket timeout.", e);
         }
     }

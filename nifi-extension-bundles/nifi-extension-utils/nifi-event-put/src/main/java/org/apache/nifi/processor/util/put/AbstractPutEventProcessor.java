@@ -237,7 +237,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         }
     }
 
-    protected String createTransitUri(ProcessContext context) {
+    protected String createTransitUri(final ProcessContext context) {
         final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
         final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String protocol = getProtocol(context);

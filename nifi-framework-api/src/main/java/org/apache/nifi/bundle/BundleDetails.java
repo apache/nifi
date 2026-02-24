@@ -110,7 +110,7 @@ public class BundleDetails {
             try {
                 final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
                 return Date.from(OffsetDateTime.parse(buildTimestamp, dateTimeFormatter).toInstant());
-            } catch (DateTimeParseException e) {
+            } catch (final DateTimeParseException e) {
                 return null;
             }
         } else {

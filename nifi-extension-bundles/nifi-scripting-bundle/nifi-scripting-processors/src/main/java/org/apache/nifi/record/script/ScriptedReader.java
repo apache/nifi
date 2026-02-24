@@ -91,7 +91,7 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
                     } else {
                         throw new ScriptException("No ScriptedReader was defined by the script.");
                     }
-                } catch (ScriptException se) {
+                } catch (final ScriptException se) {
                     throw new ProcessException("Error executing onEnabled(context) method", se);
                 }
             }
@@ -101,11 +101,12 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in,
+            final long inputLength, final ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         if (recordFactory.get() != null) {
             try {
                 return recordFactory.get().createRecordReader(variables, in, inputLength, logger);
-            } catch (UndeclaredThrowableException ute) {
+            } catch (final UndeclaredThrowableException ute) {
                 scriptRunner = null;
                 scriptingComponentHelper.scriptRunnerQ.clear();
                 throw new IOException(ute.getCause());
@@ -136,7 +137,7 @@ public class ScriptedReader extends AbstractScriptedRecordFactory<RecordReaderFa
                 throw new ProcessException("No script runner available!");
             }
             // get the engine and ensure its invocable
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 

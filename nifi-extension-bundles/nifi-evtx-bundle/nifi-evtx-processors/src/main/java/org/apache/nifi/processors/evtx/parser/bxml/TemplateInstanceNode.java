@@ -40,14 +40,14 @@ public class TemplateInstanceNode extends BxmlNodeWithToken {
     private final TemplateNode templateNode;
     private final int templateLength;
 
-    public TemplateInstanceNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent) throws IOException {
+    public TemplateInstanceNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent) throws IOException {
         super(binaryReader, chunkHeader, parent);
         unknown = binaryReader.read();
         templateId = binaryReader.readDWord();
         templateOffset = NumberUtil.intValueMax(binaryReader.readDWord(), Integer.MAX_VALUE, "Invalid template offset.");
         if (templateOffset > getOffset() - chunkHeader.getOffset()) {
             isResident = true;
-            int initialPosition = binaryReader.getPosition();
+            final int initialPosition = binaryReader.getPosition();
             templateNode = chunkHeader.addTemplateNode(templateOffset, binaryReader);
             templateLength = binaryReader.getPosition() - initialPosition;
         } else {
@@ -82,7 +82,7 @@ public class TemplateInstanceNode extends BxmlNodeWithToken {
     }
 
     @Override
-    public void accept(BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
+    public void accept(final BxmlNodeVisitor bxmlNodeVisitor) throws IOException {
         bxmlNodeVisitor.visit(this);
     }
 }

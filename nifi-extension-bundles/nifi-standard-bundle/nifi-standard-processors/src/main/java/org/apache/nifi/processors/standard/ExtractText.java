@@ -451,7 +451,7 @@ public class ExtractText extends AbstractProcessor {
                     }
                     j++;
                 } else {
-                    int start = j == 0 ? startGroupIdx : 1;
+                    final int start = j == 0 ? startGroupIdx : 1;
                     for (int i = start; i <= matcher.groupCount(); i++) {
                         final String key = baseKey + "." + (i + j);
                         String value = matcher.group(i);
@@ -486,7 +486,7 @@ public class ExtractText extends AbstractProcessor {
 
     }
 
-    int getCompileFlags(ProcessContext context) {
+    int getCompileFlags(final ProcessContext context) {
         return (context.getProperty(UNIX_LINES).asBoolean() ? Pattern.UNIX_LINES : 0)
                 | (context.getProperty(CASE_INSENSITIVE).asBoolean() ? Pattern.CASE_INSENSITIVE : 0)
                 | (context.getProperty(COMMENTS).asBoolean() ? Pattern.COMMENTS : 0)

@@ -23,7 +23,7 @@ public class ValidationResources {
     private final String configResources;
     private final Configuration configuration;
 
-    public ValidationResources(String configResources, Configuration configuration) {
+    public ValidationResources(final String configResources, final Configuration configuration) {
         this.configResources = configResources;
         this.configuration = configuration;
     }

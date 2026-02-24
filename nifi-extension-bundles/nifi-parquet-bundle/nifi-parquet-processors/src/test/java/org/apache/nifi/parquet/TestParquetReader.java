@@ -68,8 +68,8 @@ public class TestParquetReader {
 
     @BeforeEach
     public void setup() {
-        Map<PropertyDescriptor, String> readerFactoryProperties = new HashMap<>();
-        ConfigurationContext readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null, null);
+        final Map<PropertyDescriptor, String> readerFactoryProperties = new HashMap<>();
+        final ConfigurationContext readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null, null);
 
         parquetReaderFactory = new ParquetReader();
         parquetReaderFactory.abstractStoreConfigContext(readerFactoryConfigContext);
@@ -253,7 +253,7 @@ public class TestParquetReader {
         }
     }
 
-    private List<Record> getRecords(File parquetFile, Map<String, String> variables)
+    private List<Record> getRecords(final File parquetFile, final Map<String, String> variables)
             throws IOException, MalformedRecordException {
         final List<Record> results = new ArrayList<>();
         // read the parquet file into bytes since we can't use a FileInputStream since it doesn't support mark/reset
@@ -272,7 +272,7 @@ public class TestParquetReader {
         return results;
     }
 
-    private Map<String, Object> convertRecordToUser(Record record) {
+    private Map<String, Object> convertRecordToUser(final Record record) {
         return record.getRawFieldNames()
                 .stream()
                 .collect(toMap(

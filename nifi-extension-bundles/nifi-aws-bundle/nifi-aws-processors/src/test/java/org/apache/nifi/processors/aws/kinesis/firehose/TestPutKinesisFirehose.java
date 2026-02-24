@@ -65,12 +65,12 @@ public class TestPutKinesisFirehose {
     public void testWithSizeGreaterThan1MB() {
         runner.setProperty(PutKinesisFirehose.BATCH_SIZE, "1");
         runner.assertValid();
-        byte[] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE + 1)];
+        final byte[] bytes = new byte[(PutKinesisFirehose.MAX_MESSAGE_SIZE + 1)];
         runner.enqueue(bytes);
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisFirehose.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisFirehose.REL_FAILURE);
 
         assertNotNull(flowFiles.get(0).getAttribute(PutKinesisFirehose.AWS_KINESIS_FIREHOSE_ERROR_MESSAGE));
     }

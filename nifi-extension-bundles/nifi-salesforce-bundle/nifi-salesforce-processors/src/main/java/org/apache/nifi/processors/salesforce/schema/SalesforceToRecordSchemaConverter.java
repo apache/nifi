@@ -41,17 +41,17 @@ public class SalesforceToRecordSchemaConverter {
     private final String dateTimeFormat;
     private final String timeFormat;
 
-    public SalesforceToRecordSchemaConverter(String dateFormat, String dateTimeFormat, String timeFormat) {
+    public SalesforceToRecordSchemaConverter(final String dateFormat, final String dateTimeFormat, final String timeFormat) {
         this.dateFormat = dateFormat;
         this.dateTimeFormat = dateTimeFormat;
         this.timeFormat = timeFormat;
     }
 
-    public SObjectDescription getSalesforceObject(InputStream salesforceObjectResultJsonString) throws IOException {
+    public SObjectDescription getSalesforceObject(final InputStream salesforceObjectResultJsonString) throws IOException {
         return OBJECT_MAPPER.readValue(salesforceObjectResultJsonString, SObjectDescription.class);
     }
 
-    public RecordSchema convertSchema(SObjectDescription salesforceObject, String fieldNamesOfInterest) {
+    public RecordSchema convertSchema(final SObjectDescription salesforceObject, final String fieldNamesOfInterest) {
         List<SObjectField> fields = salesforceObject.getFields();
         if (StringUtils.isNotBlank(fieldNamesOfInterest)) {
             fields = filterFieldsOfInterest(fields, fieldNamesOfInterest);
@@ -59,32 +59,32 @@ public class SalesforceToRecordSchemaConverter {
         List<RecordField> recordFields = null;
         try {
             recordFields = convertSObjectFieldsToRecordFields(fields);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new ProcessException(String.format("Could not determine schema for '%s'", salesforceObject.getName()), e);
         }
 
         return new SimpleRecordSchema(recordFields);
     }
 
-    private List<RecordField> convertSObjectFieldsToRecordFields(List<SObjectField> fields) {
-        List<RecordField> recordFields = new ArrayList<>();
-        for (SObjectField field : fields) {
+    private List<RecordField> convertSObjectFieldsToRecordFields(final List<SObjectField> fields) {
+        final List<RecordField> recordFields = new ArrayList<>();
+        for (final SObjectField field : fields) {
             recordFields.add(convertSObjectFieldToRecordField(field));
         }
         return recordFields;
     }
 
-    private List<SObjectField> filterFieldsOfInterest(List<SObjectField> fields, String fieldNamesOfInterest) {
-        List<String> listOfFieldNamesOfInterest = Arrays.asList(fieldNamesOfInterest.toLowerCase().split("\\s*,\\s*"));
+    private List<SObjectField> filterFieldsOfInterest(final List<SObjectField> fields, final String fieldNamesOfInterest) {
+        final List<String> listOfFieldNamesOfInterest = Arrays.asList(fieldNamesOfInterest.toLowerCase().split("\\s*,\\s*"));
         return fields
                 .stream()
                 .filter(sObjectField -> listOfFieldNamesOfInterest.contains(sObjectField.getName().toLowerCase()))
                 .collect(Collectors.toList());
     }
 
-    private RecordField convertSObjectFieldToRecordField(SObjectField field) {
-        String soapType = field.getSoapType();
-        DataType dataType = switch (soapType.substring(soapType.indexOf(':') + 1)) {
+    private RecordField convertSObjectFieldToRecordField(final SObjectField field) {
+        final String soapType = field.getSoapType();
+        final DataType dataType = switch (soapType.substring(soapType.indexOf(':') + 1)) {
             case "ID", "string", "json", "base64Binary", "anyType" -> RecordFieldType.STRING.getDataType();
             case "int" -> RecordFieldType.INT.getDataType();
             case "long" -> RecordFieldType.LONG.getDataType();

@@ -31,7 +31,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         return systemDiagnosticsDto;
     }
 
-    public void setSystemDiagnosticsDto(JVMSystemDiagnosticsSnapshotDTO systemDiagnosticsDto) {
+    public void setSystemDiagnosticsDto(final JVMSystemDiagnosticsSnapshotDTO systemDiagnosticsDto) {
         this.systemDiagnosticsDto = systemDiagnosticsDto;
     }
 
@@ -40,7 +40,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         return flowDiagnosticsDto;
     }
 
-    public void setFlowDiagnosticsDto(JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto) {
+    public void setFlowDiagnosticsDto(final JVMFlowDiagnosticsSnapshotDTO flowDiagnosticsDto) {
         this.flowDiagnosticsDto = flowDiagnosticsDto;
     }
 
@@ -49,7 +49,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
         return controllerDiagnosticsDto;
     }
 
-    public void setControllerDiagnostics(JVMControllerDiagnosticsSnapshotDTO controllerDiagnostics) {
+    public void setControllerDiagnostics(final JVMControllerDiagnosticsSnapshotDTO controllerDiagnostics) {
         this.controllerDiagnosticsDto = controllerDiagnostics;
     }
 
@@ -78,7 +78,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return niFiVersion;
         }
 
-        public void setNiFiVersion(String niFiVersion) {
+        public void setNiFiVersion(final String niFiVersion) {
             this.niFiVersion = niFiVersion;
         }
 
@@ -87,7 +87,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return javaVendor;
         }
 
-        public void setJavaVendor(String javaVendor) {
+        public void setJavaVendor(final String javaVendor) {
             this.javaVendor = javaVendor;
         }
 
@@ -96,7 +96,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return javaVmVendor;
         }
 
-        public void setJavaVmVendor(String javaVmVendor) {
+        public void setJavaVmVendor(final String javaVmVendor) {
             this.javaVmVendor = javaVmVendor;
         }
 
@@ -105,7 +105,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return javaVersion;
         }
 
-        public void setJavaVersion(String javaVersion) {
+        public void setJavaVersion(final String javaVersion) {
             this.javaVersion = javaVersion;
         }
 
@@ -114,7 +114,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return osName;
         }
 
-        public void setOsName(String osName) {
+        public void setOsName(final String osName) {
             this.osName = osName;
         }
 
@@ -123,7 +123,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return osVersion;
         }
 
-        public void setOsVersion(String osVersion) {
+        public void setOsVersion(final String osVersion) {
             this.osVersion = osVersion;
         }
 
@@ -132,7 +132,7 @@ public class JVMDiagnosticsSnapshotDTO implements Cloneable {
             return osArchitecture;
         }
 
-        public void setOsArchitecture(String osArchitecture) {
+        public void setOsArchitecture(final String osArchitecture) {
             this.osArchitecture = osArchitecture;
         }
 

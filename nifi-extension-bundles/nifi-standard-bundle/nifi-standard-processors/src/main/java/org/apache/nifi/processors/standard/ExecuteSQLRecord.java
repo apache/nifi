@@ -171,7 +171,7 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
     );
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("esqlrecord-record-writer", RECORD_WRITER_FACTORY.getName());
         config.renameProperty("esqlrecord-normalize", NORMALIZE_NAMES.getName());
@@ -186,7 +186,7 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
     }
 
     @Override
-    protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
+    protected SqlWriter configureSqlWriter(final ProcessSession session, final ProcessContext context, final FlowFile fileToProcess) {
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();

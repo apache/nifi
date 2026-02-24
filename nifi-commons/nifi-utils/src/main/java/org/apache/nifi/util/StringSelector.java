@@ -30,7 +30,7 @@ public interface StringSelector {
      * @param strings The first string(s) to check if empty.
      * @return a {@link StringSelector} that checked the first string.
      */
-    static StringSelector of(String... strings) {
+    static StringSelector of(final String... strings) {
         return EMPTY_STRING_SELECTOR.or(strings);
     }
 
@@ -56,12 +56,12 @@ public interface StringSelector {
         }
 
         @Override
-        public StringSelector or(String... strings) {
-            for (String string : strings) {
+        public StringSelector or(final String... strings) {
+            for (final String string : strings) {
                 if (string != null && string.length() > 0) {
                     return new StringSelector() {
                         @Override
-                        public StringSelector or(String... string) {
+                        public StringSelector or(final String... string) {
                             return this;
                         }
 

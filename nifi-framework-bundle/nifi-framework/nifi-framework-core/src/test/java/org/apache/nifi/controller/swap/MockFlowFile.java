@@ -86,7 +86,7 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     @Override
-    public String getAttribute(String key) {
+    public String getAttribute(final String key) {
         return attributes.get(key);
     }
 

@@ -28,7 +28,7 @@ public abstract class StringComparisonFilter extends FunctionFilter {
 
     private final RecordPathSegment searchValuePath;
 
-    public StringComparisonFilter(RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
+    public StringComparisonFilter(final RecordPathSegment recordPath, final RecordPathSegment searchValuePath) {
         super(recordPath);
         this.searchValuePath = searchValuePath;
     }

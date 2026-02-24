@@ -198,7 +198,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Maximum number of Bins", MAX_BIN_COUNT.getName());
     }
 
@@ -236,7 +236,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         int processedBins = 0;
         Bin bin;
         while (isScheduled() && (bin = readyBins.poll()) != null) {
-            BinProcessingResult binProcessingResult;
+            final BinProcessingResult binProcessingResult;
             try {
                 binProcessingResult = this.processBin(bin, context);
             } catch (final ProcessException e) {
@@ -288,8 +288,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             }
 
             final Map<String, List<FlowFile>> flowFileGroups = new LinkedHashMap<>();
-            for (FlowFile flowFile : flowFiles) {
-                flowFile = this.preprocessFlowFile(context, session, flowFile);
+            for (final FlowFile rawFlowFile : flowFiles) {
+                final FlowFile flowFile = this.preprocessFlowFile(context, session, rawFlowFile);
 
                 try {
                     final String groupingIdentifier = getGroupId(context, flowFile, session);
@@ -308,7 +308,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 }
 
                 for (final FlowFile flowFile : unbinned) {
-                    Bin bin = new Bin(sessionFactory.createSession(), 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
+                    final Bin bin = new Bin(sessionFactory.createSession(), 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
@@ -393,7 +393,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             );
         }
 
-        Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
+        final Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
         if (otherProblems != null) {
             problems.addAll(otherProblems);
         }

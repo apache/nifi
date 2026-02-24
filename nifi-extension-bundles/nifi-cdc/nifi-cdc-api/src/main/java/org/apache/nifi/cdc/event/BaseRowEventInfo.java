@@ -25,7 +25,7 @@ public class BaseRowEventInfo<RowEventDataType> extends BaseTableEventInfo imple
 
     protected List<RowEventDataType> rows;
 
-    public BaseRowEventInfo(TableInfo tableInfo, String eventType, Long timestamp, List<RowEventDataType> rows) {
+    public BaseRowEventInfo(final TableInfo tableInfo, final String eventType, final Long timestamp, final List<RowEventDataType> rows) {
         super(tableInfo, eventType, timestamp);
         this.rows = rows;
     }

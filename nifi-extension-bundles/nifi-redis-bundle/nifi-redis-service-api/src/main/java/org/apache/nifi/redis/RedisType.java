@@ -44,7 +44,7 @@ public enum RedisType {
     }
 
     public static RedisType fromDisplayName(final String displayName) {
-        for (RedisType redisType : values()) {
+        for (final RedisType redisType : values()) {
             if (redisType.getDisplayName().equals(displayName)) {
                 return redisType;
             }

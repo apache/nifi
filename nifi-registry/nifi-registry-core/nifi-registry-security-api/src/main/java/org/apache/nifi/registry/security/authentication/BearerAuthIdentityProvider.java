@@ -47,7 +47,7 @@ public abstract class BearerAuthIdentityProvider implements IdentityProvider {
     }
 
     @Override
-    public AuthenticationRequest extractCredentials(HttpServletRequest request) {
+    public AuthenticationRequest extractCredentials(final HttpServletRequest request) {
 
         if (request == null) {
             logger.debug("Cannot extract user credentials from null servletRequest");

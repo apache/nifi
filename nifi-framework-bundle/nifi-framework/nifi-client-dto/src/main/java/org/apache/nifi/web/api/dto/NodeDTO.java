@@ -57,7 +57,7 @@ public class NodeDTO {
         return heartbeat;
     }
 
-    public void setHeartbeat(Date heartbeat) {
+    public void setHeartbeat(final Date heartbeat) {
         this.heartbeat = heartbeat;
     }
 
@@ -73,7 +73,7 @@ public class NodeDTO {
         return connectionRequested;
     }
 
-    public void setConnectionRequested(Date connectionRequested) {
+    public void setConnectionRequested(final Date connectionRequested) {
         this.connectionRequested = connectionRequested;
     }
 
@@ -89,7 +89,7 @@ public class NodeDTO {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -103,7 +103,7 @@ public class NodeDTO {
         return queued;
     }
 
-    public void setQueued(String queued) {
+    public void setQueued(final String queued) {
         this.queued = queued;
     }
 
@@ -117,7 +117,7 @@ public class NodeDTO {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(final String address) {
         this.address = address;
     }
 
@@ -131,7 +131,7 @@ public class NodeDTO {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
+    public void setNodeId(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -145,7 +145,7 @@ public class NodeDTO {
         return apiPort;
     }
 
-    public void setApiPort(Integer port) {
+    public void setApiPort(final Integer port) {
         this.apiPort = port;
     }
 
@@ -158,7 +158,7 @@ public class NodeDTO {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(final String status) {
         this.status = status;
     }
 
@@ -172,7 +172,7 @@ public class NodeDTO {
         return events;
     }
 
-    public void setEvents(List<NodeEventDTO> events) {
+    public void setEvents(final List<NodeEventDTO> events) {
         this.events = events;
     }
 
@@ -186,7 +186,7 @@ public class NodeDTO {
         return roles;
     }
 
-    public void setRoles(Set<String> roles) {
+    public void setRoles(final Set<String> roles) {
         this.roles = roles;
     }
 
@@ -202,7 +202,7 @@ public class NodeDTO {
         return nodeStartTime;
     }
 
-    public void setNodeStartTime(Date nodeStartTime) {
+    public void setNodeStartTime(final Date nodeStartTime) {
         this.nodeStartTime = nodeStartTime;
     }
 
@@ -216,7 +216,7 @@ public class NodeDTO {
         return flowFilesQueued;
     }
 
-    public void setFlowFilesQueued(Integer flowFilesQueued) {
+    public void setFlowFilesQueued(final Integer flowFilesQueued) {
         this.flowFilesQueued = flowFilesQueued;
     }
 
@@ -230,7 +230,7 @@ public class NodeDTO {
         return bytesQueued;
     }
 
-    public void setFlowFileBytes(Long bytesQueued) {
+    public void setFlowFileBytes(final Long bytesQueued) {
         this.bytesQueued = bytesQueued;
     }
 }

@@ -546,7 +546,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier, final NiFiUser user) {
+    public ComputeLineageSubmission retrieveLineageSubmission(final String lineageIdentifier, final NiFiUser user) {
         final ComputeLineageSubmission submission = lineageSubmissionMap.get(lineageIdentifier);
         final String userId = submission.getSubmitterIdentity();
 
@@ -565,7 +565,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request.");
     }
 
-    public Lineage expandSpawnEventParents(String identifier) throws IOException {
+    public Lineage expandSpawnEventParents(final String identifier) throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -638,12 +638,12 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerUsableSpace(String containerName) throws IOException {
+    public long getContainerUsableSpace(final String containerName) throws IOException {
         return maxSize - ringBuffer.getSize();
     }
 
     @Override
-    public String getContainerFileStoreName(String containerName) {
+    public String getContainerFileStoreName(final String containerName) {
         return null;
     }
 

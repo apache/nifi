@@ -37,7 +37,7 @@ public class VersionedFlowDifference {
         return componentDifferenceGroups;
     }
 
-    public void setComponentDifferenceGroups(Set<ComponentDifferenceGroup> componentDifferenceGroups) {
+    public void setComponentDifferenceGroups(final Set<ComponentDifferenceGroup> componentDifferenceGroups) {
         this.componentDifferenceGroups = componentDifferenceGroups;
     }
 
@@ -46,7 +46,7 @@ public class VersionedFlowDifference {
         return bucketId;
     }
 
-    public void setBucketId(String bucketId) {
+    public void setBucketId(final String bucketId) {
         this.bucketId = bucketId;
     }
 
@@ -55,7 +55,7 @@ public class VersionedFlowDifference {
         return flowId;
     }
 
-    public void setFlowId(String flowId) {
+    public void setFlowId(final String flowId) {
         this.flowId = flowId;
     }
 
@@ -64,7 +64,7 @@ public class VersionedFlowDifference {
         return versionA;
     }
 
-    public void setVersionA(int versionA) {
+    public void setVersionA(final int versionA) {
         this.versionA = versionA;
     }
 
@@ -73,7 +73,7 @@ public class VersionedFlowDifference {
         return versionB;
     }
 
-    public void setVersionB(int versionB) {
+    public void setVersionB(final int versionB) {
         this.versionB = versionB;
     }
 }

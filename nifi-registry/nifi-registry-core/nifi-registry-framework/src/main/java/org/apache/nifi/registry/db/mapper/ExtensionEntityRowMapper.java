@@ -27,7 +27,7 @@ import java.sql.SQLException;
 public class ExtensionEntityRowMapper implements RowMapper<ExtensionEntity> {
 
     @Override
-    public ExtensionEntity mapRow(ResultSet rs, int i) throws SQLException {
+    public ExtensionEntity mapRow(final ResultSet rs, final int i) throws SQLException {
         final ExtensionEntity entity = new ExtensionEntity();
 
         // fields from extension table...

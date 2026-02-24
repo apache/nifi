@@ -59,7 +59,7 @@ public interface KerberosUser {
      * @return the result of the action
      * @throws IllegalStateException if attempting to execute an action before performing a login
      */
-    default <T> T doAs(PrivilegedAction<T> action, ClassLoader contextClassLoader) throws IllegalStateException {
+    default <T> T doAs(final PrivilegedAction<T> action, final ClassLoader contextClassLoader) throws IllegalStateException {
         final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(contextClassLoader);
         try {
@@ -91,7 +91,7 @@ public interface KerberosUser {
      * @throws IllegalStateException if attempting to execute an action before performing a login
      * @throws PrivilegedActionException if the action itself threw an exception
      */
-    default <T> T doAs(PrivilegedExceptionAction<T> action, ClassLoader contextClassLoader)
+    default <T> T doAs(final PrivilegedExceptionAction<T> action, final ClassLoader contextClassLoader)
             throws IllegalStateException, PrivilegedActionException {
         final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(contextClassLoader);

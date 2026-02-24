@@ -33,7 +33,7 @@ public class StartVersionControlRequestEntity extends Entity {
         return versionedFlow;
     }
 
-    public void setVersionedFlow(VersionedFlowDTO versionedFLow) {
+    public void setVersionedFlow(final VersionedFlowDTO versionedFLow) {
         this.versionedFlow = versionedFLow;
     }
 
@@ -52,7 +52,7 @@ public class StartVersionControlRequestEntity extends Entity {
         return disconnectedNodeAcknowledged;
     }
 
-    public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
+    public void setDisconnectedNodeAcknowledged(final Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
     }
 }

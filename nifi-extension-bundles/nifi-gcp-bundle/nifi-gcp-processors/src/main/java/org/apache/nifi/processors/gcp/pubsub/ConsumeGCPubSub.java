@@ -217,7 +217,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     @Override
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         final Integer batchSize = context.getProperty(BATCH_SIZE_THRESHOLD).asInteger();
 
         pullRequest = PullRequest.newBuilder()
@@ -227,7 +227,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
         try {
             subscriber = getSubscriber(context);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             storedException.set(e);
             getLogger().error("Failed to create Google Cloud Subscriber", e);
         }
@@ -324,7 +324,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         final PullResponse pullResponse = subscriber.pullCallable().call(pullRequest);
         final List<String> ackIds = new ArrayList<>();
         final String subscriptionName = getSubscriptionName(context, null);
-        List<ReceivedMessage> receivedMessages = pullResponse.getReceivedMessagesList();
+        final List<ReceivedMessage> receivedMessages = pullResponse.getReceivedMessagesList();
 
         switch (processingStrategy) {
             case RECORD -> processInputRecords(context, session, receivedMessages, subscriptionName, ackIds);
@@ -336,7 +336,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("gcp-pubsub-subscription", SUBSCRIPTION.getName());
     }
@@ -349,8 +349,8 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         try {
             flowFile = session.write(flowFile, new OutputStreamCallback() {
                 @Override
-                public void process(OutputStream out) throws IOException {
-                    for (ReceivedMessage message : receivedMessages) {
+                public void process(final OutputStream out) throws IOException {
+                    for (final ReceivedMessage message : receivedMessages) {
                         if (message.hasMessage()) {
                             out.write(message.getMessage().getData().toByteArray());
                             out.write(demarcator);
@@ -360,7 +360,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
                 }
             });
             session.putAttribute(flowFile, SUBSCRIPTION_NAME_ATTRIBUTE, subscriptionName);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             ackIds.clear();
             session.remove(flowFile);
             throw new ProcessException("Failed to write batch of messages in FlowFile", e);
@@ -377,7 +377,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     }
 
     private void processInputFlowFile(final ProcessSession session, final List<ReceivedMessage> receivedMessages, final String subscriptionName, final List<String> ackIds) {
-        for (ReceivedMessage message : receivedMessages) {
+        for (final ReceivedMessage message : receivedMessages) {
             if (message.hasMessage()) {
                 FlowFile flowFile = session.create();
 
@@ -405,7 +405,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        PubSubMessageConverter converter = switch (outputStrategy) {
+        final PubSubMessageConverter converter = switch (outputStrategy) {
             case USE_VALUE -> new RecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
             case USE_WRAPPER -> new WrapperRecordStreamPubSubMessageConverter(readerFactory, writerFactory, getLogger());
         };
@@ -418,7 +418,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
             return;
         }
 
-        AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
+        final AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
                 .addAllAckIds(ackIds)
                 .setSubscription(subscriptionName)
                 .build();

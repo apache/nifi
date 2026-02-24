@@ -53,7 +53,7 @@ public class RequireServerSSLContextService extends AbstractFlowAnalysisRule {
     private static final String SERVICE_PROPERTY_NAME = "SSL Context Service";
 
     @Override
-    public Collection<ComponentAnalysisResult> analyzeComponent(VersionedComponent component, FlowAnalysisRuleContext context) {
+    public Collection<ComponentAnalysisResult> analyzeComponent(final VersionedComponent component, final FlowAnalysisRuleContext context) {
         final Collection<ComponentAnalysisResult> results = new HashSet<>();
 
         if (component instanceof VersionedConfigurableExtension versionedConfigurableExtension) {

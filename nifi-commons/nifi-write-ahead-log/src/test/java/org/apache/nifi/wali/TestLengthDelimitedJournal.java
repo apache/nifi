@@ -501,7 +501,7 @@ public class TestLengthDelimitedJournal {
                 if (count.getAndIncrement() == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
                     try {
                         Thread.sleep(3000L);
-                    } catch (InterruptedException ignored) {
+                    } catch (final InterruptedException ignored) {
                     }
                 }
 
@@ -537,7 +537,7 @@ public class TestLengthDelimitedJournal {
             t1.start();
             t2.start();
 
-            for (Thread thread : threads) {
+            for (final Thread thread : threads) {
                 thread.join();
             }
         } finally {

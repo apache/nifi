@@ -35,7 +35,7 @@ public class FunnelsEntity extends Entity {
         return funnels;
     }
 
-    public void setFunnels(Set<FunnelEntity> labels) {
+    public void setFunnels(final Set<FunnelEntity> labels) {
         this.funnels = labels;
     }
 

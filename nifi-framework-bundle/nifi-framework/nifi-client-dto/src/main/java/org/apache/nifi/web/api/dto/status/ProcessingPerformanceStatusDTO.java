@@ -36,7 +36,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return identifier;
     }
 
-    public void setIdentifier(String identifier) {
+    public void setIdentifier(final String identifier) {
         this.identifier = identifier;
     }
 
@@ -45,7 +45,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return cpuDuration;
     }
 
-    public void setCpuDuration(long cpuDuration) {
+    public void setCpuDuration(final long cpuDuration) {
         this.cpuDuration = cpuDuration;
     }
 
@@ -54,7 +54,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return contentReadDuration;
     }
 
-    public void setContentReadDuration(long contentReadDuration) {
+    public void setContentReadDuration(final long contentReadDuration) {
         this.contentReadDuration = contentReadDuration;
     }
 
@@ -63,7 +63,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return contentWriteDuration;
     }
 
-    public void setContentWriteDuration(long contentWriteDuration) {
+    public void setContentWriteDuration(final long contentWriteDuration) {
         this.contentWriteDuration = contentWriteDuration;
     }
 
@@ -72,7 +72,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return sessionCommitDuration;
     }
 
-    public void setSessionCommitDuration(long sessionCommitDuration) {
+    public void setSessionCommitDuration(final long sessionCommitDuration) {
         this.sessionCommitDuration = sessionCommitDuration;
     }
 
@@ -81,7 +81,7 @@ public class ProcessingPerformanceStatusDTO implements Cloneable {
         return garbageCollectionDuration;
     }
 
-    public void setGarbageCollectionDuration(long garbageCollectionDuration) {
+    public void setGarbageCollectionDuration(final long garbageCollectionDuration) {
         this.garbageCollectionDuration = garbageCollectionDuration;
     }
 

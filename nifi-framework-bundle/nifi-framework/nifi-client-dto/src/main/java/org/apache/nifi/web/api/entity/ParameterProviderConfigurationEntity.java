@@ -59,7 +59,7 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
     }
 
     @Override
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -74,7 +74,7 @@ public class ParameterProviderConfigurationEntity implements Permissible<Paramet
     }
 
     @Override
-    public void setComponent(ParameterProviderConfigurationDTO component) {
+    public void setComponent(final ParameterProviderConfigurationDTO component) {
         this.component = component;
     }
 }

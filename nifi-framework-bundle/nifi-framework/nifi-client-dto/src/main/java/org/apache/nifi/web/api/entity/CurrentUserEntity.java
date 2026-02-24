@@ -53,7 +53,7 @@ public class CurrentUserEntity extends Entity {
         return identity;
     }
 
-    public void setIdentity(String identity) {
+    public void setIdentity(final String identity) {
         this.identity = identity;
     }
 
@@ -65,7 +65,7 @@ public class CurrentUserEntity extends Entity {
         return anonymous;
     }
 
-    public void setAnonymous(boolean anonymous) {
+    public void setAnonymous(final boolean anonymous) {
         this.anonymous = anonymous;
     }
 
@@ -89,7 +89,7 @@ public class CurrentUserEntity extends Entity {
         return provenancePermissions;
     }
 
-    public void setProvenancePermissions(PermissionsDTO provenancePermissions) {
+    public void setProvenancePermissions(final PermissionsDTO provenancePermissions) {
         this.provenancePermissions = provenancePermissions;
     }
 
@@ -101,7 +101,7 @@ public class CurrentUserEntity extends Entity {
         return countersPermissions;
     }
 
-    public void setCountersPermissions(PermissionsDTO countersPermissions) {
+    public void setCountersPermissions(final PermissionsDTO countersPermissions) {
         this.countersPermissions = countersPermissions;
     }
 
@@ -113,7 +113,7 @@ public class CurrentUserEntity extends Entity {
         return tenantsPermissions;
     }
 
-    public void setTenantsPermissions(PermissionsDTO tenantsPermissions) {
+    public void setTenantsPermissions(final PermissionsDTO tenantsPermissions) {
         this.tenantsPermissions = tenantsPermissions;
     }
 
@@ -125,7 +125,7 @@ public class CurrentUserEntity extends Entity {
         return controllerPermissions;
     }
 
-    public void setControllerPermissions(PermissionsDTO controllerPermissions) {
+    public void setControllerPermissions(final PermissionsDTO controllerPermissions) {
         this.controllerPermissions = controllerPermissions;
     }
 
@@ -137,7 +137,7 @@ public class CurrentUserEntity extends Entity {
         return policiesPermissions;
     }
 
-    public void setPoliciesPermissions(PermissionsDTO policiesPermissions) {
+    public void setPoliciesPermissions(final PermissionsDTO policiesPermissions) {
         this.policiesPermissions = policiesPermissions;
     }
 
@@ -149,7 +149,7 @@ public class CurrentUserEntity extends Entity {
         return systemPermissions;
     }
 
-    public void setSystemPermissions(PermissionsDTO systemPermissions) {
+    public void setSystemPermissions(final PermissionsDTO systemPermissions) {
         this.systemPermissions = systemPermissions;
     }
 
@@ -161,7 +161,7 @@ public class CurrentUserEntity extends Entity {
         return parameterContextPermissions;
     }
 
-    public void setParameterContextPermissions(PermissionsDTO parameterContextPermissions) {
+    public void setParameterContextPermissions(final PermissionsDTO parameterContextPermissions) {
         this.parameterContextPermissions = parameterContextPermissions;
     }
 
@@ -173,7 +173,7 @@ public class CurrentUserEntity extends Entity {
         return restrictedComponentsPermissions;
     }
 
-    public void setRestrictedComponentsPermissions(PermissionsDTO restrictedComponentsPermissions) {
+    public void setRestrictedComponentsPermissions(final PermissionsDTO restrictedComponentsPermissions) {
         this.restrictedComponentsPermissions = restrictedComponentsPermissions;
     }
 
@@ -185,7 +185,7 @@ public class CurrentUserEntity extends Entity {
         return componentRestrictionPermissions;
     }
 
-    public void setComponentRestrictionPermissions(Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions) {
+    public void setComponentRestrictionPermissions(final Set<ComponentRestrictionPermissionDTO> componentRestrictionPermissions) {
         this.componentRestrictionPermissions = componentRestrictionPermissions;
     }
 
@@ -197,7 +197,7 @@ public class CurrentUserEntity extends Entity {
         return canVersionFlows;
     }
 
-    public void setCanVersionFlows(boolean canVersionFlows) {
+    public void setCanVersionFlows(final boolean canVersionFlows) {
         this.canVersionFlows = canVersionFlows;
     }
 }

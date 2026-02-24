@@ -172,7 +172,7 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
     }
 
     private int getStatusHistoryDaysRequested(final String daysRequestArgument) {
-        int daysRequested;
+        final int daysRequested;
 
         try {
             daysRequested = Integer.parseInt(daysRequestArgument);

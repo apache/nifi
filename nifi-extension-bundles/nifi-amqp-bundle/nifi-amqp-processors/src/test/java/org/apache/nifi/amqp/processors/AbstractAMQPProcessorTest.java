@@ -89,7 +89,7 @@ public class AbstractAMQPProcessorTest {
     }
 
     private void configureSSLContextService() throws InitializationException {
-        SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
+        final SSLContextProvider sslContextProvider = mock(SSLContextProvider.class);
         when(sslContextProvider.getIdentifier()).thenReturn("ssl-context");
         testRunner.addControllerService("ssl-context", sslContextProvider);
         testRunner.enableControllerService(sslContextProvider);

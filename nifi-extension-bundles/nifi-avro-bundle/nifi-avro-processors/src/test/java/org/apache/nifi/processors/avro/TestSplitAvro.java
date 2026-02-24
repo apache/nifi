@@ -86,7 +86,7 @@ public class TestSplitAvro {
             dataFileWriter.setMeta(META_KEY3, META_VALUE3.getBytes(StandardCharsets.UTF_8));
 
             dataFileWriter.create(schema, users);
-            for (GenericRecord user : userList) {
+            for (final GenericRecord user : userList) {
                 dataFileWriter.append(user);
             }
             dataFileWriter.flush();
@@ -126,7 +126,7 @@ public class TestSplitAvro {
         checkDataFileSplitSize(flowFiles, 1, true);
         final String fragmentIdentifier = flowFiles.get(0).getAttribute("fragment.identifier");
         IntStream.range(0, flowFiles.size()).forEach((i) -> {
-            MockFlowFile flowFile = flowFiles.get(i);
+            final MockFlowFile flowFile = flowFiles.get(i);
             assertEquals(i, Integer.parseInt(flowFile.getAttribute("fragment.index")));
             assertEquals(fragmentIdentifier, flowFile.getAttribute("fragment.identifier"));
             assertEquals(flowFiles.size(), Integer.parseInt(flowFile.getAttribute(FRAGMENT_COUNT.key())));
@@ -285,7 +285,7 @@ public class TestSplitAvro {
                         count++;
                         record = reader.read(record, decoder);
                     }
-                } catch (EOFException ignored) {
+                } catch (final EOFException ignored) {
                     // expected
                 }
                 assertEquals(expectedRecordsPerSplit, count);
@@ -299,7 +299,7 @@ public class TestSplitAvro {
         }
     }
 
-    private void checkDataFileSplitSize(List<MockFlowFile> flowFiles, int expectedRecordsPerSplit, boolean checkMetadata) throws IOException {
+    private void checkDataFileSplitSize(final List<MockFlowFile> flowFiles, final int expectedRecordsPerSplit, final boolean checkMetadata) throws IOException {
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());
                 final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
@@ -323,7 +323,7 @@ public class TestSplitAvro {
         }
     }
 
-    private void checkDataFileTotalSize(List<MockFlowFile> flowFiles, int expectedTotalRecords) throws IOException {
+    private void checkDataFileTotalSize(final List<MockFlowFile> flowFiles, final int expectedTotalRecords) throws IOException {
         int count = 0;
         for (final MockFlowFile flowFile : flowFiles) {
             try (final ByteArrayInputStream in = new ByteArrayInputStream(flowFile.toByteArray());

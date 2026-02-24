@@ -48,7 +48,7 @@ public class ProcessGroupFlowDTO {
         return flow;
     }
 
-    public void setFlow(FlowDTO flow) {
+    public void setFlow(final FlowDTO flow) {
         this.flow = flow;
     }
 
@@ -78,7 +78,7 @@ public class ProcessGroupFlowDTO {
         return breadcrumb;
     }
 
-    public void setBreadcrumb(FlowBreadcrumbEntity breadcrumb) {
+    public void setBreadcrumb(final FlowBreadcrumbEntity breadcrumb) {
         this.breadcrumb = breadcrumb;
     }
 
@@ -91,7 +91,7 @@ public class ProcessGroupFlowDTO {
         return parentGroupId;
     }
 
-    public void setParentGroupId(String parentGroupId) {
+    public void setParentGroupId(final String parentGroupId) {
         this.parentGroupId = parentGroupId;
     }
 
@@ -106,7 +106,7 @@ public class ProcessGroupFlowDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -118,7 +118,7 @@ public class ProcessGroupFlowDTO {
         return lastRefreshed;
     }
 
-    public void setLastRefreshed(Date lastRefreshed) {
+    public void setLastRefreshed(final Date lastRefreshed) {
         this.lastRefreshed = lastRefreshed;
     }
 
@@ -127,7 +127,7 @@ public class ProcessGroupFlowDTO {
         return parameterContext;
     }
 
-    public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
+    public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
     }
 }

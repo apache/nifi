@@ -243,7 +243,7 @@ public class PutWebSocket extends AbstractProcessor {
 
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
 
-        } catch (WebSocketConfigurationException | IllegalStateException | IOException e) {
+        } catch (final WebSocketConfigurationException | IllegalStateException | IOException e) {
             // WebSocketConfigurationException: If the corresponding WebSocketGatewayProcessor has been stopped.
             // IllegalStateException: Session is already closed or not found.
             // IOException: other IO error.
@@ -254,16 +254,16 @@ public class PutWebSocket extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("websocket-session-id", PROP_WS_SESSION_ID.getName());
         config.renameProperty("websocket-controller-service-id", PROP_WS_CONTROLLER_SERVICE_ID.getName());
         config.renameProperty("websocket-endpoint-id", PROP_WS_CONTROLLER_SERVICE_ENDPOINT.getName());
         config.renameProperty("websocket-message-type", PROP_WS_MESSAGE_TYPE.getName());
     }
 
-    private void transferToFailure(final ProcessSession processSession, FlowFile flowfile, final String value) {
-        flowfile = processSession.putAttribute(flowfile, ATTR_WS_FAILURE_DETAIL, value);
-        processSession.transfer(flowfile, REL_FAILURE);
+    private void transferToFailure(final ProcessSession processSession, final FlowFile flowfile, final String value) {
+        final FlowFile updatedFlowfile = processSession.putAttribute(flowfile, ATTR_WS_FAILURE_DETAIL, value);
+        processSession.transfer(updatedFlowfile, REL_FAILURE);
     }
 
 }

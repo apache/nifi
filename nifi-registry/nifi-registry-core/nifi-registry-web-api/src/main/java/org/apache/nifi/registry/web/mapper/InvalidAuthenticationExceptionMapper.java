@@ -35,7 +35,7 @@ public class InvalidAuthenticationExceptionMapper implements ExceptionMapper<Inv
     private static final Logger logger = LoggerFactory.getLogger(InvalidAuthenticationExceptionMapper.class);
 
     @Override
-    public Response toResponse(InvalidAuthenticationException exception) {
+    public Response toResponse(final InvalidAuthenticationException exception) {
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }

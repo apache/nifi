@@ -41,7 +41,7 @@ public class ReplayLastEventRequestEntity extends Entity {
         return nodes;
     }
 
-    public void setNodes(String nodes) {
+    public void setNodes(final String nodes) {
         this.nodes = nodes;
     }
 }

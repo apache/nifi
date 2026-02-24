@@ -26,12 +26,12 @@ public class DDLEventInfo extends BaseBinlogTableEventInfo implements TableEvent
 
     private String query;
 
-    public DDLEventInfo(TableInfo tableInfo, Long timestamp, String binlogFilename, long binlogPosition, String query) {
+    public DDLEventInfo(final TableInfo tableInfo, final Long timestamp, final String binlogFilename, final long binlogPosition, final String query) {
         super(tableInfo, DDL_EVENT, timestamp, binlogFilename, binlogPosition);
         this.query = query;
     }
 
-    public DDLEventInfo(TableInfo tableInfo, Long timestamp, String binlogGtidSet, String query) {
+    public DDLEventInfo(final TableInfo tableInfo, final Long timestamp, final String binlogGtidSet, final String query) {
         super(tableInfo, DDL_EVENT, timestamp, binlogGtidSet);
         this.query = query;
     }

@@ -234,7 +234,7 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     private synchronized KerberosTicket getTGT() {
         final Set<KerberosTicket> tickets = subject.getPrivateCredentials(KerberosTicket.class);
 
-        for (KerberosTicket ticket : tickets) {
+        for (final KerberosTicket ticket : tickets) {
             if (isTGSPrincipal(ticket.getServer())) {
                 return ticket;
             }

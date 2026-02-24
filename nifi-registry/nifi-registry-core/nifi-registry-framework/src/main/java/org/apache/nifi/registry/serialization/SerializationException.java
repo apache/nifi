@@ -21,15 +21,15 @@ package org.apache.nifi.registry.serialization;
  */
 public class SerializationException extends RuntimeException {
 
-    public SerializationException(String message) {
+    public SerializationException(final String message) {
         super(message);
     }
 
-    public SerializationException(String message, Throwable cause) {
+    public SerializationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 
-    public SerializationException(Throwable cause) {
+    public SerializationException(final Throwable cause) {
         super(cause);
     }
 }

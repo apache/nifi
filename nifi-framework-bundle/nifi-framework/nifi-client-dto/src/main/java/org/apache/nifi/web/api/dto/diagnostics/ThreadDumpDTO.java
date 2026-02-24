@@ -35,7 +35,7 @@ public class ThreadDumpDTO {
         return nodeId;
     }
 
-    public void setNodeId(String nodeId) {
+    public void setNodeId(final String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -44,7 +44,7 @@ public class ThreadDumpDTO {
         return nodeAddress;
     }
 
-    public void setNodeAddress(String nodeAddress) {
+    public void setNodeAddress(final String nodeAddress) {
         this.nodeAddress = nodeAddress;
     }
 
@@ -53,7 +53,7 @@ public class ThreadDumpDTO {
         return apiPort;
     }
 
-    public void setApiPort(Integer port) {
+    public void setApiPort(final Integer port) {
         this.apiPort = port;
     }
 
@@ -62,7 +62,7 @@ public class ThreadDumpDTO {
         return stackTrace;
     }
 
-    public void setStackTrace(String stackTrace) {
+    public void setStackTrace(final String stackTrace) {
         this.stackTrace = stackTrace;
     }
 
@@ -71,7 +71,7 @@ public class ThreadDumpDTO {
         return threadName;
     }
 
-    public void setThreadName(String threadName) {
+    public void setThreadName(final String threadName) {
         this.threadName = threadName;
     }
 
@@ -80,7 +80,7 @@ public class ThreadDumpDTO {
         return threadActiveMillis;
     }
 
-    public void setThreadActiveMillis(long threadActiveMillis) {
+    public void setThreadActiveMillis(final long threadActiveMillis) {
         this.threadActiveMillis = threadActiveMillis;
     }
 

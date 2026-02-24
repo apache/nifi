@@ -45,7 +45,7 @@ public class CriteriaSerDe {
     static {
         try {
             JAXB_CONTEXT = JAXBContext.newInstance(CriteriaBinding.class);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Could not create JAXB Context for UpdateAttribute", e);
         }
     }
@@ -71,7 +71,7 @@ public class CriteriaSerDe {
             return rules;
         }
 
-        public void setRules(List<Rule> rules) {
+        public void setRules(final List<Rule> rules) {
             this.rules = rules;
         }
 
@@ -79,7 +79,7 @@ public class CriteriaSerDe {
             return flowFilePolicy;
         }
 
-        public void setFlowFilePolicy(FlowFilePolicy flowFilePolicy) {
+        public void setFlowFilePolicy(final FlowFilePolicy flowFilePolicy) {
             this.flowFilePolicy = flowFilePolicy;
         }
     }
@@ -125,7 +125,7 @@ public class CriteriaSerDe {
                 // deserialize the binding
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-                XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8))));
+                final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8))));
                 final JAXBElement<CriteriaBinding> element = unmarshaller.unmarshal(xsr, CriteriaBinding.class);
 
                 // create the criteria from the binding

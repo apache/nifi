@@ -32,11 +32,11 @@ public class ConnectionViolation {
     private final String configuredValue;
     private final String ruleLimit;
 
-    public ConnectionViolation(VersionedConnection connection,
-                               ViolationType violationType,
-                               String rule,
-                               String configuredValue,
-                               String ruleLimit) {
+    public ConnectionViolation(final VersionedConnection connection,
+                               final ViolationType violationType,
+                               final String rule,
+                               final String configuredValue,
+                               final String ruleLimit) {
         this.connection = connection;
         this.violationType = violationType;
         this.rule = rule;
@@ -50,9 +50,9 @@ public class ConnectionViolation {
      * @param components the components in a ProcessGroup that could be attached to this VersionedConnection.
      * @return a GroupAnalysisResult
      */
-    public GroupAnalysisResult convertToGroupAnalysisResult(Map<String, VersionedComponent> components) {
-        VersionedComponent source = components.get(connection.getSource().getId());
-        VersionedComponent destination = components.get(connection.getDestination().getId());
+    public GroupAnalysisResult convertToGroupAnalysisResult(final Map<String, VersionedComponent> components) {
+        final VersionedComponent source = components.get(connection.getSource().getId());
+        final VersionedComponent destination = components.get(connection.getDestination().getId());
         return GroupAnalysisResult.forComponent(
                         assignConnectionViolationToComponent(connection, source, destination),
                         connection.getIdentifier() + "_" + violationType.getId(),
@@ -96,26 +96,26 @@ public class ConnectionViolation {
     private String getConnectionLocationMessage(
             final VersionedConnection connection, final VersionedComponent source, final VersionedComponent destination, final String rule) {
 
-        StringBuilder message = new StringBuilder();
+        final StringBuilder message = new StringBuilder();
         message.append("The connection ");
         if (StringUtils.isNotEmpty(connection.getName())) {
             // Output connection name if it has been named
             message.append(connection.getName()).append(' ');
         } else {
             // Output connection relationships by name
-            String relationships = String.join(",", connection.getSelectedRelationships());
+            final String relationships = String.join(",", connection.getSelectedRelationships());
             if (StringUtils.isNotEmpty(relationships)) {
                 message.append(relationships).append(' ');
             }
         }
         message.append("[").append(connection.getIdentifier()).append("]");
         if (source != null) {
-            String sourceName =
+            final String sourceName =
                     (source instanceof VersionedFunnel) ? "funnel" : source.getName();
             message.append(" from source ").append(sourceName).append(" [").append(source.getIdentifier()).append("]");
         }
         if (destination != null) {
-            String destinationName =
+            final String destinationName =
                     (destination instanceof VersionedFunnel) ? "funnel" : destination.getName();
             message.append(" to destination ").append(destinationName).append(" [").append(destination.getIdentifier()).append("]");
         }

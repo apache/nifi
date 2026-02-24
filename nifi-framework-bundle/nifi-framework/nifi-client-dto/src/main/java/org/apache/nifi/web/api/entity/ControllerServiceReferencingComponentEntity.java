@@ -39,7 +39,7 @@ public class ControllerServiceReferencingComponentEntity extends ComponentEntity
         return component;
     }
 
-    public void setComponent(ControllerServiceReferencingComponentDTO component) {
+    public void setComponent(final ControllerServiceReferencingComponentDTO component) {
         this.component = component;
     }
 
@@ -54,7 +54,7 @@ public class ControllerServiceReferencingComponentEntity extends ComponentEntity
     }
 
     @Override
-    public void setOperatePermissions(PermissionsDTO permissions) {
+    public void setOperatePermissions(final PermissionsDTO permissions) {
         this.operatePermissions = permissions;
     }
 }

@@ -41,7 +41,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
     @Test
     void testConvertOwnership() {
-        PartitionOwnership partitionOwnership = convertOwnership(OWNERSHIP_KEY, OWNERSHIP_VALUE);
+        final PartitionOwnership partitionOwnership = convertOwnership(OWNERSHIP_KEY, OWNERSHIP_VALUE);
 
         assertNotNull(partitionOwnership);
 
@@ -57,7 +57,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
     @Test
     void testConvertCheckpoint() {
-        Checkpoint checkpoint = convertCheckpoint(CHECKPOINT_KEY, CHECKPOINT_VALUE);
+        final Checkpoint checkpoint = convertCheckpoint(CHECKPOINT_KEY, CHECKPOINT_VALUE);
 
         assertNotNull(checkpoint);
 
@@ -72,7 +72,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
     @Test
     void testConvertPartitionContextFromOwnershipKey() {
-        PartitionContext partitionContext = convertPartitionContext(OWNERSHIP_KEY);
+        final PartitionContext partitionContext = convertPartitionContext(OWNERSHIP_KEY);
 
         assertNotNull(partitionContext);
 
@@ -84,7 +84,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
     @Test
     void testConvertPartitionContextFromCheckpointKey() {
-        PartitionContext partitionContext = convertPartitionContext(CHECKPOINT_KEY);
+        final PartitionContext partitionContext = convertPartitionContext(CHECKPOINT_KEY);
 
         assertNotNull(partitionContext);
 
@@ -96,7 +96,7 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
 
     @Test
     void testOwnershipKey() {
-        String ownershipKey = createOwnershipKey(partitionOwnership1);
+        final String ownershipKey = createOwnershipKey(partitionOwnership1);
 
         assertEquals(OWNERSHIP_KEY, ownershipKey);
     }
@@ -107,21 +107,21 @@ class ComponentStateCheckpointStoreUtilsTest extends AbstractCheckpointStoreTest
                 .setLastModifiedTime(LAST_MODIFIED_TIME)
                 .setETag(ETAG);
 
-        String ownershipValue = createOwnershipValue(partitionOwnership1);
+        final String ownershipValue = createOwnershipValue(partitionOwnership1);
 
         assertEquals(OWNERSHIP_VALUE, ownershipValue);
     }
 
     @Test
     void testCheckpointKey() {
-        String checkpointKey = createCheckpointKey(checkpoint1);
+        final String checkpointKey = createCheckpointKey(checkpoint1);
 
         assertEquals(CHECKPOINT_KEY, checkpointKey);
     }
 
     @Test
     void testCheckpointValue() {
-        String checkpointValue = createCheckpointValue(checkpoint1);
+        final String checkpointValue = createCheckpointValue(checkpoint1);
 
         assertEquals(CHECKPOINT_VALUE, checkpointValue);
     }

@@ -51,7 +51,7 @@ public class SetVariable extends AbstractCommand<VoidResult> {
         try {
             getContext().getSession().set(args[0], args[1]);
             return VoidResult.getInstance();
-        } catch (SessionException se) {
+        } catch (final SessionException se) {
             throw new CommandException(se.getMessage(), se);
         }
     }

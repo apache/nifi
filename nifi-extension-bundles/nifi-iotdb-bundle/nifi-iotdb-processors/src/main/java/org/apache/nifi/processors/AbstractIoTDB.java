@@ -129,7 +129,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         typeMap.put(RecordFieldType.LONG, TSDataType.INT64);
         typeMap.put(RecordFieldType.FLOAT, TSDataType.FLOAT);
         typeMap.put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
-        for (Map.Entry<RecordFieldType, TSDataType> it : typeMap.entrySet()) {
+        for (final Map.Entry<RecordFieldType, TSDataType> it : typeMap.entrySet()) {
             reversedTypeMap.put(String.valueOf(it.getValue()), it.getKey());
         }
 
@@ -153,7 +153,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IoTDBConnectionException {
+    public void onScheduled(final ProcessContext context) throws IoTDBConnectionException {
         if (session.get() == null) {
             final String host = context.getProperty(IOTDB_HOST).getValue();
             final int port = Integer.parseInt(context.getProperty(IOTDB_PORT).getValue());
@@ -193,71 +193,71 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return PROPERTY_DESCRIPTORS;
     }
 
-    protected TSDataType getType(RecordFieldType type) {
+    protected TSDataType getType(final RecordFieldType type) {
         return typeMap.get(type);
     }
 
-    protected RecordFieldType getType(String type) {
+    protected RecordFieldType getType(final String type) {
         return reversedTypeMap.get(type);
     }
 
-    protected ValidationResult validateSchemaAttribute(String schemaAttribute) {
-        JsonNode schema;
+    protected ValidationResult validateSchemaAttribute(final String schemaAttribute) {
+        final JsonNode schema;
         try {
             schema = mapper.readTree(schemaAttribute);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             return new ValidationResult(false, e.getMessage());
         }
-        Set<String> keySet = new HashSet<>();
+        final Set<String> keySet = new HashSet<>();
         schema.fieldNames().forEachRemaining(keySet::add);
 
         if (!keySet.contains(FIELDS)) {
-            String msg = "The JSON of schema must contain `fields`";
+            final String msg = "The JSON of schema must contain `fields`";
             return new ValidationResult(false, msg);
         }
 
         for (int i = 0; i < schema.get(FIELDS).size(); i++) {
-            JsonNode field = schema.get(FIELDS).get(i);
-            Set<String> fieldKeySet = new HashSet<>();
+            final JsonNode field = schema.get(FIELDS).get(i);
+            final Set<String> fieldKeySet = new HashSet<>();
 
             field.fieldNames().forEachRemaining(fieldKeySet::add);
             if (!fieldKeySet.contains("tsName") || !fieldKeySet.contains("dataType")) {
-                String msg = "`tsName` or `dataType` has not been set";
+                final String msg = "`tsName` or `dataType` has not been set";
                 return new ValidationResult(false, msg);
             }
 
             if (!DatabaseField.getSupportedDataType().contains(field.get("dataType").asText())) {
-                String msg =
+                final String msg =
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
                                 field.get("dataType").asText(), DatabaseField.getSupportedDataType());
                 return new ValidationResult(false, msg);
             }
 
-            Set<String> supportedKeySet = new HashSet<>();
+            final Set<String> supportedKeySet = new HashSet<>();
             supportedKeySet.add("tsName");
             supportedKeySet.add("dataType");
             supportedKeySet.add("encoding");
             supportedKeySet.add("compressionType");
 
-            Set<String> tmpKetSet = new HashSet<>();
+            final Set<String> tmpKetSet = new HashSet<>();
             tmpKetSet.addAll(supportedKeySet);
             tmpKetSet.addAll(fieldKeySet);
             tmpKetSet.removeAll(supportedKeySet);
             if (!tmpKetSet.isEmpty()) {
-                String msg = "Unknown property or properties: " + tmpKetSet;
+                final String msg = "Unknown property or properties: " + tmpKetSet;
                 return new ValidationResult(false, msg);
             }
 
             if (fieldKeySet.contains("compressionType") && !fieldKeySet.contains("encoding")) {
-                String msg =
+                final String msg =
                         "The `compressionType` has been set, but the `encoding` has not. The property `compressionType` will not take effect";
                 return new ValidationResult(true, msg);
             }
 
             if (field.get("encoding") != null
                     && !DatabaseField.getSupportedEncoding().contains(field.get("encoding").asText())) {
-                String msg =
+                final String msg =
                         String.format(
                                 "Unknown `encoding`: %s, The supported encoding types are %s",
                                 field.get("encoding").asText(), DatabaseField.getSupportedEncoding());
@@ -266,7 +266,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
 
             if (field.get("compressionType") != null
                     && !DatabaseField.getSupportedCompressionType().contains(field.get("compressionType").asText())) {
-                String msg =
+                final String msg =
                         String.format(
                                 "Unknown `compressionType`: %s, The supported compressionType are %s",
                                 field.get("compressionType").asText(), DatabaseField.getSupportedCompressionType());
@@ -277,17 +277,17 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return new ValidationResult(true, null);
     }
 
-    protected ValidationResult validateSchema(String timeField, RecordSchema recordSchema) {
-        List<String> fieldNames = recordSchema.getFieldNames();
-        List<DataType> dataTypes = recordSchema.getDataTypes();
+    protected ValidationResult validateSchema(final String timeField, final RecordSchema recordSchema) {
+        final List<String> fieldNames = recordSchema.getFieldNames();
+        final List<DataType> dataTypes = recordSchema.getDataTypes();
         if (!fieldNames.contains(timeField)) {
             return new ValidationResult(false, "The fields must contain " + timeField);
         }
         fieldNames.remove(timeField);
-        for (DataType type : dataTypes) {
-            RecordFieldType dataType = type.getFieldType();
+        for (final DataType type : dataTypes) {
+            final RecordFieldType dataType = type.getFieldType();
             if (!supportedType.contains(dataType)) {
-                String msg =
+                final String msg =
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
                                 dataType.toString(), supportedType);
@@ -315,16 +315,16 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return deviceMeasurementMap;
     }
 
-    protected Map<String, Tablet> generateTablets(DatabaseSchema schema, String prefix, int maxRowNumber) {
+    protected Map<String, Tablet> generateTablets(final DatabaseSchema schema, final String prefix, final int maxRowNumber) {
         final Map<String, List<String>> deviceMeasurementMap = parseSchema(schema.getFieldNames(prefix));
         final Map<String, Tablet> tablets = new LinkedHashMap<>();
         deviceMeasurementMap.forEach(
                 (device, measurements) -> {
                     final List<IMeasurementSchema> schemas = new ArrayList<>();
-                    for (String measurement : measurements) {
-                        TSDataType dataType = schema.getDataType(measurement);
-                        TSEncoding encoding = schema.getEncodingType(measurement);
-                        CompressionType compressionType = schema.getCompressionType(measurement);
+                    for (final String measurement : measurements) {
+                        final TSDataType dataType = schema.getDataType(measurement);
+                        final TSEncoding encoding = schema.getEncodingType(measurement);
+                        final CompressionType compressionType = schema.getCompressionType(measurement);
                         if (encoding == null) {
                             schemas.add(new MeasurementSchema(measurement, dataType));
                         } else if (compressionType == null) {
@@ -333,13 +333,13 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                             schemas.add(new MeasurementSchema(measurement, dataType, encoding, compressionType));
                         }
                     }
-                    Tablet tablet = new Tablet(device, schemas, maxRowNumber);
+                    final Tablet tablet = new Tablet(device, schemas, maxRowNumber);
                     tablets.put(device, tablet);
                 });
         return tablets;
     }
 
-    protected Object convertType(Object value, TSDataType type) {
+    protected Object convertType(final Object value, final TSDataType type) {
         return switch (type) {
             case TEXT -> new Binary(String.valueOf(value), StandardCharsets.UTF_8);
             case INT32 -> Integer.parseInt(value.toString());

@@ -111,7 +111,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .description("The SQL query to execute. The query can be empty, a constant value, or built from attributes "
                     + "using Expression Language. If this property is specified, it will be used regardless of the content of "
                     + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
-                    + "to contain a valid SQL query, to be issued by the processor to the database. Note that Expression "
+                    + "to contain a valid SQL select query, to be issued by the processor to the database. Note that Expression "
                     + "Language is not evaluated for flow file contents.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -225,7 +225,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void setup(ProcessContext context) {
+    public void setup(final ProcessContext context) {
         // If the query is not set, then an incoming flow file is needed. Otherwise, fail the initialization
         if (!context.getProperty(SQL_QUERY).isSet() && !context.hasIncomingConnection()) {
             final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
@@ -261,10 +261,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
         final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
-        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
-        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        final List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        final List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
 
-        SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
+        final SqlWriter sqlWriter = configureSqlWriter(session, context, fileToProcess);
 
         String selectQuery;
         if (context.getProperty(SQL_QUERY).isSet()) {
@@ -285,7 +285,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             if (isAutoCommit != setAutoCommitValue) {
                 try {
                     con.setAutoCommit(setAutoCommitValue);
-                } catch (SQLFeatureNotSupportedException sfnse) {
+                } catch (final SQLFeatureNotSupportedException sfnse) {
                     logger.debug("setAutoCommit({}) not supported by this driver", setAutoCommitValue);
                 }
             }
@@ -293,7 +293,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 if (fetchSize != null && fetchSize > 0) {
                     try {
                         st.setFetchSize(fetchSize);
-                    } catch (SQLException se) {
+                    } catch (final SQLException se) {
                         // Not all drivers support this, just log the error (at debug level) and move on
                         logger.debug("Cannot set fetch size to {} due to {}", fetchSize, se.getLocalizedMessage(), se);
                     }
@@ -315,7 +315,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         .collect(Collectors.toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
 
                 if (fileToProcess != null) {
-                    for (Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
+                    for (final Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
                         sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(), false));
                     }
                 }
@@ -333,12 +333,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                 boolean hasResults = st.execute();
 
-                long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
+                final long executionTimeElapsed = executionTime.getElapsed(TimeUnit.MILLISECONDS);
 
                 boolean hasUpdateCount = st.getUpdateCount() != -1;
 
-                Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
-                String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
+                final Map<String, String> inputFileAttrMap = fileToProcess == null ? null : fileToProcess.getAttributes();
+                final String inputFileUUID = fileToProcess == null ? null : fileToProcess.getAttribute(CoreAttributes.UUID.key());
                 while (hasResults || hasUpdateCount) {
                     //getMoreResults() and execute() return false to indicate that the result of the statement is just a number and not a ResultSet
                     if (hasResults) {
@@ -360,7 +360,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     resultSetFF = session.write(resultSetFF, out -> {
                                         try {
                                             nrOfRows.set(sqlWriter.writeResultSet(resultSet, out, getLogger(), null));
-                                        } catch (Exception e) {
+                                        } catch (final Exception e) {
                                             throw (e instanceof ProcessException) ? (ProcessException) e : new ProcessException(e);
                                         }
                                     });
@@ -372,7 +372,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         break;
                                     }
 
-                                    long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
+                                    final long fetchTimeElapsed = fetchTime.getElapsed(TimeUnit.MILLISECONDS);
 
                                     // set attributes
                                     final Map<String, String> attributesToAdd = new HashMap<>();
@@ -422,7 +422,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     }
 
                                     fragmentIndex++;
-                                } catch (Exception e) {
+                                } catch (final Exception e) {
                                     // Remove any result set flow file(s) and propagate the exception
                                     session.remove(resultSetFF);
                                     session.remove(resultSetFlowFiles);
@@ -452,7 +452,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     try {
                         hasResults = st.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
                         hasUpdateCount = st.getUpdateCount() != -1;
-                    } catch (SQLException ex) {
+                    } catch (final SQLException ex) {
                         hasResults = false;
                         hasUpdateCount = false;
                     }
@@ -492,7 +492,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 } else if (resultCount == 0) {
                     // If we had no inbound FlowFile, no exceptions, and the SQL generated no result sets (Insert/Update/Delete statements only)
                     // Then generate an empty Output FlowFile
-                    FlowFile resultSetFF = session.create();
+                    final FlowFile resultSetFF = session.create();
                     session.transfer(setFlowFileEmptyResults(session, resultSetFF, sqlWriter), REL_SUCCESS);
                 }
             }
@@ -524,12 +524,12 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         }
     }
 
-    protected FlowFile setFlowFileEmptyResults(final ProcessSession session, FlowFile flowFile, SqlWriter sqlWriter) {
-        flowFile = session.write(flowFile, out -> sqlWriter.writeEmptyResultSet(out, getLogger()));
+    protected FlowFile setFlowFileEmptyResults(final ProcessSession session, final FlowFile flowFile, final SqlWriter sqlWriter) {
+        final FlowFile writtenFlowFile = session.write(flowFile, out -> sqlWriter.writeEmptyResultSet(out, getLogger()));
         final Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(RESULT_ROW_COUNT, "0");
         attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), sqlWriter.getMimeType());
-        return session.putAllAttributes(flowFile, attributesToAdd);
+        return session.putAllAttributes(writtenFlowFile, attributesToAdd);
     }
 
     /*
@@ -541,10 +541,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             return null;
         }
 
-        for (String confSQL : configQueries) {
+        for (final String confSQL : configQueries) {
             try (final Statement st = con.createStatement()) {
                 st.execute(confSQL);
-            } catch (SQLException e) {
+            } catch (final SQLException e) {
                 return Pair.of(confSQL, e);
             }
         }
@@ -559,10 +559,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             return null;
         }
         final List<String> queries = new LinkedList<>();
-        for (String query : value.split("(?<!\\\\);")) {
-            query = query.replaceAll("\\\\;", ";");
-            if (!query.isBlank()) {
-                queries.add(query.trim());
+        for (final String query : value.split("(?<!\\\\);")) {
+            final String unescaped = query.replaceAll("\\\\;", ";");
+            if (!unescaped.isBlank()) {
+                queries.add(unescaped.trim());
             }
         }
         return queries;

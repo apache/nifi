@@ -221,7 +221,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
         final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -235,7 +235,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         try {
             new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             problems.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject("Directory")
@@ -247,7 +247,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) throws IOException {
         abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
@@ -263,15 +263,15 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final List<Path> files = new ArrayList<>(batchSize);
 
         // retrieve new file names from HDFS and place them into work queue
         if (filePathQueue.size() < MAX_WORKING_QUEUE_SIZE / 2) {
             try {
                 final StopWatch stopWatch = new StopWatch(true);
-                Set<Path> listedFiles = performListing(context);
+                final Set<Path> listedFiles = performListing(context);
                 stopWatch.stop();
                 final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
@@ -280,7 +280,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     int newItems = 0;
                     queueLock.lock();
                     try {
-                        for (Path file : listedFiles) {
+                        for (final Path file : listedFiles) {
                             if (!filePathQueue.contains(file) && !processing.contains(file)) {
                                 if (!filePathQueue.offer(file)) {
                                     break;
@@ -288,7 +288,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                                 newItems++;
                             }
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         getLogger().warn("Could not add to processing queue", e);
                     } finally {
                         queueLock.unlock();
@@ -301,11 +301,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
                                 millis, listedFiles.size(), newItems);
                     }
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 handleAuthErrors(e, session, context, new GSSExceptionRollbackYieldSessionHandler());
                 getLogger().warn("Error while retrieving list of files due to {}", e.getMessage(), e);
                 return;
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 context.yield();
                 getLogger().warn("Interrupted while retrieving files", e);
@@ -343,11 +343,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
         // process the batch of files
         InputStream stream = null;
         CompressionCodec codec = null;
-        Configuration conf = getConfiguration();
-        FileSystem hdfs = getFileSystem();
+        final Configuration conf = getConfiguration();
+        final FileSystem hdfs = getFileSystem();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-        int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
+        final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
         final Path rootDir = getNormalizedPath(context, DIRECTORY);
 
@@ -460,14 +460,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
      * @return files to process
      * @throws java.io.IOException ex
      */
-    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException, InterruptedException {
-        if (null == filesVisited) {
-            filesVisited = new HashSet<>();
-        }
+    protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, final Set<Path> filesVisited) throws IOException, InterruptedException {
+        final Set<Path> effectiveFilesVisited = (filesVisited != null) ? filesVisited : new HashSet<>();
 
         final Set<Path> files = new HashSet<>();
 
-        FileStatus[] fileStatuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(dir));
+        final FileStatus[] fileStatuses = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(dir));
         for (final FileStatus file : fileStatuses) {
             if (files.size() >= MAX_WORKING_QUEUE_SIZE) {
                 // no need to make the files set larger than what we would queue anyway
@@ -476,12 +474,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
             final Path canonicalFile = file.getPath();
 
-            if (!filesVisited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)
+            if (!effectiveFilesVisited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)
                 continue;
             }
 
             if (file.isDirectory() && processorConfig.getRecurseSubdirs()) {
-                files.addAll(selectFiles(hdfs, canonicalFile, filesVisited));
+                files.addAll(selectFiles(hdfs, canonicalFile, effectiveFilesVisited));
 
             } else if (!file.isDirectory() && processorConfig.getPathFilter(dir).accept(canonicalFile)) {
                 final long fileAge = System.currentTimeMillis() - file.getModificationTime();
@@ -544,7 +542,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     pathToCompare = path.getName();
                 } else {
                     // figure out portion of path that does not include the provided root dir.
-                    String relativePath = getPathDifference(dir, path);
+                    final String relativePath = getPathDifference(dir, path);
                     if (relativePath.length() == 0) {
                         pathToCompare = path.getName();
                     } else {

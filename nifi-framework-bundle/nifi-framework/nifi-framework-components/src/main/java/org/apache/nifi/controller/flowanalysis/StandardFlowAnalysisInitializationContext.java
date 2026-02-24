@@ -35,11 +35,11 @@ public class StandardFlowAnalysisInitializationContext implements FlowAnalysisRu
     private final NodeTypeProvider nodeTypeProvider;
 
     public StandardFlowAnalysisInitializationContext(
-            String id,
-            ComponentLog logger,
-            ControllerServiceProvider serviceProvider,
-            KerberosConfig kerberosConfig,
-            NodeTypeProvider nodeTypeProvider
+            final String id,
+            final ComponentLog logger,
+            final ControllerServiceProvider serviceProvider,
+            final KerberosConfig kerberosConfig,
+            final NodeTypeProvider nodeTypeProvider
     ) {
         this.id = id;
         this.serviceProvider = serviceProvider;

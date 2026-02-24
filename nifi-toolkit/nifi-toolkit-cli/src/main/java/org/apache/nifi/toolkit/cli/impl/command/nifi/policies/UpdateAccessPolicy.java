@@ -109,7 +109,7 @@ public class UpdateAccessPolicy extends AbstractNiFiCommand<VoidResult> {
         AccessPolicyEntity policyEntity;
         try {
             policyEntity = policiesClient.getAccessPolicy(resource, actionType.toString().toLowerCase());
-        } catch (NiFiClientException e) {
+        } catch (final NiFiClientException e) {
             policyEntity = null;
         }
 

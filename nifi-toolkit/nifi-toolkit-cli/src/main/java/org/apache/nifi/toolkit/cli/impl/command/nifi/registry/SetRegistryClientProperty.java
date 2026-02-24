@@ -44,7 +44,7 @@ public class SetRegistryClientProperty extends AbstractNiFiCommand<StringResult>
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         super.doInitialize(context);
         addOption(CommandOption.REGISTRY_CLIENT_ID.createOption());
         addOption(CommandOption.PROPERTY_NAME.createOption());

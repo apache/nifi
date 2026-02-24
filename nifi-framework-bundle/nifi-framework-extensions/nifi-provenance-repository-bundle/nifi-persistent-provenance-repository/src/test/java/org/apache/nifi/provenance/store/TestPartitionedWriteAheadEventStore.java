@@ -304,7 +304,7 @@ public class TestPartitionedWriteAheadEventStore {
             }
 
             @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+            public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
                 if (!isAuthorized(event)) {
                     throw new AccessDeniedException();
                 }
@@ -358,7 +358,7 @@ public class TestPartitionedWriteAheadEventStore {
             }
 
             @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
+            public void authorize(final ProvenanceEventRecord event) throws AccessDeniedException {
                 if (!isAuthorized(event)) {
                     throw new AccessDeniedException();
                 }
@@ -475,14 +475,13 @@ public class TestPartitionedWriteAheadEventStore {
         final EventIterator iterator = store.getEventsByTimestamp(200, 799);
 
         int count = 0;
-        Optional<ProvenanceEventRecord> optionalRecord = iterator.nextEvent();
-        while (optionalRecord.isPresent()) {
+        Optional<ProvenanceEventRecord> optionalRecord;
+        while ((optionalRecord = iterator.nextEvent()).isPresent()) {
             final ProvenanceEventRecord event = optionalRecord.get();
             final long timestamp = event.getEventTime();
             assertTrue(timestamp >= 200);
             assertTrue(timestamp <= 799);
             count++;
-            optionalRecord = iterator.nextEvent();
         }
 
         assertEquals(600, count);

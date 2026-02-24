@@ -26,7 +26,7 @@ public class TagCountEntity {
         return tag;
     }
 
-    public void setTag(String tag) {
+    public void setTag(final String tag) {
         this.tag = tag;
     }
 
@@ -34,7 +34,7 @@ public class TagCountEntity {
         return count;
     }
 
-    public void setCount(int count) {
+    public void setCount(final int count) {
         this.count = count;
     }
 }

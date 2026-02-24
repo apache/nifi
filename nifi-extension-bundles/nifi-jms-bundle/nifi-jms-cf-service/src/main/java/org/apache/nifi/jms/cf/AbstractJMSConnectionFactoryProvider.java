@@ -47,7 +47,7 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
     protected abstract JMSConnectionFactoryHandlerDefinition createConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger);
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         delegate = createConnectionFactoryHandler(context, getLogger());
     }
 
@@ -62,7 +62,7 @@ public abstract class AbstractJMSConnectionFactoryProvider extends AbstractContr
     }
 
     @Override
-    public void resetConnectionFactory(ConnectionFactory cachedFactory) {
+    public void resetConnectionFactory(final ConnectionFactory cachedFactory) {
         delegate.resetConnectionFactory(cachedFactory);
     }
 

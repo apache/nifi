@@ -40,7 +40,7 @@ public class ParquetConfig {
         return rowGroupSize;
     }
 
-    public void setRowGroupSize(Integer rowGroupSize) {
+    public void setRowGroupSize(final Integer rowGroupSize) {
         this.rowGroupSize = rowGroupSize;
     }
 
@@ -48,7 +48,7 @@ public class ParquetConfig {
         return pageSize;
     }
 
-    public void setPageSize(Integer pageSize) {
+    public void setPageSize(final Integer pageSize) {
         this.pageSize = pageSize;
     }
 
@@ -56,7 +56,7 @@ public class ParquetConfig {
         return dictionaryPageSize;
     }
 
-    public void setDictionaryPageSize(Integer dictionaryPageSize) {
+    public void setDictionaryPageSize(final Integer dictionaryPageSize) {
         this.dictionaryPageSize = dictionaryPageSize;
     }
 
@@ -64,7 +64,7 @@ public class ParquetConfig {
         return maxPaddingSize;
     }
 
-    public void setMaxPaddingSize(Integer maxPaddingSize) {
+    public void setMaxPaddingSize(final Integer maxPaddingSize) {
         this.maxPaddingSize = maxPaddingSize;
     }
 
@@ -72,7 +72,7 @@ public class ParquetConfig {
         return enableDictionaryEncoding;
     }
 
-    public void setEnableDictionaryEncoding(Boolean enableDictionaryEncoding) {
+    public void setEnableDictionaryEncoding(final Boolean enableDictionaryEncoding) {
         this.enableDictionaryEncoding = enableDictionaryEncoding;
     }
 
@@ -80,7 +80,7 @@ public class ParquetConfig {
         return enableValidation;
     }
 
-    public void setEnableValidation(Boolean enableValidation) {
+    public void setEnableValidation(final Boolean enableValidation) {
         this.enableValidation = enableValidation;
     }
 
@@ -88,7 +88,7 @@ public class ParquetConfig {
         return avroReadCompatibility;
     }
 
-    public void setAvroReadCompatibility(Boolean avroReadCompatibility) {
+    public void setAvroReadCompatibility(final Boolean avroReadCompatibility) {
         this.avroReadCompatibility = avroReadCompatibility;
     }
 
@@ -96,7 +96,7 @@ public class ParquetConfig {
         return avroAddListElementRecords;
     }
 
-    public void setAvroAddListElementRecords(Boolean avroAddListElementRecords) {
+    public void setAvroAddListElementRecords(final Boolean avroAddListElementRecords) {
         this.avroAddListElementRecords = avroAddListElementRecords;
     }
 
@@ -104,7 +104,7 @@ public class ParquetConfig {
         return avroWriteOldListStructure;
     }
 
-    public void setAvroWriteOldListStructure(Boolean avroWriteOldListStructure) {
+    public void setAvroWriteOldListStructure(final Boolean avroWriteOldListStructure) {
         this.avroWriteOldListStructure = avroWriteOldListStructure;
     }
 
@@ -112,7 +112,7 @@ public class ParquetConfig {
         return writerVersion;
     }
 
-    public void setWriterVersion(ParquetProperties.WriterVersion writerVersion) {
+    public void setWriterVersion(final ParquetProperties.WriterVersion writerVersion) {
         this.writerVersion = writerVersion;
     }
 
@@ -120,7 +120,7 @@ public class ParquetConfig {
         return writerMode;
     }
 
-    public void setWriterMode(ParquetFileWriter.Mode writerMode) {
+    public void setWriterMode(final ParquetFileWriter.Mode writerMode) {
         this.writerMode = writerMode;
     }
 
@@ -128,7 +128,7 @@ public class ParquetConfig {
         return compressionCodec;
     }
 
-    public void setCompressionCodec(CompressionCodecName compressionCodec) {
+    public void setCompressionCodec(final CompressionCodecName compressionCodec) {
         this.compressionCodec = compressionCodec;
     }
 
@@ -136,7 +136,7 @@ public class ParquetConfig {
         return int96Fields;
     }
 
-    public void setInt96Fields(String int96Fields) {
+    public void setInt96Fields(final String int96Fields) {
         this.int96Fields = int96Fields;
     }
 }

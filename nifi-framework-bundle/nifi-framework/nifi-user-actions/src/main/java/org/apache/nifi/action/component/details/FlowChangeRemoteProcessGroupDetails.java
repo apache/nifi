@@ -28,7 +28,7 @@ public class FlowChangeRemoteProcessGroupDetails implements RemoteProcessGroupDe
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 

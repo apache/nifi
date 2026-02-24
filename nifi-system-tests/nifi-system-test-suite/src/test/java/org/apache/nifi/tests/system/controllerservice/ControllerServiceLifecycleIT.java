@@ -31,13 +31,13 @@ public class ControllerServiceLifecycleIT extends NiFiSystemIT {
     @Test
     public void testControllerServiceFailingToEnableAllowsOthersToEnable() throws NiFiClientException, IOException {
         for (int i = 0; i < 12; i++) {
-            ControllerServiceEntity failureService = getClientUtil().createControllerService("LifecycleFailureService");
+            final ControllerServiceEntity failureService = getClientUtil().createControllerService("LifecycleFailureService");
             getClientUtil().updateControllerServiceProperties(failureService, Collections.singletonMap("Enable Failure Count", "1000"));
         }
 
         final List<String> countServiceIds = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
-            ControllerServiceEntity countService = getClientUtil().createControllerService("StandardCountService");
+            final ControllerServiceEntity countService = getClientUtil().createControllerService("StandardCountService");
             countServiceIds.add(countService.getId());
         }
 
@@ -47,7 +47,7 @@ public class ControllerServiceLifecycleIT extends NiFiSystemIT {
 
     @Test
     public void testControllerServiceEnableFailureCausesRetry() throws NiFiClientException, IOException {
-        ControllerServiceEntity service = getClientUtil().createControllerService("LifecycleFailureService");
+        final ControllerServiceEntity service = getClientUtil().createControllerService("LifecycleFailureService");
         getClientUtil().updateControllerServiceProperties(service, Collections.singletonMap("Enable Failure Count", "1"));
 
         getClientUtil().enableControllerServices("root", false);

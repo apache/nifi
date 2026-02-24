@@ -40,7 +40,7 @@ public class MockEventAccess implements EventAccess {
     public void setProcessGroupStatus(final ProcessGroupStatus status) {
         this.processGroupStatus = status;
     }
-    public void setProcessGroupStatus(String groupId, final ProcessGroupStatus status) {
+    public void setProcessGroupStatus(final String groupId, final ProcessGroupStatus status) {
         processGroupStatusMap.put(groupId, status);
     }
 
@@ -55,7 +55,7 @@ public class MockEventAccess implements EventAccess {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getProvenanceEvents(long firstEventId, int maxRecords) throws IOException {
+    public List<ProvenanceEventRecord> getProvenanceEvents(final long firstEventId, final int maxRecords) throws IOException {
         if (firstEventId < 0 || maxRecords < 1) {
             throw new IllegalArgumentException();
         }
@@ -84,7 +84,7 @@ public class MockEventAccess implements EventAccess {
     }
 
     @Override
-    public List<Action> getFlowChanges(int firstActionId, int maxActions) {
+    public List<Action> getFlowChanges(final int firstActionId, final int maxActions) {
         if (firstActionId < 0 || maxActions < 1) {
             throw new IllegalArgumentException();
         }

@@ -21,7 +21,7 @@ public class RemoteProcessGroupCounts {
     private final int inputPortCount;
     private final int outputPortCount;
 
-    public RemoteProcessGroupCounts(int inputPortCount, int outputPortCount) {
+    public RemoteProcessGroupCounts(final int inputPortCount, final int outputPortCount) {
         this.inputPortCount = inputPortCount;
         this.outputPortCount = outputPortCount;
     }

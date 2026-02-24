@@ -114,7 +114,7 @@ public class TestValidateRecord {
         runner.setProperty(csvReader, CSVUtils.TRAILING_DELIMITER, "false");
         runner.enableControllerService(csvReader);
 
-        MockRecordWriter writer = new MockRecordWriter("header", false, 1);
+        final MockRecordWriter writer = new MockRecordWriter("header", false, 1);
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
@@ -672,7 +672,7 @@ public class TestValidateRecord {
         runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
         final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
 
-        byte[] source = validFlowFile.toByteArray();
+        final byte[] source = validFlowFile.toByteArray();
 
         try (final InputStream in = new ByteArrayInputStream(source); final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in)) {
             final Object[] values = reader.nextRecord().getValues();

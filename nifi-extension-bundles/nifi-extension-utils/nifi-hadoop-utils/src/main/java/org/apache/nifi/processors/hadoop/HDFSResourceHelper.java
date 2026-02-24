@@ -33,14 +33,14 @@ public final class HDFSResourceHelper {
     public static void closeFileSystem(final FileSystem fileSystem) {
         try {
             interruptStatisticsThread(fileSystem);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Error stopping FileSystem statistics thread", e);
             LOGGER.debug("", e);
         } finally {
             if (fileSystem != null) {
                 try {
                     fileSystem.close();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     LOGGER.warn("Error close FileSystem", e);
                 }
             }
@@ -63,7 +63,7 @@ public final class HDFSResourceHelper {
                 final Thread statsThread = (Thread) statsThreadObj;
                 try {
                     statsThread.interrupt();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     LOGGER.warn("Error interrupting thread", e);
                 }
             }

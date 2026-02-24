@@ -67,7 +67,7 @@ public class MockPropertyValue implements PropertyValue {
         this(rawValue, serviceLookup, null, environmentVariables);
     }
 
-    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> environmentVariables, ParameterLookup parameterLookup) {
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final Map<String, String> environmentVariables, final ParameterLookup parameterLookup) {
         this(rawValue, serviceLookup, null, false, environmentVariables, parameterLookup);
     }
 
@@ -82,7 +82,7 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     protected MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PropertyDescriptor propertyDescriptor,
-            final boolean alreadyEvaluated, final Map<String, String> environmentVariables, ParameterLookup parameterLookup) {
+            final boolean alreadyEvaluated, final Map<String, String> environmentVariables, final ParameterLookup parameterLookup) {
         final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), propertyDescriptor);
         this.stdPropValue = new StandardPropertyValue(resourceContext, rawValue, serviceLookup, parameterLookup);
         this.rawValue = rawValue;
@@ -103,7 +103,7 @@ public class MockPropertyValue implements PropertyValue {
         }
     }
 
-    private void validateExpressionScope(boolean flowFileProvided, boolean additionalAttributesAvailable) {
+    private void validateExpressionScope(final boolean flowFileProvided, final boolean additionalAttributesAvailable) {
         if (expressionLanguageScope == null) {
             return;
         }
@@ -263,8 +263,8 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     @Override
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
-            throws ProcessException {
+    public PropertyValue evaluateAttributeExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes,
+            final AttributeValueDecorator decorator, final Map<String, String> stateValues) throws ProcessException {
         final boolean alreadyValidated = this.expressionsEvaluated;
         markEvaluated();
 
@@ -276,11 +276,8 @@ public class MockPropertyValue implements PropertyValue {
             validateExpressionScope(flowFile != null, additionalAttributes != null);
         }
 
-        if (additionalAttributes == null) {
-            additionalAttributes = new HashMap<>();
-        }
         // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes
-        final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes);
+        final Map<String, String> attAndEnvVarRegistry = new HashMap<>(additionalAttributes != null ? additionalAttributes : Map.of());
 
         if (environmentVariables != null) {
             attAndEnvVarRegistry.putAll(environmentVariables);
@@ -333,7 +330,7 @@ public class MockPropertyValue implements PropertyValue {
     }
 
     @Override
-    public <E extends Enum<E>> E asAllowableValue(Class<E> enumType) throws IllegalArgumentException {
+    public <E extends Enum<E>> E asAllowableValue(final Class<E> enumType) throws IllegalArgumentException {
         ensureExpressionsEvaluated();
         return stdPropValue.asAllowableValue(enumType);
     }

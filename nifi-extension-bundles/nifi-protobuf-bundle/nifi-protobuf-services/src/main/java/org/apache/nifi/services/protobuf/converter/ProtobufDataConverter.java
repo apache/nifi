@@ -71,7 +71,7 @@ public class ProtobufDataConverter {
 
     private boolean containsAnyField = false;
 
-    public ProtobufDataConverter(Schema schema, String messageType, RecordSchema recordSchema, boolean coerceTypes, boolean dropUnknownFields) {
+    public ProtobufDataConverter(final Schema schema, final String messageType, final RecordSchema recordSchema, final boolean coerceTypes, final boolean dropUnknownFields) {
         this.schema = schema;
         this.rootMessageType = messageType;
         this.rootRecordSchema = recordSchema;
@@ -85,11 +85,11 @@ public class ProtobufDataConverter {
      * @return created record
      * @throws IOException failed to read input stream
      */
-    public MapRecord createRecord(InputStream data) throws IOException {
+    public MapRecord createRecord(final InputStream data) throws IOException {
         final MessageType rootMessageType = (MessageType) schema.getType(this.rootMessageType);
         Objects.requireNonNull(rootMessageType, String.format("Message with name [%s] not found in the provided proto files", this.rootMessageType));
 
-        MapRecord record = createRecord(rootMessageType, ByteString.readFrom(data), rootRecordSchema);
+        final MapRecord record = createRecord(rootMessageType, ByteString.readFrom(data), rootRecordSchema);
         if (containsAnyField) {
             record.regenerateSchema();
         }
@@ -106,7 +106,7 @@ public class ProtobufDataConverter {
      * @return created record
      * @throws InvalidProtocolBufferException failed to parse input data
      */
-    private MapRecord createRecord(MessageType messageType, ByteString data, RecordSchema recordSchema) throws InvalidProtocolBufferException {
+    private MapRecord createRecord(final MessageType messageType, final ByteString data, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
         final UnknownFieldSet unknownFieldSet = UnknownFieldSet.parseFrom(data);
 
         if ((ANY_MESSAGE_TYPE).equals(messageType.getType().toString())) {
@@ -125,8 +125,8 @@ public class ProtobufDataConverter {
      * @param unknownFieldSet received proto data fields
      * @return Map of processed fields
      */
-    private Map<String, Object> processMessageFields(MessageType messageType, UnknownFieldSet unknownFieldSet, RecordSchema recordSchema) throws InvalidProtocolBufferException {
-        Map<String, Object> recordValues = new HashMap<>();
+    private Map<String, Object> processMessageFields(final MessageType messageType, final UnknownFieldSet unknownFieldSet, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
+        final Map<String, Object> recordValues = new HashMap<>();
 
         for (final Field field : messageType.getDeclaredFields()) {
             collectFieldValue(recordValues, new ProtoField(field), unknownFieldSet.getField(field.getTag()), recordSchema);
@@ -137,7 +137,7 @@ public class ProtobufDataConverter {
         }
 
         for (final OneOf oneOf : messageType.getOneOfs()) {
-            for (Field field : oneOf.getFields()) {
+            for (final Field field : oneOf.getFields()) {
                 collectFieldValue(recordValues, new ProtoField(field), unknownFieldSet.getField(field.getTag()), recordSchema);
             }
         }
@@ -151,13 +151,13 @@ public class ProtobufDataConverter {
      * @param protoField                proto field's properties
      * @param unknownField              field's value
      */
-    private void collectFieldValue(Map<String, Object> fieldNameToConvertedValue, ProtoField protoField,
-                                   UnknownFieldSet.Field unknownField, RecordSchema recordSchema) throws InvalidProtocolBufferException {
+    private void collectFieldValue(final Map<String, Object> fieldNameToConvertedValue, final ProtoField protoField,
+                                   final UnknownFieldSet.Field unknownField, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
         final Optional<Object> fieldValue = convertFieldValues(protoField, unknownField, recordSchema);
         fieldValue.ifPresent(value -> fieldNameToConvertedValue.put(protoField.getFieldName(), value));
     }
 
-    private Optional<Object> convertFieldValues(ProtoField protoField, UnknownFieldSet.Field unknownField, RecordSchema recordSchema) throws InvalidProtocolBufferException {
+    private Optional<Object> convertFieldValues(final ProtoField protoField, final UnknownFieldSet.Field unknownField, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
         if (!unknownField.getLengthDelimitedList().isEmpty()) {
             if (protoField.isRepeatable() && !isLengthDelimitedType(protoField)) {
                 return Optional.of(convertRepeatedFields(protoField, unknownField.getLengthDelimitedList(), recordSchema));
@@ -178,7 +178,7 @@ public class ProtobufDataConverter {
         return Optional.empty();
     }
 
-    private Object convertRepeatedFields(ProtoField protoField, List<ByteString> fieldValues, RecordSchema recordSchema) {
+    private Object convertRepeatedFields(final ProtoField protoField, final List<ByteString> fieldValues, final RecordSchema recordSchema) {
         final CodedInputStream inputStream = fieldValues.getFirst().newCodedInput();
         final ProtoType protoType = protoField.getProtoType();
         if (protoType.isScalar()) {
@@ -201,7 +201,7 @@ public class ProtobufDataConverter {
             };
             return resolveFieldValue(protoField, processRepeatedValues(inputStream, valueReader), value -> value, recordSchema);
         } else {
-            List<Integer> values = processRepeatedValues(inputStream, CodedInputStream::readEnum);
+            final List<Integer> values = processRepeatedValues(inputStream, CodedInputStream::readEnum);
             return resolveFieldValue(protoField, values, value -> convertEnum(value, protoType), recordSchema);
         }
     }
@@ -214,7 +214,7 @@ public class ProtobufDataConverter {
      * @return converted field values
      * @throws InvalidProtocolBufferException failed to parse input data
      */
-    private Object convertLengthDelimitedFields(ProtoField protoField, List<ByteString> values, RecordSchema recordSchema) throws InvalidProtocolBufferException {
+    private Object convertLengthDelimitedFields(final ProtoField protoField, final List<ByteString> values, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
         final ProtoType protoType = protoField.getProtoType();
         final Function<ByteString, Object> valueConverter;
         if (protoType.isScalar()) {
@@ -240,7 +240,7 @@ public class ProtobufDataConverter {
                     final RecordSchema subSchema = recordDataType.map(dataType ->
                             ((RecordDataType) dataType).getChildSchema()).orElse(generateRecordSchema(messageType.getType().toString()));
                     return createRecord(messageType, value, subSchema);
-                } catch (InvalidProtocolBufferException e) {
+                } catch (final InvalidProtocolBufferException e) {
                     throw new IllegalStateException("Failed to create record from the provided input data for field " + protoField.getFieldName(), e);
                 }
             };
@@ -256,7 +256,7 @@ public class ProtobufDataConverter {
      * @param values     field's unprocessed values
      * @return converted field values
      */
-    private Object convertFixed32Fields(ProtoField protoField, List<Integer> values, RecordSchema recordSchema) {
+    private Object convertFixed32Fields(final ProtoField protoField, final List<Integer> values, final RecordSchema recordSchema) {
         final String typeName = protoField.getProtoType().getSimpleName();
         final Function<Integer, Object> valueConverter =
             switch (FieldType.findValue(typeName)) {
@@ -278,7 +278,7 @@ public class ProtobufDataConverter {
      * @param values     field's unprocessed values
      * @return converted field values
      */
-    private Object convertFixed64Fields(ProtoField protoField, List<Long> values, RecordSchema recordSchema) {
+    private Object convertFixed64Fields(final ProtoField protoField, final List<Long> values, final RecordSchema recordSchema) {
         final String typeName = protoField.getProtoType().getSimpleName();
         final Function<Long, Object> valueConverter =
             switch (FieldType.findValue(typeName)) {
@@ -300,7 +300,7 @@ public class ProtobufDataConverter {
      * @param values     field's unprocessed values
      * @return converted field values
      */
-    private Object convertVarintFields(ProtoField protoField, List<Long> values, RecordSchema recordSchema) {
+    private Object convertVarintFields(final ProtoField protoField, final List<Long> values, final RecordSchema recordSchema) {
         final ProtoType protoType = protoField.getProtoType();
         final Function<Long, Object> valueConverter;
         if (protoType.isScalar()) {
@@ -322,7 +322,7 @@ public class ProtobufDataConverter {
         return resolveFieldValue(protoField, values, valueConverter, recordSchema);
     }
 
-    private <T> Object resolveFieldValue(ProtoField protoField, List<T> values, Function<T, Object> valueConverter, RecordSchema recordSchema) {
+    private <T> Object resolveFieldValue(final ProtoField protoField, final List<T> values, final Function<T, Object> valueConverter, final RecordSchema recordSchema) {
         List<Object> resultValues = values.stream().map(valueConverter).toList();
 
         if (coerceTypes) {
@@ -354,12 +354,12 @@ public class ProtobufDataConverter {
      * @return created Map
      * @throws InvalidProtocolBufferException failed to parse input data
      */
-    private Map<String, Object> createMap(ProtoType protoType, List<ByteString> data, RecordSchema recordSchema) throws InvalidProtocolBufferException {
-        Map<String, Object> mapResult = new HashMap<>();
+    private Map<String, Object> createMap(final ProtoType protoType, final List<ByteString> data, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
+        final Map<String, Object> mapResult = new HashMap<>();
 
         for (final ByteString entry : data) {
             final UnknownFieldSet unknownFieldSet = UnknownFieldSet.parseFrom(entry);
-            Map<String, Object> mapEntry = new HashMap<>();
+            final Map<String, Object> mapEntry = new HashMap<>();
 
             collectFieldValue(mapEntry, new ProtoField(MAP_KEY_FIELD_NAME, protoType.getKeyType()), unknownFieldSet.getField(1), recordSchema);
             collectFieldValue(mapEntry, new ProtoField(MAP_VALUE_FIELD_NAME, protoType.getValueType()), unknownFieldSet.getField(2), recordSchema);
@@ -370,7 +370,7 @@ public class ProtobufDataConverter {
         return mapResult;
     }
 
-    private String convertEnum(Integer value, ProtoType protoType) {
+    private String convertEnum(final Integer value, final ProtoType protoType) {
         final EnumType enumType = (EnumType) schema.getType(protoType);
         Objects.requireNonNull(enumType, String.format("Enum with name [%s] not found in the provided proto files", protoType));
         return enumType.constant(value).getName();
@@ -384,8 +384,8 @@ public class ProtobufDataConverter {
      * @return created record from the parsed message
      * @throws InvalidProtocolBufferException failed to parse input data
      */
-    private MapRecord handleAnyField(UnknownFieldSet unknownFieldSet, RecordSchema recordSchema) throws InvalidProtocolBufferException {
-        Map<String, Object> recordValues = new HashMap<>();
+    private MapRecord handleAnyField(final UnknownFieldSet unknownFieldSet, final RecordSchema recordSchema) throws InvalidProtocolBufferException {
+        final Map<String, Object> recordValues = new HashMap<>();
         collectFieldValue(recordValues, new ProtoField(ANY_TYPE_URL_FIELD_NAME, ProtoType.STRING), unknownFieldSet.getField(1), recordSchema);
         collectFieldValue(recordValues, new ProtoField(ANY_VALUE_FIELD_NAME, ProtoType.BYTES), unknownFieldSet.getField(2), recordSchema);
 
@@ -403,7 +403,7 @@ public class ProtobufDataConverter {
      * @param typeName name of the message
      * @return generated schema
      */
-    private RecordSchema generateRecordSchema(String typeName) {
+    private RecordSchema generateRecordSchema(final String typeName) {
         final ProtoSchemaParser schemaParser = new ProtoSchemaParser(schema);
         return schemaParser.createSchema(getQualifiedTypeName(typeName));
     }
@@ -414,23 +414,23 @@ public class ProtobufDataConverter {
      * @param typeName name of the message
      * @return fully qualified name of the message type
      */
-    private String getQualifiedTypeName(String typeName) {
+    private String getQualifiedTypeName(final String typeName) {
         return typeName.substring(typeName.lastIndexOf('/') + 1);
     }
 
-    private <T> List<T> processRepeatedValues(CodedInputStream input, ValueReader<CodedInputStream, T> valueReader) {
-        List<T> result = new ArrayList<>();
+    private <T> List<T> processRepeatedValues(final CodedInputStream input, final ValueReader<CodedInputStream, T> valueReader) {
+        final List<T> result = new ArrayList<>();
         try {
             while (input.getBytesUntilLimit() > 0) {
                 result.add(valueReader.apply(input));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException("Unable to parse repeated field", e);
         }
         return result;
     }
 
-    private boolean isLengthDelimitedType(ProtoField protoField) {
+    private boolean isLengthDelimitedType(final ProtoField protoField) {
         boolean lengthDelimitedScalarType = false;
         final ProtoType protoType = protoField.getProtoType();
 

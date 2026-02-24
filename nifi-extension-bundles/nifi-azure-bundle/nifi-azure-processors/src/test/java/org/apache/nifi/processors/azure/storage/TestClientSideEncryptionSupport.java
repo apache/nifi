@@ -52,7 +52,7 @@ public class TestClientSideEncryptionSupport {
     public void testNoCesConfiguredOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.NONE, null, null);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
@@ -61,7 +61,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCesNoKeyIdOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, null, KEY_128B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertNotValid(result);
     }
@@ -70,7 +70,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCesNoKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, null);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertNotValid(result);
     }
@@ -79,7 +79,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCesInvalidHexKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, "ZZ");
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertNotValid(result);
     }
@@ -88,7 +88,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCesInvalidKeyLengthOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_64B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertNotValid(result);
         assertContains(result, "Key size in bits must be one of [128, 192, 256, 384, 512] instead of [64]");
@@ -98,7 +98,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCes128BitKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_128B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
@@ -107,7 +107,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCes192BitKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_192B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
@@ -116,7 +116,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCes256BitKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_256B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
@@ -125,7 +125,7 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCes384BitKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_384B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
@@ -134,12 +134,12 @@ public class TestClientSideEncryptionSupport {
     public void testLocalCes512BitKeyOnProcessor() {
         configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_512B_VALUE);
 
-        Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
+        final Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
 
-    private void configureProcessorProperties(ClientSideEncryptionMethod keyType, String keyId, String localKeyHex) {
+    private void configureProcessorProperties(final ClientSideEncryptionMethod keyType, final String keyId, final String localKeyHex) {
         if (keyType != null) {
             processContext.setProperty(putAzureBlobStorage_v12.CSE_KEY_TYPE, keyType.getValue());
         }
@@ -151,15 +151,15 @@ public class TestClientSideEncryptionSupport {
         }
     }
 
-    private void assertValid(Collection<ValidationResult> result) {
+    private void assertValid(final Collection<ValidationResult> result) {
         assertTrue(result.isEmpty(), "There should be no validation error");
     }
 
-    private void assertNotValid(Collection<ValidationResult> result) {
+    private void assertNotValid(final Collection<ValidationResult> result) {
         assertFalse(result.isEmpty(), "There should be validation error");
     }
 
-    private void assertContains(Collection<ValidationResult> result, String explaination) {
+    private void assertContains(final Collection<ValidationResult> result, final String explaination) {
         assertFalse(result.isEmpty(), "There should be validation error");
         assertTrue(result.stream().anyMatch(v -> v.getExplanation().contains(explaination)));
     }

@@ -78,7 +78,7 @@ public class FlowConfigurationArchiveManager {
         final String archiveDirVal = properties.getFlowConfigurationArchiveDir();
         final Path archiveDirectory;
         if (archiveDirVal == null || archiveDirVal.isBlank()) {
-            File persistenceFile = properties.getFlowConfigurationFile();
+            final File persistenceFile = properties.getFlowConfigurationFile();
             archiveDirectory = (archiveDirVal == null || archiveDirVal.equals(""))
                 ? persistenceFile.toPath().getParent().resolve("archive") : new File(archiveDirVal).toPath();
         } else {
@@ -88,9 +88,9 @@ public class FlowConfigurationArchiveManager {
     }
 
     private String createArchiveFileName(final String originalFlowConfigFileName) {
-        TimeZone tz = TimeZone.getDefault();
-        Calendar cal = GregorianCalendar.getInstance(tz);
-        int offsetInMillis = tz.getOffset(cal.getTimeInMillis());
+        final TimeZone tz = TimeZone.getDefault();
+        final Calendar cal = GregorianCalendar.getInstance(tz);
+        final int offsetInMillis = tz.getOffset(cal.getTimeInMillis());
         final int year = cal.get(Calendar.YEAR);
         final int month = cal.get(Calendar.MONTH) + 1;
         final int day = cal.get(Calendar.DAY_OF_MONTH);
@@ -98,7 +98,7 @@ public class FlowConfigurationArchiveManager {
         final int min = cal.get(Calendar.MINUTE);
         final int sec = cal.get(Calendar.SECOND);
 
-        String offset = String.format("%s%02d%02d",
+        final String offset = String.format("%s%02d%02d",
                 (offsetInMillis >= 0 ? "+" : "-"),
                 Math.abs(offsetInMillis / 3600000),
                 Math.abs((offsetInMillis / 60000) % 60));
@@ -154,7 +154,7 @@ public class FlowConfigurationArchiveManager {
                 if (matcher.matches() && filename.equals(matcher.group(1) + "_" + originalFlowConfigFileName)) {
                     try {
                         totalArchiveSize.getAndAdd(Files.size(p));
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         logger.warn("Failed to get file size of {} due to {}", p, e);
                     }
                     return true;
@@ -187,7 +187,7 @@ public class FlowConfigurationArchiveManager {
         }).forEach(i -> {
             try {
                 Files.delete(archives.get(i));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Failed to delete {} to reduce storage usage, due to {}", archives.get(i), e);
             }
         });

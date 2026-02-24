@@ -94,7 +94,7 @@ public class TestDataTransferResource {
 
         final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(404, response.getStatus());
         assertEquals(ResponseCode.UNKNOWN_PORT.getCode(), resultEntity.getResponseCode());
@@ -115,7 +115,7 @@ public class TestDataTransferResource {
 
         final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(503, response.getStatus());
         assertEquals(ResponseCode.PORT_NOT_IN_VALID_STATE.getCode(), resultEntity.getResponseCode());
@@ -136,7 +136,7 @@ public class TestDataTransferResource {
 
         final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(401, response.getStatus());
         assertEquals(ResponseCode.UNAUTHORIZED.getCode(), resultEntity.getResponseCode());
@@ -185,7 +185,7 @@ public class TestDataTransferResource {
 
         final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(201, response.getStatus());
         assertEquals(ResponseCode.PROPERTIES_OK.getCode(), resultEntity.getResponseCode());
@@ -222,7 +222,7 @@ public class TestDataTransferResource {
 
         final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(201, response.getStatus());
         assertEquals(ResponseCode.PROPERTIES_OK.getCode(), resultEntity.getResponseCode());
@@ -249,7 +249,7 @@ public class TestDataTransferResource {
 
         transactionManager.cancelTransaction(transactionId);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(ResponseCode.CONTINUE_TRANSACTION.getCode(), resultEntity.getResponseCode());
@@ -265,7 +265,7 @@ public class TestDataTransferResource {
         final PublicPort port = mock(PublicPort.class);
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> {
-            Peer peer = (Peer) invocation.getArguments()[0];
+            final Peer peer = (Peer) invocation.getArguments()[0];
             ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).setChecksum("server-checksum");
             return 7;
         }).when(port).receiveFlowFiles(any(Peer.class), any());
@@ -326,7 +326,7 @@ public class TestDataTransferResource {
 
         transactionManager.cancelTransaction(transactionId);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(ResponseCode.CONFIRM_TRANSACTION.getCode(), resultEntity.getResponseCode());
@@ -372,7 +372,7 @@ public class TestDataTransferResource {
 
         transactionManager.cancelTransaction(transactionId);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(200, response.getStatus());
         assertEquals(ResponseCode.CONFIRM_TRANSACTION.getCode(), resultEntity.getResponseCode());
@@ -398,7 +398,7 @@ public class TestDataTransferResource {
 
         transactionManager.cancelTransaction(transactionId);
 
-        TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
+        final TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 
         assertEquals(400, response.getStatus());
         assertEquals(ResponseCode.BAD_CHECKSUM.getCode(), resultEntity.getResponseCode());
@@ -410,11 +410,11 @@ public class TestDataTransferResource {
         final HttpFlowFileServerProtocol serverProtocol = mock(HttpFlowFileServerProtocol.class);
         final DataTransferResource resource = new DataTransferResource(NiFiProperties.createBasicNiFiProperties(null)) {
             @Override
-            protected void authorizeDataTransfer(AuthorizableLookup lookup, ResourceType resourceType, String identifier) {
+            protected void authorizeDataTransfer(final AuthorizableLookup lookup, final ResourceType resourceType, final String identifier) {
             }
 
             @Override
-            HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+            HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
                 return serverProtocol;
             }
         };

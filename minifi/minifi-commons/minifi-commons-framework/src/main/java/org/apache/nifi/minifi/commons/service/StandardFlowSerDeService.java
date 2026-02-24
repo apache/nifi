@@ -34,12 +34,12 @@ public class StandardFlowSerDeService implements FlowSerDeService {
 
     private final ObjectMapper objectMapper;
 
-    StandardFlowSerDeService(ObjectMapper objectMapper) {
+    StandardFlowSerDeService(final ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
     public static StandardFlowSerDeService defaultInstance() {
-        ObjectMapper objectMapper = new ObjectMapper();
+        final ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
         objectMapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(objectMapper.getTypeFactory()));
         objectMapper.configure(FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -47,25 +47,25 @@ public class StandardFlowSerDeService implements FlowSerDeService {
     }
 
     @Override
-    public byte[] serialize(VersionedDataflow flow) {
+    public byte[] serialize(final VersionedDataflow flow) {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            JsonFactory factory = new JsonFactory();
-            JsonGenerator generator = factory.createGenerator(byteArrayOutputStream);
+            final JsonFactory factory = new JsonFactory();
+            final JsonGenerator generator = factory.createGenerator(byteArrayOutputStream);
             generator.setCodec(objectMapper);
             generator.writeObject(flow);
             generator.flush();
             byteArrayOutputStream.flush();
             return byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowSerializationException("Unable to serialize flow", e);
         }
     }
 
     @Override
-    public VersionedDataflow deserialize(byte[] flow) {
+    public VersionedDataflow deserialize(final byte[] flow) {
         try {
             return objectMapper.readValue(flow, VersionedDataflow.class);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new FlowSerializationException("Unable to deserialize flow", e);
         }
     }

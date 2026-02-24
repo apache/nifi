@@ -91,7 +91,7 @@ public class PGEnableControllerServices extends AbstractNiFiCommand<VoidResult> 
                     }
                     try {
                         Thread.sleep(ENABLING_DELAY_MS);
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         Thread.interrupted();
                     }
 

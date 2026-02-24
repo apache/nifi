@@ -61,9 +61,9 @@ public class UserAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.UserDAO+) && "
             + "execution(org.apache.nifi.authorization.User createUser(org.apache.nifi.web.api.dto.UserDTO))")
-    public User createUserAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public User createUserAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the access user
-        User user = (User) proceedingJoinPoint.proceed();
+        final User user = (User) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the user action...
         final Action action = generateAuditRecord(user, Operation.Add);
@@ -89,7 +89,7 @@ public class UserAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.User updateUser(org.apache.nifi.web.api.dto.UserDTO)) && "
             + "args(userDTO) && "
             + "target(userDAO)")
-    public User updateUserAdvice(ProceedingJoinPoint proceedingJoinPoint, UserDTO userDTO, UserDAO userDAO) throws Throwable {
+    public User updateUserAdvice(final ProceedingJoinPoint proceedingJoinPoint, final UserDTO userDTO, final UserDAO userDAO) throws Throwable {
         // determine the initial values for each property/setting that's changing
         User user = userDAO.getUser(userDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(user, userDTO);
@@ -102,16 +102,16 @@ public class UserAuditor extends NiFiAuditor {
 
         if (isAuditable()) {
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(user, userDTO);
 
             // create a user action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
-                String newValue = updatedValues.get(property);
-                String oldValue = values.get(property);
+            for (final String property : updatedValues.keySet()) {
+                final String newValue = updatedValues.get(property);
+                final String oldValue = values.get(property);
                 Operation operation = null;
 
                 // determine the type of operation
@@ -160,9 +160,9 @@ public class UserAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.authorization.User deleteUser(java.lang.String)) && "
             + "args(userId) && "
             + "target(userDAO)")
-    public User removeUserAdvice(ProceedingJoinPoint proceedingJoinPoint, String userId, UserDAO userDAO) throws Throwable {
+    public User removeUserAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String userId, final UserDAO userDAO) throws Throwable {
         // get the user before removing it
-        User user = userDAO.getUser(userId);
+        final User user = userDAO.getUser(userId);
 
         // remove the user
         final User removedUser = (User) proceedingJoinPoint.proceed();
@@ -186,7 +186,7 @@ public class UserAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(User user, Operation operation) {
+    public Action generateAuditRecord(final User user, final Operation operation) {
         return generateAuditRecord(user, operation, null);
     }
 
@@ -198,7 +198,7 @@ public class UserAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(User user, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final User user, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
@@ -219,8 +219,8 @@ public class UserAuditor extends NiFiAuditor {
     /**
      * Extracts the values for the configured properties from the specified user.
      */
-    private Map<String, String> extractConfiguredPropertyValues(User user, UserDTO userDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final User user, final UserDTO userDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (userDTO.getIdentity() != null) {
             values.put(IDENTITY, user.getIdentity());

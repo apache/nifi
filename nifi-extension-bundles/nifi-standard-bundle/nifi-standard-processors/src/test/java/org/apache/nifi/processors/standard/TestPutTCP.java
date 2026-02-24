@@ -298,7 +298,7 @@ public class TestPutTCP {
     private void createTestServer(final SSLContext sslContext, final String delimiter) throws UnknownHostException {
         messages = new LinkedBlockingQueue<>();
         final InetAddress listenAddress = InetAddress.getByName(TCP_SERVER_ADDRESS);
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(),
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(),
                 listenAddress, 0, TransportProtocol.TCP, delimiter.getBytes(), VALID_LARGE_FILE_SIZE, messages);
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
@@ -333,7 +333,7 @@ public class TestPutTCP {
     private void sendTestData(final String[] testData, final int iterations, final int threadCount) {
         runner.setThreadCount(threadCount);
         for (int i = 0; i < iterations; i++) {
-            for (String item : testData) {
+            for (final String item : testData) {
                 runner.enqueue(item.getBytes());
             }
             runner.run(testData.length, false, i == 0);
@@ -352,8 +352,7 @@ public class TestPutTCP {
 
     private void assertMessagesReceived(final String[] sentData, final int iterations) throws Exception {
         for (int i = 0; i < iterations; i++) {
-            final int expectedMessageCount = sentData.length;
-            for (int j = 0; j < expectedMessageCount; j++) {
+            for (final String ignored : sentData) {
                 final ByteArrayMessage message = messages.take();
                 assertNotNull(message, String.format("Message [%d] not found", i));
                 assertTrue(Arrays.asList(sentData).contains(new String(message.getMessage())));
@@ -408,7 +407,7 @@ public class TestPutTCP {
         }
 
         @Override
-        public WriteResult write(Record record) throws IOException {
+        public WriteResult write(final Record record) throws IOException {
             outputStream.write(RECORD.getBytes(StandardCharsets.UTF_8));
             outputStream.write(OUTGOING_MESSAGE_DELIMITER.getBytes(StandardCharsets.UTF_8));
             return WriteResult.of(1, Collections.emptyMap());

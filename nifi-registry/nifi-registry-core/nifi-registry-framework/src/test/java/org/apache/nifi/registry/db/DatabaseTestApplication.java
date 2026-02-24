@@ -41,7 +41,7 @@ import org.springframework.context.annotation.FilterType;
         })
 public class DatabaseTestApplication {
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SpringApplication.run(DatabaseTestApplication.class, args);
     }
 

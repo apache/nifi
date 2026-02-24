@@ -161,7 +161,7 @@ public abstract class AbstractTestStateProvider {
         final String key = "testReplaceWithNonExistingValue";
         final String value = "value";
         final StateProvider provider = getProvider();
-        StateMap stateMap = provider.getState(componentId);
+        final StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
 
         final Map<String, String> newValue = new HashMap<>();
@@ -170,7 +170,7 @@ public abstract class AbstractTestStateProvider {
         final boolean replaced = provider.replace(stateMap, newValue, componentId);
         assertTrue(replaced);
 
-        StateMap map = provider.getState(componentId);
+        final StateMap map = provider.getState(componentId);
         assertEquals(value, map.get(key));
         assertTrue(map.getStateVersion().isPresent());
     }
@@ -185,7 +185,7 @@ public abstract class AbstractTestStateProvider {
             }
 
             @Override
-            public String get(String key) {
+            public String get(final String key) {
                 return null;
             }
 

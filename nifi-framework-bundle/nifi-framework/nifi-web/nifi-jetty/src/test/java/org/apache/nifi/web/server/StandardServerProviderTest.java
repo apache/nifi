@@ -321,7 +321,7 @@ class StandardServerProviderTest {
         final Handler serverHandler = server.getHandler();
         assertInstanceOf(Handler.Collection.class, serverHandler);
 
-        Handler defaultHandler = server.getDefaultHandler();
+        final Handler defaultHandler = server.getDefaultHandler();
         assertInstanceOf(RewriteHandler.class, defaultHandler);
 
         final Handler.Collection handlerCollection = (Handler.Collection) serverHandler;

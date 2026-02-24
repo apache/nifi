@@ -36,7 +36,7 @@ public class ControllerStatusEntity extends Entity {
         return controllerStatus;
     }
 
-    public void setControllerStatus(ControllerStatusDTO controllerStatus) {
+    public void setControllerStatus(final ControllerStatusDTO controllerStatus) {
         this.controllerStatus = controllerStatus;
     }
 

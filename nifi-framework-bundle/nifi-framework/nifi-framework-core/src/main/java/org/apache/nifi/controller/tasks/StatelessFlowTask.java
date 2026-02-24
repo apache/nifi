@@ -586,7 +586,7 @@ public class StatelessFlowTask {
                 final String portName = entry.getKey();
                 final List<FlowFile> flowFiles = entry.getValue();
 
-                int flowFileCount = flowFiles.size();
+                final int flowFileCount = flowFiles.size();
                 long byteCount = 0L;
                 for (final FlowFile flowFile : flowFiles) {
                     byteCount += flowFile.getSize();

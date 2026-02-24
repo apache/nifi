@@ -54,7 +54,7 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
      * @param componentId the id of the component that the entry belongs to
      */
     @Override
-    public void addReportEntry(FlowFileEvent entry, final String componentId) {
+    public void addReportEntry(final FlowFileEvent entry, final String componentId) {
         if (entry == null) {
             throw new NullPointerException("report entry may not be null");
         }

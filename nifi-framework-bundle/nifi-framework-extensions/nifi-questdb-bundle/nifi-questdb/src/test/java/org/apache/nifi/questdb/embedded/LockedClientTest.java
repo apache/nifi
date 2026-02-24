@@ -200,7 +200,7 @@ public class LockedClientTest {
         new Thread(() -> {
             try {
                 testSubject.query(SELECT_QUERY, RequestMapping.getResultProcessor(QuestDbTestUtil.EVENT_TABLE_REQUEST_MAPPING));
-            } catch (DatabaseException e) {
+            } catch (final DatabaseException e) {
                 fail();
             }
         }).start();
@@ -210,7 +210,7 @@ public class LockedClientTest {
         new Thread(() -> {
             try {
                 testSubject.execute(SELECT_QUERY);
-            } catch (DatabaseException e) {
+            } catch (final DatabaseException e) {
                 fail();
             }
         }).start();
@@ -220,7 +220,7 @@ public class LockedClientTest {
         new Thread(() -> {
             try {
                 testSubject.insert(EVENT_TABLE_NAME, QuestDbTestUtil.getEventTableDataSource(Collections.emptyList()));
-            } catch (DatabaseException e) {
+            } catch (final DatabaseException e) {
                 fail();
             }
         }).start();

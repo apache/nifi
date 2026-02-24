@@ -21,11 +21,11 @@ import org.springframework.http.HttpMethod;
 
 public interface HttpMethodAuthorizationRules {
 
-    default boolean requiresAuthorization(HttpMethod httpMethod) {
+    default boolean requiresAuthorization(final HttpMethod httpMethod) {
         return true;
     }
 
-    default RequestAction mapHttpMethodToAction(HttpMethod httpMethod) {
+    default RequestAction mapHttpMethodToAction(final HttpMethod httpMethod) {
 
         return switch (httpMethod.name()) {
             case "TRACE", "OPTIONS", "HEAD", "GET" -> RequestAction.READ;

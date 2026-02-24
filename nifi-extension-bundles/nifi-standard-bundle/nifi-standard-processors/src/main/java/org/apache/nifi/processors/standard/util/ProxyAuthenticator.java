@@ -36,8 +36,8 @@ public class ProxyAuthenticator implements Authenticator {
 
     @Nullable
     @Override
-    public Request authenticate(Route route, Response response) {
-        String credential = Credentials.basic(proxyUsername, proxyPassword);
+    public Request authenticate(final Route route, final Response response) {
+        final String credential = Credentials.basic(proxyUsername, proxyPassword);
         return response.request()
                 .newBuilder()
                 .header("Proxy-Authorization", credential)

@@ -59,7 +59,7 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
             .build();
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null && !context.getProperty(getJsonPayloadPropertyDescriptor()).isSet()) {
             return;
@@ -67,11 +67,11 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
             flowFile = session.create();
         }
         try  {
-            OperationFuture<?, ?> asyncResponse = startOperation(session, context, flowFile);
-            String operationName = asyncResponse.getName();
+            final OperationFuture<?, ?> asyncResponse = startOperation(session, context, flowFile);
+            final String operationName = asyncResponse.getName();
             session.putAttribute(flowFile, GCP_OPERATION_KEY, operationName);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Fail to start GCP Vision operation", e);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -83,15 +83,15 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("vision-feature-type", FEATURE_TYPE.getName());
         config.renameProperty("output-bucket", OUTPUT_BUCKET.getName());
     }
 
-    protected OperationFuture<?, ?> startOperation(ProcessSession session, ProcessContext context, FlowFile flowFile) {
-        B builder = newBuilder();
-        InputStream inStream = context.getProperty(getJsonPayloadPropertyDescriptor()).isSet()
+    protected OperationFuture<?, ?> startOperation(final ProcessSession session, final ProcessContext context, final FlowFile flowFile) {
+        final B builder = newBuilder();
+        final InputStream inStream = context.getProperty(getJsonPayloadPropertyDescriptor()).isSet()
                 ? getInputStreamFromProperty(context, flowFile) : session.read(flowFile);
         try (InputStream inputStream = inStream) {
             JsonFormat.parser().ignoringUnknownFields().merge(new InputStreamReader(inputStream), builder);
@@ -101,8 +101,8 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
         return startOperation(builder);
     }
 
-    private InputStream getInputStreamFromProperty(ProcessContext context, FlowFile flowFile) {
-        Map<String, String> attributes = new HashMap<>();
+    private InputStream getInputStreamFromProperty(final ProcessContext context, final FlowFile flowFile) {
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put(OUTPUT_BUCKET.getName(), getAttributeValue(context, flowFile, OUTPUT_BUCKET.getName()));
         attributes.put(FEATURE_TYPE.getName(), getAttributeValue(context, flowFile, FEATURE_TYPE.getName()));
         final PropertyValue jsonPropertyValue = context.getProperty(getJsonPayloadPropertyDescriptor());
@@ -110,7 +110,7 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
         return new ByteArrayInputStream(jsonPayload.getBytes(StandardCharsets.UTF_8));
     }
 
-    private String getAttributeValue(ProcessContext context, FlowFile flowFile, String name) {
+    private String getAttributeValue(final ProcessContext context, final FlowFile flowFile, final String name) {
         final String flowFileAttribute = flowFile.getAttribute(name);
         final PropertyValue propertyValue = context.getProperty(name);
         return flowFileAttribute == null ? propertyValue.getValue() : flowFileAttribute;

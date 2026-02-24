@@ -52,7 +52,7 @@ public class Notifier {
         synchronized (object) {
             try {
                 object.wait(millis);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 interrupted = true;
             }
         }

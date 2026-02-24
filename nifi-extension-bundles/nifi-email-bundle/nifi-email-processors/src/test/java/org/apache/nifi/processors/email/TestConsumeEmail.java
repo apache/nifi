@@ -65,10 +65,10 @@ public class TestConsumeEmail {
         mockPOP3Server.stop();
     }
 
-    public void addMessage(String testName, GreenMailUser user) throws MessagingException {
-        Properties prop = new Properties();
-        Session session = Session.getDefaultInstance(prop);
-        MimeMessage message = new MimeMessage(session);
+    public void addMessage(final String testName, final GreenMailUser user) throws MessagingException {
+        final Properties prop = new Properties();
+        final Session session = Session.getDefaultInstance(prop);
+        final MimeMessage message = new MimeMessage(session);
         message.setFrom(new InternetAddress("alice@nifi.org"));
         message.addRecipient(Message.RecipientType.TO, new InternetAddress("test@nifi.org"));
         message.setSubject("Test email" + testName);
@@ -93,7 +93,7 @@ public class TestConsumeEmail {
 
         runner.assertTransferCount(ConsumeIMAP.REL_SUCCESS, 2);
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumeIMAP.REL_SUCCESS);
-        String result = new String(runner.getContentAsByteArray(messages.getFirst()));
+        final String result = new String(runner.getContentAsByteArray(messages.getFirst()));
 
         // Verify body
         assertTrue(result.contains("test test test chocolate"));
@@ -123,7 +123,7 @@ public class TestConsumeEmail {
 
         runner.assertTransferCount(ConsumePOP3.REL_SUCCESS, 2);
         final List<MockFlowFile> messages = runner.getFlowFilesForRelationship(ConsumePOP3.REL_SUCCESS);
-        String result = new String(runner.getContentAsByteArray(messages.getFirst()));
+        final String result = new String(runner.getContentAsByteArray(messages.getFirst()));
 
         // Verify body
         assertTrue(result.contains("test test test chocolate"));

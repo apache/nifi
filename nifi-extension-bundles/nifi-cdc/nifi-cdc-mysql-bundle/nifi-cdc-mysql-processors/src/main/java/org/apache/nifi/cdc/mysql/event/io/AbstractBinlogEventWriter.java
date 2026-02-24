@@ -39,8 +39,8 @@ import java.util.Map;
  */
 public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> extends AbstractEventWriter<T> {
 
-    protected void writeJson(T event) throws IOException {
-        String gtidSet = event.getBinlogGtidSet();
+    protected void writeJson(final T event) throws IOException {
+        final String gtidSet = event.getBinlogGtidSet();
 
         if (gtidSet == null) {
             jsonGenerator.writeStringField("binlog_filename", event.getBinlogFilename());
@@ -50,12 +50,12 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
         }
     }
 
-    protected Map<String, String> getCommonAttributes(final long sequenceId, BinlogEventInfo eventInfo) {
+    protected Map<String, String> getCommonAttributes(final long sequenceId, final BinlogEventInfo eventInfo) {
         final Map<String, String> commonAttributeMap = new HashMap<>();
 
         commonAttributeMap.put(SEQUENCE_ID_KEY, Long.toString(sequenceId));
         commonAttributeMap.put(CDC_EVENT_TYPE_ATTRIBUTE, eventInfo.getEventType());
-        String gtidSet = eventInfo.getBinlogGtidSet();
+        final String gtidSet = eventInfo.getBinlogGtidSet();
         if (gtidSet == null) {
             commonAttributeMap.put(BinlogEventInfo.BINLOG_FILENAME_KEY, eventInfo.getBinlogFilename());
             commonAttributeMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(eventInfo.getBinlogPosition()));
@@ -69,17 +69,17 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
 
     // Default implementation for binlog events
     @Override
-    public long writeEvent(ProcessSession session, String transitUri, T eventInfo, long currentSequenceId, Relationship relationship,
+    public long writeEvent(final ProcessSession session, final String transitUri, final T eventInfo, final long currentSequenceId, final Relationship relationship,
                            final EventWriterConfiguration eventWriterConfiguration) {
         configureEventWriter(eventWriterConfiguration, session, eventInfo);
 
-        OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
+        final OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
         try {
             super.startJson(outputStream, eventInfo);
             writeJson(eventInfo);
             // Nothing in the body
             super.endJson();
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new UncheckedIOException("Write JSON start array failed", ioe);
         }
 
@@ -98,7 +98,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
         if (writtenMultipleEvents(eventWriterConfiguration)) {
             try {
                 jsonGenerator.writeEndArray();
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new UncheckedIOException("Write JSON end array failed", ioe);
             }
         }
@@ -114,7 +114,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
             session.getProvenanceReporter().receive(flowFile, transitUri);
 
             eventWriterConfiguration.cleanUp();
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new FlowFileAccessException("Failed to close event writer", ioe);
         }
     }
@@ -123,18 +123,18 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
         FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
         if (flowFile == null) {
             flowFile = session.create();
-            OutputStream flowFileOutputStream = session.write(flowFile);
+            final OutputStream flowFileOutputStream = session.write(flowFile);
             if (eventWriterConfiguration.getJsonGenerator() == null) {
                 try {
                     jsonGenerator = createJsonGenerator(flowFileOutputStream);
-                } catch (IOException ioe) {
+                } catch (final IOException ioe) {
                     throw new UncheckedIOException("JSON Generator creation failed", ioe);
                 }
             }
             if (multipleEventsPerFlowFile(eventWriterConfiguration)) {
                 try {
                     jsonGenerator.writeStartArray();
-                } catch (IOException ioe) {
+                } catch (final IOException ioe) {
                     throw new UncheckedIOException("Write JSON start array failed", ioe);
                 }
             }
@@ -143,22 +143,22 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
         jsonGenerator = eventWriterConfiguration.getJsonGenerator();
     }
 
-    private boolean multipleEventsPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
+    private boolean multipleEventsPerFlowFile(final EventWriterConfiguration eventWriterConfiguration) {
         return (maxEventsPerFlowFile(eventWriterConfiguration)
                 && eventWriterConfiguration.getNumberOfEventsPerFlowFile() > 1)
                 || oneTransactionPerFlowFile(eventWriterConfiguration);
     }
 
-    private boolean writtenMultipleEvents(EventWriterConfiguration eventWriterConfiguration) {
+    private boolean writtenMultipleEvents(final EventWriterConfiguration eventWriterConfiguration) {
         return eventWriterConfiguration.getNumberOfEventsWritten() > 1
                 || oneTransactionPerFlowFile(eventWriterConfiguration);
     }
 
-    protected boolean maxEventsPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
+    protected boolean maxEventsPerFlowFile(final EventWriterConfiguration eventWriterConfiguration) {
         return FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy());
     }
 
-    protected boolean oneTransactionPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
+    protected boolean oneTransactionPerFlowFile(final EventWriterConfiguration eventWriterConfiguration) {
         return FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy());
     }
 }

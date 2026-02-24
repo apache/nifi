@@ -39,7 +39,7 @@ public class ClearBulletinsResultEntity extends Entity {
         return bulletinsCleared;
     }
 
-    public void setBulletinsCleared(int bulletinsCleared) {
+    public void setBulletinsCleared(final int bulletinsCleared) {
         this.bulletinsCleared = bulletinsCleared;
     }
 
@@ -51,7 +51,7 @@ public class ClearBulletinsResultEntity extends Entity {
         return componentId;
     }
 
-    public void setComponentId(String componentId) {
+    public void setComponentId(final String componentId) {
         this.componentId = componentId;
     }
 
@@ -63,7 +63,7 @@ public class ClearBulletinsResultEntity extends Entity {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinEntity> bulletins) {
+    public void setBulletins(final List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 }

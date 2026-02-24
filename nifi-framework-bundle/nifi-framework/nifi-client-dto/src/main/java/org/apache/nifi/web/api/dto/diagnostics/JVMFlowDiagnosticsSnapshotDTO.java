@@ -36,7 +36,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         return uptime;
     }
 
-    public void setUptime(String uptime) {
+    public void setUptime(final String uptime) {
         this.uptime = uptime;
     }
 
@@ -45,7 +45,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         return timeZone;
     }
 
-    public void setTimeZone(String timeZone) {
+    public void setTimeZone(final String timeZone) {
         this.timeZone = timeZone;
     }
 
@@ -54,7 +54,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         return activeTimerDrivenThreads;
     }
 
-    public void setActiveTimerDrivenThreads(Integer activeTimerDrivenThreads) {
+    public void setActiveTimerDrivenThreads(final Integer activeTimerDrivenThreads) {
         this.activeTimerDrivenThreads = activeTimerDrivenThreads;
     }
 
@@ -63,7 +63,7 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         return bundlesLoaded;
     }
 
-    public void setBundlesLoaded(Set<BundleDTO> bundlesLoaded) {
+    public void setBundlesLoaded(final Set<BundleDTO> bundlesLoaded) {
         this.bundlesLoaded = bundlesLoaded;
     }
 

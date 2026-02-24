@@ -18,11 +18,11 @@ package org.apache.nifi.toolkit.cli.api;
 
 public class SessionException extends Exception {
 
-    public SessionException(String message) {
+    public SessionException(final String message) {
         super(message);
     }
 
-    public SessionException(String message, Throwable cause) {
+    public SessionException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

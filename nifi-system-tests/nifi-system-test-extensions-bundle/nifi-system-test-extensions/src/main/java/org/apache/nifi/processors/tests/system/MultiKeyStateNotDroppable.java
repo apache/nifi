@@ -51,7 +51,7 @@ public class MultiKeyStateNotDroppable extends AbstractProcessor {
         final Map<String, String> currentState;
         try {
             currentState = session.getState(Scope.CLUSTER).toMap();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
 
@@ -65,11 +65,11 @@ public class MultiKeyStateNotDroppable extends AbstractProcessor {
         newState.put("c", String.valueOf(c));
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
 
-        FlowFile flowFile = session.create();
+        final FlowFile flowFile = session.create();
         session.transfer(flowFile, REL_SUCCESS);
     }
 }

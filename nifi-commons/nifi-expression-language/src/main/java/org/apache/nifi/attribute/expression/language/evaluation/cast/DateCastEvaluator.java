@@ -106,7 +106,7 @@ public class DateCastEvaluator extends DateEvaluator {
             case WHOLE_NUMBER:
                 return new DateQueryResult(new Date((Long) result.getValue()));
             case DECIMAL:
-                Double resultDouble = (Double) result.getValue();
+                final Double resultDouble = (Double) result.getValue();
                 return new DateQueryResult(new Date(resultDouble.longValue()));
             case NUMBER:
                 final Number numberValue = ((NumberQueryResult) result).getValue();

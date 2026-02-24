@@ -95,16 +95,17 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("el-rest-pagination-type", PAGINATION_TYPE.getName());
         config.renameProperty("el-rest-pagination-keep-alive", PAGINATION_KEEP_ALIVE.getName());
     }
 
     @Override
-    SearchResponse doQuery(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, List<FlowFile> hitsFlowFiles,
+    SearchResponse doQuery(final PaginatedJsonQueryParameters paginatedJsonQueryParameters, final List<FlowFile> hitsFlowFilesArg,
                            final ProcessSession session, final ProcessContext context, final FlowFile input,
                            final StopWatch stopWatch) throws IOException {
+        List<FlowFile> hitsFlowFiles = hitsFlowFilesArg;
         SearchResponse response = null;
         do {
             // reset query params if query needs to be restarted from the beginning

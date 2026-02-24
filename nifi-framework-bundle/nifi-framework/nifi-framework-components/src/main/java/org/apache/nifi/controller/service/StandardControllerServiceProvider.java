@@ -275,8 +275,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodesIn) {
-        Collection<ControllerServiceNode> serviceNodes = new HashSet<>(serviceNodesIn);
-        for (ControllerServiceNode controllerServiceNode : removeControllerServicesWithUnavailableRequirements(serviceNodes)) {
+        final Collection<ControllerServiceNode> serviceNodes = new HashSet<>(serviceNodesIn);
+        for (final ControllerServiceNode controllerServiceNode : removeControllerServicesWithUnavailableRequirements(serviceNodes)) {
             try {
                 final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
@@ -284,7 +284,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 logger.debug("{} enabled with state [{}]", controllerServiceNode, controllerServiceNode.getState());
             } catch (final ControllerServiceNotValidException e) {
                 logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
                     this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
@@ -302,7 +302,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 boolean skipStarting = false;
                 final ControllerServiceNode serviceNode = iter.next();
                 final List<ControllerServiceNode> requiredServices = serviceNode.getRequiredControllerServices();
-                for (ControllerServiceNode requiredService : requiredServices) {
+                for (final ControllerServiceNode requiredService : requiredServices) {
                     if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
                         skipStarting = true;
                         logger.error("{} not started: Required Service {} not active and not requested for enabling", serviceNode, requiredService);
@@ -377,7 +377,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         break;
                     }
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
                 if (this.bulletinRepo != null) {
                     this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
@@ -569,7 +569,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public ControllerService getControllerServiceForComponent(final String serviceIdentifier, final String componentId) {
         // Find the Process Group that owns the component.
-        ProcessGroup groupOfInterest;
+        final ProcessGroup groupOfInterest;
 
         final ProcessorNode procNode = flowManager.getProcessorNode(componentId);
         if (procNode == null) {

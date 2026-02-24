@@ -39,7 +39,7 @@ public class RelationshipDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -52,7 +52,7 @@ public class RelationshipDTO {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -65,7 +65,7 @@ public class RelationshipDTO {
         return autoTerminate;
     }
 
-    public void setAutoTerminate(Boolean autoTerminate) {
+    public void setAutoTerminate(final Boolean autoTerminate) {
         this.autoTerminate = autoTerminate;
     }
 
@@ -78,7 +78,7 @@ public class RelationshipDTO {
         return retry;
     }
 
-    public void setRetry(Boolean retry) {
+    public void setRetry(final Boolean retry) {
         this.retry = retry;
     }
 }

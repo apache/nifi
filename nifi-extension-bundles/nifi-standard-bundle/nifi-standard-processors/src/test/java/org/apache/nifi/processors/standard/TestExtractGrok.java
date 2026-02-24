@@ -82,7 +82,7 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokKeepEmptyCaptures() {
-        String expression = "%{NUMBER}|%{NUMBER}";
+        final String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, expression);
         testRunner.enqueue("-42");
         testRunner.run();
@@ -93,7 +93,7 @@ public class TestExtractGrok {
 
     @Test
     public void testExtractGrokDoNotKeepEmptyCaptures() {
-        String expression = "%{NUMBER}|%{NUMBER}";
+        final String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, expression);
         testRunner.setProperty(ExtractGrok.KEEP_EMPTY_CAPTURES, "false");
         testRunner.enqueue("-42");

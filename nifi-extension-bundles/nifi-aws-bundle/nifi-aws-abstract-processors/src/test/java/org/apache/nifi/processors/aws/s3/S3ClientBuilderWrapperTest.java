@@ -97,9 +97,9 @@ class S3ClientBuilderWrapperTest {
 
     @Test
     void testS3ClientBuilder() {
-        S3ClientBuilder builder = mock(S3ClientBuilder.class);
+        final S3ClientBuilder builder = mock(S3ClientBuilder.class);
 
-        S3ClientBuilderWrapper wrapper = new S3ClientBuilderWrapper(builder);
+        final S3ClientBuilderWrapper wrapper = new S3ClientBuilderWrapper(builder);
 
         lenient().when(builder.overrideConfiguration()).thenReturn(overrideConfiguration);
         when(builder.plugins()).thenReturn(pluginList);
@@ -156,9 +156,9 @@ class S3ClientBuilderWrapperTest {
 
     @Test
     void testS3EncryptionClientBuilder() {
-        S3EncryptionClient.Builder builder = mock(S3EncryptionClient.Builder.class);
+        final S3EncryptionClient.Builder builder = mock(S3EncryptionClient.Builder.class);
 
-        S3ClientBuilderWrapper wrapper = new S3ClientBuilderWrapper(builder);
+        final S3ClientBuilderWrapper wrapper = new S3ClientBuilderWrapper(builder);
 
         lenient().when(builder.overrideConfiguration()).thenReturn(overrideConfiguration);
         when(builder.plugins()).thenReturn(pluginList);

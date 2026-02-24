@@ -41,7 +41,7 @@ public class HttpOutput implements CommunicationsOutput {
         return 0L;
     }
 
-    public void setOutputStream(OutputStream outputStream) {
+    public void setOutputStream(final OutputStream outputStream) {
         interruptableOut = new InterruptableOutputStream(outputStream);
         this.countingOut = new ByteCountingOutputStream(interruptableOut);
     }

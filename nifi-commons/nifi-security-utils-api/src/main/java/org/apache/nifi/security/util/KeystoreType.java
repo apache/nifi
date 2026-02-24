@@ -30,7 +30,7 @@ public enum KeystoreType {
     private final String type;
     private final String description;
 
-    KeystoreType(String type, String description) {
+    KeystoreType(final String type, final String description) {
         this.type = type;
         this.description = description;
     }

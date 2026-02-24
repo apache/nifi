@@ -104,10 +104,10 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public long getTotalQueuedDuration(long fromTimestamp) {
+    public long getTotalQueuedDuration(final long fromTimestamp) {
         long sum = 0L;
-        for (FlowFileRecord flowFileRecord : flowFiles) {
-            long l = fromTimestamp - flowFileRecord.getLastQueueDate();
+        for (final FlowFileRecord flowFileRecord : flowFiles) {
+            final long l = fromTimestamp - flowFileRecord.getLastQueueDate();
             sum += l;
         }
         return sum;
@@ -116,7 +116,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public long getMinLastQueueDate() {
         long min = 0;
-        for (FlowFileRecord flowFile : flowFiles) {
+        for (final FlowFileRecord flowFile : flowFiles) {
             min = min == 0 ? flowFile.getLastQueueDate() : Long.min(min, flowFile.getLastQueueDate());
         }
         return min;
@@ -208,7 +208,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+    public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords) {
         return poll(expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -239,7 +239,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final int maxResults, final Set<FlowFileRecord> expiredRecords) {
         return poll(maxResults, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 
@@ -283,7 +283,7 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+    public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords) {
         return poll(filter, expiredRecords, PollStrategy.UNPENALIZED_FLOWFILES);
     }
 

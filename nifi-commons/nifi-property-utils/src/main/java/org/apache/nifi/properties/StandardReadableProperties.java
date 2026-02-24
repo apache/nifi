@@ -41,7 +41,7 @@ public class StandardReadableProperties implements ReadableProperties {
     }
 
     @Override
-    public String getProperty(final String key, String defaultValue) {
+    public String getProperty(final String key, final String defaultValue) {
         return rawProperties.getProperty(key, defaultValue);
     }
 

@@ -63,7 +63,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
     protected void setUp() throws Exception {
         final PutGoogleDrive testSubject = new PutGoogleDrive() {
             @Override
-            public Drive createDriveService(ProcessContext context, HttpTransport httpTransport, String... scopes) {
+            public Drive createDriveService(final ProcessContext context, final HttpTransport httpTransport, final String... scopes) {
                 return mockDriverService;
             }
         };
@@ -134,8 +134,8 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.getFirst();
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_FAILURE);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeExists(ERROR_MESSAGE);
         assertNoProvenanceEvent();
     }
@@ -204,18 +204,18 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
     }
 
     private MockFlowFile getMockFlowFile() {
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
         return inputFlowFile;
     }
 
     private void runWithFlowFile() {
-        MockFlowFile mockFlowFile = getMockFlowFile();
+        final MockFlowFile mockFlowFile = getMockFlowFile();
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
     }
 
-    private void mockFileUpload(File uploadedFile) throws IOException {
+    private void mockFileUpload(final File uploadedFile) throws IOException {
         when(mockDriverService.files()
                 .create(any(File.class), any(InputStreamContent.class))
                 .setSupportsAllDrives(true)
@@ -224,7 +224,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
                 .thenReturn(uploadedFile);
     }
 
-    private void mockFileUpdate(File uploadedFile) throws IOException {
+    private void mockFileUpdate(final File uploadedFile) throws IOException {
         when(mockDriverService.files()
                 .update(eq(uploadedFile.getId()), any(File.class), any(InputStreamContent.class))
                 .setSupportsAllDrives(true)
@@ -233,14 +233,14 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
                 .thenReturn(uploadedFile);
     }
 
-    private void mockFileUploadError(Exception exception) throws IOException {
+    private void mockFileUploadError(final Exception exception) throws IOException {
         when(mockDriverService.files()
                 .create(any(File.class), any(InputStreamContent.class))
                 .setSupportsAllDrives(true))
                 .thenThrow(exception);
     }
 
-    private void mockFileExists(List<File> fileList) throws IOException {
+    private void mockFileExists(final List<File> fileList) throws IOException {
         when(mockDriverService.files()
                 .list()
                 .setSupportsAllDrives(true)

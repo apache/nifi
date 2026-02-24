@@ -39,7 +39,7 @@ public class StandardOidcIdentityProviderTest {
 
         final StandardOidcIdentityProvider provider = createOidcProviderWithAdditionalScopes(additionalScope_profile,
             additionalScope_abc);
-        Scope scope = provider.getScope();
+        final Scope scope = provider.getScope();
 
         // two additional scopes are set, two (openid, email) are hard-coded
         assertEquals(scope.toArray().length, 4);
@@ -55,17 +55,17 @@ public class StandardOidcIdentityProviderTest {
 
         final StandardOidcIdentityProvider provider = createOidcProviderWithAdditionalScopes(additionalScopeDuplicate,
                 "def", additionalScopeDuplicate);
-        Scope scope = provider.getScope();
+        final Scope scope = provider.getScope();
 
         // three additional scopes are set but one is duplicated and mustn't be returned; note that there is
         // another one inserted in between the duplicated; two (openid, email) are hard-coded
         assertEquals(scope.toArray().length, 4);
     }
 
-    private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(String... additionalScopes) throws IllegalAccessException {
+    private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(final String... additionalScopes) throws IllegalAccessException {
         final StandardOidcIdentityProvider provider = mock(StandardOidcIdentityProvider.class);
-        NiFiRegistryProperties properties = createNiFiPropertiesMockWithAdditionalScopes(Arrays.asList(additionalScopes));
-        Field propertiesField = FieldUtils.getDeclaredField(StandardOidcIdentityProvider.class, "properties", true);
+        final NiFiRegistryProperties properties = createNiFiPropertiesMockWithAdditionalScopes(Arrays.asList(additionalScopes));
+        final Field propertiesField = FieldUtils.getDeclaredField(StandardOidcIdentityProvider.class, "properties", true);
         propertiesField.set(provider, properties);
 
         when(provider.isOidcEnabled()).thenReturn(true);
@@ -74,8 +74,8 @@ public class StandardOidcIdentityProviderTest {
         return provider;
     }
 
-    private NiFiRegistryProperties createNiFiPropertiesMockWithAdditionalScopes(List<String> additionalScopes) {
-        NiFiRegistryProperties properties = mock(NiFiRegistryProperties.class);
+    private NiFiRegistryProperties createNiFiPropertiesMockWithAdditionalScopes(final List<String> additionalScopes) {
+        final NiFiRegistryProperties properties = mock(NiFiRegistryProperties.class);
         when(properties.getOidcAdditionalScopes()).thenReturn(additionalScopes);
         return properties;
     }

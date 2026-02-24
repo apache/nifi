@@ -806,7 +806,7 @@ public class ExpressionCompiler {
                     toStringEvaluator(argEvaluators.get(0), "first argument to contains")), "contains");
             }
             case IN: {
-                List<Evaluator<String>> list = new ArrayList<>();
+                final List<Evaluator<String>> list = new ArrayList<>();
                 for (int i = 0; i < argEvaluators.size(); i++) {
                     list.add(toStringEvaluator(argEvaluators.get(i), i + "th argument to in"));
                 }
@@ -1040,30 +1040,30 @@ public class ExpressionCompiler {
             }
             case JSON_PATH_SET: {
                 verifyArgCount(argEvaluators, 2, "jsonPathSet");
-                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
-                String location = "second argument to jsonPathSet";
-                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
+                final Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                final String location = "second argument to jsonPathSet";
+                final Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
                 return addToken(new JsonPathSetEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathSet"),
                         valueEvaluator), "jsonPathSet");
             }
             case JSON_PATH_ADD: {
                 verifyArgCount(argEvaluators, 2, "jsonPathAdd");
-                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
-                String location = "second argument to jsonPathAdd";
-                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
+                final Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                final String location = "second argument to jsonPathAdd";
+                final Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, location);
                 return addToken(new JsonPathAddEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathAdd"),
                         valueEvaluator), "jsonPathAdd");
             }
             case JSON_PATH_PUT: {
                 verifyArgCount(argEvaluators, 3, "jsonPathPut");
-                Evaluator<?> argValueEvaluator = argEvaluators.get(1);
-                String valueLocation = "second argument to jsonPathPut";
-                Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, valueLocation);
-                Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
-                String keyLocation = "third argument to jsonPathPut";
-                Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
+                final Evaluator<?> argValueEvaluator = argEvaluators.get(1);
+                final String valueLocation = "second argument to jsonPathPut";
+                final Evaluator<?> valueEvaluator = getJsonPathUpdateEvaluator(argValueEvaluator, valueLocation);
+                final Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
+                final String keyLocation = "third argument to jsonPathPut";
+                final Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
                 return addToken(new JsonPathPutEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathPut"),
                         toStringEvaluator(keyEvaluator, keyLocation),
@@ -1090,8 +1090,8 @@ public class ExpressionCompiler {
         }
     }
 
-    private Evaluator<?> getJsonPathUpdateEvaluator(Evaluator<?> argValueEvaluator, String location) {
-        Evaluator<?> valueEvaluator;
+    private Evaluator<?> getJsonPathUpdateEvaluator(final Evaluator<?> argValueEvaluator, final String location) {
+        final Evaluator<?> valueEvaluator;
         if (argValueEvaluator instanceof StringEvaluator) {
             valueEvaluator = toStringEvaluator(argValueEvaluator, location);
         } else if (argValueEvaluator instanceof DecimalEvaluator) {
@@ -1256,7 +1256,7 @@ public class ExpressionCompiler {
                 return eval;
             }
             case GET_URI: {
-                List<Evaluator<String>> uriArgs = Stream.iterate(0, i -> i + 1)
+                final List<Evaluator<String>> uriArgs = Stream.iterate(0, i -> i + 1)
                         .limit(tree.getChildCount())
                         .map(num -> toStringEvaluator(buildEvaluator(tree.getChild(num))))
                         .collect(Collectors.toList());

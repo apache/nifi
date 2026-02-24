@@ -39,8 +39,8 @@ import static java.util.Collections.emptyList;
 public class NoOpProvenanceRepository implements ProvenanceRepository {
 
     @Override
-    public void initialize(EventReporter eventReporter, Authorizer authorizer,
-            ProvenanceAuthorizableFactory factory, IdentifierLookup identifierLookup)
+    public void initialize(final EventReporter eventReporter, final Authorizer authorizer,
+            final ProvenanceAuthorizableFactory factory, final IdentifierLookup identifierLookup)
             throws IOException {
 
     }
@@ -56,7 +56,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id) throws IOException {
+    public ProvenanceEventRecord getEvent(final long id) throws IOException {
         return null;
     }
 
@@ -66,14 +66,14 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords)
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords)
             throws IOException {
         return emptyList();
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId,
-            int maxRecords, NiFiUser niFiUser) throws IOException {
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId,
+            final int maxRecords, final NiFiUser niFiUser) throws IOException {
         return emptyList();
     }
 
@@ -83,12 +83,12 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void registerEvent(ProvenanceEventRecord records) {
+    public void registerEvent(final ProvenanceEventRecord records) {
 
     }
 
     @Override
-    public void registerEvents(Iterable<ProvenanceEventRecord> records) {
+    public void registerEvents(final Iterable<ProvenanceEventRecord> records) {
 
     }
 
@@ -98,7 +98,7 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public QuerySubmission submitQuery(Query query, NiFiUser niFiUser) {
+    public QuerySubmission submitQuery(final Query query, final NiFiUser niFiUser) {
         return null;
     }
 
@@ -108,17 +108,17 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public QuerySubmission retrieveQuerySubmission(String queryIdentifier, NiFiUser niFiUser) {
+    public QuerySubmission retrieveQuerySubmission(final String queryIdentifier, final NiFiUser niFiUser) {
         return null;
     }
 
     @Override
-    public ComputeLineageSubmission submitLineageComputation(String s, NiFiUser niFiUser) {
+    public ComputeLineageSubmission submitLineageComputation(final String s, final NiFiUser niFiUser) {
         return null;
     }
 
     @Override
-    public ComputeLineageSubmission submitLineageComputation(long eventId, NiFiUser user) {
+    public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user) {
         return null;
     }
 
@@ -138,17 +138,17 @@ public class NoOpProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public long getContainerCapacity(String s) throws IOException {
+    public long getContainerCapacity(final String s) throws IOException {
         return 0;
     }
 
     @Override
-    public String getContainerFileStoreName(String s) {
+    public String getContainerFileStoreName(final String s) {
         return null;
     }
 
     @Override
-    public long getContainerUsableSpace(String s) throws IOException {
+    public long getContainerUsableSpace(final String s) throws IOException {
         return 0;
     }
 

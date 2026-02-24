@@ -38,9 +38,9 @@ public class ReportingTaskInitializer implements ConfigurableComponentInitialize
     }
 
     @Override
-    public void initialize(ConfigurableComponent component) throws InitializationException {
-        ReportingTask reportingTask = (ReportingTask) component;
-        ReportingInitializationContext context = new MockReportingInitializationContext();
+    public void initialize(final ConfigurableComponent component) throws InitializationException {
+        final ReportingTask reportingTask = (ReportingTask) component;
+        final ReportingInitializationContext context = new MockReportingInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             reportingTask.initialize(context);
         }

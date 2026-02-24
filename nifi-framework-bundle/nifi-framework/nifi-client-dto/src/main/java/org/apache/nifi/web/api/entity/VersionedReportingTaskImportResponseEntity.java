@@ -32,7 +32,7 @@ public class VersionedReportingTaskImportResponseEntity extends Entity {
         return reportingTasks;
     }
 
-    public void setReportingTasks(Set<ReportingTaskEntity> reportingTasks) {
+    public void setReportingTasks(final Set<ReportingTaskEntity> reportingTasks) {
         this.reportingTasks = reportingTasks;
     }
 
@@ -41,7 +41,7 @@ public class VersionedReportingTaskImportResponseEntity extends Entity {
         return controllerServices;
     }
 
-    public void setControllerServices(Set<ControllerServiceEntity> controllerServices) {
+    public void setControllerServices(final Set<ControllerServiceEntity> controllerServices) {
         this.controllerServices = controllerServices;
     }
 }

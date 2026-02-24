@@ -31,7 +31,7 @@ public class ParameterProviderConfigurationDTO {
         return parameterProviderId;
     }
 
-    public void setParameterProviderId(String parameterProviderId) {
+    public void setParameterProviderId(final String parameterProviderId) {
         this.parameterProviderId = parameterProviderId;
     }
 
@@ -40,7 +40,7 @@ public class ParameterProviderConfigurationDTO {
         return parameterProviderName;
     }
 
-    public void setParameterProviderName(String parameterProviderName) {
+    public void setParameterProviderName(final String parameterProviderName) {
         this.parameterProviderName = parameterProviderName;
     }
 
@@ -49,7 +49,7 @@ public class ParameterProviderConfigurationDTO {
         return parameterGroupName;
     }
 
-    public void setParameterGroupName(String parameterGroupName) {
+    public void setParameterGroupName(final String parameterGroupName) {
         this.parameterGroupName = parameterGroupName;
     }
 
@@ -58,7 +58,7 @@ public class ParameterProviderConfigurationDTO {
         return isSynchronized;
     }
 
-    public void setSynchronized(Boolean isSynchronized) {
+    public void setSynchronized(final Boolean isSynchronized) {
         this.isSynchronized = isSynchronized;
     }
 }

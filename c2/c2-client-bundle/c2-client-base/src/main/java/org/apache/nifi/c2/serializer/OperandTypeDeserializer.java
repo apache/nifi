@@ -31,13 +31,13 @@ public class OperandTypeDeserializer extends StdDeserializer<OperandType> {
         this(null);
     }
 
-    public OperandTypeDeserializer(Class<?> vc) {
+    public OperandTypeDeserializer(final Class<?> vc) {
         super(vc);
     }
 
     @Override
-    public OperandType deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JacksonException {
-        JsonNode node = jsonParser.getCodec().readTree(jsonParser);
+    public OperandType deserialize(final JsonParser jsonParser, final DeserializationContext deserializationContext) throws IOException, JacksonException {
+        final JsonNode node = jsonParser.getCodec().readTree(jsonParser);
 
         return OperandType.fromString(node.textValue()).orElse(null);
     }

@@ -22,7 +22,7 @@ public enum ProtectionType implements DescribedValue {
     UNPROTECTED("Unprotected", "An Excel spreadsheet not protected by a password"),
     PASSWORD("Password Protected", "An Excel spreadsheet protected by a password");
 
-    ProtectionType(String displayName, String description) {
+    ProtectionType(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

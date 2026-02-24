@@ -46,22 +46,22 @@ public class DisconnectNode extends AbstractNiFiCommand<NodeResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.NIFI_NODE_ID.createOption());
     }
 
     @Override
-    public NodeResult doExecute(NiFiClient client, Properties properties) throws NiFiClientException, IOException, MissingOptionException, CommandException {
+    public NodeResult doExecute(final NiFiClient client, final Properties properties) throws NiFiClientException, IOException, MissingOptionException, CommandException {
         final String nodeId = getRequiredArg(properties, CommandOption.NIFI_NODE_ID);
         final ControllerClient controllerClient = client.getControllerClient();
 
-        NodeDTO nodeDto = new NodeDTO();
+        final NodeDTO nodeDto = new NodeDTO();
         nodeDto.setNodeId(nodeId);
         // TODO There are no constants for the DISCONNECT node status
         nodeDto.setStatus("DISCONNECTING");
-        NodeEntity nodeEntity = new NodeEntity();
+        final NodeEntity nodeEntity = new NodeEntity();
         nodeEntity.setNode(nodeDto);
-        NodeEntity nodeEntityResult = controllerClient.disconnectNode(nodeId, nodeEntity);
+        final NodeEntity nodeEntityResult = controllerClient.disconnectNode(nodeId, nodeEntity);
         return new NodeResult(getResultType(properties), nodeEntityResult);
     }
 }

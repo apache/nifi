@@ -178,7 +178,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     private volatile boolean resetState = false;
 
     @Override
-    protected void preProcessConfiguration(Configuration config, ProcessContext context) {
+    protected void preProcessConfiguration(final Configuration config, final ProcessContext context) {
         super.preProcessConfiguration(config, context);
         // Since this processor is marked as INPUT_FORBIDDEN, the FILE_FILTER regex can be compiled here rather than during onTrigger processing
         fileFilterRegexPattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
@@ -195,7 +195,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
@@ -257,7 +257,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 latestTimestamp = 0L;
                 latestFiles = new ArrayList<>();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
             context.yield();
             return;
@@ -317,7 +317,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("record-writer", RECORD_WRITER.getName());
         config.renameProperty("file-filter-mode", FILE_FILTER_MODE.getName());
@@ -350,7 +350,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         // In case of legacy state we update the state even if there are no listable files.
         try {
             session.setState(newState, Scope.CLUSTER);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", e);
         }
     }

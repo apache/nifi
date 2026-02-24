@@ -70,7 +70,7 @@ public class RegistryClientsResult extends AbstractWritableResult<FlowRegistryCl
                 .build();
 
         for (int i = 0; i < registries.size(); i++) {
-            FlowRegistryClientDTO clientDto = registries.get(i);
+            final FlowRegistryClientDTO clientDto = registries.get(i);
             final Map<String, String> properties = clientDto.getProperties();
             table.addRow("" + (i + 1), clientDto.getName(), clientDto.getType(), clientDto.getId(), properties == null ? "" : properties.toString());
         }

@@ -39,7 +39,7 @@ public final class FlowFileEventBatch<E extends NetworkEvent> {
         return events;
     }
 
-    public void setFlowFile(FlowFile flowFile) {
+    public void setFlowFile(final FlowFile flowFile) {
         this.flowFile = flowFile;
     }
 }

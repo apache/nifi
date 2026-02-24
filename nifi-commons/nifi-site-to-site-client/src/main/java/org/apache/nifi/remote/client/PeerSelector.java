@@ -145,7 +145,7 @@ public class PeerSelector {
      * @return the normalized weight of this peer
      */
     @SuppressWarnings("PMD.AvoidDecimalLiteralsInBigDecimalConstructor")
-    private static double calculateNormalizedWeight(TransferDirection direction, long totalFlowFileCount, int flowFileCount, int peerCount) {
+    private static double calculateNormalizedWeight(final TransferDirection direction, final long totalFlowFileCount, final int flowFileCount, final int peerCount) {
         // If there is only a single remote, send/receive all data to/from it
         if (peerCount == 1) {
             return 100;
@@ -173,13 +173,13 @@ public class PeerSelector {
      * @param unsortedMap the unordered map of peers to weights
      * @return the sorted (desc) map (by value)
      */
-    private static Map<PeerStatus, Double> sortMapByWeight(Map<PeerStatus, Double> unsortedMap) {
-        List<Map.Entry<PeerStatus, Double>> list = new ArrayList<>(unsortedMap.entrySet());
+    private static Map<PeerStatus, Double> sortMapByWeight(final Map<PeerStatus, Double> unsortedMap) {
+        final List<Map.Entry<PeerStatus, Double>> list = new ArrayList<>(unsortedMap.entrySet());
         list.sort(Map.Entry.comparingByValue());
 
-        Map<PeerStatus, Double> result = new LinkedHashMap<>();
+        final Map<PeerStatus, Double> result = new LinkedHashMap<>();
         for (int i = list.size() - 1; i >= 0; i--) {
-            Map.Entry<PeerStatus, Double> entry = list.get(i);
+            final Map.Entry<PeerStatus, Double> entry = list.get(i);
             result.put(entry.getKey(), entry.getValue());
         }
 
@@ -191,9 +191,9 @@ public class PeerSelector {
      *
      * @param sortedPeerWorkloads the peers and relative weights
      */
-    private static void printDistributionStatistics(Map<PeerStatus, Double> sortedPeerWorkloads, TransferDirection direction) {
+    private static void printDistributionStatistics(final Map<PeerStatus, Double> sortedPeerWorkloads, final TransferDirection direction) {
         if (logger.isDebugEnabled() && sortedPeerWorkloads != null) {
-            DecimalFormat df = new DecimalFormat("##.##");
+            final DecimalFormat df = new DecimalFormat("##.##");
             df.setRoundingMode(RoundingMode.FLOOR);
             final StringBuilder distributionDescription = new StringBuilder();
             distributionDescription.append("New weighted distribution of nodes:");
@@ -214,7 +214,7 @@ public class PeerSelector {
      * @param peerWeightMap the map of peers to flowfile counts or relative weights
      * @return the total of the map values
      */
-    private static double sumMapValues(Map<PeerStatus, Double> peerWeightMap) {
+    private static double sumMapValues(final Map<PeerStatus, Double> peerWeightMap) {
         return peerWeightMap.values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
@@ -235,8 +235,8 @@ public class PeerSelector {
      * @return a selected peer, if there is no available peer or all peers are penalized, then return null
      */
     public PeerStatus getNextPeerStatus(final TransferDirection direction) {
-        Set<PeerStatus> peerStatuses = getPeerStatuses();
-        Map<PeerStatus, Double> orderedPeerStatuses = buildWeightedPeerMap(peerStatuses, direction);
+        final Set<PeerStatus> peerStatuses = getPeerStatuses();
+        final Map<PeerStatus, Double> orderedPeerStatuses = buildWeightedPeerMap(peerStatuses, direction);
 
         return getAvailablePeerStatus(orderedPeerStatuses);
     }
@@ -284,7 +284,7 @@ public class PeerSelector {
      * Allows for external callers to trigger a refresh of the internal peer status cache. Performs the refresh if the cache has expired. If the cache is still valid, skips the refresh.
      */
     public void refresh() {
-        long cacheAgeMs = getCacheAge();
+        final long cacheAgeMs = getCacheAge();
         logger.debug("External refresh triggered. Last refresh was {} ms ago", cacheAgeMs);
         if (isPeerRefreshNeeded()) {
             logger.debug("Refreshing peer status cache");
@@ -299,7 +299,7 @@ public class PeerSelector {
      *
      * @param eventReporter the event reporter
      */
-    public void setEventReporter(SiteToSiteEventReporter eventReporter) {
+    public void setEventReporter(final SiteToSiteEventReporter eventReporter) {
         this.eventReporter = eventReporter;
     }
 
@@ -319,7 +319,7 @@ public class PeerSelector {
 
         if (!peerWorkloads.isEmpty()) {
             // This map is sorted, but not by key, so it cannot use SortedMap
-            Map<PeerStatus, Double> sortedPeerWorkloads = sortMapByWeight(peerWorkloads);
+            final Map<PeerStatus, Double> sortedPeerWorkloads = sortMapByWeight(peerWorkloads);
 
             // Print the expected distribution of the peers
             printDistributionStatistics(sortedPeerWorkloads, direction);
@@ -340,11 +340,11 @@ public class PeerSelector {
      * @param direction    whether sending flowfiles to these peers or receiving them
      * @return the map of weighted peers
      */
-    private Map<PeerStatus, Double> createDestinationMap(Set<PeerStatus> peerStatuses, TransferDirection direction) {
+    private Map<PeerStatus, Double> createDestinationMap(final Set<PeerStatus> peerStatuses, final TransferDirection direction) {
         final Map<PeerStatus, Double> peerWorkloads = new HashMap<>();
 
         // Calculate the total number of flowfiles in the peers
-        long totalFlowFileCount = peerStatuses.stream().mapToLong(PeerStatus::getFlowFileCount).sum();
+        final long totalFlowFileCount = peerStatuses.stream().mapToLong(PeerStatus::getFlowFileCount).sum();
         logger.debug("Building weighted map of peers with total remote NiFi flowfile count: {}", totalFlowFileCount);
 
         // For each node, calculate the relative weight and store it in the map
@@ -379,7 +379,7 @@ public class PeerSelector {
      * @return the complete set of statuses for each collection of peers
      * @throws IOException if there is a problem fetching peer statuses
      */
-    private Set<PeerStatus> fetchRemotePeerStatuses(Set<PeerDescription> peersToRequestClusterInfoFrom) throws IOException {
+    private Set<PeerStatus> fetchRemotePeerStatuses(final Set<PeerDescription> peersToRequestClusterInfoFrom) throws IOException {
         logger.debug("Fetching remote peer statuses from: {}", peersToRequestClusterInfoFrom);
         Exception lastFailure = null;
 
@@ -421,14 +421,14 @@ public class PeerSelector {
      * @param orderedPeerStatuses the map of peers to relative weights, sorted in descending order by weight
      * @return the peer to send/receive data
      */
-    private PeerStatus getAvailablePeerStatus(Map<PeerStatus, Double> orderedPeerStatuses) {
+    private PeerStatus getAvailablePeerStatus(final Map<PeerStatus, Double> orderedPeerStatuses) {
         if (orderedPeerStatuses == null || orderedPeerStatuses.isEmpty()) {
             logger.warn("Available peers collection is empty; no peer available");
             return null;
         }
 
         // Only distribute to unpenalized peers
-        Map<PeerStatus, Double> unpenalizedPeers = orderedPeerStatuses.entrySet().stream()
+        final Map<PeerStatus, Double> unpenalizedPeers = orderedPeerStatuses.entrySet().stream()
                 .filter(e -> !isPenalized(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -439,7 +439,7 @@ public class PeerSelector {
         logger.debug("Generated random value {}", random);
 
         double threshold = 0.0;
-        for (Map.Entry<PeerStatus, Double> e : unpenalizedPeers.entrySet()) {
+        for (final Map.Entry<PeerStatus, Double> e : unpenalizedPeers.entrySet()) {
             logger.debug("Initial threshold was {}; added peer value {}; total {}", threshold, e.getValue(), threshold + e.getValue());
             threshold += e.getValue();
             if (random <= threshold) {
@@ -498,7 +498,7 @@ public class PeerSelector {
         // Use the peers fetched last time
         final Set<PeerStatus> lastFetched = getLastFetchedQueryablePeers();
         if (lastFetched != null && !lastFetched.isEmpty()) {
-            for (PeerStatus peerStatus : lastFetched) {
+            for (final PeerStatus peerStatus : lastFetched) {
                 peersToRequestClusterInfoFrom.add(peerStatus.getPeerDescription());
             }
         }
@@ -515,7 +515,7 @@ public class PeerSelector {
      * @param cache the peer status cache
      * @return true if the cache is expired
      */
-    private boolean isCacheExpired(PeerStatusCache cache) {
+    private boolean isCacheExpired(final PeerStatusCache cache) {
         return cache == null || cache.getTimestamp() + PEER_CACHE_MILLIS < System.currentTimeMillis();
     }
 
@@ -533,7 +533,7 @@ public class PeerSelector {
      *
      * @param peerStatusCache the cache of current peer statuses to persist
      */
-    private void persistPeerStatuses(PeerStatusCache peerStatusCache) {
+    private void persistPeerStatuses(final PeerStatusCache peerStatusCache) {
         try {
             this.peerStatusCache = peerStatusCache;
 
@@ -564,10 +564,10 @@ public class PeerSelector {
             }
 
             // Persist the fetched peer statuses
-            PeerStatusCache peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getRemoteInstanceUris(), peerStatusProvider.getTransportProtocol());
+            final PeerStatusCache peerStatusCache = new PeerStatusCache(statuses, System.currentTimeMillis(), peerStatusProvider.getRemoteInstanceUris(), peerStatusProvider.getTransportProtocol());
             persistPeerStatuses(peerStatusCache);
             logger.info("Successfully refreshed peer status cache; remote group consists of {} peers", statuses.size());
-        } catch (Exception e) {
+        } catch (final Exception e) {
             warn(logger, eventReporter, "Unable to refresh remote group peers due to: {}", e.getMessage());
             if (logger.isDebugEnabled() && e.getCause() != null) {
                 logger.warn("Caused by: ", e);

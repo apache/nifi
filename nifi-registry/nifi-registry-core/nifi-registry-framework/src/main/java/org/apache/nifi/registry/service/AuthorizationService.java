@@ -105,7 +105,7 @@ public class AuthorizationService {
         return authorizableLookup;
     }
 
-    public void authorize(Authorizable authorizable, RequestAction action) throws AccessDeniedException {
+    public void authorize(final Authorizable authorizable, final RequestAction action) throws AccessDeniedException {
         authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
     }
 
@@ -151,8 +151,8 @@ public class AuthorizationService {
         return currentUser;
     }
 
-    public Permissions getPermissionsForResource(Authorizable authorizableResource) {
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+    public Permissions getPermissionsForResource(final Authorizable authorizableResource) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final Permissions permissions = new Permissions();
         permissions.setCanRead(authorizableResource.isAuthorized(authorizer, RequestAction.READ, user));
         permissions.setCanWrite(authorizableResource.isAuthorized(authorizer, RequestAction.WRITE, user));
@@ -160,13 +160,13 @@ public class AuthorizationService {
         return permissions;
     }
 
-    public Permissions getPermissionsForResource(Authorizable authorizableResource, Permissions knownParentAuthorizablePermissions) {
+    public Permissions getPermissionsForResource(final Authorizable authorizableResource, final Permissions knownParentAuthorizablePermissions) {
         if (knownParentAuthorizablePermissions == null) {
             return getPermissionsForResource(authorizableResource);
         }
 
         final Permissions permissions = new Permissions(knownParentAuthorizablePermissions);
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         if (!permissions.getCanRead()) {
             permissions.setCanRead(authorizableResource.isAuthorized(authorizer, RequestAction.READ, user));
@@ -185,7 +185,7 @@ public class AuthorizationService {
 
     private ResourcePermissions getTopLevelPermissions() {
 
-        ResourcePermissions resourcePermissions = new ResourcePermissions();
+        final ResourcePermissions resourcePermissions = new ResourcePermissions();
 
         final Permissions bucketsPermissions = getPermissionsForResource(authorizableLookup.getBucketsAuthorizable());
         resourcePermissions.setBuckets(bucketsPermissions);
@@ -386,7 +386,7 @@ public class AuthorizationService {
         return accessPolicyProvider.getAccessPolicies().stream().map(this::accessPolicyToSummaryDTO).collect(Collectors.toList());
     }
 
-    private List<AccessPolicySummary> getAccessPolicySummariesForUser(String userIdentifier) {
+    private List<AccessPolicySummary> getAccessPolicySummariesForUser(final String userIdentifier) {
         return accessPolicyProvider.getAccessPolicies().stream()
                 .filter(accessPolicy -> {
                     if (accessPolicy.getUsers().contains(userIdentifier)) {
@@ -401,7 +401,7 @@ public class AuthorizationService {
                 .collect(Collectors.toList());
     }
 
-    private List<AccessPolicySummary> getAccessPolicySummariesForUserGroup(String userGroupIdentifier) {
+    private List<AccessPolicySummary> getAccessPolicySummariesForUserGroup(final String userGroupIdentifier) {
         return accessPolicyProvider.getAccessPolicies().stream()
                 .filter(accessPolicy -> accessPolicy.getGroups().contains(userGroupIdentifier))
                 .map(this::accessPolicyToSummaryDTO)
@@ -469,11 +469,11 @@ public class AuthorizationService {
         return dtoResources;
     }
 
-    public List<Resource> getAuthorizedResources(RequestAction actionType) {
+    public List<Resource> getAuthorizedResources(final RequestAction actionType) {
         return getAuthorizedResources(actionType, null);
     }
 
-    public List<Resource> getAuthorizedResources(RequestAction actionType, ResourceType resourceType) {
+    public List<Resource> getAuthorizedResources(final RequestAction actionType, final ResourceType resourceType) {
         final List<Resource> authorizedResources =
                 getAuthorizableResources(resourceType)
                         .stream()
@@ -483,7 +483,7 @@ public class AuthorizationService {
                                         .getAuthorizableByResource(resource.getIdentifier())
                                         .authorize(authorizer, actionType, NiFiUserUtils.getNiFiUser());
                                 return true;
-                            } catch (AccessDeniedException | UntrustedProxyException e) {
+                            } catch (final AccessDeniedException | UntrustedProxyException e) {
                                 return false;
                             }
                         })
@@ -515,8 +515,8 @@ public class AuthorizationService {
         }
     }
 
-    private ResourcePermissions getTopLevelPermissions(String tenantIdentifier) {
-        ResourcePermissions resourcePermissions = new ResourcePermissions();
+    private ResourcePermissions getTopLevelPermissions(final String tenantIdentifier) {
+        final ResourcePermissions resourcePermissions = new ResourcePermissions();
 
         final Permissions bucketsPermissions = getPermissionsForResource(tenantIdentifier, ResourceFactory.getBucketsResource());
         resourcePermissions.setBuckets(bucketsPermissions);
@@ -533,9 +533,9 @@ public class AuthorizationService {
         return resourcePermissions;
     }
 
-    private Permissions getPermissionsForResource(String tenantIdentifier, org.apache.nifi.registry.security.authorization.Resource resource) {
+    private Permissions getPermissionsForResource(final String tenantIdentifier, final org.apache.nifi.registry.security.authorization.Resource resource) {
 
-        Permissions permissions = new Permissions();
+        final Permissions permissions = new Permissions();
         permissions.setCanRead(checkTenantBelongsToPolicy(tenantIdentifier, resource, RequestAction.READ));
         permissions.setCanWrite(checkTenantBelongsToPolicy(tenantIdentifier, resource, RequestAction.WRITE));
         permissions.setCanDelete(checkTenantBelongsToPolicy(tenantIdentifier, resource, RequestAction.DELETE));
@@ -543,15 +543,15 @@ public class AuthorizationService {
 
     }
 
-    private boolean checkTenantBelongsToPolicy(String tenantIdentifier, org.apache.nifi.registry.security.authorization.Resource resource, RequestAction action) {
-        org.apache.nifi.registry.security.authorization.AccessPolicy policy =
+    private boolean checkTenantBelongsToPolicy(final String tenantIdentifier, final org.apache.nifi.registry.security.authorization.Resource resource, final RequestAction action) {
+        final org.apache.nifi.registry.security.authorization.AccessPolicy policy =
                 accessPolicyProvider.getAccessPolicy(resource.getIdentifier(), action);
 
         if (policy == null) {
             return false;
         }
 
-        boolean tenantInPolicy = policy.getUsers().contains(tenantIdentifier) || policy.getGroups().contains(tenantIdentifier);
+        final boolean tenantInPolicy = policy.getUsers().contains(tenantIdentifier) || policy.getGroups().contains(tenantIdentifier);
         return tenantInPolicy;
     }
 
@@ -559,7 +559,7 @@ public class AuthorizationService {
         return getAuthorizableResources(null);
     }
 
-    private List<org.apache.nifi.registry.security.authorization.Resource> getAuthorizableResources(ResourceType includeFilter) {
+    private List<org.apache.nifi.registry.security.authorization.Resource> getAuthorizableResources(final ResourceType includeFilter) {
 
         final List<org.apache.nifi.registry.security.authorization.Resource> resources = new ArrayList<>();
 
@@ -594,15 +594,15 @@ public class AuthorizationService {
         if (user == null) {
             return null;
         }
-        String userIdentifier = user.getIdentifier();
+        final String userIdentifier = user.getIdentifier();
 
-        Collection<Tenant> groupsContainingUser = userGroupProvider.getGroups().stream()
+        final Collection<Tenant> groupsContainingUser = userGroupProvider.getGroups().stream()
                 .filter(group -> group.getUsers().contains(userIdentifier))
                 .map(this::tenantToDTO)
                 .collect(Collectors.toList());
-        Collection<AccessPolicySummary> accessPolicySummaries = getAccessPolicySummariesForUser(userIdentifier);
+        final Collection<AccessPolicySummary> accessPolicySummaries = getAccessPolicySummariesForUser(userIdentifier);
 
-        User userDTO = new User(user.getIdentifier(), user.getIdentity());
+        final User userDTO = new User(user.getIdentifier(), user.getIdentity());
         userDTO.setConfigurable(AuthorizerCapabilityDetection.isUserConfigurable(authorizer, user));
         userDTO.setResourcePermissions(getTopLevelPermissions(userDTO.getIdentifier()));
         userDTO.addUserGroups(groupsContainingUser);
@@ -616,11 +616,11 @@ public class AuthorizationService {
             return null;
         }
 
-        Collection<Tenant> userTenants = userGroup.getUsers() != null
+        final Collection<Tenant> userTenants = userGroup.getUsers() != null
                 ? userGroup.getUsers().stream().map(this::tenantIdToDTO).filter(Objects::nonNull).collect(Collectors.toSet()) : null;
-        Collection<AccessPolicySummary> accessPolicySummaries = getAccessPolicySummariesForUserGroup(userGroup.getIdentifier());
+        final Collection<AccessPolicySummary> accessPolicySummaries = getAccessPolicySummariesForUserGroup(userGroup.getIdentifier());
 
-        UserGroup userGroupDTO = new UserGroup(userGroup.getIdentifier(), userGroup.getName());
+        final UserGroup userGroupDTO = new UserGroup(userGroup.getIdentifier(), userGroup.getName());
         userGroupDTO.setConfigurable(AuthorizerCapabilityDetection.isGroupConfigurable(authorizer, userGroup));
         userGroupDTO.setResourcePermissions(getTopLevelPermissions(userGroupDTO.getIdentifier()));
         userGroupDTO.addUsers(userTenants);
@@ -634,22 +634,22 @@ public class AuthorizationService {
             return null;
         }
 
-        Collection<Tenant> users = accessPolicy.getUsers() != null
+        final Collection<Tenant> users = accessPolicy.getUsers() != null
                 ? accessPolicy.getUsers().stream().map(this::tenantIdToDTO).filter(Objects::nonNull).collect(Collectors.toList()) : null;
-        Collection<Tenant> userGroups = accessPolicy.getGroups() != null
+        final Collection<Tenant> userGroups = accessPolicy.getGroups() != null
                 ? accessPolicy.getGroups().stream().map(this::tenantIdToDTO).filter(Objects::nonNull).collect(Collectors.toList()) : null;
 
-        Boolean isConfigurable = AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy);
+        final Boolean isConfigurable = AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy);
 
         return accessPolicyToDTO(accessPolicy, userGroups, users, isConfigurable);
     }
 
-    private Tenant tenantIdToDTO(String identifier) {
+    private Tenant tenantIdToDTO(final String identifier) {
         final org.apache.nifi.registry.security.authorization.User user = userGroupProvider.getUser(identifier);
         if (user != null) {
             return tenantToDTO(user);
         } else {
-            org.apache.nifi.registry.security.authorization.Group group = userGroupProvider.getGroup(identifier);
+            final org.apache.nifi.registry.security.authorization.Group group = userGroupProvider.getGroup(identifier);
             return tenantToDTO(group);
         }
     }
@@ -660,7 +660,7 @@ public class AuthorizationService {
             return null;
         }
 
-        Boolean isConfigurable = AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy);
+        final Boolean isConfigurable = AuthorizerCapabilityDetection.isAccessPolicyConfigurable(authorizer, accessPolicy);
 
         final AccessPolicySummary accessPolicySummaryDTO = new AccessPolicySummary();
         accessPolicySummaryDTO.setIdentifier(accessPolicy.getIdentifier());
@@ -670,29 +670,29 @@ public class AuthorizationService {
         return accessPolicySummaryDTO;
     }
 
-    private Tenant tenantToDTO(org.apache.nifi.registry.security.authorization.User user) {
+    private Tenant tenantToDTO(final org.apache.nifi.registry.security.authorization.User user) {
         if (user == null) {
             return null;
         }
-        Tenant tenantDTO = new Tenant(user.getIdentifier(), user.getIdentity());
+        final Tenant tenantDTO = new Tenant(user.getIdentifier(), user.getIdentity());
         tenantDTO.setConfigurable(AuthorizerCapabilityDetection.isUserConfigurable(authorizer, user));
         return tenantDTO;
     }
 
-    private Tenant tenantToDTO(org.apache.nifi.registry.security.authorization.Group group) {
+    private Tenant tenantToDTO(final org.apache.nifi.registry.security.authorization.Group group) {
         if (group == null) {
             return null;
         }
-        Tenant tenantDTO = new Tenant(group.getIdentifier(), group.getName());
+        final Tenant tenantDTO = new Tenant(group.getIdentifier(), group.getName());
         tenantDTO.setConfigurable(AuthorizerCapabilityDetection.isGroupConfigurable(authorizer, group));
         return tenantDTO;
     }
 
-    private static Resource resourceToDTO(org.apache.nifi.registry.security.authorization.Resource resource) {
+    private static Resource resourceToDTO(final org.apache.nifi.registry.security.authorization.Resource resource) {
         if (resource == null) {
             return null;
         }
-        Resource resourceDto = new Resource();
+        final Resource resourceDto = new Resource();
         resourceDto.setIdentifier(resource.getIdentifier());
         resourceDto.setName(resource.getName());
         return resourceDto;
@@ -714,10 +714,10 @@ public class AuthorizationService {
         if (userGroupDTO == null) {
             return null;
         }
-        org.apache.nifi.registry.security.authorization.Group.Builder groupBuilder = new org.apache.nifi.registry.security.authorization.Group.Builder()
+        final org.apache.nifi.registry.security.authorization.Group.Builder groupBuilder = new org.apache.nifi.registry.security.authorization.Group.Builder()
                 .identifier(userGroupDTO.getIdentifier())
                 .name(userGroupDTO.getIdentity());
-        Set<Tenant> users = userGroupDTO.getUsers();
+        final Set<Tenant> users = userGroupDTO.getUsers();
         if (users != null) {
             groupBuilder.addUsers(users.stream().map(Tenant::getIdentifier).collect(Collectors.toSet()));
         }
@@ -726,18 +726,18 @@ public class AuthorizationService {
 
     private static org.apache.nifi.registry.security.authorization.AccessPolicy accessPolicyFromDTO(
             final AccessPolicy accessPolicyDTO) {
-        org.apache.nifi.registry.security.authorization.AccessPolicy.Builder accessPolicyBuilder =
+        final org.apache.nifi.registry.security.authorization.AccessPolicy.Builder accessPolicyBuilder =
                 new org.apache.nifi.registry.security.authorization.AccessPolicy.Builder()
                         .identifier(accessPolicyDTO.getIdentifier())
                         .resource(accessPolicyDTO.getResource())
                         .action(RequestAction.valueOfValue(accessPolicyDTO.getAction()));
 
-        Set<Tenant> dtoUsers = accessPolicyDTO.getUsers();
+        final Set<Tenant> dtoUsers = accessPolicyDTO.getUsers();
         if (accessPolicyDTO.getUsers() != null) {
             accessPolicyBuilder.addUsers(dtoUsers.stream().map(Tenant::getIdentifier).collect(Collectors.toSet()));
         }
 
-        Set<Tenant> dtoUserGroups = accessPolicyDTO.getUserGroups();
+        final Set<Tenant> dtoUserGroups = accessPolicyDTO.getUserGroups();
         if (dtoUserGroups != null) {
             accessPolicyBuilder.addGroups(dtoUserGroups.stream().map(Tenant::getIdentifier).collect(Collectors.toSet()));
         }
@@ -774,12 +774,12 @@ public class AuthorizationService {
             }
 
             @Override
-            public org.apache.nifi.registry.security.authorization.AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+            public org.apache.nifi.registry.security.authorization.AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
                 throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
             }
 
             @Override
-            public org.apache.nifi.registry.security.authorization.AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) throws AuthorizationAccessException {
+            public org.apache.nifi.registry.security.authorization.AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) throws AuthorizationAccessException {
                 throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
             }
 
@@ -792,12 +792,12 @@ public class AuthorizationService {
                     }
 
                     @Override
-                    public org.apache.nifi.registry.security.authorization.User getUser(String identifier) throws AuthorizationAccessException {
+                    public org.apache.nifi.registry.security.authorization.User getUser(final String identifier) throws AuthorizationAccessException {
                         throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                     }
 
                     @Override
-                    public org.apache.nifi.registry.security.authorization.User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                    public org.apache.nifi.registry.security.authorization.User getUserByIdentity(final String identity) throws AuthorizationAccessException {
                         throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                     }
 
@@ -807,22 +807,22 @@ public class AuthorizationService {
                     }
 
                     @Override
-                    public Group getGroup(String identifier) throws AuthorizationAccessException {
+                    public Group getGroup(final String identifier) throws AuthorizationAccessException {
                         throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                     }
 
                     @Override
-                    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+                    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
                         throw new IllegalStateException(MSG_NON_MANAGED_AUTHORIZER);
                     }
 
                     @Override
-                    public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+                    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
 
                     }
 
                     @Override
-                    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+                    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
 
                     }
 
@@ -834,11 +834,11 @@ public class AuthorizationService {
             }
 
             @Override
-            public void initialize(AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+            public void initialize(final AccessPolicyProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
             }
 
             @Override
-            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+            public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
             }
 
             @Override

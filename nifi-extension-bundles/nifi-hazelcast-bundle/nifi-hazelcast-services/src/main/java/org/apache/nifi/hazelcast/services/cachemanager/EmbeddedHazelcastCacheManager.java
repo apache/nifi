@@ -99,7 +99,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
     );
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("hazelcast-port", HAZELCAST_PORT.getName());
         config.renameProperty("hazelcast-clustering-strategy", HAZELCAST_CLUSTERING_STRATEGY.getName());

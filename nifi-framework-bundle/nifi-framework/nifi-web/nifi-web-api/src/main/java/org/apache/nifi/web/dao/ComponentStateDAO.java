@@ -42,7 +42,7 @@ public interface ComponentStateDAO {
      *
      * @param processor processor
      */
-    default void clearState(ProcessorNode processor) {
+    default void clearState(final ProcessorNode processor) {
         clearState(processor, null);
     }
 

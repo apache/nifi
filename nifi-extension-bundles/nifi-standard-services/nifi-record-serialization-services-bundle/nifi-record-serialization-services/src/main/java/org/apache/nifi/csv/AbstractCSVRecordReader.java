@@ -140,7 +140,7 @@ public abstract class AbstractCSVRecordReader implements RecordReader {
         return value;
     }
 
-    protected String trim(String value) {
+    protected String trim(final String value) {
         return (value.length() > 1) && value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
     }
 

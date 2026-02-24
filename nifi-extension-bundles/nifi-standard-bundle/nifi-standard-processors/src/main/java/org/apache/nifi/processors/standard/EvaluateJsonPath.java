@@ -203,12 +203,12 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 .addValidator(
                         new JsonPathValidator() {
                             @Override
-                            public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                            public void cacheComputedValue(final String subject, final String input, final JsonPath computedJsonPath) {
                                 cachedJsonPathMap.put(input, computedJsonPath);
                             }
 
                             @Override
-                            public boolean isStale(String subject, String input) {
+                            public boolean isStale(final String subject, final String input) {
                                 return cachedJsonPathMap.get(input) == null;
                             }
                         })
@@ -216,7 +216,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (descriptor.isDynamic() && !Strings.CS.equals(oldValue, newValue) && oldValue != null) {
             cachedJsonPathMap.remove(oldValue);
         }
@@ -229,8 +229,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
      * @param processContext context
      */
     @OnRemoved
-    public void onRemoved(ProcessContext processContext) {
-        for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
+    public void onRemoved(final ProcessContext processContext) {
+        for (final PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
             if (propertyDescriptor.isDynamic()) {
                 cachedJsonPathMap.remove(processContext.getProperty(propertyDescriptor).getValue());
             }
@@ -238,7 +238,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext processContext) {
+    public void onScheduled(final ProcessContext processContext) {
         destinationIsAttribute = DESTINATION_ATTRIBUTE.equals(processContext.getProperty(DESTINATION).getValue());
         returnType = processContext.getProperty(RETURN_TYPE).getValue();
         if (returnType.equals(RETURN_TYPE_AUTO)) {
@@ -265,10 +265,10 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         final ComponentLog logger = getLogger();
 
-        DocumentContext documentContext;
+        final DocumentContext documentContext;
         try {
             documentContext = validateAndEstablishJsonContext(processSession, flowFile, jsonPathConfiguration);
-        } catch (InvalidJsonException e) {
+        } catch (final InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", flowFile);
             processSession.transfer(flowFile, REL_FAILURE);
             return;
@@ -290,7 +290,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 final String jsonPathAttrKey = attributeJsonPathEntry.getKey();
                 final JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
 
-                Object result;
+                final Object result;
                 try {
                     final Object potentialResult = documentContext.read(jsonPathExp);
                     if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(potentialResult)) {

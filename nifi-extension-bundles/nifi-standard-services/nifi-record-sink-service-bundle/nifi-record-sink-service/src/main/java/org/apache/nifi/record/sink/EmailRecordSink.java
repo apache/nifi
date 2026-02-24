@@ -225,7 +225,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
 
     @Override
     public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
-        WriteResult writeResult;
+        final WriteResult writeResult;
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), out, attributes)) {
                 writer.beginRecordSet();
@@ -238,7 +238,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
                 writer.flush();
                 sendMessage(getConfigurationContext(), out.toString());
             }
-        } catch (SchemaNotFoundException e) {
+        } catch (final SchemaNotFoundException e) {
             final String errorMessage = String.format("RecordSetWriter could not be created because the schema was not found. The schema name for the RecordSet to write is %s",
                     recordSet.getSchema().getSchemaName());
             throw new ProcessException(errorMessage, e);
@@ -247,7 +247,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         RecordSinkService.super.migrateProperties(config);
         config.renameProperty("from", FROM.getName());
         config.renameProperty("to", TO.getName());
@@ -313,10 +313,10 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     private Properties getMailProperties(final ConfigurationContext context) {
         final Properties properties = new Properties();
 
-        for (Map.Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
+        for (final Map.Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
             // Evaluate the property descriptor against the env/sys variable registry
-            String property = entry.getKey();
-            String propValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions().getValue();
+            final String property = entry.getKey();
+            final String propValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions().getValue();
 
             // Nullable values are not allowed, so filter out
             if (StringUtils.isNotBlank(propValue)) {
@@ -351,8 +351,8 @@ public class EmailRecordSink extends AbstractControllerService implements Record
      * @return an InternetAddress[] parsed from the supplied property
      * @throws AddressException if the property cannot be parsed to a valid InternetAddress[]
      */
-    private InternetAddress[] toInternetAddresses(final ConfigurationContext context, PropertyDescriptor propertyDescriptor) throws AddressException {
-        InternetAddress[] parse;
+    private InternetAddress[] toInternetAddresses(final ConfigurationContext context, final PropertyDescriptor propertyDescriptor) throws AddressException {
+        final InternetAddress[] parse;
         final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue();
         if (value == null || value.isEmpty()) {
             if (propertyDescriptor.isRequired()) {
@@ -364,7 +364,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
         } else {
             try {
                 parse = InternetAddress.parse(value);
-            } catch (AddressException e) {
+            } catch (final AddressException e) {
                 final String exceptionMsg = "Unable to parse a valid address for property '" + propertyDescriptor.getDisplayName() + "' with value '" + value + "'";
                 throw new AddressException(exceptionMsg);
             }

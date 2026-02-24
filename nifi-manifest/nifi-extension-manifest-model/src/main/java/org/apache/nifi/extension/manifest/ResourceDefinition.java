@@ -38,7 +38,7 @@ public class ResourceDefinition {
         return cardinality;
     }
 
-    public void setCardinality(Cardinality cardinality) {
+    public void setCardinality(final Cardinality cardinality) {
         this.cardinality = cardinality;
     }
 
@@ -47,7 +47,7 @@ public class ResourceDefinition {
         return resourceTypes;
     }
 
-    public void setResourceTypes(List<ResourceType> resourceTypes) {
+    public void setResourceTypes(final List<ResourceType> resourceTypes) {
         this.resourceTypes = resourceTypes;
     }
 

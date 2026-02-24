@@ -30,40 +30,40 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
     private static final int FILLER_DECIMAL_CODE = 15;
 
     @Override
-    public boolean supportsType(Class<?> berType) {
-        boolean supportsType = BerOctetString.class.isAssignableFrom(berType) && isTbcdString(berType);
+    public boolean supportsType(final Class<?> berType) {
+        final boolean supportsType = BerOctetString.class.isAssignableFrom(berType) && isTbcdString(berType);
 
         return supportsType;
     }
 
     @Override
-    public DataType convertType(Class<?> berType, JASN1Converter converter) {
-        DataType dataType = RecordFieldType.STRING.getDataType();
+    public DataType convertType(final Class<?> berType, final JASN1Converter converter) {
+        final DataType dataType = RecordFieldType.STRING.getDataType();
 
         return dataType;
     }
 
     @Override
-    public boolean supportsValue(BerType value, DataType dataType) {
-        boolean supportsValue = value instanceof BerOctetString && isTbcdString(value.getClass());
+    public boolean supportsValue(final BerType value, final DataType dataType) {
+        final boolean supportsValue = value instanceof BerOctetString && isTbcdString(value.getClass());
 
         return supportsValue;
     }
 
     @Override
-    public Object convertValue(BerType value, DataType dataType, JASN1Converter converter) {
+    public Object convertValue(final BerType value, final DataType dataType, final JASN1Converter converter) {
         final BerOctetString berValue = ((BerOctetString) value);
 
-        byte[] bytes = berValue.value;
+        final byte[] bytes = berValue.value;
 
-        int size = (bytes == null ? 0 : bytes.length);
-        StringBuilder resultBuilder = new StringBuilder(2 * size);
+        final int size = (bytes == null ? 0 : bytes.length);
+        final StringBuilder resultBuilder = new StringBuilder(2 * size);
 
         for (int octetIndex = 0; octetIndex < size; ++octetIndex) {
-            int octet = bytes[octetIndex];
+            final int octet = bytes[octetIndex];
 
-            int digit2 = (octet >> 4) & 0xF;
-            int digit1 = octet & 0xF;
+            final int digit2 = (octet >> 4) & 0xF;
+            final int digit1 = octet & 0xF;
 
             if (digit1 == FILLER_DECIMAL_CODE) {
                 invalidFiller(octetIndex, octet);
@@ -87,7 +87,7 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
         return resultBuilder.toString();
     }
 
-    private boolean isTbcdString(Class<?> berType) {
+    private boolean isTbcdString(final Class<?> berType) {
         Class<?> currentType = berType;
         while (currentType != null) {
             if (currentType.getSimpleName().equals(TBCD_STRING_TYPE)) {
@@ -100,11 +100,11 @@ public class TbcdStringConverter implements JASN1TypeAndValueConverter {
         return false;
     }
 
-    private void invalidFiller(int octetIndex, int octet) {
+    private void invalidFiller(final int octetIndex, final int octet) {
         throw new NumberFormatException("Illegal filler in octet " + octetIndex + ": " + octet);
     }
 
-    private void invalidInteger(int digit) {
+    private void invalidInteger(final int digit) {
         throw new IllegalArgumentException(
                 "Integer should be between 0 - 15 for Telephony Binary Coded Decimal String. Received " + digit);
     }

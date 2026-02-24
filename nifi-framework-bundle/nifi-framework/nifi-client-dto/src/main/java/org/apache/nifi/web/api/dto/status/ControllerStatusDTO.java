@@ -54,7 +54,7 @@ public class ControllerStatusDTO implements Cloneable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -68,7 +68,7 @@ public class ControllerStatusDTO implements Cloneable {
         return terminatedThreadCount;
     }
 
-    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+    public void setTerminatedThreadCount(final Integer terminatedThreadCount) {
         this.terminatedThreadCount = terminatedThreadCount;
     }
 
@@ -80,7 +80,7 @@ public class ControllerStatusDTO implements Cloneable {
         return queued;
     }
 
-    public void setQueued(String queued) {
+    public void setQueued(final String queued) {
         this.queued = queued;
     }
 
@@ -92,7 +92,7 @@ public class ControllerStatusDTO implements Cloneable {
         return runningCount;
     }
 
-    public void setRunningCount(Integer runningCount) {
+    public void setRunningCount(final Integer runningCount) {
         this.runningCount = runningCount;
     }
 
@@ -104,7 +104,7 @@ public class ControllerStatusDTO implements Cloneable {
         return stoppedCount;
     }
 
-    public void setStoppedCount(Integer stoppedCount) {
+    public void setStoppedCount(final Integer stoppedCount) {
         this.stoppedCount = stoppedCount;
     }
 
@@ -116,7 +116,7 @@ public class ControllerStatusDTO implements Cloneable {
         return invalidCount;
     }
 
-    public void setInvalidCount(Integer invalidCount) {
+    public void setInvalidCount(final Integer invalidCount) {
         this.invalidCount = invalidCount;
     }
 
@@ -128,7 +128,7 @@ public class ControllerStatusDTO implements Cloneable {
         return disabledCount;
     }
 
-    public void setDisabledCount(Integer disabledCount) {
+    public void setDisabledCount(final Integer disabledCount) {
         this.disabledCount = disabledCount;
     }
 
@@ -140,7 +140,7 @@ public class ControllerStatusDTO implements Cloneable {
         return activeRemotePortCount;
     }
 
-    public void setActiveRemotePortCount(Integer activeRemotePortCount) {
+    public void setActiveRemotePortCount(final Integer activeRemotePortCount) {
         this.activeRemotePortCount = activeRemotePortCount;
     }
 
@@ -152,7 +152,7 @@ public class ControllerStatusDTO implements Cloneable {
         return inactiveRemotePortCount;
     }
 
-    public void setInactiveRemotePortCount(Integer inactiveRemotePortCount) {
+    public void setInactiveRemotePortCount(final Integer inactiveRemotePortCount) {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
@@ -161,7 +161,7 @@ public class ControllerStatusDTO implements Cloneable {
         return flowFilesQueued;
     }
 
-    public void setFlowFilesQueued(Integer flowFilesQueued) {
+    public void setFlowFilesQueued(final Integer flowFilesQueued) {
         this.flowFilesQueued = flowFilesQueued;
     }
 
@@ -170,7 +170,7 @@ public class ControllerStatusDTO implements Cloneable {
         return bytesQueued;
     }
 
-    public void setBytesQueued(Long bytesQueued) {
+    public void setBytesQueued(final Long bytesQueued) {
         this.bytesQueued = bytesQueued;
     }
 
@@ -179,7 +179,7 @@ public class ControllerStatusDTO implements Cloneable {
         return upToDateCount;
     }
 
-    public void setUpToDateCount(Integer upToDateCount) {
+    public void setUpToDateCount(final Integer upToDateCount) {
         this.upToDateCount = upToDateCount;
     }
 
@@ -188,7 +188,7 @@ public class ControllerStatusDTO implements Cloneable {
         return locallyModifiedCount;
     }
 
-    public void setLocallyModifiedCount(Integer locallyModifiedCount) {
+    public void setLocallyModifiedCount(final Integer locallyModifiedCount) {
         this.locallyModifiedCount = locallyModifiedCount;
     }
 
@@ -197,7 +197,7 @@ public class ControllerStatusDTO implements Cloneable {
         return staleCount;
     }
 
-    public void setStaleCount(Integer staleCount) {
+    public void setStaleCount(final Integer staleCount) {
         this.staleCount = staleCount;
     }
 
@@ -206,7 +206,7 @@ public class ControllerStatusDTO implements Cloneable {
         return locallyModifiedAndStaleCount;
     }
 
-    public void setLocallyModifiedAndStaleCount(Integer locallyModifiedAndStaleCount) {
+    public void setLocallyModifiedAndStaleCount(final Integer locallyModifiedAndStaleCount) {
         this.locallyModifiedAndStaleCount = locallyModifiedAndStaleCount;
     }
 
@@ -215,7 +215,7 @@ public class ControllerStatusDTO implements Cloneable {
         return syncFailureCount;
     }
 
-    public void setSyncFailureCount(Integer syncFailureCount) {
+    public void setSyncFailureCount(final Integer syncFailureCount) {
         this.syncFailureCount = syncFailureCount;
     }
 

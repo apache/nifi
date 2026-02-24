@@ -81,9 +81,9 @@ public class EventFileCompressor implements Runnable {
                     continue;
                 }
 
-                File outputFile;
-                long bytesBefore;
-                StandardTocReader tocReader;
+                final File outputFile;
+                final long bytesBefore;
+                final StandardTocReader tocReader;
 
                 File tmpTocFile = null;
                 eventFileManager.obtainReadLock(uncompressedEventFile);

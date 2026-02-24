@@ -30,7 +30,7 @@ public class ControllerServiceTypesEndpointMerger extends AbstractNodeStatusEndp
     public static final String CONTROLLER_SERVICE_TYPES_URI_PATTERN = "/nifi-api/flow/controller-service-types";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_SERVICE_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class ControllerServiceTypesEndpointMerger extends AbstractNodeStatusEndp
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(ControllerServiceTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final ControllerServiceTypesEntity entity) {
         return entity.getControllerServiceTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

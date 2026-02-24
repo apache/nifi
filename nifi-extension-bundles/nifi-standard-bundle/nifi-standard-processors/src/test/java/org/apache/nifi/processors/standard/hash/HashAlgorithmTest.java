@@ -81,7 +81,7 @@ public class HashAlgorithmTest {
             final List<String> transformedNames = Arrays.asList(algorithm.getName(), algorithm.getName().toUpperCase(), algorithm.getName().toLowerCase());
 
             for (final String name : transformedNames) {
-                HashAlgorithm found = HashAlgorithm.fromName(name);
+                final HashAlgorithm found = HashAlgorithm.fromName(name);
 
                 assertEquals(name.toUpperCase(), found.getName());
             }

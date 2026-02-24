@@ -160,7 +160,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
         // Don't allow Pretty Print if One Line Per Object is selected
         if (context.getProperty(PRETTY_PRINT_JSON).asBoolean() && context.getProperty(OUTPUT_GROUPING).getValue().equals(OUTPUT_ONELINE.getValue())) {
@@ -186,7 +186,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         }
         this.nullSuppression = suppression;
 
-        String outputGroupingValue = context.getProperty(OUTPUT_GROUPING).getValue();
+        final String outputGroupingValue = context.getProperty(OUTPUT_GROUPING).getValue();
         final OutputGrouping grouping;
         if (OUTPUT_ONELINE.getValue().equals(outputGroupingValue)) {
             grouping = OutputGrouping.OUTPUT_ONELINE;
@@ -204,7 +204,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
 
         final OutputStream bufferedOut = new BufferedOutputStream(out, 65536);
         final OutputStream compressionOut;
-        String mimeType;
+        final String mimeType;
 
         try {
             switch (compressionFormat.toLowerCase()) {
@@ -236,7 +236,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
                     mimeType = "application/json";
                     compressionOut = out;
             }
-        } catch (CompressorException e) {
+        } catch (final CompressorException e) {
             throw new IOException(e);
         }
 

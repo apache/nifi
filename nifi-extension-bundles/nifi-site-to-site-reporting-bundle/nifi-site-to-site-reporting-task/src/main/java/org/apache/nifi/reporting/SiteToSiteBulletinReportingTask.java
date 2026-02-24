@@ -171,7 +171,7 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     }
 
     private JsonObject serialize(final JsonObjectBuilder builder, final Bulletin bulletin,
-                                 final String platform, final String nodeIdentifier, Boolean allowNullValues) {
+                                 final String platform, final String nodeIdentifier, final Boolean allowNullValues) {
 
         addField(builder, "objectId", UUID.randomUUID().toString(), allowNullValues);
         addField(builder, "platform", platform, allowNullValues);

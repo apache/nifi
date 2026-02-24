@@ -156,22 +156,22 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     // ------------------ Groups ------------------
 
     @Override
-    public synchronized Group doAddGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group doAddGroup(final Group group) throws AuthorizationAccessException {
         return userGroupProvider.addGroup(group);
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         return userGroupProvider.getGroup(identifier);
     }
 
     @Override
-    public synchronized Group doUpdateGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group doUpdateGroup(final Group group) throws AuthorizationAccessException {
         return userGroupProvider.updateGroup(group);
     }
 
     @Override
-    public synchronized Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group deleteGroup(final Group group) throws AuthorizationAccessException {
         return userGroupProvider.deleteGroup(group);
     }
 
@@ -252,18 +252,18 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         return new UsersAndAccessPolicies() {
             @Override
-            public AccessPolicy getAccessPolicy(String resourceIdentifier, RequestAction action) {
+            public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) {
                 return AccessPolicyProviderUtils.getAccessPolicy(
                         resourceIdentifier, action, authorizationsHolder.getPoliciesByResource());
             }
 
             @Override
-            public User getUser(String identity) {
+            public User getUser(final String identity) {
                 return userGroupHolder.getUser(identity);
             }
 
             @Override
-            public Set<Group> getGroups(String userIdentity) {
+            public Set<Group> getGroups(final String userIdentity) {
                 return userGroupHolder.getGroups(userIdentity);
             }
         };

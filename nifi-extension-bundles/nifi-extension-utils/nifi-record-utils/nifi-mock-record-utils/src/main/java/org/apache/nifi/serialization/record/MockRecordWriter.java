@@ -87,7 +87,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
     }
 
     @Override
-    public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema)
+    public RecordSchema getSchema(final Map<String, String> variables, final RecordSchema readSchema)
             throws SchemaNotFoundException, IOException {
         return (writeSchema != null) ? writeSchema : new SimpleRecordSchema(Collections.emptyList());
     }
@@ -165,7 +165,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             }
 
             @Override
-            public WriteResult write(Record record) throws IOException {
+            public WriteResult write(final Record record) throws IOException {
                 if (++recordCount > failAfterN && failAfterN > -1) {
                     throw new IOException("Unit Test intentionally throwing IOException after " + failAfterN + " records were written");
                 }

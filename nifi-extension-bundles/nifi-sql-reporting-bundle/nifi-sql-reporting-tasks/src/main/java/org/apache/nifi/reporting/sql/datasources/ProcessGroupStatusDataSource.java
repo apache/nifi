@@ -81,8 +81,7 @@ public class ProcessGroupStatusDataSource implements ResettableDataSource {
         if (groupStatus == lastFetchedStatus) {
             groupStatuses = lastStatuses;
         } else {
-            lastStatuses = gatherProcessGroupStatuses(groupStatus);
-            groupStatuses = lastStatuses;
+            groupStatuses = lastStatuses = gatherProcessGroupStatuses(groupStatus);
         }
 
         lastFetchedStatus = groupStatus;

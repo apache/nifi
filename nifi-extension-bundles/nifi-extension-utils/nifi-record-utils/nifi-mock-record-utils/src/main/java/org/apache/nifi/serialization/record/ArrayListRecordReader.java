@@ -50,7 +50,7 @@ public class ArrayListRecordReader extends AbstractControllerService implements 
         private final Iterator<Record> itr;
         private final InputStream in;
 
-        public ArrayListReader(final List<Record> records, final RecordSchema schema, InputStream in) {
+        public ArrayListReader(final List<Record> records, final RecordSchema schema, final InputStream in) {
             this.itr = records.iterator();
             this.schema = schema;
             this.in = in;

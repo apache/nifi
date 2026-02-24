@@ -84,7 +84,7 @@ public class FlattenJson extends AbstractProcessor {
             .description("The separator character used for joining keys. Must be a JSON-legal character.")
             .addValidator((subject, input, context) -> {
                 if (context.isExpressionLanguagePresent(input)) {
-                    ExpressionLanguageCompiler elc = context.newExpressionLanguageCompiler();
+                    final ExpressionLanguageCompiler elc = context.newExpressionLanguageCompiler();
                     final boolean validExpression = elc.isValidExpression(input);
                     return new ValidationResult.Builder().subject(subject).input(input)
                             .valid(validExpression).explanation(validExpression ? "" : "Not a valid Expression").build();
@@ -93,11 +93,11 @@ public class FlattenJson extends AbstractProcessor {
                 boolean valid = input != null && input.length() == 1;
                 String message = !valid ? "The separator must be a single character in length." : "";
 
-                ObjectMapper mapper = new ObjectMapper();
-                String test = String.format("{ \"prop%sprop\": \"test\" }", input);
+                final ObjectMapper mapper = new ObjectMapper();
+                final String test = String.format("{ \"prop%sprop\": \"test\" }", input);
                 try {
                     mapper.readValue(test, Map.class);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     message = e.getLocalizedMessage();
                     valid = false;
                 }
@@ -227,14 +227,14 @@ public class FlattenJson extends AbstractProcessor {
             flowFile = session.write(flowFile, out -> out.write(resultedJson.getBytes(charset)));
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to {} JSON", returnType, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("flatten-json-separator", SEPARATOR.getName());
         config.renameProperty("flatten-mode", FLATTEN_MODE.getName());
         config.renameProperty("ignore-reserved-characters", IGNORE_RESERVED_CHARACTERS.getName());
@@ -243,7 +243,7 @@ public class FlattenJson extends AbstractProcessor {
         config.renameProperty("flatten-json-pretty-print-json", PRETTY_PRINT.getName());
     }
 
-    private FlattenMode getFlattenMode(String mode) {
+    private FlattenMode getFlattenMode(final String mode) {
         if (FLATTEN_MODE_NORMAL.getValue().equals(mode)) {
             return FlattenMode.NORMAL;
         } else if (FLATTEN_MODE_DOT_NOTATION.getValue().equals(mode)) {

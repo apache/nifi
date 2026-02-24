@@ -32,7 +32,7 @@ public class AuthenticationRequestToken implements Authentication {
     private final Class<?> authenticationRequestOrigin;
     private final String clientAddress;
 
-    public AuthenticationRequestToken(AuthenticationRequest authenticationRequest, Class<?> authenticationRequestOrigin, String clientAddress) {
+    public AuthenticationRequestToken(final AuthenticationRequest authenticationRequest, final Class<?> authenticationRequestOrigin, final String clientAddress) {
         this.authenticationRequest = authenticationRequest;
         this.authenticationRequestOrigin = authenticationRequestOrigin;
         this.clientAddress = clientAddress;
@@ -69,7 +69,7 @@ public class AuthenticationRequestToken implements Authentication {
     }
 
     @Override
-    public void setAuthenticated(boolean b) throws IllegalArgumentException {
+    public void setAuthenticated(final boolean b) throws IllegalArgumentException {
         throw new IllegalArgumentException("AuthenticationRequestWrapper cannot be trusted. It is only to be used for storing an identity claim.");
     }
 
@@ -84,7 +84,7 @@ public class AuthenticationRequestToken implements Authentication {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         return authenticationRequest.equals(obj);
     }
 

@@ -53,16 +53,16 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
     // pattern that starts with any letter or '/'...looking for file names
     private static final Pattern LOOKS_LIKE_FILENAME = Pattern.compile("^[\\w/].*");
 
-    public KeyValueReader(ProcessSession session) {
+    public KeyValueReader(final ProcessSession session) {
         this.session = session;
     }
 
     @Override
-    public Set<FlowFile> readSequenceFile(Path file, Configuration configuration, FileSystem fileSystem) throws IOException {
+    public Set<FlowFile> readSequenceFile(final Path file, final Configuration configuration, final FileSystem fileSystem) throws IOException {
 
         final SequenceFile.Reader reader;
 
-        Set<FlowFile> flowFiles = new HashSet<>();
+        final Set<FlowFile> flowFiles = new HashSet<>();
         reader = new SequenceFile.Reader(configuration, Reader.file(fileSystem.makeQualified(file)));
         final Text key = new Text();
         final KeyValueWriterCallback callback = new KeyValueWriterCallback(reader);
@@ -88,7 +88,7 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
                 try {
                     flowFile = session.write(flowFile, callback);
                     flowFiles.add(flowFile);
-                } catch (ProcessException e) {
+                } catch (final ProcessException e) {
                     LOG.error("Could not write to flowfile {}", flowFile, e);
                     session.remove(flowFile);
                 }
@@ -111,14 +111,14 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
         Text key;
         private final Reader reader;
 
-        public KeyValueWriterCallback(Reader reader) {
+        public KeyValueWriterCallback(final Reader reader) {
             this.reader = reader;
         }
 
         @Override
-        public void process(OutputStream out) throws IOException {
+        public void process(final OutputStream out) throws IOException {
 
-            DataOutputStream dos = new DataOutputStream(out);
+            final DataOutputStream dos = new DataOutputStream(out);
             dos.writeInt(key.getLength());
             dos.write(key.getBytes(), 0, key.getLength());
             final OutputStreamWritable fileData = new OutputStreamWritable(out, true);

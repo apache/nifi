@@ -36,19 +36,19 @@ public final class BoxFileUtils {
                 .map(BoxItem.Info::getID)
                 .collect(joining(","));
     }
-    public static String getParentPath(BoxItem.Info info) {
+    public static String getParentPath(final BoxItem.Info info) {
         return "/" + info.getPathCollection().stream()
                 .filter(pathItemInfo -> !pathItemInfo.getID().equals("0"))
                 .map(BoxItem.Info::getName)
                 .collect(joining("/"));
     }
 
-    public static String getFolderPath(BoxFolder.Info folderInfo) {
+    public static String getFolderPath(final BoxFolder.Info folderInfo) {
         final String parentFolderPath = getParentPath(folderInfo);
         return "/".equals(parentFolderPath) ? parentFolderPath + folderInfo.getName() : parentFolderPath + "/" + folderInfo.getName();
     }
 
-    public static Map<String, String> createAttributeMap(BoxFile.Info fileInfo) {
+    public static Map<String, String> createAttributeMap(final BoxFile.Info fileInfo) {
         final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(BoxFileAttributes.ID, fileInfo.getID());
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getName());

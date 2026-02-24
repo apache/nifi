@@ -126,7 +126,7 @@ public class ConnectionFactoryConfigValidatorTest {
     }
 
     private void configureControllerService() throws InitializationException {
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService(CONTROLLER_SERVICE_ID, cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, PROP_JMS_CONNECTION_FACTORY_IMPL);
         runner.enableControllerService(cfProvider);

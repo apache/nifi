@@ -44,7 +44,7 @@ public class BinaryReader {
      * @param binaryReader the source BinaryReader
      * @param position     the new position
      */
-    public BinaryReader(BinaryReader binaryReader, int position) {
+    public BinaryReader(final BinaryReader binaryReader, final int position) {
         this.bytes = binaryReader.bytes;
         this.position = position;
     }
@@ -56,8 +56,8 @@ public class BinaryReader {
      * @param size        the number of bytes
      * @throws IOException if there is an error reading from the input stream
      */
-    public BinaryReader(InputStream inputStream, int size) throws IOException {
-        byte[] bytes = new byte[size];
+    public BinaryReader(final InputStream inputStream, final int size) throws IOException {
+        final byte[] bytes = new byte[size];
         int read = 0;
         while (read < size) {
             read += inputStream.read(bytes, read, size - read);
@@ -71,7 +71,7 @@ public class BinaryReader {
      *
      * @param bytes the bytes
      */
-    public BinaryReader(byte[] bytes) {
+    public BinaryReader(final byte[] bytes) {
         this.bytes = bytes;
         this.position = 0;
     }
@@ -100,7 +100,7 @@ public class BinaryReader {
      * @param length the number of bytes
      * @return the bytes
      */
-    public byte[] peekBytes(int length) {
+    public byte[] peekBytes(final int length) {
         return Arrays.copyOfRange(bytes, position, position + length);
     }
 
@@ -110,8 +110,8 @@ public class BinaryReader {
      * @param length the number of bytes
      * @return the bytes
      */
-    public byte[] readBytes(int length) {
-        byte[] result = peekBytes(length);
+    public byte[] readBytes(final int length) {
+        final byte[] result = peekBytes(length);
         position += length;
         return result;
     }
@@ -123,7 +123,7 @@ public class BinaryReader {
      * @param offset the offset
      * @param length the number of bytes
      */
-    public void readBytes(byte[] buf, int offset, int length) {
+    public void readBytes(final byte[] buf, final int offset, final int length) {
         System.arraycopy(bytes, position, buf, offset, length);
         position += length;
     }
@@ -134,10 +134,10 @@ public class BinaryReader {
      * @return the guid
      */
     public String readGuid() {
-        StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
         int maxIndex = 0;
-        for (int[] indexArray : INDEX_ARRAYS) {
-            for (int index : indexArray) {
+        for (final int[] indexArray : INDEX_ARRAYS) {
+            for (final int index : indexArray) {
                 maxIndex = Math.max(maxIndex, index);
                 result.append(String.format("%02X", bytes[position + index]).toLowerCase());
             }
@@ -155,12 +155,12 @@ public class BinaryReader {
      * @return the string
      * @throws IOException if the String wasn't null terminated
      */
-    public String readString(int length) throws IOException {
-        StringBuilder result = new StringBuilder(length - 1);
+    public String readString(final int length) throws IOException {
+        final StringBuilder result = new StringBuilder(length - 1);
         boolean foundNull = false;
-        int exclusiveLastIndex = position + length;
+        final int exclusiveLastIndex = position + length;
         for (int i = position; i < exclusiveLastIndex; i++) {
-            byte b = bytes[i];
+            final byte b = bytes[i];
             if (b == 0) {
                 foundNull = true;
                 break;
@@ -180,9 +180,9 @@ public class BinaryReader {
      * @param length the number of characters
      * @return the string
      */
-    public String readWString(int length) {
-        int numBytes = length * 2;
-        String result = StandardCharsets.UTF_16LE.decode(ByteBuffer.wrap(bytes, position, numBytes)).toString();
+    public String readWString(final int length) {
+        final int numBytes = length * 2;
+        final String result = StandardCharsets.UTF_16LE.decode(ByteBuffer.wrap(bytes, position, numBytes)).toString();
         position += numBytes;
         return result;
     }
@@ -193,7 +193,7 @@ public class BinaryReader {
      * @return the value
      */
     public UnsignedLong readQWord() {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 8);
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 8);
         position += 8;
         return UnsignedLong.fromLongBits(byteBuffer.order(ByteOrder.LITTLE_ENDIAN).getLong());
     }
@@ -204,7 +204,7 @@ public class BinaryReader {
      * @return the value
      */
     public UnsignedInteger readDWord() {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 4);
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 4);
         position += 4;
         return UnsignedInteger.fromIntBits(byteBuffer.order(ByteOrder.LITTLE_ENDIAN).getInt());
     }
@@ -215,7 +215,7 @@ public class BinaryReader {
      * @return the value
      */
     public UnsignedInteger readDWordBE() {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 4);
+        final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes, position, 4);
         position += 4;
         return UnsignedInteger.fromIntBits(byteBuffer.order(ByteOrder.BIG_ENDIAN).getInt());
     }
@@ -226,7 +226,7 @@ public class BinaryReader {
      * @return the value
      */
     public int readWord() {
-        byte[] bytes = new byte[4];
+        final byte[] bytes = new byte[4];
         readBytes(bytes, 0, 2);
         return ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
     }
@@ -237,7 +237,7 @@ public class BinaryReader {
      * @return the value
      */
     public int readWordBE() {
-        byte[] bytes = new byte[4];
+        final byte[] bytes = new byte[4];
         readBytes(bytes, 2, 2);
         return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
     }
@@ -249,9 +249,9 @@ public class BinaryReader {
      * @return the date corresponding to the timestamp
      */
     public Date readFileTime() {
-        UnsignedLong hundredsOfNanosecondsSinceJan11601 = readQWord();
-        long millisecondsSinceJan11601 = hundredsOfNanosecondsSinceJan11601.dividedBy(UnsignedLong.valueOf(10000)).longValue();
-        long millisecondsSinceEpoch = millisecondsSinceJan11601 - EPOCH_OFFSET;
+        final UnsignedLong hundredsOfNanosecondsSinceJan11601 = readQWord();
+        final long millisecondsSinceJan11601 = hundredsOfNanosecondsSinceJan11601.dividedBy(UnsignedLong.valueOf(10000)).longValue();
+        final long millisecondsSinceEpoch = millisecondsSinceJan11601 - EPOCH_OFFSET;
         return new Date(millisecondsSinceEpoch);
     }
 
@@ -261,7 +261,7 @@ public class BinaryReader {
      * @param length the number of bytes
      * @return a Base64 encoded string
      */
-    public String readAndBase64EncodeBinary(int length) {
+    public String readAndBase64EncodeBinary(final int length) {
         return Base64.getEncoder().encodeToString(readBytes(length));
     }
 
@@ -270,7 +270,7 @@ public class BinaryReader {
      *
      * @param bytes the number of bytes to skip
      */
-    public void skip(int bytes) {
+    public void skip(final int bytes) {
         position += bytes;
     }
 

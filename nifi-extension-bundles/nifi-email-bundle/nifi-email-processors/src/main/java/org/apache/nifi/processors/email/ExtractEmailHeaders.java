@@ -154,18 +154,18 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         final Map<String, String> attributes = new HashMap<>();
         session.read(originalFlowFile, rawIn -> {
             try (final InputStream in = new BufferedInputStream(rawIn)) {
-                Properties props = new Properties();
+                final Properties props = new Properties();
                 props.put("mail.mime.address.strict", requireStrictAddresses);
-                Session mailSession = Session.getInstance(props);
-                MimeMessage originalMessage = new MimeMessage(mailSession, in);
+                final Session mailSession = Session.getInstance(props);
+                final MimeMessage originalMessage = new MimeMessage(mailSession, in);
                 // RFC-2822 determines that a message must have a "From:" header
                 // if a message lacks the field, it is flagged as invalid
-                Address[] from = originalMessage.getFrom();
+                final Address[] from = originalMessage.getFrom();
                 if (from == null) {
                     throw new MessagingException("Message failed RFC-2822 validation: No Sender");
                 }
                 if (!capturedHeadersList.isEmpty()) {
-                    Enumeration headers = originalMessage.getAllHeaders();
+                    final Enumeration headers = originalMessage.getAllHeaders();
                     while (headers.hasMoreElements()) {
                         final Header header = (Header) headers.nextElement();
                         final String headerValue = header.getValue();
@@ -199,7 +199,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                 final AtomicInteger attachmentsCounter = new AtomicInteger();
                 countAttachments(attachmentsCounter, originalMessage, 0);
                 attributes.put(EMAIL_ATTACHMENT_COUNT, Integer.toString(attachmentsCounter.get()));
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // Message is invalid or triggered an error during parsing
                 attributes.clear();
                 logger.error("Could not parse the flowfile {} as an email, treating as failure", originalFlowFile, e);
@@ -208,7 +208,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
         });
 
         if (!attributes.isEmpty()) {
-            FlowFile updatedFlowFile = session.putAllAttributes(originalFlowFile, attributes);
+            final FlowFile updatedFlowFile = session.putAllAttributes(originalFlowFile, attributes);
             logger.info("Extracted {} headers into {} file", attributes.size(), updatedFlowFile);
             processedFlowFilesList.add(updatedFlowFile);
         }
@@ -229,15 +229,15 @@ public class ExtractEmailHeaders extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("CAPTURED_HEADERS", CAPTURED_HEADERS.getName());
         config.renameProperty("STRICT_ADDRESS_PARSING", STRICT_PARSING.getName());
     }
 
     private static void putAddressListInAttributes(
-            Map<String, String> attributes,
+            final Map<String, String> attributes,
             final String attributePrefix,
-            Address[] addresses) {
+            final Address[] addresses) {
         if (addresses != null) {
             for (int count = 0; count < addresses.length; count++) {
                 attributes.put(attributePrefix + "." + count, addresses[count].toString());

@@ -24,7 +24,7 @@ import java.util.Locale;
 
 public class ValidateLocale implements Validator {
     @Override
-    public ValidationResult validate(String subject, String input, ValidationContext context) {
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
         if (null == input || input.isEmpty()) {
             return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                     .explanation(subject + " cannot be empty").build();

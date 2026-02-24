@@ -29,7 +29,7 @@ public class TriggerFlowAnalysisTask implements Runnable {
     private final FlowAnalyzer flowAnalyzer;
     private final Supplier<VersionedProcessGroup> rootProcessGroupSupplier;
 
-    public TriggerFlowAnalysisTask(FlowAnalyzer flowAnalyzer, Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
+    public TriggerFlowAnalysisTask(final FlowAnalyzer flowAnalyzer, final Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
         this.flowAnalyzer = flowAnalyzer;
         this.rootProcessGroupSupplier = rootProcessGroupSupplier;
     }

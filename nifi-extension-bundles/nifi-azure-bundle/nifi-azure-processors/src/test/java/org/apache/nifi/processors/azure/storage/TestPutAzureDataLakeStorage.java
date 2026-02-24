@@ -59,7 +59,7 @@ public class TestPutAzureDataLakeStorage {
         final DataLakeStorageException exception = mock(DataLakeStorageException.class);
         //Mock logger
         when(initContext.getIdentifier()).thenReturn(componentId);
-        MockComponentLog componentLog = new MockComponentLog(componentId, processor);
+        final MockComponentLog componentLog = new MockComponentLog(componentId, processor);
         when(initContext.getLogger()).thenReturn(componentLog);
         processor.initialize(initContext);
         //Mock renameWithResponse Azure method
@@ -75,7 +75,7 @@ public class TestPutAzureDataLakeStorage {
 
     @Test
     void testMigration() {
-        TestRunner runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
+        final TestRunner runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName()),

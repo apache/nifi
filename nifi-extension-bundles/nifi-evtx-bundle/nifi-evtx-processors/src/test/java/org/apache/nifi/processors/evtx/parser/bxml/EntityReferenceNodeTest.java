@@ -61,7 +61,7 @@ public class EntityReferenceNodeTest extends BxmlNodeWithTokenAndStringTestBase 
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         entityReferenceNode.accept(mock);
         verify(mock).visit(entityReferenceNode);
         verifyNoMoreInteractions(mock);

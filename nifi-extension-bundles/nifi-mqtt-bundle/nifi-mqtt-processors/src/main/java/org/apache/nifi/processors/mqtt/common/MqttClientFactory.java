@@ -32,7 +32,7 @@ public class MqttClientFactory {
 
     private final RoundRobinList<URI> brokerUris;
 
-    public MqttClientFactory(MqttClientProperties clientProperties, ComponentLog logger) {
+    public MqttClientFactory(final MqttClientProperties clientProperties, final ComponentLog logger) {
         this.clientProperties = clientProperties;
         this.logger = logger;
         this.brokerUris = new RoundRobinList<>(clientProperties.getBrokerUris());
@@ -51,7 +51,7 @@ public class MqttClientFactory {
         private final List<T> list;
         private int index = 0;
 
-        public RoundRobinList(List<T> list) {
+        public RoundRobinList(final List<T> list) {
             this.list = new ArrayList<>(list);
         }
 

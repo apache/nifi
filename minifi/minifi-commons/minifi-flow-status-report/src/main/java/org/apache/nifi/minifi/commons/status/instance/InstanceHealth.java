@@ -28,7 +28,7 @@ public class InstanceHealth implements java.io.Serializable {
         return queuedCount;
     }
 
-    public void setQueuedCount(int queuedCount) {
+    public void setQueuedCount(final int queuedCount) {
         this.queuedCount = queuedCount;
     }
 
@@ -36,7 +36,7 @@ public class InstanceHealth implements java.io.Serializable {
         return queuedContentSize;
     }
 
-    public void setQueuedContentSize(double queuedContentSize) {
+    public void setQueuedContentSize(final double queuedContentSize) {
         this.queuedContentSize = queuedContentSize;
     }
 
@@ -44,7 +44,7 @@ public class InstanceHealth implements java.io.Serializable {
         return hasBulletins;
     }
 
-    public void setHasBulletins(boolean hasBulletins) {
+    public void setHasBulletins(final boolean hasBulletins) {
         this.hasBulletins = hasBulletins;
     }
 
@@ -52,12 +52,12 @@ public class InstanceHealth implements java.io.Serializable {
         return activeThreads;
     }
 
-    public void setActiveThreads(int activeThreads) {
+    public void setActiveThreads(final int activeThreads) {
         this.activeThreads = activeThreads;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -65,7 +65,7 @@ public class InstanceHealth implements java.io.Serializable {
             return false;
         }
 
-        InstanceHealth that = (InstanceHealth) o;
+        final InstanceHealth that = (InstanceHealth) o;
 
         if (getQueuedCount() != that.getQueuedCount()) {
             return false;
@@ -83,7 +83,7 @@ public class InstanceHealth implements java.io.Serializable {
     @Override
     public int hashCode() {
         int result;
-        long temp;
+        final long temp;
         result = getQueuedCount();
         temp = Double.doubleToLongBits(getQueuedContentSize());
         result = 31 * result + (int) (temp ^ (temp >>> 32));

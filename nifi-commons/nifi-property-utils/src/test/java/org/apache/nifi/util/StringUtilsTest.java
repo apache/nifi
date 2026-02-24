@@ -114,11 +114,11 @@ public class StringUtilsTest {
     @Test
     public void testShouldTitleCaseStrings() {
         // Arrange
-        List<String> inputs = Arrays.asList(null, "", "  leading space", "trailing space  ", "multiple   spaces", "this is a sentence", "allOneWord", "PREVIOUSLY UPPERCASE");
-        List<String> expected = Arrays.asList("", "", "Leading Space", "Trailing Space", "Multiple Spaces", "This Is A Sentence", "Alloneword", "Previously Uppercase");
+        final List<String> inputs = Arrays.asList(null, "", "  leading space", "trailing space  ", "multiple   spaces", "this is a sentence", "allOneWord", "PREVIOUSLY UPPERCASE");
+        final List<String> expected = Arrays.asList("", "", "Leading Space", "Trailing Space", "Multiple Spaces", "This Is A Sentence", "Alloneword", "Previously Uppercase");
 
         // Act
-        List<String> titleCased = inputs.stream().map(StringUtils::toTitleCase).collect(Collectors.toList());
+        final List<String> titleCased = inputs.stream().map(StringUtils::toTitleCase).collect(Collectors.toList());
 
         // Assert
         assertEquals(titleCased, expected);

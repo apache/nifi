@@ -31,12 +31,12 @@ public class DelayedProtocolHandler implements ProtocolHandler {
     private int delay = 0;
     private List<ProtocolMessage> messages = new ArrayList<>();
 
-    public DelayedProtocolHandler(int delay) {
+    public DelayedProtocolHandler(final int delay) {
         this.delay = delay;
     }
 
     @Override
-    public ProtocolMessage handle(ProtocolMessage msg, Set<String> nodeIdentities) throws ProtocolException {
+    public ProtocolMessage handle(final ProtocolMessage msg, final Set<String> nodeIdentities) throws ProtocolException {
         try {
             messages.add(msg);
             Thread.sleep(delay);
@@ -48,7 +48,7 @@ public class DelayedProtocolHandler implements ProtocolHandler {
     }
 
     @Override
-    public boolean canHandle(ProtocolMessage msg) {
+    public boolean canHandle(final ProtocolMessage msg) {
         return true;
     }
 

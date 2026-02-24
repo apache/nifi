@@ -69,9 +69,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.ReportingTaskDAO+) && "
             + "execution(org.apache.nifi.controller.ReportingTaskNode createReportingTask(org.apache.nifi.web.api.dto.ReportingTaskDTO))")
-    public ReportingTaskNode createReportingTaskAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public ReportingTaskNode createReportingTaskAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the reporting task state
-        ReportingTaskNode reportingTask = (ReportingTaskNode) proceedingJoinPoint.proceed();
+        final ReportingTaskNode reportingTask = (ReportingTaskNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the reporting task action...
         final Action action = generateAuditRecord(reportingTask, Operation.Add);
@@ -97,7 +97,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.controller.ReportingTaskNode updateReportingTask(org.apache.nifi.web.api.dto.ReportingTaskDTO)) && "
             + "args(reportingTaskDTO) && "
             + "target(reportingTaskDAO)")
-    public Object updateReportingTaskAdvice(ProceedingJoinPoint proceedingJoinPoint, ReportingTaskDTO reportingTaskDTO, ReportingTaskDAO reportingTaskDAO) throws Throwable {
+    public Object updateReportingTaskAdvice(final ProceedingJoinPoint proceedingJoinPoint, final ReportingTaskDTO reportingTaskDTO, final ReportingTaskDAO reportingTaskDAO) throws Throwable {
         // determine the initial values for each property/setting thats changing
         ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
@@ -114,18 +114,18 @@ public class ReportingTaskAuditor extends NiFiAuditor {
                     ? Collections.emptySet() : reportingTaskDTO.getSensitiveDynamicPropertyNames();
 
             // determine the updated values
-            Map<String, String> updatedValues = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
+            final Map<String, String> updatedValues = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
 
             // create the reporting task details
-            FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(reportingTask.getComponentType());
 
             // create a reporting task action
-            Date actionTimestamp = new Date();
-            Collection<Action> actions = new ArrayList<>();
+            final Date actionTimestamp = new Date();
+            final Collection<Action> actions = new ArrayList<>();
 
             // go through each updated value
-            for (String property : updatedValues.keySet()) {
+            for (final String property : updatedValues.keySet()) {
                 String newValue = updatedValues.get(property);
                 String oldValue = values.get(property);
                 Operation operation = null;
@@ -183,7 +183,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             // determine if the running state has changed and its not disabled
             if (scheduledState != updatedScheduledState) {
                 // create a reporting task action
-                FlowChangeAction taskAction = createFlowChangeAction();
+                final FlowChangeAction taskAction = createFlowChangeAction();
                 taskAction.setSourceId(reportingTask.getIdentifier());
                 taskAction.setSourceName(reportingTask.getName());
                 taskAction.setSourceType(Component.ReportingTask);
@@ -227,9 +227,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
             + "execution(void deleteReportingTask(java.lang.String)) && "
             + "args(reportingTaskId) && "
             + "target(reportingTaskDAO)")
-    public void removeReportingTaskAdvice(ProceedingJoinPoint proceedingJoinPoint, String reportingTaskId, ReportingTaskDAO reportingTaskDAO) throws Throwable {
+    public void removeReportingTaskAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String reportingTaskId, final ReportingTaskDAO reportingTaskDAO) throws Throwable {
         // get the reporting task before removing it
-        ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
 
         // remove the reporting task
         proceedingJoinPoint.proceed();
@@ -251,7 +251,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      * @param operation operation
      * @return action
      */
-    public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation) {
+    public Action generateAuditRecord(final ReportingTaskNode reportingTask, final Operation operation) {
         return generateAuditRecord(reportingTask, operation, null);
     }
 
@@ -263,12 +263,12 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      * @param actionDetails details
      * @return action
      */
-    public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final ReportingTaskNode reportingTask, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
         if (isAuditable()) {
             // create the reporting task details
-            FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
+            final FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
             taskDetails.setType(reportingTask.getComponentType());
 
             // create the reporting task action for adding this reporting task
@@ -294,8 +294,8 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      * @param reportingTaskDTO dto
      * @return properties of task
      */
-    private Map<String, String> extractConfiguredPropertyValues(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
-        Map<String, String> values = new HashMap<>();
+    private Map<String, String> extractConfiguredPropertyValues(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
+        final Map<String, String> values = new HashMap<>();
 
         if (reportingTaskDTO.getName() != null) {
             values.put(NAME, reportingTask.getName());
@@ -309,9 +309,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         }
         if (reportingTaskDTO.getProperties() != null) {
             // for each property specified, extract its configured value
-            Map<String, String> properties = reportingTaskDTO.getProperties();
-            Map<PropertyDescriptor, String> configuredProperties = reportingTask.getRawPropertyValues();
-            for (String propertyName : properties.keySet()) {
+            final Map<String, String> properties = reportingTaskDTO.getProperties();
+            final Map<PropertyDescriptor, String> configuredProperties = reportingTask.getRawPropertyValues();
+            for (final String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();
                 String configuredPropertyValue = configuredProperties.get(propertyDescriptor);
@@ -335,8 +335,8 @@ public class ReportingTaskAuditor extends NiFiAuditor {
      * @param specDescriptor example property
      * @return property
      */
-    private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
-        for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
+    private PropertyDescriptor locatePropertyDescriptor(final Set<PropertyDescriptor> propertyDescriptors, final PropertyDescriptor specDescriptor) {
+        for (final PropertyDescriptor propertyDescriptor : propertyDescriptors) {
             if (propertyDescriptor.equals(specDescriptor)) {
                 return propertyDescriptor;
             }

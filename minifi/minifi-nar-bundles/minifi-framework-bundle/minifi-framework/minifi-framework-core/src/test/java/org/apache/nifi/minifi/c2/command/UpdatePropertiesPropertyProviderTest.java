@@ -55,7 +55,7 @@ class UpdatePropertiesPropertyProviderTest {
 
     @Test
     void shouldReturnModifiableNonSensitivePropertiesWithValues() throws IOException {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.setProperty(JAVA.getKey(), "java");
         props.setProperty(GRACEFUL_SHUTDOWN_SECOND.getKey(), "20");
         props.setProperty(NIFI_MINIFI_SECURITY_KEYSTORE_PASSWD.getKey(), "truststore");
@@ -64,21 +64,21 @@ class UpdatePropertiesPropertyProviderTest {
             props.store(fos, null);
         }
 
-        Map<String, Object> result = updatePropertiesPropertyProvider.getProperties();
+        final Map<String, Object> result = updatePropertiesPropertyProvider.getProperties();
 
-        Set<UpdatableProperty> expected = getUpdatableProperties(props);
+        final Set<UpdatableProperty> expected = getUpdatableProperties(props);
 
         assertEquals(Collections.singletonMap(AVAILABLE_PROPERTIES, expected), result);
     }
 
     @Test
     void shouldGetReturnListWithEmptyValuesInCaseOfFileNotFoundException() {
-        Map<String, Object> properties = updatePropertiesPropertyProvider.getProperties();
+        final Map<String, Object> properties = updatePropertiesPropertyProvider.getProperties();
 
         assertEquals(Collections.singletonMap(AVAILABLE_PROPERTIES, getUpdatableProperties(new Properties())), properties);
     }
 
-    private static Set<UpdatableProperty> getUpdatableProperties(Properties props) {
+    private static Set<UpdatableProperty> getUpdatableProperties(final Properties props) {
         return sortedPropertiesByKey().values()
             .stream()
             .filter(property -> !property.isSensitive())

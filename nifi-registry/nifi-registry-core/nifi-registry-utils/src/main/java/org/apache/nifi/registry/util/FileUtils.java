@@ -207,7 +207,7 @@ public class FileUtils {
 
             }
 
-            byte[] buffer = new byte[1 << 18]; //256 KB
+            final byte[] buffer = new byte[1 << 18]; //256 KB
             int bytesRead = -1;
             while ((bytesRead = fis.read(buffer)) != -1) {
                 stream.write(buffer, 0, bytesRead);
@@ -335,8 +335,8 @@ public class FileUtils {
                 // null if abstract pathname does not denote a directory, or if an I/O error occurs
                 throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
             }
-            for (File ingestFile : ingestFiles) {
-                boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
+            for (final File ingestFile : ingestFiles) {
+                final boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {
                     FileUtils.deleteFile(ingestFile, logger, 3);
                 }
@@ -397,15 +397,15 @@ public class FileUtils {
      * @param filename The filename to clean
      * @return sanitized filename
      */
-    public static String sanitizeFilename(String filename) {
+    public static String sanitizeFilename(final String filename) {
         if (filename == null || filename.isEmpty()) {
             return filename;
         }
-        int codePointCount = filename.codePointCount(0, filename.length());
+        final int codePointCount = filename.codePointCount(0, filename.length());
 
         final StringBuilder cleanName = new StringBuilder();
         for (int i = 0; i < codePointCount; i++) {
-            int c = filename.codePointAt(i);
+            final int c = filename.codePointAt(i);
             if (Arrays.binarySearch(INVALID_CHARS, c) < 0) {
                 cleanName.appendCodePoint(c);
             } else {

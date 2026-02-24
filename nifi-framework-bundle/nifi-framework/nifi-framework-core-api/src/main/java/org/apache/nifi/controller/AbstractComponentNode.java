@@ -142,7 +142,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     @Override
-    public void setExtensionMissing(boolean extensionMissing) {
+    public void setExtensionMissing(final boolean extensionMissing) {
         this.isExtensionMissing.set(extensionMissing);
     }
 
@@ -350,7 +350,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
                     try {
                         reload(additionalUrls);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         getLogger().error("Error reloading component with id {}", id, e);
                     }
                 }
@@ -805,7 +805,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 try {
                     logger.info("Updating classpath for [{}] with the ID [{}]", this.componentType, this.getIdentifier());
                     reload(additionalUrls);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.error("Error reloading component with id [{}]: {}", id, e.getMessage(), e);
                 }
             }
@@ -928,8 +928,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
             performFlowAnalysisOnThis();
 
             getValidationContextFactory().getRuleViolationsManager().ifPresent(ruleViolationsManager -> {
-                Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
-                for (RuleViolation ruleViolation : ruleViolations) {
+                final Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
+                for (final RuleViolation ruleViolation : ruleViolations) {
                     if (ruleViolation.getEnforcementPolicy() == EnforcementPolicy.ENFORCE) {
                         validationResults.add(
                             new ValidationResult.Builder()
@@ -1353,8 +1353,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     @Override
-    public ValidationStatus getValidationStatus(long timeout, TimeUnit timeUnit) {
-        long millis = timeUnit.toMillis(timeout);
+    public ValidationStatus getValidationStatus(final long timeout, final TimeUnit timeUnit) {
+        final long millis = timeUnit.toMillis(timeout);
         final long maxTime = System.currentTimeMillis() + millis;
 
         synchronized (validationState) {
@@ -1366,7 +1366,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     }
 
                     validationState.wait(waitMillis);
-                } catch (InterruptedException e) {
+                } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return getValidationStatus();
                 }
@@ -1539,7 +1539,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
-    protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
+    protected void setAdditionalResourcesFingerprint(final String additionalResourcesFingerprint) {
         this.additionalResourcesFingerprint = additionalResourcesFingerprint;
     }
 

@@ -36,7 +36,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     private final ControllerServiceEntityMerger controllerServiceEntityMerger = new ControllerServiceEntityMerger();
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && CONTROLLER_SERVICE_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("PUT".equalsIgnoreCase(method) && CONTROLLER_SERVICE_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
@@ -54,8 +54,8 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     }
 
     @Override
-    protected void mergeResponses(ControllerServiceEntity clientEntity, Map<NodeIdentifier, ControllerServiceEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final ControllerServiceEntity clientEntity, final Map<NodeIdentifier, ControllerServiceEntity> entityMap,
+                                  final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         controllerServiceEntityMerger.merge(clientEntity, entityMap);
     }

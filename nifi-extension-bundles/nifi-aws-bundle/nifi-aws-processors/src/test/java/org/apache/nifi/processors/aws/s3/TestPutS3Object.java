@@ -88,11 +88,11 @@ public class TestPutS3Object {
     public void testPutSinglePartFromLocalFileSource() throws Exception {
         prepareTest();
 
-        String serviceId = "fileresource";
-        FileResourceService service = mock(FileResourceService.class);
-        InputStream localFileInputStream = mock(InputStream.class);
+        final String serviceId = "fileresource";
+        final FileResourceService service = mock(FileResourceService.class);
+        final InputStream localFileInputStream = mock(InputStream.class);
         when(service.getIdentifier()).thenReturn(serviceId);
-        long contentLength = 10L;
+        final long contentLength = 10L;
         when(service.getFileResource(anyMap())).thenReturn(new FileResource(localFileInputStream, contentLength));
 
         runner.addControllerService(serviceId, service);
@@ -102,10 +102,10 @@ public class TestPutS3Object {
 
         runner.run();
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
-        ArgumentCaptor<RequestBody> captureRequestBody = ArgumentCaptor.forClass(RequestBody.class);
+        final ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        final ArgumentCaptor<RequestBody> captureRequestBody = ArgumentCaptor.forClass(RequestBody.class);
         verify(mockS3Client).putObject(captureRequest.capture(), captureRequestBody.capture());
-        PutObjectRequest putObjectRequest = captureRequest.getValue();
+        final PutObjectRequest putObjectRequest = captureRequest.getValue();
         assertEquals(putObjectRequest.contentLength(), contentLength);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
@@ -118,15 +118,15 @@ public class TestPutS3Object {
 
         runner.run(1);
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        final ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture(), Mockito.any(RequestBody.class));
-        PutObjectRequest request = captureRequest.getValue();
+        final PutObjectRequest request = captureRequest.getValue();
         assertEquals("test-bucket", request.bucket());
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
 
         ff0.assertAttributeEquals(CoreAttributes.FILENAME.key(), "testfile.txt");
         ff0.assertContentEquals("Test Content");
@@ -153,26 +153,26 @@ public class TestPutS3Object {
 
         runner.run(1);
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        final ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture(), Mockito.any(RequestBody.class));
-        PutObjectRequest request = captureRequest.getValue();
+        final PutObjectRequest request = captureRequest.getValue();
 
-        String tagsString = request.tagging();
+        final String tagsString = request.tagging();
 
         assertEquals("tagS3PII=true", tagsString);
     }
 
     @ParameterizedTest
     @EnumSource(StorageClass.class)
-    public void testStorageClasses(StorageClass storageClass) {
+    public void testStorageClasses(final StorageClass storageClass) {
         runner.setProperty(PutS3Object.STORAGE_CLASS, storageClass.name());
         prepareTest();
 
         runner.run(1);
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        final ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture(), Mockito.any(RequestBody.class));
-        PutObjectRequest request = captureRequest.getValue();
+        final PutObjectRequest request = captureRequest.getValue();
 
         assertEquals(storageClass.toString(), request.storageClassAsString());
     }
@@ -183,9 +183,9 @@ public class TestPutS3Object {
 
         runner.run(1);
 
-        ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
+        final ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture(), Mockito.any(RequestBody.class));
-        PutObjectRequest request = captureRequest.getValue();
+        final PutObjectRequest request = captureRequest.getValue();
 
         assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", UTF_8), request.contentDisposition());
     }
@@ -205,12 +205,12 @@ public class TestPutS3Object {
         prepareTest("testfile.txt");
     }
 
-    private void prepareTest(String filename) {
+    private void prepareTest(final String filename) {
         runner.setProperty(RegionUtil.REGION, "ap-northeast-1");
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 
-        Map<String, String> ffAttributes = new HashMap<>();
+        final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", filename);
         ffAttributes.put("tagS3PII", "true");
         runner.enqueue("Test Content", ffAttributes);
@@ -218,13 +218,13 @@ public class TestPutS3Object {
         initMocks();
     }
 
-    private void prepareTestWithRegionInAttributes(String filename, String region) {
+    private void prepareTestWithRegionInAttributes(final String filename, final String region) {
         runner.setProperty(RegionUtil.REGION, "use-custom-region");
         runner.setProperty(RegionUtil.CUSTOM_REGION, "${s3.region}");
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.assertValid();
 
-        Map<String, String> ffAttributes = new HashMap<>();
+        final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("s3.region", region);
         ffAttributes.put("filename", filename);
         ffAttributes.put("tagS3PII", "true");
@@ -234,27 +234,27 @@ public class TestPutS3Object {
     }
 
     private void initMocks() {
-        PutObjectResponse putObjectResult = PutObjectResponse.builder()
+        final PutObjectResponse putObjectResult = PutObjectResponse.builder()
                 .eTag("test-etag")
                 .versionId("test-version")
                 .build();
 
         when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class), Mockito.any(RequestBody.class))).thenReturn(putObjectResult);
 
-        ListMultipartUploadsResponse uploadListing = ListMultipartUploadsResponse.builder().build();
+        final ListMultipartUploadsResponse uploadListing = ListMultipartUploadsResponse.builder().build();
         when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
     }
 
     @Test
     public void testPersistenceFileLocationWithDefaultTempDir() {
-        String dir = System.getProperty("java.io.tmpdir");
+        final String dir = System.getProperty("java.io.tmpdir");
 
         executePersistenceFileLocationTest(Strings.CS.appendIfMissing(dir, File.separator) + putS3Object.getIdentifier());
     }
 
     @Test
     public void testPersistenceFileLocationWithUserDefinedDirWithEndingSeparator() {
-        String dir = Strings.CS.appendIfMissing(new File("target").getAbsolutePath(), File.separator);
+        final String dir = Strings.CS.appendIfMissing(new File("target").getAbsolutePath(), File.separator);
         runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
 
         executePersistenceFileLocationTest(dir + putS3Object.getIdentifier());
@@ -262,17 +262,17 @@ public class TestPutS3Object {
 
     @Test
     public void testPersistenceFileLocationWithUserDefinedDirWithoutEndingSeparator() {
-        String dir = Strings.CS.removeEnd(new File("target").getAbsolutePath(), File.separator);
+        final String dir = Strings.CS.removeEnd(new File("target").getAbsolutePath(), File.separator);
         runner.setProperty(PutS3Object.MULTIPART_TEMP_DIR, dir);
 
         executePersistenceFileLocationTest(dir + File.separator + putS3Object.getIdentifier());
     }
 
-    private void executePersistenceFileLocationTest(String expectedPath) {
+    private void executePersistenceFileLocationTest(final String expectedPath) {
         prepareTest();
 
         runner.run(1);
-        File file = putS3Object.getPersistenceFile();
+        final File file = putS3Object.getPersistenceFile();
 
         assertEquals(expectedPath, file.getAbsolutePath());
     }

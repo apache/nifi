@@ -108,7 +108,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
     @Override
     public synchronized void init(final StateProviderInitializationContext context) throws IOException {
-        long checkpointIntervalMillis = context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long checkpointIntervalMillis = context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         alwaysSync = context.getProperty(ALWAYS_SYNC).asBoolean();
 
         final File basePath = new File(context.getProperty(PATH).getValue());
@@ -317,27 +317,27 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
         private StateMapSerDe serde;
 
-        public SerdeFactory(StateMapSerDe serde) {
+        public SerdeFactory(final StateMapSerDe serde) {
             this.serde = serde;
         }
 
         @Override
-        public SerDe<StateMapUpdate> createSerDe(String encodingName) {
+        public SerDe<StateMapUpdate> createSerDe(final String encodingName) {
             return this.serde;
         }
 
         @Override
-        public Object getRecordIdentifier(StateMapUpdate record) {
+        public Object getRecordIdentifier(final StateMapUpdate record) {
             return this.serde.getRecordIdentifier(record);
         }
 
         @Override
-        public UpdateType getUpdateType(StateMapUpdate record) {
+        public UpdateType getUpdateType(final StateMapUpdate record) {
             return this.serde.getUpdateType(record);
         }
 
         @Override
-        public String getLocation(StateMapUpdate record) {
+        public String getLocation(final StateMapUpdate record) {
             return this.serde.getLocation(record);
         }
 

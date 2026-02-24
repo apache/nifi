@@ -30,13 +30,13 @@ import java.io.IOException;
 public class SIDTypeNode extends VariantTypeNode {
     private final String value;
 
-    public SIDTypeNode(BinaryReader binaryReader, ChunkHeader chunkHeader, BxmlNode parent, int length) throws IOException {
+    public SIDTypeNode(final BinaryReader binaryReader, final ChunkHeader chunkHeader, final BxmlNode parent, final int length) throws IOException {
         super(binaryReader, chunkHeader, parent, length);
-        int version = binaryReader.read();
-        int num_elements = binaryReader.read();
-        UnsignedInteger id_high = binaryReader.readDWordBE();
-        int id_low = binaryReader.readWordBE();
-        StringBuilder builder = new StringBuilder("S-");
+        final int version = binaryReader.read();
+        final int num_elements = binaryReader.read();
+        final UnsignedInteger id_high = binaryReader.readDWordBE();
+        final int id_low = binaryReader.readWordBE();
+        final StringBuilder builder = new StringBuilder("S-");
         builder.append(version);
         builder.append("-");
         builder.append((id_high.longValue() << 16) ^ id_low);

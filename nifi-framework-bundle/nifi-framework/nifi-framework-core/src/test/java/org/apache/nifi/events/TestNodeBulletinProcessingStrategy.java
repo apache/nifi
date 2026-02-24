@@ -26,7 +26,7 @@ public class TestNodeBulletinProcessingStrategy {
     @Test
     public void testUpdate() {
 
-        NodeBulletinProcessingStrategy nBulletinProcessingStrategy = new NodeBulletinProcessingStrategy();
+        final NodeBulletinProcessingStrategy nBulletinProcessingStrategy = new NodeBulletinProcessingStrategy();
 
         nBulletinProcessingStrategy.update(new ComponentBulletin(1));
         nBulletinProcessingStrategy.update(new ComponentBulletin(2));

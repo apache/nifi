@@ -61,7 +61,7 @@ public class FlowFileResult {
         while (futures.size() > (successes.size() + failures.size())) {
             try {
                 ApiFutures.allAsList(futures).get();
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (final InterruptedException | ExecutionException e) {
                 componentLog.error("Failed to reconcile PubSub send operation status", e);
             }
         }

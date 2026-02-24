@@ -74,7 +74,7 @@ public class TestNotify {
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("value", cachedAttributes.get("key"));
         assertTrue(signal.isTotalCountReached(1));
     }
@@ -110,7 +110,7 @@ public class TestNotify {
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(3));
         assertEquals(2, signal.getCount("success"));
@@ -207,7 +207,7 @@ public class TestNotify {
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(3584));
         assertEquals(3072, signal.getCount("success"));
@@ -253,7 +253,7 @@ public class TestNotify {
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("data3", cachedAttributes.get("key"), "Same attribute key will be overwritten by the latest signal");
         assertTrue(signal.isTotalCountReached(1536));
         assertEquals(1024, signal.getCount("success"));
@@ -278,7 +278,7 @@ public class TestNotify {
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
-        Map<String, String> cachedAttributes = signal.getAttributes();
+        final Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("value", cachedAttributes.get("key1"));
         assertNull(cachedAttributes.get("other.key1"));
         assertTrue(signal.isTotalCountReached(1));
@@ -315,7 +315,7 @@ public class TestNotify {
         private final ConcurrentMap<Object, AtomicCacheEntry<Object, Object, Long>> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
-        void setFailOnCalls(boolean failOnCalls) {
+        void setFailOnCalls(final boolean failOnCalls) {
             this.failOnCalls = failOnCalls;
         }
 
@@ -378,14 +378,14 @@ public class TestNotify {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
             return (AtomicCacheEntry<K, V, Long>) values.get(key);
         }
 
         @Override
-        public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean replace(final AtomicCacheEntry<K, V, Long> entry, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             verifyNotFail();
 
             final K key = entry.getKey();

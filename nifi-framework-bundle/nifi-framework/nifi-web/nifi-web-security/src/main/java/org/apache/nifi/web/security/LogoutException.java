@@ -24,11 +24,11 @@ import org.springframework.security.core.AuthenticationException;
  */
 public class LogoutException extends AuthenticationException {
 
-    public LogoutException(String msg) {
+    public LogoutException(final String msg) {
         super(msg);
     }
 
-    public LogoutException(String msg, Throwable t) {
+    public LogoutException(final String msg, final Throwable t) {
         super(msg, t);
     }
 

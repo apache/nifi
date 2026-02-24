@@ -39,7 +39,7 @@ public class ZendeskClient {
     private final WebClientServiceProvider webClientServiceProvider;
     private final ZendeskAuthenticationContext authenticationContext;
 
-    public ZendeskClient(WebClientServiceProvider webClientServiceProvider, ZendeskAuthenticationContext authenticationContext) {
+    public ZendeskClient(final WebClientServiceProvider webClientServiceProvider, final ZendeskAuthenticationContext authenticationContext) {
         this.webClientServiceProvider = webClientServiceProvider;
         this.authenticationContext = authenticationContext;
     }
@@ -52,7 +52,7 @@ public class ZendeskClient {
      * @return response from the Zendesk API
      * @throws IOException error while performing the POST request
      */
-    public HttpResponseEntity performPostRequest(URI uri, InputStream inputStream) throws IOException {
+    public HttpResponseEntity performPostRequest(final URI uri, final InputStream inputStream) throws IOException {
         return webClientServiceProvider.getWebClientService()
                 .post()
                 .uri(uri)
@@ -68,7 +68,7 @@ public class ZendeskClient {
      * @param uri target uri
      * @return response from the Zendesk API
      */
-    public HttpResponseEntity performGetRequest(URI uri) {
+    public HttpResponseEntity performGetRequest(final URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
                 .uri(uri)
@@ -82,7 +82,7 @@ public class ZendeskClient {
      * @param resourcePath resource path
      * @return Uri builder
      */
-    public HttpUriBuilder uriBuilder(String resourcePath) {
+    public HttpUriBuilder uriBuilder(final String resourcePath) {
         return webClientServiceProvider.getHttpUriBuilder()
                 .scheme(HTTPS)
                 .host(format(ZENDESK_HOST_TEMPLATE, authenticationContext.getSubdomain()))

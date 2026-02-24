@@ -99,7 +99,7 @@ public class TestExtractRecordSchema {
 
     private static class MockRecordParserSchemaNotFound extends MockRecordParser {
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws SchemaNotFoundException {
+        public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws SchemaNotFoundException {
             throw new SchemaNotFoundException("test");
         }
     }

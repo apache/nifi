@@ -109,7 +109,7 @@ public class TestJSLTTransformJSON {
         runner.setProperty(JSLTTransformJSON.TRANSFORMATION_STRATEGY, ENTIRE_FLOWFILE.getValue());
         runner.assertValid();
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
-        Map<String, String> attrs = new HashMap<>();
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put("rating.range", "RatingRange");
         attrs.put("rating.quality", ".rating.quality.value");
         runner.enqueue(inputFlowFile, attrs);

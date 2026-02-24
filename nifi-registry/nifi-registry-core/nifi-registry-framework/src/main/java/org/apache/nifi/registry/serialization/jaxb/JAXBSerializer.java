@@ -51,7 +51,7 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
         this.clazz = clazz;
         try {
             this.jaxbContext = JAXBContext.newInstance(clazz);
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new RuntimeException("Unable to create JAXBContext: " + e.getMessage(), e);
         }
     }
@@ -83,12 +83,12 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
             if (clazz.getAnnotation(XmlRootElement.class) != null) {
                 marshaller.marshal(t, out);
             } else {
-                String className = clazz.getSimpleName();
-                String tagName = Character.toLowerCase(className.charAt(0)) + className.substring(1);
+                final String className = clazz.getSimpleName();
+                final String tagName = Character.toLowerCase(className.charAt(0)) + className.substring(1);
 
                 marshaller.marshal(new JAXBElement<>(new QName(tagName), clazz, t), out);
             }
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new SerializationException("Unable to serialize object", e);
         }
     }
@@ -104,17 +104,17 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
             readDataModelVersion(input);
 
             final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            JAXBElement<T> jaxbElement = unmarshaller.unmarshal(new StreamSource(input), clazz);
-            T deserializedObject = jaxbElement.getValue();
+            final JAXBElement<T> jaxbElement = unmarshaller.unmarshal(new StreamSource(input), clazz);
+            final T deserializedObject = jaxbElement.getValue();
 
             return deserializedObject;
-        } catch (JAXBException e) {
+        } catch (final JAXBException e) {
             throw new SerializationException("Unable to deserialize object", e);
         }
     }
 
     @Override
-    public int readDataModelVersion(InputStream input) throws SerializationException {
+    public int readDataModelVersion(final InputStream input) throws SerializationException {
         final int headerLength = 9;
         final byte[] buffer = new byte[headerLength];
 

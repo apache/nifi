@@ -77,8 +77,8 @@ public class InputPortResource extends ApplicationResource {
      * @param inputPortEntites ports
      * @return ports
      */
-    public Set<PortEntity> populateRemainingInputPortEntitiesContent(Set<PortEntity> inputPortEntites) {
-        for (PortEntity inputPortEntity : inputPortEntites) {
+    public Set<PortEntity> populateRemainingInputPortEntitiesContent(final Set<PortEntity> inputPortEntites) {
+        for (final PortEntity inputPortEntity : inputPortEntites) {
             populateRemainingInputPortEntityContent(inputPortEntity);
         }
         return inputPortEntites;
@@ -90,7 +90,7 @@ public class InputPortResource extends ApplicationResource {
      * @param inputPortEntity port
      * @return ports
      */
-    public PortEntity populateRemainingInputPortEntityContent(PortEntity inputPortEntity) {
+    public PortEntity populateRemainingInputPortEntityContent(final PortEntity inputPortEntity) {
         inputPortEntity.setUri(generateResourceUri("input-ports", inputPortEntity.getId()));
         return inputPortEntity;
     }
@@ -214,7 +214,7 @@ public class InputPortResource extends ApplicationResource {
                 requestPortEntity,
                 requestRevision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getInputPort(id);
+                    final Authorizable authorizable = lookup.getInputPort(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateInputPort(requestPortDTO),
@@ -458,12 +458,12 @@ public class InputPortResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

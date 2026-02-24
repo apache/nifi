@@ -150,7 +150,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         return null;
     }
 
-    private void addXmlAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
+    private void addXmlAttributesToChildNodes(final StartElement startElement, final Map<String, XmlNode> childNodes) {
         final Iterator<Attribute> attributeIterator = startElement.getAttributes();
         while (attributeIterator.hasNext()) {
             final Attribute attribute = attributeIterator.next();

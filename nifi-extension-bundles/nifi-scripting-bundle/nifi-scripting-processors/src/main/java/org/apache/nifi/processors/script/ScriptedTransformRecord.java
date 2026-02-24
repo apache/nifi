@@ -167,7 +167,7 @@ public class ScriptedTransformRecord extends ScriptedRecordProcessor {
                                 try {
                                     final RecordSchema writerSchema = writerFactory.getSchema(originalAttributes, record.getSchema());
                                     writer = writerFactory.createWriter(getLogger(), writerSchema, out, flowFile);
-                                } catch (SchemaNotFoundException e) {
+                                } catch (final SchemaNotFoundException e) {
                                     throw new IOException(e);
                                 }
 

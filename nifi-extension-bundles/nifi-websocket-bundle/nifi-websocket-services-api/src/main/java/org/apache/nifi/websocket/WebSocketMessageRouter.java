@@ -59,7 +59,7 @@ public class WebSocketMessageRouter {
         sessions.keySet().forEach(sessionId -> {
             try {
                 disconnect(sessionId, "Processing has stopped.");
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.warn("Failed to disconnect session {} endpoint [{}] due to {}", sessionId, endpointId, e, e);
             }
         });
@@ -108,7 +108,7 @@ public class WebSocketMessageRouter {
                 try {
                     final WebSocketSession session = getSessionOrFail(itrSessionId);
                     sendMessage.send(session);
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     logger.warn("Failed to send message to session {} due to {}", itrSessionId, e, e);
                 }
             });

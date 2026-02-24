@@ -35,7 +35,7 @@ public class PropertyEncryptorFactory {
     public static PropertyEncryptor getPropertyEncryptor(final NiFiProperties properties) {
         Objects.requireNonNull(properties, "NiFi Properties is required");
         final String algorithm = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        String password = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        final String password = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
         if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException(KEY_REQUIRED);

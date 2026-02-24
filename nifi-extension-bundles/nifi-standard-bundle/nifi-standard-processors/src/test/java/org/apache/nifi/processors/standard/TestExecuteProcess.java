@@ -54,7 +54,7 @@ public class TestExecuteProcess {
         final List<String> zeroArgs = ArgumentUtils.splitArgs("  ", ' ');
         assertNotNull(zeroArgs);
         assertEquals(3, zeroArgs.size());
-        String[] expectedArray = {"", "", ""};
+        final String[] expectedArray = {"", "", ""};
         assertArrayEquals(expectedArray, zeroArgs.toArray(new String[0]));
 
         final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ';');
@@ -113,16 +113,16 @@ public class TestExecuteProcess {
 
         runner.run();
         Thread.sleep(500);
-        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
-        Field executorF = ExecuteProcess.class.getDeclaredField("executor");
+        final ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        final Field executorF = ExecuteProcess.class.getDeclaredField("executor");
         executorF.setAccessible(true);
-        ExecutorService executor = (ExecutorService) executorF.get(processor);
+        final ExecutorService executor = (ExecutorService) executorF.get(processor);
         assertTrue(executor.isShutdown());
         assertTrue(executor.isTerminated());
 
-        Field processF = ExecuteProcess.class.getDeclaredField("externalProcess");
+        final Field processF = ExecuteProcess.class.getDeclaredField("externalProcess");
         processF.setAccessible(true);
-        Process process = (Process) processF.get(processor);
+        final Process process = (Process) processF.get(processor);
         assertFalse(process.isAlive());
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
@@ -136,19 +136,19 @@ public class TestExecuteProcess {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
 
-        String workingDirName = "/var/test";
-        String testFile = "Novo_dicionário_da_língua_portuguesa_by_Cândido_de_Figueiredo.txt";
+        final String workingDirName = "/var/test";
+        final String testFile = "Novo_dicionário_da_língua_portuguesa_by_Cândido_de_Figueiredo.txt";
 
         runner.setProperty(ExecuteProcess.COMMAND, "cmd");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
         runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "150 millis");
 
-        File inFile = new File(workingDirName, testFile);
+        final File inFile = new File(workingDirName, testFile);
 
-        ProcessContext processContext = runner.getProcessContext();
+        final ProcessContext processContext = runner.getProcessContext();
 
-        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        final ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
 
@@ -178,9 +178,9 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.COMMAND, "cd");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
 
-        ProcessContext processContext = runner.getProcessContext();
+        final ProcessContext processContext = runner.getProcessContext();
 
-        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        final ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
 
@@ -200,7 +200,7 @@ public class TestExecuteProcess {
             && (runner.getLogger().getWarnMessages().isEmpty()); i++) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
+            } catch (final InterruptedException ignored) {
             }
         }
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
@@ -216,9 +216,9 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
         runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
 
-        ProcessContext processContext = runner.getProcessContext();
+        final ProcessContext processContext = runner.getProcessContext();
 
-        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        final ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
 
@@ -241,9 +241,9 @@ public class TestExecuteProcess {
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "${literal('does-not-exist'):toUpper()}");
         runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
 
-        ProcessContext processContext = runner.getProcessContext();
+        final ProcessContext processContext = runner.getProcessContext();
 
-        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        final ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
         processor.updateScheduledTrue();
         processor.setupExecutor(processContext);
 

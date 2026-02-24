@@ -39,14 +39,14 @@ public class RecordSchemaProvider {
         .maximumSize(100)
         .build(this::generateRecordSchema);
 
-    public RecordSchema get(Class type) {
+    public RecordSchema get(final Class type) {
         return schemaCache.get(type);
     }
 
-    private RecordSchema generateRecordSchema(Class type) {
+    private RecordSchema generateRecordSchema(final Class type) {
         final SimpleRecordSchema schema = createBlankRecordSchema(type);
 
-        List<Class> typeHierarchy = new ArrayList<>();
+        final List<Class> typeHierarchy = new ArrayList<>();
 
         Class currentType = type;
         while (!Object.class.equals(currentType)) {
@@ -66,7 +66,7 @@ public class RecordSchemaProvider {
         return schema;
     }
 
-    private SimpleRecordSchema createBlankRecordSchema(Class type) {
+    private SimpleRecordSchema createBlankRecordSchema(final Class type) {
         final SchemaIdentifier schemaId = new StandardSchemaIdentifier.Builder()
             .name(type.getCanonicalName())
             .build();
@@ -76,7 +76,7 @@ public class RecordSchemaProvider {
         return schema;
     }
 
-    private RecordField toRecordField(Field field) {
+    private RecordField toRecordField(final Field field) {
         if (!JASN1Utils.isRecordField(field)) {
             return null;
         }
@@ -88,7 +88,7 @@ public class RecordSchemaProvider {
         return new RecordField(field.getName(), fieldType, true);
     }
 
-    private DataType getDataType(Class<?> type) {
+    private DataType getDataType(final Class<?> type) {
         return new JASN1ConverterImpl(schemaCache).convertType(type);
     }
 

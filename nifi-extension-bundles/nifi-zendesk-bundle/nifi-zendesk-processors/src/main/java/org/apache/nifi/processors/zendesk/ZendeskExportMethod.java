@@ -37,8 +37,8 @@ public enum ZendeskExportMethod implements DescribedValue {
     private final String cursorJsonFieldName;
     private final String description;
 
-    ZendeskExportMethod(String value, String displayName, String exportApiPathTemplate, String initialCursorQueryParameterName,
-                        String cursorQueryParameterName, String cursorJsonFieldName, String description) {
+    ZendeskExportMethod(final String value, final String displayName, final String exportApiPathTemplate, final String initialCursorQueryParameterName,
+                        final String cursorQueryParameterName, final String cursorJsonFieldName, final String description) {
         this.value = value;
         this.displayName = displayName;
         this.description = description;
@@ -48,7 +48,7 @@ public enum ZendeskExportMethod implements DescribedValue {
         this.cursorJsonFieldName = cursorJsonFieldName;
     }
 
-    public static ZendeskExportMethod forName(String methodName) {
+    public static ZendeskExportMethod forName(final String methodName) {
         return Stream.of(values()).filter(m -> m.getValue().equalsIgnoreCase(methodName)).findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Zendesk incremental export method: " + methodName));
     }

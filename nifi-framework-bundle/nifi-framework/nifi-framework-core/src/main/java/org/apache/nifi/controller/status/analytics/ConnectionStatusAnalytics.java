@@ -66,8 +66,8 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private static String NEXT_INTERVAL_PERCENTAGE_USE_BYTES = "nextIntervalPercentageUseBytes";
     private static String INTERVAL_TIME_MILLIS = "intervalTimeMillis";
 
-    public ConnectionStatusAnalytics(StatusHistoryRepository statusHistoryRepository, FlowManager flowManager,
-                                     Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, String connectionIdentifier, Boolean supportOnlineLearning) {
+    public ConnectionStatusAnalytics(final StatusHistoryRepository statusHistoryRepository, final FlowManager flowManager,
+                                     final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, final String connectionIdentifier, final Boolean supportOnlineLearning) {
         this.statusHistoryRepository = statusHistoryRepository;
         this.flowManager = flowManager;
         this.modelMap = modelMap;
@@ -90,12 +90,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
         modelMap.forEach((metric, modelFunction) -> {
 
-            StatusAnalyticsModel model = modelFunction.getKey();
-            StatusMetricExtractFunction extract = modelFunction.getValue();
-            StatusHistory statusHistory = statusHistoryRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
-            Tuple<Stream<Double[]>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
-            Double[][] features = modelData.getKey().toArray(size -> new Double[size][1]);
-            Double[] values = modelData.getValue().toArray(size -> new Double[size]);
+            final StatusAnalyticsModel model = modelFunction.getKey();
+            final StatusMetricExtractFunction extract = modelFunction.getValue();
+            final StatusHistory statusHistory = statusHistoryRepository.getConnectionStatusHistory(connectionIdentifier,
+                    queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
+            final Tuple<Stream<Double[]>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
+            final Double[][] features = modelData.getKey().toArray(size -> new Double[size][1]);
+            final Double[] values = modelData.getValue().toArray(size -> new Double[size]);
 
             if (ArrayUtils.isNotEmpty(features)) {
                 try {
@@ -109,7 +110,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
                     }
 
                     extendWindow = false;
-                } catch (Exception ex) {
+                } catch (final Exception ex) {
                     LOG.debug("Exception encountered while training model for connection id {}: {}", connectionIdentifier, ex.getMessage());
                     extendWindow = true;
                 }
@@ -120,7 +121,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         });
     }
 
-    protected StatusAnalyticsModel getModel(String modelType) {
+    protected StatusAnalyticsModel getModel(final String modelType) {
         if (modelMap.containsKey(modelType)) {
             return modelMap.get(modelType).getKey();
         } else {
@@ -132,15 +133,15 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
-    Long getTimeToBytesBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getTimeToBytesBackpressureMillis(final Connection connection, final FlowFileEvent flowFileEvent) {
 
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
 
         if (validModel(bytesModel) && flowFileEvent != null) {
-            Map<Integer, Double> predictFeatures = new HashMap<>();
-            Double inOutRatio = (flowFileEvent.getContentSizeOut() / (double) flowFileEvent.getContentSizeIn());
+            final Map<Integer, Double> predictFeatures = new HashMap<>();
+            final Double inOutRatio = (flowFileEvent.getContentSizeOut() / (double) flowFileEvent.getContentSizeIn());
             predictFeatures.put(1, inOutRatio);
             return convertTimePrediction(bytesModel.predictVariable(0, predictFeatures, backPressureBytes), System.currentTimeMillis());
         } else {
@@ -154,15 +155,15 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
      */
-    Long getTimeToCountBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getTimeToCountBackpressureMillis(final Connection connection, final FlowFileEvent flowFileEvent) {
 
         final StatusAnalyticsModel countModel = getModel("queuedCount");
 
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
 
         if (validModel(countModel) && flowFileEvent != null) {
-            Map<Integer, Double> predictFeatures = new HashMap<>();
-            Double inOutRatio = (flowFileEvent.getFlowFilesOut() / (double) flowFileEvent.getFlowFilesIn());
+            final Map<Integer, Double> predictFeatures = new HashMap<>();
+            final Double inOutRatio = (flowFileEvent.getFlowFilesOut() / (double) flowFileEvent.getFlowFilesIn());
             predictFeatures.put(1, inOutRatio);
             return convertTimePrediction(countModel.predictVariable(0, predictFeatures, backPressureCountThreshold), System.currentTimeMillis());
         } else {
@@ -177,13 +178,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
 
-    Long getNextIntervalBytes(FlowFileEvent flowFileEvent) {
+    Long getNextIntervalBytes(final FlowFileEvent flowFileEvent) {
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
 
         if (validModel(bytesModel) && flowFileEvent != null) {
-            List<Double> predictFeatures = new ArrayList<>();
-            Long nextInterval = System.currentTimeMillis() + getIntervalTimeMillis();
-            Double inOutRatio = flowFileEvent.getContentSizeOut() / (double) flowFileEvent.getContentSizeIn();
+            final List<Double> predictFeatures = new ArrayList<>();
+            final Long nextInterval = System.currentTimeMillis() + getIntervalTimeMillis();
+            final Double inOutRatio = flowFileEvent.getContentSizeOut() / (double) flowFileEvent.getContentSizeIn();
             predictFeatures.add(nextInterval.doubleValue());
             predictFeatures.add(inOutRatio);
             return convertCountPrediction(bytesModel.predict(predictFeatures.toArray(new Double[2])));
@@ -199,13 +200,13 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
      */
 
-    Long getNextIntervalCount(FlowFileEvent flowFileEvent) {
+    Long getNextIntervalCount(final FlowFileEvent flowFileEvent) {
         final StatusAnalyticsModel countModel = getModel("queuedCount");
 
         if (validModel(countModel) && flowFileEvent != null) {
-            List<Double> predictFeatures = new ArrayList<>();
-            Long nextInterval = System.currentTimeMillis() + getIntervalTimeMillis();
-            Double inOutRatio = flowFileEvent.getFlowFilesOut() / (double) flowFileEvent.getFlowFilesIn();
+            final List<Double> predictFeatures = new ArrayList<>();
+            final Long nextInterval = System.currentTimeMillis() + getIntervalTimeMillis();
+            final Double inOutRatio = flowFileEvent.getFlowFilesOut() / (double) flowFileEvent.getFlowFilesIn();
             predictFeatures.add(nextInterval.doubleValue());
             predictFeatures.add(inOutRatio);
             return convertCountPrediction(countModel.predict(predictFeatures.toArray(new Double[2])));
@@ -221,7 +222,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return percentage of bytes used at next interval
      */
-    Long getNextIntervalPercentageUseCount(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getNextIntervalPercentageUseCount(final Connection connection, final FlowFileEvent flowFileEvent) {
 
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
         final long nextIntervalCount = getNextIntervalCount(flowFileEvent);
@@ -240,7 +241,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return percentage of bytes used at next interval
      */
 
-    Long getNextIntervalPercentageUseBytes(final Connection connection, FlowFileEvent flowFileEvent) {
+    Long getNextIntervalPercentageUseBytes(final Connection connection, final FlowFileEvent flowFileEvent) {
 
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
@@ -257,7 +258,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return intervalMillis;
     }
 
-    public void setIntervalTimeMillis(long intervalTimeMillis) {
+    public void setIntervalTimeMillis(final long intervalTimeMillis) {
         this.intervalMillis = intervalTimeMillis;
     }
 
@@ -265,7 +266,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return queryIntervalMillis;
     }
 
-    public void setQueryIntervalMillis(long queryIntervalMillis) {
+    public void setQueryIntervalMillis(final long queryIntervalMillis) {
         this.queryIntervalMillis = queryIntervalMillis;
     }
 
@@ -273,7 +274,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return scoreName;
     }
 
-    public void setScoreName(String scoreName) {
+    public void setScoreName(final String scoreName) {
         this.scoreName = scoreName;
     }
 
@@ -281,7 +282,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return scoreThreshold;
     }
 
-    public void setScoreThreshold(double scoreThreshold) {
+    public void setScoreThreshold(final double scoreThreshold) {
         this.scoreThreshold = scoreThreshold;
     }
 
@@ -299,12 +300,12 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     }
 
     public void loadPredictions(final RepositoryStatusReport statusReport) {
-        long startTs = System.currentTimeMillis();
-        Connection connection = flowManager.getConnection(connectionIdentifier);
+        final long startTs = System.currentTimeMillis();
+        final Connection connection = flowManager.getConnection(connectionIdentifier);
         if (connection == null) {
             throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
         }
-        FlowFileEvent flowFileEvent = statusReport.getReportEntry(connectionIdentifier);
+        final FlowFileEvent flowFileEvent = statusReport.getReportEntry(connectionIdentifier);
         predictions.put(TIME_TO_BYTE_BACKPRESSURE_MILLIS, getTimeToBytesBackpressureMillis(connection, flowFileEvent));
         predictions.put(TIME_TO_COUNT_BACKPRESSURE_MILLIS, getTimeToCountBackpressureMillis(connection, flowFileEvent));
         predictions.put(NEXT_INTERVAL_BYTES, getNextIntervalBytes(flowFileEvent));
@@ -312,7 +313,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_COUNT, getNextIntervalPercentageUseCount(connection, flowFileEvent));
         predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_BYTES, getNextIntervalPercentageUseBytes(connection, flowFileEvent));
         predictions.put(INTERVAL_TIME_MILLIS, getIntervalTimeMillis());
-        long endTs = System.currentTimeMillis();
+        final long endTs = System.currentTimeMillis();
         LOG.debug("Prediction Calculations for connectionID {}: {}", connectionIdentifier, endTs - startTs);
         predictions.forEach((key, value) -> {
             LOG.trace("Prediction model for connection id {}: {}={} ", connectionIdentifier, key, value);
@@ -343,7 +344,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @param timeMillis time in milliseconds
      * @return valid model boolean
      */
-    private Long convertTimePrediction(Double prediction, Long timeMillis) {
+    private Long convertTimePrediction(final Double prediction, final Long timeMillis) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction) || prediction < timeMillis) {
             LOG.debug("Time prediction value is invalid: {}. Returning -1.", prediction);
             return -1L;
@@ -357,7 +358,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @param prediction prediction value
      * @return prediction prediction value converted into valid value for consumption
      */
-    private Long convertCountPrediction(Double prediction) {
+    private Long convertCountPrediction(final Double prediction) {
         if (Double.isNaN(prediction) || Double.isInfinite(prediction)) {
             LOG.debug("Count prediction value is invalid: {}. Returning -1.", prediction);
             return -1L;
@@ -372,9 +373,9 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return valid model boolean
      */
 
-    private boolean validModel(StatusAnalyticsModel model) {
+    private boolean validModel(final StatusAnalyticsModel model) {
 
-        Double score = getScore(model);
+        final Double score = getScore(model);
 
         if (score == null || (score < scoreThreshold)) {
             if (supportOnlineLearning && model.supportsOnlineLearning()) {
@@ -392,7 +393,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return scoreValue
      */
 
-    private Double getScore(StatusAnalyticsModel model) {
+    private Double getScore(final StatusAnalyticsModel model) {
         if (model != null && model.getScores() != null) {
             return model.getScores().get(scoreName);
         } else {

@@ -41,8 +41,8 @@ public class ClassLoaderUtils {
 
     static final Logger LOGGER = LoggerFactory.getLogger(ClassLoaderUtils.class);
 
-    public static ClassLoader getCustomClassLoader(String modulePath, ClassLoader parentClassLoader, FilenameFilter filenameFilter) throws MalformedURLException {
-        URL[] classpaths = getURLsForClasspath(modulePath, filenameFilter, false);
+    public static ClassLoader getCustomClassLoader(final String modulePath, final ClassLoader parentClassLoader, final FilenameFilter filenameFilter) throws MalformedURLException {
+        final URL[] classpaths = getURLsForClasspath(modulePath, filenameFilter, false);
         return createModuleClassLoader(classpaths, parentClassLoader);
     }
 
@@ -57,7 +57,7 @@ public class ClassLoaderUtils {
      * resolved from processing modulePath
      * @throws MalformedURLException if a module path does not exist
      */
-    public static URL[] getURLsForClasspath(String modulePath, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
+    public static URL[] getURLsForClasspath(final String modulePath, final FilenameFilter filenameFilter, final boolean suppressExceptions) throws MalformedURLException {
         return getURLsForClasspath(modulePath == null ? Collections.emptySet() : Collections.singleton(modulePath), filenameFilter, suppressExceptions);
     }
 
@@ -74,9 +74,9 @@ public class ClassLoaderUtils {
      * resolved from processing modulePaths
      * @throws MalformedURLException if a module path does not exist
      */
-    public static URL[] getURLsForClasspath(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
+    public static URL[] getURLsForClasspath(final Set<String> modulePaths, final FilenameFilter filenameFilter, final boolean suppressExceptions) throws MalformedURLException {
         // use LinkedHashSet to maintain the ordering that the incoming paths are processed
-        Set<String> modules = new LinkedHashSet<>();
+        final Set<String> modules = new LinkedHashSet<>();
         if (modulePaths != null) {
             modulePaths.stream()
                     .flatMap(path -> Arrays.stream(path.split(",")))
@@ -91,30 +91,30 @@ public class ClassLoaderUtils {
         return value != null && !value.isBlank();
     }
 
-    protected static URL[] toURLs(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
-        List<URL> additionalClasspath = new LinkedList<>();
+    protected static URL[] toURLs(final Set<String> modulePaths, final FilenameFilter filenameFilter, final boolean suppressExceptions) throws MalformedURLException {
+        final List<URL> additionalClasspath = new LinkedList<>();
         if (modulePaths != null) {
-            for (String modulePathString : modulePaths) {
+            for (final String modulePathString : modulePaths) {
                 // If the path is already a URL, just add it (but don't check if it exists, too expensive and subject to network availability)
                 boolean isUrl = true;
                 try {
                     additionalClasspath.add(URI.create(modulePathString).toURL());
-                } catch (IllegalArgumentException | MalformedURLException e) {
+                } catch (final IllegalArgumentException | MalformedURLException e) {
                     isUrl = false;
                 }
                 if (!isUrl) {
                     try {
-                        File modulePath = new File(modulePathString);
+                        final File modulePath = new File(modulePathString);
 
                         if (modulePath.exists()) {
 
                             additionalClasspath.add(modulePath.toURI().toURL());
 
                             if (modulePath.isDirectory()) {
-                                File[] files = modulePath.listFiles(filenameFilter);
+                                final File[] files = modulePath.listFiles(filenameFilter);
 
                                 if (files != null) {
-                                    for (File classpathResource : files) {
+                                    for (final File classpathResource : files) {
                                         if (classpathResource.isDirectory()) {
                                             LOGGER.warn("Recursive directories are not supported, skipping {}", classpathResource.getAbsolutePath());
                                         } else {
@@ -126,7 +126,7 @@ public class ClassLoaderUtils {
                         } else {
                             throw new MalformedURLException("Path specified does not exist");
                         }
-                    } catch (MalformedURLException e) {
+                    } catch (final MalformedURLException e) {
                         if (!suppressExceptions) {
                             throw e;
                         }
@@ -154,7 +154,7 @@ public class ClassLoaderUtils {
         return HexFormat.of().formatHex(MessageDigestUtils.getDigest(formattedUrlsBinary));
     }
 
-    private static long getLastModified(String url) {
+    private static long getLastModified(final String url) {
         long lastModified = 0;
         try {
             final URI uri = new URI(url);
@@ -162,13 +162,13 @@ public class ClassLoaderUtils {
                 final File file = new File(uri);
                 lastModified = file.lastModified();
             }
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             LOGGER.error("Error getting last modified date for {}", url);
         }
         return lastModified;
     }
 
-    protected static ClassLoader createModuleClassLoader(URL[] modules, ClassLoader parentClassLoader) {
+    protected static ClassLoader createModuleClassLoader(final URL[] modules, final ClassLoader parentClassLoader) {
         return new URLClassLoader(modules, parentClassLoader);
     }
 

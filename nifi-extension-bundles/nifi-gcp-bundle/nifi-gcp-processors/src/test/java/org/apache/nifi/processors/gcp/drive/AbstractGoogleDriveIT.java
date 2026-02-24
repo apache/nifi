@@ -74,7 +74,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         testSubject = createTestSubject();
         testRunner = createTestRunner();
 
-        NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        final NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
 
         driveService = new Drive.Builder(
                 httpTransport,
@@ -87,7 +87,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
                 .setApplicationName(this.getClass().getSimpleName())
                 .build();
 
-        File mainFolder = createFolder("main", SHARED_FOLDER_ID);
+        final File mainFolder = createFolder("main", SHARED_FOLDER_ID);
         mainFolderId = mainFolder.getId();
     }
 
@@ -102,9 +102,9 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
     }
 
     protected TestRunner createTestRunner() throws Exception {
-        TestRunner testRunner = TestRunners.newTestRunner(testSubject);
+        final TestRunner testRunner = TestRunners.newTestRunner(testSubject);
 
-        GCPCredentialsControllerService gcpCredentialsControllerService = new GCPCredentialsControllerService();
+        final GCPCredentialsControllerService gcpCredentialsControllerService = new GCPCredentialsControllerService();
         testRunner.addControllerService("gcp_credentials_provider_service", gcpCredentialsControllerService);
 
         testRunner.setProperty(gcpCredentialsControllerService, CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE);
@@ -115,8 +115,8 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         return testRunner;
     }
 
-    protected File createFolder(String folderName, String... parentFolderIds) throws IOException {
-        File fileMetaData = new File();
+    protected File createFolder(final String folderName, final String... parentFolderIds) throws IOException {
+        final File fileMetaData = new File();
         fileMetaData.setName(folderName);
 
         if (parentFolderIds != null) {
@@ -125,33 +125,33 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         fileMetaData.setMimeType("application/vnd.google-apps.folder");
 
-        Drive.Files.Create create = driveService.files() //NOPMD
+        final Drive.Files.Create create = driveService.files() //NOPMD
                 .create(fileMetaData)
                 .setSupportsAllDrives(true)
                 .setFields("id");
 
-        File file = create.execute();
+        final File file = create.execute();
 
         return file;
     }
 
-    protected File createFileWithDefaultContent(String name, String... folderIds) throws IOException {
+    protected File createFileWithDefaultContent(final String name, final String... folderIds) throws IOException {
         return createFile(name, DEFAULT_FILE_CONTENT, folderIds);
     }
 
-    protected File createFile(String name, String fileContent, String... folderIds) throws IOException {
-        File fileMetadata = new File();
+    protected File createFile(final String name, final String fileContent, final String... folderIds) throws IOException {
+        final File fileMetadata = new File();
         fileMetadata.setName(name);
         fileMetadata.setParents(Arrays.asList(folderIds));
 
-        AbstractInputStreamContent content = new ByteArrayContent("text/plain", fileContent.getBytes(StandardCharsets.UTF_8));
+        final AbstractInputStreamContent content = new ByteArrayContent("text/plain", fileContent.getBytes(StandardCharsets.UTF_8));
 
-        Drive.Files.Create create = driveService.files() //NOPMD
+        final Drive.Files.Create create = driveService.files() //NOPMD
                 .create(fileMetadata, content)
                 .setSupportsAllDrives(true)
                 .setFields("id, name, modifiedTime, createdTime");
 
-        File file = create.execute();
+        final File file = create.execute();
 
         return file;
     }

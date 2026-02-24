@@ -38,7 +38,7 @@ public class ConnectionStatusEntity extends Entity implements ReadablePermission
         return connectionStatus;
     }
 
-    public void setConnectionStatus(ConnectionStatusDTO connectionStatus) {
+    public void setConnectionStatus(final ConnectionStatusDTO connectionStatus) {
         this.connectionStatus = connectionStatus;
     }
 
@@ -48,7 +48,7 @@ public class ConnectionStatusEntity extends Entity implements ReadablePermission
     }
 
     @Override
-    public void setCanRead(Boolean canRead) {
+    public void setCanRead(final Boolean canRead) {
         this.canRead = canRead;
     }
 }

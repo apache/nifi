@@ -50,7 +50,7 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
     public CorePropertiesSchema() {
     }
 
-    public CorePropertiesSchema(Map map) {
+    public CorePropertiesSchema(final Map map) {
         flowControllerGracefulShutdownPeriod = getOptionalKeyAsType(map, FLOW_CONTROLLER_SHUTDOWN_PERIOD_KEY, String.class,
                 CORE_PROPS_KEY, DEFAULT_FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD);
         flowServiceWriteDelayInterval = getOptionalKeyAsType(map, FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY, String.class,
@@ -64,7 +64,7 @@ public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(FLOW_CONTROLLER_SHUTDOWN_PERIOD_KEY, flowControllerGracefulShutdownPeriod);
         result.put(FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY, flowServiceWriteDelayInterval);
         result.put(ADMINISTRATIVE_YIELD_DURATION_KEY, administrativeYieldDuration);

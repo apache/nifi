@@ -25,7 +25,7 @@ public class BundleMatcher<T extends ComponentNode> implements AttributeMatcher<
     private static final String BUNDLE = "Bundle";
 
     @Override
-    public void match(T component, SearchQuery query, List<String> matches) {
+    public void match(final T component, final SearchQuery query, final List<String> matches) {
         final String searchTerm = query.getTerm();
         AttributeMatcher.addIfMatching(searchTerm, component.getBundleCoordinate().getId(), BUNDLE, matches);
     }

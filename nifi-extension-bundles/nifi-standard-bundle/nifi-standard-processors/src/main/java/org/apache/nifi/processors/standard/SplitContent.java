@@ -218,7 +218,7 @@ public class SplitContent extends AbstractProcessor {
                     }
 
                     bytesRead++;
-                    boolean matched = buffer.addAndCompare((byte) (nextByte & 0xFF));
+                    final boolean matched = buffer.addAndCompare((byte) (nextByte & 0xFF));
                     if (matched) {
                         long splitLength;
 
@@ -245,16 +245,16 @@ public class SplitContent extends AbstractProcessor {
         final List<FlowFile> splitList = new ArrayList<>();
 
         if (splits.isEmpty()) {
-            FlowFile clone = session.clone(flowFile);
+            final FlowFile clone = session.clone(flowFile);
             // finishFragmentAttributes performs .clear() so List must be mutable
             splitList.add(clone);
             logger.info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", flowFile, clone);
         } else {
             for (final Tuple<Long, Long> tuple : splits) {
-                long offset = tuple.getKey();
-                long size = tuple.getValue();
+                final long offset = tuple.getKey();
+                final long size = tuple.getValue();
                 if (size > 0) {
-                    FlowFile split = session.clone(flowFile, offset, size);
+                    final FlowFile split = session.clone(flowFile, offset, size);
                     splitList.add(split);
                 }
 
@@ -269,7 +269,7 @@ public class SplitContent extends AbstractProcessor {
                 finalSplitOffset += byteSequence.length;
             }
             if (finalSplitOffset > -1L && finalSplitOffset < flowFile.getSize()) {
-                FlowFile finalSplit = session.clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
+                final FlowFile finalSplit = session.clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
                 splitList.add(finalSplit);
             }
         }
@@ -301,13 +301,13 @@ public class SplitContent extends AbstractProcessor {
         final List<FlowFile> newList = new ArrayList<>(splits);
         splits.clear();
         for (int i = 1; i <= newList.size(); i++) {
-            FlowFile ff = newList.get(i - 1);
+            final FlowFile ff = newList.get(i - 1);
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(FRAGMENT_ID, fragmentId);
             attributes.put(FRAGMENT_INDEX, String.valueOf(i));
             attributes.put(FRAGMENT_COUNT, String.valueOf(newList.size()));
             attributes.put(SEGMENT_ORIGINAL_FILENAME, originalFilename);
-            FlowFile newFF = session.putAllAttributes(ff, attributes);
+            final FlowFile newFF = session.putAllAttributes(ff, attributes);
             splits.add(newFF);
         }
         return fragmentId;

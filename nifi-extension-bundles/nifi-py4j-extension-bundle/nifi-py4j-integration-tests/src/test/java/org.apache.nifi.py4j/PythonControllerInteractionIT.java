@@ -845,7 +845,7 @@ public class PythonControllerInteractionIT {
         runner.run();
 
         runner.assertTransferCount("success", 1);
-        MockFlowFile textOutput = runner.getFlowFilesForRelationship("success").getFirst();
+        final MockFlowFile textOutput = runner.getFlowFilesForRelationship("success").getFirst();
         textOutput.assertContentEquals("NIFI");
         textOutput.assertAttributeEquals("output.mode", "text");
 
@@ -857,19 +857,19 @@ public class PythonControllerInteractionIT {
         runner.run();
 
         runner.assertTransferCount("success", 1);
-        MockFlowFile jsonOutput = runner.getFlowFilesForRelationship("success").getFirst();
+        final MockFlowFile jsonOutput = runner.getFlowFilesForRelationship("success").getFirst();
         jsonOutput.assertContentEquals("{\"msg\": \"payload\"}");
         jsonOutput.assertAttributeEquals("output.mode", "json");
     }
 
-    private TestRunner createStateManagerTesterProcessor(String methodToTest) {
+    private TestRunner createStateManagerTesterProcessor(final String methodToTest) {
         final TestRunner runner = createProcessor("TestStateManager");
         runner.setProperty("StateManager Method To Test", methodToTest);
         waitForValid(runner);
         return runner;
     }
 
-    private MockStateManager initializeStateManager(TestRunner runner) throws IOException {
+    private MockStateManager initializeStateManager(final TestRunner runner) throws IOException {
         final MockStateManager stateManager = runner.getStateManager();
         final Map<String, String> initialState = Map.of("state_key_1", "state_value_1");
         stateManager.setState(initialState, Scope.CLUSTER);

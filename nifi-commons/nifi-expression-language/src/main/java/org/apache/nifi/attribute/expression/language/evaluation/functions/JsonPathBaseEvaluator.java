@@ -62,7 +62,7 @@ public abstract class JsonPathBaseEvaluator extends StringEvaluator {
         }
     }
 
-    protected DocumentContext getDocumentContext(EvaluationContext context) {
+    protected DocumentContext getDocumentContext(final EvaluationContext context) {
         final String subjectValue = subject.evaluate(context).getValue();
         if (subjectValue == null || subjectValue.length() == 0) {
             throw new AttributeExpressionLanguageException("Subject is empty");
@@ -70,13 +70,13 @@ public abstract class JsonPathBaseEvaluator extends StringEvaluator {
         DocumentContext documentContext = null;
         try {
             documentContext = validateAndEstablishJsonContext(subjectValue);
-        } catch (InvalidJsonException e) {
+        } catch (final InvalidJsonException e) {
             throw new AttributeExpressionLanguageException("Subject contains invalid JSON: " + subjectValue, e);
         }
         return documentContext;
     }
 
-    protected JsonPath getJsonPath(EvaluationContext context) {
+    protected JsonPath getJsonPath(final EvaluationContext context) {
         final JsonPath compiledJsonPath;
         if (precompiledJsonPathExp != null) {
             compiledJsonPath = precompiledJsonPathExp;
@@ -110,10 +110,10 @@ public abstract class JsonPathBaseEvaluator extends StringEvaluator {
         }
     }
 
-    static JsonPath compileJsonPathExpression(String exp) {
+    static JsonPath compileJsonPathExpression(final String exp) {
         try {
             return JsonPath.compile(exp);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new AttributeExpressionLanguageException("Invalid JSON Path expression: " + exp, e);
         }
     }

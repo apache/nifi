@@ -54,7 +54,7 @@ public class HttpInput implements CommunicationsInput {
         } while (bytesRead > 0);
     }
 
-    public void setInputStream(InputStream inputStream) {
+    public void setInputStream(final InputStream inputStream) {
         interruptableIn = new InterruptableInputStream(inputStream);
         this.countingIn = new ByteCountingInputStream(interruptableIn);
     }

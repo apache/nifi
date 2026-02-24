@@ -21,11 +21,11 @@ package org.apache.nifi.registry.hook;
  */
 public class EventHookException extends RuntimeException {
 
-    public EventHookException(String message) {
+    public EventHookException(final String message) {
         super(message);
     }
 
-    public EventHookException(String message, Throwable cause) {
+    public EventHookException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

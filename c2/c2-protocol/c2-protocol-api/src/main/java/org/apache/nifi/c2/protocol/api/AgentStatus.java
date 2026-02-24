@@ -39,7 +39,7 @@ public class AgentStatus implements Serializable {
         return uptime;
     }
 
-    public void setUptime(Long uptime) {
+    public void setUptime(final Long uptime) {
         this.uptime = uptime;
     }
 
@@ -48,7 +48,7 @@ public class AgentStatus implements Serializable {
         return repositories;
     }
 
-    public void setRepositories(AgentRepositories repositories) {
+    public void setRepositories(final AgentRepositories repositories) {
         this.repositories = repositories;
     }
 
@@ -57,7 +57,7 @@ public class AgentStatus implements Serializable {
         return components;
     }
 
-    public void setComponents(Map<String, ComponentStatus> components) {
+    public void setComponents(final Map<String, ComponentStatus> components) {
         this.components = components;
     }
 
@@ -66,7 +66,7 @@ public class AgentStatus implements Serializable {
         return resourceConsumption;
     }
 
-    public void setResourceConsumption(AgentResourceConsumption resourceConsumption) {
+    public void setResourceConsumption(final AgentResourceConsumption resourceConsumption) {
         this.resourceConsumption = resourceConsumption;
     }
 }

@@ -36,7 +36,7 @@ public class ProvenanceEventEntity extends Entity {
         return provenanceEvent;
     }
 
-    public void setProvenanceEvent(ProvenanceEventDTO provenanceEvent) {
+    public void setProvenanceEvent(final ProvenanceEventDTO provenanceEvent) {
         this.provenanceEvent = provenanceEvent;
     }
 

@@ -70,7 +70,7 @@ public class TestUpdateRecord {
     @BeforeEach
     public void setup() throws InitializationException {
         readerService = new MockRecordParser();
-        MockRecordWriter writerService = new MockRecordWriter("header", false);
+        final MockRecordWriter writerService = new MockRecordWriter("header", false);
 
         runner = TestRunners.newTestRunner(UpdateRecord.class);
         runner.addControllerService("reader", readerService);
@@ -730,7 +730,7 @@ public class TestUpdateRecord {
         runner.setProperty("/numbers[*]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        String content = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().getContent();
+        final String content = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().getContent();
         assertTrue(content.contains("\"numbers\" : null"));
         runner.removeProperty("/numbers[*]");
 
@@ -883,7 +883,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]/city");
     }
 
-    private void assertCountMatches(String content, String match, int expectedCount) {
+    private void assertCountMatches(final String content, final String match, final int expectedCount) {
         final int actualCount = StringUtils.countMatches(content, match);
 
         assertEquals(expectedCount, actualCount);

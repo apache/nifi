@@ -56,7 +56,7 @@ public class ListingRequestDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -69,7 +69,7 @@ public class ListingRequestDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -84,7 +84,7 @@ public class ListingRequestDTO {
         return submissionTime;
     }
 
-    public void setSubmissionTime(Date submissionTime) {
+    public void setSubmissionTime(final Date submissionTime) {
         this.submissionTime = submissionTime;
     }
 
@@ -99,7 +99,7 @@ public class ListingRequestDTO {
         return lastUpdated;
     }
 
-    public void setLastUpdated(Date lastUpdated) {
+    public void setLastUpdated(final Date lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
 
@@ -112,7 +112,7 @@ public class ListingRequestDTO {
         return percentCompleted;
     }
 
-    public void setPercentCompleted(Integer percentCompleted) {
+    public void setPercentCompleted(final Integer percentCompleted) {
         this.percentCompleted = percentCompleted;
     }
 
@@ -125,7 +125,7 @@ public class ListingRequestDTO {
         return finished;
     }
 
-    public void setFinished(Boolean finished) {
+    public void setFinished(final Boolean finished) {
         this.finished = finished;
     }
 
@@ -138,7 +138,7 @@ public class ListingRequestDTO {
         return failureReason;
     }
 
-    public void setFailureReason(String failureReason) {
+    public void setFailureReason(final String failureReason) {
         this.failureReason = failureReason;
     }
 
@@ -151,7 +151,7 @@ public class ListingRequestDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 
@@ -164,7 +164,7 @@ public class ListingRequestDTO {
         return flowFileSummaries;
     }
 
-    public void setFlowFileSummaries(List<FlowFileSummaryDTO> flowFileSummaries) {
+    public void setFlowFileSummaries(final List<FlowFileSummaryDTO> flowFileSummaries) {
         this.flowFileSummaries = flowFileSummaries;
     }
 
@@ -176,7 +176,7 @@ public class ListingRequestDTO {
         return maxResults;
     }
 
-    public void setMaxResults(Integer maxResults) {
+    public void setMaxResults(final Integer maxResults) {
         this.maxResults = maxResults;
     }
 
@@ -188,7 +188,7 @@ public class ListingRequestDTO {
         return queueSize;
     }
 
-    public void setQueueSize(QueueSizeDTO queueSize) {
+    public void setQueueSize(final QueueSizeDTO queueSize) {
         this.queueSize = queueSize;
     }
 
@@ -200,7 +200,7 @@ public class ListingRequestDTO {
         return isSourceRunning;
     }
 
-    public void setSourceRunning(Boolean sourceRunning) {
+    public void setSourceRunning(final Boolean sourceRunning) {
         isSourceRunning = sourceRunning;
     }
 
@@ -212,7 +212,7 @@ public class ListingRequestDTO {
         return isDestinationRunning;
     }
 
-    public void setDestinationRunning(Boolean destinationRunning) {
+    public void setDestinationRunning(final Boolean destinationRunning) {
         isDestinationRunning = destinationRunning;
     }
 }

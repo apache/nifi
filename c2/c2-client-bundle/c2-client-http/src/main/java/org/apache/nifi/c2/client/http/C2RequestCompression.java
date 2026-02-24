@@ -30,20 +30,20 @@ import java.util.stream.Stream;
 public enum C2RequestCompression {
     NONE("none") {
         @Override
-        public Request compress(Request request) {
+        public Request compress(final Request request) {
             return request;
         }
     },
     GZIP("gzip") {
         @Override
-        public Request compress(Request request) {
+        public Request compress(final Request request) {
             return request.newBuilder()
                 .header(CONTENT_ENCODING_HEADER, GZIP_ENCODING)
                 .method(request.method(), toGzipRequestBody(request.body()))
                 .build();
         }
 
-        private RequestBody toGzipRequestBody(RequestBody requestBody) {
+        private RequestBody toGzipRequestBody(final RequestBody requestBody) {
             return new RequestBody() {
                 @Override
                 public MediaType contentType() {
@@ -56,7 +56,7 @@ public enum C2RequestCompression {
                 }
 
                 @Override
-                public void writeTo(BufferedSink sink) throws IOException {
+                public void writeTo(final BufferedSink sink) throws IOException {
                     try (BufferedSink bufferedGzipSink = Okio.buffer(new GzipSink(sink))) {
                         requestBody.writeTo(bufferedGzipSink);
                     }
@@ -70,11 +70,11 @@ public enum C2RequestCompression {
 
     private final String compressionType;
 
-    C2RequestCompression(String compressionType) {
+    C2RequestCompression(final String compressionType) {
         this.compressionType = compressionType;
     }
 
-    public static C2RequestCompression forType(String compressionType) {
+    public static C2RequestCompression forType(final String compressionType) {
         return Stream.of(values())
             .filter(c2RequestCompression -> c2RequestCompression.compressionType.equalsIgnoreCase(compressionType))
             .findAny()

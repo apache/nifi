@@ -260,7 +260,7 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
         return false;
     }
 
-    default long getRunDuration(TimeUnit timeUnit) {
+    default long getRunDuration(final TimeUnit timeUnit) {
         return 0L;
     }
 

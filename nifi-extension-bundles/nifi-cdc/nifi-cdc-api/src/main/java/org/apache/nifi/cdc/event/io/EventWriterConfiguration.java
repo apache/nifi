@@ -33,7 +33,7 @@ public class EventWriterConfiguration {
     private OutputStream flowFileOutputStream;
     private JsonGenerator jsonGenerator;
 
-    public EventWriterConfiguration(FlowFileEventWriteStrategy flowFileEventWriteStrategy, int numberOfEventsPerFlowFile) {
+    public EventWriterConfiguration(final FlowFileEventWriteStrategy flowFileEventWriteStrategy, final int numberOfEventsPerFlowFile) {
         this.flowFileEventWriteStrategy = flowFileEventWriteStrategy;
         this.numberOfEventsPerFlowFile = numberOfEventsPerFlowFile;
     }
@@ -50,7 +50,7 @@ public class EventWriterConfiguration {
         this.numberOfEventsWritten++;
     }
 
-    public void startNewFlowFile(FlowFile flowFile, OutputStream flowFileOutputStream, JsonGenerator jsonGenerator) {
+    public void startNewFlowFile(final FlowFile flowFile, final OutputStream flowFileOutputStream, final JsonGenerator jsonGenerator) {
         this.currentFlowFile = flowFile;
         this.flowFileOutputStream = flowFileOutputStream;
         this.jsonGenerator = jsonGenerator;

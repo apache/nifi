@@ -56,7 +56,7 @@ public enum DefaultDataSourceValues {
 
     private final String value;
 
-    DefaultDataSourceValues(String value) {
+    DefaultDataSourceValues(final String value) {
         this.value = value;
     }
 

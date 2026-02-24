@@ -100,8 +100,8 @@ public class AccessPolicyResource extends ApplicationResource {
             @Context final HttpServletRequest httpServletRequest,
             @Parameter(description = "The access policy configuration details.", required = true) final AccessPolicy requestAccessPolicy) {
 
-        AccessPolicy createdPolicy = serviceFacade.createAccessPolicy(requestAccessPolicy);
-        String locationUri = generateAccessPolicyUri(createdPolicy);
+        final AccessPolicy createdPolicy = serviceFacade.createAccessPolicy(requestAccessPolicy);
+        final String locationUri = generateAccessPolicyUri(createdPolicy);
         return generateCreatedResponse(URI.create(locationUri), createdPolicy).build();
     }
 

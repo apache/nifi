@@ -254,7 +254,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         final ConfigMap configMap = configMapBuilder.build();
 
         try {
-            Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
+            final Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
             final ConfigMap newConfigMap;
             if (stateVersion.isPresent()) {
                 newConfigMap = configMapResource.update();

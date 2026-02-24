@@ -61,15 +61,15 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupShouldThrowExceptionWhenQueriedServiceMappedInPropertiesButWasntCreated() {
-        String mappedCreatedServiceID = "mappedCreatedServiceID";
-        String mappedNotCreatedServiceID = "mappedNotCreatedServiceID";
+        final String mappedCreatedServiceID = "mappedCreatedServiceID";
+        final String mappedNotCreatedServiceID = "mappedNotCreatedServiceID";
 
-        ControllerService mappedCreatedService = mock(SERVICE_TYPE);
+        final ControllerService mappedCreatedService = mock(SERVICE_TYPE);
 
-        MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
+        final MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
-        String dynamicProperty1 = "property1";
-        String dynamicProperty2 = "property2";
+        final String dynamicProperty1 = "property1";
+        final String dynamicProperty2 = "property2";
 
         mapService(dynamicProperty1, mappedCreatedServiceID);
         mapService(dynamicProperty2, mappedNotCreatedServiceID);
@@ -79,101 +79,101 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testLookupShouldThrowExceptionWhenAttributeMapIsNull() {
-        String mappedCreatedServiceID = "mappedCreatedServiceID";
-        ControllerService mappedCreatedService = mock(SERVICE_TYPE);
-        MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
+        final String mappedCreatedServiceID = "mappedCreatedServiceID";
+        final ControllerService mappedCreatedService = mock(SERVICE_TYPE);
+        final MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
 
-        ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(null));
+        final ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(null));
         assertEquals("Attributes map is null", e.getMessage());
     }
 
     @Test
     public void testLookupShouldThrowExceptionWhenAttributeMapHasNoLookupAttribute() {
-        String mappedCreatedServiceID = "mappedCreatedServiceID";
-        ControllerService mappedCreatedService = mock(SERVICE_TYPE);
-        MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
+        final String mappedCreatedServiceID = "mappedCreatedServiceID";
+        final ControllerService mappedCreatedService = mock(SERVICE_TYPE);
+        final MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
 
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
-        ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(new HashMap<>()));
+        final ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(new HashMap<>()));
         assertEquals("Attributes must contain an attribute name '" + LOOKUP_ATTRIBUTE + "'", e.getMessage());
     }
 
     @Test
     public void testLookupShouldThrowExceptionWhenQueriedServiceWasCreatedButWasntMappedInProperties() {
-        String mappedCreatedServiceID = "mappedCreatedServiceID";
-        String notMappedCreatedServiceID = "notMappedCreatedServiceID";
+        final String mappedCreatedServiceID = "mappedCreatedServiceID";
+        final String notMappedCreatedServiceID = "notMappedCreatedServiceID";
 
-        ControllerService mappedCreatedService = mock(SERVICE_TYPE);
-        ControllerService notMappedCreatedService = mock(SERVICE_TYPE);
+        final ControllerService mappedCreatedService = mock(SERVICE_TYPE);
+        final ControllerService notMappedCreatedService = mock(SERVICE_TYPE);
 
-        MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
+        final MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService, mappedCreatedServiceID);
         serviceLookup.addControllerService(notMappedCreatedService, notMappedCreatedServiceID);
 
-        String dynamicProperty1 = "property1";
-        String dynamicProperty2 = "property2";
+        final String dynamicProperty1 = "property1";
+        final String dynamicProperty2 = "property2";
 
         mapService(dynamicProperty1, mappedCreatedServiceID);
 
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
-        ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(createAttributes(dynamicProperty2)));
+        final ProcessException e = assertThrows(ProcessException.class, () -> testSubject.lookupService(createAttributes(dynamicProperty2)));
         assertEquals("No ControllerService found for lookupAttribute", e.getMessage());
     }
 
     @Test
     public void testLookupShouldReturnQueriedService() {
-        String mappedCreatedServiceID1 = "mappedCreatedServiceID1";
-        String mappedCreatedServiceID2 = "mappedCreatedServiceID2";
+        final String mappedCreatedServiceID1 = "mappedCreatedServiceID1";
+        final String mappedCreatedServiceID2 = "mappedCreatedServiceID2";
 
-        ControllerService mappedCreatedService1 = mock(SERVICE_TYPE);
-        ControllerService mappedCreatedService2 = mock(SERVICE_TYPE);
+        final ControllerService mappedCreatedService1 = mock(SERVICE_TYPE);
+        final ControllerService mappedCreatedService2 = mock(SERVICE_TYPE);
 
-        MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService1, mappedCreatedServiceID1);
+        final MockControllerServiceInitializationContext serviceLookup = new MockControllerServiceInitializationContext(mappedCreatedService1, mappedCreatedServiceID1);
         serviceLookup.addControllerService(mappedCreatedService2, mappedCreatedServiceID2);
 
-        String dynamicProperty1 = "property1";
-        String dynamicProperty2 = "property2";
+        final String dynamicProperty1 = "property1";
+        final String dynamicProperty2 = "property2";
 
         mapService(dynamicProperty1, mappedCreatedServiceID1);
         mapService(dynamicProperty2, mappedCreatedServiceID2);
 
         testSubject.onEnabled(new MockConfigurationContext(properties, serviceLookup, null));
-        ControllerService actual = testSubject.lookupService(createAttributes(dynamicProperty2));
+        final ControllerService actual = testSubject.lookupService(createAttributes(dynamicProperty2));
 
         assertEquals(mappedCreatedService2, actual);
     }
 
     @Test
     public void testCustomValidateShouldReturnErrorWhenNoServiceIsDefined() {
-        ValidationContext context = new MockValidationContext(new MockProcessContext(testSubject));
+        final ValidationContext context = new MockValidationContext(new MockProcessContext(testSubject));
 
-        Collection<ValidationResult> results = testSubject.customValidate(context);
+        final Collection<ValidationResult> results = testSubject.customValidate(context);
 
         assertExplanationFound(results, "at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties");
     }
 
     @Test
     public void testCustomValidateShouldReturnErrorWhenSelfAndOtherServiceIsMapped() {
-        MockProcessContext processContext = new MockProcessContext(testSubject);
+        final MockProcessContext processContext = new MockProcessContext(testSubject);
         processContext.setProperty("property1", "service1");
         processContext.setProperty("property2", TEST_SUBJECT_IDENTIFIER);
 
-        ValidationContext context = new MockValidationContext(processContext);
+        final ValidationContext context = new MockValidationContext(processContext);
 
-        Collection<ValidationResult> results = testSubject.customValidate(context);
+        final Collection<ValidationResult> results = testSubject.customValidate(context);
 
         assertExplanationFound(results, "the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup");
     }
 
     @Test
     public void testCustomValidateShouldReturnErrorsWhenOnlySelfIsMapped() {
-        MockProcessContext processContext = new MockProcessContext(testSubject);
+        final MockProcessContext processContext = new MockProcessContext(testSubject);
         processContext.setProperty("property1", TEST_SUBJECT_IDENTIFIER);
 
-        ValidationContext context = new MockValidationContext(processContext);
+        final ValidationContext context = new MockValidationContext(processContext);
 
-        Collection<ValidationResult> results = testSubject.customValidate(context);
+        final Collection<ValidationResult> results = testSubject.customValidate(context);
 
         assertExplanationFound(results, "the current service cannot be registered as a " + SERVICE_TYPE.getSimpleName() + " to lookup");
         assertExplanationFound(results, "at least one " + SERVICE_TYPE.getSimpleName() + " must be defined via dynamic properties");
@@ -181,29 +181,29 @@ public class TestAbstractSingleAttributeBasedControllerServiceLookup {
 
     @Test
     public void testCustomValidateShouldReturnNoErrorWhenAServiceIsDefined() {
-        MockProcessContext processContext = new MockProcessContext(testSubject);
+        final MockProcessContext processContext = new MockProcessContext(testSubject);
         processContext.setProperty("property1", "service1");
 
-        ValidationContext context = new MockValidationContext(processContext);
+        final ValidationContext context = new MockValidationContext(processContext);
 
-        Collection<ValidationResult> results = testSubject.customValidate(context);
+        final Collection<ValidationResult> results = testSubject.customValidate(context);
 
         assertTrue(results.isEmpty());
     }
 
     @Test
     public void testGetServiceType() {
-        Class<ControllerService> actual = testSubject.getServiceType();
+        final Class<ControllerService> actual = testSubject.getServiceType();
         assertEquals(SERVICE_TYPE, actual);
     }
 
     @Test
     public void testLookupAttribute() {
-        String actual = testSubject.getLookupAttribute();
+        final String actual = testSubject.getLookupAttribute();
         assertEquals(LOOKUP_ATTRIBUTE, actual);
     }
 
-    private void mapService(String dynamicProperty, String registeredService) {
+    private void mapService(final String dynamicProperty, final String registeredService) {
         properties.put(
                 new PropertyDescriptor.Builder()
                         .name(dynamicProperty)

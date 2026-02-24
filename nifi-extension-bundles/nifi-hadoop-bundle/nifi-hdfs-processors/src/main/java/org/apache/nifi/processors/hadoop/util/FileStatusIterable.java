@@ -75,7 +75,7 @@ public class FileStatusIterable implements Iterable<FileStatus> {
             try {
                 while (remoteIterator.hasNext() || !dirPaths.isEmpty()) {
                     if (remoteIterator.hasNext()) {
-                        FileStatus fs = remoteIterator.next();
+                        final FileStatus fs = remoteIterator.next();
                         if (fs.isDirectory()) {
                             if (recursive) {
                                 dirPaths.push(fs.getPath());
@@ -90,7 +90,7 @@ public class FileStatusIterable implements Iterable<FileStatus> {
                     }
                 }
                 return false;
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException(IO_ERROR_MESSAGE, e);
             }
         }
@@ -111,9 +111,9 @@ public class FileStatusIterable implements Iterable<FileStatus> {
         private RemoteIterator<FileStatus> getRemoteIterator(final Path currentPath) {
             try {
                 return userGroupInformation.doAs((PrivilegedExceptionAction<RemoteIterator<FileStatus>>) () -> fileSystem.listStatusIterator(currentPath));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new ProcessException(IO_ERROR_MESSAGE, e);
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new ProcessException(THREAD_INTERRUPT_ERROR_MESSAGE, e);
             }

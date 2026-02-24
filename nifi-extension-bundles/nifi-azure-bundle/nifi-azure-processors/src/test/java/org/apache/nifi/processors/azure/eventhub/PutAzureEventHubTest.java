@@ -102,7 +102,7 @@ public class PutAzureEventHubTest {
 
     @Test
     void testMigration() {
-        TestRunner testRunner = TestRunners.newTestRunner(PutAzureEventHub.class);
+        final TestRunner testRunner = TestRunners.newTestRunner(PutAzureEventHub.class);
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         final Map<String, String> expected = Map.of(
                 "partitioning-key-attribute-name", PutAzureEventHub.PARTITIONING_KEY_ATTRIBUTE_NAME.getName(),

@@ -73,7 +73,7 @@ public interface RecordSetWriterFactory extends ControllerService {
      * @return a RecordSetWriter that can write record sets to an OutputStream
      * @throws IOException if unable to read from the given InputStream
      */
-    default RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, FlowFile flowFile) throws SchemaNotFoundException, IOException {
+    default RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema schema, final OutputStream out, final FlowFile flowFile) throws SchemaNotFoundException, IOException {
         return createWriter(logger, schema, out, flowFile.getAttributes());
     }
 

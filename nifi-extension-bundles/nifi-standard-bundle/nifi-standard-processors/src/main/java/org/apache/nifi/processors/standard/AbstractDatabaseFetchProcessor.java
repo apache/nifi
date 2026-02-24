@@ -218,7 +218,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     protected Map<String, String> maxValueProperties;
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("db-fetch-db-type", DB_TYPE.getName());
         config.renameProperty("db-fetch-where-clause", WHERE_CLAUSE.getName());
         config.renameProperty("db-fetch-sql-query", SQL_QUERY.getName());
@@ -226,7 +226,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
         isDynamicTableName = validationContext.isExpressionLanguagePresent(validationContext.getProperty(TABLE_NAME).getValue());
         isDynamicMaxValues = validationContext.isExpressionLanguagePresent(validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).getValue());
@@ -238,7 +238,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         setup(context, true, null);
     }
 
-    public void setup(final ProcessContext context, boolean shouldCleanCache, FlowFile flowFile) {
+    public void setup(final ProcessContext context, final boolean shouldCleanCache, final FlowFile flowFile) {
         final DatabaseDialectService databaseDialectService = getDatabaseDialectService(context);
 
         synchronized (setupComplete) {
@@ -266,9 +266,9 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 final StatementResponse statementResponse = databaseDialectService.getStatement(statementRequest);
                 final String query = statementResponse.sql();
 
-                ResultSet resultSet = st.executeQuery(query);
-                ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-                int numCols = resultSetMetaData.getColumnCount();
+                final ResultSet resultSet = st.executeQuery(query);
+                final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                final int numCols = resultSetMetaData.getColumnCount();
                 if (numCols > 0) {
                     if (shouldCleanCache) {
                         columnTypeMap.clear();
@@ -277,26 +277,26 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     final String[] maxValueColumnNameList = maxValueColumnNames.toLowerCase().split(",");
                     final List<String> maxValueQualifiedColumnNameList = new ArrayList<>();
 
-                    for (String maxValueColumn : maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim());
+                    for (final String maxValueColumn : maxValueColumnNameList) {
+                        final String colKey = getStateKey(tableName, maxValueColumn.trim());
                         maxValueQualifiedColumnNameList.add(colKey);
                     }
 
                     for (int i = 1; i <= numCols; i++) {
-                        String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                        String colKey = getStateKey(tableName, colName);
+                        final String colName = resultSetMetaData.getColumnName(i).toLowerCase();
+                        final String colKey = getStateKey(tableName, colName);
 
                         //only include columns that are part of the maximum value tracking column list
                         if (!maxValueQualifiedColumnNameList.contains(colKey)) {
                             continue;
                         }
 
-                        int colType = resultSetMetaData.getColumnType(i);
+                        final int colType = resultSetMetaData.getColumnType(i);
                         columnTypeMap.putIfAbsent(colKey, colType);
                     }
 
-                    for (String maxValueColumn : maxValueColumnNameList) {
-                        String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
+                    for (final String maxValueColumn : maxValueColumnNameList) {
+                        final String colKey = getStateKey(tableName, maxValueColumn.trim().toLowerCase());
                         if (!columnTypeMap.containsKey(colKey)) {
                             throw new ProcessException("Column not found in the table/query specified: " + maxValueColumn);
                         }
@@ -305,7 +305,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
                 }
 
-            } catch (SQLException e) {
+            } catch (final SQLException e) {
                 throw new ProcessException("Unable to communicate with database in order to determine column types", e);
             }
             setupComplete.set(true);
@@ -334,10 +334,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         );
     }
 
-    protected static String getMaxValueFromRow(ResultSet resultSet,
-                                               int columnIndex,
-                                               Integer type,
-                                               String maxValueString)
+    protected static String getMaxValueFromRow(final ResultSet resultSet,
+                                               final int columnIndex,
+                                               final Integer type,
+                                               final String maxValueString)
             throws ParseException, IOException, SQLException {
 
         // Skip any columns we're not keeping track of or whose value is null
@@ -353,7 +353,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case NVARCHAR:
             case VARCHAR:
             case ROWID:
-                String colStringValue = resultSet.getString(columnIndex);
+                final String colStringValue = resultSet.getString(columnIndex);
                 if (maxValueString == null || colStringValue.compareTo(maxValueString) > 0) {
                     return colStringValue;
                 }
@@ -362,7 +362,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case INTEGER:
             case SMALLINT:
             case TINYINT:
-                int colIntValue = resultSet.getInt(columnIndex);
+                final int colIntValue = resultSet.getInt(columnIndex);
                 Integer maxIntValue = null;
                 if (maxValueString != null) {
                     maxIntValue = Integer.valueOf(maxValueString);
@@ -373,7 +373,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 break;
 
             case BIGINT:
-                long colLongValue = resultSet.getLong(columnIndex);
+                final long colLongValue = resultSet.getLong(columnIndex);
                 Long maxLongValue = null;
                 if (maxValueString != null) {
                     maxLongValue = Long.valueOf(maxValueString);
@@ -386,7 +386,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case FLOAT:
             case REAL:
             case DOUBLE:
-                double colDoubleValue = resultSet.getDouble(columnIndex);
+                final double colDoubleValue = resultSet.getDouble(columnIndex);
                 Double maxDoubleValue = null;
                 if (maxValueString != null) {
                     maxDoubleValue = Double.valueOf(maxValueString);
@@ -398,10 +398,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
             case DECIMAL:
             case NUMERIC:
-                BigDecimal colBigDecimalValue = resultSet.getBigDecimal(columnIndex);
+                final BigDecimal colBigDecimalValue = resultSet.getBigDecimal(columnIndex);
                 BigDecimal maxBigDecimalValue = null;
                 if (maxValueString != null) {
-                    DecimalFormat df = new DecimalFormat();
+                    final DecimalFormat df = new DecimalFormat();
                     df.setParseBigDecimal(true);
                     maxBigDecimalValue = (BigDecimal) df.parse(maxValueString);
                 }
@@ -411,8 +411,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 break;
 
             case DATE:
-                Date rawColDateValue = resultSet.getDate(columnIndex);
-                java.sql.Date colDateValue = new java.sql.Date(rawColDateValue.getTime());
+                final Date rawColDateValue = resultSet.getDate(columnIndex);
+                final java.sql.Date colDateValue = new java.sql.Date(rawColDateValue.getTime());
                 java.sql.Date maxDateValue = null;
                 if (maxValueString != null) {
                     maxDateValue = java.sql.Date.valueOf(maxValueString);
@@ -425,12 +425,12 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case TIME:
                 // Compare milliseconds-since-epoch. Need getTimestamp() instead of getTime() since some databases
                 // don't return milliseconds in the Time returned by getTime().
-                Instant colTimeValue = Instant.ofEpochMilli(resultSet.getTimestamp(columnIndex).getTime());
+                final Instant colTimeValue = Instant.ofEpochMilli(resultSet.getTimestamp(columnIndex).getTime());
                 LocalTime maxTimeValue = null;
                 if (maxValueString != null) {
                     try {
                         maxTimeValue = LocalTime.parse(maxValueString, TIME_TYPE_FORMAT);
-                    } catch (DateTimeParseException ignored) {
+                    } catch (final DateTimeParseException ignored) {
                         // Shouldn't happen, but just in case, leave the value as null so the new value will be stored
                     }
                 }
@@ -440,7 +440,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 break;
 
             case TIMESTAMP:
-                Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
+                final Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
                 java.sql.Timestamp maxTimestampValue = null;
                 if (maxValueString != null) {
                     // For backwards compatibility, the type might be TIMESTAMP but the state value is in DATE format. This should be a one-time occurrence as the next maximum value
@@ -448,7 +448,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     // "timestamp" coercion in that case
                     try {
                         maxTimestampValue = java.sql.Timestamp.valueOf(maxValueString);
-                    } catch (IllegalArgumentException iae) {
+                    } catch (final IllegalArgumentException iae) {
                         maxTimestampValue = new java.sql.Timestamp(java.sql.Date.valueOf(maxValueString).getTime());
                     }
                 }
@@ -479,7 +479,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
      * @param value The value to be converted to a SQL literal
      * @return A String representing the given value as a literal of the given type
      */
-    protected static String getLiteralByType(int type, String value, String databaseType) {
+    protected static String getLiteralByType(final int type, final String value, final String databaseType) {
         // Format value based on column type. For example, strings and timestamps need to be quoted
         switch (type) {
             // For string-represented values, put in single quotes
@@ -533,8 +533,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
      * @param columnName A column name
      * @return a state key string
      */
-    protected static String getStateKey(String prefix, String columnName) {
-        StringBuilder sb = new StringBuilder();
+    protected static String getStateKey(final String prefix, final String columnName) {
+        final StringBuilder sb = new StringBuilder();
         if (prefix != null) {
             final String prefixUnwrapped = prefix.toLowerCase().replaceAll("[\"`\\[\\]]", "");
             sb.append(prefixUnwrapped);

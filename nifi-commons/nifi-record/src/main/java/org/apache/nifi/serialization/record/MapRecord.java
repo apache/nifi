@@ -88,7 +88,7 @@ public class MapRecord implements Record {
 
     private Map<String, Object> checkTypes(final Map<String, Object> values, final RecordSchema schema) {
         for (final RecordField field : schema.getFields()) {
-            Object value = getExplicitValue(field, values);
+            final Object value = getExplicitValue(field, values);
 
             if (value == null) {
                 if (field.isNullable() || field.getDefaultValue() != null) {
@@ -167,7 +167,7 @@ public class MapRecord implements Record {
             }
         }
 
-        Object defaultValue = field.getDefaultValue();
+        final Object defaultValue = field.getDefaultValue();
         if (defaultValue != null) {
             return defaultValue;
         }
@@ -271,7 +271,7 @@ public class MapRecord implements Record {
     }
 
     @Override
-    public Record getAsRecord(String fieldName, final RecordSchema schema) {
+    public Record getAsRecord(final String fieldName, final RecordSchema schema) {
         return DataTypeUtils.toRecord(getValue(fieldName), schema, fieldName);
     }
 
@@ -286,7 +286,7 @@ public class MapRecord implements Record {
     }
 
     @Override
-    public LocalDateTime getAsLocalDateTime(String fieldName, String format) {
+    public LocalDateTime getAsLocalDateTime(final String fieldName, final String format) {
         return convertFieldToDateTime(LocalDateTime.class, fieldName, format);
     }
 
@@ -295,7 +295,7 @@ public class MapRecord implements Record {
         return convertFieldToDateTime(OffsetDateTime.class, fieldName, format);
     }
 
-    private <T> T convertFieldToDateTime(Class<T> clazz, String fieldName, String format) {
+    private <T> T convertFieldToDateTime(final Class<T> clazz, final String fieldName, final String format) {
         final FieldConverter<Object, T> converter = StandardFieldConverterRegistry.getRegistry().getFieldConverter(clazz);
         return converter.convertField(getValue(fieldName), Optional.ofNullable(format), fieldName);
     }
@@ -421,11 +421,11 @@ public class MapRecord implements Record {
         return toMap(false);
     }
 
-    public Map<String, Object> toMap(boolean convertSubRecords) {
+    public Map<String, Object> toMap(final boolean convertSubRecords) {
         if (convertSubRecords) {
-            Map<String, Object> newMap = new LinkedHashMap<>();
+            final Map<String, Object> newMap = new LinkedHashMap<>();
             values.forEach((key, value) -> {
-                Object valueToAdd;
+                final Object valueToAdd;
 
                 if (value instanceof MapRecord) {
                     valueToAdd = ((MapRecord) value).toMap(true);
@@ -433,17 +433,17 @@ public class MapRecord implements Record {
                         && value.getClass().isArray()
                         && ((Object[]) value).length > 0
                         && ((Object[]) value)[0] instanceof MapRecord) {
-                    Object[] records = (Object[]) value;
-                    Map<String, Object>[] maps = new Map[records.length];
+                    final Object[] records = (Object[]) value;
+                    final Map<String, Object>[] maps = new Map[records.length];
                     for (int index = 0; index < records.length; index++) {
                         maps[index] = ((MapRecord) records[index]).toMap(true);
                     }
                     valueToAdd = maps;
                 } else if (value instanceof final List<?> valueList) {
                     if (!valueList.isEmpty() && valueList.get(0) instanceof MapRecord) {
-                        List<Map<String, Object>> newRecords = new ArrayList<>();
-                        for (Object o : valueList) {
-                            MapRecord rec = (MapRecord) o;
+                        final List<Map<String, Object>> newRecords = new ArrayList<>();
+                        for (final Object o : valueList) {
+                            final MapRecord rec = (MapRecord) o;
                             newRecords.add(rec.toMap(true));
                         }
 
@@ -705,7 +705,7 @@ public class MapRecord implements Record {
     }
 
     @Override
-    public void incorporateSchema(RecordSchema other) {
+    public void incorporateSchema(final RecordSchema other) {
         this.schema = DataTypeUtils.merge(this.schema, other);
     }
 

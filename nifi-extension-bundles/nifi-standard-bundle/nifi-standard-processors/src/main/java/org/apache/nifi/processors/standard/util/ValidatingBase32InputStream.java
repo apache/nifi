@@ -30,13 +30,13 @@ public class ValidatingBase32InputStream extends FilterInputStream {
 
     private final Base32 b32 = new Base32();
 
-    public ValidatingBase32InputStream(InputStream in) {
+    public ValidatingBase32InputStream(final InputStream in) {
         super(in);
     }
 
     @Override
-    public int read(byte[] b, int offset, int len) throws IOException {
-        int numRead = super.read(b, offset, len);
+    public int read(final byte[] b, final int offset, final int len) throws IOException {
+        final int numRead = super.read(b, offset, len);
         if (numRead > 0) {
             byte[] copy = b;
             if (numRead < b.length) {
@@ -51,8 +51,8 @@ public class ValidatingBase32InputStream extends FilterInputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        int numRead = super.read(b);
+    public int read(final byte[] b) throws IOException {
+        final int numRead = super.read(b);
         if (numRead > 0) {
             byte[] copy = b;
             if (numRead < b.length) {
@@ -68,7 +68,7 @@ public class ValidatingBase32InputStream extends FilterInputStream {
 
     @Override
     public int read() throws IOException {
-        int data = super.read();
+        final int data = super.read();
         if (!b32.isInAlphabet((byte) data)) {
             throw new IOException("Data is not base32 encoded.");
         }

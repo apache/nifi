@@ -49,7 +49,7 @@ public interface DBCPService extends ControllerService {
      * @return a Connection from the specifed/configured connection pool(s)
      * @throws ProcessException if an error occurs while getting a connection
      */
-    default Connection getConnection(Map<String, String> attributes) throws ProcessException {
+    default Connection getConnection(final Map<String, String> attributes) throws ProcessException {
         // default implementation (for backwards compatibility) is to call getConnection()
         // without attributes
         return getConnection();
@@ -74,7 +74,7 @@ public interface DBCPService extends ControllerService {
      * @param batchSize the maximum number of FlowFiles to accept
      * @return a composited FlowFileFilter having service specific filtering and batch size limitation, or null if no service specific filtering is required.
      */
-    default FlowFileFilter getFlowFileFilter(int batchSize) {
+    default FlowFileFilter getFlowFileFilter(final int batchSize) {
         final FlowFileFilter filter = getFlowFileFilter();
         if (filter == null) {
             return null;

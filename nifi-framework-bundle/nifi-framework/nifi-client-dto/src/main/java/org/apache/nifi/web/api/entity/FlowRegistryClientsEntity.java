@@ -40,7 +40,7 @@ public class FlowRegistryClientsEntity extends Entity {
         return registries;
     }
 
-    public void setRegistries(Set<FlowRegistryClientEntity> registries) {
+    public void setRegistries(final Set<FlowRegistryClientEntity> registries) {
         this.registries = registries;
     }
 
@@ -55,7 +55,7 @@ public class FlowRegistryClientsEntity extends Entity {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 }

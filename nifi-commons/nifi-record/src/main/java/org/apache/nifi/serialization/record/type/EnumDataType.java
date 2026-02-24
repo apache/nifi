@@ -42,7 +42,7 @@ public class EnumDataType extends DataType {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -52,7 +52,7 @@ public class EnumDataType extends DataType {
         if (!super.equals(o)) {
             return false;
         }
-        EnumDataType that = (EnumDataType) o;
+        final EnumDataType that = (EnumDataType) o;
         return Objects.equals(getEnums(), that.getEnums());
     }
 

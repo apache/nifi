@@ -51,7 +51,7 @@ class TestGetS3ObjectMetadata {
     @BeforeEach
     void setUp() {
         mockS3Client = mock(S3Client.class);
-        GetS3ObjectMetadata mockGetS3ObjectMetadata = new GetS3ObjectMetadata() {
+        final GetS3ObjectMetadata mockGetS3ObjectMetadata = new GetS3ObjectMetadata() {
             @Override
             protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
@@ -72,10 +72,10 @@ class TestGetS3ObjectMetadata {
     }
 
     private Map<String, String> setupObjectMetadata() {
-        Map<String, String> combined = new HashMap<>();
+        final Map<String, String> combined = new HashMap<>();
 
-        long contentLength = 10;
-        String contentLanguage = "EN";
+        final long contentLength = 10;
+        final String contentLanguage = "EN";
 
         when(mockResponse.contentLength()).thenReturn(contentLength);
         when(mockResponse.contentLanguage()).thenReturn(contentLanguage);
@@ -83,7 +83,7 @@ class TestGetS3ObjectMetadata {
         combined.put("Content-Length", String.valueOf(contentLength));
         combined.put("Content-Language", contentLanguage);
 
-        Map<String, String> userMetadata = new HashMap<>();
+        final Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("user1", "a");
         userMetadata.put("user2", "b");
         userMetadata.put("mighthaveto", "excludemelater");
@@ -103,14 +103,14 @@ class TestGetS3ObjectMetadata {
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.ATTRIBUTES);
         runner.setProperty(GetS3ObjectMetadata.ATTRIBUTE_INCLUDE_PATTERN, "");
 
-        Map<String, String> combined = setupObjectMetadata();
+        final Map<String, String> combined = setupObjectMetadata();
 
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).getFirst();
         combined.forEach((k, v) -> {
-            String key = String.format("s3.%s", k);
-            String val = flowFile.getAttribute(key);
+            final String key = String.format("s3.%s", k);
+            final String val = flowFile.getAttribute(key);
             assertEquals(v, val);
         });
     }
@@ -121,17 +121,17 @@ class TestGetS3ObjectMetadata {
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.ATTRIBUTES);
         runner.setProperty(GetS3ObjectMetadata.ATTRIBUTE_INCLUDE_PATTERN, "(Content|user)");
 
-        Map<String, String> metadata = setupObjectMetadata();
-        Map<String, String> musthave = new HashMap<>(metadata);
+        final Map<String, String> metadata = setupObjectMetadata();
+        final Map<String, String> musthave = new HashMap<>(metadata);
         musthave.remove("mighthaveto");
 
         run();
         runner.assertTransferCount(GetS3ObjectMetadata.REL_FOUND, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectMetadata.REL_FOUND).getFirst();
         musthave.forEach((k, v) -> {
-            String key = String.format("s3.%s", k);
-            String val = flowFile.getAttribute(key);
+            final String key = String.format("s3.%s", k);
+            final String val = flowFile.getAttribute(key);
             assertEquals(v, val);
         });
 
@@ -141,7 +141,7 @@ class TestGetS3ObjectMetadata {
     @DisplayName("Validate fetch to attribute mode routes to failure on S3 error")
     @Test
     void testFetchMetadataToAttributeS3Error() {
-        AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.ATTRIBUTES);
         when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(exception);
@@ -152,7 +152,7 @@ class TestGetS3ObjectMetadata {
     @DisplayName("Validate fetch metadata to attribute routes to not-found when when the file doesn't exist")
     @Test
     void testFetchMetadataToAttributeNotExist() {
-        AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.ATTRIBUTES);
         when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(exception);
@@ -172,7 +172,7 @@ class TestGetS3ObjectMetadata {
     @DisplayName("Validate fetch metadata to FlowFile body routes to not-found when when the file doesn't exist")
     @Test
     void testFetchMetadataToBodyNotExist() {
-        AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.FLOWFILE_BODY);
         when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(exception);
@@ -183,7 +183,7 @@ class TestGetS3ObjectMetadata {
     @DisplayName("Validate fetch to FlowFile body mode routes to failure on S3 error")
     @Test
     void testFetchMetadataToBodyS3Error() {
-        AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
 
         runner.setProperty(GetS3ObjectMetadata.METADATA_TARGET, MetadataTarget.FLOWFILE_BODY);
         when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenThrow(exception);

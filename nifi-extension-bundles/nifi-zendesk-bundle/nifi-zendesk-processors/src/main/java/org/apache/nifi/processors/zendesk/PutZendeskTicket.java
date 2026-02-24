@@ -170,19 +170,19 @@ public class PutZendeskTicket extends AbstractZendesk {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        long startNanos = System.nanoTime();
-        HttpResponseEntity response;
-        URI uri;
+        final long startNanos = System.nanoTime();
+        final HttpResponseEntity response;
+        final URI uri;
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         if (readerFactory == null) {
-            try (final InputStream inputStream = session.read(flowFile)) {
+            try (InputStream inputStream = session.read(flowFile)) {
                 if (inputStream.available() == 0) {
                     inputStream.close();
                     getLogger().error("The incoming FlowFile's content is empty");
@@ -192,7 +192,7 @@ public class PutZendeskTicket extends AbstractZendesk {
                 final HttpUriBuilder uriBuilder = uriBuilder(ZENDESK_CREATE_TICKET_RESOURCE);
                 uri = uriBuilder.build();
                 response = zendeskClient.performPostRequest(uri, inputStream);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Could not read the incoming FlowFile", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
@@ -203,26 +203,26 @@ public class PutZendeskTicket extends AbstractZendesk {
             final String priority = context.getProperty(TICKET_PRIORITY).evaluateAttributeExpressions().getValue();
             final String type = context.getProperty(TICKET_TYPE).evaluateAttributeExpressions().getValue();
             final Map<String, String> dynamicProperties = getDynamicProperties(context, context.getProperties(), flowFile.getAttributes());
-            List<ObjectNode> zendeskTickets = new ArrayList<>();
+            final List<ObjectNode> zendeskTickets = new ArrayList<>();
 
-            try (final InputStream in = session.read(flowFile); final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+            try (InputStream in = session.read(flowFile); RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
                 Record record;
 
                 while ((record = reader.nextRecord()) != null) {
-                    ObjectNode baseTicketNode = mapper.createObjectNode();
+                    final ObjectNode baseTicketNode = mapper.createObjectNode();
 
                     addField("/comment/body", commentBody, baseTicketNode, record);
                     addField("/subject", subject, baseTicketNode, record);
                     addField("/priority", priority, baseTicketNode, record);
                     addField("/type", type, baseTicketNode, record);
 
-                    for (Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
+                    for (final Map.Entry<String, String> dynamicProperty : dynamicProperties.entrySet()) {
                         addDynamicField(dynamicProperty.getKey(), dynamicProperty.getValue(), baseTicketNode, record);
                     }
                     zendeskTickets.add(baseTicketNode);
                 }
 
-            } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+            } catch (final IOException | SchemaNotFoundException | MalformedRecordException e) {
                 getLogger().error("Error occurred while creating Zendesk tickets", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
@@ -240,7 +240,7 @@ public class PutZendeskTicket extends AbstractZendesk {
                 uri = createUri(zendeskTickets.size());
                 response = zendeskClient.performPostRequest(uri, inputStream);
                 flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTRIBUTE_NAME, String.valueOf(zendeskTickets.size()));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 getLogger().error("Failed to post request to Zendesk", e);
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
                 return;
@@ -251,7 +251,7 @@ public class PutZendeskTicket extends AbstractZendesk {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
         config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
         config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
@@ -264,22 +264,22 @@ public class PutZendeskTicket extends AbstractZendesk {
         config.renameProperty(OBSOLETE_ZENDESK_TICKET_TYPE, TICKET_TYPE.getName());
     }
 
-    private void handleResponse(ProcessSession session, FlowFile flowFile, HttpResponseEntity response, URI uri, long startNanos) {
+    private void handleResponse(final ProcessSession session, final FlowFile flowFile, final HttpResponseEntity response, final URI uri, final long startNanos) {
         if (response.statusCode() == CREATED.getCode() || response.statusCode() == OK.getCode()) {
-            flowFile = session.putAttribute(flowFile, MIME_TYPE.key(), APPLICATION_JSON);
-            session.transfer(flowFile, REL_SUCCESS);
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, uri.toString(), transferMillis);
+            final FlowFile updatedFlowFile = session.putAttribute(flowFile, MIME_TYPE.key(), APPLICATION_JSON);
+            session.transfer(updatedFlowFile, REL_SUCCESS);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            session.getProvenanceReporter().send(updatedFlowFile, uri.toString(), transferMillis);
         } else {
-            String errorMessage = getResponseBody(response);
+            final String errorMessage = getResponseBody(response);
             getLogger().error("Zendesk ticket creation returned with error, HTTP status={}, response={}", response.statusCode(), errorMessage);
-            flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE_NAME, String.valueOf(response.statusCode()));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE_NAME, errorMessage);
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            FlowFile updatedFlowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE_NAME, String.valueOf(response.statusCode()));
+            updatedFlowFile = session.putAttribute(updatedFlowFile, ERROR_MESSAGE_ATTRIBUTE_NAME, errorMessage);
+            session.transfer(session.penalize(updatedFlowFile), REL_FAILURE);
         }
     }
 
-    private URI createUri(int numberOfTickets) {
+    private URI createUri(final int numberOfTickets) {
         final String resource = numberOfTickets > 1 ? ZENDESK_CREATE_TICKETS_RESOURCE : ZENDESK_CREATE_TICKET_RESOURCE;
         return uriBuilder(resource).build();
     }

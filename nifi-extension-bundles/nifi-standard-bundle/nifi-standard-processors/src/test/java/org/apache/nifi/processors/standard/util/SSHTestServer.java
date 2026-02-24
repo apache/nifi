@@ -58,7 +58,7 @@ public class SSHTestServer {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(final String username) {
         this.username = username;
     }
 
@@ -66,7 +66,7 @@ public class SSHTestServer {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
@@ -92,7 +92,7 @@ public class SSHTestServer {
 
         sshd.setFileSystemFactory(new VirtualFileSystemFactory(rootPath));
 
-        List<SftpSubsystemFactory> sftpCommandFactory = new ArrayList<>();
+        final List<SftpSubsystemFactory> sftpCommandFactory = new ArrayList<>();
         sftpCommandFactory.add(new SftpSubsystemFactory());
         sshd.setSubsystemFactories(sftpCommandFactory);
 

@@ -85,8 +85,8 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     private long pollingSeconds;
 
     @Override
-    public void initialize(BootstrapProperties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
-        Path configFile = ofNullable(properties.getProperty(CONFIG_FILE_PATH_KEY))
+    public void initialize(final BootstrapProperties properties, final ConfigurationFileHolder configurationFileHolder, final ConfigurationChangeNotifier configurationChangeNotifier) {
+        final Path configFile = ofNullable(properties.getProperty(CONFIG_FILE_PATH_KEY))
             .filter(not(String::isBlank))
             .map(Path::of)
             .map(Path::toAbsolutePath)
@@ -107,7 +107,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
                     .orElseThrow(unableToFindDifferentiatorExceptionSupplier(differentiator)))
                 .orElseGet(WholeConfigDifferentiator::getByteBufferDifferentiator);
             this.differentiator.initialize(configurationFileHolder);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException("Could not successfully initialize file change notifier", e);
         }
 
@@ -117,7 +117,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     @Override
     public void start() {
         executorService = Executors.newScheduledThreadPool(1, runnable -> {
-            Thread notifierThread = Executors.defaultThreadFactory().newThread(runnable);
+            final Thread notifierThread = Executors.defaultThreadFactory().newThread(runnable);
             notifierThread.setName("File Change Notifier Thread");
             notifierThread.setDaemon(true);
             return notifierThread;
@@ -131,13 +131,13 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
         if (targetFileChanged()) {
             logger.debug("Target file changed, checking if it's different than current flow");
             try (FileInputStream flowCandidateInputStream = new FileInputStream(configFilePath.toFile())) {
-                ByteBuffer newFlowConfig = wrap(toByteArray(flowCandidateInputStream));
+                final ByteBuffer newFlowConfig = wrap(toByteArray(flowCandidateInputStream));
                 if (differentiator.isNew(newFlowConfig)) {
                     logger.debug("Current flow and new flow is different, notifying listener");
                     configurationChangeNotifier.notifyListeners(newFlowConfig);
                     logger.debug("Listeners have been notified");
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.error("Could not successfully notify listeners.", e);
             }
         } else {
@@ -154,9 +154,9 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
 
     boolean targetFileChanged() {
         logger.trace("Attempting to acquire watch key");
-        Optional<WatchKey> watchKey = ofNullable(watchService.poll());
+        final Optional<WatchKey> watchKey = ofNullable(watchService.poll());
         logger.trace("Watch key acquire with value {}", watchKey);
-        boolean targetChanged = watchKey
+        final boolean targetChanged = watchKey
             .map(WatchKey::pollEvents)
             .orElse(emptyList())
             .stream()
@@ -174,26 +174,26 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
         return targetChanged;
     }
 
-    private WatchService initializeWatcher(Path filePath) {
+    private WatchService initializeWatcher(final Path filePath) {
         try {
-            WatchService fileSystemWatcher = FileSystems.getDefault().newWatchService();
-            Path watchDirectory = filePath.getParent();
+            final WatchService fileSystemWatcher = FileSystems.getDefault().newWatchService();
+            final Path watchDirectory = filePath.getParent();
             watchDirectory.register(fileSystemWatcher, ENTRY_MODIFY);
             logger.trace("Watch service registered for {}", watchDirectory);
             return fileSystemWatcher;
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
             throw new IllegalStateException("Unable to initialize a file system watcher for the path " + filePath, ioe);
         }
     }
 
-    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(String differentiator) {
+    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(final String differentiator) {
         return () -> new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiator
             + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
     }
 
-    private void checkConfigFileLocationCorrectness(BootstrapProperties properties, Path configFile) {
-        Path flowConfigFile = Path.of(properties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
-        Path rawFlowConfigFile = flowConfigFile.getParent().resolve(getBaseName(flowConfigFile.toString()) + RAW_EXTENSION);
+    private void checkConfigFileLocationCorrectness(final BootstrapProperties properties, final Path configFile) {
+        final Path flowConfigFile = Path.of(properties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
+        final Path rawFlowConfigFile = flowConfigFile.getParent().resolve(getBaseName(flowConfigFile.toString()) + RAW_EXTENSION);
         if (flowConfigFile.equals(configFile) || rawFlowConfigFile.equals(configFile)) {
             throw new IllegalStateException("File ingestor config file (" + CONFIG_FILE_PATH_KEY
                 + ") must point to a different file than MiNiFi flow config file and raw flow config file");
@@ -201,19 +201,19 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     }
 
     // Methods exposed only for enable testing
-    void setConfigFilePath(Path configFilePath) {
+    void setConfigFilePath(final Path configFilePath) {
         this.configFilePath = configFilePath;
     }
 
-    void setWatchService(WatchService watchService) {
+    void setWatchService(final WatchService watchService) {
         this.watchService = watchService;
     }
 
-    void setConfigurationChangeNotifier(ConfigurationChangeNotifier configurationChangeNotifier) {
+    void setConfigurationChangeNotifier(final ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
     }
 
-    void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
+    void setDifferentiator(final Differentiator<ByteBuffer> differentiator) {
         this.differentiator = differentiator;
     }
 }

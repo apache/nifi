@@ -90,7 +90,7 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
     private DatabaseType getDatabaseType(final DataSource dataSource, final org.flywaydb.core.api.configuration.Configuration configuration) {
         try (final Connection connection = dataSource.getConnection()) {
             return DatabaseTypeRegister.getDatabaseTypeForConnection(connection, configuration);
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }
@@ -117,7 +117,7 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
             }
 
             return false;
-        } catch (SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }

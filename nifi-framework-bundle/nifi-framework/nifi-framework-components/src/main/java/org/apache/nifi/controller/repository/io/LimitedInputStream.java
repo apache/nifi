@@ -75,7 +75,7 @@ public class LimitedInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(final byte[] b, final int off, final int len) throws IOException {
         final long limit = getLimit();
         if (bytesRead >= limit) {
             return -1;
@@ -108,7 +108,7 @@ public class LimitedInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readlimit) {
+    public void mark(final int readlimit) {
         in.mark(readlimit);
         markOffset = bytesRead;
     }

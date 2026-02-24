@@ -62,7 +62,7 @@ public class BucketsIT extends UnsecuredITBase {
 
         // Given: these buckets have been populated in the DB (see BucketsIT.sql)
 
-        String expected = "[" +
+        final String expected = "[" +
                 "{\"identifier\":\"1\"," +
                 "\"name\":\"Bucket 1\"," +
                 "\"createdTimestamp\":1505134260000," +
@@ -85,7 +85,7 @@ public class BucketsIT extends UnsecuredITBase {
 
         // When: the /buckets endpoint is queried
 
-        String bucketsJson = client
+        final String bucketsJson = client
                 .target(createURL("buckets"))
                 .request()
                 .get(String.class);
@@ -100,7 +100,7 @@ public class BucketsIT extends UnsecuredITBase {
     public void testGetNonexistentBucket() throws Exception {
         // Given: a fresh context server with an empty DB
         // When: any /buckets/{id} endpoint is queried
-        Response response = client.target(createURL("buckets/a-nonexistent-identifier")).request().get();
+        final Response response = client.target(createURL("buckets/a-nonexistent-identifier")).request().get();
 
         // Then: a 404 response status is returned
         assertEquals(404, response.getStatus());
@@ -113,7 +113,7 @@ public class BucketsIT extends UnsecuredITBase {
 
         // Given:
 
-        long testStartTime = System.currentTimeMillis();
+        final long testStartTime = System.currentTimeMillis();
         final Bucket bucket = new Bucket();
         bucket.setName("Integration Test Bucket");
         bucket.setDescription("A bucket created by an integration test.");
@@ -121,7 +121,7 @@ public class BucketsIT extends UnsecuredITBase {
 
         // When: a bucket is created on the server
 
-        Bucket createdBucket = client
+        final Bucket createdBucket = client
                 .target(createURL("buckets"))
                 .request()
                 .post(Entity.entity(bucket, MediaType.APPLICATION_JSON), Bucket.class);
@@ -179,7 +179,7 @@ public class BucketsIT extends UnsecuredITBase {
         bucket.setDescription("A bucket created by an integration test.");
         bucket.setRevision(initialRevision);
 
-        Bucket createdBucket = client
+        final Bucket createdBucket = client
                 .target(createURL("buckets"))
                 .request()
                 .post(Entity.entity(bucket, MediaType.APPLICATION_JSON), Bucket.class);
@@ -211,7 +211,7 @@ public class BucketsIT extends UnsecuredITBase {
         bucket.setDescription("A bucket created by an integration test.");
         bucket.setRevision(initialRevision);
 
-        Bucket createdBucket = client
+        final Bucket createdBucket = client
                 .target(createURL("buckets"))
                 .request()
                 .post(Entity.entity(bucket, MediaType.APPLICATION_JSON), Bucket.class);
@@ -247,7 +247,7 @@ public class BucketsIT extends UnsecuredITBase {
         bucket.setDescription("A bucket created by an integration test.");
         bucket.setRevision(initialRevision);
 
-        Bucket createdBucket = client
+        final Bucket createdBucket = client
                 .target(createURL("buckets"))
                 .request()
                 .post(Entity.entity(bucket, MediaType.APPLICATION_JSON), Bucket.class);
@@ -286,7 +286,7 @@ public class BucketsIT extends UnsecuredITBase {
         bucket.setDescription("A bucket created by an integration test.");
         bucket.setRevision(initialRevision);
 
-        Bucket createdBucket = client
+        final Bucket createdBucket = client
                 .target(createURL("buckets"))
                 .request()
                 .post(Entity.entity(bucket, MediaType.APPLICATION_JSON), Bucket.class);
@@ -309,11 +309,11 @@ public class BucketsIT extends UnsecuredITBase {
 
         // Given: the server is configured to return this fixed response
 
-        String expected = "{\"fields\":[\"ID\",\"NAME\",\"DESCRIPTION\",\"CREATED\"]}";
+        final String expected = "{\"fields\":[\"ID\",\"NAME\",\"DESCRIPTION\",\"CREATED\"]}";
 
         // When: the server is queried
 
-        String bucketFieldsJson = client
+        final String bucketFieldsJson = client
                 .target(createURL("buckets/fields"))
                 .request()
                 .get(String.class);

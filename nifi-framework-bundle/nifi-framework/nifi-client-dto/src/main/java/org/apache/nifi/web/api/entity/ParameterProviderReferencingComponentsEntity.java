@@ -36,7 +36,7 @@ public class ParameterProviderReferencingComponentsEntity extends Entity {
         return parameterProviderReferencingComponents;
     }
 
-    public void setParameterProviderReferencingComponents(Set<ParameterProviderReferencingComponentEntity> parameterProviderReferencingComponents) {
+    public void setParameterProviderReferencingComponents(final Set<ParameterProviderReferencingComponentEntity> parameterProviderReferencingComponents) {
         this.parameterProviderReferencingComponents = parameterProviderReferencingComponents;
     }
 

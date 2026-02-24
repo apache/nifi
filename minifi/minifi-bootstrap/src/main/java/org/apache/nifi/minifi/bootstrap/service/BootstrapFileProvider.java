@@ -56,7 +56,7 @@ public class BootstrapFileProvider {
 
     private final File bootstrapConfigFile;
 
-    public BootstrapFileProvider(File bootstrapConfigFile) {
+    public BootstrapFileProvider(final File bootstrapConfigFile) {
         if (bootstrapConfigFile == null || !bootstrapConfigFile.exists()) {
             throw new IllegalArgumentException("The specified bootstrap file doesn't exists: " + bootstrapConfigFile);
         }
@@ -68,7 +68,7 @@ public class BootstrapFileProvider {
     }
 
     public static File getBootstrapConfFile() {
-        File bootstrapConfigFile = Optional.ofNullable(System.getProperty(BOOTSTRAP_CONFIG_FILE_SYSTEM_PROPERTY_KEY))
+        final File bootstrapConfigFile = Optional.ofNullable(System.getProperty(BOOTSTRAP_CONFIG_FILE_SYSTEM_PROPERTY_KEY))
             .map(File::new)
             .orElseGet(() -> Optional.ofNullable(System.getenv(MINIFI_HOME_ENV_VARIABLE_KEY))
                 .map(File::new)
@@ -91,26 +91,26 @@ public class BootstrapFileProvider {
     }
 
     public File getReloadLockFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File nifiHome = confDir.getParentFile();
-        File bin = new File(nifiHome, "bin");
-        File reloadFile = new File(bin, "minifi.reload.lock");
+        final File confDir = bootstrapConfigFile.getParentFile();
+        final File nifiHome = confDir.getParentFile();
+        final File bin = new File(nifiHome, "bin");
+        final File reloadFile = new File(bin, "minifi.reload.lock");
 
         LOGGER.debug("Reload File: {}", reloadFile);
         return reloadFile;
     }
 
     public File getBootstrapConfSwapFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File swapFile = new File(confDir, "bootstrap-swap.conf");
+        final File confDir = bootstrapConfigFile.getParentFile();
+        final File swapFile = new File(confDir, "bootstrap-swap.conf");
 
         LOGGER.debug("Bootstrap Swap File: {}", swapFile);
         return swapFile;
     }
 
     public File getBootstrapConfNewFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File newFile = new File(confDir, BOOTSTRAP_UPDATED_FILE_NAME);
+        final File confDir = bootstrapConfigFile.getParentFile();
+        final File newFile = new File(confDir, BOOTSTRAP_UPDATED_FILE_NAME);
 
         LOGGER.debug("Bootstrap new File: {}", newFile);
         return newFile;
@@ -125,10 +125,10 @@ public class BootstrapFileProvider {
     }
 
     public Properties getStatusProperties() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
 
         try {
-            File statusFile = getStatusFile();
+            final File statusFile = getStatusFile();
             if (statusFile == null || !statusFile.exists()) {
                 LOGGER.debug("No status file to load properties from");
                 return props;
@@ -137,7 +137,7 @@ public class BootstrapFileProvider {
             try (FileInputStream fis = new FileInputStream(statusFile)) {
                 props.load(fis);
             }
-        } catch (IOException exception) {
+        } catch (final IOException exception) {
             LOGGER.error("Failed to load MiNiFi status properties");
         }
 
@@ -146,13 +146,13 @@ public class BootstrapFileProvider {
         return props;
     }
 
-    public synchronized void saveStatusProperties(Properties minifiProps) throws IOException {
-        String pid = minifiProps.getProperty(STATUS_FILE_PID_KEY);
+    public synchronized void saveStatusProperties(final Properties minifiProps) throws IOException {
+        final String pid = minifiProps.getProperty(STATUS_FILE_PID_KEY);
         if (!StringUtils.isBlank(pid)) {
             writePidFile(pid);
         }
 
-        File statusFile = getStatusFile();
+        final File statusFile = getStatusFile();
         if (statusFile.exists() && !statusFile.delete()) {
             LOGGER.warn("Failed to delete {}", statusFile);
         }
@@ -162,13 +162,13 @@ public class BootstrapFileProvider {
         }
 
         try {
-            Set<PosixFilePermission> perms = new HashSet<>();
+            final Set<PosixFilePermission> perms = new HashSet<>();
             perms.add(PosixFilePermission.OWNER_WRITE);
             perms.add(PosixFilePermission.OWNER_READ);
             perms.add(PosixFilePermission.GROUP_READ);
             perms.add(PosixFilePermission.OTHERS_READ);
             Files.setPosixFilePermissions(statusFile.toPath(), perms);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Failed to set permissions so that only the owner can read status file {}; "
                 + "this may allows others to have access to the key needed to communicate with MiNiFi. "
                 + "Permissions should be changed so that only the owner can read this file", statusFile);
@@ -183,8 +183,8 @@ public class BootstrapFileProvider {
         logProperties("Saved MiNiFi", minifiProps);
     }
 
-    private void writePidFile(String pid) throws IOException {
-        File pidFile = getPidFile();
+    private void writePidFile(final String pid) throws IOException {
+        final File pidFile = getPidFile();
         if (pidFile.exists() && !pidFile.delete()) {
             LOGGER.warn("Failed to delete {}", pidFile);
         }
@@ -194,11 +194,11 @@ public class BootstrapFileProvider {
         }
 
         try {
-            Set<PosixFilePermission> perms = new HashSet<>();
+            final Set<PosixFilePermission> perms = new HashSet<>();
             perms.add(PosixFilePermission.OWNER_READ);
             perms.add(PosixFilePermission.OWNER_WRITE);
             Files.setPosixFilePermissions(pidFile.toPath(), perms);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.warn("Failed to set permissions so that only the owner can read pid file {}; "
                 + "this may allows others to have access to the key needed to communicate with MiNiFi. "
                 + "Permissions should be changed so that only the owner can read this file", pidFile);
@@ -212,29 +212,29 @@ public class BootstrapFileProvider {
         LOGGER.debug("Saved Pid {} to {}", pid, pidFile);
     }
 
-    private File getBootstrapFile(String fileName) throws IOException {
-        File configFileDir = Optional.ofNullable(System.getProperty(MINIFI_PID_DIR_PROP))
+    private File getBootstrapFile(final String fileName) throws IOException {
+        final File configFileDir = Optional.ofNullable(System.getProperty(MINIFI_PID_DIR_PROP))
             .map(String::trim)
             .map(File::new)
             .orElseGet(() -> {
-                File confDir = bootstrapConfigFile.getParentFile();
-                File nifiHome = confDir.getParentFile();
+                final File confDir = bootstrapConfigFile.getParentFile();
+                final File nifiHome = confDir.getParentFile();
                 return new File(nifiHome, DEFAULT_PID_DIR);
             });
 
         FileUtils.ensureDirectoryExistAndCanAccess(configFileDir);
-        File statusFile = new File(configFileDir, fileName);
+        final File statusFile = new File(configFileDir, fileName);
         LOGGER.debug("Run File: {}", statusFile);
 
         return statusFile;
     }
 
-    private void logProperties(String type, Properties props) {
+    private void logProperties(final String type, final Properties props) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("{} properties: {}", type, props.entrySet()
                 .stream()
                 .filter(e -> {
-                    String key = ((String) e.getKey()).toLowerCase();
+                    final String key = ((String) e.getKey()).toLowerCase();
                     return !SENSITIVE_PROPERTIES.contains(key);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));

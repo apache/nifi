@@ -32,7 +32,7 @@ public class ProcessorDiagnosticsEntity extends ComponentEntity implements Permi
     }
 
     @Override
-    public void setComponent(ProcessorDiagnosticsDTO processorDiagnostics) {
+    public void setComponent(final ProcessorDiagnosticsDTO processorDiagnostics) {
         this.processorDiagnostics = processorDiagnostics;
     }
 }

@@ -27,7 +27,7 @@ public class NifiDiscriminator implements Discriminator<ILoggingEvent> {
 
     @Override
     public String getDiscriminatingValue(final ILoggingEvent iLoggingEvent) {
-        for (KeyValuePair keyValuePair : iLoggingEvent.getKeyValuePairs()) {
+        for (final KeyValuePair keyValuePair : iLoggingEvent.getKeyValuePairs()) {
             if (keyValuePair.key.equals(getKey())) {
                 return keyValuePair.value.toString();
             }

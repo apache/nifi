@@ -43,14 +43,14 @@ public class LineSplittingResult implements ShellCommandResult {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.isEmpty()) {
-                    String[] splitResults = regexForSplitting.split(line);
+                    final String[] splitResults = regexForSplitting.split(line);
                     for (int i = 0; i < labels.size(); i++) {
                         result.add(String.format("%s : %s", labels.get(i), splitResults[i]));
                     }
                 }
             }
             return result;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(String.format("Failed to process result for command: %s", commandName), e);
         }
     }

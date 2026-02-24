@@ -59,7 +59,7 @@ public class ColumnDescription {
 
     public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
         final ResultSetMetaData md = resultSet.getMetaData();
-        List<String> columns = new ArrayList<>();
+        final List<String> columns = new ArrayList<>();
 
         for (int i = 1; i < md.getColumnCount() + 1; i++) {
             columns.add(md.getColumnName(i));

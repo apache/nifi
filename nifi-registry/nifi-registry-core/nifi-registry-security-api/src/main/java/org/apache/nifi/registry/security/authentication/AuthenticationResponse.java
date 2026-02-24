@@ -86,7 +86,7 @@ public class AuthenticationResponse implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -94,7 +94,7 @@ public class AuthenticationResponse implements Serializable {
             return false;
         }
 
-        AuthenticationResponse that = (AuthenticationResponse) o;
+        final AuthenticationResponse that = (AuthenticationResponse) o;
 
         if (expiration != that.expiration) {
             return false;

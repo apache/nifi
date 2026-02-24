@@ -168,11 +168,11 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
-    public Map<ByteBuffer, ByteBuffer> subMap(List<ByteBuffer> keys) {
+    public Map<ByteBuffer, ByteBuffer> subMap(final List<ByteBuffer> keys) {
         if (keys == null) {
             return null;
         }
-        Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
+        final Map<ByteBuffer, ByteBuffer> results = new HashMap<>(keys.size());
         readLock.lock();
         try {
             keys.forEach((key) -> {
@@ -193,7 +193,7 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
-    public ByteBuffer remove(ByteBuffer key) throws IOException {
+    public ByteBuffer remove(final ByteBuffer key) throws IOException {
         writeLock.lock();
         try {
             final MapCacheRecord record = cache.remove(key);
@@ -208,7 +208,7 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
-    public MapCacheRecord fetch(ByteBuffer key) {
+    public MapCacheRecord fetch(final ByteBuffer key) {
         readLock.lock();
         try {
             final MapCacheRecord record = cache.get(key);
@@ -227,7 +227,7 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
-    public MapPutResult replace(MapCacheRecord inputRecord) {
+    public MapPutResult replace(final MapCacheRecord inputRecord) {
         writeLock.lock();
         try {
             final ByteBuffer key = inputRecord.getKey();

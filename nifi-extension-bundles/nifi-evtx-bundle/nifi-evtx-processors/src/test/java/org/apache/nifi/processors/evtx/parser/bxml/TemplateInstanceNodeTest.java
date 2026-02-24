@@ -69,7 +69,7 @@ public class TemplateInstanceNodeTest extends BxmlNodeWithTokenTestBase {
 
     @Test
     public void testVisitor() throws IOException {
-        BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
+        final BxmlNodeVisitor mock = mock(BxmlNodeVisitor.class);
         templateInstanceNode.accept(mock);
         verify(mock).visit(templateInstanceNode);
         verifyNoMoreInteractions(mock);
@@ -82,8 +82,8 @@ public class TemplateInstanceNodeTest extends BxmlNodeWithTokenTestBase {
         testBinaryReaderBuilder.putDWord(templateId);
         testBinaryReaderBuilder.putDWord(5);
 
-        BinaryReader binaryReader = testBinaryReaderBuilder.build();
-        TemplateNode templateNode = mock(TemplateNode.class);
+        final BinaryReader binaryReader = testBinaryReaderBuilder.build();
+        final TemplateNode templateNode = mock(TemplateNode.class);
         when(templateNode.getTemplateId()).thenReturn(UnsignedInteger.valueOf(templateId));
         when(chunkHeader.addTemplateNode(5, binaryReader)).thenAnswer(invocation -> {
             binaryReader.skip(templateLength);

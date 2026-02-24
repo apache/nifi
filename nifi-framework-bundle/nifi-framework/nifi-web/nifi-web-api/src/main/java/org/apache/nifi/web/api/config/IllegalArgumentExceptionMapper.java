@@ -31,7 +31,7 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<IllegalAr
     private static final Logger logger = LoggerFactory.getLogger(IllegalArgumentExceptionMapper.class);
 
     @Override
-    public Response toResponse(IllegalArgumentException exception) {
+    public Response toResponse(final IllegalArgumentException exception) {
         // log the error
         logger.info("{}}. Returning {}} response.", exception, Response.Status.BAD_REQUEST, exception);
 

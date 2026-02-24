@@ -65,11 +65,11 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
     }
 
     /* setters */
-    public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
+    public void setCertificateExtractor(final X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
     }
 
-    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+    public void setPrincipalExtractor(final X509PrincipalExtractor principalExtractor) {
         this.principalExtractor = principalExtractor;
     }
 

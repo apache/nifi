@@ -31,8 +31,8 @@ public class AvroUtil {
         LZO
     }
 
-    public static CodecFactory getCodecFactory(String property) {
-        CodecType type = CodecType.valueOf(property);
+    public static CodecFactory getCodecFactory(final String property) {
+        final CodecType type = CodecType.valueOf(property);
         return switch (type) {
             case BZIP2 -> CodecFactory.bzip2Codec();
             case DEFLATE -> CodecFactory.deflateCodec(CodecFactory.DEFAULT_DEFLATE_LEVEL);

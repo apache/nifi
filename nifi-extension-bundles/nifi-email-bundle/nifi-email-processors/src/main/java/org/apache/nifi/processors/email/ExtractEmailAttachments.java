@@ -103,14 +103,14 @@ public class ExtractEmailAttachments extends AbstractProcessor {
 
         session.read(originalFlowFile, rawIn -> {
             try (final InputStream in = new BufferedInputStream(rawIn)) {
-                Properties props = new Properties();
+                final Properties props = new Properties();
                 props.put("mail.mime.address.strict", requireStrictAddresses);
-                Session mailSession = Session.getInstance(props);
-                MimeMessage originalMessage = new MimeMessage(mailSession, in);
+                final Session mailSession = Session.getInstance(props);
+                final MimeMessage originalMessage = new MimeMessage(mailSession, in);
 
                 // RFC-2822 determines that a message must have a "From:" header
                 // if a message lacks the field, it is flagged as invalid
-                Address[] from = originalMessage.getFrom();
+                final Address[] from = originalMessage.getFrom();
                 if (from == null) {
                     throw new MessagingException("Message failed RFC-2822 validation: No Sender");
                 }
@@ -132,14 +132,14 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                         if (contentType != null && !contentType.isBlank()) {
                             attributes.put(CoreAttributes.MIME_TYPE.key(), contentType);
                         }
-                        String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
+                        final String parentUuid = originalFlowFile.getAttribute(CoreAttributes.UUID.key());
                         attributes.put(ATTACHMENT_ORIGINAL_UUID, parentUuid);
                         attributes.put(ATTACHMENT_ORIGINAL_FILENAME, originalFlowFileName);
                         split = session.append(split, out -> StreamUtils.copy(data.getInputStream(), out));
                         split = session.putAllAttributes(split, attributes);
                         attachmentsList.add(split);
                     }
-                } catch (FlowFileHandlingException e) {
+                } catch (final FlowFileHandlingException e) {
                     // Something went wrong
                     // Removing splits that may have been created
                     session.remove(attachmentsList);
@@ -148,7 +148,7 @@ public class ExtractEmailAttachments extends AbstractProcessor {
                     logger.error("Flowfile {} triggered error {} while processing message removing generated FlowFiles from sessions", originalFlowFile, e);
                     invalidFlowFilesList.add(originalFlowFile);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 // Another error hit...
                 // Removing the original flow from its list
                 originalFlowFilesList.remove(originalFlowFile);

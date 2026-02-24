@@ -205,8 +205,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.RETRIED_RELATIONSHIPS_CHANGED, processorA, processorB, VersionedProcessor::getRetriedRelationships);
         addIfDifferent(differences, DifferenceType.BACKOFF_MECHANISM_CHANGED, processorA, processorB, VersionedProcessor::getBackoffMechanism);
         addIfDifferent(differences, DifferenceType.MAX_BACKOFF_PERIOD_CHANGED, processorA, processorB, VersionedProcessor::getMaxBackoffPeriod);
-        compareProperties(processorA, processorB, nullToEmpty(processorA.getProperties()), nullToEmpty(processorB.getProperties()),
-            nullToEmpty(processorA.getPropertyDescriptors()), nullToEmpty(processorB.getPropertyDescriptors()), differences);
+        compareProperties(processorA, processorB, processorA.getProperties(), processorB.getProperties(), processorA.getPropertyDescriptors(), processorB.getPropertyDescriptors(), differences);
     }
 
     private void compare(final VersionedReportingTask taskA, final VersionedReportingTask taskB, final Set<FlowDifference> differences) {
@@ -219,8 +218,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.RUN_SCHEDULE_CHANGED, taskA, taskB, VersionedReportingTask::getSchedulingPeriod);
         addIfDifferent(differences, DifferenceType.SCHEDULING_STRATEGY_CHANGED, taskA, taskB, VersionedReportingTask::getSchedulingStrategy);
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, taskA, taskB, VersionedReportingTask::getScheduledState);
-        compareProperties(taskA, taskB, nullToEmpty(taskA.getProperties()), nullToEmpty(taskB.getProperties()),
-            nullToEmpty(taskA.getPropertyDescriptors()), nullToEmpty(taskB.getPropertyDescriptors()), differences);
+        compareProperties(taskA, taskB, taskA.getProperties(), taskB.getProperties(), taskA.getPropertyDescriptors(), taskB.getPropertyDescriptors(), differences);
     }
 
     private void compare(final VersionedFlowAnalysisRule ruleA, final VersionedFlowAnalysisRule ruleB, final Set<FlowDifference> differences) {
@@ -231,8 +229,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getBundle);
         addIfDifferent(differences, DifferenceType.ENFORCEMENT_POLICY_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getEnforcementPolicy);
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getScheduledState);
-        compareProperties(ruleA, ruleB, nullToEmpty(ruleA.getProperties()), nullToEmpty(ruleB.getProperties()),
-            nullToEmpty(ruleA.getPropertyDescriptors()), nullToEmpty(ruleB.getPropertyDescriptors()), differences);
+        compareProperties(ruleA, ruleB, ruleA.getProperties(), ruleB.getProperties(), ruleA.getPropertyDescriptors(), ruleB.getPropertyDescriptors(), differences);
     }
 
     private void compare(final VersionedParameterProvider parameterProviderA, final VersionedParameterProvider parameterProviderB, final Set<FlowDifference> differences) {
@@ -242,8 +239,8 @@ public class StandardFlowComparator implements FlowComparator {
 
         addIfDifferent(differences, DifferenceType.ANNOTATION_DATA_CHANGED, parameterProviderA, parameterProviderB, VersionedParameterProvider::getAnnotationData);
         addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, parameterProviderA, parameterProviderB, VersionedParameterProvider::getBundle);
-        compareProperties(parameterProviderA, parameterProviderB, nullToEmpty(parameterProviderA.getProperties()), nullToEmpty(parameterProviderB.getProperties()),
-            nullToEmpty(parameterProviderA.getPropertyDescriptors()), nullToEmpty(parameterProviderB.getPropertyDescriptors()), differences);
+        compareProperties(parameterProviderA, parameterProviderB, parameterProviderA.getProperties(), parameterProviderB.getProperties(),
+                parameterProviderA.getPropertyDescriptors(), parameterProviderB.getPropertyDescriptors(), differences);
     }
 
     void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
@@ -349,8 +346,7 @@ public class StandardFlowComparator implements FlowComparator {
 
         addIfDifferent(differences, DifferenceType.ANNOTATION_DATA_CHANGED, serviceA, serviceB, VersionedControllerService::getAnnotationData);
         addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, serviceA, serviceB, VersionedControllerService::getBundle);
-        compareProperties(serviceA, serviceB, nullToEmpty(serviceA.getProperties()), nullToEmpty(serviceB.getProperties()),
-            nullToEmpty(serviceA.getPropertyDescriptors()), nullToEmpty(serviceB.getPropertyDescriptors()), differences);
+        compareProperties(serviceA, serviceB, serviceA.getProperties(), serviceB.getProperties(), serviceA.getPropertyDescriptors(), serviceB.getPropertyDescriptors(), differences);
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, serviceA, serviceB, VersionedControllerService::getScheduledState);
         addIfDifferent(differences, DifferenceType.BULLETIN_LEVEL_CHANGED, serviceA, serviceB, VersionedControllerService::getBulletinLevel, true, "WARN");
     }

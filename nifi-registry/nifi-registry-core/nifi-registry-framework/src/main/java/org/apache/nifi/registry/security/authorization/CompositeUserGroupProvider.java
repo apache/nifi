@@ -47,19 +47,19 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
         this(false);
     }
 
-    public CompositeUserGroupProvider(boolean allowEmptyProviderList) {
+    public CompositeUserGroupProvider(final boolean allowEmptyProviderList) {
         this.allowEmptyProviderList = allowEmptyProviderList;
     }
 
     @Override
-    public void initialize(UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
+    public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         userGroupProviderLookup = initializationContext.getUserGroupProviderLookup();
     }
 
     @Override
-    public void onConfigured(AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
-        for (Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
-            Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
+    public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws SecurityProviderCreationException {
+        for (final Map.Entry<String, String> entry : configurationContext.getProperties().entrySet()) {
+            final Matcher matcher = USER_GROUP_PROVIDER_PATTERN.matcher(entry.getKey());
             if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
                 final String userGroupProviderKey = entry.getValue();
                 final UserGroupProvider userGroupProvider = userGroupProviderLookup.getUserGroupProvider(userGroupProviderKey);
@@ -93,7 +93,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public User getUser(String identifier) throws AuthorizationAccessException {
+    public User getUser(final String identifier) throws AuthorizationAccessException {
         User user = null;
 
         for (final UserGroupProvider userGroupProvider : userGroupProviders) {
@@ -108,7 +108,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+    public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         User user = null;
 
         for (final UserGroupProvider userGroupProvider : userGroupProviders) {
@@ -134,7 +134,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         Group group = null;
 
         for (final UserGroupProvider userGroupProvider : userGroupProviders) {
@@ -149,17 +149,17 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
     }
 
     @Override
-    public UserAndGroups getUserAndGroups(String identity) throws AuthorizationAccessException {
+    public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
 
         // This method builds a UserAndGroups response by combining the data from all providers using a two-pass approach
 
-        CompositeUserAndGroups compositeUserAndGroups = new CompositeUserAndGroups();
+        final CompositeUserAndGroups compositeUserAndGroups = new CompositeUserAndGroups();
 
         // First pass - call getUserAndGroups(identity) on all providers, aggregate the responses, check for multiple
         // user identity matches, which should not happen as identities should by globally unique.
         String providerClassForUser = "";
         for (final UserGroupProvider userGroupProvider : userGroupProviders) {
-            UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(identity);
+            final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(identity);
 
             if (userAndGroups.getUser() != null) {
                 // is this the first match on the user?
@@ -189,7 +189,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
         // check all groups to see if they contain the user identifier corresponding to the identity.
         // This is necessary because a provider might only know about a group<->userIdentifier mapping
         // without knowing the user identifier.
-        String userIdentifier = compositeUserAndGroups.getUser().getIdentifier();
+        final String userIdentifier = compositeUserAndGroups.getUser().getIdentifier();
         for (final UserGroupProvider userGroupProvider : userGroupProviders) {
             for (final Group group : userGroupProvider.getGroups()) {
                 if (group.getUsers() != null && group.getUsers().contains(userIdentifier)) {

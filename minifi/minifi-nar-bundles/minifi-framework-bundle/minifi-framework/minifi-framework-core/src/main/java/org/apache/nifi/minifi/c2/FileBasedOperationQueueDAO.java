@@ -36,18 +36,18 @@ public class FileBasedOperationQueueDAO implements OperationQueueDAO {
     private final ObjectMapper objectMapper;
     private final File requestedOperationsFile;
 
-    public FileBasedOperationQueueDAO(String runDir, ObjectMapper objectMapper) {
+    public FileBasedOperationQueueDAO(final String runDir, final ObjectMapper objectMapper) {
         this.requestedOperationsFile = new File(runDir, REQUESTED_OPERATIONS_FILE_NAME);
         this.objectMapper = objectMapper;
     }
 
     @Override
-    public void save(OperationQueue operationQueue) {
+    public void save(final OperationQueue operationQueue) {
         LOGGER.info("Saving C2 operations to file");
         LOGGER.debug("C2 Operation Queue: {}", operationQueue);
         try {
             objectMapper.writeValue(requestedOperationsFile, operationQueue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.error("Failed to save requested c2 operations", e);
             throw new RuntimeException(e);
         }
@@ -58,10 +58,10 @@ public class FileBasedOperationQueueDAO implements OperationQueueDAO {
         LOGGER.info("Reading queued c2 operations from file");
         if (requestedOperationsFile.exists()) {
             try {
-                OperationQueue operationQueue = objectMapper.readValue(requestedOperationsFile, OperationQueue.class);
+                final OperationQueue operationQueue = objectMapper.readValue(requestedOperationsFile, OperationQueue.class);
                 LOGGER.debug("Queued operations: {}", operationQueue);
                 return Optional.of(operationQueue);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.error("Failed to read queued operations file", e);
             }
         } else {

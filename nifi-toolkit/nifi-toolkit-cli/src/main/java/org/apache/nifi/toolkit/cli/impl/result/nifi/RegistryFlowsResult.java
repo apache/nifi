@@ -68,7 +68,7 @@ public class RegistryFlowsResult extends AbstractWritableResult<VersionedFlowsEn
                 .build();
 
         for (int i = 0; i < flowsDTO.size(); i++) {
-            VersionedFlowDTO flow = flowsDTO.get(i);
+            final VersionedFlowDTO flow = flowsDTO.get(i);
             table.addRow("" + (i + 1), flow.getFlowName(), flow.getFlowId(), flow.getDescription() == null ? "" : flow.getDescription());
         }
 

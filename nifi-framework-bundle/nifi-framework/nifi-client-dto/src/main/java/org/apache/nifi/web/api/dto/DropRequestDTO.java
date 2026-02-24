@@ -77,7 +77,7 @@ public class DropRequestDTO {
         return uri;
     }
 
-    public void setUri(String uri) {
+    public void setUri(final String uri) {
         this.uri = uri;
     }
 
@@ -92,7 +92,7 @@ public class DropRequestDTO {
         return submissionTime;
     }
 
-    public void setSubmissionTime(Date submissionTime) {
+    public void setSubmissionTime(final Date submissionTime) {
         this.submissionTime = submissionTime;
     }
 
@@ -105,7 +105,7 @@ public class DropRequestDTO {
         return percentCompleted;
     }
 
-    public void setPercentCompleted(Integer percentCompleted) {
+    public void setPercentCompleted(final Integer percentCompleted) {
         this.percentCompleted = percentCompleted;
     }
 
@@ -118,7 +118,7 @@ public class DropRequestDTO {
         return finished;
     }
 
-    public void setFinished(Boolean finished) {
+    public void setFinished(final Boolean finished) {
         this.finished = finished;
     }
 
@@ -131,7 +131,7 @@ public class DropRequestDTO {
         return failureReason;
     }
 
-    public void setFailureReason(String failureReason) {
+    public void setFailureReason(final String failureReason) {
         this.failureReason = failureReason;
     }
 
@@ -146,7 +146,7 @@ public class DropRequestDTO {
         return lastUpdated;
     }
 
-    public void setLastUpdated(Date lastUpdated) {
+    public void setLastUpdated(final Date lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
 
@@ -159,7 +159,7 @@ public class DropRequestDTO {
         return currentCount;
     }
 
-    public void setCurrentCount(Integer currentCount) {
+    public void setCurrentCount(final Integer currentCount) {
         this.currentCount = currentCount;
     }
 
@@ -172,7 +172,7 @@ public class DropRequestDTO {
         return currentSize;
     }
 
-    public void setCurrentSize(Long currentSize) {
+    public void setCurrentSize(final Long currentSize) {
         this.currentSize = currentSize;
     }
 
@@ -185,7 +185,7 @@ public class DropRequestDTO {
         return current;
     }
 
-    public void setCurrent(String current) {
+    public void setCurrent(final String current) {
         this.current = current;
     }
 
@@ -198,7 +198,7 @@ public class DropRequestDTO {
         return originalCount;
     }
 
-    public void setOriginalCount(Integer originalCount) {
+    public void setOriginalCount(final Integer originalCount) {
         this.originalCount = originalCount;
     }
 
@@ -211,7 +211,7 @@ public class DropRequestDTO {
         return originalSize;
     }
 
-    public void setOriginalSize(Long originalSize) {
+    public void setOriginalSize(final Long originalSize) {
         this.originalSize = originalSize;
     }
 
@@ -224,7 +224,7 @@ public class DropRequestDTO {
         return original;
     }
 
-    public void setOriginal(String original) {
+    public void setOriginal(final String original) {
         this.original = original;
     }
 
@@ -237,7 +237,7 @@ public class DropRequestDTO {
         return droppedCount;
     }
 
-    public void setDroppedCount(Integer droppedCount) {
+    public void setDroppedCount(final Integer droppedCount) {
         this.droppedCount = droppedCount;
     }
 
@@ -250,7 +250,7 @@ public class DropRequestDTO {
         return droppedSize;
     }
 
-    public void setDroppedSize(Long droppedSize) {
+    public void setDroppedSize(final Long droppedSize) {
         this.droppedSize = droppedSize;
     }
 
@@ -263,7 +263,7 @@ public class DropRequestDTO {
         return dropped;
     }
 
-    public void setDropped(String dropped) {
+    public void setDropped(final String dropped) {
         this.dropped = dropped;
     }
 
@@ -276,7 +276,7 @@ public class DropRequestDTO {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(final String state) {
         this.state = state;
     }
 

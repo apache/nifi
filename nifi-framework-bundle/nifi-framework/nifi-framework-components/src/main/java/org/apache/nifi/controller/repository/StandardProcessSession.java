@@ -1217,7 +1217,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         try {
             claimCache.reset();
-        } catch (IOException e1) {
+        } catch (final IOException e1) {
             LOG.warn("{} Attempted to close Output Stream for {} due to session rollback but close failed", this, this.connectableDescription, e1);
         }
 
@@ -1339,7 +1339,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final StringBuilder details = new StringBuilder(1024).append("[");
         final int initLen = details.length();
         int filesListed = 0;
-        for (StandardRepositoryRecord repoRecord : records.values()) {
+        for (final StandardRepositoryRecord repoRecord : records.values()) {
             if (filesListed >= MAX_ROLLBACK_FLOWFILES_TO_LOG) {
                 break;
             }
@@ -1480,7 +1480,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         migrate((StandardProcessSession) newOwner, flowFiles);
     }
 
-    private synchronized void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {
+    private synchronized void migrate(final StandardProcessSession newOwner, final Collection<FlowFile> flowFilesArg) {
         // This method will update many member variables/internal state of both `this` and `newOwner`. These member variables may also be updated during
         // session rollback, such as when a Processor is terminated. As such, we need to ensure that we synchronize on both `this` and `newOwner` so that
         // neither can be rolled back while we are in the process of migrating FlowFiles from one session to another.
@@ -1493,7 +1493,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             newOwner.verifyTaskActive();
 
             // We don't call validateRecordState() here because we want to allow migration of FlowFiles that have already been marked as removed or transferred, etc.
-            flowFiles = flowFiles.stream().map(this::getMostRecent).collect(Collectors.toList());
+            final Collection<FlowFile> flowFiles = flowFilesArg.stream().map(this::getMostRecent).collect(Collectors.toList());
 
             for (final FlowFile flowFile : flowFiles) {
                 if (openInputStreams.containsKey(flowFile)) {
@@ -2043,9 +2043,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile create(FlowFile parent) {
+    public FlowFile create(final FlowFile parentArg) {
         verifyTaskActive();
-        parent = getMostRecent(parent);
+        final FlowFile parent = getMostRecent(parentArg);
 
         final String uuid = UUID.randomUUID().toString();
 
@@ -2085,10 +2085,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile create(Collection<FlowFile> parents) {
+    public FlowFile create(final Collection<FlowFile> parentsArg) {
         verifyTaskActive();
 
-        parents = parents.stream().map(this::getMostRecent).collect(Collectors.toList());
+        final Collection<FlowFile> parents = parentsArg.stream().map(this::getMostRecent).collect(Collectors.toList());
 
         final Map<String, String> newAttributes = intersectAttributes(parents);
         newAttributes.remove(CoreAttributes.UUID.key());
@@ -2140,17 +2140,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile clone(FlowFile example) {
+    public FlowFile clone(final FlowFile exampleArg) {
         verifyTaskActive();
-        example = validateRecordState(example);
+        final FlowFile example = validateRecordState(exampleArg);
         return clone(example, 0L, example.getSize());
     }
 
     @Override
-    public FlowFile clone(FlowFile example, final long offset, final long size) {
+    public FlowFile clone(final FlowFile exampleArg, final long offset, final long size) {
         verifyTaskActive();
 
-        example = validateRecordState(example);
+        final FlowFile example = validateRecordState(exampleArg);
         final StandardRepositoryRecord exampleRepoRecord = getRecord(example);
         final FlowFileRecord currRec = exampleRepoRecord.getCurrent();
         final ContentClaim claim = exampleRepoRecord.getCurrentClaim();
@@ -2216,15 +2216,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile penalize(FlowFile flowFile) {
+    public FlowFile penalize(final FlowFile flowFileArg) {
         verifyTaskActive();
-        flowFile = validateRecordState(flowFile, false);
+        final FlowFile flowFile = validateRecordState(flowFileArg, false);
 
         return penalize(flowFile, context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
     }
 
-    public FlowFile penalize(FlowFile flowFile, final long period, final TimeUnit timeUnit) {
-        flowFile = getRecord(flowFile).getCurrent();
+    public FlowFile penalize(final FlowFile flowFileArg, final long period, final TimeUnit timeUnit) {
+        final FlowFile flowFile = getRecord(flowFileArg).getCurrent();
         final StandardRepositoryRecord record = getRecord(flowFile);
         final long penalizeMillis = TimeUnit.MILLISECONDS.convert(period, timeUnit);
         final long expirationEpochMillis = System.currentTimeMillis() + penalizeMillis;
@@ -2234,9 +2234,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile putAttribute(FlowFile flowFile, final String key, final String value) {
+    public FlowFile putAttribute(final FlowFile flowFileArg, final String key, final String value) {
         verifyTaskActive();
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
 
         if (CoreAttributes.UUID.key().equals(key)) {
             return flowFile;
@@ -2250,14 +2250,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile putAllAttributes(FlowFile flowFile, final Map<String, String> attributes) {
+    public FlowFile putAllAttributes(final FlowFile flowFileArg, final Map<String, String> attributes) {
         verifyTaskActive();
 
         if (attributes.isEmpty()) {
-            return flowFile;
+            return flowFileArg;
         }
 
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
         final StandardRepositoryRecord record = getRecord(flowFile);
 
         final Map<String, String> updatedAttributes;
@@ -2277,9 +2277,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile removeAttribute(FlowFile flowFile, final String key) {
+    public FlowFile removeAttribute(final FlowFile flowFileArg, final String key) {
         verifyTaskActive();
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
 
         if (REQUIRED_ATTRIBUTES.contains(key)) {
             return flowFile;
@@ -2292,9 +2292,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile removeAllAttributes(FlowFile flowFile, final Set<String> keys) {
+    public FlowFile removeAllAttributes(final FlowFile flowFileArg, final Set<String> keys) {
         verifyTaskActive();
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
 
         if (keys == null) {
             return flowFile;
@@ -2321,10 +2321,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile removeAllAttributes(FlowFile flowFile, final Pattern keyPattern) {
+    public FlowFile removeAllAttributes(final FlowFile flowFileArg, final Pattern keyPattern) {
         verifyTaskActive();
 
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
         final StandardRepositoryRecord record = getRecord(flowFile);
         final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).removeAttributes(keyPattern).build();
 
@@ -2361,9 +2361,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void transfer(FlowFile flowFile, final Relationship relationship) {
+    public void transfer(final FlowFile flowFileArg, final Relationship relationship) {
         verifyTaskActive();
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -2392,10 +2392,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void transfer(FlowFile flowFile) {
+    public void transfer(final FlowFile flowFileArg) {
         verifyTaskActive();
 
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
         final StandardRepositoryRecord record = getRecord(flowFile);
         if (record.getOriginalQueue() == null) {
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
@@ -2412,9 +2412,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void transfer(Collection<FlowFile> flowFiles, final Relationship relationship) {
+    public void transfer(final Collection<FlowFile> flowFilesArg, final Relationship relationship) {
         verifyTaskActive();
-        flowFiles = validateRecordState(flowFiles);
+        final Collection<FlowFile> flowFiles = validateRecordState(flowFilesArg);
 
         boolean autoTerminated = false;
         boolean selfRelationship = false;
@@ -2452,10 +2452,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void remove(FlowFile flowFile) {
+    public void remove(final FlowFile flowFileArg) {
         verifyTaskActive();
 
-        flowFile = validateRecordState(flowFile);
+        final FlowFile flowFile = validateRecordState(flowFileArg);
         final StandardRepositoryRecord record = getRecord(flowFile);
         record.markForDelete();
         removedFlowFiles.add(flowFile.getAttribute(CoreAttributes.UUID.key()));
@@ -2475,10 +2475,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void remove(Collection<FlowFile> flowFiles) {
+    public void remove(final Collection<FlowFile> flowFilesArg) {
         verifyTaskActive();
 
-        flowFiles = validateRecordState(flowFiles);
+        final Collection<FlowFile> flowFiles = validateRecordState(flowFilesArg);
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = getRecord(flowFile);
             record.markForDelete();
@@ -2662,10 +2662,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void read(FlowFile source, final InputStreamCallback reader) {
+    public void read(final FlowFile sourceArg, final InputStreamCallback reader) {
         verifyTaskActive();
 
-        source = validateRecordState(source, true);
+        final FlowFile source = validateRecordState(sourceArg, true);
         final StandardRepositoryRecord record = getRecord(source);
 
         try {
@@ -2712,10 +2712,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public InputStream read(FlowFile source) {
+    public InputStream read(final FlowFile sourceArg) {
         verifyTaskActive();
 
-        source = validateRecordState(source, true);
+        final FlowFile source = validateRecordState(sourceArg, true);
         final StandardRepositoryRecord record = getRecord(source);
 
         try {
@@ -2798,7 +2798,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             @Override
-            public long skip(long n) throws IOException {
+            public long skip(final long n) throws IOException {
                 return ffais.skip(n);
             }
 
@@ -2808,7 +2808,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             @Override
-            public synchronized void mark(int readlimit) {
+            public synchronized void mark(final int readlimit) {
                 ffais.mark(readlimit);
             }
 
@@ -2863,11 +2863,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile merge(Collection<FlowFile> sources, FlowFile destination, final byte[] header, final byte[] footer, final byte[] demarcator) {
+    public FlowFile merge(final Collection<FlowFile> sourcesArg, final FlowFile destinationArg, final byte[] header, final byte[] footer, final byte[] demarcator) {
         verifyTaskActive();
 
-        sources = validateRecordState(sources);
-        destination = validateRecordState(destination);
+        final Collection<FlowFile> sources = validateRecordState(sourcesArg);
+        final FlowFile destination = validateRecordState(destinationArg);
         if (sources.contains(destination)) {
             throw new IllegalArgumentException("Destination cannot be within sources");
         }
@@ -2970,9 +2970,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public OutputStream write(FlowFile source) {
+    public OutputStream write(final FlowFile sourceArg) {
         verifyTaskActive();
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
 
         ContentClaim newClaim = null;
@@ -3106,9 +3106,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile write(FlowFile source, final OutputStreamCallback writer) {
+    public FlowFile write(final FlowFile sourceArg, final OutputStreamCallback writer) {
         verifyTaskActive();
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
 
         long writtenToFlowFile = 0L;
@@ -3173,10 +3173,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile append(FlowFile source, final OutputStreamCallback writer) {
+    public FlowFile append(final FlowFile sourceArg, final OutputStreamCallback writer) {
         verifyTaskActive();
 
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
         long newSize = 0L;
 
@@ -3387,9 +3387,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile write(FlowFile source, final StreamCallback writer) {
+    public FlowFile write(final FlowFile sourceArg, final StreamCallback writer) {
         verifyTaskActive();
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
         final ContentClaim currClaim = record.getCurrentClaim();
 
@@ -3481,10 +3481,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile importFrom(final Path source, final boolean keepSourceFile, FlowFile destination) {
+    public FlowFile importFrom(final Path source, final boolean keepSourceFile, final FlowFile destinationArg) {
         verifyTaskActive();
 
-        destination = validateRecordState(destination);
+        final FlowFile destination = validateRecordState(destinationArg);
         // TODO: find a better solution. With Windows 7 and Java 7 (very early update, at least), Files.isWritable(source.getParent()) returns false, even when it should be true.
         if (!keepSourceFile && !Files.isWritable(source.getParent()) && !source.getParent().toFile().canWrite()) {
             // If we do NOT want to keep the file, ensure that we can delete it, or else error.
@@ -3548,10 +3548,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public FlowFile importFrom(final InputStream source, FlowFile destination) {
+    public FlowFile importFrom(final InputStream source, final FlowFile destinationArg) {
         verifyTaskActive();
 
-        destination = validateRecordState(destination);
+        final FlowFile destination = validateRecordState(destinationArg);
         final StandardRepositoryRecord record = getRecord(destination);
         ContentClaim newClaim = null;
         final long claimOffset = 0L;
@@ -3601,9 +3601,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void exportTo(FlowFile source, final Path destination, final boolean append) {
+    public void exportTo(final FlowFile sourceArg, final Path destination, final boolean append) {
         verifyTaskActive();
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
         try {
             ensureNotAppending(record.getCurrentClaim());
@@ -3619,9 +3619,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
-    public void exportTo(FlowFile source, final OutputStream destination) {
+    public void exportTo(final FlowFile sourceArg, final OutputStream destination) {
         verifyTaskActive();
-        source = validateRecordState(source);
+        final FlowFile source = validateRecordState(sourceArg);
         final StandardRepositoryRecord record = getRecord(source);
 
         if (record.getCurrentClaim() == null) {

@@ -36,11 +36,11 @@ public class IdentityMapping {
     private final String replacementValue;
     private final Transform transform;
 
-    public IdentityMapping(String key, Pattern pattern, String replacementValue) {
+    public IdentityMapping(final String key, final Pattern pattern, final String replacementValue) {
         this(key, pattern, replacementValue, NONE);
     }
 
-    public IdentityMapping(String key, Pattern pattern, String replacementValue, Transform transform) {
+    public IdentityMapping(final String key, final Pattern pattern, final String replacementValue, final Transform transform) {
         this.key = key;
         this.pattern = pattern;
         this.replacementValue = replacementValue;

@@ -62,68 +62,68 @@ public class UpdatePropertiesOperationHandlerTest {
 
     @Test
     void shouldReturnProperties() {
-        Map<String, Object> properties = new HashMap<>();
+        final Map<String, Object> properties = new HashMap<>();
         properties.put("test", new Object());
         when(operandPropertiesProvider.getProperties()).thenReturn(properties);
 
-        Map<String, Object> result = updatePropertiesOperationHandler.getProperties();
+        final Map<String, Object> result = updatePropertiesOperationHandler.getProperties();
 
         assertEquals(properties, result);
     }
 
     @Test
     void shouldReturnAckWithFullyAppliedWhenPersistIsSuccessful() {
-        C2Operation c2Operation = getC2Operation();
+        final C2Operation c2Operation = getC2Operation();
         when(persistProperties.apply(ARGS)).thenReturn(true);
 
-        C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
+        final C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
 
         assertEquals(getExpected(OperationState.FULLY_APPLIED), result);
     }
 
     @Test
     void shouldReturnAckWithNoOperationWhenPersistReturnFalse() {
-        C2Operation c2Operation = getC2Operation();
+        final C2Operation c2Operation = getC2Operation();
         when(persistProperties.apply(ARGS)).thenReturn(false);
 
-        C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
+        final C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
 
         assertEquals(getExpected(OperationState.NO_OPERATION), result);
     }
 
     @Test
     void shouldReturnNotAppliedInCaseOfIllegalArgumentException() {
-        C2Operation c2Operation = getC2Operation();
+        final C2Operation c2Operation = getC2Operation();
         when(persistProperties.apply(ARGS)).thenThrow(new IllegalArgumentException());
 
-        C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
+        final C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
 
         assertEquals(getExpected(OperationState.NOT_APPLIED), result);
     }
 
     @Test
     void shouldReturnNotAppliedInCaseOfException() {
-        C2Operation c2Operation = getC2Operation();
+        final C2Operation c2Operation = getC2Operation();
         when(persistProperties.apply(ARGS)).thenThrow(new RuntimeException());
 
-        C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
+        final C2OperationAck result = updatePropertiesOperationHandler.handle(c2Operation);
 
-        C2OperationAck expected = getExpected(OperationState.NOT_APPLIED);
+        final C2OperationAck expected = getExpected(OperationState.NOT_APPLIED);
         expected.getOperationState().setDetails("Failed to persist properties");
         assertEquals(expected, result);
     }
 
-    private C2OperationAck getExpected(OperationState operationState) {
+    private C2OperationAck getExpected(final OperationState operationState) {
         final C2OperationAck c2OperationAck = new C2OperationAck();
         c2OperationAck.setOperationId(ID);
-        C2OperationState c2OperationState = new C2OperationState();
+        final C2OperationState c2OperationState = new C2OperationState();
         c2OperationState.setState(operationState);
         c2OperationAck.setOperationState(c2OperationState);
         return c2OperationAck;
     }
 
     private C2Operation getC2Operation() {
-        C2Operation c2Operation = new C2Operation();
+        final C2Operation c2Operation = new C2Operation();
         c2Operation.setArgs(ARGS);
         c2Operation.setIdentifier(ID);
         return c2Operation;

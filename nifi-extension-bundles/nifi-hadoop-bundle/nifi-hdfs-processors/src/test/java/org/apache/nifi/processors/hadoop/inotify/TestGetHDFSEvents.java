@@ -53,9 +53,9 @@ public class TestGetHDFSEvents {
 
     @Test
     public void notSettingHdfsPathToWatchShouldThrowError() {
-        AssertionError error = assertThrows(AssertionError.class, () -> {
-            GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-            TestRunner runner = TestRunners.newTestRunner(processor);
+        final AssertionError error = assertThrows(AssertionError.class, () -> {
+            final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+            final TestRunner runner = TestRunners.newTestRunner(processor);
 
             runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
             runner.run();
@@ -66,22 +66,22 @@ public class TestGetHDFSEvents {
 
     @Test
     public void onTriggerShouldProperlyHandleAnEmptyEventBatch() throws Exception {
-        EventBatch eventBatch = mock(EventBatch.class);
+        final EventBatch eventBatch = mock(EventBatch.class);
         when(eventBatch.getEvents()).thenReturn(new Event[]{});
 
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
         runner.setProperty(GetHDFSEvents.NUMBER_OF_RETRIES_FOR_POLL, "5");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(0, successfulFlowFiles.size());
         verify(eventBatch).getTxid();
         assertEquals("100", runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get("last.tx.id"));
@@ -92,37 +92,37 @@ public class TestGetHDFSEvents {
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(null);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path${now()}");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(0, successfulFlowFiles.size());
         assertEquals("-1", runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get("last.tx.id"));
     }
 
     @Test
     public void makeSureHappyPathForProcessingEventsSendsFlowFilesToCorrectRelationship() throws Exception {
-        Event[] events = getEvents();
+        final Event[] events = getEvents();
 
-        EventBatch eventBatch = mock(EventBatch.class);
+        final EventBatch eventBatch = mock(EventBatch.class);
         when(eventBatch.getEvents()).thenReturn(events);
 
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path(/)?.*");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(3, successfulFlowFiles.size());
         verify(eventBatch).getTxid();
         assertEquals("100", runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get("last.tx.id"));
@@ -130,22 +130,22 @@ public class TestGetHDFSEvents {
 
     @Test
     public void onTriggerShouldOnlyProcessEventsWithSpecificPath() throws Exception {
-        Event[] events = getEvents();
+        final Event[] events = getEvents();
 
-        EventBatch eventBatch = mock(EventBatch.class);
+        final EventBatch eventBatch = mock(EventBatch.class);
         when(eventBatch.getEvents()).thenReturn(events);
 
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/create(/)?");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(1, successfulFlowFiles.size());
         verify(eventBatch).getTxid();
         assertEquals("100", runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get("last.tx.id"));
@@ -153,28 +153,28 @@ public class TestGetHDFSEvents {
 
     @Test
     public void eventsProcessorShouldProperlyFilterEventTypes() throws Exception {
-        Event[] events = getEvents();
+        final Event[] events = getEvents();
 
-        EventBatch eventBatch = mock(EventBatch.class);
+        final EventBatch eventBatch = mock(EventBatch.class);
         when(eventBatch.getEvents()).thenReturn(events);
 
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path(/.*)?");
         runner.setProperty(GetHDFSEvents.EVENT_TYPES, "create, metadata");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(2, successfulFlowFiles.size());
 
-        List<String> expectedEventTypes = Arrays.asList("CREATE", "METADATA");
-        for (MockFlowFile f : successfulFlowFiles) {
-            String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
+        final List<String> expectedEventTypes = Arrays.asList("CREATE", "METADATA");
+        for (final MockFlowFile f : successfulFlowFiles) {
+            final String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
             assertTrue(expectedEventTypes.contains(eventType));
         }
 
@@ -184,32 +184,32 @@ public class TestGetHDFSEvents {
 
     @Test
     public void makeSureExpressionLanguageIsWorkingProperlyWithinTheHdfsPathToWatch() throws Exception {
-        Event[] events = new Event[] {
+        final Event[] events = new Event[] {
                 new Event.CreateEvent.Builder().path("/some/path/1/2/3/t.txt").build(),
                 new Event.CreateEvent.Builder().path("/some/path/1/2/4/t.txt").build(),
                 new Event.CreateEvent.Builder().path("/some/path/1/2/3/.t.txt").build()
         };
 
-        EventBatch eventBatch = mock(EventBatch.class);
+        final EventBatch eventBatch = mock(EventBatch.class);
         when(eventBatch.getEvents()).thenReturn(events);
 
         when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
         when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
         when(eventBatch.getTxid()).thenReturn(100L);
 
-        GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
-        TestRunner runner = TestRunners.newTestRunner(processor);
+        final GetHDFSEvents processor = new TestableGetHDFSEvents(hdfsAdmin);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/${literal(1)}/${literal(2)}/${literal(3)}/.*.txt");
         runner.setProperty(GetHDFSEvents.EVENT_TYPES, "create");
         runner.setProperty(GetHDFSEvents.IGNORE_HIDDEN_FILES, "true");
         runner.run();
 
-        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        final List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
         assertEquals(1, successfulFlowFiles.size());
 
-        for (MockFlowFile f : successfulFlowFiles) {
-            String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
+        for (final MockFlowFile f : successfulFlowFiles) {
+            final String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
             assertEquals("CREATE", eventType);
         }
 
@@ -230,7 +230,7 @@ public class TestGetHDFSEvents {
         private final FileSystem fileSystem = new DistributedFileSystem();
         private final HdfsAdmin hdfsAdmin;
 
-        TestableGetHDFSEvents(HdfsAdmin hdfsAdmin) {
+        TestableGetHDFSEvents(final HdfsAdmin hdfsAdmin) {
             this.hdfsAdmin = hdfsAdmin;
         }
 

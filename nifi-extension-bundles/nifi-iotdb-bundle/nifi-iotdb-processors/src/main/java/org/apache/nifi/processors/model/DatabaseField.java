@@ -63,7 +63,7 @@ public class DatabaseField {
 
     }
 
-    public DatabaseField(String tsName, TSDataType dataType) {
+    public DatabaseField(final String tsName, final TSDataType dataType) {
         this.tsName = tsName;
         this.dataType = dataType;
     }
@@ -72,7 +72,7 @@ public class DatabaseField {
         return tsName;
     }
 
-    public void setTsName(String tsName) {
+    public void setTsName(final String tsName) {
         this.tsName = tsName;
     }
 
@@ -80,7 +80,7 @@ public class DatabaseField {
         return dataType;
     }
 
-    public void setDataType(TSDataType dataType) {
+    public void setDataType(final TSDataType dataType) {
         this.dataType = dataType;
     }
 
@@ -88,7 +88,7 @@ public class DatabaseField {
         return encoding;
     }
 
-    public void setEncoding(TSEncoding encoding) {
+    public void setEncoding(final TSEncoding encoding) {
         this.encoding = encoding;
     }
 
@@ -96,7 +96,7 @@ public class DatabaseField {
         return compressionType;
     }
 
-    public void setCompressionType(CompressionType compressionType) {
+    public void setCompressionType(final CompressionType compressionType) {
         this.compressionType = compressionType;
     }
 

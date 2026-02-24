@@ -34,7 +34,7 @@ public class FlowRegistryBucketEntity extends Entity {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -42,7 +42,7 @@ public class FlowRegistryBucketEntity extends Entity {
         return bucket;
     }
 
-    public void setBucket(FlowRegistryBucketDTO bucket) {
+    public void setBucket(final FlowRegistryBucketDTO bucket) {
         this.bucket = bucket;
     }
 
@@ -50,7 +50,7 @@ public class FlowRegistryBucketEntity extends Entity {
         return permissions;
     }
 
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 }

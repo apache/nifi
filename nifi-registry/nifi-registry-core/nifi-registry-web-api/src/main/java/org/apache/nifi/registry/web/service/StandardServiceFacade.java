@@ -372,8 +372,8 @@ public class StandardServiceFacade implements ServiceFacade {
     }
 
     @Override
-    public VersionedFlowSnapshot importVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot, String bucketIdentifier,
-                                                             String flowIdentifier, String comments) {
+    public VersionedFlowSnapshot importVersionedFlowSnapshot(final VersionedFlowSnapshot versionedFlowSnapshot, final String bucketIdentifier,
+                                                             final String flowIdentifier, final String comments) {
         // set new snapshotMetadata
         final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
         metadata.setBucketIdentifier(bucketIdentifier);
@@ -397,10 +397,10 @@ public class StandardServiceFacade implements ServiceFacade {
     }
 
     @Override
-    public ExportedVersionedFlowSnapshot exportFlowSnapshot(String bucketIdentifier, String flowIdentifier, Integer versionNumber) {
+    public ExportedVersionedFlowSnapshot exportFlowSnapshot(final String bucketIdentifier, final String flowIdentifier, final Integer versionNumber) {
         final VersionedFlowSnapshot versionedFlowSnapshot = getFlowSnapshot(bucketIdentifier, flowIdentifier, versionNumber);
 
-        String flowName = versionedFlowSnapshot.getFlow().getName();
+        final String flowName = versionedFlowSnapshot.getFlow().getName();
         final String dashFlowName = flowName.replaceAll("\\s", "-");
         final String filename = String.format("%s-version-%d.json", dashFlowName, versionedFlowSnapshot.getSnapshotMetadata().getVersion());
 
@@ -1064,7 +1064,7 @@ public class StandardServiceFacade implements ServiceFacade {
             config.setSupportsManagedAuthorizer(authorizationService.isManagedAuthorizer());
             config.setSupportsConfigurableAuthorizer(authorizationService.isConfigurableAccessPolicyProvider());
             hasAnyConfigurationAccess = true;
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             lastAccessDeniedException = e;
         }
 
@@ -1072,7 +1072,7 @@ public class StandardServiceFacade implements ServiceFacade {
             authorizationService.authorize(authorizableLookup.getTenantsAuthorizable(), RequestAction.READ);
             config.setSupportsConfigurableUsersAndGroups(authorizationService.isConfigurableUserGroupProvider());
             hasAnyConfigurationAccess = true;
-        } catch (AccessDeniedException e) {
+        } catch (final AccessDeniedException e) {
             lastAccessDeniedException = e;
         }
 
@@ -1087,7 +1087,7 @@ public class StandardServiceFacade implements ServiceFacade {
 
     // ---------------------- Helper methods -------------------------------------
 
-    private void authorizeBucketsAccess(RequestAction actionType) throws AccessDeniedException {
+    private void authorizeBucketsAccess(final RequestAction actionType) throws AccessDeniedException {
         final Authorizable bucketsAuthorizable = authorizableLookup.getBucketsAuthorizable();
         authorizationService.authorize(bucketsAuthorizable, actionType);
     }
@@ -1146,7 +1146,7 @@ public class StandardServiceFacade implements ServiceFacade {
                 .collect(Collectors.toSet());
     }
 
-    private static String extractBucketIdFromResource(Resource resource) {
+    private static String extractBucketIdFromResource(final Resource resource) {
         if (resource == null || resource.getIdentifier() == null || !resource.getIdentifier().startsWith("/buckets/")) {
             return null;
         }
@@ -1168,7 +1168,7 @@ public class StandardServiceFacade implements ServiceFacade {
         authorizationService.authorize(policiesAuthorizable, actionType);
     }
 
-    private void authorizeTenantsAccess(RequestAction actionType) {
+    private void authorizeTenantsAccess(final RequestAction actionType) {
         final Authorizable tenantsAuthorizable = authorizableLookup.getTenantsAuthorizable();
         authorizationService.authorize(tenantsAuthorizable, actionType);
     }
@@ -1297,7 +1297,7 @@ public class StandardServiceFacade implements ServiceFacade {
         } else {
             try {
                 return entityService.create(requestEntity, creatorIdentity, createEntity);
-            } catch (InvalidRevisionException e) {
+            } catch (final InvalidRevisionException e) {
                 final String msg = String.format(INVALID_REVISION_MSG, entityTypeName, "create", requestEntity.getIdentifier());
                 throw new InvalidRevisionException(msg, e);
             }
@@ -1317,7 +1317,7 @@ public class StandardServiceFacade implements ServiceFacade {
         } else {
             try {
                 return entityService.update(requestEntity, updaterIdentity, updateEntity);
-            } catch (InvalidRevisionException e) {
+            } catch (final InvalidRevisionException e) {
                 final String msg = String.format(INVALID_REVISION_MSG, entityTypeName, "update", requestEntity.getIdentifier());
                 throw new InvalidRevisionException(msg, e);
             }
@@ -1336,7 +1336,7 @@ public class StandardServiceFacade implements ServiceFacade {
         } else {
             try {
                 return entityService.delete(entityIdentifier, revisionInfo, deleteEntity);
-            } catch (InvalidRevisionException e) {
+            } catch (final InvalidRevisionException e) {
                 final String msg = String.format(INVALID_REVISION_MSG, entityTypeName, "delete", entityIdentifier);
                 throw new InvalidRevisionException(msg, e);
             }

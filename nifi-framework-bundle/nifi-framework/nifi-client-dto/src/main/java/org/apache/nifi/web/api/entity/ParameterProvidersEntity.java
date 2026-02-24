@@ -56,7 +56,7 @@ public class ParameterProvidersEntity extends Entity {
         return currentTime;
     }
 
-    public void setCurrentTime(Date currentTime) {
+    public void setCurrentTime(final Date currentTime) {
         this.currentTime = currentTime;
     }
 }

@@ -180,7 +180,7 @@ public class LogAttribute extends AbstractProcessor {
         final String dashedLine;
 
         String logPrefix = context.getProperty(LOG_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
-        Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         if (StringUtil.isBlank(logPrefix)) {
             dashedLine = StringUtils.repeat('-', 50);
@@ -306,12 +306,12 @@ public class LogAttribute extends AbstractProcessor {
         final DebugLevels logLevel;
         try {
             logLevel = DebugLevels.valueOf(logLevelValue);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new ProcessException(e);
         }
 
         final ComponentLog LOG = getLogger();
-        boolean isLogLevelEnabled = switch (logLevel) {
+        final boolean isLogLevelEnabled = switch (logLevel) {
             case trace -> LOG.isTraceEnabled();
             case debug -> LOG.isDebugEnabled();
             case info -> LOG.isInfoEnabled();
@@ -334,7 +334,7 @@ public class LogAttribute extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("attributes-to-log-regex", ATTRIBUTES_TO_LOG_REGEX.getName());
         config.renameProperty("attributes-to-ignore-regex", ATTRIBUTES_TO_IGNORE_REGEX.getName());
         config.renameProperty("character-set", CHARSET.getName());
@@ -346,7 +346,7 @@ public class LogAttribute extends AbstractProcessor {
         private String contents = "";
         private final Charset charset;
 
-        public FlowFilePayloadCallback(Charset charset) {
+        public FlowFilePayloadCallback(final Charset charset) {
             this.charset = charset;
         }
 

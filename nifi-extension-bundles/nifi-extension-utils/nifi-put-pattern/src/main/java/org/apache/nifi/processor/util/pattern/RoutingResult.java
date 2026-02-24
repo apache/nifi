@@ -44,7 +44,7 @@ public class RoutingResult {
         return routedFlowFiles;
     }
 
-    public boolean contains(Relationship relationship) {
+    public boolean contains(final Relationship relationship) {
         return routedFlowFiles.containsKey(relationship) && !routedFlowFiles.get(relationship).isEmpty();
     }
 }

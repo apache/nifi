@@ -69,7 +69,7 @@ public class PartitionText extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -91,7 +91,7 @@ public class PartitionText extends AbstractProcessor {
 
                     OutputStream out = outputStreams.get(flowFileIndex);
                     if (out == null) {
-                        FlowFile outputFlowFile = session.create(flowFile);
+                        final FlowFile outputFlowFile = session.create(flowFile);
                         out = session.write(outputFlowFile);
                         outputFlowFiles.put(flowFileIndex, outputFlowFile);
                         outputStreams.put(flowFileIndex, out);
@@ -105,7 +105,7 @@ public class PartitionText extends AbstractProcessor {
             outputStreams.values().forEach(this::closeQuietly);
             session.transfer(outputFlowFiles.values(), REL_SUCCESS);
             session.remove(flowFile);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e);
         }
     }

@@ -36,7 +36,7 @@ public class NodeEntity extends Entity {
         return node;
     }
 
-    public void setNode(NodeDTO node) {
+    public void setNode(final NodeDTO node) {
         this.node = node;
     }
 

@@ -44,7 +44,7 @@ public class ClusterCoordinatorNodeInformant implements NodeInformant {
                         nodeId.getSiteToSiteHttpApiPort(), nodeId.getApiPort(), nodeId.isSiteToSiteSecure(), entry.getValue().getFlowFileCount());
                 return nodeInfo;
             }).collect(Collectors.toList());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException("Failed to retrieve cluster workload due to " + e, e);
         }
 

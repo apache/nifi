@@ -67,7 +67,7 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
         replaceWith = BytesWritable.class.getCanonicalName().getBytes(StandardCharsets.UTF_8);
 
         final StopWatch watch = new StopWatch(true);
-        FlowFile sfFlowFile = session.write(flowFile, (in, out) -> {
+        final FlowFile sfFlowFile = session.write(flowFile, (in, out) -> {
             // Use a FilterableOutputStream to change 'InputStreamWritable' to 'BytesWritable' - see comment
             // above for an explanation of why we want to do this.
             final ByteFilteringOutputStream bwos = new ByteFilteringOutputStream(out);
@@ -101,10 +101,10 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
         return sfFlowFile;
     }
 
-    protected void processInputStream(InputStream stream, FlowFile flowFile, final Writer writer) throws IOException {
-        int fileSize = (int) flowFile.getSize();
+    protected void processInputStream(final InputStream stream, final FlowFile flowFile, final Writer writer) throws IOException {
+        final int fileSize = (int) flowFile.getSize();
         final InputStreamWritable inStreamWritable = new InputStreamWritable(new BufferedInputStream(stream), fileSize);
-        String key = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        final String key = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         writer.append(new Text(key), inStreamWritable);
     }
 }

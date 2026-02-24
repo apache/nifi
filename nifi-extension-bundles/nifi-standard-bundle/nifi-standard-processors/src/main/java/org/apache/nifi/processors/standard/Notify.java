@@ -168,9 +168,9 @@ public class Notify extends AbstractProcessor {
         final List<FlowFile> flowFiles = new ArrayList<>();
 
         int incrementDelta(final String counterName, final int delta) {
-            int current = deltas.getOrDefault(counterName, 0);
+            final int current = deltas.getOrDefault(counterName, 0);
             // Zero (0) clears count.
-            int updated = delta == 0 ? 0 : current + delta;
+            final int updated = delta == 0 ? 0 : current + delta;
             deltas.put(counterName, updated);
             return updated;
         }
@@ -267,14 +267,14 @@ public class Notify extends AbstractProcessor {
                 }
                 signalBuffer.flowFiles.forEach(flowFile ->
                         session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(true)), REL_SUCCESS));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 throw new RuntimeException(String.format("Unable to communicate with cache when processing %s due to %s", signalId, e), e);
             }
         });
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("distributed-cache-service", DISTRIBUTED_CACHE_SERVICE.getName());
         config.renameProperty("release-signal-id", RELEASE_SIGNAL_IDENTIFIER.getName());
         config.renameProperty("signal-counter-name", SIGNAL_COUNTER_NAME.getName());

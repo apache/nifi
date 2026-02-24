@@ -49,7 +49,7 @@ public class SystemInfo implements Serializable {
         return machineArch;
     }
 
-    public void setMachineArch(String machineArch) {
+    public void setMachineArch(final String machineArch) {
         this.machineArch = machineArch;
     }
 
@@ -57,7 +57,7 @@ public class SystemInfo implements Serializable {
         return operatingSystem;
     }
 
-    public void setOperatingSystem(String operatingSystem) {
+    public void setOperatingSystem(final String operatingSystem) {
         this.operatingSystem = operatingSystem;
     }
 
@@ -65,7 +65,7 @@ public class SystemInfo implements Serializable {
         return physicalMem;
     }
 
-    public void setPhysicalMem(Long physicalMem) {
+    public void setPhysicalMem(final Long physicalMem) {
         this.physicalMem = physicalMem;
     }
 
@@ -73,7 +73,7 @@ public class SystemInfo implements Serializable {
         return memoryUsage;
     }
 
-    public void setMemoryUsage(Long memoryUsage) {
+    public void setMemoryUsage(final Long memoryUsage) {
         this.memoryUsage = memoryUsage;
     }
 
@@ -81,7 +81,7 @@ public class SystemInfo implements Serializable {
         return cpuUtilization;
     }
 
-    public void setCpuUtilization(Double cpuUtilization) {
+    public void setCpuUtilization(final Double cpuUtilization) {
         this.cpuUtilization = cpuUtilization;
     }
 
@@ -89,7 +89,7 @@ public class SystemInfo implements Serializable {
         return vCores;
     }
 
-    public void setvCores(Integer vCores) {
+    public void setvCores(final Integer vCores) {
         this.vCores = vCores;
     }
 
@@ -97,7 +97,7 @@ public class SystemInfo implements Serializable {
         return cpuLoadAverage;
     }
 
-    public void setCpuLoadAverage(Double cpuLoadAverage) {
+    public void setCpuLoadAverage(final Double cpuLoadAverage) {
         this.cpuLoadAverage = cpuLoadAverage;
     }
 }

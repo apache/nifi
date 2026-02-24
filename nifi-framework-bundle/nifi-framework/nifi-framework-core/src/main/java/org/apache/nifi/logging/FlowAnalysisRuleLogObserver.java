@@ -27,7 +27,7 @@ public class FlowAnalysisRuleLogObserver implements LogObserver {
     private final BulletinRepository bulletinRepository;
     private final FlowAnalysisRuleNode flowAnalysisRuleNode;
 
-    public FlowAnalysisRuleLogObserver(BulletinRepository bulletinRepository, FlowAnalysisRuleNode flowAnalysisRuleNode) {
+    public FlowAnalysisRuleLogObserver(final BulletinRepository bulletinRepository, final FlowAnalysisRuleNode flowAnalysisRuleNode) {
         this.bulletinRepository = bulletinRepository;
         this.flowAnalysisRuleNode = flowAnalysisRuleNode;
     }

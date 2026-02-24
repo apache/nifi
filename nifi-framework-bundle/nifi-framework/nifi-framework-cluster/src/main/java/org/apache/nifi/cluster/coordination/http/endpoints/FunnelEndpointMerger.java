@@ -38,12 +38,13 @@ public class FunnelEndpointMerger extends AbstractSingleEntityEndpoint<FunnelEnt
     }
 
     @Override
-    protected void mergeResponses(FunnelEntity clientEntity, Map<NodeIdentifier, FunnelEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+    protected void mergeResponses(final FunnelEntity clientEntity, final Map<NodeIdentifier, FunnelEntity> entityMap,
+            final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
         funnelEntityMerger.merge(clientEntity, entityMap);
     }
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (FUNNEL_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && FUNNELS_URI_PATTERN.matcher(uri.getPath()).matches()) {

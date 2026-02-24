@@ -132,7 +132,7 @@ public class ParquetUtils {
 
     private static List<AllowableValue> getCompressionTypes() {
         final List<AllowableValue> compressionTypes = new ArrayList<>();
-        for (CompressionCodecName compressionCodecName : CompressionCodecName.values()) {
+        for (final CompressionCodecName compressionCodecName : CompressionCodecName.values()) {
             final String name = compressionCodecName.name();
             compressionTypes.add(new AllowableValue(name, name));
         }
@@ -181,7 +181,7 @@ public class ParquetUtils {
                 if (rowGroupSize != null) {
                     parquetConfig.setRowGroupSize(rowGroupSize.intValue());
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + ROW_GROUP_SIZE.getDisplayName(), e);
             }
         }
@@ -192,7 +192,7 @@ public class ParquetUtils {
                 if (pageSize != null) {
                     parquetConfig.setPageSize(pageSize.intValue());
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + PAGE_SIZE.getDisplayName(), e);
             }
         }
@@ -203,7 +203,7 @@ public class ParquetUtils {
                 if (dictionaryPageSize != null) {
                     parquetConfig.setDictionaryPageSize(dictionaryPageSize.intValue());
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + DICTIONARY_PAGE_SIZE.getDisplayName(), e);
             }
         }
@@ -214,7 +214,7 @@ public class ParquetUtils {
                 if (maxPaddingSize != null) {
                     parquetConfig.setMaxPaddingSize(maxPaddingSize.intValue());
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (final IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid data size for " + MAX_PADDING_SIZE.getDisplayName(), e);
             }
         }
@@ -294,7 +294,7 @@ public class ParquetUtils {
         applyCommonConfig(conf, parquetConfig);
     }
 
-    public static void applyCommonConfig(Configuration conf, ParquetConfig parquetConfig) {
+    public static void applyCommonConfig(final Configuration conf, final ParquetConfig parquetConfig) {
         if (parquetConfig.getAvroReadCompatibility() != null) {
             conf.setBoolean(AvroReadSupport.AVRO_COMPATIBILITY,
                     parquetConfig.getAvroReadCompatibility().booleanValue());

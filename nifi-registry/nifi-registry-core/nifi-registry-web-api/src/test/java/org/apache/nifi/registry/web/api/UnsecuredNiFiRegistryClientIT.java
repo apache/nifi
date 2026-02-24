@@ -92,7 +92,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         if (extensionsStorageDir.exists()) {
             try {
                 FileUtils.deleteFile(extensionsStorageDir, true);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.warn("Unable to delete extensions storage dir", e);
             }
         }
@@ -102,7 +102,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
     public void teardown() {
         try {
             client.close();
-        } catch (Exception ignored) {
+        } catch (final Exception ignored) {
 
         }
     }
@@ -114,7 +114,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertEquals("anonymous", currentUser.getIdentity());
         assertTrue(currentUser.isAnonymous());
         assertNotNull(currentUser.getResourcePermissions());
-        Permissions fullAccess = new Permissions().withCanRead(true).withCanWrite(true).withCanDelete(true);
+        final Permissions fullAccess = new Permissions().withCanRead(true).withCanWrite(true).withCanDelete(true);
         assertEquals(fullAccess, currentUser.getResourcePermissions().getAnyTopLevelResource());
         assertEquals(fullAccess, currentUser.getResourcePermissions().getBuckets());
         assertEquals(fullAccess, currentUser.getResourcePermissions().getTenants());
@@ -122,7 +122,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertEquals(fullAccess, currentUser.getResourcePermissions().getProxy());
     }
 
-    private void checkExtensionMetadata(Collection<ExtensionMetadata> extensions) {
+    private void checkExtensionMetadata(final Collection<ExtensionMetadata> extensions) {
         extensions.forEach(e -> {
             assertNotNull(e.getBundleInfo());
             assertNotNull(e.getBundleInfo().getBucketId());
@@ -180,7 +180,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         return createdBundleVersion;
     }
 
-    private static Bucket createBucket(BucketClient bucketClient, int num) throws IOException, NiFiRegistryException {
+    private static Bucket createBucket(final BucketClient bucketClient, final int num) throws IOException, NiFiRegistryException {
         final Bucket bucket = new Bucket();
         bucket.setName("Bucket #" + num);
         bucket.setDescription("This is bucket #" + num);
@@ -188,7 +188,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         return bucketClient.create(bucket);
     }
 
-    private static VersionedFlow createFlow(FlowClient client, Bucket bucket, int num) throws IOException, NiFiRegistryException {
+    private static VersionedFlow createFlow(final FlowClient client, final Bucket bucket, final int num) throws IOException, NiFiRegistryException {
         final VersionedFlow versionedFlow = new VersionedFlow();
         versionedFlow.setName(bucket.getName() + " Flow #" + num);
         versionedFlow.setDescription("This is " + bucket.getName() + " flow #" + num);
@@ -197,7 +197,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         return client.create(versionedFlow);
     }
 
-    private static VersionedFlowSnapshot buildSnapshot(VersionedFlow flow, int num) {
+    private static VersionedFlowSnapshot buildSnapshot(final VersionedFlow flow, final int num) {
         final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
         snapshotMetadata.setBucketIdentifier(flow.getBucketIdentifier());
         snapshotMetadata.setFlowIdentifier(flow.getIdentifier());
@@ -240,7 +240,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         return snapshot;
     }
 
-    private static VersionedFlowSnapshot createSnapshot(FlowSnapshotClient client, VersionedFlow flow, int num) throws IOException, NiFiRegistryException {
+    private static VersionedFlowSnapshot createSnapshot(final FlowSnapshotClient client, final VersionedFlow flow, final int num) throws IOException, NiFiRegistryException {
         final VersionedFlowSnapshot snapshot = buildSnapshot(flow, num);
 
         return client.create(snapshot);

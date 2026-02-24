@@ -68,7 +68,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
     }
 
     @Override
-    protected void doInitialize(Context context) {
+    protected void doInitialize(final Context context) {
         addOption(CommandOption.PG_ID.createOption());
         addOption(CommandOption.PG_NAME.createOption());
         addOption(CommandOption.INPUT_SOURCE.createOption());
@@ -214,9 +214,9 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
             createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity, Boolean.parseBoolean(keepExistingPC));
 
         } else {
-            JsonNode rootNode = OBJECT_MAPPER.readTree(input);
-            JsonNode flowContentsNode = rootNode.path("flowContents");
-            String pgName = flowContentsNode.path("name").asText();
+            final JsonNode rootNode = OBJECT_MAPPER.readTree(input);
+            final JsonNode flowContentsNode = rootNode.path("flowContents");
+            final String pgName = flowContentsNode.path("name").asText();
             createdEntity = pgClient.upload(parentPgId, input, pgName, posDto.getX(), posDto.getY());
         }
 

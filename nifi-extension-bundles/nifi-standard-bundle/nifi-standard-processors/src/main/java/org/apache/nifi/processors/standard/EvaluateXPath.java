@@ -232,7 +232,7 @@ public class EvaluateXPath extends AbstractProcessor {
             try {
                 xpathExpression = xpathEvaluator.compile(entry.getValue());
                 attributeToXPathMap.put(entry.getKey().getName(), xpathExpression);
-            } catch (XPathExpressionException e) {
+            } catch (final XPathExpressionException e) {
                 throw new ProcessException(e);  // should not happen because we've already validated the XPath (in XPathValidator)
             }
         }
@@ -265,7 +265,8 @@ public class EvaluateXPath extends AbstractProcessor {
         final StandardTransformProvider transformProvider = new StandardTransformProvider();
         transformProvider.setIndent(true);
         flowFileLoop:
-        for (FlowFile flowFile : flowFiles) {
+        for (final FlowFile originalXPathFlowFile : flowFiles) {
+            FlowFile flowFile = originalXPathFlowFile;
             final AtomicReference<Throwable> error = new AtomicReference<>(null);
             final AtomicReference<Source> sourceRef = new AtomicReference<>(null);
 
@@ -288,7 +289,7 @@ public class EvaluateXPath extends AbstractProcessor {
             final Map<String, String> xpathResults = new HashMap<>();
 
             for (final Map.Entry<String, XPathExpression> entry : attributeToXPathMap.entrySet()) {
-                Object result;
+                final Object result;
                 try {
                     result = entry.getValue().evaluate(sourceRef.get(), returnType);
                     if (result == null) {
@@ -316,7 +317,7 @@ public class EvaluateXPath extends AbstractProcessor {
 
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
                         try {
-                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                             final StreamResult streamResult = new StreamResult(baos);
                             transformProvider.transform(sourceNode, streamResult);
                             xpathResults.put(entry.getKey(), baos.toString(StandardCharsets.UTF_8));
@@ -370,7 +371,7 @@ public class EvaluateXPath extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Validate DTD", VALIDATE_DTD.getName());
     }
 
@@ -379,7 +380,7 @@ public class EvaluateXPath extends AbstractProcessor {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
             try {
-                XPathFactory factory = new XPathFactoryImpl();
+                final XPathFactory factory = new XPathFactoryImpl();
                 final XPathEvaluator evaluator = (XPathEvaluator) factory.newXPath();
 
                 String error = null;

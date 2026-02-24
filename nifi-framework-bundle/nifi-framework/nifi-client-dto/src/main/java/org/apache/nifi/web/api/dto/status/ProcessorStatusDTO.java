@@ -46,7 +46,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -55,7 +55,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -64,7 +64,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -73,7 +73,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(final String type) {
         this.type = type;
     }
 
@@ -83,7 +83,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return runStatus;
     }
 
-    public void setRunStatus(String runStatus) {
+    public void setRunStatus(final String runStatus) {
         this.runStatus = runStatus;
     }
 
@@ -93,7 +93,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return statsLastRefreshed;
     }
 
-    public void setStatsLastRefreshed(Date statsLastRefreshed) {
+    public void setStatsLastRefreshed(final Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
     }
 
@@ -103,7 +103,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return aggregateSnapshot;
     }
 
-    public void setAggregateSnapshot(ProcessorStatusSnapshotDTO aggregateSnapshot) {
+    public void setAggregateSnapshot(final ProcessorStatusSnapshotDTO aggregateSnapshot) {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
@@ -113,7 +113,7 @@ public class ProcessorStatusDTO implements Cloneable {
         return nodeSnapshots;
     }
 
-    public void setNodeSnapshots(List<NodeProcessorStatusSnapshotDTO> nodeSnapshots) {
+    public void setNodeSnapshots(final List<NodeProcessorStatusSnapshotDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
     }
 

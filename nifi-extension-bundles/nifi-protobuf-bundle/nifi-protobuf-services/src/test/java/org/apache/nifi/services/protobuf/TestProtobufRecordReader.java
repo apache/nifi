@@ -172,7 +172,7 @@ public class TestProtobufRecordReader {
         ));
     }
 
-    private ProtobufRecordReader createReader(InputStream in, String message, Schema schema, RecordSchema recordSchema) {
+    private ProtobufRecordReader createReader(final InputStream in, final String message, final Schema schema, final RecordSchema recordSchema) {
         return new ProtobufRecordReader(schema, message, in, recordSchema);
     }
 }

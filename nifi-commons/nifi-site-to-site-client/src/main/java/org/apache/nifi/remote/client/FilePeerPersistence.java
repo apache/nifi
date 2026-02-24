@@ -33,7 +33,7 @@ public class FilePeerPersistence extends AbstractPeerPersistence {
 
     private final File persistenceFile;
 
-    public FilePeerPersistence(File persistenceFile) {
+    public FilePeerPersistence(final File persistenceFile) {
         this.persistenceFile = persistenceFile;
     }
 

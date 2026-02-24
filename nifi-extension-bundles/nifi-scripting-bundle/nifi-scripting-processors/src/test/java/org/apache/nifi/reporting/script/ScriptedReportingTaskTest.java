@@ -133,7 +133,7 @@ class ScriptedReportingTaskTest {
             doReturn(index).when(event).getEventId();
             if (index == 1) {
                 doReturn("1234").when(event).getComponentId();
-                Map<String, String> map = new LinkedHashMap<>(1);
+                final Map<String, String> map = new LinkedHashMap<>(1);
                 map.put("abc", "xyz");
                 doReturn(map).when(event).getAttributes();
             }
@@ -143,9 +143,9 @@ class ScriptedReportingTaskTest {
         run();
 
         // This script should return a variable x with the number of events and a variable e with the first event
-        ScriptEngine se = task.getScriptRunner().getScriptEngine();
+        final ScriptEngine se = task.getScriptRunner().getScriptEngine();
         assertEquals(3, se.get("x"));
-        ProvenanceEventRecord per = (ProvenanceEventRecord) se.get("e");
+        final ProvenanceEventRecord per = (ProvenanceEventRecord) se.get("e");
         assertEquals("1234", per.getComponentId());
         assertEquals("xyz", per.getAttributes().get("abc"));
     }
@@ -163,7 +163,7 @@ class ScriptedReportingTaskTest {
         run();
 
         // This script should store a variable called x with a map of stats to values
-        ScriptEngine se = task.getScriptRunner().getScriptEngine();
+        final ScriptEngine se = task.getScriptRunner().getScriptEngine();
         @SuppressWarnings("unchecked")
         final Map<String, Long> x = (Map<String, Long>) se.get("x");
         assertTrue(x.get("uptime") >= 0);

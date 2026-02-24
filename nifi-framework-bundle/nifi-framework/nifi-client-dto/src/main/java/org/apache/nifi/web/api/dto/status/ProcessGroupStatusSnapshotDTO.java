@@ -94,7 +94,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -106,7 +106,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -117,7 +117,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return versionedFlowState;
     }
 
-    public void setVersionedFlowState(String versionedFlowState) {
+    public void setVersionedFlowState(final String versionedFlowState) {
         this.versionedFlowState = versionedFlowState;
     }
 
@@ -129,7 +129,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return statelessActiveThreadCount;
     }
 
-    public void setStatelessActiveThreadCount(int statelessActiveThreadCount) {
+    public void setStatelessActiveThreadCount(final int statelessActiveThreadCount) {
         this.statelessActiveThreadCount = statelessActiveThreadCount;
     }
 
@@ -141,7 +141,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return activeThreadCount;
     }
 
-    public void setActiveThreadCount(Integer activeThreadCount) {
+    public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
     }
 
@@ -153,7 +153,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return terminatedThreadCount;
     }
 
-    public void setTerminatedThreadCount(Integer terminatedThreadCount) {
+    public void setTerminatedThreadCount(final Integer terminatedThreadCount) {
         this.terminatedThreadCount = terminatedThreadCount;
     }
 
@@ -167,7 +167,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return connectionStatusSnapshots;
     }
 
-    public void setConnectionStatusSnapshots(Collection<ConnectionStatusSnapshotEntity> connectionStatus) {
+    public void setConnectionStatusSnapshots(final Collection<ConnectionStatusSnapshotEntity> connectionStatus) {
         this.connectionStatusSnapshots = connectionStatus;
     }
 
@@ -181,7 +181,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return processGroupStatusSnapshots;
     }
 
-    public void setProcessGroupStatusSnapshots(Collection<ProcessGroupStatusSnapshotEntity> processGroupStatus) {
+    public void setProcessGroupStatusSnapshots(final Collection<ProcessGroupStatusSnapshotEntity> processGroupStatus) {
         this.processGroupStatusSnapshots = processGroupStatus;
     }
 
@@ -209,7 +209,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return processorStatusSnapshots;
     }
 
-    public void setProcessorStatusSnapshots(Collection<ProcessorStatusSnapshotEntity> processorStatus) {
+    public void setProcessorStatusSnapshots(final Collection<ProcessorStatusSnapshotEntity> processorStatus) {
         this.processorStatusSnapshots = processorStatus;
     }
 
@@ -223,7 +223,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return inputPortStatusSnapshots;
     }
 
-    public void setInputPortStatusSnapshots(Collection<PortStatusSnapshotEntity> inputPortStatus) {
+    public void setInputPortStatusSnapshots(final Collection<PortStatusSnapshotEntity> inputPortStatus) {
         this.inputPortStatusSnapshots = inputPortStatus;
     }
 
@@ -237,7 +237,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return outputPortStatusSnapshots;
     }
 
-    public void setOutputPortStatusSnapshots(Collection<PortStatusSnapshotEntity> outputPortStatus) {
+    public void setOutputPortStatusSnapshots(final Collection<PortStatusSnapshotEntity> outputPortStatus) {
         this.outputPortStatusSnapshots = outputPortStatus;
     }
 
@@ -346,7 +346,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesIn;
     }
 
-    public void setFlowFilesIn(Integer flowFilesIn) {
+    public void setFlowFilesIn(final Integer flowFilesIn) {
         this.flowFilesIn = flowFilesIn;
     }
 
@@ -355,7 +355,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesIn;
     }
 
-    public void setBytesIn(Long bytesIn) {
+    public void setBytesIn(final Long bytesIn) {
         this.bytesIn = bytesIn;
     }
 
@@ -364,7 +364,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesQueued;
     }
 
-    public void setFlowFilesQueued(Integer flowFilesQueued) {
+    public void setFlowFilesQueued(final Integer flowFilesQueued) {
         this.flowFilesQueued = flowFilesQueued;
     }
 
@@ -373,7 +373,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesQueued;
     }
 
-    public void setBytesQueued(Long bytesQueued) {
+    public void setBytesQueued(final Long bytesQueued) {
         this.bytesQueued = bytesQueued;
     }
 
@@ -382,7 +382,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesRead;
     }
 
-    public void setBytesRead(Long bytesRead) {
+    public void setBytesRead(final Long bytesRead) {
         this.bytesRead = bytesRead;
     }
 
@@ -391,7 +391,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesWritten;
     }
 
-    public void setBytesWritten(Long bytesWritten) {
+    public void setBytesWritten(final Long bytesWritten) {
         this.bytesWritten = bytesWritten;
     }
 
@@ -400,7 +400,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesOut;
     }
 
-    public void setFlowFilesOut(Integer flowFilesOut) {
+    public void setFlowFilesOut(final Integer flowFilesOut) {
         this.flowFilesOut = flowFilesOut;
     }
 
@@ -409,7 +409,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesOut;
     }
 
-    public void setBytesOut(Long bytesOut) {
+    public void setBytesOut(final Long bytesOut) {
         this.bytesOut = bytesOut;
     }
 
@@ -418,7 +418,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesTransferred;
     }
 
-    public void setFlowFilesTransferred(Integer flowFilesTransferred) {
+    public void setFlowFilesTransferred(final Integer flowFilesTransferred) {
         this.flowFilesTransferred = flowFilesTransferred;
     }
 
@@ -427,7 +427,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesTransferred;
     }
 
-    public void setBytesTransferred(Long bytesTransferred) {
+    public void setBytesTransferred(final Long bytesTransferred) {
         this.bytesTransferred = bytesTransferred;
     }
 
@@ -436,7 +436,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesReceived;
     }
 
-    public void setBytesReceived(Long bytesReceived) {
+    public void setBytesReceived(final Long bytesReceived) {
         this.bytesReceived = bytesReceived;
     }
 
@@ -445,7 +445,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return bytesSent;
     }
 
-    public void setBytesSent(Long bytesSent) {
+    public void setBytesSent(final Long bytesSent) {
         this.bytesSent = bytesSent;
     }
 
@@ -454,7 +454,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesSent;
     }
 
-    public void setFlowFilesSent(Integer flowFilesSent) {
+    public void setFlowFilesSent(final Integer flowFilesSent) {
         this.flowFilesSent = flowFilesSent;
     }
 
@@ -463,47 +463,47 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return flowFilesReceived;
     }
 
-    public void setFlowFilesReceived(Integer flowFilesReceived) {
+    public void setFlowFilesReceived(final Integer flowFilesReceived) {
         this.flowFilesReceived = flowFilesReceived;
     }
 
-    public void setInput(String input) {
+    public void setInput(final String input) {
         this.input = input;
     }
 
-    public void setQueued(String queued) {
+    public void setQueued(final String queued) {
         this.queued = queued;
     }
 
-    public void setQueuedCount(String queuedCount) {
+    public void setQueuedCount(final String queuedCount) {
         this.queuedCount = queuedCount;
     }
 
-    public void setQueuedSize(String queuedSize) {
+    public void setQueuedSize(final String queuedSize) {
         this.queuedSize = queuedSize;
     }
 
-    public void setRead(String read) {
+    public void setRead(final String read) {
         this.read = read;
     }
 
-    public void setWritten(String written) {
+    public void setWritten(final String written) {
         this.written = written;
     }
 
-    public void setOutput(String output) {
+    public void setOutput(final String output) {
         this.output = output;
     }
 
-    public void setTransferred(String transferred) {
+    public void setTransferred(final String transferred) {
         this.transferred = transferred;
     }
 
-    public void setReceived(String received) {
+    public void setReceived(final String received) {
         this.received = received;
     }
 
-    public void setSent(String sent) {
+    public void setSent(final String sent) {
         this.sent = sent;
     }
 
@@ -511,7 +511,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return processingNanos;
     }
 
-    public void setProcessingNanos(Long processingNanos) {
+    public void setProcessingNanos(final Long processingNanos) {
         this.processingNanos = processingNanos;
     }
 
@@ -519,7 +519,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return processingPerformanceStatus;
     }
 
-    public void setProcessingPerformanceStatus(ProcessingPerformanceStatusDTO processingPerformanceStatus) {
+    public void setProcessingPerformanceStatus(final ProcessingPerformanceStatusDTO processingPerformanceStatus) {
         this.processingPerformanceStatus = processingPerformanceStatus;
     }
 
@@ -606,7 +606,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         return other;
     }
 
-    private Collection<PortStatusSnapshotEntity> copyPortStatusSnapshots(Collection<PortStatusSnapshotEntity> portStatusSnapshots) {
+    private Collection<PortStatusSnapshotEntity> copyPortStatusSnapshots(final Collection<PortStatusSnapshotEntity> portStatusSnapshots) {
         if (portStatusSnapshots != null) {
             final List<PortStatusSnapshotEntity> portStatusSnapshotEntities = new ArrayList<>();
             for (final PortStatusSnapshotEntity portStatusSnapshotEntity : portStatusSnapshots) {

@@ -34,7 +34,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -42,7 +42,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return remoteProcessGroupHealth;
     }
 
-    public void setRemoteProcessGroupHealth(RemoteProcessGroupHealth remoteProcessGroupHealth) {
+    public void setRemoteProcessGroupHealth(final RemoteProcessGroupHealth remoteProcessGroupHealth) {
         this.remoteProcessGroupHealth = remoteProcessGroupHealth;
     }
 
@@ -50,7 +50,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return bulletinList;
     }
 
-    public void setBulletinList(List<BulletinStatus> bulletinList) {
+    public void setBulletinList(final List<BulletinStatus> bulletinList) {
         this.bulletinList = bulletinList;
     }
 
@@ -58,7 +58,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return inputPortStatusList;
     }
 
-    public void setInputPortStatusList(List<PortStatus> inputPortStatusList) {
+    public void setInputPortStatusList(final List<PortStatus> inputPortStatusList) {
         this.inputPortStatusList = inputPortStatusList;
     }
 
@@ -66,7 +66,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return outputPortStatusList;
     }
 
-    public void setOutputPortStatusList(List<PortStatus> outputPortStatusList) {
+    public void setOutputPortStatusList(final List<PortStatus> outputPortStatusList) {
         this.outputPortStatusList = outputPortStatusList;
     }
 
@@ -74,12 +74,12 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         return remoteProcessGroupStats;
     }
 
-    public void setRemoteProcessGroupStats(RemoteProcessGroupStats remoteProcessGroupStats) {
+    public void setRemoteProcessGroupStats(final RemoteProcessGroupStats remoteProcessGroupStats) {
         this.remoteProcessGroupStats = remoteProcessGroupStats;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -87,7 +87,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
             return false;
         }
 
-        RemoteProcessGroupStatusBean that = (RemoteProcessGroupStatusBean) o;
+        final RemoteProcessGroupStatusBean that = (RemoteProcessGroupStatusBean) o;
 
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
             return false;

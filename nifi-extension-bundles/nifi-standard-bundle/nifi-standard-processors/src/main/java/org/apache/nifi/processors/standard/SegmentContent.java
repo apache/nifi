@@ -125,7 +125,7 @@ public class SegmentContent extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, FRAGMENT_INDEX, "1");
             flowFile = session.putAttribute(flowFile, FRAGMENT_COUNT, "1");
 
-            FlowFile clone = session.clone(flowFile);
+            final FlowFile clone = session.clone(flowFile);
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(clone, REL_SEGMENTS);
             return;

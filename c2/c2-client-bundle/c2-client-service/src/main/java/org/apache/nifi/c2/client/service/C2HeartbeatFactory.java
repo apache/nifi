@@ -76,31 +76,31 @@ public class C2HeartbeatFactory {
     private String deviceId;
     private File confDirectory;
 
-    public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder, ManifestHashProvider manifestHashProvider,
-                              Supplier<ResourcesGlobalHash> resourcesGlobalHashSupplier) {
+    public C2HeartbeatFactory(final C2ClientConfig clientConfig, final FlowIdHolder flowIdHolder, final ManifestHashProvider manifestHashProvider,
+                              final Supplier<ResourcesGlobalHash> resourcesGlobalHashSupplier) {
         this.clientConfig = clientConfig;
         this.flowIdHolder = flowIdHolder;
         this.manifestHashProvider = manifestHashProvider;
         this.resourcesGlobalHashSupplier = resourcesGlobalHashSupplier;
     }
 
-    public C2Heartbeat create(RuntimeInfoWrapper runtimeInfoWrapper) {
-        C2Heartbeat heartbeat = new C2Heartbeat();
+    public C2Heartbeat create(final RuntimeInfoWrapper runtimeInfoWrapper) {
+        final C2Heartbeat heartbeat = new C2Heartbeat();
 
         heartbeat.setAgentInfo(getAgentInfo(runtimeInfoWrapper.getAgentRepositories(), runtimeInfoWrapper.getManifest()));
         heartbeat.setDeviceInfo(generateDeviceInfo());
         heartbeat.setFlowInfo(getFlowInfo(runtimeInfoWrapper));
         heartbeat.setCreated(System.currentTimeMillis());
 
-        ResourceInfo resourceInfo = new ResourceInfo();
+        final ResourceInfo resourceInfo = new ResourceInfo();
         resourceInfo.setHash(resourcesGlobalHashSupplier.get().getDigest());
         heartbeat.setResourceInfo(resourceInfo);
 
         return heartbeat;
     }
 
-    private FlowInfo getFlowInfo(RuntimeInfoWrapper runtimeInfoWrapper) {
-        FlowInfo flowInfo = new FlowInfo();
+    private FlowInfo getFlowInfo(final RuntimeInfoWrapper runtimeInfoWrapper) {
+        final FlowInfo flowInfo = new FlowInfo();
         flowInfo.setQueues(runtimeInfoWrapper.getQueueStatus());
         flowInfo.setProcessorBulletins(runtimeInfoWrapper.getProcessorBulletins());
         flowInfo.setProcessorStatuses(runtimeInfoWrapper.getProcessorStatus());
@@ -109,15 +109,15 @@ public class C2HeartbeatFactory {
         return flowInfo;
     }
 
-    private AgentInfo getAgentInfo(AgentRepositories repos, RuntimeManifest manifest) {
-        AgentInfo agentInfo = new AgentInfo();
+    private AgentInfo getAgentInfo(final AgentRepositories repos, final RuntimeManifest manifest) {
+        final AgentInfo agentInfo = new AgentInfo();
         agentInfo.setAgentClass(clientConfig.getAgentClass());
         agentInfo.setIdentifier(getAgentId());
 
-        AgentStatus agentStatus = new AgentStatus();
+        final AgentStatus agentStatus = new AgentStatus();
         agentStatus.setUptime(ManagementFactory.getRuntimeMXBean().getUptime());
         agentStatus.setRepositories(repos);
-        AgentResourceConsumption agentResourceConsumption = new AgentResourceConsumption();
+        final AgentResourceConsumption agentResourceConsumption = new AgentResourceConsumption();
         agentResourceConsumption.setMemoryUsage(Runtime.getRuntime().maxMemory() - Runtime.getRuntime().freeMemory());
         agentStatus.setResourceConsumption(agentResourceConsumption);
         agentInfo.setStatus(agentStatus);
@@ -130,8 +130,8 @@ public class C2HeartbeatFactory {
         return agentInfo;
     }
 
-    private Set<SupportedOperation> getSupportedOperations(RuntimeManifest manifest) {
-        Set<SupportedOperation> supportedOperations;
+    private Set<SupportedOperation> getSupportedOperations(final RuntimeManifest manifest) {
+        final Set<SupportedOperation> supportedOperations;
         // supported operations has value only in case of minifi, therefore we return empty collection if
         if (manifest instanceof AgentManifest) {
             supportedOperations = ((AgentManifest) manifest).getSupportedOperations();
@@ -143,11 +143,11 @@ public class C2HeartbeatFactory {
 
     private String getAgentId() {
         if (agentId == null) {
-            String rawAgentId = clientConfig.getAgentIdentifier();
+            final String rawAgentId = clientConfig.getAgentIdentifier();
             if (isNotBlank(rawAgentId)) {
                 agentId = rawAgentId.trim();
             } else {
-                File idFile = new File(getConfDirectory(), AGENT_IDENTIFIER_FILENAME);
+                final File idFile = new File(getConfDirectory(), AGENT_IDENTIFIER_FILENAME);
                 agentId = new PersistentUuidGenerator(idFile).generate();
             }
         }
@@ -156,7 +156,7 @@ public class C2HeartbeatFactory {
     }
 
     private DeviceInfo generateDeviceInfo() {
-        DeviceInfo deviceInfo = new DeviceInfo();
+        final DeviceInfo deviceInfo = new DeviceInfo();
         deviceInfo.setNetworkInfo(generateNetworkInfo());
         deviceInfo.setIdentifier(getDeviceIdentifier(deviceInfo.getNetworkInfo()));
         deviceInfo.setSystemInfo(generateSystemInfo());
@@ -165,7 +165,7 @@ public class C2HeartbeatFactory {
 
     private NetworkInfo generateNetworkInfo() {
         try {
-            Set<NetworkInterface> eligibleInterfaces = list(getNetworkInterfaces())
+            final Set<NetworkInterface> eligibleInterfaces = list(getNetworkInterfaces())
                 .stream()
                 .filter(this::isEligibleInterface)
                 .collect(toSet());
@@ -178,8 +178,8 @@ public class C2HeartbeatFactory {
                 );
             }
 
-            Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByIp4AddressesFirst = comparingInt(item -> item.getValue() instanceof Inet4Address ? 0 : 1);
-            Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByNetworkInterfaceName = comparing(entry -> entry.getKey().getName());
+            final Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByIp4AddressesFirst = comparingInt(item -> item.getValue() instanceof Inet4Address ? 0 : 1);
+            final Comparator<Map.Entry<NetworkInterface, InetAddress>> orderByNetworkInterfaceName = comparing(entry -> entry.getKey().getName());
             return eligibleInterfaces.stream()
                 .flatMap(networkInterface -> list(networkInterface.getInetAddresses())
                     .stream()
@@ -188,46 +188,46 @@ public class C2HeartbeatFactory {
                 .findFirst()
                 .map(entry -> createNetworkInfo(entry.getKey(), entry.getValue()))
                 .orElseGet(NetworkInfo::new);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Network Interface processing failed", e);
             return new NetworkInfo();
         }
     }
 
-    private boolean isEligibleInterface(NetworkInterface networkInterface) {
+    private boolean isEligibleInterface(final NetworkInterface networkInterface) {
         try {
             return !networkInterface.isLoopback()
                 && !networkInterface.isVirtual()
                 && networkInterface.isUp()
                 && nonNull(networkInterface.getHardwareAddress());
-        } catch (SocketException e) {
+        } catch (final SocketException e) {
             logger.warn("Error processing network interface", e);
             return false;
         }
     }
 
-    private NetworkInfo createNetworkInfo(NetworkInterface networkInterface, InetAddress inetAddress) {
-        NetworkInfo networkInfo = new NetworkInfo();
+    private NetworkInfo createNetworkInfo(final NetworkInterface networkInterface, final InetAddress inetAddress) {
+        final NetworkInfo networkInfo = new NetworkInfo();
         networkInfo.setDeviceId(networkInterface.getName());
         networkInfo.setHostname(inetAddress.getHostName());
         networkInfo.setIpAddress(inetAddress.getHostAddress());
         return networkInfo;
     }
 
-    private String getDeviceIdentifier(NetworkInfo networkInfo) {
+    private String getDeviceIdentifier(final NetworkInfo networkInfo) {
         if (deviceId == null) {
             if (networkInfo.getDeviceId() != null) {
                 try {
-                    NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
-                    byte[] hardwareAddress = netInterface.getHardwareAddress();
-                    StringBuilder macBuilder = new StringBuilder();
+                    final NetworkInterface netInterface = NetworkInterface.getByName(networkInfo.getDeviceId());
+                    final byte[] hardwareAddress = netInterface.getHardwareAddress();
+                    final StringBuilder macBuilder = new StringBuilder();
                     if (hardwareAddress != null) {
-                        for (byte address : hardwareAddress) {
+                        for (final byte address : hardwareAddress) {
                             macBuilder.append(String.format("%02X", address));
                         }
                     }
                     deviceId = macBuilder.toString();
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     logger.warn("Could not determine device identifier.  Generating a unique ID", e);
                     deviceId = getConfiguredDeviceId();
                 }
@@ -239,18 +239,18 @@ public class C2HeartbeatFactory {
     }
 
     private String getConfiguredDeviceId() {
-        File idFile = new File(getConfDirectory(), DEVICE_IDENTIFIER_FILENAME);
+        final File idFile = new File(getConfDirectory(), DEVICE_IDENTIFIER_FILENAME);
         return new PersistentUuidGenerator(idFile).generate();
     }
 
     private SystemInfo generateSystemInfo() {
-        SystemInfo systemInfo = new SystemInfo();
+        final SystemInfo systemInfo = new SystemInfo();
 
-        OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
+        final OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
         systemInfo.setMachineArch(osMXBean.getArch());
         systemInfo.setOperatingSystem(osMXBean.getName());
 
-        double systemLoadAverage = osMXBean.getSystemLoadAverage();
+        final double systemLoadAverage = osMXBean.getSystemLoadAverage();
         systemInfo.setvCores(osMXBean.getAvailableProcessors());
 
         // getSystemLoadAverage is not available in Windows, so we need to prevent to send invalid data
@@ -263,8 +263,8 @@ public class C2HeartbeatFactory {
 
     private File getConfDirectory() {
         if (confDirectory == null) {
-            String configDirectoryName = clientConfig.getConfDirectory();
-            File configDirectory = new File(configDirectoryName);
+            final String configDirectoryName = clientConfig.getConfDirectory();
+            final File configDirectory = new File(configDirectoryName);
             if (!configDirectory.exists() || !configDirectory.isDirectory()) {
                 throw new IllegalStateException("Specified conf directory " + configDirectoryName + " does not exist or is not a directory.");
             }

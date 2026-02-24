@@ -138,7 +138,7 @@ public class ConvertEventToLuceneDocument {
             TYPE.freeze();
         }
 
-        public UnIndexedLongField(String name, long value) {
+        public UnIndexedLongField(final String name, final long value) {
             super(name, TYPE);
             fieldsData = Long.valueOf(value);
         }

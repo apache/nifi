@@ -62,7 +62,7 @@ public interface SyncListener {
 
     SyncListener NOP_SYNC_LISTENER = new SyncListener() {
         @Override
-        public void onSync(int partitionIndex) {
+        public void onSync(final int partitionIndex) {
         }
 
         @Override

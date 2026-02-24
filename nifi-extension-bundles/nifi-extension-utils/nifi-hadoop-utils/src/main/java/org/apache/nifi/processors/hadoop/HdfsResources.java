@@ -27,7 +27,7 @@ public class HdfsResources {
     private final UserGroupInformation userGroupInformation;
     private final KerberosUser kerberosUser;
 
-    public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation, KerberosUser kerberosUser) {
+    public HdfsResources(final Configuration configuration, final FileSystem fileSystem, final UserGroupInformation userGroupInformation, final KerberosUser kerberosUser) {
         this.configuration = configuration;
         this.fileSystem = fileSystem;
         this.userGroupInformation = userGroupInformation;

@@ -27,25 +27,25 @@ public class BlockedByFirewallException extends ClusterException {
     private final NodeIdentifier nodeId;
     private final boolean isExistingNode;
 
-    public BlockedByFirewallException(NodeIdentifier nodeId, boolean isExistingNode, String msg, Throwable cause) {
+    public BlockedByFirewallException(final NodeIdentifier nodeId, final boolean isExistingNode, final String msg, final Throwable cause) {
         super(msg, cause);
         this.nodeId = nodeId;
         this.isExistingNode = isExistingNode;
     }
 
-    public BlockedByFirewallException(NodeIdentifier nodeId, boolean isExistingNode, Throwable cause) {
+    public BlockedByFirewallException(final NodeIdentifier nodeId, final boolean isExistingNode, final Throwable cause) {
         super(cause);
         this.nodeId = nodeId;
         this.isExistingNode = isExistingNode;
     }
 
-    public BlockedByFirewallException(NodeIdentifier nodeId, boolean isExistingNode, String msg) {
+    public BlockedByFirewallException(final NodeIdentifier nodeId, final boolean isExistingNode, final String msg) {
         super(msg);
         this.nodeId = nodeId;
         this.isExistingNode = isExistingNode;
     }
 
-    public BlockedByFirewallException(NodeIdentifier nodeId, boolean isExistingNode) {
+    public BlockedByFirewallException(final NodeIdentifier nodeId, final boolean isExistingNode) {
         this.nodeId = nodeId;
         this.isExistingNode = isExistingNode;
     }

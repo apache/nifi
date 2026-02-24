@@ -62,7 +62,7 @@ public class SplitByLine extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -77,7 +77,7 @@ public class SplitByLine extends AbstractProcessor {
         session.remove(flowFile);
     }
 
-    private void splitByClone(ProcessSession session, FlowFile flowFile) {
+    private void splitByClone(final ProcessSession session, final FlowFile flowFile) {
         final List<TextLineDemarcator.OffsetInfo> offsetInfos = new ArrayList<>();
 
         try (final InputStream in = session.read(flowFile);
@@ -92,20 +92,20 @@ public class SplitByLine extends AbstractProcessor {
         }
 
         for (final TextLineDemarcator.OffsetInfo offsetInfo : offsetInfos) {
-            FlowFile child = session.clone(flowFile, offsetInfo.getStartOffset(), offsetInfo.getLength() - offsetInfo.getCrlfLength());
+            final FlowFile child = session.clone(flowFile, offsetInfo.getStartOffset(), offsetInfo.getLength() - offsetInfo.getCrlfLength());
             session.putAttribute(child, "num.lines", String.valueOf(offsetInfos.size()));
             session.transfer(child, REL_SUCCESS);
         }
     }
 
-    private void splitByWrite(ProcessSession session, FlowFile flowFile) {
+    private void splitByWrite(final ProcessSession session, final FlowFile flowFile) {
         final List<FlowFile> children = new ArrayList<>();
         try (final InputStream in = session.read(flowFile);
              final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                FlowFile child = session.create(flowFile);
+                final FlowFile child = session.create(flowFile);
                 children.add(child);
 
                 try (final OutputStream out = session.write(child)) {
@@ -117,7 +117,7 @@ public class SplitByLine extends AbstractProcessor {
             throw new ProcessException(e);
         }
 
-        for (FlowFile child : children) {
+        for (final FlowFile child : children) {
             session.putAttribute(child, "num.lines", String.valueOf(children.size()));
         }
 

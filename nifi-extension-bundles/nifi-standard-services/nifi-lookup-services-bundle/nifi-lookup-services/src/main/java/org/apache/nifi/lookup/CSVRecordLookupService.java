@@ -83,7 +83,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                     logger.debug("Loading lookup table from file: {}", csvFile);
                 }
 
-                ConcurrentMap<String, Record> cache = new ConcurrentHashMap<>();
+                final ConcurrentMap<String, Record> cache = new ConcurrentHashMap<>();
                 try (final InputStream is = new FileInputStream(csvFile)) {
                     try (final InputStreamReader reader = new InputStreamReader(is, charset)) {
                         final CSVParser records = csvFormat.builder().setHeader().setSkipHeaderRecord(true).get().parse(reader);
@@ -108,7 +108,7 @@ public class CSVRecordLookupService extends AbstractCSVLookupService implements 
                             });
 
                             if (lookupRecordSchema == null) {
-                                List<RecordField> recordFields = new ArrayList<>(properties.size());
+                                final List<RecordField> recordFields = new ArrayList<>(properties.size());
                                 properties.forEach((k, v) -> recordFields.add(new RecordField(k, RecordFieldType.STRING.getDataType())));
                                 lookupRecordSchema = new SimpleRecordSchema(recordFields);
                             }

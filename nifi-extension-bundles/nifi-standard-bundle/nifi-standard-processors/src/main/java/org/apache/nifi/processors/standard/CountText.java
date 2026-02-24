@@ -186,7 +186,7 @@ public class CountText extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onSchedule(ProcessContext context) {
+    public void onSchedule(final ProcessContext context) {
         this.countLines = context.getProperty(TEXT_LINE_COUNT_PD).isSet()
                 ? context.getProperty(TEXT_LINE_COUNT_PD).asBoolean() : false;
         this.countLinesNonEmpty = context.getProperty(TEXT_LINE_NONEMPTY_COUNT_PD).isSet()
@@ -206,12 +206,12 @@ public class CountText extends AbstractProcessor {
      * Will count text attributes of the incoming stream.
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        FlowFile sourceFlowFile = processSession.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
+        final FlowFile sourceFlowFile = processSession.get();
         if (sourceFlowFile == null) {
             return;
         }
-        AtomicBoolean error = new AtomicBoolean();
+        final AtomicBoolean error = new AtomicBoolean();
 
         final AtomicInteger lineCount = new AtomicInteger(0);
         final AtomicInteger lineNonEmptyCount = new AtomicInteger(0);
@@ -219,11 +219,11 @@ public class CountText extends AbstractProcessor {
         final AtomicInteger characterCount = new AtomicInteger(0);
 
         processSession.read(sourceFlowFile, in -> {
-            long start = System.nanoTime();
+            final long start = System.nanoTime();
 
             // Iterate over the lines in the text input
             try {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in, characterEncoding));
+                final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in, characterEncoding));
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
                     if (countLines) {
@@ -244,14 +244,14 @@ public class CountText extends AbstractProcessor {
                         characterCount.addAndGet(line.length());
                     }
                 }
-                long stop = System.nanoTime();
+                final long stop = System.nanoTime();
                 if (getLogger().isDebugEnabled()) {
                     final long durationNanos = stop - start;
-                    DecimalFormat df = new DecimalFormat("#.###");
+                    final DecimalFormat df = new DecimalFormat("#.###");
                     getLogger().debug("Computed metrics in {} nanoseconds ({} seconds).", durationNanos, df.format(durationNanos / 1_000_000_000.0));
                 }
                 if (getLogger().isInfoEnabled()) {
-                    String message = generateMetricsMessage(lineCount.get(), lineNonEmptyCount.get(), wordCount.get(), characterCount.get());
+                    final String message = generateMetricsMessage(lineCount.get(), lineNonEmptyCount.get(), wordCount.get(), characterCount.get());
                     getLogger().info(message);
                 }
 
@@ -260,7 +260,7 @@ public class CountText extends AbstractProcessor {
                 processSession.adjustCounter("Lines (non-empty) Counted", (long) lineNonEmptyCount.get(), adjustImmediately);
                 processSession.adjustCounter("Words Counted", (long) wordCount.get(), adjustImmediately);
                 processSession.adjustCounter("Characters Counted", (long) characterCount.get(), adjustImmediately);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 error.set(true);
                 getLogger().error("Routing to failure.", e);
             }
@@ -269,7 +269,7 @@ public class CountText extends AbstractProcessor {
         if (error.get()) {
             processSession.transfer(sourceFlowFile, REL_FAILURE);
         } else {
-            Map<String, String> metricAttributes = new HashMap<>();
+            final Map<String, String> metricAttributes = new HashMap<>();
             if (countLines) {
                 metricAttributes.put(TEXT_LINE_COUNT, String.valueOf(lineCount.get()));
             }
@@ -282,13 +282,13 @@ public class CountText extends AbstractProcessor {
             if (countCharacters) {
                 metricAttributes.put(TEXT_CHARACTER_COUNT, String.valueOf(characterCount.get()));
             }
-            FlowFile updatedFlowFile = processSession.putAllAttributes(sourceFlowFile, metricAttributes);
+            final FlowFile updatedFlowFile = processSession.putAllAttributes(sourceFlowFile, metricAttributes);
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("text-line-count", TEXT_LINE_COUNT_PD.getName());
         config.renameProperty("text-line-nonempty-count", TEXT_LINE_NONEMPTY_COUNT_PD.getName());
         config.renameProperty("text-word-count", TEXT_WORD_COUNT_PD.getName());
@@ -298,9 +298,9 @@ public class CountText extends AbstractProcessor {
         config.renameProperty("ajust-immediately", ADJUST_IMMEDIATELY.getName());
     }
 
-    private String generateMetricsMessage(int lineCount, int lineNonEmptyCount, int wordCount, int characterCount) {
-        StringBuilder sb = new StringBuilder("Counted ");
-        List<String> metrics = new ArrayList<>();
+    private String generateMetricsMessage(final int lineCount, final int lineNonEmptyCount, final int wordCount, final int characterCount) {
+        final StringBuilder sb = new StringBuilder("Counted ");
+        final List<String> metrics = new ArrayList<>();
         if (countLines) {
             metrics.add(lineCount + " lines");
         }
@@ -317,11 +317,11 @@ public class CountText extends AbstractProcessor {
         return sb.toString();
     }
 
-    int countWordsInLine(String line, boolean splitWordsOnSymbols) throws IOException {
+    int countWordsInLine(final String line, final boolean splitWordsOnSymbols) throws IOException {
         if (line == null || line.isBlank()) {
             return 0;
         } else {
-            Pattern regex = splitWordsOnSymbols ? SYMBOL_PATTERN : WHITESPACE_ONLY_PATTERN;
+            final Pattern regex = splitWordsOnSymbols ? SYMBOL_PATTERN : WHITESPACE_ONLY_PATTERN;
             final Stream<String> wordsStream = regex.splitAsStream(line).filter(item -> !item.isBlank());
             if (getLogger().isDebugEnabled()) {
                 final List<String> words = wordsStream.collect(Collectors.toList());

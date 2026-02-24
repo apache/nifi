@@ -44,13 +44,13 @@ public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
     }
 
     @Override
-    public boolean hasPort(String portId) {
+    public boolean hasPort(final String portId) {
         final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findOutputPort(portId) != null;
     }
 
     @Override
-    public Port createPort(String groupId, PortDTO portDTO) {
+    public Port createPort(final String groupId, final PortDTO portDTO) {
         if (isNotNull(portDTO.getParentGroupId()) && !flowController.getFlowManager().areGroupsSame(groupId, portDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the OutputPort is being added.");
         }
@@ -61,10 +61,10 @@ public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
         }
 
         // get the desired group
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         // determine if this is the root group
-        Port port;
+        final Port port;
         if (group.getParent() == null || Boolean.TRUE.equals(portDTO.getAllowRemoteAccess())) {
             port = flowController.getFlowManager().createPublicOutputPort(portDTO.getId(), portDTO.getName());
         } else {
@@ -91,13 +91,13 @@ public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
     }
 
     @Override
-    public Port getPort(String portId) {
+    public Port getPort(final String portId) {
         return locatePort(portId);
     }
 
     @Override
-    public Set<Port> getPorts(String groupId) {
-        ProcessGroup group = locateProcessGroup(flowController, groupId);
+    public Set<Port> getPorts(final String groupId) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getOutputPorts();
     }
 
@@ -130,8 +130,8 @@ public class StandardOutputPortDAO extends AbstractPortDAO implements PortDAO {
     }
 
     @Override
-    public void deletePort(String portId) {
-        Port outputPort = locatePort(portId);
+    public void deletePort(final String portId) {
+        final Port outputPort = locatePort(portId);
         outputPort.getProcessGroup().removeOutputPort(outputPort);
     }
 

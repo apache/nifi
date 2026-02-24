@@ -36,7 +36,7 @@ public class PeerDTO {
         return hostname;
     }
 
-    public void setHostname(String hostname) {
+    public void setHostname(final String hostname) {
         this.hostname = hostname;
     }
 
@@ -46,7 +46,7 @@ public class PeerDTO {
         return port;
     }
 
-    public void setPort(int port) {
+    public void setPort(final int port) {
         this.port = port;
     }
 
@@ -56,7 +56,7 @@ public class PeerDTO {
         return secure;
     }
 
-    public void setSecure(boolean secure) {
+    public void setSecure(final boolean secure) {
         this.secure = secure;
     }
 
@@ -66,7 +66,7 @@ public class PeerDTO {
         return flowFileCount;
     }
 
-    public void setFlowFileCount(int flowFileCount) {
+    public void setFlowFileCount(final int flowFileCount) {
         this.flowFileCount = flowFileCount;
     }
 }

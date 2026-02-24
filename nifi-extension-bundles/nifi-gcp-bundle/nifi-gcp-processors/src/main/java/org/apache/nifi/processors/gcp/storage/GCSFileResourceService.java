@@ -110,7 +110,7 @@ public class GCSFileResourceService extends AbstractControllerService implements
     }
 
     @Override
-    public FileResource getFileResource(Map<String, String> attributes) {
+    public FileResource getFileResource(final Map<String, String> attributes) {
         final GCPCredentialsService gcpCredentialsService = context.getProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
         final Storage storage = getCloudService(gcpCredentialsService.getGoogleCredentials());
 
@@ -121,7 +121,7 @@ public class GCSFileResourceService extends AbstractControllerService implements
         }
     }
 
-    protected Storage getCloudService(GoogleCredentials credentials) {
+    protected Storage getCloudService(final GoogleCredentials credentials) {
         final StorageOptions storageOptions = StorageOptions.newBuilder()
                 .setCredentials(credentials)
                 .build();

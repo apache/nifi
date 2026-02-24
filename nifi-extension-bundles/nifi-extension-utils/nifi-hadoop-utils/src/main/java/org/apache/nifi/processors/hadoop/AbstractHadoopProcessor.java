@@ -157,7 +157,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     }
 
     @Override
-    protected void init(ProcessorInitializationContext context) {
+    protected void init(final ProcessorInitializationContext context) {
         hdfsResources.set(EMPTY_HDFS_RESOURCES);
     }
 
@@ -209,7 +209,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
                 builder.add(kerberosUser.getPrincipal());
             }
-        } catch (IllegalStateException ignored) {
+        } catch (final IllegalStateException ignored) {
             // the Kerberos controller service is disabled, therefore this part of the isolation key cannot be determined yet
         }
 
@@ -217,7 +217,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         final List<String> locations = getConfigLocations(validationContext);
 
@@ -273,7 +273,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
      * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
      */
     @OnScheduled
-    public final void abstractOnScheduled(ProcessContext context) throws IOException {
+    public final void abstractOnScheduled(final ProcessContext context) throws IOException {
         try {
             // This value will be null when called from ListHDFS, because it overrides all of the default
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
@@ -282,14 +282,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 resources = resetHDFSResources(getConfigLocations(context), context);
                 hdfsResources.set(resources);
             }
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             getLogger().error("HDFS Configuration failed", ex);
             hdfsResources.set(EMPTY_HDFS_RESOURCES);
             throw ex;
         }
     }
 
-    protected List<String> getConfigLocations(PropertyContext context) {
+    protected List<String> getConfigLocations(final PropertyContext context) {
         final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
         final List<String> locations = configResources.asLocations();
         return locations;
@@ -312,13 +312,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         boolean foundResources = !locations.isEmpty();
 
         if (foundResources) {
-            for (String resource : locations) {
+            for (final String resource : locations) {
                 config.addResource(new Path(resource.trim()));
             }
         } else {
             // check that at least 1 non-default resource is available on the classpath
-            String configStr = config.toString();
-            for (String resource : configStr.substring(configStr.indexOf(":") + 1).split(",")) {
+            final String configStr = config.toString();
+            for (final String resource : configStr.substring(configStr.indexOf(":") + 1).split(",")) {
                 if (!resource.contains("default") && config.getResource(resource.trim()) != null) {
                     foundResources = true;
                     break;
@@ -336,7 +336,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
     HdfsResources resetHDFSResources(final List<String> resourceLocations, final ProcessContext context) throws IOException {
-        Configuration config = new ExtendedConfiguration(getLogger());
+        final Configuration config = new ExtendedConfiguration(getLogger());
         config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
         getConfigurationFromResources(config, resourceLocations);
@@ -349,14 +349,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
         // disable caching of Configuration and FileSystem objects, else we cannot reconfigure the processor without a complete
         // restart
-        String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
+        final String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
         config.set(disableCacheName, "true");
 
         // If kerberos is enabled, create the file system as the kerberos principal
         // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
-        FileSystem fs;
-        UserGroupInformation ugi;
-        KerberosUser kerberosUser;
+        final FileSystem fs;
+        final UserGroupInformation ugi;
+        final KerberosUser kerberosUser;
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
                 kerberosUser = getKerberosUser(context);
@@ -413,10 +413,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         return FileSystem.get(config);
     }
 
-    protected FileSystem getFileSystemAsUser(final Configuration config, UserGroupInformation ugi) throws IOException {
+    protected FileSystem getFileSystemAsUser(final Configuration config, final UserGroupInformation ugi) throws IOException {
         try {
             return ugi.doAs((PrivilegedExceptionAction<FileSystem>) () -> FileSystem.get(config));
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new IOException("Unable to create file system: " + e.getMessage());
         }
     }
@@ -424,15 +424,15 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     /*
      * Drastically reduce the timeout of a socket connection from the default in FileSystem.get()
      */
-    protected void checkHdfsUriForTimeout(Configuration config) throws IOException {
-        URI hdfsUri = FileSystem.getDefaultUri(config);
-        String address = hdfsUri.getAuthority();
-        int port = hdfsUri.getPort();
+    protected void checkHdfsUriForTimeout(final Configuration config) throws IOException {
+        final URI hdfsUri = FileSystem.getDefaultUri(config);
+        final String address = hdfsUri.getAuthority();
+        final int port = hdfsUri.getPort();
         if (address == null || address.isEmpty() || port < 0) {
             return;
         }
-        InetSocketAddress namenode = NetUtils.createSocketAddr(address, port);
-        SocketFactory socketFactory = NetUtils.getDefaultSocketFactory(config);
+        final InetSocketAddress namenode = NetUtils.createSocketAddr(address, port);
+        final SocketFactory socketFactory = NetUtils.getDefaultSocketFactory(config);
         Socket socket = null;
         try {
             socket = socketFactory.createSocket();
@@ -451,11 +451,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
      *            the Hadoop Configuration
      * @return CompressionCodec or null
      */
-    protected org.apache.hadoop.io.compress.CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
+    protected org.apache.hadoop.io.compress.CompressionCodec getCompressionCodec(final ProcessContext context, final Configuration configuration) {
         org.apache.hadoop.io.compress.CompressionCodec codec = null;
         if (context.getProperty(COMPRESSION_CODEC).isSet()) {
-            String compressionClassname = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).getValue()).toString();
-            CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);
+            final String compressionClassname = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).getValue()).toString();
+            final CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);
             codec = ccf.getCodecByClassName(compressionClassname);
         }
 
@@ -476,13 +476,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         if (depthDiff <= 1) {
             return "";
         }
-        String lastRoot = root.getName();
+        final String lastRoot = root.getName();
         Path childsParent = child.getParent();
         final StringBuilder builder = new StringBuilder();
         builder.append(childsParent.getName());
         for (int i = (depthDiff - 3); i >= 0; i--) {
             childsParent = childsParent.getParent();
-            String name = childsParent.getName();
+            final String name = childsParent.getName();
             if (name.equals(lastRoot) && childsParent.toString().endsWith(root.toString())) {
                 break;
             }
@@ -511,7 +511,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     }
 
     protected boolean isFileSystemAccessDenied(final URI fileSystemUri) {
-        boolean accessDenied;
+        final boolean accessDenied;
 
         if (isLocalFileSystemAccessDenied()) {
             accessDenied = LOCAL_FILE_SYSTEM_URI.matcher(fileSystemUri.toString()).matches();
@@ -540,7 +540,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         }
     }
 
-    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property) {
+    protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property) {
         return getNormalizedPath(context, property, null);
     }
 
@@ -581,8 +581,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
      * @param t The throwable to inspect for the cause.
      * @return Throwable Cause
      */
-    protected <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
-        Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+    protected <T extends Throwable> Optional<T> findCause(final Throwable t, final Class<T> expectedCauseType, final Predicate<T> causePredicate) {
+        final Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
         return causalChain
             .filter(expectedCauseType::isInstance)
             .map(expectedCauseType::cast)
@@ -590,13 +590,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .findFirst();
     }
 
-    protected boolean handleAuthErrors(Throwable t, ProcessSession session, ProcessContext context, BiConsumer<ProcessSession, ProcessContext> sessionHandler) {
-        Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+    protected boolean handleAuthErrors(final Throwable t, final ProcessSession session, final ProcessContext context, final BiConsumer<ProcessSession, ProcessContext> sessionHandler) {
+        final Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
         if (causeOptional.isPresent()) {
             getLogger().error("An error occurred while connecting to HDFS. Rolling back session and, and resetting HDFS resources", causeOptional.get());
             try {
                 hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));
-            } catch (IOException ioe) {
+            } catch (final IOException ioe) {
                 getLogger().error("An error occurred resetting HDFS resources, you may need to restart the processor.");
             }
             sessionHandler.accept(session, context);

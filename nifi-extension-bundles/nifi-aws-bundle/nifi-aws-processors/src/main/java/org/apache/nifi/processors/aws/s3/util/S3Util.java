@@ -102,7 +102,7 @@ public final class S3Util {
                     final String expirationTimeRuleId = URLDecoder.decode(matcher.group(2), StandardCharsets.UTF_8);
                     expiration = new Expiration(expirationTime, expirationTimeRuleId);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 LOGGER.warn("Failed to parse expiration header [{}]", expirationHeader, e);
             }
         }
@@ -116,7 +116,7 @@ public final class S3Util {
      * @param rangeStart the start position of the range (inclusive)
      * @return the range header string
      */
-    public static String createRangeSpec(long rangeStart) {
+    public static String createRangeSpec(final long rangeStart) {
         return String.format("bytes=%d-", rangeStart);
     }
 
@@ -127,7 +127,7 @@ public final class S3Util {
      * @param rangeEnd   the end position of the range (inclusive)
      * @return the range header string
      */
-    public static String createRangeSpec(long rangeStart, long rangeEnd) {
+    public static String createRangeSpec(final long rangeStart, final long rangeEnd) {
         return String.format("bytes=%d-%d", rangeStart, rangeEnd);
     }
 

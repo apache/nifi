@@ -116,7 +116,7 @@ public class FileUserGroupProviderTest {
         restoreTenants = new File("target/restore/users.xml");
         FileUtils.ensureDirectoryExistAndCanAccess(restoreTenants.getParentFile());
 
-        NiFiProperties properties1 = mock(NiFiProperties.class);
+        final NiFiProperties properties1 = mock(NiFiProperties.class);
         when(properties1.getRestoreDirectory()).thenReturn(restoreTenants.getParentFile());
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
@@ -314,7 +314,7 @@ public class FileUserGroupProviderTest {
         boolean foundGroup1 = false;
         boolean foundGroup2 = false;
 
-        for (Group group : groups) {
+        for (final Group group : groups) {
             if (group.getIdentifier().equals("group-1") && group.getName().equals("group-1")
                     && group.getUsers().size() == 1 && group.getUsers().contains("user-1")) {
                 foundGroup1 = true;
@@ -333,7 +333,7 @@ public class FileUserGroupProviderTest {
         boolean foundUser1 = false;
         boolean foundUser2 = false;
 
-        for (User user : users) {
+        for (final User user : users) {
             if (user.getIdentifier().equals("user-1") && user.getIdentity().equals("user-1")) {
                 foundUser1 = true;
             } else if (user.getIdentifier().equals("user-2") && user.getIdentity().equals("user-2")) {
@@ -688,7 +688,7 @@ public class FileUserGroupProviderTest {
     }
 
     private static void writeFile(final File file, final String content) throws IOException {
-        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(bytes);
         }

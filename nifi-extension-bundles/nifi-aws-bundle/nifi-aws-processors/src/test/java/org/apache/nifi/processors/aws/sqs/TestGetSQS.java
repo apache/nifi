@@ -47,9 +47,9 @@ public class TestGetSQS {
     @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(SqsClient.class);
-        GetSQS mockGetSQS = new GetSQS() {
+        final GetSQS mockGetSQS = new GetSQS() {
             @Override
-            protected SqsClient getClient(ProcessContext context) {
+            protected SqsClient getClient(final ProcessContext context) {
                 return mockSQSClient;
             }
         };
@@ -64,12 +64,12 @@ public class TestGetSQS {
 
         final Map<String, String> attributes = new HashMap<>();
         final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
-        MessageAttributeValue messageAttributeValue = MessageAttributeValue.builder()
+        final MessageAttributeValue messageAttributeValue = MessageAttributeValue.builder()
                 .stringValue("msg-attrib-value-1").build();
         messageAttributes.put("msg-attrib-key-1", messageAttributeValue);
         attributes.put("attrib-key-1", "attrib-value-1"); // This attribute is no longer valid in SDK v2
         attributes.put(MessageSystemAttributeName.MESSAGE_GROUP_ID.toString(), "attrib-value-1"); // However, this one is allowed
-        Message message1 = Message.builder()
+        final Message message1 = Message.builder()
                 .body("TestMessage1")
                 .attributesWithStrings(attributes)
                 .messageAttributes(messageAttributes)
@@ -77,22 +77,22 @@ public class TestGetSQS {
                 .messageId("test-message-id-1")
                 .receiptHandle("test-receipt-handle-1")
                 .build();
-        ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder()
+        final ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder()
                 .messages(message1)
                 .build();
         Mockito.when(mockSQSClient.receiveMessage(Mockito.any(ReceiveMessageRequest.class))).thenReturn(receiveMessageResult);
 
         runner.run(1);
 
-        ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
+        final ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureRequest.capture());
-        ReceiveMessageRequest request = captureRequest.getValue();
+        final ReceiveMessageRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
         Mockito.verify(mockSQSClient, Mockito.never()).deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class));
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeNotExists("sqs.attrib-key-1");
         ff0.assertAttributeEquals("sqs.MessageGroupId", "attrib-value-1");
         ff0.assertAttributeEquals("sqs.msg-attrib-key-1", "msg-attrib-value-1");
@@ -105,14 +105,14 @@ public class TestGetSQS {
     @Test
     public void testGetNoMessages() {
         runner.setProperty(GetSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
-        ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder().build();
+        final ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder().build();
         Mockito.when(mockSQSClient.receiveMessage(Mockito.any(ReceiveMessageRequest.class))).thenReturn(receiveMessageResult);
 
         runner.run(1);
 
-        ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
+        final ArgumentCaptor<ReceiveMessageRequest> captureRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureRequest.capture());
-        ReceiveMessageRequest request = captureRequest.getValue();
+        final ReceiveMessageRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 0);
@@ -123,40 +123,40 @@ public class TestGetSQS {
         runner.setProperty(GetSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000");
         runner.setProperty(GetSQS.AUTO_DELETE, "true");
 
-        Message message1 = Message.builder()
+        final Message message1 = Message.builder()
                 .body("TestMessage1")
                 .messageId("test-message-id-1")
                 .receiptHandle("test-receipt-handle-1")
                 .build();
-        Message message2 = Message.builder()
+        final Message message2 = Message.builder()
                 .body("TestMessage2")
                 .messageId("test-message-id-2")
                 .receiptHandle("test-receipt-handle-2")
                 .build();
-        ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder()
+        final ReceiveMessageResponse receiveMessageResult = ReceiveMessageResponse.builder()
                 .messages(message1, message2)
                 .build();
         Mockito.when(mockSQSClient.receiveMessage(Mockito.any(ReceiveMessageRequest.class))).thenReturn(receiveMessageResult);
 
         runner.run(1);
 
-        ArgumentCaptor<ReceiveMessageRequest> captureReceiveRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
+        final ArgumentCaptor<ReceiveMessageRequest> captureReceiveRequest = ArgumentCaptor.forClass(ReceiveMessageRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).receiveMessage(captureReceiveRequest.capture());
-        ReceiveMessageRequest receiveRequest = captureReceiveRequest.getValue();
+        final ReceiveMessageRequest receiveRequest = captureReceiveRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", receiveRequest.queueUrl());
 
-        ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
+        final ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
-        DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
+        final DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.queueUrl());
         assertEquals("test-message-id-1", deleteRequest.entries().get(0).id());
         assertEquals("test-message-id-2", deleteRequest.entries().get(1).id());
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 2);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
-        MockFlowFile ff0 = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("sqs.message.id", "test-message-id-1");
-        MockFlowFile ff1 = flowFiles.get(1);
+        final MockFlowFile ff1 = flowFiles.get(1);
         ff1.assertAttributeEquals("sqs.message.id", "test-message-id-2");
     }
 

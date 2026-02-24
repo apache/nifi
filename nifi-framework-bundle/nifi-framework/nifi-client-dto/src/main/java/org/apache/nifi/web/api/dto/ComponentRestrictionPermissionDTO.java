@@ -39,7 +39,7 @@ public class ComponentRestrictionPermissionDTO {
         return requiredPermission;
     }
 
-    public void setRequiredPermission(RequiredPermissionDTO requiredPermission) {
+    public void setRequiredPermission(final RequiredPermissionDTO requiredPermission) {
         this.requiredPermission = requiredPermission;
     }
 
@@ -52,7 +52,7 @@ public class ComponentRestrictionPermissionDTO {
         return permissions;
     }
 
-    public void setPermissions(PermissionsDTO permissions) {
+    public void setPermissions(final PermissionsDTO permissions) {
         this.permissions = permissions;
     }
 
@@ -62,7 +62,7 @@ public class ComponentRestrictionPermissionDTO {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (obj == null) {
             return false;
         }

@@ -36,7 +36,7 @@ public class AccessToken {
         this.fetchTime = Instant.now();
     }
 
-    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scope) {
+    public AccessToken(final String accessToken, final String refreshToken, final String tokenType, final long expiresIn, final String scope) {
         this();
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
@@ -49,7 +49,7 @@ public class AccessToken {
         return accessToken;
     }
 
-    public void setAccessToken(String accessToken) {
+    public void setAccessToken(final String accessToken) {
         this.accessToken = accessToken;
     }
 
@@ -57,7 +57,7 @@ public class AccessToken {
         return refreshToken;
     }
 
-    public void setRefreshToken(String refreshToken) {
+    public void setRefreshToken(final String refreshToken) {
         this.refreshToken = refreshToken;
     }
 
@@ -65,7 +65,7 @@ public class AccessToken {
         return tokenType;
     }
 
-    public void setTokenType(String tokenType) {
+    public void setTokenType(final String tokenType) {
         this.tokenType = tokenType;
     }
 
@@ -73,7 +73,7 @@ public class AccessToken {
         return expiresIn;
     }
 
-    public void setExpiresIn(long expiresIn) {
+    public void setExpiresIn(final long expiresIn) {
         this.expiresIn = expiresIn;
     }
 
@@ -81,7 +81,7 @@ public class AccessToken {
         return scope;
     }
 
-    public void setScope(String scope) {
+    public void setScope(final String scope) {
         this.scope = scope;
     }
 

@@ -96,7 +96,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Collection<ValidationResult> result = new ArrayList<>();
 
         final String sendingHost = validationContext.getProperty(SENDING_HOST).getValue();
@@ -144,7 +144,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
     }
 
     @Override
-    protected String getTransitUri(FlowFileEventBatch batch) {
+    protected String getTransitUri(final FlowFileEventBatch batch) {
         final String sender = batch.getEvents().getFirst().getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
         return new StringBuilder().append("udp").append("://").append(senderHost).append(":")
@@ -154,7 +154,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
     public static class HostValidator implements Validator {
 
         @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             try {
                 InetAddress.getByName(input);
                 return new ValidationResult.Builder().subject(subject).valid(true).input(input).build();

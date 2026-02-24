@@ -47,8 +47,8 @@ public class TestDebugFlow {
     @BeforeEach
     public void setup() throws IOException {
         for (int n = 0; n < 6; n++) {
-            String filename = "testFile" + (n + 1) + ".txt";
-            String content = "Hello World " + (n + 1) + "!";
+            final String filename = "testFile" + (n + 1) + ".txt";
+            final String content = "Hello World " + (n + 1) + "!";
             contents.put(n, content);
             attribs.put(n, new HashMap<>());
             attribs.get(n).put(CoreAttributes.FILENAME.key(), filename);
@@ -72,7 +72,7 @@ public class TestDebugFlow {
         runner.setProperty(DebugFlow.NO_FF_YIELD_ITERATIONS, "0");
     }
 
-    private boolean isInContents(byte[] content) {
+    private boolean isInContents(final byte[] content) {
         return contents.containsValue(new String(content));
     }
 
@@ -156,7 +156,7 @@ public class TestDebugFlow {
         runner.assertQueueNotEmpty();
         assertEquals(6, runner.getQueueSize().getObjectCount());
 
-        MockFlowFile ff1 = (MockFlowFile) session.get();
+        final MockFlowFile ff1 = (MockFlowFile) session.get();
         assertNotNull(ff1);
         assertEquals(namesToContent.get(ff1.getAttribute(CoreAttributes.FILENAME.key())), new String(ff1.toByteArray()));
         session.rollback();

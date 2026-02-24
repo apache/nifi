@@ -18,7 +18,7 @@ package org.apache.nifi.record.path.math;
 
 public class MathDivideOperator implements MathBinaryOperator {
     @Override
-    public Long operate(Long n, Long m) {
+    public Long operate(final Long n, final Long m) {
         if (m == 0L) {
             throw new ArithmeticException("Division by zero in RecordPath divide function");
         }
@@ -26,7 +26,7 @@ public class MathDivideOperator implements MathBinaryOperator {
     }
 
     @Override
-    public Double operate(Double n, Double m) {
+    public Double operate(final Double n, final Double m) {
         if (m == 0.0) {
             throw new ArithmeticException("Division by zero in RecordPath divide function");
         }

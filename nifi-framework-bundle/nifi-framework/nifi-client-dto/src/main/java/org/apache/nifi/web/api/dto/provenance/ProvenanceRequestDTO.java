@@ -65,7 +65,7 @@ public class ProvenanceRequestDTO {
         return startDate;
     }
 
-    public void setStartDate(Date startDate) {
+    public void setStartDate(final Date startDate) {
         this.startDate = startDate;
     }
 
@@ -80,7 +80,7 @@ public class ProvenanceRequestDTO {
         return endDate;
     }
 
-    public void setEndDate(Date endDate) {
+    public void setEndDate(final Date endDate) {
         this.endDate = endDate;
     }
 
@@ -93,7 +93,7 @@ public class ProvenanceRequestDTO {
         return minimumFileSize;
     }
 
-    public void setMinimumFileSize(String minimumFileSize) {
+    public void setMinimumFileSize(final String minimumFileSize) {
         this.minimumFileSize = minimumFileSize;
     }
 
@@ -106,7 +106,7 @@ public class ProvenanceRequestDTO {
         return maximumFileSize;
     }
 
-    public void setMaximumFileSize(String maximumFileSize) {
+    public void setMaximumFileSize(final String maximumFileSize) {
         this.maximumFileSize = maximumFileSize;
     }
 
@@ -119,7 +119,7 @@ public class ProvenanceRequestDTO {
         return maxResults;
     }
 
-    public void setMaxResults(Integer maxResults) {
+    public void setMaxResults(final Integer maxResults) {
         this.maxResults = maxResults;
     }
 
@@ -132,7 +132,7 @@ public class ProvenanceRequestDTO {
         return clusterNodeId;
     }
 
-    public void setClusterNodeId(String clusterNodeId) {
+    public void setClusterNodeId(final String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
     }
 
@@ -147,7 +147,7 @@ public class ProvenanceRequestDTO {
         return incrementalResults;
     }
 
-    public void setIncrementalResults(Boolean incrementalResults) {
+    public void setIncrementalResults(final Boolean incrementalResults) {
         this.incrementalResults = incrementalResults;
     }
 
@@ -160,7 +160,7 @@ public class ProvenanceRequestDTO {
         return summarize;
     }
 
-    public void setSummarize(Boolean summarize) {
+    public void setSummarize(final Boolean summarize) {
         this.summarize = summarize;
     }
 }

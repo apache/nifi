@@ -52,7 +52,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return bucketIdentifier;
     }
 
-    public void setBucketIdentifier(String bucketIdentifier) {
+    public void setBucketIdentifier(final String bucketIdentifier) {
         this.bucketIdentifier = bucketIdentifier;
     }
 
@@ -61,7 +61,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return flowIdentifier;
     }
 
-    public void setFlowIdentifier(String flowIdentifier) {
+    public void setFlowIdentifier(final String flowIdentifier) {
         this.flowIdentifier = flowIdentifier;
     }
 
@@ -70,7 +70,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return version;
     }
 
-    public void setVersion(int version) {
+    public void setVersion(final int version) {
         this.version = version;
     }
 
@@ -79,7 +79,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(final long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -88,7 +88,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return author;
     }
 
-    public void setAuthor(String author) {
+    public void setAuthor(final String author) {
         this.author = author;
     }
 
@@ -97,7 +97,7 @@ public class VersionedFlowSnapshotMetadata extends LinkableEntity implements Com
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 

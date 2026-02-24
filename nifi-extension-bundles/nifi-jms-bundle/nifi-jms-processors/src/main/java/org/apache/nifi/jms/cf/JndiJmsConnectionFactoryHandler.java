@@ -48,14 +48,14 @@ public class JndiJmsConnectionFactoryHandler extends CachedJMSConnectionFactoryH
     private final Set<PropertyDescriptor> propertyDescriptors;
     private final ComponentLog logger;
 
-    public JndiJmsConnectionFactoryHandler(ConfigurationContext context, ComponentLog logger) {
+    public JndiJmsConnectionFactoryHandler(final ConfigurationContext context, final ComponentLog logger) {
         super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();
         this.logger = logger;
     }
 
-    public JndiJmsConnectionFactoryHandler(ProcessContext context, ComponentLog logger) {
+    public JndiJmsConnectionFactoryHandler(final ProcessContext context, final ComponentLog logger) {
         super(logger);
         this.context = context;
         this.propertyDescriptors = context.getProperties().keySet();

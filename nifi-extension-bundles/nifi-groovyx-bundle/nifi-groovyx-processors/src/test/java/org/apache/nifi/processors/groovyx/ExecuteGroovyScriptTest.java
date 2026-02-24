@@ -111,8 +111,8 @@ public class ExecuteGroovyScriptTest {
     public void setup() throws Exception {
         //init processor
         proc = new ExecuteGroovyScript();
-        MockProcessContext context = new MockProcessContext(proc);
-        MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
+        final MockProcessContext context = new MockProcessContext(proc);
+        final MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(proc, context);
         proc.initialize(initContext);
 
         assertNotNull(proc.getSupportedPropertyDescriptors());
@@ -120,7 +120,7 @@ public class ExecuteGroovyScriptTest {
         runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
 
-        List<RecordField> recordFields = Arrays.asList(
+        final List<RecordField> recordFields = Arrays.asList(
                 new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
                 new RecordField("code", RecordFieldType.INT.getDataType()));
@@ -154,11 +154,11 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
-    public void testAdditionalClasspath(@TempDir File tempDir) throws Exception {
-        Set<URL> expectedClasspathURLs = new HashSet<>();
-        StringBuilder additionalClasspath = new StringBuilder();
+    public void testAdditionalClasspath(final @TempDir File tempDir) throws Exception {
+        final Set<URL> expectedClasspathURLs = new HashSet<>();
+        final StringBuilder additionalClasspath = new StringBuilder();
         for (int i = 0; i < 3; i++) {
-            Path p = new File(tempDir, getClass().getName() + UUID.randomUUID() + ".tmp").toPath();
+            final Path p = new File(tempDir, getClass().getName() + UUID.randomUUID() + ".tmp").toPath();
             Files.createFile(p);
             expectedClasspathURLs.add(p.toUri().toURL());
             additionalClasspath.append(p);
@@ -169,7 +169,7 @@ public class ExecuteGroovyScriptTest {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, ";");
         runner.assertValid();
 
-        URL[] classpathURLs = proc.shell.getClassLoader().getURLs();
+        final URL[] classpathURLs = proc.shell.getClassLoader().getURLs();
         assertEquals(expectedClasspathURLs, new HashSet<>(Arrays.asList(classpathURLs)));
     }
 
@@ -221,7 +221,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("selected.columns", "first,last");
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }
@@ -237,7 +237,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("selected.columns", "first,last");
         resultFile.assertContentEquals("Marlene Shaw\nTodd Graham\n");
     }
@@ -250,7 +250,7 @@ public class ExecuteGroovyScriptTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("filename", "test.txt");
         resultFile.assertContentEquals("Test");
     }
@@ -278,7 +278,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertContentEquals("OK", StandardCharsets.UTF_8);
     }
 
@@ -292,7 +292,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeEquals("filename", "test.txt");
         resultFile.assertContentEquals("Joe Smith\nCarrie Jones\n", StandardCharsets.UTF_8);
     }
@@ -309,7 +309,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertContentEquals(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -326,7 +326,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertContentEquals(TEST_CSV_DATA.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -343,8 +343,8 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 3);  //number of inserted rows
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
-        List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
+        final MockFlowFile resultFile = result.getFirst();
+        final List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
         //pass through to&from json before compare
         resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), StandardCharsets.UTF_8);
     }
@@ -362,7 +362,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertContentEquals("\"1\",\"A\",\"XYZ\"\n", StandardCharsets.UTF_8);
     }
 
@@ -451,7 +451,7 @@ public class ExecuteGroovyScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("5678");
     }
 
@@ -484,7 +484,7 @@ public class ExecuteGroovyScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("5678".getBytes(StandardCharsets.UTF_16LE));
     }
 
@@ -502,7 +502,7 @@ public class ExecuteGroovyScriptTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("5678");
     }
 
@@ -518,7 +518,7 @@ public class ExecuteGroovyScriptTest {
 
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
-        MockFlowFile resultFile = result.getFirst();
+        final MockFlowFile resultFile = result.getFirst();
         resultFile.assertAttributeExists("a");
         resultFile.assertAttributeEquals("a", "A");
         System.setOut(originalOut);
@@ -579,13 +579,13 @@ public class ExecuteGroovyScriptTest {
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
-    private Map<String, String> map(String key, String value) {
-        Map<String, String> attrs = new HashMap<>();
+    private Map<String, String> map(final String key, final String value) {
+        final Map<String, String> attrs = new HashMap<>();
         attrs.put(key, value);
         return attrs;
     }
 
-    private static String getExpectedContent(String string) {
+    private static String getExpectedContent(final String string) {
         final boolean windows = System.getProperty("os.name").startsWith("Windows");
         String expectedContent = string;
 

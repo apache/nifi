@@ -40,9 +40,9 @@ class PositionScaler {
      * @param factorX      used to scale a {@link Positionable}'s X-coordinate position
      * @param factorY      used to scale a {@link Positionable}'s Y-coordinate position
      */
-    public static void scale(ProcessGroup processGroup, double factorX, double factorY) {
+    public static void scale(final ProcessGroup processGroup, final double factorX, final double factorY) {
         processGroup.findAllPositionables().stream().forEach(p -> scale(p, factorX, factorY));
-        Map<Connection, List<Position>> bendPointsByConnection =
+        final Map<Connection, List<Position>> bendPointsByConnection =
                 processGroup.findAllConnections().stream().collect(Collectors.toMap(connection -> connection, Connection::getBendPoints));
         bendPointsByConnection.entrySet().stream()
                 .forEach(connectionListEntry -> connectionListEntry.getKey().setBendPoints(connectionListEntry.getValue().stream()
@@ -58,13 +58,13 @@ class PositionScaler {
      * @param factorX      used to scale a {@link Positionable}'s X-coordinate position
      * @param factorY      used to scale a {@link Positionable}'s Y-coordinate position
      */
-    public static void scale(Positionable positionable, double factorX, double factorY) {
+    public static void scale(final Positionable positionable, final double factorX, final double factorY) {
         final Position startingPosition = positionable.getPosition();
         final Position scaledPosition = scalePosition(startingPosition, factorX, factorY);
         positionable.setPosition(scaledPosition);
     }
 
-    private static Position scalePosition(Position position, double factorX, double factorY) {
+    private static Position scalePosition(final Position position, final double factorX, final double factorY) {
         return new Position(position.getX() * factorX,
                 position.getY() * factorY);
     }

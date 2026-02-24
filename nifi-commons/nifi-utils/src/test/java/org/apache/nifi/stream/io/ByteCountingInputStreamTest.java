@@ -63,7 +63,7 @@ public class ByteCountingInputStreamTest {
         final ByteArrayInputStream inputStream = new ByteArrayInputStream(ALPHABET.getBytes(StandardCharsets.UTF_8));
         final ByteCountingInputStream bcis = new ByteCountingInputStream(inputStream);
         int tmp;
-        int initialAvailableBytes = bcis.available();
+        final int initialAvailableBytes = bcis.available();
         assertEquals(ALPHABET.length(), initialAvailableBytes);
 
         // Act
@@ -73,7 +73,7 @@ public class ByteCountingInputStreamTest {
         tmp = bcis.read();
         assertEquals(tmp, 98);
 
-        int availableBytes = bcis.available();
+        final int availableBytes = bcis.available();
         assertEquals(ALPHABET.length() - 2, availableBytes);
 
         final long expectedSkip = 24;
@@ -81,7 +81,7 @@ public class ByteCountingInputStreamTest {
         assertEquals(expectedSkip, actualSkip);
 
         // Assert
-        int finalAvailableBytes = bcis.available();
+        final int finalAvailableBytes = bcis.available();
         assertEquals(0, finalAvailableBytes);
     }
 }

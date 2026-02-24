@@ -123,7 +123,7 @@ public class ControllerServiceResource extends ApplicationResource {
      * @return dtos
      */
     public Set<ControllerServiceEntity> populateRemainingControllerServiceEntitiesContent(final Set<ControllerServiceEntity> controllerServiceEntities) {
-        for (ControllerServiceEntity controllerServiceEntity : controllerServiceEntities) {
+        for (final ControllerServiceEntity controllerServiceEntity : controllerServiceEntities) {
             populateRemainingControllerServiceEntityContent(controllerServiceEntity);
         }
         return controllerServiceEntities;
@@ -1204,12 +1204,12 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

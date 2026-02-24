@@ -160,7 +160,7 @@ public class VerifyContentPGP extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("public-key-service", PUBLIC_KEY_SERVICE.getName());
     }
 

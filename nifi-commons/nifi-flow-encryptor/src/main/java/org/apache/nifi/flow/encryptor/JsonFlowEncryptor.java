@@ -39,7 +39,7 @@ public class JsonFlowEncryptor extends AbstractFlowEncryptor {
                 parser.setCodec(new ObjectMapper());
                 processJsonByTokens(parser, generator, inputEncryptor, outputEncryptor);
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Failed Processing Flow Configuration", e);
         }
     }

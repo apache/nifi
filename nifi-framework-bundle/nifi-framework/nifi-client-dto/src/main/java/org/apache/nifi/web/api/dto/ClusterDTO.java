@@ -42,7 +42,7 @@ public class ClusterDTO {
         return nodes;
     }
 
-    public void setNodes(Collection<NodeDTO> nodes) {
+    public void setNodes(final Collection<NodeDTO> nodes) {
         this.nodes = nodes;
     }
 
@@ -57,7 +57,7 @@ public class ClusterDTO {
         return generated;
     }
 
-    public void setGenerated(Date generated) {
+    public void setGenerated(final Date generated) {
         this.generated = generated;
     }
 }

@@ -85,14 +85,14 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                 scriptingComponentHelper.createResources();
             }
         }
-        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        List<PropertyDescriptor> _temp = new ArrayList<>();
+        final List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
+        final List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.addAll(scriptingComponentHelper.getDescriptors());
         _temp.remove(scriptingComponentHelper.SCRIPT_ENGINE);
 
-        PropertyDescriptor.Builder engineProp = new PropertyDescriptor
+        final PropertyDescriptor.Builder engineProp = new PropertyDescriptor
                 .Builder().fromPropertyDescriptor(scriptingComponentHelper.SCRIPT_ENGINE);
-        List<AllowableValue> filtered = scriptingComponentHelper.getScriptEngineAllowableValues()
+        final List<AllowableValue> filtered = scriptingComponentHelper.getScriptEngineAllowableValues()
                 .stream()
                 .collect(Collectors.toList());
         engineProp.allowableValues(filtered.toArray(new AllowableValue[filtered.size()]));
@@ -185,8 +185,8 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        Collection<ValidationResult> commonValidationResults = super.customValidate(context);
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final Collection<ValidationResult> commonValidationResults = super.customValidate(context);
         if (!commonValidationResults.isEmpty()) {
             return commonValidationResults;
         }
@@ -197,7 +197,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
             return validationResults.get();
         }
 
-        Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
+        final Collection<ValidationResult> scriptingComponentHelperResults = scriptingComponentHelper.customValidate(context);
         if (scriptingComponentHelperResults != null && !scriptingComponentHelperResults.isEmpty()) {
             validationResults.set(scriptingComponentHelperResults);
             return scriptingComponentHelperResults;
@@ -221,7 +221,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                 // lookup service's properties
                 final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<>(scriptingComponentHelper.getDescriptors());
 
-                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
                 final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
 
                 if (instanceResults != null && !instanceResults.isEmpty()) {
@@ -279,7 +279,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                     } else {
                         throw new ScriptException("No LookupService was defined by the script.");
                     }
-                } catch (ScriptException se) {
+                } catch (final ScriptException se) {
                     throw new ProcessException("Error executing onEnabled(context) method", se);
                 }
             }
@@ -311,7 +311,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
                         // This might be due to an error during compilation, log it rather than throwing an exception
                         getLogger().warn("No LookupService was defined by the script.");
                     }
-                } catch (ScriptException se) {
+                } catch (final ScriptException se) {
                     throw new ProcessException("Error executing onDisabled(context) method", se);
                 }
             }
@@ -360,7 +360,7 @@ public class BaseScriptedLookupService extends AbstractScriptedControllerService
             }
 
             // get the engine and ensure its invocable
-            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 

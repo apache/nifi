@@ -29,7 +29,7 @@ import org.testcontainers.mysql.MySQLContainer;
  */
 public class MySqlCustomContainer extends MySQLContainer {
 
-    public MySqlCustomContainer(String dockerImageName) {
+    public MySqlCustomContainer(final String dockerImageName) {
         super(dockerImageName);
     }
 

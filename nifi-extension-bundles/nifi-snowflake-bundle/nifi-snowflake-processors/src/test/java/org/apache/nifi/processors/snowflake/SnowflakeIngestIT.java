@@ -332,7 +332,7 @@ class SnowflakeIngestIT {
 
             try {
                 Thread.sleep(delayMillis);
-            } catch (InterruptedException interruptedException) {
+            } catch (final InterruptedException interruptedException) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Interrupted while waiting for Snowflake pipe readiness", interruptedException);
             }

@@ -29,7 +29,7 @@ import java.util.Set;
 
 public class UserGroupEntityMerger implements ComponentEntityMerger<UserGroupEntity> {
     @Override
-    public void merge(UserGroupEntity clientEntity, Map<NodeIdentifier, UserGroupEntity> entityMap) {
+    public void merge(final UserGroupEntity clientEntity, final Map<NodeIdentifier, UserGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
     }
 

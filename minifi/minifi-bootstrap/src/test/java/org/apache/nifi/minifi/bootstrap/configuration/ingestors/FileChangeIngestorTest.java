@@ -136,7 +136,7 @@ public class FileChangeIngestorTest {
         // Provided as a spy to allow injection of mock objects for some tests when dealing with the finalized FileSystems class
         establishMockEnvironmentForChangeTests(mockWatchKey);
 
-        ConfigurationFileHolder configurationFileHolder = mock(ConfigurationFileHolder.class);
+        final ConfigurationFileHolder configurationFileHolder = mock(ConfigurationFileHolder.class);
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
 
         notifierSpy.initialize(testProperties, configurationFileHolder, testNotifier);
@@ -150,9 +150,9 @@ public class FileChangeIngestorTest {
     }
 
     /* Helper methods to establish mock environment */
-    private WatchKey createMockWatchKeyForPath(String configFilePath) {
-        WatchKey mockWatchKey = mock(WatchKey.class);
-        WatchEvent mockWatchEvent = mock(WatchEvent.class);
+    private WatchKey createMockWatchKeyForPath(final String configFilePath) {
+        final WatchKey mockWatchKey = mock(WatchKey.class);
+        final WatchEvent mockWatchEvent = mock(WatchEvent.class);
 
         // In this case, we receive a trigger event for the directory monitored, and it was the file monitored
         when(mockWatchEvent.context()).thenReturn(Paths.get(configFilePath));

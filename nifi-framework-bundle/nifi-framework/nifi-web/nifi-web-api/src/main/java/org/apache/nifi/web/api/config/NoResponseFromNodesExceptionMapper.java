@@ -34,7 +34,7 @@ public class NoResponseFromNodesExceptionMapper implements ExceptionMapper<NoRes
     private static final Logger logger = LoggerFactory.getLogger(NoConnectedNodesException.class);
 
     @Override
-    public Response toResponse(NoResponseFromNodesException exception) {
+    public Response toResponse(final NoResponseFromNodesException exception) {
         // log the error
         logger.info("{}. Returning {} response.", exception, Response.Status.CONFLICT);
 

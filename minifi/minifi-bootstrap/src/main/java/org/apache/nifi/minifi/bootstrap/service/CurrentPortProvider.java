@@ -28,14 +28,14 @@ public class CurrentPortProvider {
     private final MiNiFiParameters miNiFiParameters;
     private final ProcessUtils processUtils;
 
-    public CurrentPortProvider(MiNiFiCommandSender miNiFiCommandSender, MiNiFiParameters miNiFiParameters, ProcessUtils processUtils) {
+    public CurrentPortProvider(final MiNiFiCommandSender miNiFiCommandSender, final MiNiFiParameters miNiFiParameters, final ProcessUtils processUtils) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.miNiFiParameters = miNiFiParameters;
         this.processUtils = processUtils;
     }
 
     public Integer getCurrentPort() {
-        int miNiFiPort = miNiFiParameters.getMiNiFiPort();
+        final int miNiFiPort = miNiFiParameters.getMiNiFiPort();
         if (miNiFiPort == UNINITIALIZED) {
             DEFAULT_LOGGER.debug("Port is not defined");
             return null;
@@ -43,16 +43,16 @@ public class CurrentPortProvider {
 
         DEFAULT_LOGGER.debug("Current port: {}", miNiFiPort);
 
-        boolean success = miNiFiCommandSender.isPingSuccessful(miNiFiPort);
+        final boolean success = miNiFiCommandSender.isPingSuccessful(miNiFiPort);
         if (success) {
             DEFAULT_LOGGER.debug("Successful PING on port {}", miNiFiPort);
             return miNiFiPort;
         }
 
-        long minifiPid = miNiFiParameters.getMinifiPid();
+        final long minifiPid = miNiFiParameters.getMinifiPid();
         DEFAULT_LOGGER.debug("Current PID {}", minifiPid);
 
-        boolean procRunning = processUtils.isProcessRunning(minifiPid);
+        final boolean procRunning = processUtils.isProcessRunning(minifiPid);
         if (procRunning) {
             return miNiFiPort;
         } else {

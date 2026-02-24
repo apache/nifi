@@ -31,7 +31,7 @@ public class ReportingTaskHealth implements java.io.Serializable {
         return scheduledState;
     }
 
-    public void setScheduledState(String scheduledState) {
+    public void setScheduledState(final String scheduledState) {
         this.scheduledState = scheduledState;
     }
 
@@ -39,7 +39,7 @@ public class ReportingTaskHealth implements java.io.Serializable {
         return hasBulletins;
     }
 
-    public void setHasBulletins(boolean hasBulletins) {
+    public void setHasBulletins(final boolean hasBulletins) {
         this.hasBulletins = hasBulletins;
     }
 
@@ -47,7 +47,7 @@ public class ReportingTaskHealth implements java.io.Serializable {
         return activeThreads;
     }
 
-    public void setActiveThreads(int activeThreads) {
+    public void setActiveThreads(final int activeThreads) {
         this.activeThreads = activeThreads;
     }
 
@@ -55,12 +55,12 @@ public class ReportingTaskHealth implements java.io.Serializable {
         return validationErrorList;
     }
 
-    public void setValidationErrorList(List<ValidationError> validationErrorList) {
+    public void setValidationErrorList(final List<ValidationError> validationErrorList) {
         this.validationErrorList = validationErrorList;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -68,7 +68,7 @@ public class ReportingTaskHealth implements java.io.Serializable {
             return false;
         }
 
-        ReportingTaskHealth that = (ReportingTaskHealth) o;
+        final ReportingTaskHealth that = (ReportingTaskHealth) o;
 
         if (isHasBulletins() != that.isHasBulletins()) {
             return false;

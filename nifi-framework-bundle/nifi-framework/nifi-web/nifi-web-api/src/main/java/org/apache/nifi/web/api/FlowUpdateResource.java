@@ -816,29 +816,29 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     }
 
     @Autowired
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
     @Autowired
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
     @Autowired
-    public void setDtoFactory(DtoFactory dtoFactory) {
+    public void setDtoFactory(final DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
     @Qualifier("clusterComponentLifecycle")
     @Autowired(required = false)
-    public void setClusterComponentLifecycle(ComponentLifecycle componentLifecycle) {
+    public void setClusterComponentLifecycle(final ComponentLifecycle componentLifecycle) {
         this.clusterComponentLifecycle = componentLifecycle;
     }
 
     @Qualifier("localComponentLifecycle")
     @Autowired
-    public void setLocalComponentLifecycle(ComponentLifecycle componentLifecycle) {
+    public void setLocalComponentLifecycle(final ComponentLifecycle componentLifecycle) {
         this.localComponentLifecycle = componentLifecycle;
     }
 

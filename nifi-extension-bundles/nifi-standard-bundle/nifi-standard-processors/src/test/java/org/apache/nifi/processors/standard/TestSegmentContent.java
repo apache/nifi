@@ -76,7 +76,7 @@ public class TestSegmentContent {
     @Test
     public void testExpressionLanguage() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new SegmentContent());
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("segmentSize", "4 B");
         testRunner.setProperty(SegmentContent.SIZE, "${segmentSize}");
         testRunner.assertValid();

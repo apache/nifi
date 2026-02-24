@@ -209,7 +209,7 @@ class AbstractEventAccessTest {
         }
 
         @Override
-        public List<Action> getFlowChanges(int firstActionId, int maxActions) {
+        public List<Action> getFlowChanges(final int firstActionId, final int maxActions) {
             return List.of();
         }
 

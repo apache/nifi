@@ -32,8 +32,8 @@ import java.util.Set;
 
 public class StubSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     @Override
-    public RecordSchema retrieveSchema(SchemaIdentifier schemaIdentifier) {
-        List<RecordField> fields = new ArrayList<>();
+    public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) {
+        final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("username", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("password", RecordFieldType.STRING.getDataType()));
         return new SimpleRecordSchema(fields);

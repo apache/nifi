@@ -29,7 +29,7 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class GroovyProcessSessionWrap extends ProcessSessionWrap {
 
-    public GroovyProcessSessionWrap(ProcessSession s, boolean toFailureOnError) {
+    public GroovyProcessSessionWrap(final ProcessSession s, final boolean toFailureOnError) {
         super(s, toFailureOnError);
     }
 
@@ -37,7 +37,7 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
      * function returns wrapped flow file with session for the simplified script access.
      */
     @Override
-    public SessionFile wrap(FlowFile f) {
+    public SessionFile wrap(final FlowFile f) {
         if (f == null) {
             return null;
         }
@@ -51,9 +51,9 @@ public class GroovyProcessSessionWrap extends ProcessSessionWrap {
      * returns filtered list of input files. the closure receives each file from input queue and should return one of values:
      * true - accept and continue, false - reject and continue, null - reject and stop, or any FlowFileFilterResult value.
      */
-    public List<FlowFile> get(Closure filter) {
+    public List<FlowFile> get(final Closure filter) {
         return this.get(flowFile -> {
-            Object res = filter.call(wrap(flowFile));
+            final Object res = filter.call(wrap(flowFile));
             if (res == null) {
                 return FlowFileFilter.FlowFileFilterResult.REJECT_AND_TERMINATE;
             }

@@ -80,7 +80,7 @@ public class KerberosProvider implements LoginIdentityProvider {
         }
 
         provider = new KerberosAuthenticationProvider();
-        SunJaasKerberosClient client = new SunJaasKerberosClient();
+        final SunJaasKerberosClient client = new SunJaasKerberosClient();
         client.setDebug(true);
         provider.setKerberosClient(client);
         provider.setUserDetailsService(new KerberosUserDetailsService());
@@ -98,7 +98,7 @@ public class KerberosProvider implements LoginIdentityProvider {
 
             // Apply default realm from KerberosIdentityProvider's configuration specified in login-identity-providers.xml if a principal without a realm was given
             // Otherwise, the default realm configured from the krb5 configuration specified in the nifi.kerberos.krb5.file property will end up being used
-            boolean realmInRawPrincipal = StringUtils.isNotBlank(parsedRealm);
+            final boolean realmInRawPrincipal = StringUtils.isNotBlank(parsedRealm);
             final String identity;
             if (realmInRawPrincipal) {
                 // there's a realm already in the given principal, use it

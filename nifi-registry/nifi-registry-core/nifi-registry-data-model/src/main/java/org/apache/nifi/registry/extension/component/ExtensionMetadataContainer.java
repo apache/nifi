@@ -31,7 +31,7 @@ public class ExtensionMetadataContainer {
         return numResults;
     }
 
-    public void setNumResults(int numResults) {
+    public void setNumResults(final int numResults) {
         this.numResults = numResults;
     }
 
@@ -40,7 +40,7 @@ public class ExtensionMetadataContainer {
         return filterParams;
     }
 
-    public void setFilterParams(ExtensionFilterParams filterParams) {
+    public void setFilterParams(final ExtensionFilterParams filterParams) {
         this.filterParams = filterParams;
     }
 
@@ -49,7 +49,7 @@ public class ExtensionMetadataContainer {
         return extensions;
     }
 
-    public void setExtensions(SortedSet<ExtensionMetadata> extensions) {
+    public void setExtensions(final SortedSet<ExtensionMetadata> extensions) {
         this.extensions = extensions;
     }
 }

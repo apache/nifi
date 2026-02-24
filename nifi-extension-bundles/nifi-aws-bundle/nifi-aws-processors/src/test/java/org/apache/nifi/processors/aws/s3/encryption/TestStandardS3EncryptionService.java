@@ -48,9 +48,9 @@ public class TestStandardS3EncryptionService {
     @BeforeEach
     public void setup() throws InitializationException {
         service = new StandardS3EncryptionService();
-        ConfigurationContext context = Mockito.mock(ConfigurationContext.class);
+        final ConfigurationContext context = Mockito.mock(ConfigurationContext.class);
 
-        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
+        final S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
 
         strategyName = AmazonS3EncryptionService.STRATEGY_NAME_SSE_C;
         keyMaterial = keySpec.material();
@@ -75,19 +75,19 @@ public class TestStandardS3EncryptionService {
         final UploadPartRequest.Builder uploadPartRequestBuilder = UploadPartRequest.builder();
 
         service.configureGetObjectRequest(getObjectRequestBuilder);
-        GetObjectRequest getObjectRequest = getObjectRequestBuilder.build();
+        final GetObjectRequest getObjectRequest = getObjectRequestBuilder.build();
         assertEquals(keyAlgorithm, getObjectRequest.sseCustomerAlgorithm());
         assertEquals(keyMaterial, getObjectRequest.sseCustomerKey());
         assertEquals(keyMaterialMd5, getObjectRequest.sseCustomerKeyMD5());
 
         service.configureUploadPartRequest(uploadPartRequestBuilder);
-        UploadPartRequest uploadPartRequest = uploadPartRequestBuilder.build();
+        final UploadPartRequest uploadPartRequest = uploadPartRequestBuilder.build();
         assertEquals(keyAlgorithm, uploadPartRequest.sseCustomerAlgorithm());
         assertEquals(keyMaterial, uploadPartRequest.sseCustomerKey());
         assertEquals(keyMaterialMd5, uploadPartRequest.sseCustomerKeyMD5());
 
         service.configurePutObjectRequest(putObjectRequestBuilder);
-        PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
+        final PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
         assertEquals(keyAlgorithm, putObjectRequest.sseCustomerAlgorithm());
         assertEquals(keyMaterial, putObjectRequest.sseCustomerKey());
         assertEquals(keyMaterialMd5, putObjectRequest.sseCustomerKeyMD5());
@@ -95,7 +95,7 @@ public class TestStandardS3EncryptionService {
         assertNull(putObjectRequest.ssekmsKeyId());
 
         service.configureCreateMultipartUploadRequest(createMultipartUploadRequestBuilder);
-        CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
+        final CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
         assertEquals(keyAlgorithm, createMultipartUploadRequest.sseCustomerAlgorithm());
         assertEquals(keyMaterial, createMultipartUploadRequest.sseCustomerKey());
         assertEquals(keyMaterialMd5, createMultipartUploadRequest.sseCustomerKeyMD5());
@@ -105,7 +105,7 @@ public class TestStandardS3EncryptionService {
 
     @Test
     public void testProperties() {
-        List<PropertyDescriptor> properties = service.getSupportedPropertyDescriptors();
+        final List<PropertyDescriptor> properties = service.getSupportedPropertyDescriptors();
         assertEquals(4, properties.size());
 
         assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
@@ -125,7 +125,7 @@ public class TestStandardS3EncryptionService {
         final StandardS3EncryptionService standardS3EncryptionService = new StandardS3EncryptionService();
         standardS3EncryptionService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.of(
+        final Map<String, String> expected = Map.of(
                 "encryption-strategy", StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName()
         );
 

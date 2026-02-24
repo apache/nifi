@@ -33,7 +33,7 @@ public class SNMPSocketSupport {
 
     protected static final int RETRIES = 3;
 
-    protected SNMPConfiguration getSnmpConfiguration(int managerPort, String targetPort) {
+    protected SNMPConfiguration getSnmpConfiguration(final int managerPort, final String targetPort) {
         return new SNMPConfiguration.Builder()
                 .setRetries(RETRIES)
                 .setManagerPort(managerPort)
@@ -53,7 +53,7 @@ public class SNMPSocketSupport {
         while (attempts < retries) {
             try {
                 return runnable.apply(getSnmpConfiguration(0, "0"));
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 if (isBindException(e)) {
                     attempts++;
                     if (attempts == retries) {

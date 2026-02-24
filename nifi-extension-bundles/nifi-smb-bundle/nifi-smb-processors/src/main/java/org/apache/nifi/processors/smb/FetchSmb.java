@@ -153,7 +153,7 @@ public class FetchSmb extends AbstractProcessor {
             flowFile = session.write(flowFile, outputStream -> client.readFile(filePath, outputStream));
 
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Could not fetch file {}.", filePath, e);
             flowFile = session.putAttribute(flowFile, ERROR_CODE_ATTRIBUTE, getErrorCode(e));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
@@ -165,7 +165,7 @@ public class FetchSmb extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("remote-file", REMOTE_FILE.getName());
         config.renameProperty("smb-client-provider-service", SMB_CLIENT_PROVIDER_SERVICE.getName());
     }
@@ -201,7 +201,7 @@ public class FetchSmb extends AbstractProcessor {
             } else if (completionStrategy == CompletionStrategy.DELETE) {
                 client.deleteFile(filePath);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().warn("Could not perform completion strategy {} for file {}", completionStrategy, filePath, e);
         }
     }

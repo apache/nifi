@@ -107,7 +107,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
                 .build();
 
         try {
-            DeleteMessageBatchResponse response = client.deleteMessageBatch(request);
+            final DeleteMessageBatchResponse response = client.deleteMessageBatch(request);
 
             // check for errors
             if (!response.failed().isEmpty()) {

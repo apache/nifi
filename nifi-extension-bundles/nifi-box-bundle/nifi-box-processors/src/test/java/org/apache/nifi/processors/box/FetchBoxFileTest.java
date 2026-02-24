@@ -49,7 +49,7 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         final FetchBoxFile testSubject = new FetchBoxFile() {
             @Override
-            protected BoxFile getBoxFile(String fileId) {
+            protected BoxFile getBoxFile(final String fileId) {
                 return mockBoxFile;
             }
         };
@@ -105,7 +105,7 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         doThrow(new RuntimeException("Download failed")).when(mockBoxFile).download(any(OutputStream.class));
 
-        MockFlowFile inputFlowFile = new MockFlowFile(0);
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 

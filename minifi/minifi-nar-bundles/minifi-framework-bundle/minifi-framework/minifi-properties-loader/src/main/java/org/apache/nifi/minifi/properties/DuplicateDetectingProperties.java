@@ -38,8 +38,8 @@ class DuplicateDetectingProperties extends Properties {
     }
 
     @Override
-    public Object put(Object key, Object value) {
-        Object existingValue = super.put(key, value);
+    public Object put(final Object key, final Object value) {
+        final Object existingValue = super.put(key, value);
         if (existingValue != null) {
             if (existingValue.toString().equals(value.toString())) {
                 redundantKeys.add(key.toString());

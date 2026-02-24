@@ -192,10 +192,10 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testShouldCreateAnonymousUser() {
         // Arrange
-        String identity = "someone";
+        final String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, true);
+        final NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, true);
 
         // Assert
         assertInstanceOf(StandardNiFiUser.class, user);
@@ -206,10 +206,10 @@ public class X509AuthenticationProviderTest {
     @Test
     public void testShouldCreateKnownUser() {
         // Arrange
-        String identity = "someone";
+        final String identity = "someone";
 
         // Act
-        NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, false);
+        final NiFiUser user = X509AuthenticationProvider.createUser(identity, null, null, null, null, false);
 
         // Assert
         assertInstanceOf(StandardNiFiUser.class, user);
@@ -218,11 +218,11 @@ public class X509AuthenticationProviderTest {
     }
 
     private String buildProxyChain(final String... identities) {
-        List<String> elements = Arrays.asList(identities);
+        final List<String> elements = Arrays.asList(identities);
         return StringUtils.join(elements.stream().map(X509AuthenticationProviderTest::formatDn).collect(Collectors.toList()), "");
     }
 
-    private static String formatDn(String rawDn) {
+    private static String formatDn(final String rawDn) {
         return "<" + sanitizeDn(rawDn) + ">";
     }
 
@@ -236,7 +236,7 @@ public class X509AuthenticationProviderTest {
      * @param rawDn the unsanitized DN
      * @return the sanitized DN
      */
-    private static String sanitizeDn(String rawDn) {
+    private static String sanitizeDn(final String rawDn) {
         if (StringUtils.isEmpty(rawDn)) {
             return rawDn;
         } else {

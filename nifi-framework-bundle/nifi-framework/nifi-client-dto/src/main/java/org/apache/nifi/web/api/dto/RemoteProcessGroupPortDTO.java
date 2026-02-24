@@ -48,7 +48,7 @@ public class RemoteProcessGroupPortDTO {
         return comments;
     }
 
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
         this.comments = comments;
     }
 
@@ -70,7 +70,7 @@ public class RemoteProcessGroupPortDTO {
         return concurrentlySchedulableTaskCount;
     }
 
-    public void setConcurrentlySchedulableTaskCount(Integer concurrentlySchedulableTaskCount) {
+    public void setConcurrentlySchedulableTaskCount(final Integer concurrentlySchedulableTaskCount) {
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
@@ -83,7 +83,7 @@ public class RemoteProcessGroupPortDTO {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(final String id) {
         this.id = id;
     }
 
@@ -92,7 +92,7 @@ public class RemoteProcessGroupPortDTO {
         return targetId;
     }
 
-    public void setTargetId(String targetId) {
+    public void setTargetId(final String targetId) {
         this.targetId = targetId;
     }
 
@@ -105,7 +105,7 @@ public class RemoteProcessGroupPortDTO {
         return groupId;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(final String groupId) {
         this.groupId = groupId;
     }
 
@@ -118,7 +118,7 @@ public class RemoteProcessGroupPortDTO {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -131,7 +131,7 @@ public class RemoteProcessGroupPortDTO {
         return transmitting;
     }
 
-    public void setTransmitting(Boolean transmitting) {
+    public void setTransmitting(final Boolean transmitting) {
         this.transmitting = transmitting;
     }
 
@@ -144,7 +144,7 @@ public class RemoteProcessGroupPortDTO {
         return useCompression;
     }
 
-    public void setUseCompression(Boolean useCompression) {
+    public void setUseCompression(final Boolean useCompression) {
         this.useCompression = useCompression;
     }
 
@@ -157,7 +157,7 @@ public class RemoteProcessGroupPortDTO {
         return exists;
     }
 
-    public void setExists(Boolean exists) {
+    public void setExists(final Boolean exists) {
         this.exists = exists;
     }
 
@@ -170,7 +170,7 @@ public class RemoteProcessGroupPortDTO {
         return targetRunning;
     }
 
-    public void setTargetRunning(Boolean targetRunning) {
+    public void setTargetRunning(final Boolean targetRunning) {
         this.targetRunning = targetRunning;
     }
 
@@ -183,7 +183,7 @@ public class RemoteProcessGroupPortDTO {
         return connected;
     }
 
-    public void setConnected(Boolean connected) {
+    public void setConnected(final Boolean connected) {
         this.connected = connected;
     }
 
@@ -196,7 +196,7 @@ public class RemoteProcessGroupPortDTO {
         return batchSettings;
     }
 
-    public void setBatchSettings(BatchSettingsDTO batchSettings) {
+    public void setBatchSettings(final BatchSettingsDTO batchSettings) {
         this.batchSettings = batchSettings;
     }
 

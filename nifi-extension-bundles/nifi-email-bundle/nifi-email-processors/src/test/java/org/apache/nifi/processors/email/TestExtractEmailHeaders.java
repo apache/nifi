@@ -46,7 +46,7 @@ public class TestExtractEmailHeaders {
 
     @Test
     public void testValidEmailWithAttachments() {
-        byte[] withAttachment = attachmentGenerator.withAttachments(1);
+        final byte[] withAttachment = attachmentGenerator.withAttachments(1);
 
         runner.enqueue(withAttachment);
         runner.run();
@@ -66,7 +66,7 @@ public class TestExtractEmailHeaders {
     public void testValidEmailWithoutAttachments() {
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
-        byte[] simpleEmail = attachmentGenerator.simpleMessage(to);
+        final byte[] simpleEmail = attachmentGenerator.simpleMessage(to);
 
         runner.enqueue(simpleEmail);
         runner.run();

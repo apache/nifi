@@ -83,19 +83,19 @@ class ListSmbTest {
         return currentNanos.get();
     }
 
-    private static void setTime(Long timeInMillis) {
+    private static void setTime(final Long timeInMillis) {
         currentMillis.set(timeInMillis);
         currentNanos.set(NANOSECONDS.convert(timeInMillis, MILLISECONDS));
     }
 
-    private static void timePassed(Long timeInMillis) {
+    private static void timePassed(final Long timeInMillis) {
         currentMillis.addAndGet(timeInMillis);
         currentNanos.addAndGet(NANOSECONDS.convert(timeInMillis, MILLISECONDS));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"timestamps", "entities"})
-    public void shouldResetStateWhenPropertiesChanged(String listingStrategy) throws Exception {
+    public void shouldResetStateWhenPropertiesChanged(final String listingStrategy) throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, listingStrategy);
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
@@ -105,7 +105,7 @@ class ListSmbTest {
         testRunner.setProperty(TRACKING_STATE_CACHE, "cacheService");
         testRunner.enableControllerService(cacheService);
         final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         mockSmbFolders(mockNifiSmbClientService,
                 listableEntity("should_list_this_again_after_property_change", now - 100));
         testRunner.run();
@@ -136,7 +136,7 @@ class ListSmbTest {
 
     @ParameterizedTest
     @ValueSource(longs = {1L, 50L, 150L, 3000L})
-    public void testShouldUseTimestampBasedStrategyProperly(Long minimumAge) throws Exception {
+    public void testShouldUseTimestampBasedStrategyProperly(final Long minimumAge) throws Exception {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
@@ -175,7 +175,7 @@ class ListSmbTest {
 
     @ParameterizedTest
     @ValueSource(longs = {0L, 50L, 150L, 3000L})
-    public void testShouldUseEntityTrackingBasedStrategyProperly(Long minimumAge) throws Exception {
+    public void testShouldUseEntityTrackingBasedStrategyProperly(final Long minimumAge) throws Exception {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "entities");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
@@ -205,7 +205,7 @@ class ListSmbTest {
 
     @ParameterizedTest
     @ValueSource(longs = {0L, 50L, 150L, 3000L})
-    public void testShouldUseNoTrackingBasedStrategyProperly(Long minimumAge) throws Exception {
+    public void testShouldUseNoTrackingBasedStrategyProperly(final Long minimumAge) throws Exception {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
@@ -325,7 +325,7 @@ class ListSmbTest {
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
-    private void testInitialListingTimestamp(String propertyValue, boolean shouldBeValid) throws Exception {
+    private void testInitialListingTimestamp(final String propertyValue, final boolean shouldBeValid) throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
 
         try (SmbClientService ignored = configureTestRunnerWithMockedSmbClientService(testRunner)) {
@@ -349,7 +349,7 @@ class ListSmbTest {
         return clientProviderService;
     }
 
-    private SmbClientService configureTestRunnerWithMockedSmbClientService(TestRunner testRunner)
+    private SmbClientService configureTestRunnerWithMockedSmbClientService(final TestRunner testRunner)
             throws Exception {
         final SmbClientService mockNifiSmbClientService = mock(SmbClientService.class);
         testRunner.setProperty(DIRECTORY, "testDirectory");
@@ -363,11 +363,11 @@ class ListSmbTest {
         return mockNifiSmbClientService;
     }
 
-    private void mockSmbFolders(SmbClientService mockNifiSmbClientService, SmbListableEntity... entities) {
+    private void mockSmbFolders(final SmbClientService mockNifiSmbClientService, final SmbListableEntity... entities) {
         doAnswer(ignore -> stream(entities)).when(mockNifiSmbClientService).listFiles(anyString());
     }
 
-    private SmbListableEntity listableEntity(String name, long timeStamp) {
+    private SmbListableEntity listableEntity(final String name, final long timeStamp) {
         return SmbListableEntity.builder()
                 .setName(name)
                 .setLastModifiedTime(timeStamp)

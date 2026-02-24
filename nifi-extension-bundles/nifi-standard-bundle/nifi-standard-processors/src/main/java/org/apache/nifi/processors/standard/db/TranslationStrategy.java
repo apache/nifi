@@ -38,7 +38,7 @@ public enum TranslationStrategy implements DescribedValue {
     private final String displayName;
     private final String description;
 
-    TranslationStrategy(String displayName, String description) {
+    TranslationStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

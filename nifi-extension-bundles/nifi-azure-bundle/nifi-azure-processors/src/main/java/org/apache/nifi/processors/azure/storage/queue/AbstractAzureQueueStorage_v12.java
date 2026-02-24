@@ -117,13 +117,13 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty(AzureStorageUtils.STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME, ENDPOINT_SUFFIX.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         final int requestTimeout = validationContext.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
 

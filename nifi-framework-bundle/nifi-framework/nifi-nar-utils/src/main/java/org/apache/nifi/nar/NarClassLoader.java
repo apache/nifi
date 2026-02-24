@@ -188,10 +188,10 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
      * @param root the root directory of the unpacked NAR.
      * @throws IOException if the URL list could not be updated.
      */
-    private void updateClasspath(File root) throws IOException {
+    private void updateClasspath(final File root) throws IOException {
         addURL(root.toURI().toURL()); // for compiled classes, WEB-INF, NAR-INF/, etc.
 
-        File dependencies = new File(root, "NAR-INF/bundled-dependencies");
+        final File dependencies = new File(root, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
             LOGGER.warn("{} does not contain NAR-INF/bundled-dependencies!", narWorkingDirectory);
         }
@@ -200,7 +200,7 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
             final File[] jarFiles = dependencies.listFiles(JAR_FILTER);
             if (jarFiles != null) {
                 Arrays.sort(jarFiles, Comparator.comparing(File::getName));
-                for (File libJar : jarFiles) {
+                for (final File libJar : jarFiles) {
                     addURL(libJar.toURI().toURL());
                 }
             }
@@ -211,16 +211,16 @@ public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
         return getNARNativeLibDir(narWorkingDirectory);
     }
 
-    private static List<File> initNativeLibDirList(File narWorkingDirectory) {
-        List<File> nativeLibDirList = new ArrayList<>();
+    private static List<File> initNativeLibDirList(final File narWorkingDirectory) {
+        final List<File> nativeLibDirList = new ArrayList<>();
 
         nativeLibDirList.add(getNARNativeLibDir(narWorkingDirectory));
 
         return nativeLibDirList;
     }
 
-    private static File getNARNativeLibDir(File narWorkingDirectory) {
-        File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
+    private static File getNARNativeLibDir(final File narWorkingDirectory) {
+        final File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
             LOGGER.warn("{} does not contain NAR-INF/bundled-dependencies!", narWorkingDirectory);
         }

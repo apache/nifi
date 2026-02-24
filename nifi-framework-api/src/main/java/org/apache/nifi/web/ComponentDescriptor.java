@@ -26,7 +26,7 @@ public class ComponentDescriptor {
     private final String defaultValue;
     private final Map<String, String> allowableValues;
 
-    private ComponentDescriptor(Builder builder) {
+    private ComponentDescriptor(final Builder builder) {
         this.name = builder.name;
         this.displayName = builder.displayName;
         this.description = builder.description;
@@ -61,27 +61,27 @@ public class ComponentDescriptor {
         private String defaultValue;
         private Map<String, String> allowableValues;
 
-        public Builder name(String name) {
+        public Builder name(final String name) {
             this.name = name;
             return this;
         }
 
-        public Builder displayName(String displayName) {
+        public Builder displayName(final String displayName) {
             this.displayName = displayName;
             return this;
         }
 
-        public  Builder description(String description) {
+        public  Builder description(final String description) {
             this.description = description;
             return this;
         }
 
-        public Builder defaultValue(String defaultValue) {
+        public Builder defaultValue(final String defaultValue) {
             this.defaultValue = defaultValue;
             return this;
         }
 
-        public Builder allowableValues(Map<String, String> allowableValues) {
+        public Builder allowableValues(final Map<String, String> allowableValues) {
             this.allowableValues = allowableValues;
             return this;
         }

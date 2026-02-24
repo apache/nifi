@@ -64,7 +64,7 @@ public class DynamicPropertiesTestProcessor extends AbstractProcessor {
 
     private ProcessorNode processorNode;
 
-    public void setProcessorNode(ProcessorNode processorNode) {
+    public void setProcessorNode(final ProcessorNode processorNode) {
         this.processorNode = processorNode;
     }
 
@@ -112,7 +112,7 @@ public class DynamicPropertiesTestProcessor extends AbstractProcessor {
     @OnScheduled
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         processorNode.getProcessGroup().terminateProcessor(processorNode);
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile != null) {
             LOG.warn("Removing flow file");
             session.remove(flowFile);

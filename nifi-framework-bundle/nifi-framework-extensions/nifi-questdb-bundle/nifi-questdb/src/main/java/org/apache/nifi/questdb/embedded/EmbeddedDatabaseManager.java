@@ -95,7 +95,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                     FileUtils.ensureDirectoryExistAndCanAccess(context.getBackupLocationAsPath().toFile());
                     Files.move(context.getPersistLocationAsPath(), backupFolder.toPath());
                     couldMoveOldToBackup = true;
-                } catch (IOException ex) {
+                } catch (final IOException ex) {
                     LOGGER.error("Could not create backup", ex);
                 }
 
@@ -103,7 +103,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                     try {
                         FileUtils.deleteFile(context.getPersistLocationAsPath().toFile(), true);
                         couldMoveOldToBackup = true;
-                    } catch (IOException ex) {
+                    } catch (final IOException ex) {
                         LOGGER.error("Could not clean up corrupted database", ex);
                     }
                 }
@@ -114,7 +114,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                         ensureConnectionEstablished();
                         ensureTablesAreInPlaceAndHealthy();
                         successful = true;
-                    } catch (CorruptedDatabaseException ex) {
+                    } catch (final CorruptedDatabaseException ex) {
                         LOGGER.error("Could not create backup", ex);
                     }
                 }
@@ -168,7 +168,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
                         LOGGER.debug("Creating table {}", tableDefinition.getName());
                         client.execute(tableDefinition.getDefinition());
                         LOGGER.debug("Table {} is created", tableDefinition.getName());
-                    } catch (DatabaseException e) {
+                    } catch (final DatabaseException e) {
                         throw new CorruptedDatabaseException(String.format("Creating table [%s] has failed", tableDefinition.getName()), e);
                     }
                 } else if (!databaseFiles.get(tableDefinition.getName()).isDirectory()) {
@@ -203,7 +203,7 @@ final class EmbeddedDatabaseManager implements DatabaseManager {
         } finally {
             try {
                 client.disconnect();
-            } catch (DatabaseException e) {
+            } catch (final DatabaseException e) {
                 throw new CorruptedDatabaseException(e);
             }
         }

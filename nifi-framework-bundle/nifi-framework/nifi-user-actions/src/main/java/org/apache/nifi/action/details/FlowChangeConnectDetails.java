@@ -36,7 +36,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return sourceId;
     }
 
-    public void setSourceId(String sourceId) {
+    public void setSourceId(final String sourceId) {
         this.sourceId = sourceId;
     }
 
@@ -45,7 +45,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return sourceName;
     }
 
-    public void setSourceName(String sourceName) {
+    public void setSourceName(final String sourceName) {
         this.sourceName = sourceName;
     }
 
@@ -54,7 +54,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return sourceType;
     }
 
-    public void setSourceType(Component sourceType) {
+    public void setSourceType(final Component sourceType) {
         this.sourceType = sourceType;
     }
 
@@ -63,7 +63,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return destinationId;
     }
 
-    public void setDestinationId(String destinationId) {
+    public void setDestinationId(final String destinationId) {
         this.destinationId = destinationId;
     }
 
@@ -72,7 +72,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return destinationName;
     }
 
-    public void setDestinationName(String destinationName) {
+    public void setDestinationName(final String destinationName) {
         this.destinationName = destinationName;
     }
 
@@ -81,7 +81,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return destinationType;
     }
 
-    public void setDestinationType(Component destinationType) {
+    public void setDestinationType(final Component destinationType) {
         this.destinationType = destinationType;
     }
 
@@ -90,7 +90,7 @@ public class FlowChangeConnectDetails implements ConnectDetails {
         return relationship;
     }
 
-    public void setRelationship(String relationship) {
+    public void setRelationship(final String relationship) {
         this.relationship = relationship;
     }
 

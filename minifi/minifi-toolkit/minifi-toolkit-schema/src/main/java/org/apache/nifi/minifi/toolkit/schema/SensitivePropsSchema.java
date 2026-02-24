@@ -39,14 +39,14 @@ public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
     public SensitivePropsSchema() {
     }
 
-    public SensitivePropsSchema(Map map) {
+    public SensitivePropsSchema(final Map map) {
         key = getOptionalKeyAsType(map, SENSITIVE_PROPS_KEY_KEY, String.class, SENSITIVE_PROPS_KEY, "");
         algorithm = getOptionalKeyAsType(map, SENSITIVE_PROPS_ALGORITHM_KEY, String.class, SENSITIVE_PROPS_KEY, DEFAULT_ALGORITHM);
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
+        final Map<String, Object> result = mapSupplier.get();
         result.put(SENSITIVE_PROPS_KEY_KEY, key);
         result.put(SENSITIVE_PROPS_ALGORITHM_KEY, algorithm);
         return result;

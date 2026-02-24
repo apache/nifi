@@ -84,7 +84,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     // TODO: Remove duplicate code by refactoring shared method to accept PropertyContext
-    protected MongoClient createClient(ConfigurationContext context, MongoClient existing) {
+    protected MongoClient createClient(final ConfigurationContext context, final MongoClient existing) {
         if (existing != null) {
             closeClient(existing);
         }
@@ -102,7 +102,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         try {
-            String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+            final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
             final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
             final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
 
@@ -170,7 +170,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
             final MongoClientSettings clientSettings = builder.build();
             return MongoClients.create(clientSettings);
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Failed to schedule {} due to {}", this.getClass().getName(), e, e);
             throw e;
         }
@@ -181,7 +181,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         closeClient(mongoClient);
     }
 
-    private void closeClient(MongoClient client) {
+    private void closeClient(final MongoClient client) {
         if (client != null) {
             client.close();
         }
@@ -189,7 +189,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @Override
     public WriteConcern getWriteConcern() {
-        WriteConcern writeConcern;
+        final WriteConcern writeConcern;
         switch (writeConcernProperty) {
             case WRITE_CONCERN_ACKNOWLEDGED:
                 writeConcern = WriteConcern.ACKNOWLEDGED;
@@ -237,7 +237,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     @Override
-    public MongoDatabase getDatabase(String name) {
+    public MongoDatabase getDatabase(final String name) {
         return mongoClient.getDatabase(name);
     }
 
@@ -247,19 +247,19 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     @Override
-    public List<ConfigVerificationResult> verify(ConfigurationContext context,
-                                                 ComponentLog verificationLogger,
-                                                 Map<String, String> variables) {
-        ConfigVerificationResult.Builder connectionSuccessful = new ConfigVerificationResult.Builder()
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context,
+                                                 final ComponentLog verificationLogger,
+                                                 final Map<String, String> variables) {
+        final ConfigVerificationResult.Builder connectionSuccessful = new ConfigVerificationResult.Builder()
                 .verificationStepName("Connection test");
 
         MongoClient client = null;
         try {
             client = createClient(context, null);
-            MongoDatabase db = client.getDatabase("test");
+            final MongoDatabase db = client.getDatabase("test");
             db.runCommand(new Document("buildInfo", 1));
             connectionSuccessful.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             connectionSuccessful
                     .explanation(ex.getMessage())
                     .outcome(ConfigVerificationResult.Outcome.FAILED);

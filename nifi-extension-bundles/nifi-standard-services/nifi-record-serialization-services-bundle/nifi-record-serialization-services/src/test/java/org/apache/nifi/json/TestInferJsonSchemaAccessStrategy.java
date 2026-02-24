@@ -196,7 +196,7 @@ class TestInferJsonSchemaAccessStrategy {
 
     @ParameterizedTest(name = "{index} {2}")
     @MethodSource("startingFieldNameArgumentProvider")
-    void testInferenceStartsFromArray(final String jsonPath, final StartingFieldStrategy strategy, final String startingFieldName, String testName) throws IOException {
+    void testInferenceStartsFromArray(final String jsonPath, final StartingFieldStrategy strategy, final String startingFieldName, final String testName) throws IOException {
         final File file = new File(jsonPath);
         final RecordSchema schema = inferSchema(file, strategy, startingFieldName);
 

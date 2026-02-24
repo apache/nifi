@@ -118,19 +118,19 @@ public class SetCacheClientService extends AbstractControllerService implements 
     }
 
     @Override
-    public <T> boolean addIfAbsent(T value, Serializer<T> serializer) throws IOException {
+    public <T> boolean addIfAbsent(final T value, final Serializer<T> serializer) throws IOException {
         final byte[] bytes = CacheClientSerde.serialize(value, serializer);
         return cacheClient.addIfAbsent(bytes);
     }
 
     @Override
-    public <T> boolean contains(T value, Serializer<T> serializer) throws IOException {
+    public <T> boolean contains(final T value, final Serializer<T> serializer) throws IOException {
         final byte[] bytes = CacheClientSerde.serialize(value, serializer);
         return cacheClient.contains(bytes);
     }
 
     @Override
-    public <T> boolean remove(T value, Serializer<T> serializer) throws IOException {
+    public <T> boolean remove(final T value, final Serializer<T> serializer) throws IOException {
         final byte[] bytes = CacheClientSerde.serialize(value, serializer);
         return cacheClient.remove(bytes);
     }

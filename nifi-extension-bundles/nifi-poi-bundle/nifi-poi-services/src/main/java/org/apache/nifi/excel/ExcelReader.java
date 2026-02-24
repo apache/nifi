@@ -215,7 +215,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return getZeroBasedIndex(rawStartingRow);
     }
 
-    static int getZeroBasedIndex(int rawStartingRow) {
+    static int getZeroBasedIndex(final int rawStartingRow) {
         return rawStartingRow > 0 ? rawStartingRow - 1 : 0;
     }
 
@@ -224,9 +224,9 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return getRequiredSheets(requiredSheetsDelimited);
     }
 
-    static List<String> getRequiredSheets(String requiredSheetsDelimited) {
+    static List<String> getRequiredSheets(final String requiredSheetsDelimited) {
         if (requiredSheetsDelimited != null) {
-            String[] delimitedSheets = StringUtils.split(requiredSheetsDelimited, ",");
+            final String[] delimitedSheets = StringUtils.split(requiredSheetsDelimited, ",");
             if (delimitedSheets != null) {
                 return Arrays.asList(delimitedSheets);
             }

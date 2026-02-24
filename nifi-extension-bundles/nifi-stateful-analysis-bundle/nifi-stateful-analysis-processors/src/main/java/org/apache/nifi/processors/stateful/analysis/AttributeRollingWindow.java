@@ -150,9 +150,9 @@ public class AttributeRollingWindow extends AbstractProcessor {
         microBatchTime = context.getProperty(SUB_WINDOW_LENGTH).asTimePeriod(TimeUnit.MILLISECONDS);
 
         if (microBatchTime == null || microBatchTime == 0) {
-            StateManager stateManager = context.getStateManager();
-            StateMap state = stateManager.getState(SCOPE);
-            Map<String, String> tempMap = new HashMap<>(state.toMap());
+            final StateManager stateManager = context.getStateManager();
+            final StateMap state = stateManager.getState(SCOPE);
+            final Map<String, String> tempMap = new HashMap<>(state.toMap());
             if (!tempMap.containsKey(COUNT_KEY)) {
                 tempMap.put(COUNT_KEY, "0");
                 context.getStateManager().setState(tempMap, SCOPE);
@@ -161,38 +161,39 @@ public class AttributeRollingWindow extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         try {
-            Long currTime = System.currentTimeMillis();
+            final Long currTime = System.currentTimeMillis();
             if (microBatchTime == null) {
                 noMicroBatch(context, session, flowFile, currTime);
             } else {
                 microBatch(context, session, flowFile, currTime);
             }
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             getLogger().error("Ran into an error while processing {}.", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("Value to track", VALUE_TO_TRACK.getName());
         config.renameProperty("Time window", TIME_WINDOW.getName());
         config.renameProperty("Sub-window length", SUB_WINDOW_LENGTH.getName());
     }
 
-    private void noMicroBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
+    private void noMicroBatch(final ProcessContext context, final ProcessSession session, final FlowFile flowFileArg, final Long currTime) {
+        FlowFile flowFile = flowFileArg;
         Map<String, String> state = null;
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
@@ -202,11 +203,11 @@ public class AttributeRollingWindow extends AbstractProcessor {
         Long count = Long.valueOf(state.get(COUNT_KEY));
         count++;
 
-        Set<String> keysToRemove = new HashSet<>();
+        final Set<String> keysToRemove = new HashSet<>();
 
-        for (String key: state.keySet()) {
+        for (final String key: state.keySet()) {
             if (!key.equals(COUNT_KEY)) {
-                Long timeStamp = Long.decode(key);
+                final Long timeStamp = Long.decode(key);
 
                 if (currTime - timeStamp > timeWindow) {
                     keysToRemove.add(key);
@@ -215,16 +216,16 @@ public class AttributeRollingWindow extends AbstractProcessor {
                 }
             }
         }
-        String countString = String.valueOf(count);
+        final String countString = String.valueOf(count);
 
-        for (String key: keysToRemove) {
+        for (final String key: keysToRemove) {
             state.remove(key);
         }
 
         Double aggregateValue = 0.0D;
-        Variance variance = new Variance();
+        final Variance variance = new Variance();
 
-        for (Map.Entry<String, String> entry: state.entrySet()) {
+        for (final Map.Entry<String, String> entry: state.entrySet()) {
             if (!entry.getKey().equals(COUNT_KEY)) {
                 final Double value = Double.valueOf(entry.getValue());
                 variance.increment(value);
@@ -241,7 +242,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
 
         try {
             session.setState(state, SCOPE);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to set the state after successfully processing {} due a failure when setting the state. Transferring to '{}'",
                     flowFile, REL_FAILED_SET_STATE.getName(), e);
 
@@ -250,13 +251,13 @@ public class AttributeRollingWindow extends AbstractProcessor {
             return;
         }
 
-        Double mean = aggregateValue / count;
+        final Double mean = aggregateValue / count;
 
-        Map<String, String> attributesToAdd = new HashMap<>();
+        final Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
         attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
-        double varianceValue = variance.getResult();
+        final double varianceValue = variance.getResult();
         attributesToAdd.put(ROLLING_WINDOW_VARIANCE_KEY, String.valueOf(varianceValue));
         attributesToAdd.put(ROLLING_WINDOW_STDDEV_KEY, String.valueOf(Math.sqrt(varianceValue)));
 
@@ -265,11 +266,12 @@ public class AttributeRollingWindow extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void microBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
+    private void microBatch(final ProcessContext context, final ProcessSession session, final FlowFile flowFileArg, final Long currTime) {
+        FlowFile flowFile = flowFileArg;
         Map<String, String> state = null;
         try {
             state = new HashMap<>(session.getState(SCOPE).toMap());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
@@ -293,20 +295,20 @@ public class AttributeRollingWindow extends AbstractProcessor {
         Long count = 0L;
         count += 1;
 
-        Set<String> keysToRemove = new HashSet<>();
+        final Set<String> keysToRemove = new HashSet<>();
 
-        for (String key : state.keySet()) {
-            String timeStampString;
+        for (final String key : state.keySet()) {
+            final String timeStampString;
             if (key.endsWith(BATCH_APPEND_KEY)) {
                 timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
-                Long timeStamp = Long.decode(timeStampString);
+                final Long timeStamp = Long.decode(timeStampString);
 
                 if (currTime - timeStamp  > timeWindow) {
                     keysToRemove.add(key);
                 }
             } else if (key.endsWith(COUNT_APPEND_KEY)) {
                 timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
-                Long timeStamp = Long.decode(timeStampString);
+                final Long timeStamp = Long.decode(timeStampString);
 
                 if (currTime - timeStamp > timeWindow) {
                     keysToRemove.add(key);
@@ -316,7 +318,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
             }
         }
 
-        for (String key:keysToRemove) {
+        for (final String key:keysToRemove) {
             state.remove(key);
         }
         keysToRemove.clear();
@@ -324,12 +326,12 @@ public class AttributeRollingWindow extends AbstractProcessor {
         Double aggregateValue = 0.0D;
         Double currentBatchValue =  0.0D;
         Long currentBatchCount = 0L;
-        Variance variance = new Variance();
+        final Variance variance = new Variance();
 
-        for (Map.Entry<String, String> entry: state.entrySet()) {
-            String key = entry.getKey();
+        for (final Map.Entry<String, String> entry: state.entrySet()) {
+            final String key = entry.getKey();
             if (key.endsWith(BATCH_APPEND_KEY)) {
-                String timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
+                final String timeStampString = key.substring(0, key.length() - COUNT_APPEND_KEY_LENGTH);
 
                 Double batchValue = Double.valueOf(entry.getValue());
                 Long batchCount = Long.valueOf(state.get(timeStampString + COUNT_APPEND_KEY));
@@ -363,20 +365,20 @@ public class AttributeRollingWindow extends AbstractProcessor {
 
         try {
             session.setState(state, SCOPE);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", flowFile, e);
             session.transfer(flowFile);
             context.yield();
             return;
         }
 
-        Double mean = aggregateValue / count;
+        final Double mean = aggregateValue / count;
 
-        Map<String, String> attributesToAdd = new HashMap<>();
+        final Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
         attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
-        double varianceValue = variance.getResult();
+        final double varianceValue = variance.getResult();
         attributesToAdd.put(ROLLING_WINDOW_VARIANCE_KEY, String.valueOf(varianceValue));
         attributesToAdd.put(ROLLING_WINDOW_STDDEV_KEY, String.valueOf(Math.sqrt(varianceValue)));
 

@@ -194,9 +194,9 @@ public class AbstractIoTDBTest {
 
     @Test
     public void testParseSchema() {
-        List<String> filedNames = Arrays.asList("root.sg1.d1.s1", "root.sg1.d1.s2", "root.sg1.d2.s1");
-        Map<String, List<String>> deviceMeasurementMap = processor.parseSchema(filedNames);
-        Map<String, List<String>> exceptedMap = new LinkedHashMap<>();
+        final List<String> filedNames = Arrays.asList("root.sg1.d1.s1", "root.sg1.d1.s2", "root.sg1.d2.s1");
+        final Map<String, List<String>> deviceMeasurementMap = processor.parseSchema(filedNames);
+        final Map<String, List<String>> exceptedMap = new LinkedHashMap<>();
         exceptedMap.put("root.sg1.d1", Arrays.asList("s1", "s2"));
         exceptedMap.put("root.sg1.d2", Collections.singletonList("s1"));
         assertEquals(exceptedMap, deviceMeasurementMap);
@@ -204,7 +204,7 @@ public class AbstractIoTDBTest {
 
     @Test
     public void testGenerateTablet() throws JsonProcessingException {
-        String schemaAttribute =
+        final String schemaAttribute =
                 "{\n"
                         + "\t\"fields\": [{\n"
                         + "\t\t\"tsName\": \"s1\",\n"
@@ -216,11 +216,11 @@ public class AbstractIoTDBTest {
                         + "\t\t\"encoding\": \"PLAIN\"\n"
                         + "\t}]\n"
                         + "}";
-        DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
-        Map<String, Tablet> tablets = processor.generateTablets(schema, "root.test_sg.test_d1.", 1);
+        final DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
+        final Map<String, Tablet> tablets = processor.generateTablets(schema, "root.test_sg.test_d1.", 1);
 
-        Map<String, Tablet> exceptedTablets = new HashMap<>();
-        List<IMeasurementSchema> schemas = Arrays.asList(
+        final Map<String, Tablet> exceptedTablets = new HashMap<>();
+        final List<IMeasurementSchema> schemas = Arrays.asList(
             new MeasurementSchema("s1", TSDataType.INT32, TSEncoding.RLE),
             new MeasurementSchema("s2", TSDataType.DOUBLE, TSEncoding.PLAIN));
         exceptedTablets.put("root.test_sg.test_d1", new Tablet("root.test_sg.test_d1", schemas, 1));
@@ -237,7 +237,7 @@ public class AbstractIoTDBTest {
     public static class TestAbstractIoTDBProcessor extends AbstractIoTDB {
 
         @Override
-        public void onTrigger(ProcessContext processContext, ProcessSession processSession)
+        public void onTrigger(final ProcessContext processContext, final ProcessSession processSession)
                 throws ProcessException {
         }
     }

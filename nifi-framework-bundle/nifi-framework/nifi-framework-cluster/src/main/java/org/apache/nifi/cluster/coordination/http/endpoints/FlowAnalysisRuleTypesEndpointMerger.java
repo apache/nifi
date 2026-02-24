@@ -30,7 +30,7 @@ public class FlowAnalysisRuleTypesEndpointMerger extends AbstractNodeStatusEndpo
     public static final String FLOW_ANALYSIS_RULE_TYPES_URI_PATTERN = "/nifi-api/flow/flow-analysis-rule-types";
 
     @Override
-    public boolean canHandle(URI uri, String method) {
+    public boolean canHandle(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && FLOW_ANALYSIS_RULE_TYPES_URI_PATTERN.equals(uri.getPath());
     }
 
@@ -40,12 +40,12 @@ public class FlowAnalysisRuleTypesEndpointMerger extends AbstractNodeStatusEndpo
     }
 
     @Override
-    protected Set<DocumentedTypeDTO> getDto(FlowAnalysisRuleTypesEntity entity) {
+    protected Set<DocumentedTypeDTO> getDto(final FlowAnalysisRuleTypesEntity entity) {
         return entity.getFlowAnalysisRuleTypes();
     }
 
     @Override
-    protected void mergeResponses(Set<DocumentedTypeDTO> clientDto, Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, NodeIdentifier selectedNodeId) {
+    protected void mergeResponses(final Set<DocumentedTypeDTO> clientDto, final Map<NodeIdentifier, Set<DocumentedTypeDTO>> dtoMap, final NodeIdentifier selectedNodeId) {
         DocumentedTypesMerger.mergeDocumentedTypes(clientDto, dtoMap);
     }
 }

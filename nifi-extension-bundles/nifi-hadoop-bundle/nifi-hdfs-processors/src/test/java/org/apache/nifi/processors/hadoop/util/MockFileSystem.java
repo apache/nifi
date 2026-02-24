@@ -165,7 +165,7 @@ public class MockFileSystem extends FileSystem {
     }
 
     @Override
-    public boolean mkdirs(Path f) {
+    public boolean mkdirs(final Path f) {
         pathToStatus.put(f, newDir(f));
         return true;
     }
@@ -180,7 +180,7 @@ public class MockFileSystem extends FileSystem {
             final IOException exception;
             try {
                 exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 throw new RuntimeException(t);
             }
             throw exception;
@@ -194,7 +194,7 @@ public class MockFileSystem extends FileSystem {
     }
 
     @Override
-    public boolean exists(Path f) throws IOException {
+    public boolean exists(final Path f) throws IOException {
         if (failOnExists) {
             throw new IOException(new GSSException(13));
         }
@@ -228,40 +228,40 @@ public class MockFileSystem extends FileSystem {
         }
     }
 
-    private FileStatus updateLength(FileStatus oldStatus, Long newLength) {
+    private FileStatus updateLength(final FileStatus oldStatus, final Long newLength) {
         try {
             return new FileStatus(newLength, oldStatus.isDirectory(), oldStatus.getReplication(),
                     oldStatus.getBlockSize(), oldStatus.getModificationTime(), oldStatus.getAccessTime(),
                     oldStatus.getPermission(), oldStatus.getOwner(), oldStatus.getGroup(),
                     (oldStatus.isSymlink() ? oldStatus.getSymlink() : null),
                     oldStatus.getPath());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public FileStatus newFile(Path p, FsPermission permission) {
+    public FileStatus newFile(final Path p, final FsPermission permission) {
         return new FileStatus(FILE_LENGTH, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, permission, "owner", "group", p);
     }
 
-    public FileStatus newDir(Path p) {
+    public FileStatus newDir(final Path p) {
         return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms(Integer.decode("0755").shortValue()), "owner", "group", (Path) null, p, true, false, false);
     }
 
-    public FileStatus newFile(String p) {
+    public FileStatus newFile(final String p) {
         return new FileStatus(FILE_LENGTH, false, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms(Integer.decode("0644").shortValue()), "owner", "group", new Path(p));
     }
-    public FileStatus newDir(String p) {
+    public FileStatus newDir(final String p) {
         return new FileStatus(DIR_LENGTH, true, 3, 128 * 1024 * 1024, 1523456000000L, 1523457000000L, perms(Integer.decode("0755").shortValue()), "owner", "group", new Path(p));
     }
 
     @Override
-    public long getDefaultBlockSize(Path f) {
+    public long getDefaultBlockSize(final Path f) {
         return 33554432L;
     }
 
     public void addFileStatus(final FileStatus parent, final FileStatus child) {
-        Set<FileStatus> children = fileStatuses.computeIfAbsent(parent.getPath(), k -> new HashSet<>());
+        final Set<FileStatus> children = fileStatuses.computeIfAbsent(parent.getPath(), k -> new HashSet<>());
         if (child != null) {
             children.add(child);
             if (child.isDirectory() && !fileStatuses.containsKey(child.getPath())) {
@@ -284,7 +284,7 @@ public class MockFileSystem extends FileSystem {
             final IOException exception;
             try {
                 exception = (IOException) Class.forName(className).getDeclaredConstructor().newInstance();
-            } catch (Throwable t) {
+            } catch (final Throwable t) {
                 throw new RuntimeException(t);
             }
             throw exception;
@@ -295,7 +295,7 @@ public class MockFileSystem extends FileSystem {
             return new FileStatus[0];
         }
 
-        for (FileStatus s : statuses) {
+        for (final FileStatus s : statuses) {
             getFileStatus(s.getPath()); //support exception handling only.
         }
 
@@ -314,14 +314,14 @@ public class MockFileSystem extends FileSystem {
         return 1;
     }
 
-    private static FsPermission perms(short p) {
+    private static FsPermission perms(final short p) {
         return new FsPermission(p);
     }
 
     private class StubFSInputStream extends FSInputStream {
 
         @Override
-        public void seek(long l) throws IOException {
+        public void seek(final long l) throws IOException {
 
         }
 
@@ -331,7 +331,7 @@ public class MockFileSystem extends FileSystem {
         }
 
         @Override
-        public boolean seekToNewSource(long l) throws IOException {
+        public boolean seekToNewSource(final long l) throws IOException {
             return true;
         }
 

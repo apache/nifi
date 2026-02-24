@@ -29,7 +29,7 @@ public class GrokExpressionValidator implements Validator {
     private final GrokCompiler grokCompiler;
     private final ResourceReference patternsReference;
 
-    public GrokExpressionValidator(ResourceReference patternsReference, GrokCompiler compiler) {
+    public GrokExpressionValidator(final ResourceReference patternsReference, final GrokCompiler compiler) {
         this.patternsReference = patternsReference;
         this.grokCompiler = compiler;
     }

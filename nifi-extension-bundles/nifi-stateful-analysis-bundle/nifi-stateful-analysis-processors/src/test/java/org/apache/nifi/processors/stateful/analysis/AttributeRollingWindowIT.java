@@ -66,7 +66,7 @@ public class AttributeRollingWindowIT {
     @Test
     public void testStateFailures() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
-        MockStateManager mockStateManager = runner.getStateManager();
+        final MockStateManager mockStateManager = runner.getStateManager();
         final AttributeRollingWindow processor = (AttributeRollingWindow) runner.getProcessor();
         final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
 
@@ -93,7 +93,7 @@ public class AttributeRollingWindowIT {
         runner.assertQueueEmpty();
 
         runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_FAILED_SET_STATE, 1);
-        MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(REL_FAILED_SET_STATE).getFirst();
+        final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(REL_FAILED_SET_STATE).getFirst();
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_VALUE_KEY);
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_COUNT_KEY);
         mockFlowFile.assertAttributeNotExists(ROLLING_WINDOW_MEAN_KEY);
@@ -172,8 +172,8 @@ public class AttributeRollingWindowIT {
 
             flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).getFirst();
             runner.clearTransferState();
-            Double value = (double) i;
-            Double mean = value / i;
+            final Double value = (double) i;
+            final Double mean = value / i;
 
             flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(value));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
@@ -194,8 +194,8 @@ public class AttributeRollingWindowIT {
 
             flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).getFirst();
             runner.clearTransferState();
-            Double value = (double) i;
-            Double mean = value / i;
+            final Double value = (double) i;
+            final Double mean = value / i;
 
             flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(Double.valueOf(i)));
             flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, String.valueOf(i));
@@ -227,7 +227,7 @@ public class AttributeRollingWindowIT {
             flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).getFirst();
             runner.clearTransferState();
             sum += i;
-            double mean = sum / i;
+            final double mean = sum / i;
             variance.increment(i);
 
             flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, String.valueOf(sum));
@@ -235,7 +235,7 @@ public class AttributeRollingWindowIT {
             assertTrue(Precision.equals(mean, Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_MEAN_KEY)), EPSILON));
             try {
                 assertTrue(Precision.equals(variance.getResult(), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)), EPSILON));
-            } catch (AssertionFailedError ae) {
+            } catch (final AssertionFailedError ae) {
                 logger.error("Error at {}: {} != {}", i, variance.getResult(), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_VARIANCE_KEY)));
             }
             assertTrue(Precision.equals(Math.sqrt(variance.getResult()), Double.parseDouble(flowFile.getAttribute(ROLLING_WINDOW_STDDEV_KEY)), EPSILON));

@@ -61,7 +61,7 @@ import static org.mockito.Mockito.when;
 
 public class TestListenWebSocket {
 
-    protected void assertFlowFile(WebSocketSession webSocketSession, String serviceId, String endpointId, MockFlowFile ff, WebSocketMessage.Type messageType) {
+    protected void assertFlowFile(final WebSocketSession webSocketSession, final String serviceId, final String endpointId, final MockFlowFile ff, final WebSocketMessage.Type messageType) {
         assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
         assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
         assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
@@ -74,7 +74,7 @@ public class TestListenWebSocket {
         final Map<Relationship, List<MockFlowFile>> flowFiles = new HashMap<>();
 
         processSessions.forEach(session -> processor.getRelationships().forEach(rel -> {
-            List<MockFlowFile> relFlowFiles = flowFiles.computeIfAbsent(rel, k -> new ArrayList<>());
+            final List<MockFlowFile> relFlowFiles = flowFiles.computeIfAbsent(rel, k -> new ArrayList<>());
             relFlowFiles.addAll(session.getFlowFilesForRelationship(rel));
         }));
 
@@ -157,17 +157,17 @@ public class TestListenWebSocket {
 
         processor.onTrigger(runner.getProcessContext(), sessionFactory);
 
-        Map<Relationship, List<MockFlowFile>> transferredFlowFiles = getAllTransferredFlowFiles(createdSessions, processor);
+        final Map<Relationship, List<MockFlowFile>> transferredFlowFiles = getAllTransferredFlowFiles(createdSessions, processor);
 
-        List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
+        final List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
         assertEquals(1, connectedFlowFiles.size());
         connectedFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, null));
 
-        List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
+        final List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
         assertEquals(2, textFlowFiles.size());
         textFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT));
 
-        List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
+        final List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
         assertEquals(3, binaryFlowFiles.size());
         binaryFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY));
 

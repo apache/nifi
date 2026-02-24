@@ -39,7 +39,7 @@ public class ToBytes extends RecordPathSegment {
     }
 
     @Override
-    public Stream<FieldValue> evaluate(RecordPathEvaluationContext context) {
+    public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         final Stream<FieldValue> fieldValues = recordPath.evaluate(context);
         return fieldValues.filter(fv -> fv.getValue() != null)
                 .map(fv -> {
@@ -51,7 +51,7 @@ public class ToBytes extends RecordPathSegment {
                     final Charset charset = getCharset(this.charsetSegment, context);
 
                     final byte[] bytesValue;
-                    Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fv.getField().getFieldName(), RecordFieldType.BYTE.getDataType(), charset);
+                    final Byte[] src = (Byte[]) DataTypeUtils.toArray(fv.getValue(), fv.getField().getFieldName(), RecordFieldType.BYTE.getDataType(), charset);
                     bytesValue = new byte[src.length];
                     for (int i = 0; i < src.length; i++) {
                         bytesValue[i] = src[i];

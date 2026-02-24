@@ -125,7 +125,7 @@ public interface GitRepositoryClient {
      * @throws IOException if an I/O error occurs
      * @throws FlowRegistryException if a non-I/O error occurs
      */
-    default Optional<String> getContentShaAtCommit(String path, String commitSha) throws IOException, FlowRegistryException {
+    default Optional<String> getContentShaAtCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
         // Default implementation returns empty to maintain backward compatibility.
         // Implementations should override this to support atomic commit operations.
         return Optional.empty();

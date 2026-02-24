@@ -40,13 +40,13 @@ public class ReportingSchema extends BaseSchemaWithIdAndName {
     private String reportingClass;
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
 
-    public ReportingSchema(Map map) {
+    public ReportingSchema(final Map map) {
         super(map, "Reporting(id: {id}, name: {name})");
         if (this.getId().equals("")) {
             // MiNiFi will throw an error if it can not find `id` of BaseSchemaWithIdAndName for YML config version 3
             this.setId(UUID.randomUUID().toString());
         }
-        String wrapperName = getWrapperName();
+        final String wrapperName = getWrapperName();
         reportingClass = getRequiredKeyAsType(map, CLASS_KEY, String.class, wrapperName);
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, wrapperName);
         if (schedulingStrategy != null && !isSchedulingStrategy(schedulingStrategy)) {
@@ -57,10 +57,10 @@ public class ReportingSchema extends BaseSchemaWithIdAndName {
         properties = getOptionalKeyAsType(map, PROPERTIES_KEY, Map.class, wrapperName, DEFAULT_PROPERTIES);
     }
 
-    public static boolean isSchedulingStrategy(String string) {
+    public static boolean isSchedulingStrategy(final String string) {
         try {
             SchedulingStrategy.valueOf(string);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
         return true;
@@ -68,7 +68,7 @@ public class ReportingSchema extends BaseSchemaWithIdAndName {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = super.toMap();
+        final Map<String, Object> result = super.toMap();
         result.put(CLASS_KEY, reportingClass);
         result.put(COMMENT_KEY, comment);
         result.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);

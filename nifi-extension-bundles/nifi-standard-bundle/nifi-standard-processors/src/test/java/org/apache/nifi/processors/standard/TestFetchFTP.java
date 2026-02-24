@@ -70,18 +70,18 @@ public class TestFetchFTP {
         runner.setProperty(FetchFileTransfer.UNDEFAULTED_PORT, "11");
         runner.setProperty(FetchFileTransfer.REMOTE_FILENAME, "${filename}");
 
-        MockProcessContext ctx = (MockProcessContext) runner.getProcessContext();
+        final MockProcessContext ctx = (MockProcessContext) runner.getProcessContext();
         setDefaultValues(ctx, FTPTransfer.BUFFER_SIZE, FTPTransfer.DATA_TIMEOUT, FTPTransfer.CONNECTION_TIMEOUT,
             FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE);
         ctx.setProperty(FTPTransfer.USERNAME, "foo");
         ctx.setProperty(FTPTransfer.PASSWORD, "bar");
     }
 
-    private void setDefaultValues(MockProcessContext ctx, PropertyDescriptor... propertyDescriptors) {
+    private void setDefaultValues(final MockProcessContext ctx, final PropertyDescriptor... propertyDescriptors) {
         Arrays.stream(propertyDescriptors).forEach(d -> ctx.setProperty(d, d.getDefaultValue()));
     }
 
-    private void addFileAndEnqueue(String filename) {
+    private void addFileAndEnqueue(final String filename) {
         proc.addContent(filename, "world".getBytes());
         runner.enqueue(new byte[0], Collections.singletonMap("filename", filename));
     }
@@ -103,7 +103,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
         assertFalse(proc.isClosed);
-        MockFlowFile transferredFlowFile = runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).getFirst();
+        final MockFlowFile transferredFlowFile = runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).getFirst();
         transferredFlowFile.assertContentEquals("world");
         transferredFlowFile.assertAttributeExists(CoreAttributes.PATH.key());
         transferredFlowFile.assertAttributeEquals(CoreAttributes.PATH.key(), "./here/is/my/path");
@@ -116,7 +116,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_NOT_FOUND, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
+        final MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_NOT_FOUND.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
@@ -128,7 +128,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
+        final MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_PERMISSION_DENIED.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
@@ -168,7 +168,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_COMMS_FAILURE, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
+        final MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_COMMS_FAILURE.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
 
         assertTrue(proc.isClosed);
@@ -287,8 +287,8 @@ public class TestFetchFTP {
         private TestableFetchFTP() throws IOException {
             when(mockFtpClient.retrieveFileStream(anyString()))
                 .then(invocationOnMock -> {
-                    String key = invocationOnMock.getArgument(0);
-                    byte[] content = fileContents.get(key);
+                    final String key = invocationOnMock.getArgument(0);
+                    final byte[] content = fileContents.get(key);
                     if (content == null) {
                         throw new FileNotFoundException();
                     }
@@ -313,7 +313,7 @@ public class TestFetchFTP {
                 }
 
                 @Override
-                public FlowFile getRemoteFile(String remoteFileName, FlowFile flowFile, ProcessSession session) throws ProcessException, IOException {
+                public FlowFile getRemoteFile(final String remoteFileName, final FlowFile flowFile, final ProcessSession session) throws ProcessException, IOException {
                     if (!allowAccess) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -327,7 +327,7 @@ public class TestFetchFTP {
                 }
 
                 @Override
-                public void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException {
+                public void deleteFile(final FlowFile flowFile, final String path, final String remoteFileName) throws IOException {
                     if (!allowDelete) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -340,7 +340,7 @@ public class TestFetchFTP {
                 }
 
                 @Override
-                public void rename(FlowFile flowFile, String source, String target) throws IOException {
+                public void rename(final FlowFile flowFile, final String source, final String target) throws IOException {
                     if (!allowRename) {
                         throw new PermissionDeniedException("test permission denied");
                     }
@@ -354,7 +354,7 @@ public class TestFetchFTP {
                 }
 
                 @Override
-                public void ensureDirectoryExists(FlowFile flowFile, File remoteDirectory) throws IOException {
+                public void ensureDirectoryExists(final FlowFile flowFile, final File remoteDirectory) throws IOException {
                     if (!allowCreateDir) {
                         throw new PermissionDeniedException("test permission denied");
                     }
