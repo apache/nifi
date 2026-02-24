@@ -37,6 +37,8 @@ import org.apache.nifi.kafka.service.consumer.Subscription;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -64,6 +66,8 @@ import static org.mockito.Mockito.mock;
  * without causing duplicate message processing.
  */
 class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
+
+    private static final Logger logger = LoggerFactory.getLogger(ConsumeKafkaRebalanceIT.class);
 
     private static final int NUM_PARTITIONS = 3;
     private static final int MESSAGES_PER_PARTITION = 20;
@@ -348,7 +352,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
         // In a real processor, this would commit FlowFiles; here we just log and allow the commit
         final RebalanceCallback callback = revokedPartitions -> {
             rebalanceCount.incrementAndGet();
-            System.out.println("Rebalance callback invoked for partitions: " + revokedPartitions);
+            logger.info("Rebalance callback invoked for partitions: {}", revokedPartitions);
         };
 
         try {
@@ -445,11 +449,11 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
         }
 
         // Log results for debugging
-        System.out.println("Consumer 1 polled: " + consumer1Count.get() + " records");
-        System.out.println("Consumer 2 polled: " + consumer2Count.get() + " records");
-        System.out.println("Total unique messages: " + allConsumedMessages.size());
-        System.out.println("Duplicate count: " + duplicateCount.get());
-        System.out.println("Rebalance count: " + rebalanceCount.get());
+        logger.info("Consumer 1 polled: {} records", consumer1Count.get());
+        logger.info("Consumer 2 polled: {} records", consumer2Count.get());
+        logger.info("Total unique messages: {}", allConsumedMessages.size());
+        logger.info("Duplicate count: {}", duplicateCount.get());
+        logger.info("Rebalance count: {}", rebalanceCount.get());
 
         // Verify both consumers participated (rebalance occurred)
         assertTrue(consumer2Count.get() > 0,

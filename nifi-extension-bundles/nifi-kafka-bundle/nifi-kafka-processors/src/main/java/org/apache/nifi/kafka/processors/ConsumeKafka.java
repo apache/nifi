@@ -349,8 +349,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
-    private final ThreadLocal<ProcessSession> currentSession = new ThreadLocal<>();
-    private final ThreadLocal<OffsetTracker> currentOffsetTracker = new ThreadLocal<>();
+    private final RebalanceSessionHolder rebalanceSessionHolder = new RebalanceSessionHolder();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -428,8 +427,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final OffsetTracker offsetTracker = new OffsetTracker();
         boolean recordsReceived = false;
 
-        currentSession.set(session);
-        currentOffsetTracker.set(offsetTracker);
+        rebalanceSessionHolder.session = session;
+        rebalanceSessionHolder.offsetTracker = offsetTracker;
 
         try {
             while (System.currentTimeMillis() < stopTime) {
@@ -504,8 +503,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     context.yield();
                 });
         } finally {
-            currentSession.remove();
-            currentOffsetTracker.remove();
+            rebalanceSessionHolder.session = null;
+            rebalanceSessionHolder.offsetTracker = null;
         }
     }
 
@@ -611,35 +610,38 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         final KafkaConsumerService newService = connectionService.getConsumerService(pollingContext);
-        newService.setRebalanceCallback(createRebalanceCallback());
+        newService.setRebalanceCallback(createRebalanceCallback(rebalanceSessionHolder));
         return newService;
     }
 
-    private RebalanceCallback createRebalanceCallback() {
-        return revokedPartitions -> {
-            final ProcessSession session = currentSession.get();
-            final OffsetTracker offsetTracker = currentOffsetTracker.get();
-            if (session == null) {
-                getLogger().debug("No active session during rebalance callback, nothing to commit");
-                return;
-            }
-
-            getLogger().info("Rebalance callback invoked for {} revoked partitions, committing session synchronously",
-                    revokedPartitions.size());
-
-            try {
-                session.commit();
-                getLogger().debug("Session committed successfully during rebalance callback");
-
-                if (offsetTracker != null) {
-                    offsetTracker.getRecordCounts().forEach((topic, count) -> {
-                        session.adjustCounter("Records Acknowledged for " + topic, count, true);
-                    });
-                    offsetTracker.clear();
+    private RebalanceCallback createRebalanceCallback(final RebalanceSessionHolder holder) {
+        return new RebalanceCallback() {
+            @Override
+            public void onPartitionsRevoked(final Collection<PartitionState> revokedPartitions) {
+                final ProcessSession session = holder.session;
+                final OffsetTracker offsetTracker = holder.offsetTracker;
+                if (session == null) {
+                    getLogger().debug("No active session during rebalance callback, nothing to commit");
+                    return;
                 }
-            } catch (final Exception e) {
-                getLogger().error("Failed to commit session during rebalance callback", e);
-                throw new RuntimeException("Failed to commit session during rebalance", e);
+
+                getLogger().info("Rebalance callback invoked for {} revoked partitions, committing session synchronously",
+                        revokedPartitions.size());
+
+                try {
+                    session.commit();
+                    getLogger().debug("Session committed successfully during rebalance callback");
+
+                    if (offsetTracker != null) {
+                        offsetTracker.getRecordCounts().forEach((topic, count) -> {
+                            session.adjustCounter("Records Acknowledged for " + topic, count, true);
+                        });
+                        offsetTracker.clear();
+                    }
+                } catch (final Exception e) {
+                    getLogger().error("Failed to commit session during rebalance callback", e);
+                    throw new RuntimeException("Failed to commit session during rebalance", e);
+                }
             }
         };
     }
@@ -727,5 +729,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         return pollingContext;
+    }
+
+    private static class RebalanceSessionHolder {
+        private volatile ProcessSession session;
+        private volatile OffsetTracker offsetTracker;
     }
 }
