@@ -346,6 +346,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
         } catch (final Exception e) {
             logger.error("Failed to inherit configuration for {}", connector, e);
             connector.abortUpdate(e);
+            connector.markInvalid("Flow Update Failure", "The flow could not be updated: " + e.getMessage());
             throw e;
         }
     }

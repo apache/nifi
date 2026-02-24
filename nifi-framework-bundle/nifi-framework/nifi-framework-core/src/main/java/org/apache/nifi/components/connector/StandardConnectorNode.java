@@ -309,16 +309,20 @@ public class StandardConnectorNode implements ConnectorNode {
     public void abortUpdate(final Throwable cause) {
         stateTransition.setCurrentState(ConnectorState.UPDATE_FAILED);
         stateTransition.setDesiredState(ConnectorState.UPDATE_FAILED);
-        validationState.set(new ValidationState(ValidationStatus.INVALID, List.of(new ValidationResult.Builder()
-                .subject("Flow Update Failure")
-                .valid(false)
-                .explanation("The flow could not be updated.")
-                .build())));
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().abortUpdate(workingFlowContext, cause);
         }
         logger.debug("Aborted update for {}", this);
+    }
+
+    @Override
+    public void markInvalid(final String subject, final String explanation) {
+        validationState.set(new ValidationState(ValidationStatus.INVALID, List.of(new ValidationResult.Builder()
+                .subject(subject)
+                .valid(false)
+                .explanation(explanation)
+                .build())));
     }
 
     @Override

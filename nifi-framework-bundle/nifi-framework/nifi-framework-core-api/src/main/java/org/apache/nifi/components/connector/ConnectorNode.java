@@ -264,6 +264,15 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
         Bundle flowContextBundle) throws FlowUpdateException;
 
     /**
+     * Marks the connector as invalid with the given subject and explanation. This is used when a flow update
+     * fails during initialization or flow synchronization to indicate the connector cannot operate.
+     *
+     * @param subject the subject of the validation failure
+     * @param explanation the reason the connector is invalid
+     */
+    void markInvalid(final String subject, final String explanation);
+
+    /**
      * Returns the list of available actions that can be performed on this Connector.
      * Each action includes whether it is currently allowed and, if not, the reason why.
      * @return the list of available actions
