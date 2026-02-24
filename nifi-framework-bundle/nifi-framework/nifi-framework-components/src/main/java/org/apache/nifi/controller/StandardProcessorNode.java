@@ -1173,8 +1173,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     .explanation("Scheduling Period is not a valid cron expression")
                                     .build());
                         }
+                        break;
                     }
-                    break;
                     case TIMER_DRIVEN: {
                         try {
                             final long schedulingNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(evaluatedSchedulingPeriod),
@@ -1199,8 +1199,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                     .explanation("Scheduling Period is not a valid time duration")
                                     .build());
                         }
+                        break;
                     }
-                    break;
                 }
             }
         }

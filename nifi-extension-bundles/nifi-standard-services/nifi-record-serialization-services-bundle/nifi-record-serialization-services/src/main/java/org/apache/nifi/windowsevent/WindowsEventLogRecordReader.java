@@ -374,9 +374,9 @@ public class WindowsEventLogRecordReader implements RecordReader {
 
                     // dropUnknown == true && coerceTypes == true
                     if (coerceTypes) {
-                        final Object value;
                         final DataType dataType = field.get().getDataType();
-                        if ((value = parseStringForType(attribute.getValue(), targetFieldName, dataType)) != null) {
+                        final Object value = parseStringForType(attribute.getValue(), targetFieldName, dataType);
+                        if (value != null) {
                             recordValues.put(targetFieldName, value);
                         }
 
@@ -389,10 +389,10 @@ public class WindowsEventLogRecordReader implements RecordReader {
 
                 // dropUnknown == false && coerceTypes == true
                 if (coerceTypes) {
-                    final Object value;
                     final Optional<RecordField> field = schema.getField(targetFieldName);
                     if (field.isPresent()) {
-                        if ((value = parseStringForType(attribute.getValue(), targetFieldName, field.get().getDataType())) != null) {
+                        final Object value = parseStringForType(attribute.getValue(), targetFieldName, field.get().getDataType());
+                        if (value != null) {
                             recordValues.put(targetFieldName, value);
                         }
                     } else {

@@ -216,8 +216,8 @@ public class ParseNetflowv5 extends AbstractProcessor {
     }
 
     private OptionalInt resolvePort(final FlowFile flowFile) {
-        final String port;
-        if ((port = flowFile.getAttribute("udp.port")) != null) {
+        final String port = flowFile.getAttribute("udp.port");
+        if (port != null) {
             return OptionalInt.of(Integer.parseInt(port));
         }
         return OptionalInt.empty();

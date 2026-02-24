@@ -602,23 +602,28 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         req.setFullPath(fullPath);
         req.setRecursive(context.getProperty(RECURSE_SUBDIRS).asBoolean());
 
-        PropertyValue pv;
-        String v;
-
-        if (context.getProperty(DIR_FILTER).isSet() && (pv = context.getProperty(DIR_FILTER).evaluateAttributeExpressions(ff)) != null) {
-            v = pv.getValue();
-            req.setDirFilter(v == null ? null : Pattern.compile(v));
+        if (context.getProperty(DIR_FILTER).isSet()) {
+            final PropertyValue pv = context.getProperty(DIR_FILTER).evaluateAttributeExpressions(ff);
+            if (pv != null) {
+                final String v = pv.getValue();
+                req.setDirFilter(v == null ? null : Pattern.compile(v));
+            }
         }
 
-        if (context.getProperty(FILE_FILTER).isSet() && (pv = context.getProperty(FILE_FILTER).evaluateAttributeExpressions(ff)) != null) {
-            v = pv.getValue();
-            req.setFileFilter(v == null ? null : Pattern.compile(v));
+        if (context.getProperty(FILE_FILTER).isSet()) {
+            final PropertyValue pv = context.getProperty(FILE_FILTER).evaluateAttributeExpressions(ff);
+            if (pv != null) {
+                final String v = pv.getValue();
+                req.setFileFilter(v == null ? null : Pattern.compile(v));
+            }
         }
 
-        if (context.getProperty(FILE_EXCLUDE_FILTER).isSet()
-                && (pv = context.getProperty(FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(ff)) != null) {
-            v = pv.getValue();
-            req.setFileExcludeFilter(v == null ? null : Pattern.compile(v));
+        if (context.getProperty(FILE_EXCLUDE_FILTER).isSet()) {
+            final PropertyValue pv = context.getProperty(FILE_EXCLUDE_FILTER).evaluateAttributeExpressions(ff);
+            if (pv != null) {
+                final String v = pv.getValue();
+                req.setFileExcludeFilter(v == null ? null : Pattern.compile(v));
+            }
         }
 
         req.setIgnoreDotFiles(context.getProperty(IGNORE_DOTTED_FILES).asBoolean());
@@ -627,9 +632,9 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         req.setGrouping(HDFSFileInfoRequest.Grouping.getEnum(context.getProperty(GROUPING).getValue()));
         req.setBatchSize(context.getProperty(BATCH_SIZE).asInteger() != null ? context.getProperty(BATCH_SIZE).asInteger() : 1);
 
-        v = context.getProperty(DESTINATION).getValue();
+        final String destination = context.getProperty(DESTINATION).getValue();
 
-        req.setDestContent(DESTINATION_CONTENT.getValue().equals(v));
+        req.setDestContent(DESTINATION_CONTENT.getValue().equals(destination));
 
         return req;
     }

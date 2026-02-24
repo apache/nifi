@@ -307,9 +307,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     public boolean removeProperty(final String property) {
         Objects.requireNonNull(property);
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(property);
-        String value = null;
+        final String value = properties.remove(fullyPopulatedDescriptor);
 
-        if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {
+        if (value != null) {
             if (!value.equals(fullyPopulatedDescriptor.getDefaultValue())) {
                 component.onPropertyModified(fullyPopulatedDescriptor, value, null);
             }

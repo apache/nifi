@@ -171,31 +171,31 @@ public class PutSalesforceObject extends AbstractProcessor {
     private void processRecords(FlowFile flowFile, String objectType, ProcessContext context, ProcessSession session) throws IOException, MalformedRecordException, SchemaNotFoundException {
         RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
         int count = 0;
-        RecordExtender recordExtender;
 
         try (InputStream in = session.read(flowFile);
              RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
-             ByteArrayOutputStream out = new ByteArrayOutputStream();
-             WriteJsonResult writer = getWriter(recordExtender = getExtender(reader), out)) {
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            RecordExtender recordExtender = getExtender(reader);
+            try (WriteJsonResult writer = getWriter(recordExtender, out)) {
+                Record record;
+                while ((record = reader.nextRecord()) != null) {
+                    count++;
+                    if (!writer.isActiveRecordSet()) {
+                        writer.beginRecordSet();
+                    }
 
-            Record record;
-            while ((record = reader.nextRecord()) != null) {
-                count++;
-                if (!writer.isActiveRecordSet()) {
-                    writer.beginRecordSet();
+                    MapRecord extendedRecord = recordExtender.getExtendedRecord(objectType, count, record);
+                    writer.write(extendedRecord);
+
+                    if (count == maxRecordCount) {
+                        count = 0;
+                        postRecordBatch(objectType, out, writer, recordExtender);
+                        out.reset();
+                    }
                 }
-
-                MapRecord extendedRecord = recordExtender.getExtendedRecord(objectType, count, record);
-                writer.write(extendedRecord);
-
-                if (count == maxRecordCount) {
-                    count = 0;
+                if (writer.isActiveRecordSet()) {
                     postRecordBatch(objectType, out, writer, recordExtender);
-                    out.reset();
                 }
-            }
-            if (writer.isActiveRecordSet()) {
-                postRecordBatch(objectType, out, writer, recordExtender);
             }
         }
     }

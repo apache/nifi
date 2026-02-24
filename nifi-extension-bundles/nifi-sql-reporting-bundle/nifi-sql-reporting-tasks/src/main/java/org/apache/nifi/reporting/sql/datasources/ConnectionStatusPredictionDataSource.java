@@ -65,7 +65,8 @@ public class ConnectionStatusPredictionDataSource implements ResettableDataSourc
         if (groupStatus == lastFetchedStatus) {
             connectionStatuses = lastConnectionStatuses;
         } else {
-            connectionStatuses = lastConnectionStatuses = gatherConnectionStatuses(groupStatus);
+            lastConnectionStatuses = gatherConnectionStatuses(groupStatus);
+            connectionStatuses = lastConnectionStatuses;
         }
 
         lastFetchedStatus = groupStatus;
