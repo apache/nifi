@@ -44,7 +44,7 @@ public interface ConnectorRequestContext {
      *
      * @return the authenticated NiFi user, or {@code null} if not available
      */
-    NiFiUser getNiFiUser();
+    NiFiUser getAuthenticatedUser();
 
     /**
      * Returns all HTTP headers from the original request as an immutable, case-insensitive
@@ -65,7 +65,7 @@ public interface ConnectorRequestContext {
      * @param headerName the header name to check
      * @return {@code true} if the header is present, {@code false} otherwise
      */
-    boolean hasHeader(String headerName);
+    boolean hasRequestHeader(String headerName);
 
     /**
      * Returns all values for the given header name, or an empty list if the header is not present.
@@ -74,7 +74,7 @@ public interface ConnectorRequestContext {
      * @param headerName the header name to look up
      * @return an unmodifiable list of header values, or an empty list if not present
      */
-    List<String> getHeaderValues(String headerName);
+    List<String> getRequestHeaderValues(String headerName);
 
     /**
      * Returns the first value for the given header name, or {@code null} if the header is
@@ -84,5 +84,5 @@ public interface ConnectorRequestContext {
      * @param headerName the header name to look up
      * @return the first header value, or {@code null} if not present
      */
-    String getFirstHeaderValue(String headerName);
+    String getFirstRequestHeaderValue(String headerName);
 }

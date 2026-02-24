@@ -81,15 +81,15 @@ class ConnectorRequestContextFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertNotNull(capturedContext[0]);
-        assertNotNull(capturedContext[0].getNiFiUser());
-        assertEquals(TEST_USER, capturedContext[0].getNiFiUser().getIdentity());
+        assertNotNull(capturedContext[0].getAuthenticatedUser());
+        assertEquals(TEST_USER, capturedContext[0].getAuthenticatedUser().getIdentity());
 
-        assertTrue(capturedContext[0].hasHeader(TOKEN_HEADER));
-        assertTrue(capturedContext[0].hasHeader(ROLE_HEADER));
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstHeaderValue(TOKEN_HEADER));
-        assertEquals(ROLE_VALUE, capturedContext[0].getFirstHeaderValue(ROLE_HEADER));
-        assertEquals(List.of(TOKEN_VALUE), capturedContext[0].getHeaderValues(TOKEN_HEADER));
-        assertEquals(List.of(ROLE_VALUE), capturedContext[0].getHeaderValues(ROLE_HEADER));
+        assertTrue(capturedContext[0].hasRequestHeader(TOKEN_HEADER));
+        assertTrue(capturedContext[0].hasRequestHeader(ROLE_HEADER));
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue(TOKEN_HEADER));
+        assertEquals(ROLE_VALUE, capturedContext[0].getFirstRequestHeaderValue(ROLE_HEADER));
+        assertEquals(List.of(TOKEN_VALUE), capturedContext[0].getRequestHeaderValues(TOKEN_HEADER));
+        assertEquals(List.of(ROLE_VALUE), capturedContext[0].getRequestHeaderValues(ROLE_HEADER));
     }
 
     @Test
@@ -138,8 +138,8 @@ class ConnectorRequestContextFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertNotNull(capturedContext[0]);
-        assertNull(capturedContext[0].getNiFiUser());
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstHeaderValue(TOKEN_HEADER));
+        assertNull(capturedContext[0].getAuthenticatedUser());
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue(TOKEN_HEADER));
     }
 
     @Test
@@ -157,12 +157,12 @@ class ConnectorRequestContextFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertNotNull(capturedContext[0]);
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstHeaderValue("snowflake-authorization-token"));
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstHeaderValue("SNOWFLAKE-AUTHORIZATION-TOKEN"));
-        assertTrue(capturedContext[0].hasHeader("snowflake-authorization-token"));
-        assertFalse(capturedContext[0].hasHeader("Non-Existent-Header"));
-        assertEquals(List.of(), capturedContext[0].getHeaderValues("Non-Existent-Header"));
-        assertNull(capturedContext[0].getFirstHeaderValue("Non-Existent-Header"));
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue("snowflake-authorization-token"));
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue("SNOWFLAKE-AUTHORIZATION-TOKEN"));
+        assertTrue(capturedContext[0].hasRequestHeader("snowflake-authorization-token"));
+        assertFalse(capturedContext[0].hasRequestHeader("Non-Existent-Header"));
+        assertEquals(List.of(), capturedContext[0].getRequestHeaderValues("Non-Existent-Header"));
+        assertNull(capturedContext[0].getFirstRequestHeaderValue("Non-Existent-Header"));
     }
 
     private void setUpSecurityContext(final String identity) {

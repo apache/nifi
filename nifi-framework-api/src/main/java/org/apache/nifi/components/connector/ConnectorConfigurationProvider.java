@@ -128,11 +128,11 @@ public interface ConnectorConfigurationProvider {
      * (stopping, re-configuring, and restarting the connector).
      *
      * <p>Returning {@code true} (the default) indicates the framework should proceed normally.</p>
-     * 
+     *
      * <p>Returning {@code false} indicates the framework should skip the update and return
      * immediately -- this is not a failure; the provider may have handled the update externally
      * by doing some bookkeeping logic and the provider may re-trigger the update process by starting
-     * a new request to the nifi framework once it is ready to proceed. If the provider wants to fail 
+     * a new request to the nifi framework once it is ready to proceed. If the provider wants to fail
      * the request, it should throw a runtime exception instead.</p>
      *
      * @param connectorId the identifier of the connector to update

@@ -28,8 +28,8 @@ import java.util.TreeMap;
  * Standard implementation of {@link ConnectorRequestContext} that stores an authenticated
  * {@link NiFiUser} and HTTP headers in a case-insensitive map.
  *
- * <p>Header name lookups via {@link #hasHeader}, {@link #getHeaderValues}, and
- * {@link #getFirstHeaderValue} are case-insensitive per the HTTP specification.
+ * <p>Header name lookups via {@link #hasRequestHeader}, {@link #getRequestHeaderValues}, and
+ * {@link #getFirstRequestHeaderValue} are case-insensitive per the HTTP specification.
  * The backing map uses {@link String#CASE_INSENSITIVE_ORDER} to guarantee this.</p>
  */
 public class StandardConnectorRequestContext implements ConnectorRequestContext {
@@ -56,7 +56,7 @@ public class StandardConnectorRequestContext implements ConnectorRequestContext 
     }
 
     @Override
-    public NiFiUser getNiFiUser() {
+    public NiFiUser getAuthenticatedUser() {
         return niFiUser;
     }
 
@@ -66,19 +66,19 @@ public class StandardConnectorRequestContext implements ConnectorRequestContext 
     }
 
     @Override
-    public boolean hasHeader(final String headerName) {
+    public boolean hasRequestHeader(final String headerName) {
         return requestHeaders.containsKey(headerName);
     }
 
     @Override
-    public List<String> getHeaderValues(final String headerName) {
+    public List<String> getRequestHeaderValues(final String headerName) {
         final List<String> values = requestHeaders.get(headerName);
         return values != null ? values : List.of();
     }
 
     @Override
-    public String getFirstHeaderValue(final String headerName) {
-        final List<String> values = getHeaderValues(headerName);
+    public String getFirstRequestHeaderValue(final String headerName) {
+        final List<String> values = getRequestHeaderValues(headerName);
         return values.isEmpty() ? null : values.getFirst();
     }
 }
