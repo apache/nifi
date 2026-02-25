@@ -219,6 +219,7 @@ REPEAT : 'repeat';
 UUID3 : 'UUID3';
 UUID5 : 'UUID5';
 HASH : 'hash';
+UNIQUE : 'unique';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
