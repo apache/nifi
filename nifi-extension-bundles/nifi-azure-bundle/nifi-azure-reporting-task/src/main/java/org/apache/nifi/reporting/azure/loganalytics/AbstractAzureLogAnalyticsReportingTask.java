@@ -22,14 +22,12 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -119,18 +117,8 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             .description("Log Analytics URL Endpoint Format")
             .required(false)
             .defaultValue("https://{0}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01")
-            .addValidator((subject, input, context) -> {
-                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                }
-                try {
-                    new URI(MessageFormat.format(input, "workspace-id")).toURL();
-                    return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder().subject(subject).input(input).valid(false)
-                            .explanation("'%s' is not a valid URL format: %s".formatted(input, e.getMessage())).build();
-                }
-            })
+            .addValidator((subject, input, context) ->
+                    StandardValidators.URL_VALIDATOR.validate(subject, MessageFormat.format(input, "workspace-id"), context))
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
