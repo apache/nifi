@@ -62,6 +62,8 @@ public class JMSConnectionFactoryProviderTest {
 
     private static final String TEST_CONNECTION_FACTORY_IMPL = "org.apache.nifi.jms.testcflib.TestConnectionFactory";
     private static final String ACTIVEMQ_CONNECTION_FACTORY_IMPL = "org.apache.activemq.ActiveMQConnectionFactory";
+    private static final String ARTEMIS_CONNECTION_FACTORY_IMPL = "org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory";
+    private static final String SINGLE_ARTEMIS_BROKER = "tcp://myhost:61616";
     private static final String TIBCO_CONNECTION_FACTORY_IMPL = "com.tibco.tibjms.TibjmsConnectionFactory";
     private static final String IBM_MQ_CONNECTION_FACTORY_IMPL = "com.ibm.mq.jms.MQConnectionFactory";
     private static final String QPID_JMS_CONNECTION_FACTORY_IMPL = "org.apache.qpid.jms.JmsConnectionFactory";
@@ -409,6 +411,89 @@ public class JMSConnectionFactoryProviderTest {
                         "keyStoreType", keyStoreType
                         ),
                 cfProvider.getConfiguredProperties());
+    }
+
+    @Test
+    public void propertiesSetOnArtemisWithSslConnectionFactory() throws Exception {
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ARTEMIS_BROKER);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        String trustStoreFile = "/path/to/truststore";
+        String trustStorePassword = "truststore_password";
+        String trustStoreType = "JKS";
+        String keyStoreFile = "/path/to/keystore";
+        String keyStorePassword = "keystore_password";
+        String keyStoreType = "PKCS12";
+
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreFile()).thenReturn(trustStoreFile);
+        when(sslContextService.getTrustStorePassword()).thenReturn(trustStorePassword);
+        when(sslContextService.getTrustStoreType()).thenReturn(trustStoreType);
+        when(sslContextService.isKeyStoreConfigured()).thenReturn(true);
+        when(sslContextService.getKeyStoreFile()).thenReturn(keyStoreFile);
+        when(sslContextService.getKeyStorePassword()).thenReturn(keyStorePassword);
+        when(sslContextService.getKeyStoreType()).thenReturn(keyStoreType);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.enableControllerService(cfProvider);
+
+        Map<String, Object> props = cfProvider.getConfiguredProperties();
+
+        String expectedUrl = SINGLE_ARTEMIS_BROKER
+                + "?sslEnabled=true"
+                + "&trustStorePath=" + trustStoreFile
+                + "&trustStorePassword=" + trustStorePassword
+                + "&trustStoreType=" + trustStoreType
+                + "&keyStorePath=" + keyStoreFile
+                + "&keyStorePassword=" + keyStorePassword
+                + "&keyStoreType=" + keyStoreType;
+
+        assertEquals(expectedUrl, props.get("brokerURL"));
+    }
+
+    @Test
+    public void propertiesSetOnArtemisWithSslPreservesExistingSslEnabled() throws Exception {
+        JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        String brokerWithSsl = SINGLE_ARTEMIS_BROKER + "?sslEnabled=true";
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, brokerWithSsl);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        String trustStoreFile = "/path/to/truststore";
+        String trustStorePassword = "truststore_password";
+
+        SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreFile()).thenReturn(trustStoreFile);
+        when(sslContextService.getTrustStorePassword()).thenReturn(trustStorePassword);
+        when(sslContextService.getTrustStoreType()).thenReturn(null);
+        when(sslContextService.isKeyStoreConfigured()).thenReturn(false);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.enableControllerService(cfProvider);
+
+        Map<String, Object> props = cfProvider.getConfiguredProperties();
+        String brokerURL = (String) props.get("brokerURL");
+
+        assertNotNull(brokerURL);
+        assertEquals(1, brokerURL.chars().filter(ch -> ch == '?').count(),
+                "Should not duplicate ? separator when sslEnabled already in URL");
+        assertEquals(brokerWithSsl + "&trustStorePath=" + trustStoreFile
+                        + "&trustStorePassword=" + trustStorePassword,
+                brokerURL);
     }
 
     @Test

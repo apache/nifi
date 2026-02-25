@@ -28,7 +28,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import javax.net.ssl.SSLContext;
 
 import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_BROKER_URI;
 import static org.apache.nifi.jms.cf.JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL;
@@ -145,10 +144,8 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
                     }
                     setProperty(connectionFactory, "connectionNameList", String.join(",", ibmConList));
                 } else {
-                    // Try to parse broker URI as colon separated host/port pair. Use first pair if multiple given.
                     String[] hostPort = brokerList[0].split(":");
                     if (hostPort.length == 2) {
-                        // If broker URI indeed was colon separated host/port pair
                         setProperty(connectionFactory, "hostName", hostPort[0]);
                         setProperty(connectionFactory, "port", hostPort[1]);
                     }
@@ -158,8 +155,9 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
 
         SSLContextService sslContextService = context.getProperty(JMS_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
-            SSLContext sslContext = sslContextService.createContext();
-            if (connectionFactoryValue.startsWith("org.apache.activemq")) {
+            if (connectionFactoryValue.startsWith("org.apache.activemq.artemis")) {
+                configureArtemisSSL(connectionFactory, sslContextService);
+            } else if (connectionFactoryValue.startsWith("org.apache.activemq")) {
                 if (sslContextService.isTrustStoreConfigured()) {
                     setProperty(connectionFactory, "trustStore", sslContextService.getTrustStoreFile());
                     setProperty(connectionFactory, "trustStorePassword", sslContextService.getTrustStorePassword());
@@ -172,10 +170,9 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
                     setProperty(connectionFactory, "keyStoreType", sslContextService.getKeyStoreType());
                 }
             } else if (connectionFactoryValue.startsWith("org.apache.qpid.jms")) {
-                setProperty(connectionFactory, "sslContext", sslContext);
+                setProperty(connectionFactory, "sslContext", sslContextService.createContext());
             } else {
-                // IBM MQ (and others)
-                setProperty(connectionFactory, "sSLSocketFactory", sslContext.getSocketFactory());
+                setProperty(connectionFactory, "sSLSocketFactory", sslContextService.createContext().getSocketFactory());
             }
         }
 
@@ -186,6 +183,48 @@ public class JMSConnectionFactoryHandler extends CachedJMSConnectionFactoryHandl
                     String propertyValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
                     setProperty(connectionFactory, propertyName, propertyValue);
                 });
+    }
+
+    /**
+     * Configures SSL for ActiveMQ Artemis by rebuilding the broker URL with SSL transport
+     * parameters. Artemis does not expose bean-style SSL setters like Classic ActiveMQ;
+     * instead, SSL configuration is parsed from the broker URL query string by the
+     * Artemis {@code ActiveMQConnectionFactory.setBrokerURL(String)} method.
+     */
+    private void configureArtemisSSL(final ConnectionFactory connectionFactory, final SSLContextService sslContextService) {
+        if (!context.getProperty(JMS_BROKER_URI).isSet()) {
+            return;
+        }
+        final String brokerUrl = context.getProperty(JMS_BROKER_URI).evaluateAttributeExpressions().getValue();
+        final StringBuilder urlBuilder = new StringBuilder(brokerUrl);
+        char separator = brokerUrl.contains("?") ? '&' : '?';
+
+        if (!brokerUrl.contains("sslEnabled=")) {
+            urlBuilder.append(separator).append("sslEnabled=true");
+            separator = '&';
+        }
+
+        if (sslContextService.isTrustStoreConfigured()) {
+            urlBuilder.append(separator).append("trustStorePath=").append(sslContextService.getTrustStoreFile());
+            separator = '&';
+            urlBuilder.append(separator).append("trustStorePassword=").append(sslContextService.getTrustStorePassword());
+            if (sslContextService.getTrustStoreType() != null) {
+                urlBuilder.append(separator).append("trustStoreType=").append(sslContextService.getTrustStoreType());
+            }
+        }
+
+        if (sslContextService.isKeyStoreConfigured()) {
+            urlBuilder.append(separator).append("keyStorePath=").append(sslContextService.getKeyStoreFile());
+            separator = '&';
+            urlBuilder.append(separator).append("keyStorePassword=").append(sslContextService.getKeyStorePassword());
+            if (sslContextService.getKeyStoreType() != null) {
+                urlBuilder.append(separator).append("keyStoreType=").append(sslContextService.getKeyStoreType());
+            }
+        }
+
+        final String augmentedUrl = urlBuilder.toString();
+        logger.info("Configured Artemis SSL broker URL with transport parameters [sslEnabled, trustStorePath, keyStorePath]");
+        setProperty(connectionFactory, "brokerURL", augmentedUrl);
     }
 
     /**
