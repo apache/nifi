@@ -2689,4 +2689,71 @@ public class TestQuery {
             return 0;
         }
     }
+
+    @Test
+    public void testUnique() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Test basic comma-separated list
+        attributes.put("list", "apple,banana,apple,orange,banana,grape");
+        verifyEquals("${list:unique(',')}", attributes, "apple,banana,orange,grape");
+
+        // Test pipe-separated list
+        attributes.put("pipe_list", "red|blue|red|green|blue|yellow");
+        verifyEquals("${pipe_list:unique('|')}", attributes, "red|blue|green|yellow");
+
+        // Test with spaces
+        attributes.put("space_list", "one two one three two four");
+        verifyEquals("${space_list:unique(' ')}", attributes, "one two three four");
+
+        // Test with empty values in list
+        attributes.put("empty_values_in_list", "a,b,,c,,d,b");
+        verifyEquals("${empty_values_in_list:unique(',')}", attributes, "a,b,,c,d");
+
+        // Test with single value
+        attributes.put("single", "only_one");
+        verifyEquals("${single:unique(',')}", attributes, "only_one");
+
+        // Test with no duplicates
+        attributes.put("no_dups", "x,y,z");
+        verifyEquals("${no_dups:unique(',')}", attributes, "x,y,z");
+
+        // Test with all duplicates
+        attributes.put("all_dups", "same,same,same,same");
+        verifyEquals("${all_dups:unique(',')}", attributes, "same");
+
+        // Test with multi-character separator
+        attributes.put("multi_sep", "one::two::one::three::two");
+        verifyEquals("${multi_sep:unique('::')}", attributes, "one::two::three");
+
+        // Test with special characters in separator
+        attributes.put("special_sep", "a|b|a|c|b");
+        verifyEquals("${special_sep:unique('|')}", attributes, "a|b|c");
+
+        // Test with empty string separator (should return original)
+        attributes.put("test_list", "abc");
+        verifyEquals("${test_list:unique('')}", attributes, "abc");
+
+        // Test with empty string
+        attributes.put("empty_attr", "");
+        verifyEquals("${empty_attr:unique(',')}", attributes, "");
+
+        // Test with null attribute
+        verifyEquals("${missing_attr:unique(',')}", attributes, "");
+
+        attributes.put("ordered", "3,1,4,1,5,9,2,6,5,3,5");
+        verifyEquals("${ordered:unique(',')}", attributes, "3,1,4,5,9,2,6");
+
+        // Test with URLs
+        attributes.put("urls", "http://example.com,http://test.com,http://example.com");
+        verifyEquals("${urls:unique(',')}", attributes, "http://example.com,http://test.com");
+
+        // Test with file paths (Windows-style)
+        attributes.put("paths", "C:\\Users\\test;D:\\Data;C:\\Users\\test;E:\\Backup");
+        verifyEquals("${paths:unique(';')}", attributes, "C:\\Users\\test;D:\\Data;E:\\Backup");
+
+        // Test with dash separator (replaced tab test)
+        attributes.put("dash_separated", "field1-field2-field1-field3");
+        verifyEquals("${dash_separated:unique('-')}", attributes, "field1-field2-field3");
+    }
 }

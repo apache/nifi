@@ -119,6 +119,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadi
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.UniqueEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid3Evaluator;
@@ -263,6 +264,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_HTML4;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_JSON;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_XML;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNIQUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
@@ -1084,6 +1086,12 @@ public class ExpressionCompiler {
                 return addToken(new IfElseEvaluator(toBooleanEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "argument to return if true"),
                     toStringEvaluator(argEvaluators.get(1), "argument to return if false")), "ifElse");
+            }
+            case UNIQUE: {
+                verifyArgCount(argEvaluators, 1, "unique");
+                return addToken(new UniqueEvaluator(
+                        toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to unique")), "unique");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
