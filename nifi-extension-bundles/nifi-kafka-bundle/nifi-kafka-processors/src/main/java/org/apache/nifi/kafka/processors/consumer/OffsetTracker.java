@@ -24,6 +24,7 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class OffsetTracker {
@@ -47,6 +48,10 @@ public class OffsetTracker {
 
     public long getTotalRecordSize() {
         return totalRecordSize.get();
+    }
+
+    public Set<TopicPartitionSummary> getTrackedPartitions() {
+        return offsets.keySet();
     }
 
     public Map<String, Long> getRecordCounts() {

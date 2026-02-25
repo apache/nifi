@@ -41,6 +41,7 @@ import org.apache.nifi.kafka.processors.consumer.convert.RecordStreamKafkaMessag
 import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
@@ -57,6 +58,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -71,6 +73,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -489,6 +492,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return;
         }
 
+        recordConsumerLagGauges(session, consumerService, offsetTracker);
+
         session.commitAsync(
             () -> commitOffsets(consumerService, offsetTracker, pollingContext, session),
             throwable -> {
@@ -664,6 +669,17 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final KafkaMessageConverter converter = new FlowFileStreamKafkaMessageConverter(
             headerEncoding, headerNamePattern, headerNamePrefix, keyEncoding, commitOffsets, offsetTracker, brokerUri);
         converter.toFlowFiles(session, consumerRecords);
+    }
+
+    private void recordConsumerLagGauges(final ProcessSession session, final KafkaConsumerService consumerService, final OffsetTracker offsetTracker) {
+        for (final TopicPartitionSummary topicPartition : offsetTracker.getTrackedPartitions()) {
+            final OptionalLong lag = consumerService.currentLag(topicPartition);
+            if (lag.isPresent()) {
+                final String topic = topicPartition.getTopic().replace("\\", "\\\\").replace("\"", "\\\"");
+                final String gaugeName = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", topic, topicPartition.getPartition());
+                session.recordGauge(gaugeName, lag.getAsLong(), CommitTiming.SESSION_COMMITTED);
+            }
+        }
     }
 
     private PollingContext createPollingContext(final ProcessContext context) {

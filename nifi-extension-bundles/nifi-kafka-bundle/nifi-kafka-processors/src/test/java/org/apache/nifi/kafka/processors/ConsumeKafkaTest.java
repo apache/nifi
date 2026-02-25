@@ -19,7 +19,9 @@ package org.apache.nifi.kafka.processors;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
+import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,12 +33,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalLong;
 
 import static org.apache.nifi.kafka.processors.ConsumeKafka.CONNECTION_SERVICE;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.GROUP_ID;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.TOPICS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +131,102 @@ class ConsumeKafkaTest {
         runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_PUBLISH, DYNAMIC_PROPERTY_VALUE_PUBLISH);
         runner.setProperty(kafkaConnectionService, DYNAMIC_PROPERTY_KEY_CONSUME, DYNAMIC_PROPERTY_VALUE_CONSUME);
         runner.enableControllerService(kafkaConnectionService);
+    }
+
+    @Test
+    void testConsumerLagGaugeRecorded() throws InitializationException {
+        final long expectedLag = 42;
+        final ByteRecord record = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0, System.currentTimeMillis(),
+                Collections.emptyList(), null, new byte[]{1}, 1);
+
+        setConnectionService();
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConnectionService.getBrokerUri()).thenReturn("localhost:9092");
+        when(kafkaConsumerService.poll(any()))
+                .thenReturn(List.of(record))
+                .thenReturn(Collections.emptyList());
+        when(kafkaConsumerService.currentLag(new TopicPartitionSummary(TEST_TOPIC_NAME, FIRST_PARTITION)))
+                .thenReturn(OptionalLong.of(expectedLag));
+
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        runner.run(1);
+
+        final String gaugeName = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", TEST_TOPIC_NAME, FIRST_PARTITION);
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertEquals(1, gaugeValues.size());
+        assertEquals(expectedLag, gaugeValues.getFirst());
+    }
+
+    @Test
+    void testConsumerLagGaugeMultiplePartitions() throws InitializationException {
+        final long lagPartition0 = 100;
+        final long lagPartition1 = 250;
+        final int secondPartition = 1;
+
+        final ByteRecord record0 = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0, System.currentTimeMillis(),
+                Collections.emptyList(), null, new byte[]{1}, 1);
+        final ByteRecord record1 = new ByteRecord(TEST_TOPIC_NAME, secondPartition, 0, System.currentTimeMillis(),
+                Collections.emptyList(), null, new byte[]{2}, 1);
+
+        setConnectionService();
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConnectionService.getBrokerUri()).thenReturn("localhost:9092");
+        when(kafkaConsumerService.poll(any()))
+                .thenReturn(List.of(record0, record1))
+                .thenReturn(Collections.emptyList());
+        when(kafkaConsumerService.currentLag(new TopicPartitionSummary(TEST_TOPIC_NAME, FIRST_PARTITION)))
+                .thenReturn(OptionalLong.of(lagPartition0));
+        when(kafkaConsumerService.currentLag(new TopicPartitionSummary(TEST_TOPIC_NAME, secondPartition)))
+                .thenReturn(OptionalLong.of(lagPartition1));
+
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        runner.run(1);
+
+        final String gaugeName0 = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", TEST_TOPIC_NAME, FIRST_PARTITION);
+        final String gaugeName1 = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", TEST_TOPIC_NAME, secondPartition);
+        assertEquals(1, runner.getGaugeValues(gaugeName0).size());
+        assertEquals((double) lagPartition0, runner.getGaugeValues(gaugeName0).getFirst());
+        assertEquals(1, runner.getGaugeValues(gaugeName1).size());
+        assertEquals((double) lagPartition1, runner.getGaugeValues(gaugeName1).getFirst());
+    }
+
+    @Test
+    void testConsumerLagGaugeNotRecordedWhenLagUnavailable() throws InitializationException {
+        final ByteRecord record = new ByteRecord(TEST_TOPIC_NAME, FIRST_PARTITION, 0, System.currentTimeMillis(),
+                Collections.emptyList(), null, new byte[]{1}, 1);
+
+        setConnectionService();
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConnectionService.getBrokerUri()).thenReturn("localhost:9092");
+        when(kafkaConsumerService.poll(any()))
+                .thenReturn(List.of(record))
+                .thenReturn(Collections.emptyList());
+        when(kafkaConsumerService.currentLag(any(TopicPartitionSummary.class)))
+                .thenReturn(OptionalLong.empty());
+
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        runner.run(1);
+
+        final String gaugeName = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", TEST_TOPIC_NAME, FIRST_PARTITION);
+        assertTrue(runner.getGaugeValues(gaugeName).isEmpty());
+    }
+
+    @Test
+    void testConsumerLagGaugeNotRecordedWhenNoRecordsConsumed() throws InitializationException {
+        setConnectionService();
+        when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
+        when(kafkaConnectionService.getBrokerUri()).thenReturn("localhost:9092");
+        when(kafkaConsumerService.poll(any())).thenReturn(Collections.emptyList());
+
+        runner.setProperty(TOPICS, TEST_TOPIC_NAME);
+        runner.setProperty(GROUP_ID, CONSUMER_GROUP_ID);
+        runner.run(1);
+
+        final String gaugeName = String.format("consumer.lag[topic=\"%s\",partition=\"%d\"]", TEST_TOPIC_NAME, FIRST_PARTITION);
+        assertTrue(runner.getGaugeValues(gaugeName).isEmpty());
     }
 
     private void setConnectionService() throws InitializationException {

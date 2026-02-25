@@ -352,6 +352,7 @@ public class MockProcessSession implements ProcessSession {
         sharedState.addProvenanceEvents(provenanceReporter.getEvents());
         provenanceReporter.clear();
         counterMap.clear();
+        namedGaugeValues.clear();
     }
 
     @Override
