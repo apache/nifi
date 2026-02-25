@@ -22,6 +22,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -114,11 +115,20 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
     static final PropertyDescriptor LOG_ANALYTICS_URL_ENDPOINT_FORMAT = new PropertyDescriptor.Builder()
             .name("Log Analytics URL Endpoint Format")
-            .description("Log Analytics URL Endpoint Format")
+            .description("""
+                    Log Analytics URL Endpoint Format. The placeholder {0} is replaced at runtime with the value
+                    configured in the Log Analytics Workspace Id property.""")
             .required(false)
             .defaultValue("https://{0}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01")
-            .addValidator((subject, input, context) ->
-                    StandardValidators.URL_VALIDATOR.validate(subject, MessageFormat.format(input, "workspace-id"), context))
+            .addValidator((subject, input, context) -> {
+                final ValidationResult result = StandardValidators.URL_VALIDATOR.validate(
+                        subject, MessageFormat.format(input, "workspace-id"), context);
+                if (result.isValid()) {
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation("'%s' is not a valid URL format".formatted(input)).build();
+            })
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
