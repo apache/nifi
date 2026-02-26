@@ -739,4 +739,90 @@ public class JMSConnectionFactoryProviderTest {
 
         assertEquals(Map.of("brokerURL", SINGLE_ARTEMIS_BROKER), cfProvider.getConfiguredProperties());
     }
+
+    @Test
+    public void invalidWhenArtemisWithSslAndSslEnabledFalse() throws InitializationException {
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ARTEMIS_BROKER + "?sslEnabled=false");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        final SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.assertNotValid(cfProvider);
+    }
+
+    @Test
+    public void validWhenArtemisWithSslAndSslEnabledTrue() throws InitializationException {
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ARTEMIS_BROKER + "?sslEnabled=true");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        final SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void validWhenArtemisWithSslEnabledFalseAndNoSsl() throws InitializationException {
+        final JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, SINGLE_ARTEMIS_BROKER + "?sslEnabled=false");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        runner.assertValid(cfProvider);
+    }
+
+    @Test
+    public void propertiesSetOnArtemisWithSslAndExistingQueryParams() throws Exception {
+        final JMSConnectionFactoryProviderForTest cfProvider = new JMSConnectionFactoryProviderForTest();
+        runner.addControllerService(CF_PROVIDER_SERVICE_ID, cfProvider);
+
+        final String brokerWithParams = SINGLE_ARTEMIS_BROKER + "?clientID=foo";
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, brokerWithParams);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES, dummyResource);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, ARTEMIS_CONNECTION_FACTORY_IMPL);
+
+        final String trustStoreFile = "/path/to/truststore";
+        final String trustStorePassword = "password";
+
+        final SSLContextService sslContextService = mock(SSLContextService.class);
+        when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_ID);
+        when(sslContextService.createContext()).thenReturn(SSLContext.getDefault());
+        when(sslContextService.isTrustStoreConfigured()).thenReturn(true);
+        when(sslContextService.getTrustStoreFile()).thenReturn(trustStoreFile);
+        when(sslContextService.getTrustStorePassword()).thenReturn(trustStorePassword);
+        when(sslContextService.getTrustStoreType()).thenReturn(null);
+        when(sslContextService.isKeyStoreConfigured()).thenReturn(false);
+
+        runner.addControllerService(SSL_CONTEXT_SERVICE_ID, sslContextService);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_ID);
+
+        runner.enableControllerService(cfProvider);
+
+        final Map<String, Object> props = cfProvider.getConfiguredProperties();
+        final String brokerURL = (String) props.get("brokerURL");
+
+        final String expectedUrl = brokerWithParams
+                + "&sslEnabled=true"
+                + "&trustStorePath=" + URLEncoder.encode(trustStoreFile, StandardCharsets.UTF_8)
+                + "&trustStorePassword=" + URLEncoder.encode(trustStorePassword, StandardCharsets.UTF_8);
+
+        assertEquals(expectedUrl, brokerURL);
+    }
 }

@@ -25,11 +25,15 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -61,6 +65,33 @@ import java.util.List;
         }
 )
 public class JMSConnectionFactoryProvider extends AbstractJMSConnectionFactoryProvider {
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final String connectionFactoryImpl = validationContext.getProperty(JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL).getValue();
+        final boolean sslContextServiceSet = validationContext.getProperty(JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE).isSet();
+        final boolean brokerUriSet = validationContext.getProperty(JMSConnectionFactoryProperties.JMS_BROKER_URI).isSet();
+
+        if (connectionFactoryImpl != null
+                && connectionFactoryImpl.startsWith("org.apache.activemq.artemis")
+                && sslContextServiceSet
+                && brokerUriSet) {
+            final String brokerUriRaw = validationContext.getProperty(JMSConnectionFactoryProperties.JMS_BROKER_URI).getValue();
+            if (!validationContext.isExpressionLanguagePresent(brokerUriRaw)
+                    && brokerUriRaw.matches("(?i).*[?&;]sslEnabled=false.*")) {
+                results.add(new ValidationResult.Builder()
+                        .subject(JMSConnectionFactoryProperties.JMS_BROKER_URI.getDisplayName())
+                        .valid(false)
+                        .explanation("JMS SSL Context Service is configured, but JMS Broker URI contains sslEnabled=false. "
+                                + "Remove sslEnabled=false from the broker URI or unset the SSL Context Service.")
+                        .build());
+            }
+        }
+
+        return results;
+    }
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
