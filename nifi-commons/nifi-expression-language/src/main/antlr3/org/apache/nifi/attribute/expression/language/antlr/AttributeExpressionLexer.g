@@ -220,6 +220,8 @@ UUID3 : 'UUID3';
 UUID5 : 'UUID5';
 HASH : 'hash';
 UNIQUE : 'unique';
+COMPACT_DELIMITED_LIST : 'compactDelimitedList';
+TRIM_DELIMITED_LIST    : 'trimDelimitedList';
 
 // 2 arg functions
 SUBSTRING	: 'substring';

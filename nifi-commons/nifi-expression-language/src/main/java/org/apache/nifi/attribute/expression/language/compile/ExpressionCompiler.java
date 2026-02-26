@@ -48,6 +48,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Append
 import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64DecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64EncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.CharSequenceTranslatorEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.CompactDelimitedListEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ContainsEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.DivideEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EndsWithEvaluator;
@@ -118,6 +119,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimDelimitedListEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UniqueEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
@@ -172,6 +174,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTR_NAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.BASE64_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.BASE64_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.COMPACT_DELIMITED_LIST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.CONTAINS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.COUNT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DECIMAL;
@@ -258,6 +261,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_STRING;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_UPPER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRIM;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRIM_DELIMITED_LIST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_CSV;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_HTML3;
@@ -1092,6 +1096,18 @@ public class ExpressionCompiler {
                 return addToken(new UniqueEvaluator(
                         toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to unique")), "unique");
+            }
+            case COMPACT_DELIMITED_LIST: {
+                verifyArgCount(argEvaluators, 1, "compactDelimitedList");
+                return addToken(new CompactDelimitedListEvaluator(
+                        toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to compactDelimitedList")), "compactDelimitedList");
+            }
+            case TRIM_DELIMITED_LIST: {
+                verifyArgCount(argEvaluators, 1, "trimDelimitedList");
+                return addToken(new TrimDelimitedListEvaluator(
+                        toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to trimDelimitedList")), "trimDelimitedList");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());

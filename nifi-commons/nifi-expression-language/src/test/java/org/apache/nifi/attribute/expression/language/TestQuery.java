@@ -2756,4 +2756,114 @@ public class TestQuery {
         attributes.put("dash_separated", "field1-field2-field1-field3");
         verifyEquals("${dash_separated:unique('-')}", attributes, "field1-field2-field3");
     }
+
+    @Test
+    public void testCompactDelimitedList() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Core behaviour — comma delimiter
+        attributes.put("input", ",a,b,c,,");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a,b,c");
+
+        attributes.put("input", "a,,b,,,c");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a,b,c");
+
+        attributes.put("input", ",,a,,b,,c,,");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a,b,c");
+
+        attributes.put("input", ",,,");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "");
+
+        attributes.put("input", "a,b,c");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a,b,c");
+
+        attributes.put("input", "a");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a");
+
+        attributes.put("input", "");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "");
+
+        attributes.put("input", ",");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "");
+
+        // Pipe delimiter
+        attributes.put("input", "|a|b||c|");
+        verifyEquals("${input:compactDelimitedList('|')}", attributes, "a|b|c");
+
+        // Multi-character delimiter
+        attributes.put("input", "::a::::b::c::");
+        verifyEquals("${input:compactDelimitedList('::')}", attributes, "a::b::c");
+
+        // Regex-special character delimiter
+        attributes.put("input", "..a....b..c..");
+        verifyEquals("${input:compactDelimitedList('..')}", attributes, "a..b..c");
+
+        // Whitespace-only tokens are non-empty and preserved
+        attributes.put("input", "a, ,b");
+        verifyEquals("${input:compactDelimitedList(',')}", attributes, "a, ,b");
+
+        // Chaining with trim() to also strip whitespace
+        attributes.put("input", " ,,a,,b,, ");
+        verifyEquals("${input:trim():compactDelimitedList(',')}", attributes, "a,b");
+
+        // Missing attribute evaluates to empty string
+        verifyEquals("${missing:compactDelimitedList(',')}", attributes, "");
+    }
+
+    @Test
+    public void testTrimDelimitedList() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Leading and trailing empties removed
+        attributes.put("input", ",a,b,c,,");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a,b,c");
+
+        // Interior empties preserved — key difference from compactDelimitedList
+        attributes.put("input", "a,,b,,,c");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a,,b,,,c");
+
+        attributes.put("input", ",,a,,b,,");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a,,b");
+
+        attributes.put("input", ",,,a,,b,,c,,,");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a,,b,,c");
+
+        attributes.put("input", ",,,");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "");
+
+        attributes.put("input", "a,b,c");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a,b,c");
+
+        attributes.put("input", "a");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "a");
+
+        attributes.put("input", "");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "");
+
+        attributes.put("input", ",");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, "");
+
+        // Pipe delimiter — interior empties preserved
+        attributes.put("input", "|a||b|c|");
+        verifyEquals("${input:trimDelimitedList('|')}", attributes, "a||b|c");
+
+        // Multi-character delimiter — interior empties preserved
+        attributes.put("input", "::a::::b::c::");
+        verifyEquals("${input:trimDelimitedList('::')}", attributes, "a::::b::c");
+
+        // Regex-special character delimiter
+        attributes.put("input", "..a....b..c..");
+        verifyEquals("${input:trimDelimitedList('..')}", attributes, "a....b..c");
+
+        // Whitespace-only tokens are non-empty
+        attributes.put("input", ", ,a, ,");
+        verifyEquals("${input:trimDelimitedList(',')}", attributes, " ,a, ");
+
+        // Chaining with trim() to also strip whitespace
+        attributes.put("input", " ,,a,,b,, ");
+        verifyEquals("${input:trim():trimDelimitedList(',')}", attributes, "a,,b");
+
+        // Missing attribute evaluates to empty string
+        verifyEquals("${missing:trimDelimitedList(',')}", attributes, "");
+    }
 }
