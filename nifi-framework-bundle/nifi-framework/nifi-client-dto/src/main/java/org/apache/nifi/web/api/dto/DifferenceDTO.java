@@ -65,11 +65,11 @@ public class DifferenceDTO {
             return false;
         }
         final DifferenceDTO that = (DifferenceDTO) o;
-        return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference);
+        return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference) && Objects.equals(isEnvironmental, that.isEnvironmental);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(differenceType, difference);
+        return Objects.hash(differenceType, difference, isEnvironmental);
     }
 }

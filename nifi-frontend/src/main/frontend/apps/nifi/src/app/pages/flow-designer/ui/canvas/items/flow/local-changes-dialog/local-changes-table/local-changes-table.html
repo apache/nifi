@@ -63,6 +63,9 @@
                 <ng-container matColumnDef="changeType">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header>Change Type</th>
                     <td mat-cell *matCellDef="let item" [title]="formatChangeType(item)">
+                        @if (isEnvironmental(item)) {
+                            <i class="fa fa-info-circle neutral-color mr-2" title="Environmental change"></i>
+                        }
                         {{ formatChangeType(item) }}
                     </td>
                 </ng-container>

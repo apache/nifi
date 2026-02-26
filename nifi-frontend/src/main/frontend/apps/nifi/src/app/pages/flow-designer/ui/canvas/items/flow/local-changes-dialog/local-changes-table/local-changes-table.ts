@@ -69,7 +69,7 @@ export class LocalChangesTable implements AfterViewInit {
     totalCount = 0;
     filteredCount = 0;
     environmentalCount = 0;
-    showEnvironmentalChanges = true;
+    showEnvironmentalChanges = false;
 
     activeSort: Sort = {
         active: this.initialSortColumn,
@@ -134,7 +134,7 @@ export class LocalChangesTable implements AfterViewInit {
                 this.nifiCommon.stringContains(data.differenceType, filterTerm, true)
             );
         };
-        this.totalCount = localChanges.length;
+        this.totalCount = this.mode === 'REVERT' ? localChanges.length : this.allLocalChanges.length;
         this.filteredCount = localChanges.length;
 
         // apply any filtering to the new data

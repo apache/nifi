@@ -2829,17 +2829,13 @@ public final class DtoFactory {
             differences.add(createDifferenceDto(difference));
         }
 
-        if (!differencesByComponent.isEmpty()) {
-            // differences were found, so now let's add back in any BUNDLE_CHANGED differences
-            // since they were initially filtered out as an environment-specific change
-            bundleDifferencesByComponent.forEach((key, value) -> {
-                List<DifferenceDTO> values = value.stream().toList();
-                differencesByComponent.merge(key, values, (v1, v2) -> {
-                    v1.addAll(v2);
-                    return v1;
-                });
+        bundleDifferencesByComponent.forEach((key, value) -> {
+            final List<DifferenceDTO> values = value.stream().toList();
+            differencesByComponent.merge(key, values, (v1, v2) -> {
+                v1.addAll(v2);
+                return v1;
             });
-        }
+        });
 
         for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
             entry.getKey().setDifferences(entry.getValue());
