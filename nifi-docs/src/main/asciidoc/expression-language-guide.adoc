@@ -880,6 +880,74 @@ then the following Expressions will result in the following values:
 
 
 
+
+[.function]
+=== compactDelimitedList
+
+*Description*: [.description]#Splits the Subject using the specified delimiter, removes all empty tokens, and rejoins the remaining tokens using the same delimiter.
+The order of non-empty tokens is preserved. This is useful for normalizing
+delimited attributes that contain leading, trailing, or repeated delimiters.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_delimiter_# : [.argDesc]#The delimiter used to split and rejoin the Subject.
+This may be a single character or a multi-character string.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "my_list" attribute contains the value `,,a,,b,,c,`, the "tags"
+attribute contains the value `|alpha||beta|||gamma|`, and the "messy" attribute
+contains the value ` ,,a,,b,, `, then the following Expressions will result in
+the following values:
+
+.CompactDelimitedList Examples
+|======================================================================
+| Expression | Value
+| `${my_list:compactDelimitedList(',')}` | `a,b,c`
+| `${tags:compactDelimitedList('\|')}` | `alpha\|beta\|gamma`
+| `${messy:trim():compactDelimitedList(',')}` | `a,b`
+|======================================================================
+
+
+
+
+[.function]
+=== trimDelimitedList
+
+*Description*: [.description]#Splits the Subject using the specified delimiter, removes leading
+and trailing empty tokens, and rejoins the remaining tokens using
+the same delimiter. Empty tokens between non-empty tokens are preserved. This
+behaves similarly to `trim()`, but operates on delimited token boundaries rather
+than whitespace characters.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_delimiter_# : [.argDesc]#The delimiter used to split and rejoin the Subject.
+This may be a single character or a multi-character string.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "my_list" attribute contains the value `,,a,,b,,c,,`, the
+"path_parts" attribute contains the value `;;alpha;;beta;;`, and the "messy"
+attribute contains the value ` ,,a,,b,, `, then the following Expressions will
+result in the following values:
+
+.TrimDelimitedList Examples
+|======================================================================
+| Expression | Value
+| `${my_list:trimDelimitedList(',')}` | `a,,b,,c`
+| `${path_parts:trimDelimitedList(';')}` | `alpha;;beta`
+| `${messy:trim():trimDelimitedList(',')}` | `a,,b`
+|======================================================================
+
+
+
+
+
 [.function]
 === unique
 
