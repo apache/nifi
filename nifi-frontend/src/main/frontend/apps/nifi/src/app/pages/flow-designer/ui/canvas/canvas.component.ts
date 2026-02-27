@@ -25,9 +25,11 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    navigateWithoutTransform,
     paste,
     resetFlowState,
     selectComponents,
+    setLeavingProcessGroupId,
     setSkipTransform,
     startProcessGroupPolling,
     stopProcessGroupPolling
@@ -49,6 +51,7 @@ import {
     selectFunnel,
     selectInputPort,
     selectLabel,
+    selectLeavingProcessGroupId,
     selectOutputPort,
     selectProcessGroup,
     selectProcessGroupIdFromRoute,
@@ -142,14 +145,33 @@ export class Canvas implements OnInit, OnDestroy {
                 distinctUntilChanged(),
                 switchMap(() => this.store.select(selectProcessGroupRoute)),
                 filter((processGroupRoute) => processGroupRoute != null),
-                concatLatestFrom(() => this.store.select(selectSkipTransform)),
+                concatLatestFrom(() => [
+                    this.store.select(selectSkipTransform),
+                    this.store.select(selectCurrentProcessGroupId),
+                    this.store.select(selectLeavingProcessGroupId)
+                ]),
                 takeUntilDestroyed()
             )
-            .subscribe(([, skipTransform]) => {
+            .subscribe(([, skipTransform, currentProcessGroupId, leavingProcessGroupId]) => {
                 if (skipTransform) {
                     this.store.dispatch(setSkipTransform({ skipTransform: false }));
                 } else {
                     this.store.dispatch(restoreViewport());
+                }
+
+                // If leaving process group, select it after parent PG has loaded
+                if (leavingProcessGroupId && currentProcessGroupId != leavingProcessGroupId) {
+                    this.store.dispatch(setLeavingProcessGroupId({ leavingProcessGroupId: null }));
+                    this.store.dispatch(
+                        navigateWithoutTransform({
+                            url: [
+                                '/process-groups',
+                                currentProcessGroupId,
+                                ComponentType.ProcessGroup,
+                                leavingProcessGroupId
+                            ]
+                        })
+                    );
                 }
             });
 
