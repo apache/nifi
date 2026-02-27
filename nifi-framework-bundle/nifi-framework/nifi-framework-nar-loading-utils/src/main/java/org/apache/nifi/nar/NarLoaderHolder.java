@@ -19,13 +19,13 @@ package org.apache.nifi.nar;
 
 public class NarLoaderHolder {
 
-    private static volatile NarLoader INSTANCE;
+    private static volatile NarLoader instance;
 
     public static void init(final NarLoader narLoader) {
-        if (INSTANCE == null) {
+        if (instance == null) {
             synchronized (NarLoader.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = narLoader;
+                if (instance == null) {
+                    instance = narLoader;
                 } else {
                     throw new IllegalStateException("Cannot reinitialize NarLoaderHolder");
                 }
@@ -36,15 +36,15 @@ public class NarLoaderHolder {
     }
 
     public static NarLoader getNarLoader() {
-        if (INSTANCE == null) {
+        if (instance == null) {
             synchronized (NarLoader.class) {
-                if (INSTANCE == null) {
+                if (instance == null) {
                     throw new IllegalStateException("NarLoaderHolder was never initialized");
                 }
             }
         }
 
-        return INSTANCE;
+        return instance;
     }
 
     // Private access

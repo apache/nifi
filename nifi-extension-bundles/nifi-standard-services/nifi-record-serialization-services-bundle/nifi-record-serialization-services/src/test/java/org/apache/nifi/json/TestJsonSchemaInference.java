@@ -119,10 +119,10 @@ class TestJsonSchemaInference {
 
         final RecordSchema itemsSchema = ((RecordDataType) itemsElementType).getChildSchema();
         final RecordField itemDataField = itemsSchema.getField("itemData").get();
-        final DataType ItemDataDatatype = itemDataField.getDataType();
-        assertEquals(RecordFieldType.ARRAY, ItemDataDatatype.getFieldType());
+        final DataType itemDataDatatype = itemDataField.getDataType();
+        assertEquals(RecordFieldType.ARRAY, itemDataDatatype.getFieldType());
 
-        final ArrayDataType itemDataArrayType = (ArrayDataType) ItemDataDatatype;
+        final ArrayDataType itemDataArrayType = (ArrayDataType) itemDataDatatype;
         final DataType itemDataElementType = itemDataArrayType.getElementType();
         // Empty arrays should be inferred as array<string>
         assertEquals(RecordFieldType.STRING, itemDataElementType.getFieldType());

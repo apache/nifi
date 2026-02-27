@@ -310,13 +310,13 @@ public class LogAttribute extends AbstractProcessor {
             throw new ProcessException(e);
         }
 
-        final ComponentLog LOG = getLogger();
+        final ComponentLog log = getLogger();
         boolean isLogLevelEnabled = switch (logLevel) {
-            case trace -> LOG.isTraceEnabled();
-            case debug -> LOG.isDebugEnabled();
-            case info -> LOG.isInfoEnabled();
-            case warn -> LOG.isWarnEnabled();
-            case error -> LOG.isErrorEnabled();
+            case trace -> log.isTraceEnabled();
+            case debug -> log.isDebugEnabled();
+            case info -> log.isInfoEnabled();
+            case warn -> log.isWarnEnabled();
+            case error -> log.isErrorEnabled();
         };
 
         if (!isLogLevelEnabled) {
@@ -329,7 +329,7 @@ public class LogAttribute extends AbstractProcessor {
             return;
         }
 
-        processFlowFile(LOG, logLevel, flowFile, session, context);
+        processFlowFile(log, logLevel, flowFile, session, context);
         session.transfer(flowFile, REL_SUCCESS);
     }
 

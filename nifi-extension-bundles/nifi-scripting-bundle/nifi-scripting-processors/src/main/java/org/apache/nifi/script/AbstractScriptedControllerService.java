@@ -115,10 +115,10 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
         if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
                 || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
-                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+                || scriptingComponentHelper.scriptEngine.equals(descriptor)) {
             scriptNeedsReload.set(true);
             // Need to reset scriptEngine if the value has changed
-            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor) || ScriptingComponentUtils.MODULES.equals(descriptor)) {
+            if (scriptingComponentHelper.scriptEngine.equals(descriptor) || ScriptingComponentUtils.MODULES.equals(descriptor)) {
                 scriptRunner = null;
             }
         }

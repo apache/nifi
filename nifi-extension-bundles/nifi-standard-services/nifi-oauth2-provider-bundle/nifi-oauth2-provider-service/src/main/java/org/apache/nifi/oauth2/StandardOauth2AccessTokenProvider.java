@@ -97,19 +97,19 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .defaultValue(ClientAuthenticationStrategy.REQUEST_BODY.getValue())
         .build();
 
-    public static AllowableValue RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE = new AllowableValue(
+    public static final AllowableValue RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "password",
         "User Password",
         "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret."
     );
 
-    public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
+    public static final AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "client_credentials",
         "Client Credentials",
         "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret."
     );
 
-    public static AllowableValue REFRESH_TOKEN_GRANT_TYPE = new AllowableValue(
+    public static final AllowableValue REFRESH_TOKEN_GRANT_TYPE = new AllowableValue(
         "refresh_token",
         "Refresh Token",
         "Refresh Token Grant. Used to get fresh access tokens based on a previously acquired refresh token. Requires Client ID and Client Secret (apart from Refresh Token)."

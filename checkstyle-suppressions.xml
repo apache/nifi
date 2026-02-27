@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
+    license agreements. See the NOTICE file distributed with this work for additional
+    information regarding copyright ownership. The ASF licenses this file to
+    You under the Apache License, Version 2.0 (the "License"); you may not use
+    this file except in compliance with the License. You may obtain a copy of
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
+    by applicable law or agreed to in writing, software distributed under the
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+    OF ANY KIND, either express or implied. See the License for the specific
+    language governing permissions and limitations under the License. -->
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!-- In test files, suppress the strict MethodName rule (no underscores) and only apply the lenient one -->
+    <suppress files="[\\/]src[\\/]test[\\/].*" id="MethodNameRegular"/>
+    <!-- In main files, suppress the lenient MethodName rule (allows underscores) and only apply the strict one -->
+    <suppress files="[\\/]src[\\/]main[\\/].*" id="MethodNameTest"/>
+    <!-- Suppress TypeName for Azure v12 classes that use _v12 suffix by convention -->
+    <suppress checks="TypeName" files="_v12\.java$"/>
+    <!-- Suppress TypeName for integration test classes that use _IT suffix by convention -->
+    <suppress checks="TypeName" files="_IT\.java$"/>
+    <!-- Suppress naming checks for JNA interface methods/types that must match Windows API naming -->
+    <suppress checks="MethodName|TypeName" files="WEvtApi\.java$"/>
+    <!-- Suppress TypeName for MariaDB version-specific class naming convention -->
+    <suppress checks="TypeName" files="MariaDB10_3DataSourceFactory\.java$"/>
+</suppressions>

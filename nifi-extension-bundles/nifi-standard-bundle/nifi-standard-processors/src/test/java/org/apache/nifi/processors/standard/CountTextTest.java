@@ -132,7 +132,7 @@ public class CountTextTest {
     void testShouldCountWordsSplitOnSymbol() throws IOException {
         final Path inputPath = Paths.get("src/test/resources/TestCountText/jabberwocky.txt");
 
-        final String EXPECTED_WORD_COUNT = "167";
+        final String expectedWordCount = "167";
 
         // Reset the processor properties
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false");
@@ -149,7 +149,7 @@ public class CountTextTest {
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
-        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, expectedWordCount);
     }
 
     @Test
@@ -235,7 +235,7 @@ public class CountTextTest {
         };
 
         final TestRunner runner = TestRunners.newTestRunner(ct);
-        final String INPUT_TEXT = "This flowfile should throw an error";
+        final String inputText = "This flowfile should throw an error";
 
         // Reset the processor properties
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "true");
@@ -244,7 +244,7 @@ public class CountTextTest {
         runner.setProperty(CountText.TEXT_CHARACTER_COUNT_PD, "true");
         runner.setProperty(CountText.CHARACTER_ENCODING_PD, StandardCharsets.US_ASCII.displayName());
 
-        runner.enqueue(INPUT_TEXT.getBytes());
+        runner.enqueue(inputText.getBytes());
 
         // Need initialize = true to run #onScheduled()
         runner.run(1, true, true);
@@ -254,9 +254,9 @@ public class CountTextTest {
 
     @Test
     void testShouldIgnoreWhitespaceWordsWhenCounting() {
-        final String INPUT_TEXT = "a  b  c";
+        final String inputText = "a  b  c";
 
-        final String EXPECTED_WORD_COUNT = "3";
+        final String expectedWordCount = "3";
 
         // Reset the processor properties
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false");
@@ -267,13 +267,13 @@ public class CountTextTest {
 
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        runner.enqueue(INPUT_TEXT.getBytes());
+        runner.enqueue(inputText.getBytes());
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
-        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, expectedWordCount);
     }
 
     @Test
@@ -281,9 +281,9 @@ public class CountTextTest {
         final MockComponentLog componentLogger = spy(new MockComponentLog("processorId", new CountText()));
         doReturn(true).when(componentLogger).isDebugEnabled();
         final TestRunner runner = TestRunners.newTestRunner(CountText.class, componentLogger);
-        final String INPUT_TEXT = "a  b  c";
+        final String inputText = "a  b  c";
 
-        final String EXPECTED_WORD_COUNT = "3";
+        final String expectedWordCount = "3";
 
         // Reset the processor properties
         runner.setProperty(CountText.TEXT_LINE_COUNT_PD, "false");
@@ -294,14 +294,14 @@ public class CountTextTest {
 
         runner.clearProvenanceEvents();
         runner.clearTransferState();
-        runner.enqueue(INPUT_TEXT.getBytes());
+        runner.enqueue(inputText.getBytes());
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(CountText.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(CountText.REL_SUCCESS).getFirst();
 
-        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, EXPECTED_WORD_COUNT);
+        flowFile.assertAttributeEquals(CountText.TEXT_WORD_COUNT, expectedWordCount);
     }
 
     @Test

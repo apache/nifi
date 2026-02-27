@@ -48,7 +48,7 @@ public class TestLogAttribute {
     public void testLogPropertyCSVNoIgnore() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo, bar");
 
@@ -59,7 +59,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertTrue(logMessage.contains("bar-value"));
@@ -69,7 +69,7 @@ public class TestLogAttribute {
     public void testLogPropertyRegexNoIgnore() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_REGEX, "foo.*");
 
@@ -80,7 +80,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertTrue(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -90,7 +90,7 @@ public class TestLogAttribute {
     public void testLogPropertyWithCSVAndRegexNoIgnore() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         // there's an AND relationship between like properties, so only foo should be logged in this case
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo, bar");
@@ -103,7 +103,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -113,7 +113,7 @@ public class TestLogAttribute {
     public void testLogPropertyWithIgnoreCSV() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_CSV, "bar");
 
@@ -124,7 +124,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertTrue(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -134,7 +134,7 @@ public class TestLogAttribute {
     public void testLogPropertyWithIgnoreRegex() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foo.*");
 
@@ -145,7 +145,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertFalse(logMessage.contains("foo-value"));
         assertTrue(logMessage.contains("bar-value"));
@@ -155,7 +155,7 @@ public class TestLogAttribute {
     public void testLogPropertyWithIgnoreCSVAndRegex() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         // there's an OR relationship between like properties, so anything starting with foo or bar are removed. that's everything we're adding
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_CSV, "foo,bar");
@@ -168,7 +168,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertFalse(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -178,7 +178,7 @@ public class TestLogAttribute {
     public void testLogPropertyCSVWithIgnoreRegex() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         // we're saying add and remove the same properties, so the net result should be nothing
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo");
@@ -191,7 +191,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertFalse(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -201,7 +201,7 @@ public class TestLogAttribute {
     public void testLogPropertyCSVWithIgnoreCSV() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         // add foo,foobaz and remove foobaz
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo,foobaz");
@@ -214,7 +214,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
@@ -224,7 +224,7 @@ public class TestLogAttribute {
     public void testLogPropertyRegexWithIgnoreRegex() {
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
-        final MockComponentLog LOG = runner.getLogger();
+        final MockComponentLog log = runner.getLogger();
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_REGEX, "foo.*"); // includes foo,foobaz
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foobaz.*"); // includes foobaz
@@ -236,7 +236,7 @@ public class TestLogAttribute {
 
         final MockFlowFile flowFile = runner.enqueue("content", attrs);
 
-        final String logMessage = logAttribute.processFlowFile(LOG, LogAttribute.DebugLevels.info, flowFile, session, context);
+        final String logMessage = logAttribute.processFlowFile(log, LogAttribute.DebugLevels.info, flowFile, session, context);
         assertFalse(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));

@@ -313,10 +313,10 @@ public class TestDeleteHDFS {
     @Test
     public void testGlobMatcher() {
         DeleteHDFS deleteHDFS = new DeleteHDFS();
-        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/*").find());
-        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/[01-04]").find());
-        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/0?/09/").find());
-        assertFalse(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09").find());
+        assertTrue(deleteHDFS.globMatcher.reset("/data/for/08/09/*").find());
+        assertTrue(deleteHDFS.globMatcher.reset("/data/for/08/09/[01-04]").find());
+        assertTrue(deleteHDFS.globMatcher.reset("/data/for/0?/09/").find());
+        assertFalse(deleteHDFS.globMatcher.reset("/data/for/08/09").find());
     }
 
     @Test

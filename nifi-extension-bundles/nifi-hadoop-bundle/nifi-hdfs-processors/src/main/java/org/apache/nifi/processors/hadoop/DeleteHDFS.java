@@ -103,8 +103,8 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    protected final Pattern GLOB_PATTERN = Pattern.compile("\\[|\\]|\\*|\\?|\\^|\\{|\\}|\\\\c");
-    protected final Matcher GLOB_MATCHER = GLOB_PATTERN.matcher("");
+    protected static final Pattern GLOB_PATTERN = Pattern.compile("\\[|\\]|\\*|\\?|\\^|\\{|\\}|\\\\c");
+    protected final Matcher globMatcher = GLOB_PATTERN.matcher("");
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
@@ -150,7 +150,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             try {
                 // Check if the user has supplied a file or directory pattern
                 List<Path> pathList = new ArrayList<>();
-                if (GLOB_MATCHER.reset(fileOrDirectoryName).find()) {
+                if (globMatcher.reset(fileOrDirectoryName).find()) {
                     FileStatus[] fileStatuses = fileSystem.globStatus(new Path(fileOrDirectoryName));
                     if (fileStatuses != null) {
                         for (FileStatus fileStatus : fileStatuses) {

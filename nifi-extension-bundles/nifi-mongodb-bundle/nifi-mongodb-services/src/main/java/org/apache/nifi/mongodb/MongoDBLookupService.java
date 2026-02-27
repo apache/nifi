@@ -202,25 +202,25 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         AllowableValue[] strategies = new AllowableValue[] {
             SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, INFER_SCHEMA
         };
-        List<PropertyDescriptor> _temp = new ArrayList<>();
-        _temp.add(new PropertyDescriptor.Builder()
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(SCHEMA_ACCESS_STRATEGY)
                 .allowableValues(strategies)
                 .defaultValue(getDefaultSchemaAccessStrategy().getValue())
                 .build());
 
-        _temp.add(SCHEMA_REGISTRY);
-        _temp.add(LOCAL_SCHEMA_NAME);
-        _temp.add(SCHEMA_VERSION);
-        _temp.add(SCHEMA_BRANCH_NAME);
-        _temp.add(SCHEMA_TEXT);
-        _temp.add(CONTROLLER_SERVICE);
-        _temp.add(DATABASE_NAME);
-        _temp.add(COLLECTION_NAME);
-        _temp.add(LOOKUP_VALUE_FIELD);
-        _temp.add(PROJECTION);
+        descriptors.add(SCHEMA_REGISTRY);
+        descriptors.add(LOCAL_SCHEMA_NAME);
+        descriptors.add(SCHEMA_VERSION);
+        descriptors.add(SCHEMA_BRANCH_NAME);
+        descriptors.add(SCHEMA_TEXT);
+        descriptors.add(CONTROLLER_SERVICE);
+        descriptors.add(DATABASE_NAME);
+        descriptors.add(COLLECTION_NAME);
+        descriptors.add(LOOKUP_VALUE_FIELD);
+        descriptors.add(PROJECTION);
 
-        return Collections.unmodifiableList(_temp);
+        return Collections.unmodifiableList(descriptors);
     }
 
     private Document findOne(Document query, Document projection, Map<String, String> context) {

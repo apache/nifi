@@ -25,13 +25,13 @@ package org.apache.nifi.nar;
  */
 public final class ExtensionManagerHolder {
 
-    private static volatile ExtensionManager INSTANCE;
+    private static volatile ExtensionManager instance;
 
     public static void init(final ExtensionManager extensionManager) {
-        if (INSTANCE == null) {
+        if (instance == null) {
             synchronized (ExtensionManagerHolder.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = extensionManager;
+                if (instance == null) {
+                    instance = extensionManager;
                 } else {
                     throw new IllegalStateException("Cannot reinitialize ExtensionManagerHolder");
                 }
@@ -42,15 +42,15 @@ public final class ExtensionManagerHolder {
     }
 
     public static ExtensionManager getExtensionManager() {
-        if (INSTANCE == null) {
+        if (instance == null) {
             synchronized (ExtensionManagerHolder.class) {
-                if (INSTANCE == null) {
+                if (instance == null) {
                     throw new IllegalStateException("ExtensionManagerHolder was never initialized");
                 }
             }
         }
 
-        return INSTANCE;
+        return instance;
     }
 
     // Private access

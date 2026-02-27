@@ -38,42 +38,42 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class MigrateProperties extends AbstractProcessor {
 
-    static PropertyDescriptor INGEST = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor INGEST = new PropertyDescriptor.Builder()
             .name("Ingest Data")
             .allowableValues("true", "false")
             .defaultValue("true")
             .required(true)
             .build();
 
-    static PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("Attribute to add")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static PropertyDescriptor ATTRIBUTE_VALUE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ATTRIBUTE_VALUE = new PropertyDescriptor.Builder()
             .name("Attribute Value")
             .required(true)
             .dependsOn(ATTRIBUTE_NAME)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
             .name("Service")
             .required(false)
             .identifiesControllerService(ControllerService.class)
             .build();
 
-    static PropertyDescriptor DEPRECATED = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor DEPRECATED = new PropertyDescriptor.Builder()
             .name("Deprecated")
             .required(false)
             .addValidator(Validator.VALID)
             .defaultValue("Deprecated Value")
             .build();
 
-    static Relationship REL_ODD = new Relationship.Builder().name("odd").build();
-    static Relationship REL_EVEN = new Relationship.Builder().name("even").build();
-    static Relationship REL_BROKEN = new Relationship.Builder().name("broken").build();
+    static final Relationship REL_ODD = new Relationship.Builder().name("odd").build();
+    static final Relationship REL_EVEN = new Relationship.Builder().name("even").build();
+    static final Relationship REL_BROKEN = new Relationship.Builder().name("broken").build();
 
     private static final Set<Relationship> relationships = Set.of(REL_ODD, REL_EVEN, REL_BROKEN);
     private static final List<PropertyDescriptor> properties = List.of(

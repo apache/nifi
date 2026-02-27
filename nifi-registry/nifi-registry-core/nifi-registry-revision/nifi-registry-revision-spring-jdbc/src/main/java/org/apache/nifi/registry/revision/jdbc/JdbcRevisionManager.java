@@ -65,7 +65,7 @@ import java.util.Set;
  */
 public class JdbcRevisionManager implements RevisionManager {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(JdbcRevisionManager.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcRevisionManager.class);
 
     private final JdbcTemplate jdbcTemplate;
 

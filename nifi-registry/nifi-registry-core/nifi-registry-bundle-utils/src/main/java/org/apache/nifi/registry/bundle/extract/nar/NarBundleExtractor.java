@@ -70,7 +70,7 @@ public class NarBundleExtractor implements BundleExtractor {
     /**
      * Used in place of any build info that is not present.
      */
-    static String NA = "N/A";
+    static final String NA = "N/A";
 
     @Override
     public BundleDetails extract(final InputStream inputStream) throws IOException {

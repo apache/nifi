@@ -36,16 +36,16 @@ import java.util.zip.ZipInputStream;
 
 public class UnzipFlowFile extends AbstractProcessor {
 
-    private final Relationship REL_UNZIPPED = new Relationship.Builder()
+    private static final Relationship REL_UNZIPPED = new Relationship.Builder()
         .name("unzipped")
         .build();
 
-    private final Relationship REL_ORIGINAL = new Relationship.Builder()
+    private static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
         .autoTerminateDefault(true)
         .build();
 
-    private final Relationship REL_FAILURE = new Relationship.Builder()
+    private static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .build();
 

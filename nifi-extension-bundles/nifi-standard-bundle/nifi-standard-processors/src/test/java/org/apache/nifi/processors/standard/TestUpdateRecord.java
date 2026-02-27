@@ -46,25 +46,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUpdateRecord {
 
-    private static String PERSON_WITH_ADDRESS;
-    private static String MULTI_ARRAYS_AVRO;
-    private static String PERSON_WITH_NAME_RECORD;
-    private static String NAME_FIELDS_ONLY;
-    private static String PERSON_WITH_NAME_AND_MOTHER;
-    private static Path MULTI_ARRAYS_JSON;
-    private static String MULTI_ARRAYS_JSON_CONTENT;
+    private static String personWithAddress;
+    private static String multiArraysAvro;
+    private static String personWithNameRecord;
+    private static String nameFieldsOnly;
+    private static String personWithNameAndMother;
+    private static Path multiArraysJson;
+    private static String multiArraysJsonContent;
     private TestRunner runner;
     private MockRecordParser readerService;
 
     @BeforeAll
     static void setUpBeforeAll() throws IOException {
-        PERSON_WITH_ADDRESS = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc"));
-        MULTI_ARRAYS_AVRO = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc"));
-        PERSON_WITH_NAME_RECORD = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc"));
-        NAME_FIELDS_ONLY = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc"));
-        PERSON_WITH_NAME_AND_MOTHER = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc"));
-        MULTI_ARRAYS_JSON = Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json");
-        MULTI_ARRAYS_JSON_CONTENT = JsonUtil.getExpectedContent(MULTI_ARRAYS_JSON);
+        personWithAddress = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-address.avsc"));
+        multiArraysAvro = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc"));
+        personWithNameRecord = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc"));
+        nameFieldsOnly = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc"));
+        personWithNameAndMother = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc"));
+        multiArraysJson = Paths.get("src/test/resources/TestUpdateRecord/input/multi-arrays.json");
+        multiArraysJsonContent = JsonUtil.getExpectedContent(multiArraysJson);
     }
 
     @BeforeEach
@@ -249,7 +249,7 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
+        final String inputSchemaText = personWithNameRecord;
         final String outputSchemaText = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc"));
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
@@ -279,8 +279,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_ADDRESS;
-        final String outputSchemaText = PERSON_WITH_ADDRESS;
+        final String inputSchemaText = personWithAddress;
+        final String outputSchemaText = personWithAddress;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -309,8 +309,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_ADDRESS;
-        final String outputSchemaText = PERSON_WITH_ADDRESS;
+        final String inputSchemaText = personWithAddress;
+        final String outputSchemaText = personWithAddress;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -339,7 +339,7 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
+        final String inputSchemaText = personWithNameRecord;
         final String outputSchemaText = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc"));
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
@@ -370,8 +370,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
-        final String outputSchemaText = PERSON_WITH_NAME_RECORD;
+        final String inputSchemaText = personWithNameRecord;
+        final String outputSchemaText = personWithNameRecord;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -400,8 +400,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
-        final String outputSchemaText = NAME_FIELDS_ONLY;
+        final String inputSchemaText = personWithNameRecord;
+        final String outputSchemaText = nameFieldsOnly;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -430,8 +430,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
-        final String outputSchemaText = NAME_FIELDS_ONLY;
+        final String inputSchemaText = personWithNameRecord;
+        final String outputSchemaText = nameFieldsOnly;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -461,7 +461,7 @@ public class TestUpdateRecord {
         runner.addControllerService("reader", jsonReader);
 
         final String inputSchemaText = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc"));
-        final String outputSchemaText = NAME_FIELDS_ONLY;
+        final String outputSchemaText = nameFieldsOnly;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -553,7 +553,7 @@ public class TestUpdateRecord {
         runner.addControllerService("reader", jsonReader);
 
         final String inputSchemaText = Files.readString(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc"));
-        final String outputSchemaText = PERSON_WITH_NAME_RECORD;
+        final String outputSchemaText = personWithNameRecord;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -611,8 +611,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
-        final String outputSchemaText = NAME_FIELDS_ONLY;
+        final String inputSchemaText = personWithNameRecord;
+        final String outputSchemaText = nameFieldsOnly;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -641,8 +641,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_RECORD;
-        final String outputSchemaText = NAME_FIELDS_ONLY;
+        final String inputSchemaText = personWithNameRecord;
+        final String outputSchemaText = nameFieldsOnly;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -671,8 +671,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = PERSON_WITH_NAME_AND_MOTHER;
-        final String outputSchemaText = PERSON_WITH_NAME_AND_MOTHER;
+        final String inputSchemaText = personWithNameAndMother;
+        final String outputSchemaText = personWithNameAndMother;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -701,8 +701,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = MULTI_ARRAYS_AVRO;
-        final String outputSchemaText = MULTI_ARRAYS_AVRO;
+        final String inputSchemaText = multiArraysAvro;
+        final String outputSchemaText = multiArraysAvro;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -717,11 +717,11 @@ public class TestUpdateRecord {
         runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.LITERAL_VALUES);
         runner.enableControllerService(jsonWriter);
 
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[*]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        String expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "8, 8, 8");
+        String expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "8, 8, 8");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[*]");
 
@@ -735,47 +735,47 @@ public class TestUpdateRecord {
         runner.removeProperty("/numbers[*]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[1]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "1, 8, 4");
+        expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "1, 8, 4");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[1]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[0..1]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "8, 8, 4");
+        expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "8, 8, 4");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[0..1]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[0,2]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "8, null, 8");
+        expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "8, null, 8");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[0,2]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[0,1..2]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "8, 8, 8");
+        expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "8, 8, 8");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[0,1..2]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/numbers[0..-1][. = 4]", "8");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
-        expectedOutput = MULTI_ARRAYS_JSON_CONTENT.replaceFirst("1, null, 4", "1, null, 8");
+        expectedOutput = multiArraysJsonContent.replaceFirst("1, null, 4", "1, null, 8");
         runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).getFirst().assertContentEquals(expectedOutput);
         runner.removeProperty("/numbers[0..-1][. = 4]");
     }
@@ -785,8 +785,8 @@ public class TestUpdateRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
 
-        final String inputSchemaText = MULTI_ARRAYS_AVRO;
-        final String outputSchemaText = MULTI_ARRAYS_AVRO;
+        final String inputSchemaText = multiArraysAvro;
+        final String outputSchemaText = multiArraysAvro;
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -801,7 +801,7 @@ public class TestUpdateRecord {
         runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES);
         runner.enableControllerService(jsonWriter);
 
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[*]", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -810,7 +810,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[*]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[1]", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -819,7 +819,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[1]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0..1]", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -828,7 +828,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0..1]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0,2]", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -837,7 +837,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0,2]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0,1..2]", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -846,7 +846,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0,1..2]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']", "/peoples[3]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -855,7 +855,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[*]", "/peoples[3]/addresses[0]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -864,7 +864,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[*]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]", "/peoples[3]/addresses[0]");
         runner.run();
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
@@ -873,7 +873,7 @@ public class TestUpdateRecord {
         runner.removeProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]");
 
         runner.clearTransferState();
-        runner.enqueue(MULTI_ARRAYS_JSON);
+        runner.enqueue(multiArraysJson);
         runner.setProperty("/peoples[0..-1][./name != 'Mary Doe']/addresses[0,1..2]/city", "newCity");
         runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.LITERAL_VALUES);
         runner.run();

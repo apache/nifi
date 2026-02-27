@@ -176,7 +176,7 @@ public class ConsumeChannel {
     }
 
     private boolean isCheckForReplies(final StateMap stateMap) {
-        final String currentAction = stateMap.get(stateKeys.ACTION);
+        final String currentAction = stateMap.get(stateKeys.action);
         if (CHECK_FOR_REPLIES.equals(currentAction)) {
             return true;
         }
@@ -192,14 +192,14 @@ public class ConsumeChannel {
     private void consumeReplies(final ProcessContext context, final ProcessSession session, final StateMap stateMap) throws IOException, SlackApiException {
         // Make sure that we've completed our initial "load" of messages. If not, we want to load the messages before we start
         // monitoring for updates to threads.
-        final String direction = stateMap.get(stateKeys.DIRECTION);
+        final String direction = stateMap.get(stateKeys.direction);
         if (!FORWARD.equals(direction)) {
             onCompletedRepliesScan(session, new HashMap<>(stateMap.toMap()), null);
             return;
         }
 
         // We want to use the latest timestamp we've seen as the threshold for replies.
-        final String latestTs = stateMap.get(stateKeys.LATEST_TS);
+        final String latestTs = stateMap.get(stateKeys.latestTs);
         if (latestTs == null) {
             onCompletedRepliesScan(session, new HashMap<>(stateMap.toMap()), null);
             return;
@@ -207,27 +207,27 @@ public class ConsumeChannel {
 
         // If the action has not been set to denote that we're in teh process of checking for replies, do so now.
         final Map<String, String> updatedStateMap = new HashMap<>(stateMap.toMap());
-        final String currentAction = stateMap.get(stateKeys.ACTION);
+        final String currentAction = stateMap.get(stateKeys.action);
         if (!CHECK_FOR_REPLIES.equals(currentAction)) {
-            updatedStateMap.put(stateKeys.ACTION, CHECK_FOR_REPLIES);
+            updatedStateMap.put(stateKeys.action, CHECK_FOR_REPLIES);
             session.setState(updatedStateMap, Scope.CLUSTER);
         }
 
-        String minTsValue = stateMap.get(stateKeys.REPLY_MIN_TS);
+        String minTsValue = stateMap.get(stateKeys.replyMinTs);
         if (minTsValue == null) {
             minTsValue = latestTs;
         }
-        final String maxTsValue = stateMap.get(stateKeys.REPLY_MAX_TS);
+        final String maxTsValue = stateMap.get(stateKeys.replyMaxTs);
         final SlackTimestamp minTs = new SlackTimestamp(minTsValue);
         final SlackTimestamp maxTs = maxTsValue == null ? new SlackTimestamp() : new SlackTimestamp(maxTsValue);
         final SlackTimestamp maxParentTs = new SlackTimestamp(latestTs);
 
         final String oldestThreadTs = new SlackTimestamp(System.currentTimeMillis() - replyMonitorWindowMillis).getRawValue();
-        String earliestThreadTs = stateMap.get(stateKeys.HISTORICAL_REPLIES_EARLIEST_THREAD_TS);
+        String earliestThreadTs = stateMap.get(stateKeys.historicalRepliesEarliestThreadTs);
         if (earliestThreadTs == null) {
             earliestThreadTs = new SlackTimestamp(System.currentTimeMillis()).getRawValue();
         }
-        String repliesCursor = stateMap.get(stateKeys.HISTORICAL_MESSAGES_REPLIES_CURSOR);
+        String repliesCursor = stateMap.get(stateKeys.historicalMessagesRepliesCursor);
 
         while (true) {
             final ConversationsHistoryRequest request = ConversationsHistoryRequest.builder()
@@ -281,9 +281,9 @@ public class ConsumeChannel {
             }
 
             // Update state
-            updatedStateMap.put(stateKeys.HISTORICAL_REPLIES_EARLIEST_THREAD_TS, earliestThreadTs);
+            updatedStateMap.put(stateKeys.historicalRepliesEarliestThreadTs, earliestThreadTs);
             if (repliesCursor != null) {
-                updatedStateMap.put(stateKeys.HISTORICAL_MESSAGES_REPLIES_CURSOR, repliesCursor);
+                updatedStateMap.put(stateKeys.historicalMessagesRepliesCursor, repliesCursor);
             }
 
             session.setState(updatedStateMap, Scope.CLUSTER);
@@ -296,13 +296,13 @@ public class ConsumeChannel {
     }
 
     private void onCompletedRepliesScan(final ProcessSession session, final Map<String, String> updatedStateMap, final SlackTimestamp replyTsCutoff) throws IOException {
-        updatedStateMap.remove(stateKeys.ACTION);
-        updatedStateMap.remove(stateKeys.HISTORICAL_REPLIES_EARLIEST_THREAD_TS);
-        updatedStateMap.remove(stateKeys.HISTORICAL_MESSAGES_REPLIES_CURSOR);
-        updatedStateMap.remove(stateKeys.REPLY_MAX_TS);
+        updatedStateMap.remove(stateKeys.action);
+        updatedStateMap.remove(stateKeys.historicalRepliesEarliestThreadTs);
+        updatedStateMap.remove(stateKeys.historicalMessagesRepliesCursor);
+        updatedStateMap.remove(stateKeys.replyMaxTs);
 
         if (replyTsCutoff != null) {
-            updatedStateMap.put(stateKeys.REPLY_MIN_TS, replyTsCutoff.getRawValue());
+            updatedStateMap.put(stateKeys.replyMinTs, replyTsCutoff.getRawValue());
         }
 
         session.setState(updatedStateMap, Scope.CLUSTER);
@@ -310,14 +310,14 @@ public class ConsumeChannel {
     }
 
     private void consumeLatestMessages(final ProcessContext context, final ProcessSession session, final StateMap stateMap) throws IOException, SlackApiException {
-        final String startingRepliesCursor = stateMap.get(stateKeys.LATEST_REPLIES_CURSOR);
+        final String startingRepliesCursor = stateMap.get(stateKeys.latestRepliesCursor);
 
-        String direction = stateMap.get(stateKeys.DIRECTION);
+        String direction = stateMap.get(stateKeys.direction);
         if (direction == null) {
             direction = BACKWARD;
         }
 
-        final String startingTimestampKey = BACKWARD.equals(direction) ? stateKeys.EARLIEST_TS : stateKeys.LATEST_TS;
+        final String startingTimestampKey = BACKWARD.equals(direction) ? stateKeys.earliestTs : stateKeys.latestTs;
         String ts = stateMap.get(startingTimestampKey);
 
         // If there's a cursor for replies, we want to include the last message as a duplicate, so that we can easily
@@ -370,10 +370,10 @@ public class ConsumeChannel {
             final SlackTimestamp resultTimestamp;
             if (direction.equals(FORWARD)) {
                 resultTimestamp = results.getLatestTimestamp();
-                timestampKeyName = stateKeys.LATEST_TS;
+                timestampKeyName = stateKeys.latestTs;
             } else {
                 resultTimestamp = results.getEarliestTimestamp();
-                timestampKeyName = stateKeys.EARLIEST_TS;
+                timestampKeyName = stateKeys.earliestTs;
             }
             if (resultTimestamp == null) {
                 break;
@@ -388,21 +388,21 @@ public class ConsumeChannel {
 
             // If the latest timestamp hasn't yet been set, set it. This allows us to know the latest timestamp when
             // we switch the direction from BACKWARD to FORWARD.
-            if (updatedStateMap.get(stateKeys.LATEST_TS) == null) {
+            if (updatedStateMap.get(stateKeys.latestTs) == null) {
                 final SlackTimestamp latestTimestamp = results.getLatestTimestamp();
-                updatedStateMap.put(stateKeys.LATEST_TS, latestTimestamp == null ? null : latestTimestamp.getRawValue());
+                updatedStateMap.put(stateKeys.latestTs, latestTimestamp == null ? null : latestTimestamp.getRawValue());
             }
 
             if (repliesCursor != null) {
-                updatedStateMap.put(stateKeys.LATEST_REPLIES_CURSOR, repliesCursor);
+                updatedStateMap.put(stateKeys.latestRepliesCursor, repliesCursor);
             }
 
             // Set the direction to forward only once we reach the end of all messages
             if (!results.isMore() && !results.isFailure()) {
-                updatedStateMap.put(stateKeys.DIRECTION, FORWARD);
+                updatedStateMap.put(stateKeys.direction, FORWARD);
 
                 // This key is only relevant during the initial loading of messages, when direction is BACKWARD.
-                updatedStateMap.remove(stateKeys.EARLIEST_TS);
+                updatedStateMap.remove(stateKeys.earliestTs);
                 logger.info("Successfully completed initial load of messages for channel {}", channelId);
             }
 
@@ -835,26 +835,26 @@ public class ConsumeChannel {
     }
 
     private static class StateKeys {
-        public final String ACTION;
-        public final String LATEST_TS;
-        public final String EARLIEST_TS;
-        public final String DIRECTION;
-        public final String LATEST_REPLIES_CURSOR;
-        public final String HISTORICAL_MESSAGES_REPLIES_CURSOR;
-        public final String HISTORICAL_REPLIES_EARLIEST_THREAD_TS;
-        public final String REPLY_MIN_TS;
-        public final String REPLY_MAX_TS;
+        public final String action;
+        public final String latestTs;
+        public final String earliestTs;
+        public final String direction;
+        public final String latestRepliesCursor;
+        public final String historicalMessagesRepliesCursor;
+        public final String historicalRepliesEarliestThreadTs;
+        public final String replyMinTs;
+        public final String replyMaxTs;
 
         public StateKeys(final String channelId) {
-            ACTION = channelId + ".action";
-            LATEST_TS = channelId + ".latest";
-            EARLIEST_TS = channelId + ".earliest";
-            DIRECTION = channelId + ".direction";
-            LATEST_REPLIES_CURSOR = channelId + ".latest.replies.cursor";
-            HISTORICAL_MESSAGES_REPLIES_CURSOR = channelId + ".historical.replies.cursor";
-            HISTORICAL_REPLIES_EARLIEST_THREAD_TS = channelId + ".historical.replies.ts";
-            REPLY_MIN_TS = channelId + ".historical.reply.min.ts";
-            REPLY_MAX_TS = channelId + ".historical.reply.max.ts";
+            action = channelId + ".action";
+            latestTs = channelId + ".latest";
+            earliestTs = channelId + ".earliest";
+            direction = channelId + ".direction";
+            latestRepliesCursor = channelId + ".latest.replies.cursor";
+            historicalMessagesRepliesCursor = channelId + ".historical.replies.cursor";
+            historicalRepliesEarliestThreadTs = channelId + ".historical.replies.ts";
+            replyMinTs = channelId + ".historical.reply.min.ts";
+            replyMaxTs = channelId + ".historical.reply.max.ts";
         }
     }
 }

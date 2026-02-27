@@ -34,19 +34,19 @@ public class StandardOidcIdentityProviderTest {
 
     @Test
     public void testValidateScopes() throws IllegalAccessException {
-        final String additionalScope_profile = "profile";
-        final String additionalScope_abc = "abc";
+        final String additionalScopeProfile = "profile";
+        final String additionalScopeAbc = "abc";
 
-        final StandardOidcIdentityProvider provider = createOidcProviderWithAdditionalScopes(additionalScope_profile,
-            additionalScope_abc);
+        final StandardOidcIdentityProvider provider = createOidcProviderWithAdditionalScopes(additionalScopeProfile,
+            additionalScopeAbc);
         Scope scope = provider.getScope();
 
         // two additional scopes are set, two (openid, email) are hard-coded
         assertEquals(scope.toArray().length, 4);
         assertTrue(scope.contains("openid"));
         assertTrue(scope.contains("email"));
-        assertTrue(scope.contains(additionalScope_profile));
-        assertTrue(scope.contains(additionalScope_abc));
+        assertTrue(scope.contains(additionalScopeProfile));
+        assertTrue(scope.contains(additionalScopeAbc));
     }
 
     @Test

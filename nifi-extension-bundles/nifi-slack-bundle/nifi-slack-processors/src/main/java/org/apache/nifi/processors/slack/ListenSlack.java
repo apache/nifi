@@ -108,7 +108,7 @@ public class ListenSlack extends AbstractProcessor {
     static final AllowableValue RECEIVE_JOINED_CHANNEL_EVENTS = new AllowableValue("Receive Joined Channel Events", "Receive Joined Channel Events",
         "The Processor is to receive only events when a member is joining a channel. The Processor will not receive Message Events.");
 
-    static PropertyDescriptor APP_TOKEN = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor APP_TOKEN = new PropertyDescriptor.Builder()
         .name("App Token")
         .description("The Application Token that is registered to your Slack application")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -116,7 +116,7 @@ public class ListenSlack extends AbstractProcessor {
         .sensitive(true)
         .build();
 
-    static PropertyDescriptor BOT_TOKEN = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor BOT_TOKEN = new PropertyDescriptor.Builder()
         .name("Bot Token")
         .description("The Bot Token that is registered to your Slack application")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -145,7 +145,7 @@ public class ListenSlack extends AbstractProcessor {
         .dependsOn(EVENT_TYPE, RECEIVE_MESSAGE_EVENTS, RECEIVE_MENTION_EVENTS, RECEIVE_JOINED_CHANNEL_EVENTS)
         .build();
 
-    static Relationship REL_SUCCESS = new Relationship.Builder()
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("All FlowFiles that are created will be sent to this Relationship.")
         .build();

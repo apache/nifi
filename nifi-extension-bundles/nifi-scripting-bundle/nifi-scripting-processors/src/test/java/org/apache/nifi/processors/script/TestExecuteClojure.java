@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExecuteClojure extends BaseScriptTest {
 
-    public final String TEST_CSV_DATA = """
+    public static final String TEST_CSV_DATA = """
             gender,title,first,last
             female,miss,marlene,shaw
             male,mr,todd,graham""";
@@ -46,7 +46,7 @@ public class TestExecuteClojure extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger.clj");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/clojure");
 
@@ -66,7 +66,7 @@ public class TestExecuteClojure extends BaseScriptTest {
     @Test
     public void testNoIncomingFlowFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger.clj");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/clojure");
 
@@ -84,7 +84,7 @@ public class TestExecuteClojure extends BaseScriptTest {
     @Test
     public void testCreateNewFlowFileWithScriptFile() {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_onTrigger_newFlowFile.clj");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "clojure");
 
@@ -107,7 +107,7 @@ public class TestExecuteClojure extends BaseScriptTest {
     @Test
     public void testDynamicProperties() {
         runner.setValidateExpressionUsage(true);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Clojure");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().scriptEngine, "Clojure");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "clojure/test_dynamicProperties.clj");
         runner.setProperty("myProp", "${myAttr}");
 

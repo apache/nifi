@@ -320,7 +320,7 @@ public class TestMockProcessSession {
     @Nested
     class RegardingAttributes {
 
-        private final String UUID_ATTRIBUTE_NAME = CoreAttributes.UUID.key();
+        private static final String UUID_ATTRIBUTE_NAME = CoreAttributes.UUID.key();
 
         @Test
         void canWriteAttribute() {

@@ -18,20 +18,20 @@ package org.apache.nifi.nar;
 
 public final class NarClassLoadersHolder {
 
-    private static volatile NarClassLoaders INSTANCE;
+    private static volatile NarClassLoaders instance;
 
     /**
      * @return The singleton instance of the NarClassLoaders
      */
     public static NarClassLoaders getInstance() {
-        if (INSTANCE == null) {
+        if (instance == null) {
             synchronized (NarClassLoadersHolder.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new NarClassLoaders();
+                if (instance == null) {
+                    instance = new NarClassLoaders();
                 }
             }
         }
-        return INSTANCE;
+        return instance;
     }
 
     private NarClassLoadersHolder() {

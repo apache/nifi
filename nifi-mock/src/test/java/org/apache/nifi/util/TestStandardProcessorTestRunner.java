@@ -333,7 +333,7 @@ public class TestStandardProcessorTestRunner {
     }
 
     private static class SimpleTestService extends AbstractControllerService {
-        private final String PD_NAME = "name";
+        private static final String PD_NAME = "name";
         private final PropertyDescriptor namePropertyDescriptor = new PropertyDescriptor.Builder()
                 .name(PD_NAME)
                 .displayName("Controller Service Name")

@@ -45,12 +45,12 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("unchecked")
 public class TestStandardRelationshipConfiguration {
 
-    private final String SUCCESS = "success";
-    private final String UNSUCCESSFUL = "unsuccessful";
-    private final String PARTIAL_SUCCESS = "partial-success";
-    private final Relationship REL_SUCCESS = createRelationship(SUCCESS);
-    private final Relationship REL_UNSUCCESSFUL = createRelationship(UNSUCCESSFUL);
-    private final Relationship REL_PARTIAL_SUCCESS = createRelationship(PARTIAL_SUCCESS);
+    private static final String SUCCESS = "success";
+    private static final String UNSUCCESSFUL = "unsuccessful";
+    private static final String PARTIAL_SUCCESS = "partial-success";
+    private final Relationship relSuccess = createRelationship(SUCCESS);
+    private final Relationship relUnsuccessful = createRelationship(UNSUCCESSFUL);
+    private final Relationship relPartialSuccess = createRelationship(PARTIAL_SUCCESS);
 
     private ProcessorNode processorNode;
     private final Set<Relationship> autoTerminatedRelationships = new HashSet<>();
@@ -121,18 +121,18 @@ public class TestStandardRelationshipConfiguration {
         addConnection(SUCCESS);
         addConnection(SUCCESS);
         addConnection(PARTIAL_SUCCESS);
-        autoTerminatedRelationships.add(REL_PARTIAL_SUCCESS);
+        autoTerminatedRelationships.add(relPartialSuccess);
         retriedRelationships.add(SUCCESS);
 
         final StandardRelationshipConfiguration config = new StandardRelationshipConfiguration(processorNode);
 
         assertTrue(config.renameRelationship(SUCCESS, UNSUCCESSFUL));
 
-        assertFalse(autoTerminatedRelationships.contains(REL_SUCCESS));
-        assertFalse(autoTerminatedRelationships.contains(REL_UNSUCCESSFUL));
+        assertFalse(autoTerminatedRelationships.contains(relSuccess));
+        assertFalse(autoTerminatedRelationships.contains(relUnsuccessful));
 
-        final Set<Relationship> unsuccessfulSet = Collections.singleton(REL_UNSUCCESSFUL);
-        final Set<Relationship> partialSuccessfulSet = Collections.singleton(REL_PARTIAL_SUCCESS);
+        final Set<Relationship> unsuccessfulSet = Collections.singleton(relUnsuccessful);
+        final Set<Relationship> partialSuccessfulSet = Collections.singleton(relPartialSuccess);
         int unsuccessfulCount = 0;
         int partialSuccessCount = 0;
         for (final Connection connection : connections) {
@@ -149,7 +149,7 @@ public class TestStandardRelationshipConfiguration {
         assertEquals(2, unsuccessfulCount);
         assertEquals(1, partialSuccessCount);
 
-        assertEquals(Collections.singleton(REL_PARTIAL_SUCCESS), autoTerminatedRelationships);
+        assertEquals(Collections.singleton(relPartialSuccess), autoTerminatedRelationships);
         assertEquals(Collections.singleton(UNSUCCESSFUL), retriedRelationships);
     }
 
@@ -175,7 +175,7 @@ public class TestStandardRelationshipConfiguration {
 
         for (final Connection connection : connections) {
             final Collection<Relationship> rels = connection.getRelationships();
-            assertEquals(Set.of(REL_SUCCESS, REL_PARTIAL_SUCCESS), rels);
+            assertEquals(Set.of(relSuccess, relPartialSuccess), rels);
         }
 
         assertEquals(Set.of(SUCCESS, PARTIAL_SUCCESS), retriedRelationships);
@@ -192,7 +192,7 @@ public class TestStandardRelationshipConfiguration {
 
         for (final Connection connection : connections) {
             final Collection<Relationship> rels = connection.getRelationships();
-            assertEquals(Set.of(REL_UNSUCCESSFUL, REL_PARTIAL_SUCCESS), rels);
+            assertEquals(Set.of(relUnsuccessful, relPartialSuccess), rels);
         }
 
         assertEquals(Set.of(UNSUCCESSFUL, PARTIAL_SUCCESS), retriedRelationships);

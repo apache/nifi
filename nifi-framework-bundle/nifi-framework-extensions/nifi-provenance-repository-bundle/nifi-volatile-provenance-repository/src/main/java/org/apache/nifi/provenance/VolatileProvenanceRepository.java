@@ -70,7 +70,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
     // default property values
     public static final int DEFAULT_BUFFER_SIZE = 10000;
 
-    public static String CONTAINER_NAME = "in-memory";
+    public static final String CONTAINER_NAME = "in-memory";
 
     private final RingBuffer<ProvenanceEventRecord> ringBuffer;
     private final int maxSize;

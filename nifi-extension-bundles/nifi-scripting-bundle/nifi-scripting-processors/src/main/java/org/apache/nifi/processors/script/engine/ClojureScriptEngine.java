@@ -43,7 +43,7 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
 
     private volatile ScriptEngineFactory scriptEngineFactory;
     private final String uuid = "ns-" + UUID.randomUUID().toString();
-    private final Symbol NAMESPACE_SYMBOL = Symbol.create(uuid);
+    private final Symbol namespaceSymbol = Symbol.create(uuid);
 
     protected ClojureScriptEngine(ScriptEngineFactory scriptEngineFactory) {
         this.scriptEngineFactory = scriptEngineFactory;
@@ -72,7 +72,7 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
         try {
             // Get engine bindings and send them to Clojure
             Bindings engineBindings = context.getBindings(ScriptContext.ENGINE_SCOPE);
-            engineBindings.entrySet().forEach((entry) -> Var.intern(Namespace.findOrCreate(NAMESPACE_SYMBOL), Symbol.create(entry.getKey().intern()), entry.getValue(), true));
+            engineBindings.entrySet().forEach((entry) -> Var.intern(Namespace.findOrCreate(namespaceSymbol), Symbol.create(entry.getKey().intern()), entry.getValue(), true));
 
             Var.pushThreadBindings(
                     RT.map(RT.CURRENT_NS, RT.CURRENT_NS.deref(),
@@ -85,7 +85,7 @@ public class ClojureScriptEngine extends AbstractScriptEngine {
         } catch (Exception e) {
             throw new ScriptException(e);
         } finally {
-            Namespace.remove(NAMESPACE_SYMBOL);
+            Namespace.remove(namespaceSymbol);
         }
     }
 

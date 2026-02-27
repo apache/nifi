@@ -97,7 +97,7 @@ public class ConvertCharacterSet extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("").build();
 
-    private final Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS
     );
 

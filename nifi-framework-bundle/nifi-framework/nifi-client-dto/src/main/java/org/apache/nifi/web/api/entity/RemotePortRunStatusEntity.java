@@ -25,7 +25,7 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "remotePortRunStatus")
 public class RemotePortRunStatusEntity extends ComponentRunStatusEntity {
 
-    private static String[] SUPPORTED_STATE = {"TRANSMITTING", "STOPPED"};
+    private static final String[] SUPPORTED_STATE = {"TRANSMITTING", "STOPPED"};
 
     @Override
     protected String[] getSupportedState() {

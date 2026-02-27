@@ -49,7 +49,7 @@ import java.util.Optional;
 @CapabilityDescription("Parses Avro data and returns each Avro record as an separate Record object. The Avro data may contain the schema itself, "
     + "or the schema can be externalized and accessed by one of the methods offered by the 'Schema Access Strategy' property.")
 public class AvroReader extends SchemaRegistryService implements RecordReaderFactory {
-    private final AllowableValue EMBEDDED_AVRO_SCHEMA = new AllowableValue("embedded-avro-schema",
+    private static final AllowableValue EMBEDDED_AVRO_SCHEMA = new AllowableValue("embedded-avro-schema",
         "Use Embedded Avro Schema", "The FlowFile has the Avro Schema embedded within the content, and this schema will be used.");
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()

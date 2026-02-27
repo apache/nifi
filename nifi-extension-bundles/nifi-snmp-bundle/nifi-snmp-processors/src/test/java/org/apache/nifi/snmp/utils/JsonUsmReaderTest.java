@@ -32,18 +32,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JsonUsmReaderTest extends JsonUsmReaderTestBase {
 
-    private static String USERS_JSON;
-    private static String INVALID_USERS_JSON;
+    private static String usersJson;
+    private static String invalidUsersJson;
 
     @BeforeAll
     public static void setup() throws IOException {
-        USERS_JSON = readFile(USERS_JSON_PATH);
-        INVALID_USERS_JSON = readFile(INVALID_USERS_JSON_PATH);
+        usersJson = readFile(USERS_JSON_PATH);
+        invalidUsersJson = readFile(INVALID_USERS_JSON_PATH);
     }
 
     @Test
     void testReadJson() {
-        final UsmReader jsonUsmReader = new JsonUsmReader(USERS_JSON);
+        final UsmReader jsonUsmReader = new JsonUsmReader(usersJson);
         final List<UsmUser> usmUsers = jsonUsmReader.readUsm();
 
         assertEquals(expectedUsmUsers, usmUsers);
@@ -51,7 +51,7 @@ class JsonUsmReaderTest extends JsonUsmReaderTestBase {
 
     @Test
     void testReadInvalidJsonThrowsException() {
-        final UsmReader jsonUsmReader = new JsonUsmReader(INVALID_USERS_JSON);
+        final UsmReader jsonUsmReader = new JsonUsmReader(invalidUsersJson);
         assertThrows(ProcessException.class, jsonUsmReader::readUsm);
     }
 

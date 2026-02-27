@@ -202,9 +202,9 @@ public class ElasticSearchLookupService extends JsonInferenceSchemaRegistryServi
     }
 
     @SuppressWarnings("unchecked")
-    private Record getById(final String _id, final Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
+    private Record getById(final String id, final Map<String, String> context) throws IOException, LookupFailureException, SchemaNotFoundException {
         final Map<String, Object> query = Map.of(
-            "query", Map.of("match", Map.of("_id", _id)));
+            "query", Map.of("match", Map.of("_id", id)));
 
         final String json = mapper.writeValueAsString(query);
 

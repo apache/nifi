@@ -73,10 +73,10 @@ public class WriteFlowFileCountToFile extends AbstractProcessor implements Class
         .addValidator(NON_EMPTY_VALIDATOR)
         .build();
 
-    private final Relationship REL_SUCCESS = new Relationship.Builder()
+    private static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .build();
-    private final Relationship REL_FAILURE = new Relationship.Builder()
+    private static final Relationship REL_FAILURE = new Relationship.Builder()
         .name("failure")
         .autoTerminateDefault(true)
         .build();

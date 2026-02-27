@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestReaderLookup {
-    private final String DEFAULT_ATTRIBUTE_NAME = "recordreader.name";
+    private static final String DEFAULT_ATTRIBUTE_NAME = "recordreader.name";
 
     private MockRecordReaderFactory recordReaderA;
     private MockRecordReaderFactory recordReaderB;

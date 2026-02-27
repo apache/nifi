@@ -107,13 +107,13 @@ public class GetWorkdayReport extends AbstractProcessor {
         .addValidator(URL_VALIDATOR)
         .build();
 
-    public static AllowableValue BASIC_AUTH_TYPE = new AllowableValue(
+    public static final AllowableValue BASIC_AUTH_TYPE = new AllowableValue(
         "BASIC_AUTH",
         "Basic Auth",
         "Used to access resources using Workday password and username."
     );
 
-    public static AllowableValue OAUTH_TYPE = new AllowableValue(
+    public static final AllowableValue OAUTH_TYPE = new AllowableValue(
         "OAUTH",
         "OAuth",
         "Used to get fresh access tokens based on a previously acquired refresh token. Requires Client ID, Client Secret and Refresh Token."

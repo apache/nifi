@@ -212,8 +212,8 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         return proxyPassword;
     }
 
-    public void setLocalNetworkInterface(String LocalNetworkInterface) {
-        this.localNetworkInterface = LocalNetworkInterface;
+    public void setLocalNetworkInterface(String localNetworkInterface) {
+        this.localNetworkInterface = localNetworkInterface;
     }
 
     public String getLocalNetworkInterface() {

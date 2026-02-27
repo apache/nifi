@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLoadBalanceSession {
 
-    private final TransactionFailureCallback NOP_FAILURE_CALLBACK = new TransactionFailureCallback() {
+    private static final TransactionFailureCallback NOP_FAILURE_CALLBACK = new TransactionFailureCallback() {
         @Override
         public void onTransactionFailed(final List<FlowFileRecord> flowFiles, final Exception cause, final TransactionPhase transactionPhase) {
         }

@@ -102,9 +102,9 @@ public class TestCSVRecordLookupService {
         runner.enableControllerService(service);
         runner.assertValid(service);
 
-        final Optional<Record> my_key = service.lookup(Collections.singletonMap("key", "my_key"));
-        assertTrue(my_key.isPresent());
-        assertEquals("my_value with an escaped |.", my_key.get().getAsString("value"));
+        final Optional<Record> myKey = service.lookup(Collections.singletonMap("key", "my_key"));
+        assertTrue(myKey.isPresent());
+        assertEquals("my_value with an escaped |.", myKey.get().getAsString("value"));
     }
 
     @Test

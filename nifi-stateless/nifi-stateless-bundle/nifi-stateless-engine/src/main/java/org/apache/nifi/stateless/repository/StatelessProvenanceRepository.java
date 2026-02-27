@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class StatelessProvenanceRepository implements ProvenanceRepository {
 
-    public static String CONTAINER_NAME = "in-memory";
+    public static final String CONTAINER_NAME = "in-memory";
 
     private final RingBuffer<ProvenanceEventRecord> ringBuffer;
     private final int maxSize;

@@ -193,7 +193,7 @@ public class FlowDifferenceFilters {
     /**
      * Predicate that returns true if the difference is NOT a name change on a public port (i.e. VersionedPort that allows remote access).
      */
-    public static Predicate<FlowDifference> FILTER_PUBLIC_PORT_NAME_CHANGES = (fd) -> !isPublicPortNameChange(fd);
+    public static final Predicate<FlowDifference> FILTER_PUBLIC_PORT_NAME_CHANGES = (fd) -> !isPublicPortNameChange(fd);
 
     public static boolean isPublicPortNameChange(final FlowDifference fd) {
         final VersionedComponent versionedComponent = fd.getComponentA();
@@ -210,7 +210,7 @@ public class FlowDifferenceFilters {
     /**
      * Predicate that returns true if the difference is NOT a remote port being added, and false if it is.
      */
-    public static Predicate<FlowDifference> FILTER_ADDED_REMOVED_REMOTE_PORTS =  (fd) -> !isAddedOrRemovedRemotePort(fd);
+    public static final Predicate<FlowDifference> FILTER_ADDED_REMOVED_REMOTE_PORTS = (fd) -> !isAddedOrRemovedRemotePort(fd);
 
     public static boolean isAddedOrRemovedRemotePort(final FlowDifference fd) {
         if (fd.getDifferenceType() == DifferenceType.COMPONENT_ADDED || fd.getDifferenceType() == DifferenceType.COMPONENT_REMOVED) {

@@ -29,7 +29,7 @@ public abstract class PeriodicStatusReporter {
     private ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
 
     private volatile int period = -1;
-    private volatile int termination_wait = 5000;
+    private volatile int terminationWait = 5000;
 
     public volatile Runnable reportRunner;
 
@@ -57,7 +57,7 @@ public abstract class PeriodicStatusReporter {
     public void stop() {
         try {
             scheduledExecutorService.shutdown();
-            scheduledExecutorService.awaitTermination(termination_wait, TimeUnit.MILLISECONDS);
+            scheduledExecutorService.awaitTermination(terminationWait, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ignored) {
             // Shutting down anyway
         }
@@ -71,12 +71,12 @@ public abstract class PeriodicStatusReporter {
         this.period = period;
     }
 
-    public int getTermination_wait() {
-        return termination_wait;
+    public int getTerminationWait() {
+        return terminationWait;
     }
 
-    public void setTermination_wait(int termination_wait) {
-        this.termination_wait = termination_wait;
+    public void setTerminationWait(int terminationWait) {
+        this.terminationWait = terminationWait;
     }
 
     /**

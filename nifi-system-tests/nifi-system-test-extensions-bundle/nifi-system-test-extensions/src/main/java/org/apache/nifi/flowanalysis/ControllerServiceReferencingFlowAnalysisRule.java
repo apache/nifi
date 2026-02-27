@@ -34,9 +34,9 @@ public class ControllerServiceReferencingFlowAnalysisRule extends AbstractFlowAn
     private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(CONTROLLER_SERVICE);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(CONTROLLER_SERVICE);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     @Override

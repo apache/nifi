@@ -150,7 +150,7 @@ public class MockFileSystem extends FileSystem {
     }
 
     @Override
-    public void setWorkingDirectory(final Path new_dir) {
+    public void setWorkingDirectory(final Path newDir) {
 
     }
 

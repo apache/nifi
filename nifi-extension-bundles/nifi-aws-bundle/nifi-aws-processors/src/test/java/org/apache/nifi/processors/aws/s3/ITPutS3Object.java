@@ -336,18 +336,18 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testDynamicProperty() {
-        final String DYNAMIC_ATTRIB_KEY = "fs.runTimestamp";
-        final String DYNAMIC_ATTRIB_VALUE = "${now():toNumber()}";
+        final String dynamicAttribKey = "fs.runTimestamp";
+        final String dynamicAttribValue = "${now():toNumber()}";
 
         final TestRunner runner = initTestRunner();
 
         runner.setProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
-        runner.setProperty(DYNAMIC_ATTRIB_KEY, DYNAMIC_ATTRIB_VALUE);
+        runner.setProperty(dynamicAttribKey, dynamicAttribValue);
 
-        final String FILE1_NAME = "file1";
+        final String file1Name = "file1";
         Map<String, String> attribs = new HashMap<>();
-        attribs.put(CoreAttributes.FILENAME.key(), FILE1_NAME);
+        attribs.put(CoreAttributes.FILENAME.key(), file1Name);
         runner.enqueue("123".getBytes(), attribs);
 
         runner.assertValid();
@@ -364,13 +364,13 @@ public class ITPutS3Object extends AbstractS3IT {
         String[] usermetaLine0 = usermeta.split(System.lineSeparator())[0].split("=");
         String usermetaKey0 = usermetaLine0[0];
         String usermetaValue0 = usermetaLine0[1];
-        assertEquals(DYNAMIC_ATTRIB_KEY, usermetaKey0);
+        assertEquals(dynamicAttribKey, usermetaKey0);
         assertTrue(usermetaValue0.compareTo(millisOneSecAgo) >= 0 && usermetaValue0.compareTo(millisNow) <= 0);
     }
 
     @Test
     public void testProvenance() throws InitializationException {
-        final String PROV1_FILE = "provfile1";
+        final String prov1File = "provfile1";
 
         final TestRunner runner = initTestRunner();
 
@@ -380,7 +380,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.KEY, "${filename}");
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), PROV1_FILE);
+        attributes.put(CoreAttributes.FILENAME.key(), prov1File);
         runner.enqueue("prov1 contents".getBytes(), attributes);
 
         runner.assertValid();
@@ -394,7 +394,7 @@ public class ITPutS3Object extends AbstractS3IT {
         ProvenanceEventRecord provRec1 = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, provRec1.getEventType());
         assertEquals(runner.getProcessor().getIdentifier(), provRec1.getComponentId());
-        String targetUri = String.format("%s/%s/%s", getEndpoint(), BUCKET_NAME, PROV1_FILE);
+        String targetUri = String.format("%s/%s/%s", getEndpoint(), BUCKET_NAME, prov1File);
         assertEquals(targetUri, provRec1.getTransitUri());
         assertEquals(BUCKET_NAME, provRec1.getUpdatedAttributes().get(PutS3Object.S3_BUCKET_KEY));
     }
@@ -614,7 +614,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
     @Test
     public void testMultipartSmallerThanMinimum() throws IOException {
-        final String FILE1_NAME = "file1";
+        final String file1Name = "file1";
 
         final byte[] megabyte = new byte[1024 * 1024];
         final Path tempFile = Files.createTempFile("s3mulitpart", "tmp");
@@ -637,7 +637,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), FILE1_NAME);
+        attributes.put(CoreAttributes.FILENAME.key(), file1Name);
         runner.enqueue(new FileInputStream(tempFile.toFile()), attributes);
 
         runner.assertValid();
@@ -649,16 +649,16 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(0, failureFiles.size());
         MockFlowFile ff1 = successFiles.get(0);
         assertEquals(PutS3Object.S3_API_METHOD_PUTOBJECT, ff1.getAttribute(PutS3Object.S3_API_METHOD_ATTR_KEY));
-        assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(file1Name, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
-        assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
+        assertEquals(file1Name, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
         assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         assertEquals(tempByteCount, ff1.getSize());
     }
 
     @Test
     public void testMultipartBetweenMinimumAndMaximum() throws IOException, InitializationException {
-        final String FILE1_NAME = "file1";
+        final String file1Name = "file1";
 
         final byte[] megabyte = new byte[1024 * 1024];
         final Path tempFile = Files.createTempFile("s3mulitpart", "tmp");
@@ -682,7 +682,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), FILE1_NAME);
+        attributes.put(CoreAttributes.FILENAME.key(), file1Name);
         runner.enqueue(new FileInputStream(tempFile.toFile()), attributes);
 
         runner.assertValid();
@@ -694,9 +694,9 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(0, failureFiles.size());
         MockFlowFile ff1 = successFiles.get(0);
         assertEquals(PutS3Object.S3_API_METHOD_MULTIPARTUPLOAD, ff1.getAttribute(PutS3Object.S3_API_METHOD_ATTR_KEY));
-        assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals(file1Name, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
-        assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
+        assertEquals(file1Name, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
         assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         assertEquals(tempByteCount, ff1.getSize());
     }

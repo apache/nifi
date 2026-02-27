@@ -74,7 +74,7 @@ public class DefaultSyncResourceStrategyTest {
     private static final BiFunction<String, Function<InputStream, Optional<Path>>, Optional<Path>> URL_TO_CONTENT_DOWNLOAD_FUNCTION =
         (url, persistFunction) -> url.endsWith(FAIL_DOWNLOAD_URL) ? empty() : persistFunction.apply(new ByteArrayInputStream(url.getBytes()));
 
-    private static String ENRICH_PREFIX = "pre_";
+    private static final String ENRICH_PREFIX = "pre_";
     private static final Function<String, String> PREFIXING_ENRICH_FUNCTION = url -> ofNullable(url).map(arg -> ENRICH_PREFIX + arg).orElse("");
 
     @Mock

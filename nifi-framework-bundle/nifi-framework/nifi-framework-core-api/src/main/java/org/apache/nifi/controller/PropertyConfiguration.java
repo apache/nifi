@@ -28,7 +28,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class PropertyConfiguration {
-    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
+    public static final PropertyConfiguration EMPTY = new PropertyConfiguration(
+            null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
 
     private final String rawValue;
     private final ParameterTokenList parameterTokenList;

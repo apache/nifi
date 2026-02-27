@@ -33,7 +33,7 @@ import java.util.Set;
 
 public class SetAttribute extends AbstractProcessor {
 
-    public Relationship REL_SUCCESS = new Relationship.Builder()
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .build();
 

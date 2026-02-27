@@ -63,7 +63,7 @@ import java.util.List;
  */
 public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
 
-    public static String REGISTRY_COMMAND_GROUP = "registry";
+    public static final String REGISTRY_COMMAND_GROUP = "registry";
 
     public NiFiRegistryCommandGroup() {
         super(REGISTRY_COMMAND_GROUP);

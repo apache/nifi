@@ -65,9 +65,9 @@ class StandardPemPrivateKeyReaderTest {
 
     private static final Base64.Encoder encoder = Base64.getEncoder();
 
-    private static String PKCS1_RSA_PRIVATE_KEY_ENCODED;
+    private static String pkcs1RsaPrivateKeyEncoded;
 
-    private static String PKCS8_ED25519_PRIVATE_KEY_ENCODED;
+    private static String pkcs8Ed25519PrivateKeyEncoded;
 
     private final StandardPemPrivateKeyReader reader = new StandardPemPrivateKeyReader();
 
@@ -79,14 +79,14 @@ class StandardPemPrivateKeyReaderTest {
         final PrivateKey rsaPrivateKey = rsaKeyPair.getPrivate();
         final byte[] rsaPrivateKeyEncoded = rsaPrivateKey.getEncoded();
 
-        PKCS1_RSA_PRIVATE_KEY_ENCODED = getRsaPrivateKeyPemEncoded(rsaPrivateKeyEncoded);
+        pkcs1RsaPrivateKeyEncoded = getRsaPrivateKeyPemEncoded(rsaPrivateKeyEncoded);
 
         final KeyPairGenerator ed25519KeyPairGenerator = KeyPairGenerator.getInstance(ED25519_ALGORITHM);
         final KeyPair ed25519KeyPair = ed25519KeyPairGenerator.generateKeyPair();
         final PrivateKey ed25519PrivateKey = ed25519KeyPair.getPrivate();
         final byte[] ed25519PrivateKeyEncoded = ed25519PrivateKey.getEncoded();
 
-        PKCS8_ED25519_PRIVATE_KEY_ENCODED = getPrivateKeyPemEncoded(ed25519PrivateKeyEncoded);
+        pkcs8Ed25519PrivateKeyEncoded = getPrivateKeyPemEncoded(ed25519PrivateKeyEncoded);
     }
 
     @Test
@@ -108,7 +108,7 @@ class StandardPemPrivateKeyReaderTest {
 
     @Test
     void testReadPrivateKeyPkcs1Rsa() {
-        final InputStream inputStream = new ByteArrayInputStream(PKCS1_RSA_PRIVATE_KEY_ENCODED.getBytes(StandardCharsets.US_ASCII));
+        final InputStream inputStream = new ByteArrayInputStream(pkcs1RsaPrivateKeyEncoded.getBytes(StandardCharsets.US_ASCII));
 
         final PrivateKey privateKey = reader.readPrivateKey(inputStream);
 
@@ -130,7 +130,7 @@ class StandardPemPrivateKeyReaderTest {
 
     @Test
     void testReadPrivateKeyPkcs8Ed25519() {
-        final InputStream inputStream = new ByteArrayInputStream(PKCS8_ED25519_PRIVATE_KEY_ENCODED.getBytes(StandardCharsets.US_ASCII));
+        final InputStream inputStream = new ByteArrayInputStream(pkcs8Ed25519PrivateKeyEncoded.getBytes(StandardCharsets.US_ASCII));
 
         final PrivateKey privateKey = reader.readPrivateKey(inputStream);
 

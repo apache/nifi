@@ -379,7 +379,7 @@ class ConsumeKinesisIT {
             final MockProcessSession failingSession = createFailingSession(processor);
             try {
                 processor.onTrigger(runner.getProcessContext(), failingSession);
-            } catch (final FlowFileHandlingException __) {
+            } catch (final FlowFileHandlingException ignored) {
                 failingSession.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
                 break; // Expected rollback occurred
             }

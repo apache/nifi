@@ -547,11 +547,11 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         final int port = context.getProperty(PORT).asInteger();
         serviceArgs.setPort(port);
 
-        final int connect_timeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        serviceArgs.add("connectTimeout", connect_timeout);
+        final int connectTimeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("connectTimeout", connectTimeout);
 
-        final int read_timeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        serviceArgs.add("readTimeout", read_timeout);
+        final int readTimeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("readTimeout", readTimeout);
 
         final String app = context.getProperty(APP).getValue();
         if (!StringUtils.isBlank(app)) {

@@ -57,8 +57,8 @@ public class ITApacheCSVRecordReader {
     @Test
     public void testParserPerformance() throws IOException, MalformedRecordException {
         // Generates about 130MB of data
-        final int NUM_LINES = 2500000;
-        String sb = "id,name,balance,address,city,state,zipCode,country\n" + "1,John Doe,4750.89D,123 My Street,My City,MS,11111,USA\n".repeat(NUM_LINES);
+        final int numLines = 2500000;
+        String sb = "id,name,balance,address,city,state,zipCode,country\n" + "1,John Doe,4750.89D,123 My Street,My City,MS,11111,USA\n".repeat(numLines);
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream bais = new ByteArrayInputStream(sb.getBytes());
@@ -71,21 +71,21 @@ public class ITApacheCSVRecordReader {
                 assertNotNull(record);
                 numRecords++;
             }
-            assertEquals(NUM_LINES, numRecords);
+            assertEquals(numLines, numRecords);
         }
     }
 
     @Test
     public void testExceptionThrownOnParseProblem() {
         CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).setQuoteMode(QuoteMode.ALL).setTrim(true).setDelimiter(',').get();
-        final int NUM_LINES = 25;
+        final int numLines = 25;
         StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
-        for (int i = 0; i < NUM_LINES; i++) {
+        for (int i = 0; i < numLines; i++) {
             sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", i));
         }
         // cause a parse problem
-        sb.append(String.format("\"%s\"dieParser,\"John Doe\",\"4750.89D\"\n", NUM_LINES));
-        sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", NUM_LINES + 1));
+        sb.append(String.format("\"%s\"dieParser,\"John Doe\",\"4750.89D\"\n", numLines));
+        sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", numLines + 1));
         final RecordSchema schema = new SimpleRecordSchema(createStringFields(new String[] {"id", "name", "balance"}));
 
         try (final InputStream bais = new ByteArrayInputStream(sb.toString().getBytes());

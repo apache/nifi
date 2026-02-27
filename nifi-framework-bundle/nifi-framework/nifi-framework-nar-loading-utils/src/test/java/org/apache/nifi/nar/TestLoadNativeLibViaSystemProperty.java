@@ -89,11 +89,11 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
                 .collect(Collectors.toSet());
 
         for (NarClassLoader narClassLoader : narClassLoaders) {
-            Class<?> TestJNI = narClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
+            Class<?> testJniClass = narClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
 
-            Object actualJniMethodReturnValue = TestJNI
+            Object actualJniMethodReturnValue = testJniClass
                     .getMethod("testJniMethod")
-                .invoke(TestJNI.getDeclaredConstructor().newInstance());
+                .invoke(testJniClass.getDeclaredConstructor().newInstance());
 
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);
         }
@@ -130,11 +130,11 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
         for (InstanceClassLoader instanceClassLoader : instanceClassLoaders) {
             String actualLibraryLocation = instanceClassLoader.findLibrary("testjni");
 
-            Class<?> TestJNI = instanceClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
+            Class<?> testJniClass = instanceClassLoader.loadClass("org.apache.nifi.nar.sharedlib.TestJNI");
 
-            Object actualJniMethodReturnValue = TestJNI
+            Object actualJniMethodReturnValue = testJniClass
                     .getMethod("testJniMethod")
-                .invoke(TestJNI.getDeclaredConstructor().newInstance());
+                .invoke(testJniClass.getDeclaredConstructor().newInstance());
 
             assertTrue(actualLibraryLocation.contains(instanceClassLoader.getIdentifier()));
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);

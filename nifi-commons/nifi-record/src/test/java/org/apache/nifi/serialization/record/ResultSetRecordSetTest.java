@@ -771,8 +771,8 @@ public class ResultSetRecordSetTest {
     }
 
     private static class ResultBigDecimal extends BigDecimal {
-        public static int PRECISION = 3;
-        public static int SCALE = 0;
+        public static final int PRECISION = 3;
+        public static final int SCALE = 0;
         public ResultBigDecimal() {
             super("123");
         }

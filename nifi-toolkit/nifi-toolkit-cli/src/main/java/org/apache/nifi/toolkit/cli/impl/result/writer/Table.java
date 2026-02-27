@@ -22,7 +22,7 @@ import java.util.List;
 
 public class Table {
 
-    public static String EMPTY_VALUE = "(empty)";
+    public static final String EMPTY_VALUE = "(empty)";
 
     private final List<TableColumn> columns;
     private final List<String[]> rows = new ArrayList<>();

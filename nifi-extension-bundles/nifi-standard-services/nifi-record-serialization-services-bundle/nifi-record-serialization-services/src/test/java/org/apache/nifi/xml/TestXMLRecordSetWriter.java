@@ -146,7 +146,7 @@ public class TestXMLRecordSetWriter {
         SchemaIdentifier schemaId = SchemaIdentifier.builder().name("schemaName").build();
         RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema, avroSchemaText, schemaId);
 
-        XMLRecordSetWriter writer = new _XMLRecordSetWriter(recordSchema);
+        XMLRecordSetWriter writer = new TestableXMLRecordSetWriter(recordSchema);
         TestRunner runner = setup(writer);
 
         runner.setProperty(writer, XMLRecordSetWriter.ROOT_TAG_NAME, "ROOT_NODE");
@@ -274,11 +274,11 @@ public class TestXMLRecordSetWriter {
         assertEquals(expectedRemoved, result.getPropertiesRemoved());
     }
 
-    static class _XMLRecordSetWriter extends XMLRecordSetWriter {
+    static class TestableXMLRecordSetWriter extends XMLRecordSetWriter {
 
         RecordSchema recordSchema;
 
-        _XMLRecordSetWriter(RecordSchema recordSchema) {
+        TestableXMLRecordSetWriter(RecordSchema recordSchema) {
             this.recordSchema = recordSchema;
         }
 

@@ -851,7 +851,7 @@ public class DatabaseMetadataService implements MetadataService {
 
     //----------------- Extensions ---------------------------------
 
-    private static String BASE_EXTENSION_SQL =
+    private static final String BASE_EXTENSION_SQL =
             "SELECT " +
                 "e.id AS ID, " +
                 "e.bundle_version_id AS BUNDLE_VERSION_ID, " +
