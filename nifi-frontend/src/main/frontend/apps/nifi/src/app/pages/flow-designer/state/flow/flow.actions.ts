@@ -68,6 +68,7 @@ import {
     MoveComponentsRequest,
     MoveToFrontRequest,
     NavigateToComponentRequest,
+    NavigateToComponentsRequest,
     NavigateToControllerServicesRequest,
     NavigateToManageComponentPoliciesRequest,
     NavigateToParameterContext,
@@ -566,6 +567,11 @@ export const setAllowTransition = createAction(
 export const navigateToComponent = createAction(
     `${CANVAS_PREFIX} Navigate To Component`,
     props<{ request: NavigateToComponentRequest }>()
+);
+
+export const navigateToComponents = createAction(
+    `${CANVAS_PREFIX} Navigate To Components`,
+    props<{ request: NavigateToComponentsRequest }>()
 );
 
 export const navigateWithoutTransform = createAction(

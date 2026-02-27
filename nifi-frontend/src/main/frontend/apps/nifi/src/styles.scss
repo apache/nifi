@@ -55,6 +55,8 @@
     processor-status-table;
 @use 'app/pages/flow-designer/ui/canvas/change-color-dialog/change-color-dialog.component-theme' as change-color-dialog;
 @use 'libs/shared/src/components/map-table/editors/text-editor/text-editor.component-theme' as text-editor;
+@use 'app/ui/common/overlapping-connections-banner/overlapping-connections-banner.component-theme' as
+    overlapping-connections-banner;
 
 // Plus imports for other components in your app.
 @use 'libs/shared/src/assets/fonts/flowfont/flowfont.css';
@@ -101,6 +103,7 @@ html {
     @include change-color-dialog.generate-theme();
     @include text-editor.generate-theme();
     @include resizable.generate-theme();
+    @include overlapping-connections-banner.generate-theme();
 
     .darkMode {
         @include app.generate-material-theme();
@@ -133,5 +136,6 @@ html {
         @include change-color-dialog.generate-theme();
         @include text-editor.generate-theme();
         @include resizable.generate-theme();
+        @include overlapping-connections-banner.generate-theme();
     }
 }

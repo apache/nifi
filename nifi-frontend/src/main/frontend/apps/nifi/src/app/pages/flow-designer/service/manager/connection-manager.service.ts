@@ -46,6 +46,7 @@ import { filter, Subject, switchMap, takeUntil } from 'rxjs';
 import { ComponentType, NiFiCommon, SelectOption } from '@nifi/shared';
 import { QuickSelectBehavior } from '../behavior/quick-select-behavior.service';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
+import { wouldRemovalCauseOverlap } from '../../../../ui/common/overlap-detection.utils';
 
 export class ConnectionRenderOptions {
     updatePath?: boolean;
@@ -305,6 +306,17 @@ export class ConnectionManager implements OnDestroy {
                                     x: rightCenter.x + ConnectionManager.SELF_LOOP_X_OFFSET,
                                     y: rightCenter.y + ConnectionManager.SELF_LOOP_Y_OFFSET
                                 });
+                            } else if (self.nifiCommon.isEmpty(connectionData.bends)) {
+                                const sourceComponentId =
+                                    self.canvasUtils.getConnectionSourceComponentId(connectionData);
+                                const collisionBends = self.canvasUtils.calculateBendPointsForCollisionAvoidanceByIds(
+                                    sourceComponentId,
+                                    destinationData.id,
+                                    connectionData.id
+                                );
+                                if (collisionBends.length > 0) {
+                                    payload.component.bends = collisionBends;
+                                }
                             }
 
                             self.store.dispatch(
@@ -1170,6 +1182,24 @@ export class ConnectionManager implements OnDestroy {
 
                             if (bendIndex < 0) {
                                 return;
+                            }
+
+                            if (newBends.length === 0 && sourceComponentId !== destinationComponentId) {
+                                const wouldOverlap = wouldRemovalCauseOverlap(
+                                    connectionData.id,
+                                    self.connections,
+                                    self.currentProcessGroupId
+                                );
+                                if (wouldOverlap) {
+                                    self.store.dispatch(
+                                        showOkDialog({
+                                            title: 'Connection',
+                                            message:
+                                                'This bend point cannot be removed because it would cause this connection to overlap with another connection between the same components.'
+                                        })
+                                    );
+                                    return;
+                                }
                             }
 
                             const connectionRemovedBend: any = {

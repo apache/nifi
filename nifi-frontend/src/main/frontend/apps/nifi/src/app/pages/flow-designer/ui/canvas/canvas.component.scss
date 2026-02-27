@@ -15,6 +15,19 @@
  * limitations under the License.
  */
 
+.canvas-overlap-banner {
+    position: absolute;
+    z-index: 99;
+    top: 4px;
+    left: 46px;
+    right: 16px;
+    transition: left 150ms ease;
+
+    &.palettes-expanded {
+        left: 310px;
+    }
+}
+
 .canvas-background {
     background-size: 14px 14px;
     z-index: 1;
