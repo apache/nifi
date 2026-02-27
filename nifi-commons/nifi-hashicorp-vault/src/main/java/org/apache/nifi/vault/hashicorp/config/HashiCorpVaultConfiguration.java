@@ -77,12 +77,23 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
     /**
      * Creates a HashiCorpVaultConfiguration from property sources, in increasing precedence.
+     * The environment includes system environment variables and system properties as fallback sources.
      * @param propertySources A series of Spring PropertySource objects (the last in the list take precedence over
      *                        sources earlier in the list)
      * @throws HashiCorpVaultConfigurationException If the authentication properties file could not be read
      */
     public HashiCorpVaultConfiguration(final PropertySource<?>... propertySources) {
-        final ConfigurableEnvironment env = new StandardEnvironment();
+        this(new StandardEnvironment(), propertySources);
+    }
+
+    /**
+     * Creates a HashiCorpVaultConfiguration from property sources with a provided environment.
+     * @param env The ConfigurableEnvironment to use for property resolution
+     * @param propertySources A series of Spring PropertySource objects (the last in the list take precedence over
+     *                        sources earlier in the list)
+     * @throws HashiCorpVaultConfigurationException If the authentication properties file could not be read
+     */
+    public HashiCorpVaultConfiguration(final ConfigurableEnvironment env, final PropertySource<?>... propertySources) {
         for (final PropertySource<?> propertySource : propertySources) {
             env.getPropertySources().addFirst(propertySource);
         }

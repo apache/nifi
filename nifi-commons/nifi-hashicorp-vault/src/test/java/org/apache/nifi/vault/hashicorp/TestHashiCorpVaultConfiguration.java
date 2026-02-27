@@ -23,6 +23,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.client.VaultEndpoint;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport;
@@ -118,15 +120,26 @@ public class TestHashiCorpVaultConfiguration {
         }
     }
 
-    public void runTest(final String expectedScheme) {
-        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+    private static ConfigurableEnvironment createIsolatedEnvironment() {
+        final ConfigurableEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
+        environment.getPropertySources().remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+        return environment;
+    }
 
-        VaultEndpoint endpoint = config.vaultEndpoint();
+    public void runTest(final String expectedScheme) {
+        runTest(expectedScheme, new StandardEnvironment());
+    }
+
+    public void runTest(final String expectedScheme, final ConfigurableEnvironment environment) {
+        config = new HashiCorpVaultConfiguration(environment, new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+
+        final VaultEndpoint endpoint = config.vaultEndpoint();
         assertEquals("localhost", endpoint.getHost());
         assertEquals(8200, endpoint.getPort());
         assertEquals(expectedScheme, endpoint.getScheme());
 
-        ClientAuthentication clientAuthentication = config.clientAuthentication();
+        final ClientAuthentication clientAuthentication = config.clientAuthentication();
         assertNotNull(clientAuthentication);
     }
 
@@ -198,7 +211,8 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
+            final ConfigurableEnvironment isolatedEnvironment = createIsolatedEnvironment();
+            assertThrows(IllegalArgumentException.class, () -> this.runTest("http", isolatedEnvironment));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
@@ -214,7 +228,8 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
+            final ConfigurableEnvironment isolatedEnvironment = createIsolatedEnvironment();
+            assertThrows(IllegalArgumentException.class, () -> this.runTest("http", isolatedEnvironment));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
