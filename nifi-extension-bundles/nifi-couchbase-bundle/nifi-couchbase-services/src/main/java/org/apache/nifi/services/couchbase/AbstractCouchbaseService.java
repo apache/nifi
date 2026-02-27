@@ -38,14 +38,14 @@ public abstract class AbstractCouchbaseService extends AbstractControllerService
 
     public static final PropertyDescriptor COUCHBASE_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Couchbase Connection Service")
-            .description("A Couchbase Connection Service which manages connections to a Couchbase cluster.")
+            .description("Service responsible for managing connections to Couchbase cluster")
             .required(true)
             .identifiesControllerService(CouchbaseConnectionService.class)
             .build();
 
     public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
             .name("Bucket Name")
-            .description("The name of the bucket where documents will be stored. Each bucket contains a hierarchy of scopes and collections to group keys and values logically.")
+            .description("The name of the bucket where documents will be stored. Each bucket contains a hierarchy of scopes and collections to group keys and values logically")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_BUCKET)
@@ -54,7 +54,7 @@ public abstract class AbstractCouchbaseService extends AbstractControllerService
 
     public static final PropertyDescriptor SCOPE_NAME = new PropertyDescriptor.Builder()
             .name("Scope Name")
-            .description("The name of the scope  which is a logical namespace within a bucket, serving to categorize and organize related collections.")
+            .description("The name of the scope which is a logical namespace within a bucket, serving to categorize and organize related collections")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_SCOPE)
@@ -63,7 +63,7 @@ public abstract class AbstractCouchbaseService extends AbstractControllerService
 
     public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
             .name("Collection Name")
-            .description("The name of collection which is a logical container within a scope, used to hold documents.")
+            .description("The name of collection which is a logical container within a scope, used to hold documents")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_COLLECTION)
@@ -83,7 +83,7 @@ public abstract class AbstractCouchbaseService extends AbstractControllerService
         return REQUIRED_KEYS;
     }
 
-    private CouchbaseContext getCouchbaseContext(ConfigurationContext context) {
+    private CouchbaseContext getCouchbaseContext(final ConfigurationContext context) {
         final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions().getValue();
         final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions().getValue();
         final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions().getValue();

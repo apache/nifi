@@ -38,7 +38,7 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
 
     public static final PropertyDescriptor LOOKUP_SUB_DOC_PATH = new PropertyDescriptor.Builder()
             .name("Lookup Sub-Document Path")
-            .description("The Sub-Document lookup path within the target JSON document.")
+            .description("The Sub-Document lookup path within the target JSON document")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
@@ -66,7 +66,7 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
     }
 
     @Override
-    public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<String> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         final Object documentId = coordinates.get(KEY);
 
         if (documentId == null) {
@@ -76,10 +76,10 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
         try {
             final CouchbaseLookupInResult result = couchbaseClient.lookupIn(documentId.toString(), subDocPath);
             return Optional.ofNullable(result.resultContent()).map(Object::toString);
-        } catch (CouchbaseDocNotFoundException e) {
+        } catch (final CouchbaseDocNotFoundException e) {
             return Optional.empty();
-        } catch (Exception e) {
-            throw new LookupFailureException("Key-value lookup from Couchbase failed", e);
+        } catch (final Exception e) {
+            throw new LookupFailureException("Key-value lookup for Document ID [%s] failed".formatted(documentId), e);
         }
     }
 }

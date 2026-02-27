@@ -18,7 +18,7 @@ package org.apache.nifi.services.couchbase.exception;
 
 public class CouchbaseDocExistsException extends CouchbaseException {
 
-    public CouchbaseDocExistsException(String message, Throwable cause) {
+    public CouchbaseDocExistsException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }

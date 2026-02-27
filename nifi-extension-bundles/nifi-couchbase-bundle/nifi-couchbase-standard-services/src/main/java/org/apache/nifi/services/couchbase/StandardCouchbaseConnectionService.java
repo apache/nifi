@@ -58,7 +58,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
-            .description("The username to authenticate to the Couchbase client.")
+            .description("The username to authenticate to the Couchbase client")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -66,7 +66,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
-            .description("The user's password to authenticate to the Couchbase client.")
+            .description("The user's password to authenticate to the Couchbase client")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -74,13 +74,13 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
     public static PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("Service supporting SSL communication configuration. The service is using one-way SSL, so only the trust store properties will be used.")
+            .description("Service supporting SSL communication configuration. The service is using one-way SSL, so only the trust store properties will be used")
             .identifiesControllerService(SSLContextService.class)
             .build();
 
     public static final PropertyDescriptor PERSISTENCE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Persistence Strategy")
-            .description("Durability constraint about disk persistence.")
+            .description("Durability constraint about disk persistence")
             .required(true)
             .allowableValues(PersistTo.values())
             .defaultValue(PersistTo.NONE.toString())
@@ -88,7 +88,7 @@ public class StandardCouchbaseConnectionService extends AbstractControllerServic
 
     public static final PropertyDescriptor REPLICATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Replication Strategy")
-            .description("Durability constraint about replication.")
+            .description("Durability constraint about replication")
             .required(true)
             .allowableValues(ReplicateTo.values())
             .defaultValue(ReplicateTo.NONE.toString())

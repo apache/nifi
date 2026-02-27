@@ -20,7 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class AbstractCouchbaseServiceTest {
+abstract class AbstractCouchbaseServiceTest {
 
     protected static final String CONNECTION_SERVICE_ID = "couchbaseConnectionService";
     protected static final String TEST_DOCUMENT_ID = "test-document-id";

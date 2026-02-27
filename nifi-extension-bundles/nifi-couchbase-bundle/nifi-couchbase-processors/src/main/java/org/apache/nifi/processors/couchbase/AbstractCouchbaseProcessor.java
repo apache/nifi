@@ -52,7 +52,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DOCUMENT_ID = new PropertyDescriptor.Builder()
             .name("Document ID")
-            .description("Couchbase document identifier, or an expression to construct the Couchbase document identifier.")
+            .description("Couchbase document identifier, or an expression to construct the Couchbase document identifier")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -60,14 +60,14 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor COUCHBASE_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Couchbase Connection Service")
-            .description("A Couchbase Connection Service which manages connections to a Couchbase cluster.")
+            .description("Service responsible for managing connections to Couchbase cluster")
             .required(true)
             .identifiesControllerService(CouchbaseConnectionService.class)
             .build();
 
     public static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
             .name("Bucket Name")
-            .description("The name of the bucket where documents will be stored. Each bucket contains a hierarchy of scopes and collections to group keys and values logically.")
+            .description("The name of the bucket where documents will be stored. Each bucket contains a hierarchy of scopes and collections to group keys and values logically")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_BUCKET)
@@ -76,7 +76,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SCOPE_NAME = new PropertyDescriptor.Builder()
             .name("Scope Name")
-            .description("The name of the scope  which is a logical namespace within a bucket, serving to categorize and organize related collections.")
+            .description("The name of the scope which is a logical namespace within a bucket, serving to categorize and organize related collections")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_SCOPE)
@@ -85,7 +85,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
             .name("Collection Name")
-            .description("The name of collection which is a logical container within a scope, used to hold documents.")
+            .description("The name of collection which is a logical container within a scope, used to hold documents")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(DEFAULT_COLLECTION)
@@ -94,7 +94,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
             .name("Document Type")
-            .description("The content type for storing the document.")
+            .description("The content type for storing the document")
             .required(true)
             .allowableValues(DocumentType.values())
             .defaultValue(DocumentType.JSON.toString())
@@ -102,17 +102,17 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile is routed to this relationship after the data ingestion was successful.")
+            .description("A FlowFile is routed to this relationship after the data ingestion was successful")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is routed to this relationship if the operation failed and retrying the operation will also fail, such as an invalid data or schema.")
+            .description("A FlowFile is routed to this relationship if the operation failed and retrying the operation will also fail, such as an invalid data or schema")
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
-            .description("All FlowFile that fail due to server/cluster availability go to this relationship.")
+            .description("All FlowFile that fail due to server/cluster availability go to this relationship")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(

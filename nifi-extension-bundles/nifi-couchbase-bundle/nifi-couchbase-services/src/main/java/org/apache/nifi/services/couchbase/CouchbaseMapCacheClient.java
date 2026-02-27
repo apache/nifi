@@ -36,9 +36,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Tags({"distributed", "cache", "map", "cluster", "couchbase"})
-@CapabilityDescription("Provides the ability to communicate with a Couchbase Server cluster as a DistributedMapCacheServer." +
-        " This can be used in order to share a Map between nodes in a NiFi cluster." +
-        " Couchbase Server cluster can provide a high available and persistent cache storage.")
+@CapabilityDescription("""
+        Provides the ability to communicate with a Couchbase Server cluster as a DistributedMapCacheServer.
+        This can be used in order to share a Map between nodes in a NiFi cluster.
+        Couchbase Server cluster can provide a high available and persistent cache storage.""")
 public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements AtomicDistributedMapCacheClient<Long> {
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
@@ -54,20 +55,20 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
     }
 
     @Override
-    public <K, V> AtomicCacheEntry<K, V, Long> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> AtomicCacheEntry<K, V, Long> fetch(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         final String documentId = serializeDocumentKey(key, keySerializer);
         try {
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             return new AtomicCacheEntry<>(key, deserializeDocument(valueDeserializer, result.resultContent()), result.cas());
-        } catch (CouchbaseDocNotFoundException e) {
+        } catch (final CouchbaseDocNotFoundException e) {
             return null;
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to fetch cache entry [%s] from Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to fetch cache entry with Document ID [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean replace(final AtomicCacheEntry<K, V, Long> entry, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final String documentId = serializeDocumentKey(entry.getKey(), keySerializer);
         final byte[] document = serializeDocument(entry.getValue(), valueSerializer);
         final Optional<Long> revision = entry.getRevision();
@@ -76,10 +77,10 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
             try {
                 couchbaseClient.insertDocument(documentId, document);
                 return true;
-            } catch (CouchbaseDocExistsException e) {
+            } catch (final CouchbaseDocExistsException e) {
                 return false;
-            } catch (CouchbaseException e) {
-                throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
+            } catch (final CouchbaseException e) {
+                throw new IOException("Failed to insert cache entry with Document ID [%s] into Couchbase".formatted(documentId), e);
             }
         }
 
@@ -87,30 +88,30 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
             final long casValue = revision.get();
             couchbaseClient.replaceDocument(documentId, document, casValue);
             return true;
-        } catch (CouchbaseDocNotFoundException | CouchbaseCasMismatchException e) {
+        } catch (final CouchbaseDocNotFoundException | CouchbaseCasMismatchException e) {
             return false;
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to replace cache entry [%s] in Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to replace cache entry with Document ID [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final String documentId = serializeDocumentKey(key, keySerializer);
         final byte[] document = serializeDocument(value, valueSerializer);
 
         try {
             couchbaseClient.insertDocument(documentId, document);
             return true;
-        } catch (CouchbaseDocExistsException e) {
+        } catch (final CouchbaseDocExistsException e) {
             return false;
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to insert cache entry with Document ID [%s] into Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
         final V document = get(key, keySerializer, valueDeserializer);
         if (document != null) {
             return document;
@@ -124,39 +125,39 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
     }
 
     @Override
-    public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+    public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
         final String documentId = serializeDocumentKey(key, keySerializer);
 
         try {
             return couchbaseClient.documentExists(documentId);
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to check existence of cache entry [%s] in Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to check existence of cache entry with Document ID [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         final String documentId = serializeDocumentKey(key, keySerializer);
         final byte[] document = serializeDocument(value, valueSerializer);
 
         try {
             couchbaseClient.upsertDocument(documentId, document);
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to insert cache entry with Document ID [%s] into Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         final String documentId = serializeDocumentKey(key, keySerializer);
 
         try {
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             return deserializeDocument(valueDeserializer, result.resultContent());
-        } catch (CouchbaseDocNotFoundException e) {
+        } catch (final CouchbaseDocNotFoundException e) {
             return null;
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to fetch cache entry [%s] from Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to fetch cache entry with Document ID [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
@@ -165,16 +166,16 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
     }
 
     @Override
-    public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+    public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
         final String documentId = serializeDocumentKey(key, serializer);
 
         try {
             couchbaseClient.removeDocument(documentId);
             return true;
-        } catch (CouchbaseDocNotFoundException e) {
+        } catch (final CouchbaseDocNotFoundException e) {
             return false;
-        } catch (CouchbaseException e) {
-            throw new IOException("Failed to remove cache entry [%s] from Couchbase".formatted(documentId), e);
+        } catch (final CouchbaseException e) {
+            throw new IOException("Failed to remove cache entry with Document ID [%s] from Couchbase".formatted(documentId), e);
         }
     }
 

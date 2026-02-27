@@ -41,13 +41,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseServiceTest {
+class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseServiceTest {
 
     private CouchbaseKeyValueLookupService lookupService;
     private CouchbaseClient client;
 
     @BeforeEach
-    public void init() {
+    void init() {
         lookupService = new CouchbaseKeyValueLookupService();
         client = mock(CouchbaseClient.class);
 
@@ -60,7 +60,7 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testSuccessfulLookup() throws CouchbaseException, LookupFailureException {
+    void testSuccessfulLookup() throws CouchbaseException, LookupFailureException {
         when(client.lookupIn(anyString(), any())).thenReturn(new CouchbaseLookupInResult("test result", TEST_CAS));
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -71,7 +71,7 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testLookupFailure() throws CouchbaseException {
+    void testLookupFailure() throws CouchbaseException {
         when(client.lookupIn(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -80,7 +80,7 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testDocumentNotFoundInLookup() throws CouchbaseException, LookupFailureException {
+    void testDocumentNotFoundInLookup() throws CouchbaseException, LookupFailureException {
         when(client.lookupIn(anyString(), any())).thenThrow(new CouchbaseDocNotFoundException("Test doc not found exception", null));
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -90,7 +90,7 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testMissingKey() throws LookupFailureException {
+    void testMissingKey() throws LookupFailureException {
         final Optional<String> result = lookupService.lookup(Collections.emptyMap());
 
         assertTrue(result.isEmpty());

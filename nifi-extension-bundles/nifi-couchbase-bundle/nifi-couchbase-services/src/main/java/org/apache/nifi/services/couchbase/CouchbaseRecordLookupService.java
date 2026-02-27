@@ -41,9 +41,8 @@ import java.util.stream.Collectors;
 public class CouchbaseRecordLookupService extends AbstractCouchbaseService implements RecordLookupService {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
-            .description("The Record Reader to use for parsing fetched document from Couchbase Server.")
+            .name("Record Reader")
+            .description("The Record Reader to use for parsing fetched document from Couchbase Server")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
@@ -71,7 +70,7 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseService imple
     }
 
     @Override
-    public Optional<Record> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<Record> lookup(final Map<String, Object> coordinates) throws LookupFailureException {
         final Object documentId = coordinates.get(KEY);
 
         if (documentId == null) {
@@ -81,10 +80,10 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseService imple
         CouchbaseGetResult result;
         try {
             result = couchbaseClient.getDocument(documentId.toString());
-        } catch (CouchbaseDocNotFoundException e) {
+        } catch (final CouchbaseDocNotFoundException e) {
             return Optional.empty();
-        } catch (Exception e) {
-            throw new LookupFailureException("Record lookup from Couchbase failed", e);
+        } catch (final Exception e) {
+            throw new LookupFailureException("Failed to look up record with Document ID [%s] in Couchbase.".formatted(documentId), e);
         }
 
         try (final InputStream input = new ByteArrayInputStream(result.resultContent())) {
@@ -97,8 +96,8 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseService imple
 
             final RecordReader recordReader = readerFactory.createRecordReader(stringMap, input, inputLength, getLogger());
             return Optional.ofNullable(recordReader.nextRecord());
-        } catch (Exception e) {
-            throw new LookupFailureException("Failed to parse the looked-up record", e);
+        } catch (final Exception e) {
+            throw new LookupFailureException("Failed to parse the looked-up record with Document ID [%s]".formatted(documentId), e);
         }
     }
 }

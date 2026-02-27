@@ -46,7 +46,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTest {
+class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTest {
 
     private static final String LOOKUP_SERVICE_ID = "lookupService";
     private static final String RECORD_READER_ID = "recordReaderService";
@@ -55,7 +55,7 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     private CouchbaseClient client;
 
     @BeforeEach
-    public void setup() throws InitializationException {
+    void setup() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         lookupService = new CouchbaseRecordLookupService();
         client = mock(CouchbaseClient.class);
@@ -80,7 +80,7 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     }
 
     @Test
-    public void testSuccessfulLookup() throws LookupFailureException, CouchbaseException {
+    void testSuccessfulLookup() throws LookupFailureException, CouchbaseException {
         when(client.getDocument(anyString())).thenReturn(new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS));
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -95,7 +95,7 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     }
 
     @Test
-    public void testLookupFailure() throws CouchbaseException {
+    void testLookupFailure() throws CouchbaseException {
         when(client.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception"));
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -104,7 +104,7 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     }
 
     @Test
-    public void testMissingKey() throws LookupFailureException {
+    void testMissingKey() throws LookupFailureException {
         final Optional<Record> result = lookupService.lookup(Collections.emptyMap());
 
         assertTrue(result.isEmpty());

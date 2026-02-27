@@ -46,7 +46,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
+class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
 
     private final Serializer<String> stringSerializer = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
     private final Deserializer<String> stringDeserializer = input -> new String(input, StandardCharsets.UTF_8);
@@ -54,7 +54,7 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     private CouchbaseClient client;
 
     @BeforeEach
-    public void init() {
+    void init() {
         mapCacheClient = new CouchbaseMapCacheClient();
         client = mock(CouchbaseClient.class);
 
@@ -67,7 +67,7 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     }
 
     @Test
-    public void testCacheGet() throws CouchbaseException, IOException {
+    void testCacheGet() throws CouchbaseException, IOException {
         when(client.getDocument(anyString())).thenReturn(new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS));
 
         final String result = mapCacheClient.get(TEST_DOCUMENT_ID, stringSerializer, stringDeserializer);
@@ -76,14 +76,14 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     }
 
     @Test
-    public void testCacheGetFailure() throws CouchbaseException {
+    void testCacheGetFailure() throws CouchbaseException {
         when(client.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception", null));
 
         assertThrows(IOException.class, () -> mapCacheClient.get(TEST_DOCUMENT_ID, stringSerializer, stringDeserializer));
     }
 
     @Test
-    public void testCacheGetNotFound() throws CouchbaseException, IOException {
+    void testCacheGetNotFound() throws CouchbaseException, IOException {
         when(client.getDocument(anyString())).thenThrow(new CouchbaseDocNotFoundException("Test doc not found exception", null));
 
         final String result = mapCacheClient.get(TEST_DOCUMENT_ID, stringSerializer, stringDeserializer);
@@ -92,7 +92,7 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     }
 
     @Test
-    public void testCachePut() throws CouchbaseException, IOException {
+    void testCachePut() throws CouchbaseException, IOException {
         when(client.upsertDocument(anyString(), any())).thenReturn(new CouchbaseUpsertResult(TEST_CAS));
 
         mapCacheClient.put(TEST_DOCUMENT_ID, TEST_DOCUMENT_CONTENT, stringSerializer, stringSerializer);
@@ -101,14 +101,14 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     }
 
     @Test
-    public void testCachePutFailure() throws CouchbaseException {
+    void testCachePutFailure() throws CouchbaseException {
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
 
         assertThrows(IOException.class, () -> mapCacheClient.put(TEST_DOCUMENT_ID, TEST_DOCUMENT_CONTENT, stringSerializer, stringSerializer));
     }
 
     @Test
-    public void testCacheRemove() throws CouchbaseException, IOException {
+    void testCacheRemove() throws CouchbaseException, IOException {
         mapCacheClient.remove(TEST_DOCUMENT_ID, stringSerializer);
 
         verify(client, times(1)).removeDocument(eq(TEST_DOCUMENT_ID));

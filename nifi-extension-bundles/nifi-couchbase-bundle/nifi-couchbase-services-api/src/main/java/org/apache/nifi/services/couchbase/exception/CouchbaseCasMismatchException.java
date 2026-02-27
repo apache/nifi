@@ -18,7 +18,7 @@ package org.apache.nifi.services.couchbase.exception;
 
 public class CouchbaseCasMismatchException extends CouchbaseException {
 
-    public CouchbaseCasMismatchException(String message, Throwable cause) {
+    public CouchbaseCasMismatchException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }
