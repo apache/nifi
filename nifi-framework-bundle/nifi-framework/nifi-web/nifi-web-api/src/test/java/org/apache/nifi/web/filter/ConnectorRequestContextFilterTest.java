@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,15 +43,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectorRequestContextFilterTest {
 
-    private static final String TEST_USER = "test.user@snowflake.com";
-    private static final String TOKEN_HEADER = "Snowflake-Authorization-Token";
-    private static final String TOKEN_VALUE = "eyJhbGciOiJSUzI1NiJ9.test-token";
-    private static final String ROLE_HEADER = "Snowflake-Current-Role";
-    private static final String ROLE_VALUE = "SYSADMIN";
+    private static final String TEST_USER = "test.user@apache.org";
+    private static final String TOKEN_HEADER = "API-Key";
+    private static final String TOKEN_VALUE = "test-api-key-123";
+    private static final String ROLE_HEADER = "API-Role";
+    private static final String ROLE_VALUE = "SERVICE_ROLE";
 
     @Mock
     private FilterChain filterChain;
@@ -69,7 +71,7 @@ class ConnectorRequestContextFilterTest {
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(TOKEN_HEADER, TOKEN_VALUE);
         request.addHeader(ROLE_HEADER, ROLE_VALUE);
-        setUpSecurityContext(TEST_USER);
+        setUpSecurityContext();
 
         final ConnectorRequestContext[] capturedContext = new ConnectorRequestContext[1];
         doAnswer(invocation -> {
@@ -96,7 +98,7 @@ class ConnectorRequestContextFilterTest {
     void testContextIsClearedAfterFilterChain() throws Exception {
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(TOKEN_HEADER, TOKEN_VALUE);
-        setUpSecurityContext(TEST_USER);
+        setUpSecurityContext();
 
         final ConnectorRequestContextFilter filter = new ConnectorRequestContextFilter();
         filter.doFilter(request, response, filterChain);
@@ -107,7 +109,7 @@ class ConnectorRequestContextFilterTest {
     @Test
     void testContextIsClearedAfterFilterChainException() throws Exception {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        setUpSecurityContext(TEST_USER);
+        setUpSecurityContext();
 
         doAnswer(invocation -> {
             throw new RuntimeException("simulated error");
@@ -145,7 +147,7 @@ class ConnectorRequestContextFilterTest {
     @Test
     void testHeaderMapIsCaseInsensitive() throws Exception {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Snowflake-Authorization-Token", TOKEN_VALUE);
+        request.addHeader(TOKEN_HEADER, TOKEN_VALUE);
 
         final ConnectorRequestContext[] capturedContext = new ConnectorRequestContext[1];
         doAnswer(invocation -> {
@@ -157,19 +159,20 @@ class ConnectorRequestContextFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertNotNull(capturedContext[0]);
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue("snowflake-authorization-token"));
-        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue("SNOWFLAKE-AUTHORIZATION-TOKEN"));
-        assertTrue(capturedContext[0].hasRequestHeader("snowflake-authorization-token"));
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue(TOKEN_HEADER.toLowerCase()));
+        assertEquals(TOKEN_VALUE, capturedContext[0].getFirstRequestHeaderValue(TOKEN_HEADER.toUpperCase()));
+        assertTrue(capturedContext[0].hasRequestHeader(TOKEN_HEADER.toLowerCase()));
+        assertTrue(capturedContext[0].hasRequestHeader(TOKEN_HEADER.toUpperCase()));
         assertFalse(capturedContext[0].hasRequestHeader("Non-Existent-Header"));
         assertEquals(List.of(), capturedContext[0].getRequestHeaderValues("Non-Existent-Header"));
         assertNull(capturedContext[0].getFirstRequestHeaderValue("Non-Existent-Header"));
     }
 
-    private void setUpSecurityContext(final String identity) {
-        final NiFiUser user = mock(NiFiUser.class, org.mockito.Mockito.withSettings().lenient());
-        when(user.getIdentity()).thenReturn(identity);
+    private void setUpSecurityContext() {
+        final NiFiUser user = mock(NiFiUser.class, withSettings().strictness(Strictness.LENIENT));
+        when(user.getIdentity()).thenReturn(TEST_USER);
         final NiFiUserDetails userDetails = new NiFiUserDetails(user);
-        final TestingAuthenticationToken authentication = new TestingAuthenticationToken(userDetails, null);
+        final TestingAuthenticationToken authentication = new TestingAuthenticationToken(userDetails, "");
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
