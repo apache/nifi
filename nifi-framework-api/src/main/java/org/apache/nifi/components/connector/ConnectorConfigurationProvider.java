@@ -123,6 +123,27 @@ public interface ConnectorConfigurationProvider {
     void deleteAsset(String connectorId, String nifiUuid);
 
     /**
+     * Called when a connector update is requested (e.g., applying a committed configuration change)
+     * to determine whether the framework should proceed with the standard internal update process
+     * (stopping, re-configuring, and restarting the connector).
+     *
+     * <p>Returning {@code true} (the default) indicates the framework should proceed normally.</p>
+     *
+     * <p>Returning {@code false} indicates the framework should skip the update and return
+     * immediately -- this is not a failure; the provider may have handled the update externally
+     * by doing some bookkeeping logic and the provider may re-trigger the update process by starting
+     * a new request to the nifi framework once it is ready to proceed. If the provider wants to fail
+     * the request, it should throw a runtime exception instead.</p>
+     *
+     * @param connectorId the identifier of the connector to update
+     * @return {@code true} if the framework should proceed with the standard update process,
+     *         {@code false} if the framework should skip the update (no-op)
+     */
+    default boolean shouldApplyUpdate(final String connectorId) {
+        return true;
+    }
+
+    /**
      * Ensures that local asset binaries are up to date with the external store. For each asset
      * tracked in the provider's local state, this method compares the external store's current
      * content digest to the last-known digest. If changed or missing locally, the binary is
