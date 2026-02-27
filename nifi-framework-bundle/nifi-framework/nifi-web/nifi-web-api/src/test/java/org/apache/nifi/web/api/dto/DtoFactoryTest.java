@@ -43,6 +43,8 @@ import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
+import org.apache.nifi.registry.flow.diff.DifferenceType;
+import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -658,5 +660,62 @@ public class DtoFactoryTest {
         assertNotSame(original.getSelectedRelationships(), copy.getSelectedRelationships());
         assertNotSame(original.getAvailableRelationships(), copy.getAvailableRelationships());
         assertNotSame(original.getRetriedRelationships(), copy.getRetriedRelationships());
+    }
+
+    @Test
+    void testCreateBundleDifferenceDtoWhenRegistryBundleAvailable() {
+        final org.apache.nifi.flow.Bundle registryBundle = new org.apache.nifi.flow.Bundle("com.example", "my-nar", "1.0.0");
+        final BundleCoordinate expectedCoordinate = new BundleCoordinate("com.example", "my-nar", "1.0.0");
+
+        final FlowDifference difference = mock(FlowDifference.class);
+        when(difference.getDifferenceType()).thenReturn(DifferenceType.BUNDLE_CHANGED);
+        when(difference.getDescription()).thenReturn("Bundle changed from 1.0.0 to 2.0.0");
+        when(difference.getValueA()).thenReturn(registryBundle);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(extensionManager.getBundle(eq(expectedCoordinate))).thenReturn(createBundle("com.example", "my-nar", "1.0.0"));
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final DifferenceDTO dto = dtoFactory.createBundleDifferenceDto(difference);
+        assertEquals(DifferenceType.BUNDLE_CHANGED.getDescription(), dto.getDifferenceType());
+        assertFalse(dto.getEnvironmental());
+    }
+
+    @Test
+    void testCreateBundleDifferenceDtoWhenRegistryBundleNotAvailable() {
+        final org.apache.nifi.flow.Bundle registryBundle = new org.apache.nifi.flow.Bundle("com.example", "my-nar", "1.0.0");
+
+        final FlowDifference difference = mock(FlowDifference.class);
+        when(difference.getDifferenceType()).thenReturn(DifferenceType.BUNDLE_CHANGED);
+        when(difference.getDescription()).thenReturn("Bundle changed from 1.0.0 to 2.0.0");
+        when(difference.getValueA()).thenReturn(registryBundle);
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(extensionManager.getBundle(any(BundleCoordinate.class))).thenReturn(null);
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final DifferenceDTO dto = dtoFactory.createBundleDifferenceDto(difference);
+        assertEquals(DifferenceType.BUNDLE_CHANGED.getDescription(), dto.getDifferenceType());
+        assertTrue(dto.getEnvironmental());
+    }
+
+    @Test
+    void testCreateBundleDifferenceDtoWhenValueIsNotBundle() {
+        final FlowDifference difference = mock(FlowDifference.class);
+        when(difference.getDifferenceType()).thenReturn(DifferenceType.BUNDLE_CHANGED);
+        when(difference.getDescription()).thenReturn("Bundle changed");
+        when(difference.getValueA()).thenReturn("not-a-bundle");
+
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+
+        final DtoFactory dtoFactory = new DtoFactory();
+        dtoFactory.setExtensionManager(extensionManager);
+
+        final DifferenceDTO dto = dtoFactory.createBundleDifferenceDto(difference);
+        assertTrue(dto.getEnvironmental());
     }
 }

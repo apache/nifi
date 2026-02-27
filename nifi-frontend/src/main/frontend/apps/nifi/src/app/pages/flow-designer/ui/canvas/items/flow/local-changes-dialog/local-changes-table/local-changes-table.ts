@@ -27,6 +27,7 @@ import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconButton } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
+import { MatCheckbox } from '@angular/material/checkbox';
 
 interface LocalChange {
     componentType: string;
@@ -35,6 +36,7 @@ interface LocalChange {
     processGroupId: string;
     differenceType: string;
     difference: string;
+    environmental?: boolean;
 }
 
 @Component({
@@ -49,7 +51,8 @@ interface LocalChange {
         MatIconButton,
         MatMenu,
         MatMenuTrigger,
-        MatMenuItem
+        MatMenuItem,
+        MatCheckbox
     ],
     templateUrl: './local-changes-table.html',
     styleUrl: './local-changes-table.scss'
@@ -65,6 +68,8 @@ export class LocalChangesTable implements AfterViewInit {
     filterTerm = '';
     totalCount = 0;
     filteredCount = 0;
+    environmentalCount = 0;
+    showEnvironmentalChanges = false;
 
     activeSort: Sort = {
         active: this.initialSortColumn,
@@ -75,25 +80,25 @@ export class LocalChangesTable implements AfterViewInit {
     dataSource: MatTableDataSource<LocalChange> = new MatTableDataSource<LocalChange>();
     filterForm: FormGroup;
 
-    @Input() set differences(differences: ComponentDifference[]) {
-        const localChanges: LocalChange[] = this.explodeDifferences(differences);
-        this.dataSource.data = this.sortEntities(localChanges, this.activeSort);
-        this.dataSource.filterPredicate = (data: LocalChange, filter: string) => {
-            const { filterTerm } = JSON.parse(filter);
-            // check the filter term in both the name and type columns
-            return (
-                this.nifiCommon.stringContains(data.componentName, filterTerm, true) ||
-                this.nifiCommon.stringContains(data.differenceType, filterTerm, true)
-            );
-        };
-        this.totalCount = localChanges.length;
-        this.filteredCount = localChanges.length;
+    private allLocalChanges: LocalChange[] = [];
+    private _mode: 'SHOW' | 'REVERT' = 'SHOW';
 
-        // apply any filtering to the new data
-        const filterTerm = this.filterForm.get('filterTerm')?.value;
-        if (filterTerm?.length > 0) {
-            this.applyFilter(filterTerm);
+    @Input() set mode(value: 'SHOW' | 'REVERT') {
+        this._mode = value;
+        // Re-apply filtering when mode changes (important for REVERT mode to filter environmental changes)
+        if (this.allLocalChanges.length > 0) {
+            this.updateDataSource();
         }
+    }
+
+    get mode(): 'SHOW' | 'REVERT' {
+        return this._mode;
+    }
+
+    @Input() set differences(differences: ComponentDifference[]) {
+        this.allLocalChanges = this.explodeDifferences(differences);
+        this.environmentalCount = this.allLocalChanges.filter((change) => change.environmental === true).length;
+        this.updateDataSource();
     }
 
     @Output() goToChange: EventEmitter<NavigateToComponentRequest> = new EventEmitter<NavigateToComponentRequest>();
@@ -109,6 +114,39 @@ export class LocalChangesTable implements AfterViewInit {
             .subscribe((filterTerm: string) => {
                 this.applyFilter(filterTerm);
             });
+    }
+
+    private updateDataSource(): void {
+        let localChanges = this.allLocalChanges;
+
+        // In REVERT mode, always filter out environmental changes as they cannot be reverted
+        // In SHOW mode, filter based on user preference
+        if (this.mode === 'REVERT' || !this.showEnvironmentalChanges) {
+            localChanges = localChanges.filter((change) => change.environmental !== true);
+        }
+
+        this.dataSource.data = this.sortEntities(localChanges, this.activeSort);
+        this.dataSource.filterPredicate = (data: LocalChange, filter: string) => {
+            const { filterTerm } = JSON.parse(filter);
+            // check the filter term in both the name and type columns
+            return (
+                this.nifiCommon.stringContains(data.componentName, filterTerm, true) ||
+                this.nifiCommon.stringContains(data.differenceType, filterTerm, true)
+            );
+        };
+        this.totalCount = this.mode === 'REVERT' ? localChanges.length : this.allLocalChanges.length;
+        this.filteredCount = localChanges.length;
+
+        // apply any filtering to the new data
+        const filterTerm = this.filterForm.get('filterTerm')?.value;
+        if (filterTerm?.length > 0) {
+            this.applyFilter(filterTerm);
+        }
+    }
+
+    toggleEnvironmentalChanges(): void {
+        this.showEnvironmentalChanges = !this.showEnvironmentalChanges;
+        this.updateDataSource();
     }
 
     applyFilter(filterTerm: string) {
@@ -130,6 +168,10 @@ export class LocalChangesTable implements AfterViewInit {
 
     formatDifference(item: LocalChange): string {
         return item.difference;
+    }
+
+    isEnvironmental(item: LocalChange): boolean {
+        return item.environmental === true;
     }
 
     sortData(sort: Sort) {
@@ -216,7 +258,8 @@ export class LocalChangesTable implements AfterViewInit {
                         componentType: currentValue.componentType,
                         processGroupId: currentValue.processGroupId,
                         differenceType: diff.differenceType,
-                        difference: diff.difference
+                        difference: diff.difference,
+                        environmental: diff.environmental
                     }) as LocalChange
             );
             return [...accumulator, ...diffs];

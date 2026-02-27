@@ -26,6 +26,7 @@ import java.util.Objects;
 public class DifferenceDTO {
     private String differenceType;
     private String difference;
+    private Boolean isEnvironmental;
 
     @Schema(description = "The type of difference")
     public String getDifferenceType() {
@@ -45,6 +46,16 @@ public class DifferenceDTO {
         this.difference = difference;
     }
 
+    @Schema(description = "Whether this difference is environmental (e.g., bundle version change due to NiFi upgrade) " +
+            "rather than a user-initiated change. Environmental changes are typically not reverted when reverting local changes.")
+    public Boolean getEnvironmental() {
+        return isEnvironmental;
+    }
+
+    public void setEnvironmental(Boolean environmental) {
+        isEnvironmental = environmental;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -54,11 +65,11 @@ public class DifferenceDTO {
             return false;
         }
         final DifferenceDTO that = (DifferenceDTO) o;
-        return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference);
+        return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference) && Objects.equals(isEnvironmental, that.isEnvironmental);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(differenceType, difference);
+        return Objects.hash(differenceType, difference, isEnvironmental);
     }
 }

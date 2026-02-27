@@ -2810,7 +2810,7 @@ public final class DtoFactory {
             if (FlowDifferenceFilters.isBundleChange(difference)) {
                 final ComponentDifferenceDTO componentDiff = createBundleDifference(difference);
                 final Set<DifferenceDTO> differences = bundleDifferencesByComponent.computeIfAbsent(componentDiff, key -> new HashSet<>());
-                differences.add(createDifferenceDto(difference));
+                differences.add(createBundleDifferenceDto(difference));
             }
 
             // Ignore any environment-specific change
@@ -2829,17 +2829,13 @@ public final class DtoFactory {
             differences.add(createDifferenceDto(difference));
         }
 
-        if (!differencesByComponent.isEmpty()) {
-            // differences were found, so now let's add back in any BUNDLE_CHANGED differences
-            // since they were initially filtered out as an environment-specific change
-            bundleDifferencesByComponent.forEach((key, value) -> {
-                List<DifferenceDTO> values = value.stream().toList();
-                differencesByComponent.merge(key, values, (v1, v2) -> {
-                    v1.addAll(v2);
-                    return v1;
-                });
+        bundleDifferencesByComponent.forEach((key, value) -> {
+            final List<DifferenceDTO> values = value.stream().toList();
+            differencesByComponent.merge(key, values, (v1, v2) -> {
+                v1.addAll(v2);
+                return v1;
             });
-        }
+        });
 
         for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
             entry.getKey().setDifferences(entry.getValue());
@@ -2855,6 +2851,30 @@ public final class DtoFactory {
         final DifferenceDTO dto = new DifferenceDTO();
         dto.setDifferenceType(difference.getDifferenceType().getDescription());
         dto.setDifference(difference.getDescription());
+        return dto;
+    }
+
+    /**
+     * Creates a DifferenceDTO for bundle changes, determining whether the change is environmental
+     * (due to NiFi upgrade where the original bundle version is not available) or user-initiated
+     * (user manually changed the bundle version when multiple versions are available).
+     */
+    DifferenceDTO createBundleDifferenceDto(final FlowDifference difference) {
+        final DifferenceDTO dto = createDifferenceDto(difference);
+
+        final Object valueA = difference.getValueA();
+        if (valueA instanceof org.apache.nifi.flow.Bundle registryBundle) {
+            final BundleCoordinate registryCoordinate = new BundleCoordinate(
+                    registryBundle.getGroup(),
+                    registryBundle.getArtifact(),
+                    registryBundle.getVersion()
+            );
+
+            dto.setEnvironmental(extensionManager.getBundle(registryCoordinate) == null);
+        } else {
+            dto.setEnvironmental(true);
+        }
+
         return dto;
     }
 
