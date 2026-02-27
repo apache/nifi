@@ -62,9 +62,13 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT);
 
     static final PropertyDescriptor LOG_ANALYTICS_CUSTOM_LOG_NAME = new PropertyDescriptor.Builder()
-            .name("Log Analytics Custom Log Name").description("Log Analytics Custom Log Name").required(false)
-            .defaultValue("nifiprovenance").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
+            .name("Log Analytics Custom Log Name")
+            .description("Log Analytics Custom Log Name")
+            .required(false)
+            .defaultValue("nifiprovenance")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
 
     static final AllowableValue BEGINNING_OF_STREAM = new AllowableValue("beginning-of-stream",
             "Beginning of Stream",
@@ -75,98 +79,135 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
 
     static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
             .name("Event Type to Include")
-            .description("Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task. "
-                    + "Available event types are "
-                    + Arrays.deepToString(ProvenanceEventType.values())
-                    + ". If no filter is set, all the events are sent. If "
-                    + "multiple filters are set, the filters are cumulative.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .description("""
+                    Comma-separated list of event types that will be used to filter the provenance events sent by the reporting task.
+                    Available event types are %s. If no filter is set, all the events are sent. If multiple filters are set, the filters
+                    are cumulative."""
+                    .formatted(Arrays.deepToString(ProvenanceEventType.values())))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_EVENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
             .name("Event Type to Exclude")
-            .description("Comma-separated list of event types that will be used to exclude the provenance events sent by the reporting task. "
-                    + "Available event types are "
-                    + Arrays.deepToString(ProvenanceEventType.values())
-                    + ". If no filter is set, all the events are sent. If "
-                    + "multiple filters are set, the filters are cumulative. If an event type is included in Event Type to Include and excluded here, then the "
-                    + "exclusion takes precedence and the event will not be sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .description("""
+                    Comma-separated list of event types that will be used to exclude the provenance events sent by the reporting task.
+                    Available event types are %s. If no filter is set, all the events are sent. If multiple filters are set, the filters
+                    are cumulative. If an event type is included in Event Type to Include and excluded here, then the exclusion takes
+                    precedence and the event will not be sent."""
+                    .formatted(Arrays.deepToString(ProvenanceEventType.values())))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_TYPE = new PropertyDescriptor.Builder()
             .name("Component Type to Include")
-            .description("Regular expression to filter the provenance events based on the component type. Only the events matching the regular "
-                    + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
+            .description("""
+                    Regular expression to filter the provenance events based on the component type. Only the events matching the regular
+                    expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_TYPE_EXCLUDE = new PropertyDescriptor.Builder()
             .name("Component Type to Exclude")
-            .description("Regular expression to exclude the provenance events based on the component type. The events matching the regular "
-                    + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
-                    + "If a component type is included in Component Type to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
+            .description("""
+                    Regular expression to exclude the provenance events based on the component type. The events matching the regular
+                    expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.
+                    If a component type is included in Component Type to Include and excluded here, then the exclusion takes precedence and the event will not be sent.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_ID = new PropertyDescriptor.Builder()
             .name("Component ID to Include")
-            .description("Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task. If no "
-                    + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .description("""
+                    Comma-separated list of component UUID that will be used to filter the provenance events sent by the reporting task.
+                    If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_ID_EXCLUDE = new PropertyDescriptor.Builder()
             .name("Component ID to Exclude")
-            .description("Comma-separated list of component UUID that will be used to exclude the provenance events sent by the reporting task. If no "
-                    + "filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in "
-                    + "Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .description("""
+                    Comma-separated list of component UUID that will be used to exclude the provenance events sent by the reporting task.
+                    If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. If a component UUID is included in
+                    Component ID to Include and excluded here, then the exclusion takes precedence and the event will not be sent.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_NAME = new PropertyDescriptor.Builder()
             .name("Component Name to Include")
-            .description("Regular expression to filter the provenance events based on the component name. Only the events matching the regular "
-                    + "expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
+            .description("""
+                    Regular expression to filter the provenance events based on the component name. Only the events matching the regular
+                    expression will be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FILTER_COMPONENT_NAME_EXCLUDE = new PropertyDescriptor.Builder()
             .name("Component Name to Exclude")
-            .description("Regular expression to exclude the provenance events based on the component name. The events matching the regular "
-                    + "expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative. "
-                    + "If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.")
-            .required(false).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR).build();
+            .description("""
+                    Regular expression to exclude the provenance events based on the component name. The events matching the regular
+                    expression will not be sent. If no filter is set, all the events are sent. If multiple filters are set, the filters are cumulative.
+                    If a component name is included in Component Name to Include and excluded here, then the exclusion takes precedence and the event will not be sent.""")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
             .name("Start Position")
-            .description("If the Reporting Task has never been run, or if its state has been reset by a user, "
-                    + "specifies where in the stream of Provenance Events the Reporting Task should start")
+            .description("""
+                    If the Reporting Task has never been run, or if its state has been reset by a user,
+                    specifies where in the stream of Provenance Events the Reporting Task should start""")
             .allowableValues(BEGINNING_OF_STREAM, END_OF_STREAM)
-            .defaultValue(BEGINNING_OF_STREAM).required(true).build();
+            .defaultValue(BEGINNING_OF_STREAM)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder()
             .name("Include Null Values")
             .description("Indicate if null values should be included in records. Default will be false")
-            .required(true).allowableValues("true", "false").defaultValue("false").build();
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
-    static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder().name("Platform")
-            .description("The value to use for the platform field in each event.").required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).defaultValue("nifi")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+    static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
+            .name("Platform")
+            .description("The value to use for the platform field in each event.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .defaultValue("nifi")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor INSTANCE_URL = new PropertyDescriptor.Builder()
             .name("Instance URL")
-            .description("The URL of this instance to use in the Content URI of each event.").required(true)
+            .description("The URL of this instance to use in the Content URI of each event.")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("http://${hostname(true)}:8080/nifi")
-            .addValidator(StandardValidators.URL_VALIDATOR).build();
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
-            .description("Specifies how many records to send in a single batch, at most.").required(true)
-            .defaultValue("1000").addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).build();
+            .description("Specifies how many records to send in a single batch, at most.")
+            .required(true)
+            .defaultValue("1000")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         LOG_ANALYTICS_WORKSPACE_ID,
