@@ -595,9 +595,9 @@ export class ConnectionManager implements OnDestroy {
      */
     private isExpirationConfigured(connection: any): boolean {
         if (connection.flowFileExpiration != null) {
-            const match: string[] = connection.flowFileExpiration.match(/^(\d+).*/);
+            const match: string[] = connection.flowFileExpiration.match(/^(\d*\.?\d+).*/);
             if (match !== null && match.length > 0) {
-                if (parseInt(match[0], 10) > 0) {
+                if (parseFloat(match[1]) > 0) {
                     return true;
                 }
             }
