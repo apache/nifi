@@ -1665,6 +1665,18 @@ public interface NiFiServiceFacade {
         Map<String, String> versionedComponentMapping);
 
     /**
+     * Creates a new branch in the associated Flow Registry for the specified Process Group and updates the local Version Control information to track the new branch.
+     *
+     * @param revision the revision for the Process Group
+     * @param processGroupId the Process Group identifier
+     * @param newBranchName the name of the new branch to create
+     * @param sourceBranch the branch to branch from
+     * @param sourceVersion the commit/version on the source branch to branch from
+     * @return the updated Version Control information
+     */
+    VersionControlInformationEntity createFlowBranch(Revision revision, String processGroupId, String newBranchName, String sourceBranch, String sourceVersion);
+
+    /**
      * Disconnects the specified Process Group from version control.
      *
      * @param revision revision

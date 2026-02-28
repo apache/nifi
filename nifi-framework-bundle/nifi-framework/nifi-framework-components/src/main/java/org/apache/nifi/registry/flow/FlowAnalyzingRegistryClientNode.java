@@ -450,6 +450,12 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     @Override
+    public void createBranch(final FlowRegistryClientUserContext context, final FlowVersionLocation sourceLocation, final String newBranchName)
+            throws FlowRegistryException, IOException {
+        node.createBranch(context, sourceLocation, newBranchName);
+    }
+
+    @Override
     public FlowSnapshotContainer getFlowContents(final FlowRegistryClientUserContext context, final FlowVersionLocation flowVersionLocation, final boolean fetchRemoteFlows)
             throws FlowRegistryException, IOException {
         return node.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);

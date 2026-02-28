@@ -64,6 +64,7 @@ import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowUpdateRequestDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.CreateActiveRequestEntity;
+import org.apache.nifi.web.api.entity.CreateFlowBranchRequestEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
@@ -617,6 +618,83 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
             logger.error("After starting Version Control on Process Group with ID {}, failed to delete Version Control Request. "
                     + "Users may be unable to Version Control other Process Groups until the request lock times out. Response status code was {}", groupId, clusterResponse.getStatus());
         }
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/branches")
+    @Operation(
+            summary = "Creates a new branch for a version controlled Process Group",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = VersionControlInformationEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /process-groups/{uuid}"),
+                    @SecurityRequirement(name = "Write - /process-groups/{uuid}")
+            }
+    )
+    public Response createFlowBranch(
+            @Parameter(description = "The process group id.") @PathParam("id") final String groupId,
+            @Parameter(description = "The branch creation request.", required = true) final CreateFlowBranchRequestEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Branch creation request must be specified.");
+        }
+
+        final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
+        if (revisionDto == null) {
+            throw new IllegalArgumentException("Process Group Revision must be specified");
+        }
+        if (StringUtils.isBlank(requestEntity.getBranch())) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Revision requestRevision = getRevision(revisionDto, groupId);
+
+        return withWriteLock(
+                serviceFacade,
+                requestEntity,
+                requestRevision,
+                lookup -> {
+                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    processGroup.authorize(authorizer, RequestAction.READ, user);
+                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+                },
+                () -> {
+                    final VersionControlInformationEntity currentVersionControlInfo = serviceFacade.getVersionControlInformation(groupId);
+                    if (currentVersionControlInfo == null || currentVersionControlInfo.getVersionControlInformation() == null) {
+                        throw new IllegalStateException("Process Group with ID " + groupId + " is not currently under Version Control");
+                    }
+
+                    final VersionControlInformationDTO currentInfo = currentVersionControlInfo.getVersionControlInformation();
+                    if (VersionControlInformationDTO.SYNC_FAILURE.equals(currentInfo.getState())) {
+                        throw new IllegalStateException("Process Group with ID " + groupId + " cannot create a new branch while reporting Sync Failure");
+                    }
+                },
+                (revision, entity) -> {
+                    final VersionControlInformationEntity responseEntity = serviceFacade.createFlowBranch(
+                            revision,
+                            groupId,
+                            entity.getBranch(),
+                            entity.getSourceBranch(),
+                            entity.getSourceVersion());
+
+                    return generateOkResponse(responseEntity).build();
+                });
     }
 
     private String lockVersionControl(final URI originalUri, final String groupId) throws URISyntaxException {

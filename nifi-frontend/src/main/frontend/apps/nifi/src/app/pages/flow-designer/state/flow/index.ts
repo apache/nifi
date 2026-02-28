@@ -36,6 +36,8 @@ import {
 } from '@nifi/shared';
 import { CopyResponseEntity, PasteRequestStrategy } from '../../../../state/copy';
 
+export type { RegistryClientEntity } from '../../../../state/shared';
+
 export const flowFeatureKey = 'flowState';
 
 export interface SelectedComponent {
@@ -207,6 +209,24 @@ export interface ChangeVersionDialogRequest {
     revision: Revision;
     versionControlInformation: VersionControlInformation;
     versions: VersionedFlowSnapshotMetadataEntity[];
+}
+
+export interface OpenCreateBranchDialogRequest {
+    processGroupId: string;
+}
+
+export interface CreateBranchDialogRequest {
+    processGroupId: string;
+    revision: Revision;
+    versionControlInformation: VersionControlInformation;
+}
+
+export interface CreateFlowBranchRequest {
+    processGroupId: string;
+    revision: Revision;
+    branch: string;
+    sourceBranch?: string;
+    sourceVersion?: string;
 }
 
 export interface SaveVersionDialogRequest {
