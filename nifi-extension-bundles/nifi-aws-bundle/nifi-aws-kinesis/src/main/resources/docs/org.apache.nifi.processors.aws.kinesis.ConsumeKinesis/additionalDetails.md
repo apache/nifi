@@ -283,3 +283,12 @@ Here is an example of FlowFile content that is emitted by JsonRecordSetWriter wh
   }
 ]
 ```
+
+## Metrics
+
+_ConsumeKinesis_ reports the following metrics:
+
+| Name                                                                 | Type    | Description                                                                                                                                                                                                                                                                                                            |
+|----------------------------------------------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `aws.kinesis.current.lag[stream.name="<stream>",shard.id="<shard>"]` | Gauge   | The number of milliseconds the consumer is behind the tip of the shard, as reported by the Kinesis Client Library. There is one gauge per stream/shard combination. The gauge is updated each time a batch of records is successfully processed and the session is committed. A value of `0` means the consumer is caught up. |
+| `Records Processed`                                                  | Counter | The total number of Kinesis records processed by the processor. Incremented by the number of records in each successfully processed batch.                                                                                                                                                                             |

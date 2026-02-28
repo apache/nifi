@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.kinesis;
 
 import org.apache.nifi.documentation.init.NopComponentLog;
 import org.apache.nifi.processors.aws.kinesis.MemoryBoundRecordBuffer.Lease;
+import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ConsumeRecordsResult;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -98,7 +100,7 @@ class MemoryBoundRecordBufferTest {
 
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         // Should be able to get buffer ID from pool since buffer has records.
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
@@ -110,7 +112,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> emptyRecords = Collections.emptyList();
 
-        recordBuffer.addRecords(bufferId, emptyRecords, checkpointer1);
+        recordBuffer.addRecords(bufferId, emptyRecords, checkpointer1, 100L);
 
         // Should not be able to get buffer ID from pool since no records were added.
         assertTrue(recordBuffer.acquireBufferLease().isEmpty());
@@ -121,11 +123,11 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(3);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         assertEquals(records, consumedRecords);
         // Just consuming record should not checkpoint them.
         assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
@@ -136,7 +138,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
         recordBuffer.consumeRecords(lease);
@@ -150,14 +152,14 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> originalRecords = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, originalRecords, checkpointer1);
+        recordBuffer.addRecords(bufferId, originalRecords, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
         recordBuffer.consumeRecords(lease);
 
         // Simulating new records added in parallel, before a commit.
         final List<KinesisClientRecord> newRecords = createTestRecords(5);
-        recordBuffer.addRecords(bufferId, newRecords, checkpointer1);
+        recordBuffer.addRecords(bufferId, newRecords, checkpointer1, 100L);
 
         recordBuffer.commitConsumedRecords(lease);
 
@@ -170,10 +172,10 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(3);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         final List<String> messages = consumedRecords.stream()
                 .map(this::readContent)
                 .toList();
@@ -183,7 +185,7 @@ class MemoryBoundRecordBufferTest {
         // Checkpointer should not be called during rollback.
         assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
 
-        final List<String> rolledBackMessages = recordBuffer.consumeRecords(lease).stream()
+        final List<String> rolledBackMessages = recordBuffer.consumeRecords(lease).records().stream()
                 .map(this::readContent)
                 .toList();
         assertEquals(messages, rolledBackMessages);
@@ -201,14 +203,14 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         final Lease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
 
         // Consume some records but don't return buffer id to the pool.
         recordBuffer.consumeRecords(lease1);
 
-        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer2);
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer2, 100L);
 
         // The buffer is still unavailable.
         assertTrue(recordBuffer.acquireBufferLease().isEmpty());
@@ -224,7 +226,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         final Lease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
 
@@ -242,17 +244,17 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         final Lease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
 
         // Consume some records, but don't commit them.
-        final List<KinesisClientRecord> lease1Records = recordBuffer.consumeRecords(lease1);
+        final List<KinesisClientRecord> lease1Records = recordBuffer.consumeRecords(lease1).records();
         recordBuffer.returnBufferLease(lease1);
 
         final Lease lease2 = recordBuffer.acquireBufferLease().orElseThrow();
         assertEquals(SHARD_ID_1, lease2.shardId());
-        final List<KinesisClientRecord> lease2Records = recordBuffer.consumeRecords(lease2);
+        final List<KinesisClientRecord> lease2Records = recordBuffer.consumeRecords(lease2).records();
 
         // Until committed, the records stay in the buffer.
         assertEquals(lease1Records, lease2Records);
@@ -263,7 +265,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         // Get buffer from pool and consume all records.
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
@@ -283,7 +285,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(2);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         // Before lease lost buffer should be available in the pool.
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
         assertEquals(SHARD_ID_1, lease.shardId());
@@ -292,7 +294,7 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.consumerLeaseLost(bufferId);
 
         // Should not be able to consume records from invalidated buffer.
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         assertTrue(consumedRecords.isEmpty());
 
         // Should not be able to commit records for invalidated buffer.
@@ -308,7 +310,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
         recordBuffer.consumeRecords(lease);
@@ -318,7 +320,7 @@ class MemoryBoundRecordBufferTest {
         assertEquals(TestCheckpointer.LATEST_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         // Buffer should be removed and not available for operations.
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         assertTrue(consumedRecords.isEmpty());
     }
 
@@ -327,7 +329,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
         recordBuffer.consumeRecords(lease);
@@ -337,7 +339,7 @@ class MemoryBoundRecordBufferTest {
         assertEquals(TestCheckpointer.LATEST_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         // Buffer should be removed and not available for operations.
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         assertTrue(consumedRecords.isEmpty());
     }
 
@@ -346,7 +348,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
 
         recordBuffer.shutdownShardConsumption(bufferId, checkpointer2);
         assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
@@ -365,7 +367,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId2 = recordBuffer.createBuffer(SHARD_ID_2);
 
         final List<KinesisClientRecord> records1 = List.of(createRecordWithSize(bufferSize));
-        recordBuffer.addRecords(bufferId1, records1, checkpointer1);
+        recordBuffer.addRecords(bufferId1, records1, checkpointer1, 100L);
 
         // Shutting down a buffer with a record.
         recordBuffer.shutdownShardConsumption(bufferId1, checkpointer1);
@@ -374,12 +376,12 @@ class MemoryBoundRecordBufferTest {
         final List<KinesisClientRecord> records2 = List.of(createRecordWithSize(bufferSize));
         assertTimeoutPreemptively(
                 Duration.ofSeconds(1),
-                () -> recordBuffer.addRecords(bufferId2, records2, checkpointer2),
+                () -> recordBuffer.addRecords(bufferId2, records2, checkpointer2, 100L),
                 "Records should be added to a buffer without memory backpressure");
 
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
         assertEquals(SHARD_ID_2, lease.shardId(), "Expected to acquire a lease for " + SHARD_ID_2);
-        assertEquals(records2, recordBuffer.consumeRecords(lease));
+        assertEquals(records2, recordBuffer.consumeRecords(lease).records());
     }
 
     @Test
@@ -391,7 +393,7 @@ class MemoryBoundRecordBufferTest {
 
         // Still fits into the buffer.
         final List<KinesisClientRecord> initialRecords = List.of(createRecordWithSize(80), createRecordWithSize(20));
-        recordBuffer.addRecords(bufferId, initialRecords, checkpointer1);
+        recordBuffer.addRecords(bufferId, initialRecords, checkpointer1, 100L);
 
         final CountDownLatch startLatch = new CountDownLatch(1);
 
@@ -400,7 +402,7 @@ class MemoryBoundRecordBufferTest {
         final Thread addRecordsThread = new Thread(() -> {
             startLatch.countDown();
             // Doesn't fit into the buffer.
-            recordBuffer.addRecords(bufferId, notFittingRecords, checkpointer1);
+            recordBuffer.addRecords(bufferId, notFittingRecords, checkpointer1, 100L);
         });
 
         addRecordsThread.start();
@@ -412,14 +414,14 @@ class MemoryBoundRecordBufferTest {
 
         // Commit records in the buffer to free memory.
         final Lease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
-        assertEquals(initialRecords, recordBuffer.consumeRecords(lease1));
+        assertEquals(initialRecords, recordBuffer.consumeRecords(lease1).records());
         recordBuffer.commitConsumedRecords(lease1);
         recordBuffer.returnBufferLease(lease1);
 
         // Thread should get unblocked and add the message.
         addRecordsThread.join();
         final Lease lease2 = recordBuffer.acquireBufferLease().orElseThrow();
-        assertEquals(notFittingRecords, recordBuffer.consumeRecords(lease2));
+        assertEquals(notFittingRecords, recordBuffer.consumeRecords(lease2).records());
     }
 
     @Test
@@ -433,7 +435,7 @@ class MemoryBoundRecordBufferTest {
         final List<KinesisClientRecord> reallyLargeBatch = List.of(createRecordWithSize(bufferSize), createRecordWithSize(bufferSize));
 
         // It's possible to insert a batch that exceeds the buffer size.
-        assertDoesNotThrow(() -> recordBuffer.addRecords(bufferId, reallyLargeBatch, checkpointer1));
+        assertDoesNotThrow(() -> recordBuffer.addRecords(bufferId, reallyLargeBatch, checkpointer1, 100L));
     }
 
     @Test
@@ -467,7 +469,7 @@ class MemoryBoundRecordBufferTest {
                             startLatch.countDown();
                             startLatch.await();
 
-                            recordBuffer.addRecords(bufferId, records, threadCheckpointer);
+                            recordBuffer.addRecords(bufferId, records, threadCheckpointer, 100L);
                         } catch (final InterruptedException e) {
                             throw new RuntimeException(e);
                         } finally {
@@ -493,7 +495,7 @@ class MemoryBoundRecordBufferTest {
                         }
 
                         final Lease lease = maybeLease.orElseThrow();
-                        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+                        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
 
                         recordBuffer.commitConsumedRecords(lease);
 
@@ -539,8 +541,8 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId2 = recordBuffer.createBuffer(SHARD_ID_2);
 
         // Add records to both buffers.
-        recordBuffer.addRecords(bufferId1, createTestRecords(2), checkpointer1);
-        recordBuffer.addRecords(bufferId2, createTestRecords(3), checkpointer2);
+        recordBuffer.addRecords(bufferId1, createTestRecords(2), checkpointer1, 100L);
+        recordBuffer.addRecords(bufferId2, createTestRecords(3), checkpointer2, 100L);
 
         // Should be able to get both buffer IDs from pool.
         final Lease lease1 = recordBuffer.acquireBufferLease().orElseThrow();
@@ -559,24 +561,65 @@ class MemoryBoundRecordBufferTest {
 
         // Add records to pending queue.
         final List<KinesisClientRecord> batch1 = createTestRecords(2);
-        recordBuffer.addRecords(bufferId, batch1, checkpointer1);
+        recordBuffer.addRecords(bufferId, batch1, checkpointer1, 100L);
 
         // Consume batch1 records (moves from pending to in-progress).
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
 
-        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease).records();
         assertEquals(batch1, consumedRecords);
 
         // Add more records while others are in-progress.
         final List<KinesisClientRecord> batch2 = createTestRecords(1);
-        recordBuffer.addRecords(bufferId, batch2, checkpointer2);
+        recordBuffer.addRecords(bufferId, batch2, checkpointer2, 100L);
 
         // Commit in-progress records.
         recordBuffer.commitConsumedRecords(lease);
 
         // Consume batch2 records.
-        final List<KinesisClientRecord> remainingRecords = recordBuffer.consumeRecords(lease);
+        final List<KinesisClientRecord> remainingRecords = recordBuffer.consumeRecords(lease).records();
         assertEquals(batch2, remainingRecords);
+    }
+
+    @Test
+    void testConsumeRecordsReturnsLastValueOfCurrentLag() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, 200L);
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer2, 500L);
+
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+        final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
+
+        assertEquals(2, result.records().size());
+        assertEquals(500L, result.currentLag());
+    }
+
+    @Test
+    void testConsumeRecordsWithNullCurrentLag() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, null);
+
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+        final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
+
+        assertEquals(1, result.records().size());
+        assertNull(result.currentLag());
+    }
+
+    @Test
+    void testConsumeRecordsWithMixedCurrentLagValues() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, 300L);
+        recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer2, null);
+
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+        final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
+
+        assertEquals(2, result.records().size());
+        assertEquals(300L, result.currentLag());
     }
 
     @ParameterizedTest
@@ -592,7 +635,7 @@ class MemoryBoundRecordBufferTest {
         final Exception exception = exceptionClass.getDeclaredConstructor(String.class).newInstance("Thrown from test");
         final TestCheckpointer failingCheckpointer = new TestCheckpointer(exception, 2);
 
-        recordBuffer.addRecords(bufferId, records, failingCheckpointer);
+        recordBuffer.addRecords(bufferId, records, failingCheckpointer, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
         recordBuffer.consumeRecords(lease);
 
@@ -610,7 +653,7 @@ class MemoryBoundRecordBufferTest {
         final ShutdownException exception = new ShutdownException("Test shutdown exception");
         final TestCheckpointer failingCheckpointer = new TestCheckpointer(exception, 1);
 
-        recordBuffer.addRecords(bufferId, records, failingCheckpointer);
+        recordBuffer.addRecords(bufferId, records, failingCheckpointer, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
         recordBuffer.consumeRecords(lease);
 
@@ -624,7 +667,7 @@ class MemoryBoundRecordBufferTest {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
         final List<KinesisClientRecord> records = createTestRecords(1);
 
-        recordBuffer.addRecords(bufferId, records, checkpointer1);
+        recordBuffer.addRecords(bufferId, records, checkpointer1, 100L);
         final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
         recordBuffer.consumeRecords(lease);
 

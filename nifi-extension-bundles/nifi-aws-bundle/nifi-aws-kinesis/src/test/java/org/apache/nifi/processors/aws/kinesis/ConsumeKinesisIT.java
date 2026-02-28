@@ -82,11 +82,13 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.makeCurrentLagGaugeName;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlowFileRecordPayloads;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
@@ -205,6 +207,12 @@ class ConsumeKinesisIT {
                 List.of(applicationName),
                 streamClient.getEnhancedFanOutConsumerNames(),
                 "Expected a single enhanced fan-out consumer with an application name");
+
+        // Verify current.lag gauge is recorded.
+        final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
+        final String gaugeName = ConsumeKinesis.makeCurrentLagGaugeName(streamName, shardId);
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
 
     @Test
@@ -233,6 +241,10 @@ class ConsumeKinesisIT {
         assertTrue(
                 streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
                 "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
+        final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
+        final String gaugeName = makeCurrentLagGaugeName(streamName, shardId);
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
 
     @Test
