@@ -18,16 +18,23 @@ package org.apache.nifi.services.couchbase;
 
 import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.kv.GetResult;
+import com.couchbase.client.java.kv.LookupInResult;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplicateTo;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
+import org.apache.nifi.services.couchbase.utils.CouchbaseLookupInResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.nifi.services.couchbase.utils.DocumentType.JSON;
@@ -36,11 +43,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestCouchbaseClient {
+public class CouchbaseClientTest {
 
     private static final String TEST_DOCUMENT_ID = "test-document-id";
     private static final long TEST_CAS = 1L;
@@ -72,7 +80,24 @@ public class TestCouchbaseClient {
         final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
 
         final Exception exception = assertThrows(CouchbaseException.class, () -> client.upsertDocument(TEST_DOCUMENT_ID, content.getBytes()));
+        assertTrue(exception.getMessage().contains("The provided input is invalid"));
+    }
 
+    @Test
+    void testInsertJsonDocumentValidationFailure() {
+        final String content = "{invalid-json}";
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
+
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.insertDocument(TEST_DOCUMENT_ID, content.getBytes()));
+        assertTrue(exception.getMessage().contains("The provided input is invalid"));
+    }
+
+    @Test
+    void testReplaceJsonDocumentValidationFailure() {
+        final String content = "{invalid-json}";
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
+
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.replaceDocument(TEST_DOCUMENT_ID, content.getBytes(), TEST_CAS));
         assertTrue(exception.getMessage().contains("The provided input is invalid"));
     }
 
@@ -93,5 +118,62 @@ public class TestCouchbaseClient {
 
         assertEquals(TEST_CAS, getResult.cas());
         assertArrayEquals(content.getBytes(), getResult.resultContent());
+    }
+
+    @Test
+    void testLookupInWithMapResult() throws CouchbaseException {
+        final String expectedResult = "{\"name\":\"John\",\"age\":\"20\"}";
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
+
+        Map<String, String> lookupInContent = new HashMap<>();
+        lookupInContent.put("name", "John");
+        lookupInContent.put("age", "20");
+
+        final LookupInResult result = mock(LookupInResult.class);
+        when(result.contentAs(anyInt(), any(Class.class))).thenReturn(lookupInContent);
+        when(result.exists(anyInt())).thenReturn(true);
+        when(result.cas()).thenReturn(TEST_CAS);
+
+        when(collection.lookupIn(anyString(), any())).thenReturn(result);
+
+        final CouchbaseLookupInResult lookupInResult = client.lookupIn(TEST_DOCUMENT_ID, "");
+
+        assertEquals(expectedResult, lookupInResult.resultContent());
+        assertEquals(TEST_CAS, lookupInResult.cas());
+    }
+
+    @Test
+    void testLookupInWithArrayResult() throws CouchbaseException {
+        final String expectedResult = "[{\"name\":\"John\"},{\"name\":\"Jack\"}]";
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
+
+        List<Object> lookupInContent = new ArrayList<>();
+        lookupInContent.add(Collections.singletonMap("name", "John"));
+        lookupInContent.add(Collections.singletonMap("name", "Jack"));
+
+        final LookupInResult result = mock(LookupInResult.class);
+        when(result.contentAs(anyInt(), any(Class.class))).thenReturn(lookupInContent);
+        when(result.exists(anyInt())).thenReturn(true);
+        when(result.cas()).thenReturn(TEST_CAS);
+
+        when(collection.lookupIn(anyString(), any())).thenReturn(result);
+
+        final CouchbaseLookupInResult lookupInResult = client.lookupIn(TEST_DOCUMENT_ID, "");
+
+        assertEquals(expectedResult, lookupInResult.resultContent());
+        assertEquals(TEST_CAS, lookupInResult.cas());
+    }
+
+    @Test
+    void testLookupInWithNoResult() {
+        final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
+
+        final LookupInResult result = mock(LookupInResult.class);
+        when(result.exists(anyInt())).thenReturn(false);
+
+        when(collection.lookupIn(anyString(), any())).thenReturn(result);
+
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.lookupIn(TEST_DOCUMENT_ID, "test-path"));
+        assertTrue(exception.getCause().getMessage().contains("No value found on the requested path [test-path] in Couchbase"));
     }
 }
