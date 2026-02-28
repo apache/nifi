@@ -203,7 +203,7 @@
         <!-- Testing and quality -->
         <junit.version>6.0.3</junit.version>
         <mockito.version>5.21.0</mockito.version>
-        <pmd.version>7.21.0</pmd.version>
+        <pmd.version>7.22.0</pmd.version>
         <checkstyle.version>13.2.0</checkstyle.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <jacoco.version>0.8.14</jacoco.version>
