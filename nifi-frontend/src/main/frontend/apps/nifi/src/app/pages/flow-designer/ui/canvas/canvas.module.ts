@@ -26,6 +26,7 @@ import { CanvasRoutingModule } from './canvas-routing.module';
 import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-analysis-drawer.component';
+import { OverlappingConnectionsBannerComponent } from '../../../../ui/common/overlapping-connections-banner/overlapping-connections-banner.component';
 
 @NgModule({
     declarations: [Canvas],
@@ -42,7 +43,8 @@ import { FlowAnalysisDrawerComponent } from './header/flow-analysis-drawer/flow-
         HeaderComponent,
         FooterComponent,
         MatSidenavModule,
-        FlowAnalysisDrawerComponent
+        FlowAnalysisDrawerComponent,
+        OverlappingConnectionsBannerComponent
     ]
 })
 export class CanvasModule {}

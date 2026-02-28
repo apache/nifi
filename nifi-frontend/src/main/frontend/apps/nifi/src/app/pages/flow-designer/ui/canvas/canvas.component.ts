@@ -25,9 +25,11 @@ import {
     editComponent,
     editCurrentProcessGroup,
     loadProcessGroup,
+    navigateToComponents,
     paste,
     resetFlowState,
     selectComponents,
+    setAllowTransition,
     setSkipTransform,
     startProcessGroupPolling,
     stopProcessGroupPolling
@@ -57,6 +59,9 @@ import {
     selectRemoteProcessGroup,
     selectSingleEditedComponent,
     selectSingleSelectedComponent,
+    selectNavigationCollapsed,
+    selectOperationCollapsed,
+    selectOverlappingConnections,
     selectSkipTransform,
     selectViewStatusHistoryComponent,
     selectViewStatusHistoryCurrentProcessGroup
@@ -69,6 +74,7 @@ import { getStatusHistoryAndOpenDialog } from '../../../../state/status-history/
 import { concatLatestFrom } from '@ngrx/operators';
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectUrl, Storage } from '@nifi/shared';
 import { CanvasUtils } from '../../service/canvas-utils.service';
+import { OverlappingConnectionGroup } from '../../../../ui/common/overlap-detection.utils';
 import { CanvasActionsService } from '../../service/canvas-actions.service';
 import { MatDialog } from '@angular/material/dialog';
 import { CopyResponseEntity } from '../../../../state/copy';
@@ -97,6 +103,14 @@ export class Canvas implements OnInit, OnDestroy {
     private canvasClicked = false;
 
     flowAnalysisOpen = this.store.selectSignal(selectFlowAnalysisOpen);
+    navigationCollapsed = this.store.selectSignal(selectNavigationCollapsed);
+    operationCollapsed = this.store.selectSignal(selectOperationCollapsed);
+    overlappingConnections$ = this.store.select(selectOverlappingConnections);
+
+    navigateToOverlappingConnections(group: OverlappingConnectionGroup): void {
+        this.store.dispatch(setAllowTransition({ allowTransition: true }));
+        this.store.dispatch(navigateToComponents({ request: { ids: group.connectionIds } }));
+    }
 
     constructor() {
         this.store
