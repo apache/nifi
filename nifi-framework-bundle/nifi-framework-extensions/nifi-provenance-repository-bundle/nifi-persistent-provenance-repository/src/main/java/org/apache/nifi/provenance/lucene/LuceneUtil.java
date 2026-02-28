@@ -90,7 +90,7 @@ public class LuceneUtil {
 
     public static org.apache.lucene.search.Query convertQuery(final org.apache.nifi.provenance.search.Query query) {
         if (query.getStartDate() == null && query.getEndDate() == null && query.getSearchTerms().isEmpty()) {
-            return new MatchAllDocsQuery();
+            return MatchAllDocsQuery.INSTANCE;
         }
 
         final BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
@@ -134,7 +134,7 @@ public class LuceneUtil {
         }
 
         if (!occurMust) {
-            queryBuilder.add(new MatchAllDocsQuery(), Occur.SHOULD);
+            queryBuilder.add(MatchAllDocsQuery.INSTANCE, Occur.SHOULD);
         }
 
         return queryBuilder.build();
