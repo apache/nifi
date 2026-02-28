@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -167,6 +168,7 @@ public class TestCSVRecordReader {
             final Record record = reader.nextRecord(false, false);
             // When the values are not in the expected format, a String is returned unmodified
             assertEquals("11/30/1983", record.getValue("date"));
+            assertEquals(String.class, record.getValue("date").getClass(), "Unexpected coercion when format mismatch should leave the value untouched");
         }
     }
 
@@ -184,6 +186,7 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("1983-01-01", record.getValue("date"));
+            assertEquals(String.class, record.getValue("date").getClass(), "AbstractCSVRecordReader.convertSimpleIfPossible should preserve the raw String when no date format is provided");
         }
     }
 
@@ -201,6 +204,7 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("1983-01-01", record.getValue("date"));
+            assertEquals(String.class, record.getValue("date").getClass(), "Blank date format should follow the legacy epoch-only path (see DataTypeUtils.isDateTypeCompatible)");
         }
     }
 
@@ -241,6 +245,7 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
+            assertEquals(String.class, record.getValue("time").getClass(), "Unexpected coercion when non-null time format is absent");
         }
     }
 
@@ -258,6 +263,7 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
+            assertEquals(String.class, record.getValue("time").getClass(), "Blank time format should retain the raw String (guards AbstractCSVRecordReader.java:128)");
         }
     }
 
@@ -292,6 +298,30 @@ public class TestCSVRecordReader {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("timestamp"));
+            assertEquals(String.class, record.getValue("timestamp").getClass(), "Blank timestamp format should retain the raw value per DataTypeUtils.isTimestampTypeCompatible(..., false)");
+        }
+    }
+
+    @Test
+    public void testExplicitTemporalFormatsStillCoerce() throws IOException, MalformedRecordException {
+        // Ensure the stricter compatibility checks added in DataTypeUtils still allow coercion when date/time formats are provided explicitly.
+        final String text = "date,time,timestamp\n2024-01-15,01:02:03,2024-01-15 01:02:03";
+
+        final List<RecordField> fields = List.of(
+                new RecordField("date", RecordFieldType.DATE.getDataType()),
+                new RecordField("time", RecordFieldType.TIME.getDataType()),
+                new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType())
+        );
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
+
+            final Record record = reader.nextRecord(false, false);
+            assertEquals(java.sql.Date.valueOf("2024-01-15"), record.getValue("date"));
+            assertEquals(Time.valueOf("01:02:03"), record.getValue("time"));
+            assertEquals(Timestamp.valueOf("2024-01-15 01:02:03"), record.getValue("timestamp"));
         }
     }
 

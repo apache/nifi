@@ -1222,6 +1222,72 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    void testIsoDateCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-01-15", null));
+        assertTrue(DataTypeUtils.isDateTypeCompatible(" 2024-01-15 ", null));
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-01-15Z", null));
+
+        assertFalse(DataTypeUtils.isDateTypeCompatible("15/01/2024", null));
+        assertFalse(DataTypeUtils.isDateTypeCompatible("", null));
+    }
+
+    @Test
+    void testIsoTimeCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isTimeTypeCompatible("13:45:00", null));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible("13:45:00Z", null));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible(" 13:45:00.123 ", null));
+
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("25:61", null));
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("", null));
+    }
+
+    @Test
+    void testIsoTimestampCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T13:45:00Z", null));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T13:45:00", null));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible(" 2024-01-15T13:45:00+01:00 ", null));
+
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("not-a-timestamp", null));
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("", null));
+    }
+
+    @Test
+    void testLegacyEpochCompatibilityWhenDefaultFormatsDisabled() {
+        // The three-argument overload keeps AbstractCSVRecordReader's non-coerce path aligned with legacy behaviour (see
+        // nifi-extension-bundles/.../csv/AbstractCSVRecordReader.java:122) by rejecting ISO strings when no explicit format
+        // is provided while still allowing epoch-based values.
+        assertFalse(DataTypeUtils.isDateTypeCompatible("2024-01-15", null, false));
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("01:02:03", null, false));
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T01:02:03Z", null, false));
+
+        assertTrue(DataTypeUtils.isDateTypeCompatible(String.valueOf(1700000000000L), null, false));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible(String.valueOf(1700000000000L), null, false));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible(String.valueOf(1700000000000L), null, false));
+    }
+
+    @Test
+    void testDefaultIsoFormattersRejectInvalidDates() {
+        assertFalse(DataTypeUtils.isDateTypeCompatible("2024-02-30", null));
+        assertFalse(DataTypeUtils.isDateTypeCompatible("2024-13-01", null));
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("2024-02-30T10:00:00", null));
+
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-02-29", null));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-02-29T10:00:00", null));
+    }
+
+    @Test
+    void testExplicitFormatWithYearOfEraPatternDoesNotRejectInvalidDates() {
+        // The yyyy pattern represents "year-of-era" which cannot fully resolve without an era under STRICT mode.
+        // As a result, formatter.parse() succeeds without validating day-of-month, unlike the default ISO formatters
+        // (tested in testDefaultIsoFormattersRejectInvalidDates) which use proleptic year (uuuu) and do reject invalid dates.
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-02-30", "yyyy-MM-dd"));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-02-30 10:00:00", "yyyy-MM-dd HH:mm:ss"));
+
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-02-29", "yyyy-MM-dd"));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-02-29 10:00:00", "yyyy-MM-dd HH:mm:ss"));
+    }
+
+    @Test
     void testUuidCompatibilityAcrossSupportedRepresentations() {
         final UUID uuid = UUID.randomUUID();
         assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuid));

@@ -57,6 +57,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1143,7 +1144,29 @@ public class DataTypeUtils {
         return new Date(zdtUTC.toInstant().toEpochMilli());
     }
 
+    private static final DateTimeFormatter[] DEFAULT_DATE_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_DATE.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_DATE.withResolverStyle(ResolverStyle.STRICT)
+    };
+
+    private static final DateTimeFormatter[] DEFAULT_TIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT)
+    };
+
+    private static final DateTimeFormatter[] DEFAULT_DATETIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_INSTANT.withResolverStyle(ResolverStyle.STRICT)
+    };
+
     public static boolean isDateTypeCompatible(final Object value, final String format) {
+        return isDateTypeCompatible(value, format, true);
+    }
+
+    public static boolean isDateTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
         if (value == null) {
             return false;
         }
@@ -1152,17 +1175,87 @@ public class DataTypeUtils {
             return true;
         }
 
-        if (value instanceof String) {
-            if (format == null) {
-                return isInteger((String) value);
-            }
-
-            try {
-                DateTimeFormatter.ofPattern(format).parse(value.toString());
-                return true;
-            } catch (final DateTimeParseException e) {
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
                 return false;
             }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_DATE_FORMATTERS);
+        }
+
+        return false;
+    }
+
+    public static boolean isTimeTypeCompatible(final Object value, final String format) {
+        return isTimeTypeCompatible(value, format, true);
+    }
+
+    public static boolean isTimeTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof java.util.Date || value instanceof Number) {
+            return true;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_TIME_FORMATTERS);
+        }
+
+        return false;
+    }
+
+    public static boolean isTimestampTypeCompatible(final Object value, final String format) {
+        return isTimestampTypeCompatible(value, format, true);
+    }
+
+    public static boolean isTimestampTypeCompatible(final Object value, final String format, final boolean allowDefaultFormats) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof java.util.Date || value instanceof Number) {
+            return true;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            if (format != null && !format.isBlank()) {
+                return isParsable(trimmed, DateTimeFormatter.ofPattern(format).withResolverStyle(ResolverStyle.STRICT));
+            }
+
+            if (!allowDefaultFormats) {
+                return isInteger(trimmed);
+            }
+
+            return isParsable(trimmed, DEFAULT_DATETIME_FORMATTERS);
         }
 
         return false;
@@ -1182,12 +1275,16 @@ public class DataTypeUtils {
         return true;
     }
 
-    public static boolean isTimeTypeCompatible(final Object value, final String format) {
-        return isDateTypeCompatible(value, format);
-    }
-
-    public static boolean isTimestampTypeCompatible(final Object value, final String format) {
-        return isDateTypeCompatible(value, format);
+    private static boolean isParsable(final String value, final DateTimeFormatter... formatters) {
+        for (final DateTimeFormatter formatter : formatters) {
+            try {
+                formatter.parse(value);
+                return true;
+            } catch (final DateTimeParseException e) {
+                continue;
+            }
+        }
+        return false;
     }
 
     public static boolean isUUIDTypeCompatible(final Object value) {
