@@ -18,12 +18,17 @@
 package org.apache.nifi.registry.flow.mapping;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.listen.ListenPortDefinition;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -53,6 +58,7 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedAsset;
+import org.apache.nifi.flow.VersionedComponentState;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -61,6 +67,7 @@ import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedListenPortDefinition;
+import org.apache.nifi.flow.VersionedNodeState;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
@@ -92,6 +99,8 @@ import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -505,8 +514,52 @@ public class NiFiRegistryFlowMapper {
         versionedService.setPropertyDescriptors(mapPropertyDescriptors(controllerService, serviceProvider, includedGroupIds, externalControllerServiceReferences));
         versionedService.setType(controllerService.getCanonicalClassName());
         versionedService.setScheduledState(flowMappingOptions.getStateLookup().getState(controllerService));
+        versionedService.setComponentState(mapComponentState(controllerService));
 
         return versionedService;
+    }
+
+    private VersionedComponentState mapComponentState(final ComponentNode componentNode) {
+        if (!flowMappingOptions.isMapComponentState()) {
+            return null;
+        }
+
+        final ConfigurableComponent component = componentNode.getComponent();
+        if (component == null) {
+            return null;
+        }
+
+        final Stateful stateful = component.getClass().getAnnotation(Stateful.class);
+        if (stateful == null) {
+            return null;
+        }
+
+        final String componentId = componentNode.getIdentifier();
+        final StateManager stateManager = flowMappingOptions.getStateManagerProvider().getStateManager(componentId);
+        final VersionedComponentState result = new VersionedComponentState();
+        boolean hasState = false;
+
+        try {
+            for (final Scope scope : stateful.scopes()) {
+                final StateMap stateMap = stateManager.getState(scope);
+                if (stateMap != null && !stateMap.toMap().isEmpty()) {
+                    if (scope == Scope.CLUSTER) {
+                        result.setClusterState(stateMap.toMap());
+                        hasState = true;
+                    } else if (scope == Scope.LOCAL) {
+                        final int ordinal = flowMappingOptions.getLocalNodeOrdinal();
+                        final List<VersionedNodeState> localStates = new ArrayList<>(Collections.nCopies(ordinal + 1, null));
+                        localStates.set(ordinal, new VersionedNodeState(stateMap.toMap()));
+                        result.setLocalNodeStates(localStates);
+                        hasState = true;
+                    }
+                }
+            }
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to retrieve state for component %s".formatted(componentId), e);
+        }
+
+        return hasState ? result : null;
     }
 
     private Map<String, String> mapProperties(final ComponentNode component, final ControllerServiceProvider serviceProvider) {
@@ -774,6 +827,7 @@ public class NiFiRegistryFlowMapper {
         processor.setRetriedRelationships(procNode.getRetriedRelationships());
         processor.setBackoffMechanism(procNode.getBackoffMechanism().name());
         processor.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
+        processor.setComponentState(mapComponentState(procNode));
 
         return processor;
     }

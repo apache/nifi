@@ -4043,6 +4043,20 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private VersionedFlowSynchronizationContext createGroupSynchronizationContext(final ComponentIdGenerator componentIdGenerator, final ComponentScheduler componentScheduler,
                                                                                   final FlowMappingOptions flowMappingOptions) {
+        final int localNodeOrdinal;
+        final int connectedNodeCount;
+        if (nodeTypeProvider.isClustered()) {
+            final Set<String> members = nodeTypeProvider.getClusterMembers();
+            final List<String> sortedMembers = members.stream().sorted().toList();
+            final String currentNode = nodeTypeProvider.getCurrentNode().orElse(null);
+            final int idx = currentNode != null ? sortedMembers.indexOf(currentNode) : -1;
+            localNodeOrdinal = idx >= 0 ? idx : 0;
+            connectedNodeCount = Math.max(sortedMembers.size(), 1);
+        } else {
+            localNodeOrdinal = 0;
+            connectedNodeCount = 1;
+        }
+
         return new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
             .flowManager(flowManager)
@@ -4054,6 +4068,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             .processContextFactory(this::createProcessContext)
             .configurationContextFactory(this::createConfigurationContext)
             .assetManager(assetManager)
+            .stateManagerProvider(stateManagerProvider)
+            .localNodeOrdinal(localNodeOrdinal)
+            .connectedNodeCount(connectedNodeCount)
             .build();
     }
 
