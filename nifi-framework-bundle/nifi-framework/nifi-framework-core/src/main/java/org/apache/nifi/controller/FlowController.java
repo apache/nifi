@@ -2947,7 +2947,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public Set<String> getClusterMembers() {
         if (isClustered()) {
-            return clusterCoordinator.getConnectionStatuses().stream().map(s -> s.getNodeIdentifier().getApiAddress()).collect(Collectors.toSet());
+            return clusterCoordinator.getConnectionStatuses().stream()
+                    .map(s -> "%s:%d".formatted(s.getNodeIdentifier().getApiAddress(), s.getNodeIdentifier().getApiPort()))
+                    .collect(Collectors.toSet());
         } else {
             return Collections.emptySet();
         }
@@ -2956,7 +2958,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     @Override
     public Optional<String> getCurrentNode() {
         if (isClustered() && getNodeId() != null) {
-            return Optional.of(getNodeId().getApiAddress());
+            return Optional.of("%s:%d".formatted(getNodeId().getApiAddress(), getNodeId().getApiPort()));
         } else {
             return Optional.empty();
         }

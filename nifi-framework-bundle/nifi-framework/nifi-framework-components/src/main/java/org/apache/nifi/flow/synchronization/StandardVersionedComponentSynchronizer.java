@@ -17,10 +17,15 @@
 
 package org.apache.nifi.flow.synchronization;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -57,6 +62,8 @@ import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedComponentState;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -64,6 +71,7 @@ import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedNodeState;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
@@ -125,6 +133,8 @@ import org.apache.nifi.util.FlowDifferenceFilters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -326,6 +336,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         updatedVersionedComponentIds.clear();
         createdAndModifiedExtensions.clear();
         setSynchronizationOptions(options);
+
+        validateLocalStateTopology(versionedExternalFlow.getFlowContents());
 
         for (final FlowDifference diff : flowComparison.getDifferences()) {
             if (!FlowDifferenceFilters.isComponentUpdateRequired(diff, versionedExternalFlow.getFlowContents(), context.getFlowManager())) {
@@ -1438,6 +1450,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         createdAndModifiedExtensions.add(new CreatedOrModifiedExtension(newService, decryptedProperties));
 
         updateControllerService(newService, proposed, topLevelGroup);
+
+        restoreComponentState(newService.getIdentifier(), proposed.getComponentState(), newService);
 
         return newService;
     }
@@ -2748,6 +2762,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
         procNode.onConfigurationRestored(processContext);
         connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), procNode);
+
+        restoreComponentState(procNode.getIdentifier(), proposed.getComponentState(), procNode);
 
         return procNode;
     }
@@ -4078,6 +4094,102 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
         return propertyValues;
+    }
+
+    private void validateLocalStateTopology(final VersionedProcessGroup proposed) {
+        final int connectedNodeCount = context.getConnectedNodeCount();
+        if (connectedNodeCount <= 0) {
+            return;
+        }
+
+        final int maxSourceNodes = findMaxLocalStateNodeCount(proposed);
+        if (maxSourceNodes > connectedNodeCount) {
+            throw new IllegalStateException(
+                    "Cannot import flow with component state: the flow definition contains local state from %d source node(s) but the destination cluster has only %d connected node(s). "
+                            .formatted(maxSourceNodes, connectedNodeCount)
+                    + "Import into a cluster with at least %d node(s), or export without component state.".formatted(maxSourceNodes));
+        }
+    }
+
+    private int findMaxLocalStateNodeCount(final VersionedProcessGroup group) {
+        int max = 0;
+        for (final VersionedConfigurableExtension ext : getStatefulExtensions(group)) {
+            final VersionedComponentState state = ext.getComponentState();
+            if (state != null && state.getLocalNodeStates() != null) {
+                max = Math.max(max, state.getLocalNodeStates().size());
+            }
+        }
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup child : group.getProcessGroups()) {
+                max = Math.max(max, findMaxLocalStateNodeCount(child));
+            }
+        }
+        return max;
+    }
+
+    private List<VersionedConfigurableExtension> getStatefulExtensions(final VersionedProcessGroup group) {
+        final List<VersionedConfigurableExtension> extensions = new ArrayList<>();
+        if (group.getProcessors() != null) {
+            extensions.addAll(group.getProcessors());
+        }
+        if (group.getControllerServices() != null) {
+            extensions.addAll(group.getControllerServices());
+        }
+        return extensions;
+    }
+
+    private void restoreComponentState(final String componentId, final VersionedComponentState componentState, final ComponentNode componentNode) {
+        if (componentState == null) {
+            return;
+        }
+
+        final StateManagerProvider stateManagerProvider = context.getStateManagerProvider();
+        if (stateManagerProvider == null) {
+            LOG.debug("StateManagerProvider is not available; skipping state restoration for component {}", componentId);
+            return;
+        }
+
+        final ConfigurableComponent component = componentNode.getComponent();
+        if (component == null) {
+            LOG.debug("Component {} is not available; skipping state restoration", componentId);
+            return;
+        }
+
+        final Stateful stateful = component.getClass().getAnnotation(Stateful.class);
+        if (stateful == null) {
+            LOG.debug("Component {} ({}) is not annotated with @Stateful; skipping state restoration", componentId, component.getClass().getSimpleName());
+            return;
+        }
+
+        final Set<Scope> supportedScopes = Set.of(stateful.scopes());
+        final StateManager stateManager = stateManagerProvider.getStateManager(componentId);
+
+        try {
+            if (supportedScopes.contains(Scope.CLUSTER) && componentState.getClusterState() != null && !componentState.getClusterState().isEmpty()) {
+                stateManager.setState(componentState.getClusterState(), Scope.CLUSTER);
+                LOG.debug("Restored cluster state for component {}", componentId);
+            }
+
+            if (supportedScopes.contains(Scope.LOCAL) && componentState.getLocalNodeStates() != null && !componentState.getLocalNodeStates().isEmpty()) {
+                final int localNodeOrdinal = context.getLocalNodeOrdinal();
+                if (localNodeOrdinal < 0) {
+                    LOG.debug("Local node ordinal is not set; skipping local state restoration for component {}", componentId);
+                    return;
+                }
+
+                final List<VersionedNodeState> localNodeStates = componentState.getLocalNodeStates();
+                final VersionedNodeState nodeState = localNodeOrdinal < localNodeStates.size() ? localNodeStates.get(localNodeOrdinal) : null;
+                final Map<String, String> localState = nodeState != null ? nodeState.getState() : null;
+                if (localState != null && !localState.isEmpty()) {
+                    stateManager.setState(localState, Scope.LOCAL);
+                    LOG.debug("Restored local state for component {} from node ordinal {}", componentId, localNodeOrdinal);
+                } else {
+                    LOG.debug("No local state found for component {} at node ordinal {}", componentId, localNodeOrdinal);
+                }
+            }
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to restore state for component %s".formatted(componentId), e);
+        }
     }
 
     private record CreatedOrModifiedExtension(ComponentNode extension, Map<String, String> propertyValues) {

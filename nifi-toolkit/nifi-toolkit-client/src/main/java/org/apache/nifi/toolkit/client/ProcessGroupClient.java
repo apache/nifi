@@ -68,6 +68,8 @@ public interface ProcessGroupClient {
 
     File exportProcessGroup(String processGroupId, boolean includeReferencedServices, File outputFile) throws NiFiClientException, IOException;
 
+    File exportProcessGroup(String processGroupId, boolean includeReferencedServices, boolean includeComponentState, File outputFile) throws NiFiClientException, IOException;
+
     DropRequestEntity emptyQueues(String processGroupId) throws NiFiClientException, IOException;
 
     DropRequestEntity getEmptyQueuesRequest(String processGroupId, String requestId) throws NiFiClientException, IOException;
