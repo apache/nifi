@@ -603,10 +603,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         getClientUtil().waitForStoppedProcessor(countFlowFiles.getId());
         getNifiClient().getConnectionClient().deleteConnection(connection);
         getNifiClient().getProcessorClient().deleteProcessor(countFlowFiles);
-        // Disable the specific controller services in dependency order before deletion
         getClientUtil().disableControllerService(countA);
         getClientUtil().disableControllerService(countB);
         getClientUtil().disableControllerService(countC);
+        getClientUtil().waitForControllerServicesDisabled(countC.getParentGroupId(), countA.getId(), countB.getId(), countC.getId());
         getNifiClient().getControllerServicesClient().deleteControllerService(countC);
         getNifiClient().getControllerServicesClient().deleteControllerService(countB);
 
@@ -707,6 +707,9 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         waitForQueueCount(connection.getId(), 0);
 
+        getClientUtil().stopProcessor(generate);
+        getClientUtil().stopProcessor(terminate);
+
         // Reconnect the node to the cluster
         switchClientToNode(1);
         reconnectNode(2);
@@ -719,11 +722,14 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
             final ProcessGroupFlowEntity flow = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getProcessGroup("root");
             final FlowDTO flowDto = flow.getProcessGroupFlow().getFlow();
 
-            if (flowDto.getProcessors().size() != 1) {
+            final int processorCount = flowDto.getProcessors().size();
+            final int connectionCount = flowDto.getConnections().size();
+            if (processorCount != 1 || connectionCount != 0) {
+                logger.info("Waiting for Node 2 to have 1 processor and 0 connections but found {} processors and {} connections", processorCount, connectionCount);
                 return false;
             }
 
-            return flowDto.getConnections().isEmpty();
+            return true;
         });
     }
 

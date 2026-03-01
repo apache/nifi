@@ -126,8 +126,17 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         final CommsTimingDetails timingDetails = new CommsTimingDetails();
 
         final String[] parts = address.split(":");
+        if (parts.length != 2) {
+            throw new ProtocolException("Heartbeat address [%s] missing port number separator".formatted(address));
+        }
+
         final String hostname = parts[0];
-        final int port = Integer.parseInt(parts[1]);
+        final int port;
+        try {
+            port = Integer.parseInt(parts[1]);
+        } catch (final NumberFormatException e) {
+            throw new ProtocolException("Heartbeat address [%s] missing port number".formatted(address), e);
+        }
 
         final ProtocolMessage responseMessage = sendProtocolMessage(msg, hostname, port, timingDetails);
 
