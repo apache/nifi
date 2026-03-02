@@ -65,7 +65,7 @@ class MemoryBoundRecordBufferTest {
     private static final String SHARD_ID_1 = "shard-1";
     private static final String SHARD_ID_2 = "shard-2";
     private static final Duration CHECKPOINT_INTERVAL = Duration.ZERO;
-    private static long CURRENT_LAG = 100L;
+    private static final long CURRENT_LAG = 100L;
 
     private MemoryBoundRecordBuffer recordBuffer;
     private TestCheckpointer checkpointer1;
