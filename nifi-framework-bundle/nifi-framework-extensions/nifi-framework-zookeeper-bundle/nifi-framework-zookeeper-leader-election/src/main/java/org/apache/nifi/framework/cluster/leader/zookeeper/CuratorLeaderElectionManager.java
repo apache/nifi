@@ -317,7 +317,15 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
 
             try {
                 final Participant leader = selector.getLeader();
-                return leader == null ? Optional.empty() : Optional.of(leader.getId());
+                if (leader == null) {
+                    return Optional.empty();
+                }
+                final String leaderId = leader.getId();
+                if (StringUtils.isEmpty(leaderId)) {
+                    logger.debug("Determined leader for role [{}] using external lookup but the participant ID was empty", roleName);
+                    return Optional.empty();
+                }
+                return Optional.of(leaderId);
             } catch (final KeeperException.NoNodeException nne) {
                 // If there is no ZNode, then there is no elected leader.
                 return Optional.empty();
