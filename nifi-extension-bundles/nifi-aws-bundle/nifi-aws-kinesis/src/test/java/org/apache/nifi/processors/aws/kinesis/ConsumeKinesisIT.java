@@ -82,7 +82,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.makeCurrentLagGaugeName;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.CURRENT_LAG;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlowFileRecordPayloads;
@@ -210,7 +210,7 @@ class ConsumeKinesisIT {
 
         // Verify current.lag gauge is recorded.
         final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
-        final String gaugeName = ConsumeKinesis.makeCurrentLagGaugeName(streamName, shardId);
+        final String gaugeName = expectedCurrentLagGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
         assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
@@ -242,7 +242,7 @@ class ConsumeKinesisIT {
                 streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
                 "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
         final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
-        final String gaugeName = makeCurrentLagGaugeName(streamName, shardId);
+        final String gaugeName = expectedCurrentLagGaugeName(streamName, shardId);
         final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
         assertFalse(gaugeValues.isEmpty(), "Expected current.lag gauge to be recorded");
     }
@@ -787,5 +787,9 @@ class ConsumeKinesisIT {
 
             throw new IllegalStateException("Operation " + operation + " failed after " + MAX_RETRIES + " attempts", lastException);
         }
+    }
+
+    private static String expectedCurrentLagGaugeName(final String streamName, final String shardId) {
+        return "%s[stream.name=\"%s\",shard.id=\"%s\"]".formatted(CURRENT_LAG, streamName, shardId);
     }
 }

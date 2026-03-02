@@ -487,7 +487,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    static String makeCurrentLagGaugeName(final String streamName, final String shardId) {
+    private static String makeCurrentLagGaugeName(final String streamName, final String shardId) {
         return "%s[stream.name=\"%s\",shard.id=\"%s\"]".formatted(CURRENT_LAG, streamName, shardId);
     }
 
