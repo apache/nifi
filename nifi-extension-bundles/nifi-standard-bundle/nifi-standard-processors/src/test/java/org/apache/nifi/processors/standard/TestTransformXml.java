@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -25,15 +28,21 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,6 +50,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransformXml {
     private TestRunner runner;
+
+    @TempDir
+    private Path tempDir;
 
     @BeforeEach
     void setUp() {
@@ -338,6 +350,59 @@ public class TestTransformXml {
         MockComponentLog logger = runner.getLogger();
         assertTrue(logger.getErrorMessages().isEmpty());
         assertTrue(logger.getWarnMessages().isEmpty());
+    }
+
+    @ParameterizedTest
+    @MethodSource("localDtdArgs")
+    void testWhereLocalDtdLocationUnknown(Boolean enable, Relationship relationship) throws IOException {
+        final String identityTransformation = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+                    <xsl:template match="/|node()|@*">
+                        <xsl:copy>
+                            <xsl:apply-templates select="node()|@*"/>
+                        </xsl:copy>
+                    </xsl:template>
+                </xsl:stylesheet>
+                """;
+        final Path xsltPath = tempDir.resolve("identityTransformation.xslt");
+        Files.writeString(xsltPath, identityTransformation);
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, xsltPath.toString());
+        runner.setProperty(TransformXml.VALIDATE_DTD, enable.toString());
+
+        final String xml = """
+                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+                <!DOCTYPE people_list SYSTEM "people.dtd">
+                <people_list>
+                    <person>
+                        <name>Fred Bloggs</name>
+                        <birthdate>2008-11-27</birthdate>
+                        <gender>Male</gender>
+                    </person>
+                    <person>
+                        <name>Jane Doe</name>
+                        <!-- birthdate, gender, and socialsecuritynumber are optional -->
+                    </person>
+                </people_list>
+                """;
+
+        runner.enqueue(xml);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(relationship);
+
+        if (TransformXml.REL_FAILURE == relationship) {
+            assertTrue(runner.getLogger().getErrorMessages().stream()
+                    .map(logMessage -> ExceptionUtils.getStackTrace(logMessage.getThrowable()))
+                    .anyMatch(stacktrace -> stacktrace.contains("FileNotFoundException")));
+        }
+    }
+
+    private static Stream<Arguments> localDtdArgs() {
+        return Stream.of(
+                Arguments.argumentSet("Validate DTD enabled", true, TransformXml.REL_FAILURE),
+                Arguments.argumentSet("Validate DTD disabled", false, TransformXml.REL_SUCCESS)
+        );
     }
 
     @Test

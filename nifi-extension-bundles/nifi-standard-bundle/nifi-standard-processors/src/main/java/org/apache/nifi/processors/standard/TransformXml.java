@@ -48,6 +48,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.xml.IgnoreDoctypeEntityResolver;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
@@ -159,12 +160,22 @@ public class TransformXml extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .name("Allow DTD")
+            .description("Allow embedded Document Type Declaration in XML. "
+                    + "This feature should be disabled to avoid XML entity expansion vulnerabilities.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             XSLT_FILE_NAME,
             XSLT_CONTROLLER,
             XSLT_CONTROLLER_KEY,
             INDENT_OUTPUT,
             SECURE_PROCESSING,
+            VALIDATE_DTD,
             CACHE_SIZE,
             CACHE_TTL_AFTER_LAST_ACCESS
     );
@@ -336,7 +347,8 @@ public class TransformXml extends AbstractProcessor {
     @SuppressWarnings("unchecked")
     private Templates newTemplates(final ProcessContext context, final String path) throws TransformerConfigurationException, LookupFailureException {
         final boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
-        final TransformerFactory transformerFactory = getTransformerFactory(secureProcessing);
+        final boolean validateDtd = context.getProperty(VALIDATE_DTD).asBoolean();
+        final TransformerFactory transformerFactory = getTransformerFactory(secureProcessing, validateDtd);
         final LookupService<String> lookupService = context.getProperty(XSLT_CONTROLLER).asControllerService(LookupService.class);
         final boolean filePath = context.getProperty(XSLT_FILE_NAME).isSet();
         final StreamSource templateSource = getTemplateSource(lookupService, path, filePath);
@@ -344,13 +356,18 @@ public class TransformXml extends AbstractProcessor {
         return transformerFactory.newTemplates(configuredTemplateSource);
     }
 
-    private TransformerFactory getTransformerFactory(final boolean secureProcessing) throws TransformerConfigurationException {
+    private TransformerFactory getTransformerFactory(final boolean secureProcessing, boolean validateDtd) throws TransformerConfigurationException {
         final TransformerFactory factory = TransformerFactory.newInstance();
         if (secureProcessing) {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-parameter-entities", false);
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
         }
+
+        if (!validateDtd) {
+            factory.setAttribute("http://saxon.sf.net/feature/entityResolverClass", IgnoreDoctypeEntityResolver.class.getCanonicalName());
+        }
+
         factory.setErrorListener(getErrorListenerLogger());
 
         return factory;
