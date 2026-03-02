@@ -189,7 +189,7 @@ public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
                         writer.write(record);
                     }
 
-                    // Sending outgoing flow files
+                    // Sending outgoing FlowFiles
                     int fragmentIndex = 0;
 
                     for (final Object partition : outgoingFlowFiles.keySet()) {

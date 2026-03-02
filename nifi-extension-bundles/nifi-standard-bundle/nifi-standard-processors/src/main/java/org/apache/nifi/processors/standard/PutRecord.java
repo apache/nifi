@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"record", "put", "sink"})
-@CapabilityDescription("The PutRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming flow file, and sends them "
+@CapabilityDescription("The PutRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming FlowFile, and sends them "
         + "to a destination specified by a Record Destination Service (i.e. record sink).")
 public class PutRecord extends AbstractProcessor {
 

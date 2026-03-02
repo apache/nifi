@@ -99,7 +99,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
                     logger.debug("{} There's no data to send.", this);
                     break;
                 case CONTINUE_TRANSACTION:
-                    logger.debug("{} Continue transaction... expecting more flow files.", this);
+                    logger.debug("{} Continue transaction... expecting more FlowFiles.", this);
                     commSession.setStatus(Transaction.TransactionState.DATA_EXCHANGED);
                     break;
                 case BAD_CHECKSUM:
@@ -176,7 +176,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
 
     private int holdTransaction(Peer peer, FlowFileTransaction transaction) {
         // We don't commit the session here yet,
-        // to avoid losing sent flow files in case some issue happens at client side while it is processing,
+        // to avoid losing sent FlowFiles in case some issue happens at client side while it is processing,
         // hold the transaction until we confirm additional request from client.
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();

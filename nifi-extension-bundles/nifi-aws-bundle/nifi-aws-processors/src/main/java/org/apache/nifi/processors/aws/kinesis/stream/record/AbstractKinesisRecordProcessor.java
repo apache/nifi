@@ -204,7 +204,7 @@ public abstract class AbstractKinesisRecordProcessor implements ShardRecordProce
      * Process an individual {@link Record} and serialise to {@link FlowFile}
      *
      * @param kinesisRecord the Kinesis {@link Record} to be processed
-     * @param batchProcessingContext the {@link BatchProcessingContext} for the current batch of records being processed, containing the session, flow files and stopwatch
+     * @param batchProcessingContext the {@link BatchProcessingContext} for the current batch of records being processed, containing the session, FlowFiles and stopwatch
      * @throws RuntimeException if there are any unhandled Exceptions that should be retried
      */
     abstract void processRecord(final KinesisClientRecord kinesisRecord, final BatchProcessingContext batchProcessingContext) throws RuntimeException;

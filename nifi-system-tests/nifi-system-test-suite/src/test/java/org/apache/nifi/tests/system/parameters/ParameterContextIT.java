@@ -808,7 +808,7 @@ public class ParameterContextIT extends NiFiSystemIT {
                 paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
 
-        // Connect the ingest processor to terminate processor and produce flow files
+        // Connect the ingest processor to terminate processor and produce FlowFiles
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(ingest, terminate, "success");
         waitForValidProcessor(ingest.getId());
@@ -1019,12 +1019,12 @@ public class ParameterContextIT extends NiFiSystemIT {
                 paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
 
-        // Connect the ingest processor to terminate processor and produce flow files
+        // Connect the ingest processor to terminate processor and produce FlowFiles
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(ingest, terminate, "success");
         waitForValidProcessor(ingest.getId());
 
-        // Run the flow and verify the flow files contain the contents of the asset
+        // Run the flow and verify the FlowFiles contain the contents of the asset
         getClientUtil().startProcessor(ingest);
         waitForQueueCount(connection.getId(), getNumberOfNodes());
         final String contents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
@@ -1045,7 +1045,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final AssetEntity replacedAsset = createAsset(paramContext.getId(), assetName, assetFile2);
         assertAsset(replacedAsset, assetName);
 
-        // Run the flow again and verify the flow files contain the updated contents of the asset
+        // Run the flow again and verify the FlowFiles contain the updated contents of the asset
         getClientUtil().startProcessor(ingest);
         waitForQueueCount(connection.getId(), getNumberOfNodes());
 

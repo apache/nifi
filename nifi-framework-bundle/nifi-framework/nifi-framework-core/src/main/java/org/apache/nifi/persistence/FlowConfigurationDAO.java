@@ -39,7 +39,7 @@ public interface FlowConfigurationDAO {
     boolean isFlowPresent();
 
     /**
-     * Loads the given controller with the values from the given proposed flow. If loading the proposed flow configuration would cause the controller to orphan flow files, then an
+     * Loads the given controller with the values from the given proposed flow. If loading the proposed flow configuration would cause the controller to orphan FlowFiles, then an
      * UninheritableFlowException is thrown.
      *
      * If the FlowSynchronizationException is thrown, then the controller may have changed some of its state and should no longer be used.
@@ -51,7 +51,7 @@ public interface FlowConfigurationDAO {
      * @throws java.io.IOException for unspecified read/write failure
      *
      * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
-     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning FlowFiles
      * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      * @throws MissingBundleException if the proposed flow cannot be loaded by the controller because it contains a bundle that does not exist in the controller
      */

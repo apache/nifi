@@ -6665,7 +6665,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         //Add version info metrics to NiFi metrics
         PrometheusMetricsUtil.createVersionInfoMetrics(versionInfoRegistry, instanceId);
-        //Add flow file repository, content repository and provenance repository usage to NiFi metrics
+        //Add FlowFile repository, content repository and provenance repository usage to NiFi metrics
         final StorageUsage flowFileRepositoryUsage = controllerFacade.getFlowFileRepositoryStorageUsage();
         final Map<String, StorageUsage> contentRepositoryUsage = controllerFacade.getContentRepositoryStorageUsage();
         final Map<String, StorageUsage> provenanceRepositoryUsage = controllerFacade.getProvenanceRepositoryStorageUsage();

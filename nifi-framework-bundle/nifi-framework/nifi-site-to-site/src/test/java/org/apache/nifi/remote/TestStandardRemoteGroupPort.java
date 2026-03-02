@@ -200,7 +200,7 @@ public class TestStandardRemoteGroupPort {
         assertEquals("nifi://node1.example.com:9090/flowfile-uuid", provenanceEvent.getTransitUri());
         assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
 
-        // Assert received flow files.
+        // Assert received FlowFiles.
         processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
         assertEquals(1, flowFiles.size());
@@ -286,17 +286,17 @@ public class TestStandardRemoteGroupPort {
     }
 
     /**
-     * Generate flow files to be sent, and execute port's onTrigger method.
+     * Generate FlowFiles to be sent, and execute port's onTrigger method.
      * Finally, this method verifies whether packets are sent as expected.
      * @param expectedNumberOfPackets Specify how many packets should be sent by each transaction.
-     *                                E.g. passing {2, 2, 1}, would generate 5 flow files in total.
+     *                                E.g. passing {2, 2, 1}, would generate 5 FlowFiles in total.
      *                                Based on the siteToSiteClientConfig batch parameters,
      *                                it's expected to be sent via 3 transactions,
      *                                transaction 0 will send flow file 0 and 1,
      *                                transaction 1 will send flow file 2 and 3,
      *                                and transaction 2 will send flow file 4.
      *                                Each flow file has different content size generated automatically.
-     *                                The content size starts with 10, and increases as more flow files are generated.
+     *                                The content size starts with 10, and increases as more FlowFiles are generated.
      *                                E.g. flow file 1 will have 10 bytes, flow file 2 has 11 bytes, f3 has 12 and so on.
      *
      */
@@ -329,7 +329,7 @@ public class TestStandardRemoteGroupPort {
             return null;
         }).when(transaction).confirm();
 
-        // Execute onTrigger while offering new flow files.
+        // Execute onTrigger while offering new FlowFiles.
         final List<MockFlowFile> flowFiles = new ArrayList<>();
         for (int numOfPackets : expectedNumberOfPackets) {
             int startF = flowFiles.size();
@@ -417,7 +417,7 @@ public class TestStandardRemoteGroupPort {
         assertEquals(flowFileEndpointUri, provenanceEvent.getTransitUri());
         assertEquals("Remote DN=nifi.node1.example.com", provenanceEvent.getDetails());
 
-        // Assert received flow files.
+        // Assert received FlowFiles.
         processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
         final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
         assertEquals(1, flowFiles.size());

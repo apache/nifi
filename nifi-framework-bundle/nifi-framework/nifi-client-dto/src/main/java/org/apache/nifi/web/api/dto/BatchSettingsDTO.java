@@ -30,9 +30,9 @@ public class BatchSettingsDTO {
     private String duration;
 
     /**
-     * @return preferred number of flow files to include in a transaction
+     * @return preferred number of FlowFiles to include in a transaction
      */
-    @Schema(description = "Preferred number of flow files to include in a transaction."
+    @Schema(description = "Preferred number of FlowFiles to include in a transaction."
     )
     public Integer getCount() {
         return count;

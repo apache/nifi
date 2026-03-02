@@ -80,7 +80,7 @@ public interface ClusterCoordinator {
      *     <li>all processors on the node are stopped</li>
      *     <li>all processors on the node are terminated</li>
      *     <li>all remote process groups on the node stop transmitting</li>
-     *     <li>all flowfiles on the node are sent to other nodes in the cluster</li>
+     *     <li>all FlowFiles on the node are sent to other nodes in the cluster</li>
      * </ul>
      * @param nodeId the identifier of the node
      * @param offloadCode the code that represents why this node is being asked to be offloaded

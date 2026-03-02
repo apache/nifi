@@ -198,7 +198,7 @@ public class LogAttribute extends AbstractProcessor {
 
         // Pretty print metadata
         final StringBuilder message = new StringBuilder();
-        message.append("logging for flow file ").append(flowFile);
+        message.append("logging for FlowFile ").append(flowFile);
         message.append("\n");
 
         if (OUTPUT_FORMAT_LINE_PER_ATTRIBUTE.getValue().equalsIgnoreCase(outputFormat)) {

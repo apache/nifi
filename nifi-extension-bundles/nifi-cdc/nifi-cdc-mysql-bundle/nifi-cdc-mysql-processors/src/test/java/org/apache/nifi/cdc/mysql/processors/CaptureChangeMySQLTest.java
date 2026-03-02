@@ -766,7 +766,7 @@ public class CaptureChangeMySQLTest {
         testRunner.run(1, true, false);
 
         List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
-        // Five events total, 2 max per flow file, so 3 flow files
+        // Five events total, 2 max per flow file, so 3 FlowFiles
         assertEquals(3, resultFiles.size());
 
         List<Map<String, Object>> json = MAPPER.readValue(resultFiles.getFirst().toByteArray(), List.class);
@@ -867,7 +867,7 @@ public class CaptureChangeMySQLTest {
         testRunner.run(1, true, false);
 
         List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
-        // Five events total, 3 max per flow file, so 2 flow files
+        // Five events total, 3 max per flow file, so 2 FlowFiles
         assertEquals(2, resultFiles.size());
         List<Map<String, Object>> json = MAPPER.readValue(resultFiles.getFirst().toByteArray(), List.class);
         assertEquals(3, json.size());

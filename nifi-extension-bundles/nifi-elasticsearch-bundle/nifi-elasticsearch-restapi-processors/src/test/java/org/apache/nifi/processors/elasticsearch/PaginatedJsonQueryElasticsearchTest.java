@@ -72,7 +72,7 @@ public class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQu
                 final ValueRange firstPage = ValueRange.of(1, 10);
                 for (final MockFlowFile hit : runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS)) {
                     hit.assertAttributeEquals("hit.count", "1");
-                    // 10 hits per page, so first 10 flow files should be page.number 1, the rest page.number 2
+                    // 10 hits per page, so first 10 FlowFiles should be page.number 1, the rest page.number 2
                     hit.assertAttributeEquals("page.number", firstPage.isValidValue(count) ? "1" : "2");
                     count++;
                 }

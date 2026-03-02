@@ -140,7 +140,7 @@ public class BinManager {
      * <p/>
      *
      * @param groupIdentifier the group to which the flow file belongs; can be null
-     * @param flowFiles the flow files to bin
+     * @param flowFiles the FlowFiles to bin
      * @param session the ProcessSession to which the FlowFiles belong
      * @param sessionFactory a ProcessSessionFactory that can be used to create a new ProcessSession in order to
      *            create a new bin if necessary

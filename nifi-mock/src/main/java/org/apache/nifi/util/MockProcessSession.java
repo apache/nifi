@@ -897,7 +897,7 @@ public class MockProcessSession implements ProcessSession {
         }
 
         // if the flowfile provided was created in this session (i.e. it's in currentVersions and not in original versions),
-        // then throw an exception indicating that you can't transfer flowfiles back to self.
+        // then throw an exception indicating that you can't transfer FlowFiles back to self.
         // this mimics the same behavior in StandardProcessSession
         if (currentVersions.get(flowFile.getId()) != null && originalVersions.get(flowFile.getId()) == null) {
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
@@ -1086,7 +1086,7 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * @param relationship to get flowfiles for
+     * @param relationship to get FlowFiles for
      * @return a List of FlowFiles in the order in which they were transferred
      *         to the given relationship
      */
@@ -1195,10 +1195,10 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * Inherits the attributes from the given source flow files into the
+     * Inherits the attributes from the given source FlowFiles into the
      * destination flow file. The UUIDs of the sources becomes the parent UUIDs
      * of the destination flow file. Only attributes which is common to all
-     * source items is copied into this flow files attributes. Any previously
+     * source items is copied into this FlowFiles attributes. Any previously
      * established parent UUIDs will be replaced by the UUIDs of the sources. It
      * will capture the uuid of a certain number of source objects and may not
      * capture all of them. How many it will capture is unspecified.
@@ -1235,7 +1235,7 @@ public class MockProcessSession implements ProcessSession {
      * Returns the attributes that are common to every flow file given. The key
      * and value must match exactly.
      *
-     * @param flowFileList a list of flow files
+     * @param flowFileList a list of FlowFiles
      *
      * @return the common attributes
      */
@@ -1337,17 +1337,17 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * Asserts that all FlowFiles that were transferred were transferred to the
+     * Asserts that all FlowFiles that were transferred to the
      * given relationship
      *
-     * @param relationship to check for transferred flow files
+     * @param relationship to check for transferred FlowFiles
      */
     public void assertAllFlowFilesTransferred(final String relationship) {
         assertAllFlowFilesTransferred(new Relationship.Builder().name(relationship).build());
     }
 
     /**
-     * Asserts that all FlowFiles that were transferred were transferred to the
+     * Asserts that all FlowFiles that were transferred to the
      * given relationship
      *
      * @param relationship to validate

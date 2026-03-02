@@ -134,7 +134,7 @@ public class PutSmbFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder()
             .name("Create Missing Directories")
-            .description("If true, then missing destination directories will be created. If false, flowfiles are penalized and sent to failure.")
+            .description("If true, then missing destination directories will be created. If false, FlowFiles are penalized and sent to failure.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -293,7 +293,7 @@ public class PutSmbFile extends AbstractProcessor {
             return;
         }
         final ComponentLog logger = getLogger();
-        logger.debug("Processing next {} flowfiles", flowFiles.size());
+        logger.debug("Processing next {} FlowFiles", flowFiles.size());
 
         final String hostname = flowFileFilter.getHostName();
         final String shareName = flowFileFilter.getShare();

@@ -474,7 +474,7 @@ public class ControlRate extends AbstractProcessor {
 
     /*
      * Determine the amount this FlowFile will incur against the maximum allowed rate.
-     * This is applicable to counting accruals, flowfiles or attributes
+     * This is applicable to counting accruals, FlowFiles or attributes
      */
     private long getCountAccrual(FlowFile flowFile) {
         return switch (rateControlCriteria) {
@@ -637,7 +637,7 @@ public class ControlRate extends AbstractProcessor {
 
             String groupName = (groupingAttributeName == null) ? DEFAULT_GROUP_ATTRIBUTE : flowFile.getAttribute(groupingAttributeName);
 
-            // the flow file may not have the required attribute: in this case it is considered part
+            // the FlowFile may not have the required attribute: in this case it is considered part
             // of the DEFAULT_GROUP_ATTRIBUTE
             if (groupName == null) {
                 groupName = DEFAULT_GROUP_ATTRIBUTE;
@@ -675,7 +675,7 @@ public class ControlRate extends AbstractProcessor {
                 }
             }
 
-            // continue processing count throttle only if required and if data throttle is not already limiting flowfiles
+            // continue processing count throttle only if required and if data throttle is not already limiting FlowFiles
             if (countThrottleRequired() && !dataThrottlingActive) {
                 if (countThrottle == null) {
                     countThrottle = new Throttle(timePeriodSeconds, TimeUnit.SECONDS, getLogger(), currentTimeSupplier);

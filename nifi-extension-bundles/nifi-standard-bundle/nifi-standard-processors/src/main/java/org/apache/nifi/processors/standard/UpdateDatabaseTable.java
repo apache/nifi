@@ -91,9 +91,9 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIB
 @CapabilityDescription("This processor uses a JDBC connection and incoming records to generate any database table changes needed to support the incoming records. It expects a 'flat' record layout, "
         + "meaning none of the top-level record fields has nested fields that are intended to become columns themselves.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "output.table", description = "This attribute is written on the flow files routed to the 'success' "
+        @WritesAttribute(attribute = "output.table", description = "This attribute is written on the FlowFiles routed to the 'success' "
                 + "and 'failure' relationships, and contains the target table name."),
-        @WritesAttribute(attribute = "output.path", description = "This attribute is written on the flow files routed to the 'success' "
+        @WritesAttribute(attribute = "output.path", description = "This attribute is written on the FlowFiles routed to the 'success' "
                 + "and 'failure' relationships, and contains the path on the file system to the table (or partition location if the table is partitioned)."),
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer, only if a Record Writer is specified "
                 + "and Update Field Names is 'true'."),
@@ -112,7 +112,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     // Properties
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .description("The service for reading incoming flow files. The reader is only used to determine the schema of the records, the actual records will not be processed.")
+            .description("The service for reading incoming FlowFiles. The reader is only used to determine the schema of the records, the actual records will not be processed.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();

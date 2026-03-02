@@ -66,7 +66,7 @@ import java.util.stream.Stream;
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})
-@CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files")
+@CapabilityDescription("Creates Hadoop Sequence Files from incoming FlowFiles")
 @SeeAlso(PutHDFS.class)
 public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 

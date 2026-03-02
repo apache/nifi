@@ -162,7 +162,7 @@ public class TestFTP {
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
 
-        // Get two flowfiles to test by running data
+        // Get two FlowFiles to test by running data
         try (FileInputStream fis = new FileInputStream("src/test/resources/randombytes-1")) {
             Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");

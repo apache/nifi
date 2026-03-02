@@ -77,7 +77,7 @@ public interface FlowFileRepository extends Closeable {
     void updateRepository(Collection<RepositoryRecord> records) throws IOException;
 
     /**
-     * Loads all flow files found within the repository, establishes the content
+     * Loads all FlowFiles found within the repository, establishes the content
      * claims and their reference count
      *
      * @param queueProvider the provider of FlowFile Queues into which the

@@ -46,7 +46,7 @@ public interface QueuePartition {
     Optional<NodeIdentifier> getNodeIdentifier();
 
     /**
-     * @return the name of the Partition that is used when serializing swap flowfiles in order to denote that a swap file belongs to this partition
+     * @return the name of the Partition that is used when serializing swap FlowFiles in order to denote that a swap file belongs to this partition
      */
     String getSwapPartitionName();
 

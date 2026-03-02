@@ -77,7 +77,7 @@ import java.util.stream.Stream;
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "list", "jdbc", "table", "database"})
-@CapabilityDescription("Generates a set of flow files, each containing attributes corresponding to metadata about a table from a database connection. Once "
+@CapabilityDescription("Generates a set of FlowFiles, each containing attributes corresponding to metadata about a table from a database connection. Once "
         + "metadata about a table has been fetched, it will not be fetched again until the Refresh Interval (if set) has elapsed, or until state has been "
         + "manually cleared.")
 @WritesAttributes({
@@ -193,7 +193,7 @@ public class ListDatabaseTables extends AbstractProcessor {
 
     public static final PropertyDescriptor INCLUDE_COUNT = new PropertyDescriptor.Builder()
             .name("Include Count")
-            .description("Whether to include the table's row count as a flow file attribute. This affects performance as a database query will be generated "
+            .description("Whether to include the table's row count as a FlowFile attribute. This affects performance as a database query will be generated "
                     + "for each table in the retrieved list.")
             .required(true)
             .allowableValues("true", "false")

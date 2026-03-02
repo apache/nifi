@@ -68,7 +68,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("The Controller Service that is used to cache flow files")
+        .description("The Controller Service that is used to cache FlowFiles")
         .required(true)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
@@ -154,7 +154,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         // cache key is computed from attribute 'CACHE_ENTRY_IDENTIFIER' with expression language support
         final String cacheKey = context.getProperty(CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
 
-        // if the computed value is null, or empty, we transfer the flow file to failure relationship
+        // if the computed value is null, or empty, we transfer the FlowFile to failure relationship
         if (StringUtils.isBlank(cacheKey)) {
             logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", flowFile);
             flowFile = session.penalize(flowFile);
@@ -170,21 +170,21 @@ public class PutDistributedMapCache extends AbstractProcessor {
             final long maxCacheEntrySize = context.getProperty(CACHE_ENTRY_MAX_BYTES).asDataSize(DataUnit.B).longValue();
             long flowFileSize = flowFile.getSize();
 
-            // too big flow file
+            // too big FlowFile
             if (flowFileSize > maxCacheEntrySize) {
-                logger.warn("Flow file {} size {} exceeds the max cache entry size ({} B).", flowFile, flowFileSize, maxCacheEntrySize);
+                logger.warn("FlowFile {} size {} exceeds the max cache entry size ({} B).", flowFile, flowFileSize, maxCacheEntrySize);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             if (flowFileSize == 0) {
-                logger.warn("Flow file {} is empty, there is nothing to cache.", flowFile);
+                logger.warn("FlowFile {} is empty, there is nothing to cache.", flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
 
             }
 
-            // get flow file content
+            // get FlowFile content
             final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             session.exportTo(flowFile, byteStream);
             byte[] cacheValue = byteStream.toByteArray();

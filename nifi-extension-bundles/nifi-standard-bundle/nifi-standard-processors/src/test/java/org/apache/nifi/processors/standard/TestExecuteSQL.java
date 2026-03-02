@@ -422,7 +422,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         runner.run();
 
         //No incoming flow file containing a query, and an exception causes no outbound flowfile.
-        // There should be no flow files on either relationship
+        // There should be no FlowFiles on either relationship
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 0);
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 0);
     }

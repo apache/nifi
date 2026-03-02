@@ -189,7 +189,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
             .name("Multipart Threshold")
             .description("Specifies the file size threshold for switch from the PutS3Object API to the " +
-                    "PutS3MultipartUpload API.  Flow files bigger than this limit will be sent using the stateful " +
+                    "PutS3MultipartUpload API.  FlowFiles bigger than this limit will be sent using the stateful " +
                 "multipart process. The valid range is 50MB to 5GB.")
             .required(true)
             .defaultValue("5 GB")
@@ -199,7 +199,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final PropertyDescriptor MULTIPART_PART_SIZE = new PropertyDescriptor.Builder()
             .name("Multipart Part Size")
         .description("Specifies the part size for use when the PutS3Multipart Upload API is used. " +
-                    "Flow files will be broken into chunks of this size for the upload process, but the last part " +
+                    "FlowFiles will be broken into chunks of this size for the upload process, but the last part " +
             "sent can be smaller since it is not padded. The valid range is 50MB to 5GB.")
             .required(true)
             .defaultValue("5 GB")
@@ -713,7 +713,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     ffFilename, bucket, key);
                         }
                     } catch (IOException e) {
-                        getLogger().error("IOException initiating cache state while processing flow files", e);
+                        getLogger().error("IOException initiating cache state while processing FlowFiles", e);
                         throw (e);
                     }
 
@@ -867,7 +867,7 @@ public class PutS3Object extends AbstractS3Processor {
                     }
                 }
             } catch (IOException e) {
-                getLogger().error("Error during upload of flow files", e);
+                getLogger().error("Error during upload of FlowFiles", e);
                 throw e;
             }
 

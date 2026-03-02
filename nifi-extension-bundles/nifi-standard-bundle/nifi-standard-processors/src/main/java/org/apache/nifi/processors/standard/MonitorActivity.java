@@ -70,7 +70,7 @@ import static java.util.Collections.singletonMap;
         scopes = { Scope.CLUSTER, Scope.LOCAL },
         description = "MonitorActivity stores the last timestamp at each node as state, "
                 + "so that it can examine activity at cluster wide. "
-                + "If 'Copy Attribute' is set to true, then flow file attributes are also persisted. "
+                + "If 'Copy Attribute' is set to true, then FlowFile attributes are also persisted. "
                 + "In local scope, it stores last known activity timestamp if the flow is inactive."
 )
 public class MonitorActivity extends AbstractProcessor {
@@ -133,7 +133,7 @@ public class MonitorActivity extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor COPY_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name("Copy Attributes")
-            .description("If true, will copy all flow file attributes from the flow file that resumed activity to the newly created indicator flow file")
+            .description("If true, will copy all FlowFile attributes from the FlowFile that resumed activity to the newly created indicator FlowFile")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -141,8 +141,8 @@ public class MonitorActivity extends AbstractProcessor {
     public static final PropertyDescriptor MONITORING_SCOPE = new PropertyDescriptor.Builder()
             .name("Monitoring Scope")
             .description("Specify how to determine activeness of the flow. 'node' means that activeness is examined at individual node separately." +
-                    " It can be useful if DFM expects each node should receive flow files in a distributed manner." +
-                    " With 'cluster', it defines the flow is active while at least one node receives flow files actively." +
+                    " It can be useful if DFM expects each node should receive FlowFiles in a distributed manner." +
+                    " With 'cluster', it defines the flow is active while at least one node receives FlowFiles actively." +
                     " If NiFi is running as standalone mode, this should be set as 'node'," +
                     " if it's 'cluster', NiFi logs a warning message and act as 'node' scope.")
             .required(true)

@@ -96,12 +96,12 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     public static final Relationship REL_FOUND = new Relationship.Builder()
             .name("found")
-            .description("Where to route flow files after successfully enriching attributes with data provided by database")
+            .description("Where to route FlowFiles after successfully enriching attributes with data provided by database")
             .build();
 
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("not found")
-            .description("Where to route flow files after unsuccessfully enriching attributes because no data was found")
+            .description("Where to route FlowFiles after unsuccessfully enriching attributes because no data was found")
             .build();
 
     enum MessageLogLevel {

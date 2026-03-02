@@ -438,7 +438,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
                         session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                         resultSetFlowFiles.add(fileToProcess);
-                        // If we've reached the batch size, send out the flow files
+                        // If we've reached the batch size, send out the FlowFiles
                         if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                             session.transfer(resultSetFlowFiles, REL_SUCCESS);
                             session.commitAsync();
@@ -459,12 +459,12 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         break;
                     }
 
-                    // If we aren't splitting up the data into flow files or fragments, then the result set has been entirely fetched so don't loop back around
+                    // If we aren't splitting up the data into FlowFiles or fragments, then the result set has been entirely fetched so don't loop back around
                     if (maxFragments == 0 && maxRowsPerFlowFile == 0) {
                         break;
                     }
 
-                    // If we are splitting up the data into flow files, don't loop back around if we've gotten all results
+                    // If we are splitting up the data into FlowFiles, don't loop back around if we've gotten all results
                     if (maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) {
                         break;
                     }

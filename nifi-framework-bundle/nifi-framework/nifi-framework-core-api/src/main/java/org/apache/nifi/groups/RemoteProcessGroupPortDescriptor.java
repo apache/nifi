@@ -24,7 +24,7 @@ public interface RemoteProcessGroupPortDescriptor {
     String getComments();
 
     /**
-     * @return The number tasks that may transmit flow files to the target port
+     * @return The number tasks that may transmit FlowFiles to the target port
      * concurrently
      */
     Integer getConcurrentlySchedulableTaskCount();
@@ -65,7 +65,7 @@ public interface RemoteProcessGroupPortDescriptor {
     Boolean getUseCompression();
 
     /**
-     * @return Preferred number of flow files to include in a transaction
+     * @return Preferred number of FlowFiles to include in a transaction
      */
     Integer getBatchCount();
 

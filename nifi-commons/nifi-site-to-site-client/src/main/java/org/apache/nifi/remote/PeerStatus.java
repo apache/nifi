@@ -21,7 +21,7 @@ import org.apache.nifi.web.api.dto.remote.PeerDTO;
 /**
  * This class represents the state of a specific peer, both its identifying information (contained
  * in the {@link PeerDescription}: hostname, port, and security) and its current status (number of
- * flowfiles and whether it can query other peers for status). Equality is only based on the
+ * FlowFiles and whether it can query other peers for status). Equality is only based on the
  * identifying information, so when iterating over multiple PeerStatus objects, more recent statuses
  * will replace previously acquired statuses for a specific peer.
  */

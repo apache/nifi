@@ -121,7 +121,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -137,7 +137,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         assertEquals("3", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
-        // Sanity check - run again, this time no flowfiles/rows should be transferred
+        // Sanity check - run again, this time no FlowFiles/rows should be transferred
         runner.clearTransferState();
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -325,7 +325,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         assertEquals("3", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
-        // Sanity check - run again, this time no flowfiles/rows should be transferred
+        // Sanity check - run again, this time no FlowFiles/rows should be transferred
         runner.clearTransferState();
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -397,7 +397,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -416,7 +416,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -480,7 +480,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
             mff.assertAttributeExists("fragment.identifier");
             assertEquals(Integer.toString(ff), mff.getAttribute("fragment.index"));
-            // No fragment.count set for flow files sent when Output Batch Size is set
+            // No fragment.count set for FlowFiles sent when Output Batch Size is set
             assertNull(mff.getAttribute("fragment.count"));
         }
 
@@ -489,7 +489,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         mff.assertAttributeEquals("record.count", "2");
         mff.assertAttributeExists("fragment.identifier");
         assertEquals(Integer.toString(14), mff.getAttribute("fragment.index"));
-        // No fragment.count set for flow files sent when Output Batch Size is set
+        // No fragment.count set for FlowFiles sent when Output Batch Size is set
         assertNull(mff.getAttribute("fragment.count"));
     }
 
@@ -532,7 +532,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         assertEquals("12", mff.getAttribute("fragment.count"));
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -647,7 +647,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -685,7 +685,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -732,7 +732,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -766,7 +766,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         // Validate Max Value doesn't change also
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
@@ -797,7 +797,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -811,7 +811,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Sanity check - run again, this time no flowfiles/rows should be transferred
+        // Sanity check - run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -923,7 +923,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -937,7 +937,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Sanity check - run again, this time no flowfiles/rows should be transferred
+        // Sanity check - run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();

@@ -83,7 +83,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .build();
     static final List<String> OBSOLETE_MAX_ROWS_PER_FLOW_FILE = List.of(
             "esql-max-rows",
-            "Max Rows Per Flow File"
+            "Max Rows Per FlowFile"
     );
 
     protected Set<Relationship> relationships;
@@ -110,9 +110,9 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .name("SQL Query")
             .description("The SQL query to execute. The query can be empty, a constant value, or built from attributes "
                     + "using Expression Language. If this property is specified, it will be used regardless of the content of "
-                    + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
+                    + "incoming FlowFiles. If this property is empty, the content of the incoming FlowFile is expected "
                     + "to contain a valid SQL query, to be issued by the processor to the database. Note that Expression "
-                    + "Language is not evaluated for flow file contents.")
+                    + "Language is not evaluated for FlowFile contents.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -226,7 +226,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
     @OnScheduled
     public void setup(ProcessContext context) {
-        // If the query is not set, then an incoming flow file is needed. Otherwise, fail the initialization
+        // If the query is not set, then an incoming FlowFile is needed. Otherwise, fail the initialization
         if (!context.getProperty(SQL_QUERY).isSet() && !context.hasIncomingConnection()) {
             final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
                     + "providing flowfile(s) containing a SQL select query";
@@ -270,7 +270,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         if (context.getProperty(SQL_QUERY).isSet()) {
             selectQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         } else {
-            // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
+            // If the query is not set, then an incoming FlowFile is required, and expected to contain a valid SQL select query.
             // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
             final StringBuilder queryContents = new StringBuilder();
             session.read(fileToProcess, in -> queryContents.append(IOUtils.toString(in, Charset.defaultCharset())));
@@ -398,7 +398,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                                     logger.info("{} contains {} records; transferring to 'success'", resultSetFF, nrOfRows.get());
 
-                                    // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
+                                    // Report a FETCH event if there was an incoming FlowFile, or a RECEIVE event otherwise
                                     if (context.hasIncomingConnection()) {
                                         session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
                                     } else {
@@ -406,11 +406,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     }
                                     resultSetFlowFiles.add(resultSetFF);
 
-                                    // If we've reached the batch size, send out the flow files
+                                    // If we've reached the batch size, send out the FlowFiles
                                     if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                                         session.transfer(resultSetFlowFiles, REL_SUCCESS);
                                         // Need to remove the original input file if it exists,
-                                        // but save the attributes to add them to the failure flow file if it is created
+                                        // but save the attributes to add them to the failure FlowFile if it is created
                                         if (fileToProcess != null) {
                                             retainedFlowFileAttributes = new HashMap<>(fileToProcess.getAttributes());
                                             session.remove(fileToProcess);
@@ -423,7 +423,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                                     fragmentIndex++;
                                 } catch (Exception e) {
-                                    // Remove any result set flow file(s) and propagate the exception
+                                    // Remove any result set FlowFile(s) and propagate the exception
                                     session.remove(resultSetFF);
                                     session.remove(resultSetFlowFiles);
                                     if (e instanceof ProcessException) {
@@ -480,7 +480,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                         // If we had at least one result then it's OK to drop the original file
                         session.remove(fileToProcess);
                     } else {
-                        // If we had no results then transfer the original flow file downstream to trigger processors
+                        // If we had no results then transfer the original FlowFile downstream to trigger processors
                         final ContentOutputStrategy contentOutputStrategy = context.getProperty(CONTENT_OUTPUT_STRATEGY).asAllowableValue(ContentOutputStrategy.class);
                         if (ContentOutputStrategy.ORIGINAL == contentOutputStrategy) {
                             session.transfer(fileToProcess, REL_SUCCESS);
@@ -498,8 +498,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             }
         } catch (final ProcessException | SQLException e) {
             //If we had at least one result then it's OK to drop the original file, but if we had no results then
-            //  pass the original flow file down the line to trigger downstream processors
-            //  or create a new empty flow file with the original attributes if the original file no longer exists
+            //  pass the original FlowFile down the line to trigger downstream processors
+            //  or create a new empty FlowFile with the original attributes if the original file no longer exists
             FlowFile failureFlowFile = fileToProcess;
             if (failureFlowFile == null && retainedFlowFileAttributes != null) {
                 failureFlowFile = session.create();

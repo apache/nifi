@@ -54,7 +54,7 @@ public class UpdateCounter extends AbstractProcessor {
 
     static final PropertyDescriptor DELTA = new PropertyDescriptor.Builder()
             .name("Delta")
-            .description("Adjusts the counter by the specified delta for each flow file received. May be a positive or negative integer.")
+            .description("Adjusts the counter by the specified delta for each FlowFile received. May be a positive or negative integer.")
             .required(true)
             .defaultValue("1")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)

@@ -93,7 +93,7 @@ import java.util.stream.Stream;
         "is retained in between invocations of this processor until the Scroll/PiT has expired " +
         "(when the current time is later than the last query execution plus the Pagination Keep Alive interval).")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
-        "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
+        "from Elasticsearch will be loaded into memory all at once and converted into the resulting FlowFiles.")
 public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
     static final String STATE_SCROLL_ID = "scrollId";
     static final String STATE_PIT_ID = "pitId";

@@ -101,7 +101,7 @@ public class TestHttpClientTransaction {
 
         execReceiveZeroFlowFile(transaction);
 
-        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive flow files.");
+        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive FlowFiles.");
     }
 
     @Test
@@ -122,7 +122,7 @@ public class TestHttpClientTransaction {
 
         execReceiveOneFlowFile(transaction);
 
-        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive flow files.");
+        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive FlowFiles.");
         verify(apiClient).commitReceivingFlowFiles(transactionUrl, CONFIRM_TRANSACTION, "3680976076");
     }
 
@@ -145,7 +145,7 @@ public class TestHttpClientTransaction {
 
         execReceiveTwoFlowFiles(transaction);
 
-        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive flow files.");
+        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive FlowFiles.");
         verify(apiClient).commitReceivingFlowFiles(transactionUrl, CONFIRM_TRANSACTION, "2969091230");
     }
 
@@ -169,7 +169,7 @@ public class TestHttpClientTransaction {
 
         execReceiveWithInvalidChecksum(transaction);
 
-        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive flow files.");
+        assertEquals(0, clientRequest.toByteArray().length, "Client sends nothing as payload to receive FlowFiles.");
         verify(apiClient).commitReceivingFlowFiles(transactionUrl, CONFIRM_TRANSACTION, "2969091230");
     }
 

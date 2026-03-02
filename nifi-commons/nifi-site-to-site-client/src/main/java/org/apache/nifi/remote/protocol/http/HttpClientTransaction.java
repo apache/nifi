@@ -89,7 +89,7 @@ public class HttpClientTransaction extends AbstractTransaction {
         } else {
             switch (state) {
                 case DATA_EXCHANGED:
-                    // Some flow files have been sent via stream, finish transferring.
+                    // Some FlowFiles have been sent via stream, finish transferring.
                     apiClient.finishTransferFlowFiles(commSession);
                     ResponseCode.CONFIRM_TRANSACTION.writeResponse(dos, commSession.getChecksum());
                     break;
@@ -135,7 +135,7 @@ public class HttpClientTransaction extends AbstractTransaction {
             switch (response) {
                 case FINISH_TRANSACTION:
                     // The actual HTTP request will be sent in readTransactionResponse.
-                    logger.debug("{} Finished sending flow files.", this);
+                    logger.debug("{} Finished sending FlowFiles.", this);
                     break;
                 case BAD_CHECKSUM: {
                     TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);

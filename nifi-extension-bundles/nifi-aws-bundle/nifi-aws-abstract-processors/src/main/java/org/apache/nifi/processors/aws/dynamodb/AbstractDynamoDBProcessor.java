@@ -234,7 +234,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     }
 
     /**
-     * Send unhandled items to failure and remove the flow files from key to flow file map
+     * Send unhandled items to failure and remove the FlowFiles from key to flow file map
      * @param session used for sending the flow file
      * @param keysToFlowFileMap - ItemKeys to flow file map
      * @param hashKeyValue the items hash key value

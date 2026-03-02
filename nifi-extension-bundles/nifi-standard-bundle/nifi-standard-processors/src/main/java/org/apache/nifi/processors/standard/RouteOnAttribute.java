@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <p>
- * This processor routes a FlowFile based on its flow file attributes by using the Attribute Expression Language. The Expression Language is used by adding Optional Properties to the processor. The
+ * This processor routes a FlowFile based on its FlowFile attributes by using the Attribute Expression Language. The Expression Language is used by adding Optional Properties to the processor. The
  * name of the Property indicates the name of the relationship to which a FlowFile will be routed if matched. The value of the Property indicates an Attribute Expression Language Expression that will
  * be used to determine whether or not a given FlowFile will be routed to the associated relationship. If multiple expressions match a FlowFile's attributes, that FlowFile will be cloned and routed to
  * each corresponding relationship. If none of the supplied expressions matches for a given FlowFile, that FlowFile will be routed to the 'unmatched' relationship.
@@ -353,7 +353,7 @@ public class RouteOnAttribute extends AbstractProcessor {
                 session.transfer(updatedFlowFile, entry.getKey());
             }
 
-            //now transfer the original flow file
+            //now transfer the original FlowFile
             logger.info("Routing {} to {}", flowFile, firstRelationship);
             session.getProvenanceReporter().route(flowFile, firstRelationship);
             flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.getName());

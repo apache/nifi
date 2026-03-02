@@ -223,7 +223,7 @@ public class DataTransferResource extends ApplicationResource {
     @Produces(MediaType.TEXT_PLAIN)
     @Path("input-ports/{portId}/transactions/{transactionId}/flow-files")
     @Operation(
-            summary = "Transfer flow files to the input port",
+            summary = "Transfer FlowFiles to the input port",
             responses = {
                     @ApiResponse(responseCode = "202", content = @Content(schema = @Schema(implementation = String.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -267,7 +267,7 @@ public class DataTransferResource extends ApplicationResource {
         try {
             HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
             int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
-            logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
+            logger.debug("finished receiving FlowFiles, numOfFlowFiles={}", numOfFlowFiles);
             if (numOfFlowFiles < 1) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity("Client should send request when there is data to send. There was no flow file sent.").build();
@@ -594,7 +594,7 @@ public class DataTransferResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Path("output-ports/{portId}/transactions/{transactionId}/flow-files")
     @Operation(
-            summary = "Transfer flow files from the output port",
+            summary = "Transfer FlowFiles from the output port",
             responses = {
                     @ApiResponse(responseCode = "202", content = @Content(schema = @Schema(implementation = StreamingOutput.class))),
                     @ApiResponse(responseCode = "200", description = "There is no flow file to return."),
@@ -648,7 +648,7 @@ public class DataTransferResource extends ApplicationResource {
 
                 try {
                     int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
-                    logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
+                    logger.debug("finished transferring FlowFiles, numOfFlowFiles={}", numOfFlowFiles);
                     if (numOfFlowFiles < 1) {
                         // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
                         throw new WebApplicationException(Response.Status.OK);

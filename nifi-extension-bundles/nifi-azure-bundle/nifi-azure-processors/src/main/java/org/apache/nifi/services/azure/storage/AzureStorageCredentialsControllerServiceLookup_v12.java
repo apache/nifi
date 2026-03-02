@@ -28,7 +28,7 @@ import java.util.Map;
 @CapabilityDescription("Provides an AzureStorageCredentialsService_v12 that can be used to dynamically select another AzureStorageCredentialsService_v12. " +
         "This service requires an attribute named 'azure.storage.credentials.name' to be passed in, and will throw an exception if the attribute is missing. " +
         "The value of 'azure.storage.credentials.name' will be used to select the AzureStorageCredentialsService_v12 that has been registered with that name. " +
-        "This will allow multiple AzureStorageCredentialsServices_v12 to be defined and registered, and then selected dynamically at runtime by tagging flow files " +
+        "This will allow multiple AzureStorageCredentialsServices_v12 to be defined and registered, and then selected dynamically at runtime by tagging FlowFiles " +
         "with the appropriate 'azure.storage.credentials.name' attribute.")
 @DynamicProperty(name = "The name to register AzureStorageCredentialsService_v12", value = "The AzureStorageCredentialsService_v12",
         description = "If '" + AzureStorageCredentialsControllerServiceLookup_v12.AZURE_STORAGE_CREDENTIALS_NAME_ATTRIBUTE + "' attribute contains " +

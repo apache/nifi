@@ -151,7 +151,7 @@ public class ClusteredParameterContextIT extends ParameterContextIT {
         final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(paramContext, Map.of("filesToIngest", assetIds));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
 
-        // Connect the Generate processor to a Terminate processor and generate flow files
+        // Connect the Generate processor to a Terminate processor and generate FlowFiles
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(generateFlowFile, terminate, "success");
         waitForValidProcessor(generateFlowFile.getId());
@@ -159,7 +159,7 @@ public class ClusteredParameterContextIT extends ParameterContextIT {
         getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), getNumberOfNodes());
 
-        // Verify flow files reference both assets
+        // Verify FlowFiles reference both assets
         final String flowFileContents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
         assertTrue(flowFileContents.contains(asset1.getAsset().getName()));
         assertTrue(flowFileContents.contains(asset2.getAsset().getName()));
@@ -217,7 +217,7 @@ public class ClusteredParameterContextIT extends ParameterContextIT {
         getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), getNumberOfNodes());
 
-        // Verify flow files only reference the first asset
+        // Verify FlowFiles only reference the first asset
         final String flowFile1Contents = getClientUtil().getFlowFileContentAsUtf8(connection.getId(), 0);
         assertTrue(flowFile1Contents.contains(asset1.getAsset().getName()));
         assertFalse(flowFile1Contents.contains(asset2.getAsset().getName()));

@@ -91,7 +91,7 @@ public class AttributesToCSV extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes Regular Expression")
-            .description("Regular expression that will be evaluated against the flow file attributes to select "
+            .description("Regular expression that will be evaluated against the FlowFile attributes to select "
                     + "the matching attributes. This property can be used in combination with the attributes "
                     + "list property.  The final output will contain a combination of matches found in the ATTRIBUTE_LIST and ATTRIBUTE_REGEX.")
             .required(false)

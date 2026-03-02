@@ -194,7 +194,7 @@ public class DeleteSFTP extends AbstractProcessor {
 
         try (final SFTPTransfer transfer = new SFTPTransfer(context, logger)) {
             do {
-                //evaluate again inside the loop as each flowfile can have a different hostname
+                //evaluate again inside the loop as each FlowFile can have a different hostname
                 hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
                 final long startNanos = System.nanoTime();
                 final String directoryPathProperty = context.getProperty(DIRECTORY_PATH).evaluateAttributeExpressions(flowFile).getValue();

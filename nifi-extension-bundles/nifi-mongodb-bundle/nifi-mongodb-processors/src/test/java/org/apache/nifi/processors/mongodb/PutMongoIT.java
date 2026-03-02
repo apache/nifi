@@ -599,7 +599,7 @@ public class PutMongoIT extends MongoWriteTestBase {
         MockFlowFile upsertOutput = flowFilesForRelationship.removeFirst();
         upsertOutput.assertAttributeEquals(PutMongo.ATTRIBUTE_UPSERT_ID, "Test");
 
-        // test next flow files for update attributes
+        // test next FlowFiles for update attributes
         for (MockFlowFile flowFile : flowFilesForRelationship) {
             flowFile.assertAttributeNotExists(PutMongo.ATTRIBUTE_UPSERT_ID);
             flowFile.assertAttributeEquals(PutMongo.ATTRIBUTE_UPDATE_MATCH_COUNT, String.valueOf(1));

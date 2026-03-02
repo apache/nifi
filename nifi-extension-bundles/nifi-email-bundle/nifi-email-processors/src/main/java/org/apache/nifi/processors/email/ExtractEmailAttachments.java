@@ -57,7 +57,7 @@ import java.util.Set;
 @SideEffectFree
 @Tags({"split", "email"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Extract attachments from a mime formatted email file, splitting them into individual flowfiles.")
+@CapabilityDescription("Extract attachments from a mime formatted email file, splitting them into individual FlowFiles.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename ", description = "The filename of the attachment"),
         @WritesAttribute(attribute = "email.attachment.parent.filename ", description = "The filename of the parent FlowFile"),

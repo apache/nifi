@@ -404,7 +404,7 @@ public class SwappablePriorityQueue {
         incrementSwapQueueSize(-flowFileCount, -contentSize, -1);
 
         if (partialContents) {
-            // if we have partial results, we need to calculate the content size of the flowfiles
+            // if we have partial results, we need to calculate the content size of the FlowFiles
             // actually swapped back in.
             long contentSizeSwappedIn = 0L;
             for (final FlowFileRecord swappedIn : swapContents.getFlowFiles()) {

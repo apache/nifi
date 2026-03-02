@@ -56,12 +56,12 @@ public class VirtualFtpFile implements FtpFile {
 
     @Override
     public boolean isDirectory() {
-        return true; // Only directories are handled since files are converted into flowfiles immediately.
+        return true; // Only directories are handled since files are converted into FlowFiles immediately.
     }
 
     @Override
     public boolean isFile() {
-        return false; // Only directories are handled since files are converted into flowfiles immediately.
+        return false; // Only directories are handled since files are converted into FlowFiles immediately.
     }
 
     @Override

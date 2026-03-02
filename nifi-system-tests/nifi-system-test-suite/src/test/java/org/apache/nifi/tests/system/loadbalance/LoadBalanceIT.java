@@ -149,7 +149,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
             final ConnectionStatusSnapshotDTO snapshotDto = nodeStatusDto.getStatusSnapshot();
             final int flowFilesQueued = snapshotDto.getFlowFilesQueued();
 
-            // Number of flowfiles should either be 0 or should be equal to the total number of FlowFiles in the queue.
+            // Number of FlowFiles should either be 0 or should be equal to the total number of FlowFiles in the queue.
             if (flowFilesQueued == 0) {
                 emptyNodes++;
             } else {

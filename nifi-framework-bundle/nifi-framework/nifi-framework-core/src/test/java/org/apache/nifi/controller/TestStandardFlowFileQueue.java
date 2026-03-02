@@ -101,7 +101,7 @@ public class TestStandardFlowFileQueue {
             queue.put(new MockFlowFileRecord());
         }
 
-        // just make sure that the flowfiles have time to expire.
+        // just make sure that the FlowFiles have time to expire.
         try {
             Thread.sleep(100L);
         } catch (final InterruptedException ignored) {
@@ -351,9 +351,9 @@ public class TestStandardFlowFileQueue {
         final Set<FlowFileRecord> exp = new HashSet<>();
 
         // At this point there should be:
-        // 1k flow files in the active queue
-        // 9,001 flow files in the swap queue
-        // 10k flow files swapped to disk
+        // 1k FlowFiles in the active queue
+        // 9,001 FlowFiles in the swap queue
+        // 10k FlowFiles swapped to disk
 
         for (int i = 0; i < 999; i++) { //
             final FlowFileRecord flowFile = queue.poll(exp);

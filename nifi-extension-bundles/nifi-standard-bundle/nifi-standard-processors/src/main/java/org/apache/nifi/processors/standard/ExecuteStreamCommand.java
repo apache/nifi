@@ -76,7 +76,7 @@ import java.util.regex.Pattern;
 
 /**
  * <p>
- * This processor executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.
+ * This processor executes an external command on the contents of a FlowFile, and creates a new FlowFile with the results of the command.
  * </p>
  * <p>
  * <strong>Properties:</strong>
@@ -114,8 +114,8 @@ import java.util.regex.Pattern;
  * </li>
  * <li>Ignore STDIN
  * <ul>
- * <li>Indicates whether or not the flowfile's contents should be streamed as part of STDIN</li>
- * <li>Default value: false (this means that the contents of a flowfile will be sent as STDIN to your command</li>
+ * <li>Indicates whether or not the FlowFile's contents should be streamed as part of STDIN</li>
+ * <li>Default value: false (this means that the contents of a FlowFile will be sent as STDIN to your command</li>
  * <li>Supports expression language: false</li>
  * </ul>
  * </li>
@@ -127,17 +127,17 @@ import java.util.regex.Pattern;
  * <ul>
  * <li>original
  * <ul>
- * <li>The destination path for the original incoming flow file</li>
+ * <li>The destination path for the original incoming FlowFile</li>
  * </ul>
  * </li>
  * <li>output-stream
  * <ul>
- * <li>The destination path for the flow file created from the command's output, if the exit code is zero</li>
+ * <li>The destination path for the FlowFile created from the command's output, if the exit code is zero</li>
  * </ul>
  * </li>
  * <li>nonzero-status
  * <ul>
- * <li>The destination path for the flow file created from the command's output, if the exit code is non-zero</li>
+ * <li>The destination path for the FlowFile created from the command's output, if the exit code is non-zero</li>
  * </ul>
  * </li>
  * </ul>
@@ -177,12 +177,12 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
     public static final Relationship OUTPUT_STREAM_RELATIONSHIP = new Relationship.Builder()
             .name("output stream")
-            .description("The destination path for the flow file created from the command's output, if the returned status code is zero.")
+            .description("The destination path for the FlowFile created from the command's output, if the returned status code is zero.")
             .build();
     public static final Relationship NONZERO_STATUS_RELATIONSHIP = new Relationship.Builder()
             .name("nonzero status")
-            .description("The destination path for the flow file created from the command's output, if the returned status code is non-zero. "
-                    + "All flow files routed to this relationship will be penalized.")
+            .description("The destination path for the FlowFile created from the command's output, if the returned status code is non-zero. "
+                    + "All FlowFiles routed to this relationship will be penalized.")
             .build();
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
@@ -257,7 +257,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     static final PropertyDescriptor IGNORE_STDIN = new PropertyDescriptor.Builder()
             .name("Ignore STDIN")
-            .description("If true, the contents of the incoming flowfile will not be passed to the executing command")
+            .description("If true, the contents of the incoming FlowFile will not be passed to the executing command")
             .addValidator(Validator.VALID)
             .allowableValues("true", "false")
             .defaultValue("false")

@@ -29,7 +29,7 @@ public class FlowQueueStatus implements Serializable {
     private Long dataSize;
     private Long dataSizeMax;
 
-    @Schema(description = "The number of flow files in the queue", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The number of FlowFiles in the queue", allowableValues = "range[0, 9223372036854775807]")
     public Long getSize() {
         return size;
     }
@@ -38,7 +38,7 @@ public class FlowQueueStatus implements Serializable {
         this.size = size;
     }
 
-    @Schema(description = "The maximum number of flow files that the queue is configured to hold", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The maximum number of FlowFiles that the queue is configured to hold", allowableValues = "range[0, 9223372036854775807]")
     public Long getSizeMax() {
         return sizeMax;
     }
@@ -47,7 +47,7 @@ public class FlowQueueStatus implements Serializable {
         this.sizeMax = sizeMax;
     }
 
-    @Schema(description = "The size (in Bytes) of all flow files in the queue", allowableValues = "range[0, 9223372036854775807]")
+    @Schema(description = "The size (in Bytes) of all FlowFiles in the queue", allowableValues = "range[0, 9223372036854775807]")
     public Long getDataSize() {
         return dataSize;
     }

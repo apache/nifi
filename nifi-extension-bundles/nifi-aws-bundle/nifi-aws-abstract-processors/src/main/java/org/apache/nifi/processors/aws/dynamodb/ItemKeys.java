@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import java.util.Objects;
 
 /**
- * Utility class to keep a map of keys and flow files
+ * Utility class to keep a map of keys and FlowFiles
  */
 class ItemKeys {
 

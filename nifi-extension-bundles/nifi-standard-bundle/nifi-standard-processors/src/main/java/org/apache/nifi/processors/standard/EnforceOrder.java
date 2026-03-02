@@ -61,7 +61,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @TriggerSerially
 @CapabilityDescription("Enforces expected ordering of FlowFiles that belong to the same data group within a single node. " +
-        " Although PriorityAttributePrioritizer can be used on a connection to ensure that flow files going through that connection are in priority order," +
+        " Although PriorityAttributePrioritizer can be used on a connection to ensure that FlowFiles going through that connection are in priority order," +
         " depending on error-handling, branching, and other flow designs, it is possible for FlowFiles to get out-of-order." +
         " EnforceOrder can be used to enforce original ordering for those FlowFiles." +
         " [IMPORTANT] In order to take effect of EnforceOrder, FirstInFirstOutPrioritizer should be used at EVERY downstream relationship" +
@@ -279,7 +279,7 @@ public class EnforceOrder extends AbstractProcessor {
                 continue;
             }
 
-            // At this point, the flow file is confirmed to be valid.
+            // At this point, the FlowFile is confirmed to be valid.
             oc.markFlowFileValid();
         }
 
@@ -321,7 +321,7 @@ public class EnforceOrder extends AbstractProcessor {
         private final Map<String, String> groupStates = new HashMap<>();
         private final long now = System.currentTimeMillis();
 
-        // Following properties are computed per flow file.
+        // Following properties are computed per FlowFile.
         private final PropertyValue groupIdentifierProperty;
 
         // Followings are per group objects.
@@ -446,7 +446,7 @@ public class EnforceOrder extends AbstractProcessor {
             flowFileGroups.entrySet().stream()
                     .filter(entry -> !entry.getValue().isEmpty())
                     .peek(entry -> {
-                        // Sort flow files within each group.
+                        // Sort FlowFiles within each group.
                         final List<FlowFile> groupedFlowFiles = entry.getValue();
                         groupedFlowFiles.sort(Comparator.comparing(getOrder));
                     })

@@ -39,13 +39,13 @@ public class KinesisProcessorUtils {
     public static final int MAX_MESSAGE_SIZE = 1000 * 1024;
 
     /**
-     * Filters messages by max size, transferring any flowfiles larger than the max size to Failure.
+     * Filters messages by max size, transferring any FlowFiles larger than the max size to Failure.
      * @param session The process session
      * @param batchSize The batch size
      * @param maxBufferSizeBytes The max buffer size in bytes
      * @param errorMessageAttribute The attribute that will contain the error message in case of failure
      * @param logger The component log
-     * @return A list of flowfiles that are less than the maximum errorMessageAttribute size
+     * @return A list of FlowFiles that are less than the maximum errorMessageAttribute size
      */
     public static List<FlowFile> filterMessagesByMaxSize(final ProcessSession session, final int batchSize, final long maxBufferSizeBytes,
                                                          final String errorMessageAttribute, final ComponentLog logger) {

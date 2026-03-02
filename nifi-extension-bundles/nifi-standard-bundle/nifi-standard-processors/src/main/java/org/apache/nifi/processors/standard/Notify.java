@@ -50,7 +50,7 @@ import java.util.Set;
 @Tags({"map", "cache", "notify", "distributed", "signal", "release"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Caches a release signal identifier in the cache, optionally along with "
-        + "the FlowFile's attributes.  Any flow files held at a corresponding Wait processor will be "
+        + "the FlowFile's attributes.  Any FlowFiles held at a corresponding Wait processor will be "
         + "released once this signal in the cache is discovered.")
 @WritesAttribute(attribute = "notified", description = "All FlowFiles will have an attribute 'notified'. The value of this " +
         "attribute is true, is the FlowFile is notified, otherwise false.")
@@ -108,9 +108,9 @@ public class Notify extends AbstractProcessor {
 
     public static final PropertyDescriptor SIGNAL_BUFFER_COUNT = new PropertyDescriptor.Builder()
             .name("Signal Buffer Count")
-            .description("Specify the maximum number of incoming flow files that can be buffered until signals are notified to cache service. " +
+            .description("Specify the maximum number of incoming FlowFiles that can be buffered until signals are notified to cache service. " +
                 "The more buffer can provide the better performance, as it reduces the number of interactions with cache service " +
-                "by grouping signals by signal identifier when multiple incoming flow files share the same signal identifier.")
+                "by grouping signals by signal identifier when multiple incoming FlowFiles share the same signal identifier.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
@@ -202,7 +202,7 @@ public class Notify extends AbstractProcessor {
             // Signal id is computed from attribute 'RELEASE_SIGNAL_IDENTIFIER' with expression language support
             final String signalId = signalIdProperty.evaluateAttributeExpressions(flowFile).getValue();
 
-            // if the computed value is null, or empty, we transfer the flow file to failure relationship
+            // if the computed value is null, or empty, we transfer the FlowFile to failure relationship
             if (StringUtils.isBlank(signalId)) {
                 logger.error("FlowFile {} has no attribute for given Release Signal Identifier", flowFile);
                 // set 'notified' attribute

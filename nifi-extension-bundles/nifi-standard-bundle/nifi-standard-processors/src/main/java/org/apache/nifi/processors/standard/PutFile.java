@@ -153,7 +153,7 @@ public class PutFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder()
             .name("Create Missing Directories")
-            .description("If true, then missing destination directories will be created. If false, flowfiles are penalized and sent to failure.")
+            .description("If true, then missing destination directories will be created. If false, FlowFiles are penalized and sent to failure.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")

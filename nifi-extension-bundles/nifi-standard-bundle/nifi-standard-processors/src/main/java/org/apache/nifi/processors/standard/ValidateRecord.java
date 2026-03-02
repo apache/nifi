@@ -337,7 +337,7 @@ public class ValidateRecord extends AbstractProcessor {
                         logValidationErrors(flowFile, recordCount, result);
 
                         if (!context.isAutoTerminated(REL_INVALID)) {
-                            // If REL_INVALID is not autoTerminated, then create a flow file and calculate the invalid details.
+                            // If REL_INVALID is not autoTerminated, then create a FlowFile and calculate the invalid details.
                             // If it is autoTerminated, then skip doing work which will just be discarded.
                             if (invalidFlowFile == null) {
                                 invalidFlowFile = session.create(flowFile);

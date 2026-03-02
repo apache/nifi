@@ -116,7 +116,7 @@ public class DistributeLoad extends AbstractProcessor {
 
     private static Relationship createRelationship(final int num) {
         return new Relationship.Builder().name(String.valueOf(num))
-                .description("Where to route flowfiles for this relationship index").build();
+                .description("Where to route FlowFiles for this relationship index").build();
     }
 
     @Override

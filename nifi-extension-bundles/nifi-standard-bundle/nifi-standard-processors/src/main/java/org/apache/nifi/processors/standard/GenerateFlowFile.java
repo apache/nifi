@@ -113,7 +113,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
-            .description("Specifies the character set to use when writing the bytes of Custom Text to a flow file.")
+            .description("Specifies the character set to use when writing the bytes of Custom Text to a FlowFile.")
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)

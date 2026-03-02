@@ -49,11 +49,11 @@ import static org.apache.nifi.remote.util.EventReportUtil.warn;
 /**
  * Service which maintains state around peer (NiFi node(s) in a remote instance (cluster or
  * standalone)). There is an internal cache which stores identifying information about each
- * node and the current workload of each in number of flowfiles being processed. Individual
+ * node and the current workload of each in number of FlowFiles being processed. Individual
  * nodes can be penalized for an amount of time (see {@link #penalize(Peer, long)}) to avoid
  * sending/receiving data from them. Attempts are made to balance communications ("busier"
  * nodes will {@code TransferDirection.SEND} more and {@code TransferDirection.RECEIVE} fewer
- * flowfiles from this instance).
+ * FlowFiles from this instance).
  */
 public class PeerSelector {
     private static final Logger logger = LoggerFactory.getLogger(PeerSelector.class);
@@ -132,15 +132,15 @@ public class PeerSelector {
     }
 
     /**
-     * Returns the normalized weight for this ratio of peer flowfiles to total flowfiles and the given direction. The number will be
-     * a Double between 0 and 100 indicating the percent of all flowfiles the peer
+     * Returns the normalized weight for this ratio of peer FlowFiles to total FlowFiles and the given direction. The number will be
+     * a Double between 0 and 100 indicating the percent of all FlowFiles the peer
      * should send/receive. The transfer direction is <em>from the perspective of this node to the peer</em>
-     * (i.e. how many flowfiles should <em>this node send</em> to the peer, or how many flowfiles
+     * (i.e. how many FlowFiles should <em>this node send</em> to the peer, or how many FlowFiles
      * should <em>this node receive</em> from the peer).
      *
-     * @param direction          the transfer direction ({@code SEND} weights the destinations higher if they have fewer flowfiles, {@code RECEIVE} weights them higher if they have more)
-     * @param totalFlowFileCount the total flowfile count in the remote instance (standalone or cluster)
-     * @param flowFileCount      the flowfile count for the given peer
+     * @param direction          the transfer direction ({@code SEND} weights the destinations higher if they have fewer FlowFiles, {@code RECEIVE} weights them higher if they have more)
+     * @param totalFlowFileCount the total FlowFile count in the remote instance (standalone or cluster)
+     * @param flowFileCount      the FlowFile count for the given peer
      * @param peerCount          the number of peers in the remote instance
      * @return the normalized weight of this peer
      */
@@ -152,14 +152,14 @@ public class PeerSelector {
         }
 
         double cappedPercent;
-        // If no flowfiles exist in the remote instance, evenly weight each node with 1/N
+        // If no FlowFiles exist in the remote instance, evenly weight each node with 1/N
         if (totalFlowFileCount == 0) {
             cappedPercent = 1.0 / peerCount;
         } else {
             final double percentageOfFlowFiles = ((double) flowFileCount / totalFlowFileCount);
             cappedPercent = percentageOfFlowFiles;
 
-            // If sending to the remote, allocate more flowfiles to the less-stressed peers
+            // If sending to the remote, allocate more FlowFiles to the less-stressed peers
             if (direction == TransferDirection.SEND) {
                 cappedPercent = (1 - percentageOfFlowFiles) / (peerCount - 1);
             }
@@ -209,9 +209,9 @@ public class PeerSelector {
 
     /**
      * Returns the total of all values in the map. This method is frequently used to calculate the total number of
-     * flowfiles in the instance from the respective peer flowfile counts or the total percentage from the relative weights.
+     * FlowFiles in the instance from the respective peer FlowFile counts or the total percentage from the relative weights.
      *
-     * @param peerWeightMap the map of peers to flowfile counts or relative weights
+     * @param peerWeightMap the map of peers to FlowFile counts or relative weights
      * @return the total of the map values
      */
     private static double sumMapValues(Map<PeerStatus, Double> peerWeightMap) {
@@ -230,8 +230,8 @@ public class PeerSelector {
      * The peers with lower workloads will be selected with higher probability.
      *
      * @param direction the amount of workload is calculated based on transaction direction,
-     *                  for SEND, a peer with fewer flow files is preferred,
-     *                  for RECEIVE, a peer with more flow files is preferred
+     *                  for SEND, a peer with fewer FlowFiles is preferred,
+     *                  for RECEIVE, a peer with more FlowFiles is preferred
      * @return a selected peer, if there is no available peer or all peers are penalized, then return null
      */
     public PeerStatus getNextPeerStatus(final TransferDirection direction) {
@@ -242,7 +242,7 @@ public class PeerSelector {
     }
 
     /**
-     * Returns {@code true} if this peer is currently penalized and should not send/receive flowfiles.
+     * Returns {@code true} if this peer is currently penalized and should not send/receive FlowFiles.
      *
      * @param peerStatus the peer status identifying the peer
      * @return true if this peer is penalized
@@ -304,13 +304,13 @@ public class PeerSelector {
     }
 
     /**
-     * Returns a map of peers prepared for flowfile transfer in the specified direction. Each peer is a key and the value is a
-     * weighted percentage of the total flowfiles in the remote instance. For example, in a cluster where the total number of flowfiles
+     * Returns a map of peers prepared for FlowFile transfer in the specified direction. Each peer is a key and the value is a
+     * weighted percentage of the total FlowFiles in the remote instance. For example, in a cluster where the total number of FlowFiles
      * is 100, distributed across three nodes 20 in A, 30 in B, and 50 in C, the resulting map for
      * {@code SEND} will be {@code [A:40.0, B:35.0, C:25.0]} (1 - .2 => .8 * 100 / (3-1)) => 40.0).
      *
      * @param statuses  the set of all peers
-     * @param direction the direction of transfer ({@code SEND} weights the destinations higher if they have more flowfiles, {@code RECEIVE} weights them higher if they have fewer)
+     * @param direction the direction of transfer ({@code SEND} weights the destinations higher if they have more FlowFiles, {@code RECEIVE} weights them higher if they have fewer)
      * @return the ordered map of each peer to its relative weight
      */
     Map<PeerStatus, Double> buildWeightedPeerMap(final Set<PeerStatus> statuses, final TransferDirection direction) {
@@ -332,20 +332,20 @@ public class PeerSelector {
     }
 
     /**
-     * Returns a map indexed by a peer to the normalized weight (number of flowfiles currently being
-     * processed by the peer as a percentage of the total). This is used to allocate flowfiles to
+     * Returns a map indexed by a peer to the normalized weight (number of FlowFiles currently being
+     * processed by the peer as a percentage of the total). This is used to allocate FlowFiles to
      * the various peers as destinations.
      *
-     * @param peerStatuses the set of peers, along with their current workload (number of flowfiles)
-     * @param direction    whether sending flowfiles to these peers or receiving them
+     * @param peerStatuses the set of peers, along with their current workload (number of FlowFiles)
+     * @param direction    whether sending FlowFiles to these peers or receiving them
      * @return the map of weighted peers
      */
     private Map<PeerStatus, Double> createDestinationMap(Set<PeerStatus> peerStatuses, TransferDirection direction) {
         final Map<PeerStatus, Double> peerWorkloads = new HashMap<>();
 
-        // Calculate the total number of flowfiles in the peers
+        // Calculate the total number of FlowFiles in the peers
         long totalFlowFileCount = peerStatuses.stream().mapToLong(PeerStatus::getFlowFileCount).sum();
-        logger.debug("Building weighted map of peers with total remote NiFi flowfile count: {}", totalFlowFileCount);
+        logger.debug("Building weighted map of peers with total remote NiFi FlowFile count: {}", totalFlowFileCount);
 
         // For each node, calculate the relative weight and store it in the map
         for (final PeerStatus nodeInfo : peerStatuses) {
@@ -415,7 +415,7 @@ public class PeerSelector {
     /**
      * Returns the {@link PeerStatus} identifying the next peer to send/receive data. This uses random
      * selection of peers, weighted by the relative desirability (i.e. for {@code SEND}, peers with more
-     * flowfiles are more likely to be selected, and for {@code RECEIVE}, peers with fewer flowfiles are
+     * FlowFiles are more likely to be selected, and for {@code RECEIVE}, peers with fewer FlowFiles are
      * more likely).
      *
      * @param orderedPeerStatuses the map of peers to relative weights, sorted in descending order by weight
@@ -550,7 +550,7 @@ public class PeerSelector {
     }
 
     /**
-     * Refreshes the list of S2S peers that flowfiles can be sent to or received from. Uses the stateful
+     * Refreshes the list of S2S peers that FlowFiles can be sent to or received from. Uses the stateful
      * cache to reduce network overhead.
      */
     private void refreshPeerStatusCache() {

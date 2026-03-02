@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Convenience class used to add attributes in the origin flow files once the bin was committed
+ * Convenience class used to add attributes in the origin FlowFiles once the bin was committed
  */
 public class BinProcessingResult {
 
@@ -32,7 +32,7 @@ public class BinProcessingResult {
     private boolean isCommitted;
 
     /**
-     * Map of attributes to add to original flow files
+     * Map of attributes to add to original FlowFiles
      */
     private Map<String, String> attributes;
 

@@ -314,7 +314,7 @@ public class PartitionRecord extends AbstractProcessor {
         }
 
         // Transfer the FlowFiles. We wait until the end to do this, in case any IOException is thrown above,
-        // because we want to ensure that we are able to remove the child flowfiles in case of a failure.
+        // because we want to ensure that we are able to remove the child FlowFiles in case of a failure.
         for (final RecordValueMap valueMap : writerMap.keySet()) {
             session.transfer(valueMap.getFlowFile(), REL_SUCCESS);
         }

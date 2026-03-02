@@ -84,8 +84,8 @@ public class GetSNMP extends AbstractSNMPProcessor {
     public static final PropertyDescriptor OID = new PropertyDescriptor.Builder()
             .name("OID")
             .description("Each OID (object identifier) identifies a variable that can be read or set via SNMP." +
-                    " This value is not taken into account for an input flowfile and will be omitted. Can be set to empty" +
-                    "string when the OIDs are provided through flowfile.")
+                    " This value is not taken into account for an input FlowFile and will be omitted. Can be set to empty" +
+                    "string when the OIDs are provided through FlowFile.")
             .addValidator(new OIDValidator())
             .build();
 
@@ -100,7 +100,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
     public static final PropertyDescriptor TEXTUAL_OID = new PropertyDescriptor.Builder()
             .name("Textual OID")
             .description("The textual form of the numeric OID to request. This property is user defined, not processed and appended to " +
-                    "the outgoing flowfile.")
+                    "the outgoing FlowFile.")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -206,7 +206,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 }
                 processSession.transfer(flowFile, response.isError() ? REL_FAILURE : REL_SUCCESS);
             } else {
-                getLogger().warn("No SNMP specific attributes found in flowfile.");
+                getLogger().warn("No SNMP specific attributes found in FlowFile.");
                 processSession.transfer(flowFile, REL_FAILURE);
             }
         } catch (SNMPWalkException e) {
@@ -232,7 +232,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
                 flowFile = processSession.putAllAttributes(flowFile, textualOidMap);
                 handleResponse(context, processSession, flowFile, response, REL_SUCCESS, REL_FAILURE, "/get", isNewFlowFileCreated);
             } else {
-                getLogger().warn("No SNMP specific attributes found in flowfile.");
+                getLogger().warn("No SNMP specific attributes found in FlowFile.");
                 processSession.transfer(flowFile, REL_FAILURE);
                 context.yield();
             }

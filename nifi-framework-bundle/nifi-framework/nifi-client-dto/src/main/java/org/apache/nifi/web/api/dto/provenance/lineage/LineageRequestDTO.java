@@ -61,11 +61,11 @@ public class LineageRequestDTO {
     }
 
     /**
-     * @return type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'. PARENTS will return the lineage for the flowfiles that are parents of the specified event. CHILDREN will return the
-     * lineage of for the flowfiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.
+     * @return type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'. PARENTS will return the lineage for the FlowFiles that are parents of the specified event. CHILDREN will return the
+     * lineage of for the FlowFiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.
      */
-    @Schema(description = "The type of lineage request. PARENTS will return the lineage for the flowfiles that are parents of the specified event. CHILDREN will return the lineage "
-                    + "for the flowfiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.",
+    @Schema(description = "The type of lineage request. PARENTS will return the lineage for the FlowFiles that are parents of the specified event. CHILDREN will return the lineage "
+                    + "for the FlowFiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.",
             implementation = LineageRequestType.class
     )
     public LineageRequestType getLineageRequestType() {
