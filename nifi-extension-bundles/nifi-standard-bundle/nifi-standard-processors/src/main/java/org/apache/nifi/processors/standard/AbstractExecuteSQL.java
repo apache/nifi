@@ -83,7 +83,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .build();
     static final List<String> OBSOLETE_MAX_ROWS_PER_FLOW_FILE = List.of(
             "esql-max-rows",
-            "Max Rows Per FlowFile"
+            "Max Rows Per Flow File"
     );
 
     protected Set<Relationship> relationships;
