@@ -380,7 +380,6 @@ public class TestTransformXml {
                     </person>
                     <person>
                         <name>Jane Doe</name>
-                        <!-- birthdate, gender, and socialsecuritynumber are optional -->
                     </person>
                 </people_list>
                 """;
