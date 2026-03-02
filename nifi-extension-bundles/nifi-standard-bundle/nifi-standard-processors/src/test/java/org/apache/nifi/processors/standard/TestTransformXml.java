@@ -20,7 +20,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
