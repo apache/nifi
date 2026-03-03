@@ -21,18 +21,26 @@ import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Standard implementation of Iceberg Record wrapping NiFi Record
  */
 public class DelegatedRecord implements Record {
     private final org.apache.nifi.serialization.record.Record record;
-
     private final Types.StructType struct;
-
+    private final Map<Class<?>, Function<Object, Object>> typeHandlers =
+            new ConcurrentHashMap<>(
+                    Map.of(
+                        java.sql.Timestamp.class,
+                            (timestamp) -> ((Timestamp) timestamp).toLocalDateTime()
+                    )
+            );
     public DelegatedRecord(
             final org.apache.nifi.serialization.record.Record record,
             final Types.StructType struct
@@ -54,7 +62,7 @@ public class DelegatedRecord implements Record {
      */
     @Override
     public Object getField(final String fieldName) {
-        return record.getValue(fieldName);
+        return convertRecord(record.getValue(fieldName));
     }
 
     /**
@@ -77,7 +85,14 @@ public class DelegatedRecord implements Record {
     @Override
     public Object get(final int position) {
         final RecordField recordField = record.getSchema().getField(position);
-        return record.getValue(recordField);
+        return convertRecord(record.getValue(recordField));
+    }
+
+    private Object convertRecord(Object recordValue) {
+        if (recordValue != null && typeHandlers.containsKey(recordValue.getClass())) {
+            return typeHandlers.get(recordValue.getClass()).apply(recordValue);
+        }
+        return record;
     }
 
     /**
