@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.connector.authorization;
 
-import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 
@@ -38,9 +38,9 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> enableControllerServices(final ControllerServiceReferenceScope scope, final ControllerServiceReferenceHierarchy hierarchy) {
+    public CompletableFuture<Void> enableControllerServices(final ControllerServiceReferenceScope referenceScope, final ComponentHierarchyScope hierarchyScope) {
         authContext.authorizeWrite();
-        return delegate.enableControllerServices(scope, hierarchy);
+        return delegate.enableControllerServices(referenceScope, hierarchyScope);
     }
 
     @Override
@@ -50,9 +50,9 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> disableControllerServices(final ControllerServiceReferenceHierarchy hierarchy) {
+    public CompletableFuture<Void> disableControllerServices(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.disableControllerServices(hierarchy);
+        return delegate.disableControllerServices(scope);
     }
 
     @Override
@@ -62,9 +62,9 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessors(final boolean recursive) {
+    public CompletableFuture<Void> startProcessors(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.startProcessors(recursive);
+        return delegate.startProcessors(scope);
     }
 
     @Override
@@ -80,45 +80,45 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopProcessors(final boolean recursive) {
+    public CompletableFuture<Void> stopProcessors(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.stopProcessors(recursive);
+        return delegate.stopProcessors(scope);
     }
 
     @Override
-    public CompletableFuture<Void> startPorts(final boolean recursive) {
+    public CompletableFuture<Void> startPorts(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.startPorts(recursive);
+        return delegate.startPorts(scope);
     }
 
     @Override
-    public CompletableFuture<Void> stopPorts(final boolean recursive) {
+    public CompletableFuture<Void> stopPorts(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.stopPorts(recursive);
+        return delegate.stopPorts(scope);
     }
 
     @Override
-    public CompletableFuture<Void> startRemoteProcessGroups(final boolean recursive) {
+    public CompletableFuture<Void> startRemoteProcessGroups(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.startRemoteProcessGroups(recursive);
+        return delegate.startRemoteProcessGroups(scope);
     }
 
     @Override
-    public CompletableFuture<Void> stopRemoteProcessGroups(final boolean recursive) {
+    public CompletableFuture<Void> stopRemoteProcessGroups(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.stopRemoteProcessGroups(recursive);
+        return delegate.stopRemoteProcessGroups(scope);
     }
 
     @Override
-    public CompletableFuture<Void> startStatelessGroups(final boolean recursive) {
+    public CompletableFuture<Void> startStatelessGroups(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.startStatelessGroups(recursive);
+        return delegate.startStatelessGroups(scope);
     }
 
     @Override
-    public CompletableFuture<Void> stopStatelessGroups(final boolean recursive) {
+    public CompletableFuture<Void> stopStatelessGroups(final ComponentHierarchyScope scope) {
         authContext.authorizeWrite();
-        return delegate.stopStatelessGroups(recursive);
+        return delegate.stopStatelessGroups(scope);
     }
 
     @Override
@@ -127,4 +127,3 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
         return delegate.getActiveThreadCount();
     }
 }
-

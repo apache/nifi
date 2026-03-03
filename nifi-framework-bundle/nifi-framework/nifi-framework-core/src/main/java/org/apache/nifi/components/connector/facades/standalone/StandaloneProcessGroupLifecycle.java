@@ -19,7 +19,7 @@ package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
@@ -65,9 +65,9 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> enableControllerServices(final ControllerServiceReferenceScope scope, final ControllerServiceReferenceHierarchy hierarchy) {
-        final boolean recursive = (hierarchy == ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS);
-        final Set<ControllerServiceNode> controllerServices = (scope == ControllerServiceReferenceScope.INCLUDE_ALL) ? processGroup.findAllControllerServices() : findReferencedServices(recursive);
+    public CompletableFuture<Void> enableControllerServices(final ControllerServiceReferenceScope referenceScope, final ComponentHierarchyScope hierarchyScope) {
+        final boolean recursive = (hierarchyScope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
+        final Set<ControllerServiceNode> controllerServices = (referenceScope == ControllerServiceReferenceScope.INCLUDE_ALL) ? processGroup.findAllControllerServices() : findReferencedServices(recursive);
         return enableControllerServices(controllerServices);
     }
 
@@ -175,8 +175,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> disableControllerServices(final ControllerServiceReferenceHierarchy hierarchy) {
-        final boolean recursive = (hierarchy == ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS);
+    public CompletableFuture<Void> disableControllerServices(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         final Set<ControllerServiceNode> controllerServices = recursive ? processGroup.findAllControllerServices() : processGroup.getControllerServices(false);
         return disableControllerServices(controllerServices);
     }
@@ -196,7 +196,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessors(final boolean recursive) {
+    public CompletableFuture<Void> startProcessors(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
         final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
@@ -227,10 +228,10 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
         Thread.startVirtualThread(() -> {
             try {
-                enableControllerServices(serviceReferenceScope, ControllerServiceReferenceHierarchy.DIRECT_SERVICES_ONLY).get();
-                startPorts(false).get();
-                startRemoteProcessGroups(false).get();
-                startProcessors(false).get();
+                enableControllerServices(serviceReferenceScope, ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
+                startPorts(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
+                startRemoteProcessGroups(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
+                startProcessors(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
 
                 final List<CompletableFuture<Void>> childGroupFutures = new ArrayList<>();
                 for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
@@ -255,7 +256,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startPorts(final boolean recursive) {
+    public CompletableFuture<Void> startPorts(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} starting all ports", this);
         final Collection<Port> inputPorts = recursive ? processGroup.findAllInputPorts() : processGroup.getInputPorts();
         for (final Port inputPort : inputPorts) {
@@ -272,7 +274,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopPorts(final boolean recursive) {
+    public CompletableFuture<Void> stopPorts(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} stopping all ports", this);
 
         final Collection<Port> inputPorts = recursive ? processGroup.findAllInputPorts() : processGroup.getInputPorts();
@@ -290,7 +293,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startRemoteProcessGroups(final boolean recursive) {
+    public CompletableFuture<Void> startRemoteProcessGroups(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} starting all Remote Process Groups", this);
 
         final Collection<RemoteProcessGroup> rpgs = recursive ? processGroup.findAllRemoteProcessGroups() : processGroup.getRemoteProcessGroups();
@@ -303,7 +307,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopRemoteProcessGroups(final boolean recursive) {
+    public CompletableFuture<Void> stopRemoteProcessGroups(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} stopping all Remote Process Groups", this);
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
 
@@ -317,7 +322,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startStatelessGroups(final boolean recursive) {
+    public CompletableFuture<Void> startStatelessGroups(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} starting all Stateless Process Groups", this);
         final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
 
@@ -334,7 +340,7 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             if (childGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
                 startFutures.add(childLifecycle.start(ControllerServiceReferenceScope.INCLUDE_REFERENCED_SERVICES_ONLY));
             } else if (recursive) {
-                startFutures.add(childLifecycle.startStatelessGroups(true));
+                startFutures.add(childLifecycle.startStatelessGroups(ComponentHierarchyScope.INCLUDE_CHILD_GROUPS));
             }
         }
 
@@ -343,7 +349,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopStatelessGroups(final boolean recursive) {
+    public CompletableFuture<Void> stopStatelessGroups(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         logger.debug("{} stopping all Stateless Process Groups", this);
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
 
@@ -359,7 +366,7 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             if (childGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
                 stopFutures.add(childLifecycle.stop());
             } else if (recursive) {
-                stopFutures.add(childLifecycle.stopStatelessGroups(true));
+                stopFutures.add(childLifecycle.stopStatelessGroups(ComponentHierarchyScope.INCLUDE_CHILD_GROUPS));
             }
         }
 
@@ -378,11 +385,11 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
         Thread.startVirtualThread(() -> {
             try {
-                stopProcessors(false).get();
+                stopProcessors(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
                 stopChildren().get();
-                stopPorts(false).get();
-                stopRemoteProcessGroups(false).get();
-                disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS).get();
+                stopPorts(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
+                stopRemoteProcessGroups(ComponentHierarchyScope.IMMEDIATE_GROUP_ONLY).get();
+                disableControllerServices(ComponentHierarchyScope.INCLUDE_CHILD_GROUPS).get();
 
                 logger.info("Stopped Process Group {}", processGroup.getIdentifier());
                 result.complete(null);
@@ -412,7 +419,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopProcessors(final boolean recursive) {
+    public CompletableFuture<Void> stopProcessors(final ComponentHierarchyScope scope) {
+        final boolean recursive = (scope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
         final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
