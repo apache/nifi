@@ -192,17 +192,20 @@ public class ExcelRecordReader implements RecordReader {
                 }
                 break;
             case DATE:
-                if (DataTypeUtils.isDateTypeCompatible(value, dateFormat)) {
+                final boolean allowDefaultDateFormats = dateFormat != null && !dateFormat.isBlank();
+                if (DataTypeUtils.isDateTypeCompatible(value, dateFormat, allowDefaultDateFormats)) {
                     return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIME:
-                if (DataTypeUtils.isTimeTypeCompatible(value, timeFormat)) {
+                final boolean allowDefaultTimeFormats = timeFormat != null && !timeFormat.isBlank();
+                if (DataTypeUtils.isTimeTypeCompatible(value, timeFormat, allowDefaultTimeFormats)) {
                     return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
             case TIMESTAMP:
-                if (DataTypeUtils.isTimestampTypeCompatible(value, timestampFormat)) {
+                final boolean allowDefaultTimestampFormats = timestampFormat != null && !timestampFormat.isBlank();
+                if (DataTypeUtils.isTimestampTypeCompatible(value, timestampFormat, allowDefaultTimestampFormats)) {
                     return DataTypeUtils.convertType(value, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
                 }
                 break;
