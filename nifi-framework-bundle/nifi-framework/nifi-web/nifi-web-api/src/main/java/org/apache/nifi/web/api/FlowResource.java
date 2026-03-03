@@ -640,9 +640,12 @@ public class FlowResource extends ApplicationResource {
                     "such, " +
                     "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
-    public Response getControllerServicesFromController(@QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly,
-                                                        @QueryParam("includeReferencingComponents") @DefaultValue("true")
-                                                        @Parameter(description = "Whether or not to include services' referencing components in the response") boolean includeReferences) {
+    public Response getControllerServicesFromController(
+            @Parameter(description = "Whether or not to include services' referencing components in the response")
+            @QueryParam("includeReferencingComponents") @DefaultValue("true")
+            boolean includeReferences,
+            @QueryParam("uiOnly") @DefaultValue("false")
+            final boolean uiOnly) {
 
         authorizeFlow();
 
@@ -1131,7 +1134,7 @@ public class FlowResource extends ApplicationResource {
     public Response activateControllerServices(
             @Parameter(description = "The process group id.", required = true)
             @PathParam("id") String id,
-            @Parameter(description = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.", required = true)
+            @Parameter(description = "The request to schedule or unschedule. If the components in the request are not specified, all authorized components will be considered.", required = true)
             final ActivateControllerServicesEntity requestEntity) {
 
         if (requestEntity == null) {
@@ -1427,7 +1430,9 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(
+            @Parameter(description = "The search term.", required = true)
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
+            @Parameter(description = "The id of the currently visited process group. If not specified, then the root process group is used.")
             @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
     ) {
         authorizeFlow();
@@ -2897,7 +2902,7 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("groupId") BulletinBoardPatternParameter groupId,
             @Parameter(
-                    description = "The number of bulletins to limit the response to."
+                    description = "The number of bulletins to limit the response to. Optional, default is no limit."
             )
             @QueryParam("limit") IntegerParameter limit) throws InterruptedException {
 
