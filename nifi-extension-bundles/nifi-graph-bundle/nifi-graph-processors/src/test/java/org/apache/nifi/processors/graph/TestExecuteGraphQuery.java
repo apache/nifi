@@ -99,9 +99,10 @@ public class TestExecuteGraphQuery {
         assertNotNull(parsed);
         assertEquals(2, parsed.size());
         for (Map<String, Object> result : parsed) {
-            assertEquals(2, result.size());
+            assertEquals(3, result.size());
             assertTrue(result.containsKey("name"));
             assertTrue(result.containsKey("age"));
+            assertTrue(result.containsKey("relationship"));
         }
     }
 }
