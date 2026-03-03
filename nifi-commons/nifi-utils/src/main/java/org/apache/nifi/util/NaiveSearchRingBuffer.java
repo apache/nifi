@@ -31,11 +31,12 @@ import java.util.Arrays;
  * <p>
  * The intended usage paradigm is:
  * {@snippet :
- *     final byte[] searchSequence; //TODO assignment
- *     final CircularBuffer buffer = new CircularBuffer(searchSequence);
+ *     // Search for newline delimiter in a stream
+ *     final byte[] searchSequence = "\n".getBytes();
+ *     final NaiveSearchRingBuffer buffer = new NaiveSearchRingBuffer(searchSequence);
  *     int nextByte;
  *     while ((nextByte = in.read()) > 0) {
- *         if ( buffer.addAndCompare(nextByte) ) {
+ *         if ( buffer.addAndCompare((byte) nextByte) ) {
  *             // This byte is the last byte in the given sequence
  *         } else {
  *             // This byte does not complete the given sequence
