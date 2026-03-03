@@ -2526,6 +2526,152 @@ the attribute to 1647613347678234 microseconds since epoch.
 `${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSSSSSSSS', 'America/New_York'):toNanos()}` converts the Instant value of
 the attribute to 1647613347678234567 nanoseconds since epoch.
 
+
+[.function]
+=== plusDuration
+
+*Description*: [.description]#Adds a specified amount of time to a Date value using a human-readable expression such as `"1 week"` or `"3 months"`. Month and year adjustments follow calendar rules.#
+
+If the subject is null, the function returns null.
+
+*Subject Type*: [.subject]#Date#
+
+*Arguments*:
+
+- [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+
+*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+
+Units are case-insensitive.
+
+*Return Type*: [.returnType]#Date#
+
+*Examples*: If the "date" attribute has the value `"04-08-2026"` (August 4, 2026), then the following Expressions will result in the following values:
+
+.plusDuration Examples
+|============================================================================
+| Expression | Value
+| `${date:toDate('dd-MM-yyyy'):plusDuration('1 week'):format('dd-MM-yyyy')}` | `11-08-2026`
+| `${date:toDate('dd-MM-yyyy'):plusDuration('2 years'):format('dd-MM-yyyy')}` | `04-08-2028`
+| `${date:toDate('dd-MM-yyyy'):plusDuration('3 months'):format('dd-MM-yyyy')}` | `04-11-2026`
+| `${date:toDate('dd-MM-yyyy'):plusDuration('2 hours'):format('dd-MM-yyyy HH:mm:ss')}` | `04-08-2026 02:00:00`
+| `${date:toDate('dd-MM-yyyy'):plusDuration('1 day')}` | Returns the epoch milliseconds for the resulting Date.
+|============================================================================
+
+.Calendar-Aware Behavior
+|============================================================================
+| Scenario | Example | Result
+| Month-end clamping | Jan 31 + 1 month | Feb 28 (or Feb 29 in a leap year)
+| Leap year clamping | Feb 29, 2024 + 1 year | Feb 28, 2025
+| Crossing a day boundary | Aug 4 00:00:00 + 25 hours | Aug 5 01:00:00
+|============================================================================
+
+
+[.function]
+=== minusDuration
+
+*Description*: [.description]#Subtracts a specified amount of time from a Date value using a human-readable expression such as `"1 week"` or `"3 months"`. Month and year adjustments follow calendar rules.#
+
+If the subject is null, the function returns null.
+
+*Subject Type*: [.subject]#Date#
+
+*Arguments*:
+
+- [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+
+*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+
+Units are case-insensitive.
+
+*Return Type*: [.returnType]#Date#
+
+*Examples*: If the "date" attribute has the value `"04-08-2026"` (August 4, 2026), then the following Expressions will result in the following values:
+
+.minusDuration Examples
+|============================================================================
+| Expression | Value
+| `${date:toDate('dd-MM-yyyy'):minusDuration('1 month'):format('dd-MM-yyyy')}` | `04-07-2026`
+| `${date:toDate('dd-MM-yyyy'):minusDuration('2 weeks'):format('dd-MM-yyyy')}` | `21-07-2026`
+| `${date:toDate('dd-MM-yyyy'):minusDuration('1 year'):format('dd-MM-yyyy')}` | `04-08-2025`
+| `${date:toDate('dd-MM-yyyy'):minusDuration('1 second'):format('dd-MM-yyyy HH:mm:ss')}` | `03-08-2026 23:59:59`
+| `${date:toDate('dd-MM-yyyy'):minusDuration('1 day')}` | Returns the epoch milliseconds for the resulting Date.
+|============================================================================
+
+.Calendar-Aware Behavior
+|============================================================================
+| Scenario | Example | Result
+| Month-end clamping | Mar 31 - 1 month | Feb 28 (or Feb 29 in a leap year)
+| Leap year clamping | Feb 29, 2024 - 1 year | Feb 28, 2023
+| Crossing a day boundary | Aug 4 00:00:00 - 1 second | Aug 3 23:59:59
+|============================================================================
+
+
+[.function]
+=== plusInstantDuration
+
+*Description*: [.description]#Adds a specified amount of time to an Instant value using a human-readable expression such as `"1 week"` or `"3 months"`. Arithmetic is evaluated in UTC.#
+
+If the subject is null, the function returns null.
+
+*Subject Type*: [.subject]#Instant#
+
+*Arguments*:
+
+- [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+
+*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+
+Units are case-insensitive.
+
+*Return Type*: [.returnType]#Instant#
+
+*Examples*: If the "date" attribute has the value `"04-08-2026 00:00:00"`, then the following Expressions will result in the following values:
+
+.plusInstantDuration Examples
+|============================================================================
+| Expression | Value
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 week'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `11-08-2026 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 years'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `04-08-2028 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `04-11-2026 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney'):plusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney')}` | `04-11-2026 01:00:00`
+|============================================================================
+
+*Notes*:
+- Arithmetic is evaluated in UTC.
+
+
+[.function]
+=== minusInstantDuration
+
+*Description*: [.description]#Subtracts a specified amount of time from an Instant value using a human-readable expression such as `"1 week"` or `"3 months"`. Arithmetic is evaluated in UTC.#
+
+If the subject is null, the function returns null.
+
+*Subject Type*: [.subject]#Instant#
+
+*Arguments*:
+
+- [.argName]#_amount_# : [.argDesc]#A string in the form `"<number> <unit>"`. A space between the number and unit is required.#
+
+*Supported Units*: second(s), minute(s), hour(s), day(s), week(s), month(s), year(s)
+
+Units are case-insensitive.
+
+*Return Type*: [.returnType]#Instant#
+
+*Examples*: If the "date" attribute has the value `"04-08-2026 00:00:00"`, then the following Expressions will result in the following values:
+
+.minusInstantDuration Examples
+|============================================================================
+| Expression | Value
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 week'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `28-07-2026 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 years'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `04-08-2024 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}` | `04-05-2026 00:00:00`
+| `${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney'):minusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney')}` | `04-05-2026 00:00:00`
+|============================================================================
+
+
 [.function]
 === now
 

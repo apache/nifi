@@ -60,6 +60,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -2865,5 +2867,665 @@ public class TestQuery {
 
         // Missing attribute evaluates to empty string
         verifyEquals("${missing:trimDelimitedList(',')}", attributes, "");
+    }
+    @Test
+    public void testPlusDuration() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", "04-08-2026");
+
+        // All units
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('30 seconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 00:00:30");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('15 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 00:15:00");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('2 hours'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 02:00:00");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('7 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "11-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('2 weeks'):format('dd-MM-yyyy')}",
+                attributes,
+                "18-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('3 months'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-11-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 year'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-08-2027");
+
+        // Time crossing day boundary from midnight
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('25 hours'):format('dd-MM-yyyy')}",
+                attributes,
+                "05-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('90 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 01:30:00");
+
+        // Singular and plural
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 day'):format('dd-MM-yyyy')}",
+                attributes,
+                "05-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "05-08-2026");
+
+        // Case-insensitive
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('2 WEEKS'):format('dd-MM-yyyy')}",
+                attributes,
+                "18-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 Month'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-09-2026");
+
+        // Zero amount
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('0 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-08-2026");
+
+        // DateTime input
+        attributes.put("dt", "04-08-2026 10:30:00");
+        verifyEquals(
+                "${dt:toDate('dd-MM-yyyy HH:mm:ss'):plusDuration('3 hours'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 13:30:00");
+
+        // Chaining
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 month'):minusDuration('2 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "02-09-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 year'):plusDuration('1 month'):plusDuration('1 day'):format('dd-MM-yyyy')}",
+                attributes,
+                "05-09-2027");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('2 hours'):minusDuration('30 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 01:30:00");
+
+        // Leap year: Feb 29, 2024 + 1 year = Feb 28, 2025
+        attributes.put("date", "29-02-2024");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 year'):format('dd-MM-yyyy')}",
+                attributes,
+                "28-02-2025");
+
+        // Month-end clamping: Jan 31 + 1 month = Feb 28 (non-leap)
+        attributes.put("date", "31-01-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 month'):format('dd-MM-yyyy')}",
+                attributes,
+                "28-02-2026");
+
+        // Month-end clamping: Jan 31 + 1 month = Feb 29 (leap year)
+        attributes.put("date", "31-01-2024");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration('1 month'):format('dd-MM-yyyy')}",
+                attributes,
+                "29-02-2024");
+
+        // Dynamic attribute as amount
+        attributes.put("date", "04-08-2026");
+        attributes.put("timeUnit", "2 weeks");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):plusDuration(${timeUnit}):format('dd-MM-yyyy')}",
+                attributes,
+                "18-08-2026");
+
+        // Without format() — returns Date
+        final QueryResult<?> epochResult = Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNotNull(epochResult.getValue());
+        assertInstanceOf(Date.class, epochResult.getValue());
+
+        // Dynamic attribute — invalid throws at evaluation
+        attributes.put("timeUnit", "1 Monday");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration(${timeUnit}):format('dd-MM-yyyy')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Invalid literal rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('1 Monday')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('1days')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):plusDuration('2 fortnights')}"));
+
+        // Subject is not a date — no toDate() call, throws at evaluation
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:plusDuration('1 week')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Missing attribute returns null
+        final QueryResult<?> missingNoToDate = Query.compile("${missing:plusDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNull(missingNoToDate.getValue());
+    }
+
+    @Test
+    public void testMinusDuration() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", "04-08-2026");
+
+        // All units
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('30 seconds'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 23:59:30");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('15 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 23:45:00");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('2 hours'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 22:00:00");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('7 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "28-07-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('2 weeks'):format('dd-MM-yyyy')}",
+                attributes,
+                "21-07-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('3 months'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-05-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 year'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-08-2025");
+
+        // Time crossing day boundary from midnight
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('25 hours'):format('dd-MM-yyyy')}",
+                attributes,
+                "02-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('90 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 22:30:00");
+
+        // Singular and plural
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 day'):format('dd-MM-yyyy')}",
+                attributes,
+                "03-08-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "03-08-2026");
+
+        // Case-insensitive
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('2 WEEKS'):format('dd-MM-yyyy')}",
+                attributes,
+                "21-07-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 Month'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-07-2026");
+
+        // Zero amount
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('0 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "04-08-2026");
+
+        // DateTime input
+        attributes.put("dt", "04-08-2026 10:30:00");
+        verifyEquals(
+                "${dt:toDate('dd-MM-yyyy HH:mm:ss'):minusDuration('3 hours'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "04-08-2026 07:30:00");
+
+        // Chaining
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 month'):plusDuration('2 days'):format('dd-MM-yyyy')}",
+                attributes,
+                "06-07-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 year'):minusDuration('1 month'):minusDuration('1 day'):format('dd-MM-yyyy')}",
+                attributes,
+                "03-07-2025");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('2 hours'):plusDuration('30 minutes'):format('dd-MM-yyyy HH:mm:ss')}",
+                attributes,
+                "03-08-2026 22:30:00");
+
+        // Leap year: Feb 29, 2024 - 1 year = Feb 28, 2023
+        attributes.put("date", "29-02-2024");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 year'):format('dd-MM-yyyy')}",
+                attributes,
+                "28-02-2023");
+
+        // Month-end clamping: Mar 31 - 1 month = Feb 28 (non-leap)
+        attributes.put("date", "31-03-2026");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 month'):format('dd-MM-yyyy')}",
+                attributes,
+                "28-02-2026");
+
+        // Month-end clamping: Mar 31 - 1 month = Feb 29 (leap year)
+        attributes.put("date", "31-03-2024");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration('1 month'):format('dd-MM-yyyy')}",
+                attributes,
+                "29-02-2024");
+
+        // Dynamic attribute as amount
+        attributes.put("date", "04-08-2026");
+        attributes.put("timeUnit", "2 weeks");
+        verifyEquals(
+                "${date:toDate('dd-MM-yyyy'):minusDuration(${timeUnit}):format('dd-MM-yyyy')}",
+                attributes,
+                "21-07-2026");
+
+        // Without format() — returns Date
+        final QueryResult<?> epochResult = Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNotNull(epochResult.getValue());
+        assertInstanceOf(Date.class, epochResult.getValue());
+
+        // Dynamic attribute — invalid throws at evaluation
+        attributes.put("timeUnit", "1 Monday");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration(${timeUnit}):format('dd-MM-yyyy')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Invalid literal rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('1 Monday')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('1days')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:toDate('dd-MM-yyyy'):minusDuration('2 fortnights')}"));
+
+        // Subject is not a date — no toDate() call, throws at evaluation
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:minusDuration('1 week')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Missing attribute returns null
+        final QueryResult<?> missingNoToDate = Query.compile("${missing:minusDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNull(missingNoToDate.getValue());
+    }
+    @Test
+    public void testPlusInstantDuration() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", "04-08-2026 00:00:00");
+
+        // All units
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('30 seconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 00:00:30");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('15 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 00:15:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 hours'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 02:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('7 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "11-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 weeks'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "18-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('3 months'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-11-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 year'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-08-2027");
+
+        // Non-UTC timezone
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Brisbane'):plusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Brisbane')}",
+                attributes,
+                "04-11-2026 00:00:00");
+
+        // Across daylight savings
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney'):plusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney')}",
+                attributes,
+                "04-11-2026 01:00:00");
+
+        // Time crossing day boundary from midnight
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('25 hours'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "05-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('90 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 01:30:00");
+
+        // Singular and plural
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 day'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "05-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "05-08-2026");
+
+        // Case-insensitive
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 WEEKS'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "18-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 Month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-09-2026");
+
+        // Zero amount
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('0 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-08-2026");
+
+        // DateTime input
+        attributes.put("dt", "04-08-2026 10:30:00");
+        verifyEquals(
+                "${dt:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('3 hours'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 13:30:00");
+
+        // Chaining
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 month'):minusInstantDuration('2 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "02-09-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 year'):plusInstantDuration('1 month'):plusInstantDuration('1 day'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "05-09-2027");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 hours'):minusInstantDuration('30 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 01:30:00");
+
+        // Leap year: Feb 29, 2024 + 1 year = Feb 28, 2025
+        attributes.put("date", "29-02-2024 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 year'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "28-02-2025");
+
+        // Month-end clamping: Jan 31 + 1 month = Feb 28 (non-leap)
+        attributes.put("date", "31-01-2026 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "28-02-2026");
+
+        // Month-end clamping: Jan 31 + 1 month = Feb 29 (leap year)
+        attributes.put("date", "31-01-2024 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "29-02-2024");
+
+        // Dynamic attribute as amount
+        attributes.put("date", "04-08-2026 00:00:00");
+        attributes.put("timeUnit", "2 weeks");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration(${timeUnit}):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "18-08-2026");
+
+        // Without format() — returns Instant
+        final QueryResult<?> epochResult = Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNotNull(epochResult.getValue());
+        assertInstanceOf(Instant.class, epochResult.getValue());
+
+        // Dynamic attribute — invalid throws at evaluation
+        attributes.put("timeUnit", "1 Monday");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration(${timeUnit}):formatInstant('dd-MM-yyyy', 'UTC')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Invalid literal rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1 Monday')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('1days')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):plusInstantDuration('2 fortnights')}"));
+
+        // Subject is not an instant — no toInstant() call, throws at evaluation
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:plusInstantDuration('1 week')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Missing attribute returns null
+        final QueryResult<?> missingNoToInstant = Query.compile("${missing:plusInstantDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNull(missingNoToInstant.getValue());
+    }
+
+    @Test
+    public void testMinusInstantDuration() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", "04-08-2026 00:00:00");
+
+        // All units
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('30 seconds'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 23:59:30");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('15 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 23:45:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 hours'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 22:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('7 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "28-07-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 weeks'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "21-07-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('3 months'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-05-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 year'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-08-2025");
+
+        // Non-UTC timezone
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Brisbane'):minusInstantDuration('3 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Brisbane')}",
+                attributes,
+                "04-05-2026 00:00:00");
+
+        // Across daylight savings
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney'):minusInstantDuration('9 months'):formatInstant('dd-MM-yyyy HH:mm:ss', 'Australia/Sydney')}",
+                attributes,
+                "04-11-2025 01:00:00");
+
+        // Time crossing day boundary from midnight
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('25 hours'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "02-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('90 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 22:30:00");
+
+        // Singular and plural
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 day'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "03-08-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "03-08-2026");
+
+        // Case-insensitive
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 WEEKS'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "21-07-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 Month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-07-2026");
+
+        // Zero amount
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('0 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "04-08-2026");
+
+        // DateTime input
+        attributes.put("dt", "04-08-2026 10:30:00");
+        verifyEquals(
+                "${dt:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('3 hours'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "04-08-2026 07:30:00");
+
+        // Chaining
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 month'):plusInstantDuration('2 days'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "06-07-2026");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 year'):minusInstantDuration('1 month'):minusInstantDuration('1 day'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "03-07-2025");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 hours'):plusInstantDuration('30 minutes'):formatInstant('dd-MM-yyyy HH:mm:ss', 'UTC')}",
+                attributes,
+                "03-08-2026 22:30:00");
+
+        // Leap year: Feb 29, 2024 - 1 year = Feb 28, 2023
+        attributes.put("date", "29-02-2024 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 year'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "28-02-2023");
+
+        // Month-end clamping: Mar 31 - 1 month = Feb 28 (non-leap)
+        attributes.put("date", "31-03-2026 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "28-02-2026");
+
+        // Month-end clamping: Mar 31 - 1 month = Feb 29 (leap year)
+        attributes.put("date", "31-03-2024 00:00:00");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 month'):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "29-02-2024");
+
+        // Dynamic attribute as amount
+        attributes.put("date", "04-08-2026 00:00:00");
+        attributes.put("timeUnit", "2 weeks");
+        verifyEquals(
+                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration(${timeUnit}):formatInstant('dd-MM-yyyy', 'UTC')}",
+                attributes,
+                "21-07-2026");
+
+        // Without format() — returns Instant
+        final QueryResult<?> epochResult = Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNotNull(epochResult.getValue());
+        assertInstanceOf(Instant.class, epochResult.getValue());
+
+        // Dynamic attribute — invalid throws at evaluation
+        attributes.put("timeUnit", "1 Monday");
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                                "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration(${timeUnit}):formatInstant('dd-MM-yyyy', 'UTC')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Invalid literal rejected at compile time
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1 Monday')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('1days')}"));
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile(
+                        "${date:toInstant('dd-MM-yyyy HH:mm:ss', 'UTC'):minusInstantDuration('2 fortnights')}"));
+
+        // Subject is not an instant — no toInstant() call, throws at evaluation
+        assertThrows(
+                AttributeExpressionLanguageException.class,
+                () -> Query.compile("${date:minusInstantDuration('1 week')}")
+                        .evaluate(new StandardEvaluationContext(attributes)));
+
+        // Missing attribute returns null
+        final QueryResult<?> missingNoToInstant = Query.compile("${missing:minusInstantDuration('1 week')}")
+                .evaluate(new StandardEvaluationContext(attributes));
+        assertNull(missingNoToInstant.getValue());
     }
 }
