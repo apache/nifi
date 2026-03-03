@@ -18,16 +18,21 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestStandardConnectorConfigurationContext {
     private StandardConnectorConfigurationContext context;
@@ -209,5 +214,43 @@ public class TestStandardConnectorConfigurationContext {
         assertEquals("valueB", clonedContext.getProperty("step2", "keyB").getValue());
         assertNull(clonedContext.getProperty("step1", "nonExistent").getValue());
         assertNull(clonedContext.getProperty("nonExistentStep", "key1").getValue());
+    }
+
+    @Test
+    public void testResolvePropertyValuesResolvesSecretsThatWereInitiallyUnresolvable() {
+        final String providerId = "provider-1";
+        final String providerName = "TestProvider";
+        final String secretName = "mySecret";
+        final String fullyQualifiedName = "TestProvider.mySecret";
+        final String secretValue = "super-secret-value";
+
+        final SecretProvider secretProvider = mock(SecretProvider.class);
+        when(secretProvider.getProviderId()).thenReturn(providerId);
+        when(secretProvider.getProviderName()).thenReturn(providerName);
+
+        final Secret secret = mock(Secret.class);
+        when(secret.getValue()).thenReturn(secretValue);
+        when(secretProvider.getSecrets(List.of(fullyQualifiedName))).thenReturn(List.of(secret));
+
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getSecretProviders()).thenReturn(Collections.emptySet());
+
+        final AssetManager assetManager = mock(AssetManager.class);
+        final StandardConnectorConfigurationContext testContext = new StandardConnectorConfigurationContext(assetManager, secretsManager);
+
+        final SecretReference secretRef = new SecretReference(providerId, providerName, secretName, fullyQualifiedName);
+        final Map<String, ConnectorValueReference> properties = new HashMap<>();
+        properties.put("plainProp", new StringLiteralValue("plainValue"));
+        properties.put("secretProp", secretRef);
+        testContext.setProperties("authStep", new StepConfiguration(properties));
+
+        assertEquals("plainValue", testContext.getProperty("authStep", "plainProp").getValue());
+        assertNull(testContext.getProperty("authStep", "secretProp").getValue());
+
+        when(secretsManager.getSecretProviders()).thenReturn(Set.of(secretProvider));
+        testContext.resolvePropertyValues();
+
+        assertEquals("plainValue", testContext.getProperty("authStep", "plainProp").getValue());
+        assertEquals(secretValue, testContext.getProperty("authStep", "secretProp").getValue());
     }
 }

@@ -674,6 +674,8 @@ public class StandardConnectorNode implements ConnectorNode {
                 stepName, propertyName, this));
         }
 
+        workingFlowContext.getConfigurationContext().resolvePropertyValues();
+
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             return getConnector().fetchAllowableValues(stepName, propertyName, workingFlowContext);
         }
@@ -685,6 +687,8 @@ public class StandardConnectorNode implements ConnectorNode {
             throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s because %s is not being updated.".formatted(
                 stepName, propertyName, this));
         }
+
+        workingFlowContext.getConfigurationContext().resolvePropertyValues();
 
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             return getConnector().fetchAllowableValues(stepName, propertyName, workingFlowContext, filter);
@@ -1059,6 +1063,8 @@ public class StandardConnectorNode implements ConnectorNode {
             logger.debug("Completed verification for {} with validation failures", this);
             return results;
         }
+
+        workingFlowContext.getConfigurationContext().resolvePropertyValues();
 
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             results.addAll(getConnector().verify(workingFlowContext));
