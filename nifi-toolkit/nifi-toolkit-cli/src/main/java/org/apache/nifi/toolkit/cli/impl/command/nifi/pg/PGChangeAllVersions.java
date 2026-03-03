@@ -130,7 +130,7 @@ public class PGChangeAllVersions extends AbstractNiFiCommand<ProcessGroupsVersio
             }
 
             final String currentState = entity.getVersionControlInformation().getState();
-            if (!"STALE".equals(currentState)) {
+            if (!"STALE".equals(currentState) && !"UP_TO_DATE".equals(currentState)) {
                 changeVersionResults.put(pgDTO.getId(), new ChangeVersionResult(previousVersion, newVersion, "Process group cannot be upgraded because current state is " + currentState));
                 continue;
             }
