@@ -26,7 +26,7 @@ public interface SequenceFileWriter {
 
     /**
      * Creates a Sequence File by writing the given FlowFile as key/value pairs. The provided FlowFile may be a package of multiple FlowFiles, or just one. The keys for the Sequence File are the flow
-     * files' logical names. The values are the flow files' content.
+     * files' logical names. The values are the FlowFiles' content.
      *
      * @param flowFile - the FlowFile to write to the Sequence File.
      * @param session session

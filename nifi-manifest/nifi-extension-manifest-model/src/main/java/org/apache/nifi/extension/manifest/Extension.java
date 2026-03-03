@@ -196,7 +196,7 @@ public class Extension {
         this.dynamicRelationship = dynamicRelationship;
     }
 
-    @Schema(description = "The attributes read from flow files by the extension")
+    @Schema(description = "The attributes read from FlowFiles by the extension")
     public List<Attribute> getReadsAttributes() {
         return readsAttributes;
     }
@@ -205,7 +205,7 @@ public class Extension {
         this.readsAttributes = readsAttributes;
     }
 
-    @Schema(description = "The attributes written to flow files by the extension")
+    @Schema(description = "The attributes written to FlowFiles by the extension")
     public List<Attribute> getWritesAttributes() {
         return writesAttributes;
     }
@@ -304,7 +304,7 @@ public class Extension {
         this.triggerWhenEmpty = triggerWhenEmpty;
     }
 
-    @Schema(description = "Indicates that a processor should be triggered when any destinations have space for flow files")
+    @Schema(description = "Indicates that a processor should be triggered when any destinations have space for FlowFiles")
     public boolean getTriggerWhenAnyDestinationAvailable() {
         return triggerWhenAnyDestinationAvailable;
     }

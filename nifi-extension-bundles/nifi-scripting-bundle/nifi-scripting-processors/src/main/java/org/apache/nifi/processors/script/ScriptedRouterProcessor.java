@@ -164,7 +164,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedRecordProcessor
                         }
                     }
 
-                    // Sending outgoing flow files
+                    // Sending outgoing FlowFiles
                     for (final Relationship relationship : outgoingFlowFiles.keySet()) {
                         final RecordSetWriter writer = recordSetWriters.get(relationship);
                         final FlowFile outgoingFlowFile = outgoingFlowFiles.get(relationship);

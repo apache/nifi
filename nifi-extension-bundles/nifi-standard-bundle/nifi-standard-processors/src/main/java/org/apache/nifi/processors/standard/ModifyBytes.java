@@ -50,7 +50,7 @@ public class ModifyBytes extends AbstractProcessor {
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Processed flowfiles.")
+            .description("Processed FlowFiles.")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(

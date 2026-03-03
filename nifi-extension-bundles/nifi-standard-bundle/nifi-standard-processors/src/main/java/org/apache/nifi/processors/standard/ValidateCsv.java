@@ -89,7 +89,7 @@ import java.util.concurrent.atomic.AtomicReference;
     @WritesAttribute(attribute = "count.valid.lines", description = "If line by line validation, number of valid lines extracted from the source data"),
     @WritesAttribute(attribute = "count.invalid.lines", description = "If line by line validation, number of invalid lines extracted from the source data"),
     @WritesAttribute(attribute = "count.total.lines", description = "If line by line validation, total number of lines in the source data"),
-    @WritesAttribute(attribute = "validation.error.message", description = "For flow files routed to invalid, message of the first validation error")
+    @WritesAttribute(attribute = "validation.error.message", description = "For FlowFiles routed to invalid, message of the first validation error")
 })
 public class ValidateCsv extends AbstractProcessor {
 
@@ -103,7 +103,7 @@ public class ValidateCsv extends AbstractProcessor {
     private static final String ROUTE_LINES_INDIVIDUALLY = "Line by line validation";
 
     public static final AllowableValue VALIDATE_WHOLE_FLOWFILE = new AllowableValue(ROUTE_WHOLE_FLOW_FILE, ROUTE_WHOLE_FLOW_FILE,
-            "As soon as an error is found in the CSV file, the validation will stop and the whole flow file will be routed to the 'invalid'"
+            "As soon as an error is found in the CSV file, the validation will stop and the whole FlowFile will be routed to the 'invalid'"
                     + " relationship. This option offers best performances.");
 
     public static final AllowableValue VALIDATE_LINES_INDIVIDUALLY = new AllowableValue(ROUTE_LINES_INDIVIDUALLY, ROUTE_LINES_INDIVIDUALLY,
@@ -124,7 +124,7 @@ public class ValidateCsv extends AbstractProcessor {
 
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
             .name("Header")
-            .description("True if the incoming flow file contains a header to ignore, false otherwise.")
+            .description("True if the incoming FlowFile contains a header to ignore, false otherwise.")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
@@ -587,7 +587,7 @@ public class ValidateCsv extends AbstractProcessor {
                         logger.debug("Failed to validate {} against schema due to {}; routing to 'invalid'", flowFile, e);
                         break;
                     } else {
-                        // we append the invalid line to the flow file that will be routed to invalid relationship
+                        // we append the invalid line to the FlowFile that will be routed to invalid relationship
                         invalidFF = session.append(invalidFF, out -> out.write(print(listReader.getUntokenizedRow(), csvPref, isFirstLineInvalid.get())));
 
                         if (isFirstLineInvalid.get()) {

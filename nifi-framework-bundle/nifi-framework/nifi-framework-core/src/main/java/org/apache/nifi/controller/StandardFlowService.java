@@ -686,7 +686,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final EventAccess eventAccess = controller.getEventAccess();
             ProcessGroupStatus controllerStatus;
 
-            // wait for rebalance of flowfiles on all queues
+            // wait for rebalance of FlowFiles on all queues
             while (true) {
                 controllerStatus = eventAccess.getControllerStatus();
                 if (controllerStatus.getQueuedCount() <= 0) {

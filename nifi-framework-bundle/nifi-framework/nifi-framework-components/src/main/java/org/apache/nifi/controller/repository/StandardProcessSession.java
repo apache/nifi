@@ -163,8 +163,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private final InternalProvenanceReporter provenanceReporter;
 
-    private int removedCount = 0; // number of flowfiles removed in this session
-    private long removedBytes = 0L; // size of all flowfiles removed in this session
+    private int removedCount = 0; // number of FlowFiles removed in this session
+    private long removedBytes = 0L; // size of all FlowFiles removed in this session
     private long bytesRead = 0L;
     private long bytesWritten = 0L;
     private int flowFilesIn = 0;
@@ -632,7 +632,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             final long updateEventRepositoryFinishNanos = System.nanoTime();
             final long updateEventRepositoryNanos = updateEventRepositoryFinishNanos - flowFileRepoUpdateFinishNanos;
 
-            // transfer the flowfiles to the connections' queues.
+            // transfer the FlowFiles to the connections' queues.
             final Map<FlowFileQueue, Collection<FlowFileRecord>> recordMap = new HashMap<>();
             for (final StandardRepositoryRecord record : checkpoint.records.values()) {
                 if (record.isMarkedForAbort() || record.isMarkedForDelete()) {
@@ -1928,7 +1928,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             return Collections.emptyList();
         }
 
-        // get batch of flow files in a round-robin manner
+        // get batch of FlowFiles in a round-robin manner
         final List<Connection> connections = context.getPollableConnections();
         if (connections.isEmpty()) {
             return Collections.emptyList();
@@ -3909,8 +3909,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private Set<String> removedFlowFiles;
         private Set<String> createdFlowFiles;
 
-        private int removedCount = 0; // number of flowfiles removed in this session
-        private long removedBytes = 0L; // size of all flowfiles removed in this session
+        private int removedCount = 0; // number of FlowFiles removed in this session
+        private long removedBytes = 0L; // size of all FlowFiles removed in this session
         private long bytesRead = 0L;
         private long bytesWritten = 0L;
         private int flowFilesIn = 0;

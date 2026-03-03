@@ -257,7 +257,7 @@ public class MoveHDFSTest {
             runner.run();
         }
 
-        // assert no flowfiles transferred to outgoing relationships
+        // assert no FlowFiles transferred to outgoing relationships
         runner.assertTransferCount(MoveHDFS.REL_SUCCESS, 0);
         runner.assertTransferCount(MoveHDFS.REL_FAILURE, 0);
         // assert the processor's queue is not empty (session rollback)

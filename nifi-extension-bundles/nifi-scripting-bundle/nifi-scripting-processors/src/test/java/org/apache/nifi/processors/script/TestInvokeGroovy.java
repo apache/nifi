@@ -51,7 +51,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     }
 
     /**
-     * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and stores the value in an attribute of the outgoing flowfile.
+     * Tests a script that has a Groovy Processor that that reads the first line of text from the FlowFiles content and stores the value in an attribute of the outgoing flowfile.
      *
      */
     @Test
@@ -70,7 +70,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     }
 
     /**
-     * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and
+     * Tests a script that has a Groovy Processor that that reads the first line of text from the FlowFiles content and
      * stores the value in an attribute of the outgoing flowfile.
      *
      */
@@ -103,7 +103,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     }
 
     /**
-     * Tests a script that has a Groovy Processor that that reads the first line of text from the flowfiles content and
+     * Tests a script that has a Groovy Processor that that reads the first line of text from the FlowFiles content and
      * stores the value in an attribute of the outgoing flowfile.
      *
      */

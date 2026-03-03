@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 
 public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParameters> extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
-            .description("All original flowfiles that don't cause an error to occur go to this relationship.").build();
+            .description("All original FlowFiles that don't cause an error to occur go to this relationship.").build();
     public static final Relationship REL_HITS = new Relationship.Builder().name("hits")
             .description("Search hits are routed to this relationship.")
             .build();

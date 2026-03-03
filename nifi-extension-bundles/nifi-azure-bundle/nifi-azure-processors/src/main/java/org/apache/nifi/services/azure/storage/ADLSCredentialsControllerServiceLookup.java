@@ -28,7 +28,7 @@ import java.util.Map;
 @CapabilityDescription("Provides an ADLSCredentialsService that can be used to dynamically select another ADLSCredentialsService. " +
         "This service requires an attribute named 'adls.credentials.name' to be passed in, and will throw an exception if the attribute is missing. " +
         "The value of 'adls.credentials.name' will be used to select the ADLSCredentialsService that has been registered with that name. " +
-        "This will allow multiple ADLSCredentialsServices to be defined and registered, and then selected dynamically at runtime by tagging flow files " +
+        "This will allow multiple ADLSCredentialsServices to be defined and registered, and then selected dynamically at runtime by tagging FlowFiles " +
         "with the appropriate 'adls.credentials.name' attribute.")
 @DynamicProperty(name = "The name to register ADLSCredentialsService", value = "The ADLSCredentialsService",
         description = "If '" + ADLSCredentialsControllerServiceLookup.ADLS_CREDENTIALS_NAME_ATTRIBUTE + "' attribute contains " +

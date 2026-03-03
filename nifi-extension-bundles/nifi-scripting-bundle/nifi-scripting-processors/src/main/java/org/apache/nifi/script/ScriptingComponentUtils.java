@@ -45,13 +45,13 @@ import javax.script.ScriptEngineManager;
  * Utility methods and constants used by the scripting components.
  */
 public class ScriptingComponentUtils {
-    /** A relationship indicating flow files were processed successfully */
+    /** A relationship indicating FlowFiles were processed successfully */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that were successfully processed")
             .build();
 
-    /** A relationship indicating an error while processing flow files */
+    /** A relationship indicating an error while processing FlowFiles */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("FlowFiles that failed to be processed")

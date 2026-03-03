@@ -66,7 +66,7 @@ import javax.script.SimpleBindings;
 
 @Tags({"script", "execute", "groovy", "clojure"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
-        + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
+        + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any FlowFiles created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "
         + "Impact of sustained usage not yet verified.")
 @SupportsSensitiveDynamicProperties
@@ -246,7 +246,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
 
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
-                // However if the incoming relationship is full of flow files, this processor will keep failing and could
+                // However, if the incoming relationship is full of FlowFiles, this processor will keep failing and could
                 // cause resource exhaustion. In case a user does not want to yield, it can be set to 0s in the processor
                 // configuration.
                 context.yield();

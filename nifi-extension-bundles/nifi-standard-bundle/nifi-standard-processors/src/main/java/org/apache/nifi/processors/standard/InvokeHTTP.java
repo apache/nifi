@@ -1219,7 +1219,7 @@ public class InvokeHTTP extends AbstractProcessor {
         // transfer to the correct relationship
         // 2xx -> SUCCESS
         if (isSuccess(statusCode)) {
-            // we have two flowfiles to transfer
+            // we have two FlowFiles to transfer
             if (request != null) {
                 session.transfer(request, ORIGINAL);
             }

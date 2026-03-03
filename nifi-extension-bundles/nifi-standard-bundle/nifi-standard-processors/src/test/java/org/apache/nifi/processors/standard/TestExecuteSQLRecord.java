@@ -424,8 +424,8 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.enableControllerService(recordWriter);
         runner.run();
 
-        //No incoming flow file containing a query, and an exception causes no outbound flowfile.
-        // There should be no flow files on either relationship
+        //No incoming FlowFile containing a query, and an exception causes no outbound FlowFile.
+        // There should be no FlowFiles on either relationship
         runner.assertAllFlowFilesTransferred(AbstractExecuteSQL.REL_FAILURE, 0);
         runner.assertAllFlowFilesTransferred(AbstractExecuteSQL.REL_SUCCESS, 0);
     }
@@ -520,7 +520,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         when(statement.execute()).thenReturn(true);
         ResultSet rs = mock(ResultSet.class);
         when(statement.getResultSet()).thenReturn(rs);
-        // Throw an exception the first time you access the ResultSet, this is after the flow file to hold the results has been created.
+        // Throw an exception the first time you access the ResultSet, this is after the FlowFile to hold the results has been created.
         when(rs.getMetaData()).thenThrow(new SQLException("test execute statement failed"));
 
         runner.addControllerService("mockdbcp", dbcp, new HashMap<>());
@@ -539,7 +539,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         runner.assertTransferCount(AbstractExecuteSQL.REL_FAILURE, 1);
         runner.assertTransferCount(AbstractExecuteSQL.REL_SUCCESS, 0);
 
-        // Assert exception message has been put to flow file attribute
+        // Assert exception message has been put to FlowFile attribute
         MockFlowFile failedFlowFile = runner.getFlowFilesForRelationship(AbstractExecuteSQL.REL_FAILURE).getFirst();
         assertEquals("java.sql.SQLException: test execute statement failed", failedFlowFile.getAttribute(AbstractExecuteSQL.RESULT_ERROR_MESSAGE));
     }

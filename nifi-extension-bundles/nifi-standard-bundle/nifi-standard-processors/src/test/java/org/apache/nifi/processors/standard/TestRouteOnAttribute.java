@@ -145,7 +145,7 @@ public class TestRouteOnAttribute {
         assertEquals("b", attrs1.get("a"));
         assertEquals("b", attrs1.get("a"));
 
-        // One of the flowfiles should map  b -> a, the other b -> b, but we
+        // One of the FlowFiles should map  b -> a, the other b -> b, but we
         // can't know which order they'll come out in, since we're running 4 threads. So either way is acceptable.
         if ("a".equals(attrs1.get("b"))) {
             assertEquals("b", attrs2.get("b"));

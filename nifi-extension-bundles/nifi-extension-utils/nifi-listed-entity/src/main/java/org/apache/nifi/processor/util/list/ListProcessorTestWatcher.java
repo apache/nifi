@@ -98,7 +98,7 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
             final OffsetDateTime timestamp = OffsetDateTime.ofInstant(Instant.ofEpochMilli(entity.getTimestamp()), ZoneId.systemDefault());
             log(d, "%19s = %12d %s %8d", entity.getIdentifier(), entity.getTimestamp(), dateTimeFormatter.format(timestamp), entity.getTimestamp() - nTime.toInstant().toEpochMilli());
         }
-        log(d, "---- output flowfiles ----------------------------------------------");
+        log(d, "---- output FlowFiles ----------------------------------------------");
         final Map<String, Long> fileTimes = entities.stream().collect(Collectors.toMap(ListableEntity::getIdentifier, ListableEntity::getTimestamp));
         for (FlowFile ff : flowFiles) {
             String fName = ff.getAttribute(CoreAttributes.FILENAME.key());

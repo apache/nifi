@@ -214,7 +214,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish due to exception {} flowfiles {} ", exception, flowFiles);
+            getLogger().error("Failed to publish due to exception {} FlowFiles {} ", exception, flowFiles);
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

@@ -266,7 +266,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Creates a request to list the flowfiles in the queue of the specified connection.
+     * Creates a request to list the FlowFiles in the queue of the specified connection.
      *
      * @param id The id of the connection
      * @return A listRequestEntity
@@ -478,7 +478,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     /**
-     * Creates a request to delete the flowfiles in the queue of the specified connection.
+     * Creates a request to delete the FlowFiles in the queue of the specified connection.
      *
      * @param id The id of the connection
      * @return A dropRequestEntity

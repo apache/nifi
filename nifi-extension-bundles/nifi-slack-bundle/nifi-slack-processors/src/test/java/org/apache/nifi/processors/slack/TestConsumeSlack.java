@@ -89,7 +89,7 @@ public class TestConsumeSlack {
 
         // Create another HttpResponse because each response can only be read once.
         client.addHistoryResponse(noMore(createSuccessfulHistoryResponse(message)));
-        // Set processor to be in rate limited state, therefore it will process 0 flowfiles
+        // Set processor to be in rate limited state, therefore it will process 0 FlowFiles
         processor.getRateLimit().retryAfter(Duration.ofSeconds(30));
         testRunner.run(1, true, false);
         testRunner.assertAllFlowFilesTransferred(ConsumeSlack.REL_SUCCESS, 0);

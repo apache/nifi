@@ -98,7 +98,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
 
     public static final PropertyDescriptor SUBMISSION_SCRIPT = new PropertyDescriptor.Builder()
             .name("Graph Record Script")
-            .description("Script to perform the business logic on graph, using flow file attributes and custom properties " +
+            .description("Script to perform the business logic on graph, using FlowFile attributes and custom properties " +
                     "as variable-value pairs in its logic.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -116,11 +116,11 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     }
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("original")
-                                                    .description("Original flow files that successfully interacted with " +
+                                                    .description("Original FlowFiles that successfully interacted with " +
                                                             "graph server.")
                                                     .build();
     public static final Relationship FAILURE = new Relationship.Builder().name("failure")
-                                                    .description("Flow files that fail to interact with graph server.")
+                                                    .description("FlowFiles that fail to interact with graph server.")
                                                     .build();
     public static final Relationship GRAPH = new Relationship.Builder().name("response")
                                                     .description("The response object from the graph server.")
@@ -258,7 +258,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
                     session.transfer(graph, GRAPH);
                 } catch (Exception e) {
                     getLogger().error("Error processing record at index {}", records, e);
-                    // write failed records to a flowfile destined for the failure relationship
+                    // write failed records to a FlowFile destined for the failure relationship
                     failedWriter.write(record);
                     session.remove(graph);
                 } finally {
@@ -280,18 +280,18 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
             return;
         }
 
-        // Generate provenance and send input flowfile to success
+        // Generate provenance and send input FlowFile to success
         session.getProvenanceReporter().send(input, clientService.getTransitUrl(), delta * 1000);
 
         if (failedWriteResult.getRecordCount() < 1) {
-            // No failed records, remove the failure flowfile and send the input flowfile to success
+            // No failed records, remove the failure FlowFile and send the input FlowFile to success
             session.remove(failedRecords);
             input = session.putAttribute(input, GRAPH_OPERATION_TIME, String.valueOf(delta));
             session.transfer(input, SUCCESS);
         } else {
             failedRecords = session.putAttribute(failedRecords, RECORD_COUNT, String.valueOf(failedWriteResult.getRecordCount()));
             session.transfer(failedRecords, FAILURE);
-            // There were failures, don't send the input flowfile to SUCCESS
+            // There were failures, don't send the input FlowFile to SUCCESS
             session.remove(input);
         }
     }

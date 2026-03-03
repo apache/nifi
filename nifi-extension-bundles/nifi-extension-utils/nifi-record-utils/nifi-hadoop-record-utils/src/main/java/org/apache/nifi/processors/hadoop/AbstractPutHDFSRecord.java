@@ -78,7 +78,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
     public static final PropertyDescriptor OVERWRITE = new PropertyDescriptor.Builder()
             .name("Overwrite Files")
             .description("Whether or not to overwrite existing files in the same directory with the same name. When set to false, " +
-                    "flow files will be routed to failure when a file exists in the same directory with the same name.")
+                    "FlowFiles will be routed to failure when a file exists in the same directory with the same name.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(true)
@@ -107,7 +107,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .description("The service for reading records from incoming flow files.")
+            .description("The service for reading records from incoming FlowFiles.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
@@ -225,7 +225,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
      * Sub-classes provide the appropriate HDFSRecordWriter.
      *
      * @param context the process context to obtain additional configuration
-     * @param flowFile the flow file being written
+     * @param flowFile the FlowFile being written
      * @param conf the Configuration instance
      * @param path the path to write to
      * @param schema the schema for writing
@@ -241,7 +241,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        // do this before getting a flow file so that we always get a chance to attempt Kerberos relogin
+        // do this before getting a FlowFile so that we always get a chance to attempt Kerberos relogin
         final FileSystem fileSystem = getFileSystem();
         final Configuration configuration = getConfiguration();
         final UserGroupInformation ugi = getUserGroupInformation();
@@ -403,7 +403,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
      *
      * @param context the context
      * @param session the session
-     * @param flowFile the flow file being processed
+     * @param flowFile the FlowFile being processed
      * @param destFile the destination file written to
      * @return an updated FlowFile reference
      */

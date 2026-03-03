@@ -1823,7 +1823,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @throws FlowSerializationException if proposed flow is not a valid flow
      * configuration file
      * @throws UninheritableFlowException if the proposed flow cannot be loaded
-     * by the controller because in doing so would risk orphaning flow files
+     * by the controller because in doing so would risk orphaning FlowFiles
      * @throws FlowSynchronizationException if updates to the controller failed.
      *                                      If this exception is thrown, then the controller should be considered
      *                                      unsafe to be used

@@ -151,9 +151,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the number of flow files currently queued.
+     * @return the number of FlowFiles currently queued.
      */
-    @Schema(description = "The number of flow files currently queued."
+    @Schema(description = "The number of FlowFiles currently queued."
     )
     public Integer getCurrentCount() {
         return currentCount;
@@ -164,9 +164,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the size of the flow files currently queued in bytes.
+     * @return the size of the FlowFiles currently queued in bytes.
      */
-    @Schema(description = "The size of flow files currently queued in bytes."
+    @Schema(description = "The size of FlowFiles currently queued in bytes."
     )
     public Long getCurrentSize() {
         return currentSize;
@@ -177,9 +177,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the count and size of the currently queued flow files.
+     * @return the count and size of the currently queued FlowFiles.
      */
-    @Schema(description = "The count and size of flow files currently queued."
+    @Schema(description = "The count and size of FlowFiles currently queued."
     )
     public String getCurrent() {
         return current;
@@ -190,9 +190,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the number of flow files to be dropped as a result of this request.
+     * @return the number of FlowFiles to be dropped as a result of this request.
      */
-    @Schema(description = "The number of flow files to be dropped as a result of this request."
+    @Schema(description = "The number of FlowFiles to be dropped as a result of this request."
     )
     public Integer getOriginalCount() {
         return originalCount;
@@ -203,9 +203,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the size of the flow files to be dropped as a result of this request in bytes.
+     * @return the size of the FlowFiles to be dropped as a result of this request in bytes.
      */
-    @Schema(description = "The size of flow files to be dropped as a result of this request in bytes."
+    @Schema(description = "The size of FlowFiles to be dropped as a result of this request in bytes."
     )
     public Long getOriginalSize() {
         return originalSize;
@@ -216,9 +216,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the count and size of flow files to be dropped as a result of this request.
+     * @return the count and size of FlowFiles to be dropped as a result of this request.
      */
-    @Schema(description = "The count and size of flow files to be dropped as a result of this request."
+    @Schema(description = "The count and size of FlowFiles to be dropped as a result of this request."
     )
     public String getOriginal() {
         return original;
@@ -229,9 +229,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the number of flow files that have been dropped thus far.
+     * @return the number of FlowFiles that have been dropped thus far.
      */
-    @Schema(description = "The number of flow files that have been dropped thus far."
+    @Schema(description = "The number of FlowFiles that have been dropped thus far."
     )
     public Integer getDroppedCount() {
         return droppedCount;
@@ -242,9 +242,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the size of the flow files that have been dropped thus far in bytes.
+     * @return the size of the FlowFiles that have been dropped thus far in bytes.
      */
-    @Schema(description = "The size of flow files that have been dropped thus far in bytes."
+    @Schema(description = "The size of FlowFiles that have been dropped thus far in bytes."
     )
     public Long getDroppedSize() {
         return droppedSize;
@@ -255,9 +255,9 @@ public class DropRequestDTO {
     }
 
     /**
-     * @return the count and size of the flow files that have been dropped thus far.
+     * @return the count and size of the FlowFiles that have been dropped thus far.
      */
-    @Schema(description = "The count and size of flow files that have been dropped thus far."
+    @Schema(description = "The count and size of FlowFiles that have been dropped thus far."
     )
     public String getDropped() {
         return dropped;

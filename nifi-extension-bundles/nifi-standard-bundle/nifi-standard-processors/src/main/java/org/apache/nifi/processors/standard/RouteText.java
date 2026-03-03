@@ -527,7 +527,7 @@ public class RouteText extends AbstractProcessor {
             }
         }
 
-        // now transfer the original flow file
+        // now transfer the original FlowFile
         FlowFile flowFile = originalFlowFile;
         logger.info("Routing {} to {}", flowFile, REL_ORIGINAL);
         session.getProvenanceReporter().route(originalFlowFile, REL_ORIGINAL);

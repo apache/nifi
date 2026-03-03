@@ -37,7 +37,7 @@ public enum NodeConnectionState {
     CONNECTED,
 
     /**
-     * A node that is in the process of offloading its flow files from the node.
+     * A node that is in the process of offloading its FlowFiles from the node.
      */
     OFFLOADING,
 
@@ -48,7 +48,7 @@ public enum NodeConnectionState {
     DISCONNECTING,
 
     /**
-     * A node that has offloaded its flow files from the node.
+     * A node that has offloaded its FlowFiles from the node.
      */
     OFFLOADED,
 

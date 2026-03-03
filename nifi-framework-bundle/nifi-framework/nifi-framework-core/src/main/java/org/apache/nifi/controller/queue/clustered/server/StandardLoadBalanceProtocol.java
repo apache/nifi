@@ -223,7 +223,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
                 logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
                 out.write(QUEUE_FULL);
                 out.flush();
-                return; // we're finished receiving flowfiles for now, and we'll restart the communication process.
+                return; // we're finished receiving FlowFiles for now, and we'll restart the communication process.
             } else {
                 logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with SPACE_AVAILABLE", peerDescription, connectionId);
                 out.write(SPACE_AVAILABLE);

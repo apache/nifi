@@ -67,7 +67,7 @@ public interface FlowService extends LifeCycle {
 
     /**
      * Loads the flow controller with the given flow. Passing null means that the local flow on disk will used as the proposed flow. If loading the proposed flow configuration would cause the
-     * controller to orphan flow files, then an UninheritableFlowException is thrown.
+     * controller to orphan FlowFiles, then an UninheritableFlowException is thrown.
      *
      * If the FlowSynchronizationException is thrown, then the controller may have changed some of its state and should no longer be used.
      *

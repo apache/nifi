@@ -129,7 +129,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     protected abstract FlowFile preprocessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
 
     /**
-     * Returns a group ID representing a bin. This allows flow files to be binned into like groups.
+     * Returns a group ID representing a bin. This allows FlowFiles to be binned into like groups.
      *
      * @param context context
      * @param flowFile flowFile
@@ -149,13 +149,13 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     /**
      * Processes a single bin. Implementing class is responsible for committing each session
      *
-     * @param unmodifiableBin A reference to a single bin of flow files
+     * @param unmodifiableBin A reference to a single bin of FlowFiles
      * @param context The context
      * @return <code>true</code> if the input bin was already committed. E.g., in case of a failure, the implementation
      *         may choose to transfer all binned files to Failure and commit their sessions. If
      *         false, the processBins() method will transfer the files to Original and commit the sessions
      *
-     * @throws ProcessException if any problem arises while processing a bin of FlowFiles. All flow files in the bin
+     * @throws ProcessException if any problem arises while processing a bin of FlowFiles. All FlowFiles in the bin
      *             will be transferred to failure and the ProcessSession provided by the 'session'
      *             argument rolled back
      */

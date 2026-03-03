@@ -68,7 +68,7 @@ import java.util.List;
                         "Elasticsearch Scroll API does not support the same query parameters for subsequent pages of data.")
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Care should be taken on the size of each page because each response " +
-        "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
+        "from Elasticsearch will be loaded into memory all at once and converted into the resulting FlowFiles.")
 public class PaginatedJsonQueryElasticsearch extends AbstractPaginatedJsonQueryElasticsearch {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {

@@ -105,7 +105,7 @@ import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSI
         + "ingesting files that have been compressed when 'rolled over'.")
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "Stores state about where in the Tailed File it left off so that on restart it does not have to duplicate data. "
         + "State is stored either local or clustered depend on the <File Location> property.")
-@WritesAttribute(attribute = "tailfile.original.path", description = "Path of the original file the flow file comes from.")
+@WritesAttribute(attribute = "tailfile.original.path", description = "Path of the original file the FlowFile comes from.")
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -1422,7 +1422,7 @@ public class TailFile extends AbstractProcessor {
                     abort.set(ncee);
 
                     // Log the fact that we encountered a NUL character and yield. But we don't re-throw the Exception because
-                    // we want to continue on with the same logic of transferring non-zero flowfiles, removing 0-byte flowfiles,
+                    // we want to continue on with the same logic of transferring non-zero FlowFiles, removing 0-byte FlowFiles,
                     // and maintaining our state.
                     getLogger().info("Encountered NUL character when tailing file {}; will yield", tailFile);
                     context.yield();

@@ -96,14 +96,14 @@ public class GeohashRecord extends AbstractProcessor {
 
     public static final PropertyDescriptor ROUTING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Routing Strategy")
-            .description("Specifies how to route flowfiles after encoding or decoding being performed. "
+            .description("Specifies how to route FlowFiles after encoding or decoding being performed. "
                     + "SKIP will enrich those records that can be enriched and skip the rest. "
-                    + "The SKIP strategy will route a flowfile to failure only if unable to parse the data. "
-                    + "Otherwise, it will route the enriched flowfile to success, and the original input to original. "
+                    + "The SKIP strategy will route a FlowFile to failure only if unable to parse the data. "
+                    + "Otherwise, it will route the enriched FlowFile to success, and the original input to original. "
                     + "SPLIT will separate the records that have been enriched from those that have not and send them to matched, while unenriched records will be sent to unmatched; "
-                    + "the original input flowfile will be sent to original. The SPLIT strategy will route a flowfile to failure only if unable to parse the data. "
-                    + "REQUIRE will route a flowfile to success only if all of its records are enriched, and the original input will be sent to original. "
-                    + "The REQUIRE strategy will route the original input flowfile to failure if any of its records cannot be enriched or unable to be parsed")
+                    + "the original input FlowFile will be sent to original. The SPLIT strategy will route a FlowFile to failure only if unable to parse the data. "
+                    + "REQUIRE will route a FlowFile to success only if all of its records are enriched, and the original input will be sent to original. "
+                    + "The REQUIRE strategy will route the original input FlowFile to failure if any of its records cannot be enriched or unable to be parsed")
             .required(true)
             .allowableValues(RoutingStrategy.values())
             .defaultValue(RoutingStrategy.SKIP.name())
@@ -172,12 +172,12 @@ public class GeohashRecord extends AbstractProcessor {
 
     public static final Relationship REL_NOT_MATCHED = new Relationship.Builder()
             .name("not matched")
-            .description("Using the SPLIT strategy, flowfiles that cannot be encoded or decoded due to the lack of lat/lon or geohashes will be routed to not matched")
+            .description("Using the SPLIT strategy, FlowFiles that cannot be encoded or decoded due to the lack of lat/lon or geohashes will be routed to not matched")
             .build();
 
     public static final Relationship REL_MATCHED = new Relationship.Builder()
             .name("matched")
-            .description("Using the SPLIT strategy, flowfiles with lat/lon or geohashes provided that are successfully encoded or decoded will be routed to matched")
+            .description("Using the SPLIT strategy, FlowFiles with lat/lon or geohashes provided that are successfully encoded or decoded will be routed to matched")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
@@ -192,7 +192,7 @@ public class GeohashRecord extends AbstractProcessor {
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("The original input flowfile will be sent to this relationship")
+            .description("The original input FlowFile will be sent to this relationship")
             .build();
 
     private static final List<PropertyDescriptor> RECORD_PATH_PROPERTIES = List.of(
@@ -440,7 +440,7 @@ public class GeohashRecord extends AbstractProcessor {
         public void transferFlowFiles(final ProcessSession session, FlowFile input, FlowFile output, FlowFile notMatched) {
             if (unenrichedCount > 0) {
                 session.remove(output);
-                getLogger().error("There exists some records that cannot be enriched or parsed. The original input flowfile is routed to failure using the REQUIRE strategy");
+                getLogger().error("There exists some records that cannot be enriched or parsed. The original input FlowFile is routed to failure using the REQUIRE strategy");
                 session.transfer(input, REL_FAILURE);
             } else {
                 session.transfer(output, REL_SUCCESS);

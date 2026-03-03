@@ -450,7 +450,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
                         if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
                             noFlowFileCurrSkip += 1;
-                            logger.info("DebugFlow skipping with no flow file");
+                            logger.info("DebugFlow skipping with no FlowFile");
                             return;
                         } else {
                             noFlowFileCurrSkip = 0;
@@ -461,7 +461,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
                         if (noFlowFileCurrException < noFlowFileMaxException) {
                             noFlowFileCurrException += 1;
-                            logger.info("DebugFlow throwing NPE with no flow file");
+                            logger.info("DebugFlow throwing NPE with no FlowFile");
                             String message = "forced by " + this.getClass().getName();
                             RuntimeException rte;
                             try {
@@ -482,7 +482,7 @@ public class DebugFlow extends AbstractProcessor {
                     if (currNoFlowFileResponse.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
                         if (noFlowFileCurrYield < noFlowFileMaxYield) {
                             noFlowFileCurrYield += 1;
-                            logger.info("DebugFlow yielding with no flow file");
+                            logger.info("DebugFlow yielding with no FlowFile");
                             context.yield();
                             break;
                         } else {

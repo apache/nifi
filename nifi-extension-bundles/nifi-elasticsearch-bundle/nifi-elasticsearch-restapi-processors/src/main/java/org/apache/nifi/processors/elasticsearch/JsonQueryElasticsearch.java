@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("A processor that allows the user to run a query (with aggregations) written with the " +
         "Elasticsearch JSON DSL. It does not automatically paginate queries for the user. If an incoming relationship is added to this " +
         "processor, it will use the flowfile's content for the query. Care should be taken on the size of the query because the entire response " +
-        "from Elasticsearch will be loaded into memory all at once and converted into the resulting flowfiles.")
+        "from Elasticsearch will be loaded into memory all at once and converted into the resulting FlowFiles.")
 @SeeAlso(PaginatedJsonQueryElasticsearch.class)
 @DynamicProperties({
         @DynamicProperty(

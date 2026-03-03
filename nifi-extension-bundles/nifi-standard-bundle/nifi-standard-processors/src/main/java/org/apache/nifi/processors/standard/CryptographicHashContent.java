@@ -76,12 +76,12 @@ public class CryptographicHashContent extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Used for flowfiles that have a hash value added")
+            .description("Used for FlowFiles that have a hash value added")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Used for flowfiles that have no content if the 'fail on empty' setting is enabled")
+            .description("Used for FlowFiles that have no content if the 'fail on empty' setting is enabled")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(

@@ -74,14 +74,14 @@ import java.util.concurrent.TimeUnit;
 @Tags({"ingest", "udp", "listen", "source", "record"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Listens for Datagram Packets on a given port and reads the content of each datagram using the " +
-        "configured Record Reader. Each record will then be written to a flow file using the configured Record Writer. This processor " +
+        "configured Record Reader. Each record will then be written to a FlowFile using the configured Record Writer. This processor " +
         "can be restricted to listening for datagrams from  a specific remote host and port by specifying the Sending Host and " +
         "Sending Host Port properties, otherwise it will listen for datagrams from all hosts and ports.")
 @WritesAttributes({
         @WritesAttribute(attribute = "udp.sender", description = "The sending host of the messages."),
         @WritesAttribute(attribute = "udp.port", description = "The sending port the messages were received."),
-        @WritesAttribute(attribute = "record.count", description = "The number of records written to the flow file."),
-        @WritesAttribute(attribute = "mime.type", description = "The mime-type of the writer used to write the records to the flow file.")
+        @WritesAttribute(attribute = "record.count", description = "The number of records written to the FlowFile."),
+        @WritesAttribute(attribute = "mime.type", description = "The mime-type of the writer used to write the records to the FlowFile.")
 })
 public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent> {
 
@@ -111,7 +111,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("Record Writer")
-            .description("The Record Writer to use in order to serialize the data before writing to a flow file.")
+            .description("The Record Writer to use in order to serialize the data before writing to a FlowFile.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
@@ -258,8 +258,8 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 continue;
             }
 
-            // see if we already started a flow file and writer for the given sender
-            // if an exception happens creating the flow file or writer, put the event in the error queue to try it again later
+            // see if we already started a FlowFile and writer for the given sender
+            // if an exception happens creating the FlowFile or writer, put the event in the error queue to try it again later
             FlowFileRecordWriter flowFileRecordWriter = flowFileRecordWriters.get(event.getSender());
 
             if (flowFileRecordWriter == null) {
@@ -302,7 +302,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                 }
             }
 
-            // attempt to write each record, if any record fails then remove the flow file and break out of the loop
+            // attempt to write each record, if any record fails then remove the FlowFile and break out of the loop
             final RecordSetWriter writer = flowFileRecordWriter.getRecordWriter();
             try {
                 for (final Record record : records) {
@@ -317,8 +317,8 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             }
         }
 
-        // attempt to finish each record set and transfer the flow file, if an error is encountered calling
-        // finishRecordSet or closing the writer then remove the flow file
+        // attempt to finish each record set and transfer the FlowFile, if an error is encountered calling
+        // finishRecordSet or closing the writer then remove the FlowFile
 
         for (final Map.Entry<String, FlowFileRecordWriter> entry : flowFileRecordWriters.entrySet()) {
             final String sender = entry.getKey();
@@ -409,7 +409,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
     }
 
     /**
-     * Holder class to pass around a flow file and the writer that is writing records to it.
+     * Holder class to pass around a FlowFile and the writer that is writing records to it.
      */
     private static class FlowFileRecordWriter {
 

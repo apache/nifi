@@ -207,11 +207,11 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
 
     Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("All flowfiles that fail for reasons unrelated to server availability go to this relationship.")
+            .description("All FlowFiles that fail for reasons unrelated to server availability go to this relationship.")
             .build();
     Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
-            .description("All flowfiles that fail due to server/cluster availability go to this relationship.")
+            .description("All FlowFiles that fail due to server/cluster availability go to this relationship.")
             .build();
 
     String DEFAULT_QUERY_JSON = "{}";

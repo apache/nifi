@@ -1367,7 +1367,7 @@ public class TestMonitorActivity {
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_INACTIVE);
         runner.clearTransferState();
 
-        // Adding flow files
+        // Adding FlowFiles
         runner.enqueue("Incoming data 1");
         runner.enqueue("Incoming data 2");
         runner.enqueue("Incoming data 3");

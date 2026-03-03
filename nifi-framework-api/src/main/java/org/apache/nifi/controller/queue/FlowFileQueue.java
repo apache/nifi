@@ -71,13 +71,13 @@ public interface FlowFileQueue {
     /**
      * Establishes this queue's preferred maximum work load.
      *
-     * @param maxQueueSize the maximum number of flow files this processor
+     * @param maxQueueSize the maximum number of FlowFiles this processor
      *            recommends having in its work queue at any one time
      */
     void setBackPressureObjectThreshold(long maxQueueSize);
 
     /**
-     * @return maximum number of flow files that should be queued up at any one
+     * @return maximum number of FlowFiles that should be queued up at any one
      *         time
      */
     long getBackPressureObjectThreshold();
@@ -164,7 +164,7 @@ public interface FlowFileQueue {
      * @param maxResults limits how many results can be polled
      * @param expiredRecords for expired records
      * @param pollStrategy strategy of polling
-     * @return the next flow files on the queue up to the max results; null if
+     * @return the next FlowFiles on the queue up to the max results; null if
      *         empty
      */
     List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
@@ -293,14 +293,14 @@ public interface FlowFileQueue {
     void setLoadBalanceStrategy(LoadBalanceStrategy strategy, String partitioningAttribute);
 
     /**
-     * Offloads the flowfiles in the queue to other nodes.  This disables the queue from partition flowfiles locally.
+     * Offloads the FlowFiles in the queue to other nodes.  This disables the queue from partition FlowFiles locally.
      * <p>
      * This operation is a no-op if the node that contains this queue is not in a cluster.
      */
     void offloadQueue();
 
     /**
-     * Resets a queue that has previously been offloaded.  This allows the queue to partition flowfiles locally, and
+     * Resets a queue that has previously been offloaded.  This allows the queue to partition FlowFiles locally, and
      * has no other effect on processors or remote process groups.
      * <p>
      * This operation is a no-op if the queue is not currently offloaded or the node that contains this queue is not

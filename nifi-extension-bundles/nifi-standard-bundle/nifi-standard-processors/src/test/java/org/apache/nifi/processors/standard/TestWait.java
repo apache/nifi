@@ -519,7 +519,7 @@ public class TestWait {
         // A flow file comes in Notify and increment the counter
         protocol.notify("key", "counter", 1, cachedAttributes);
 
-        // another flow files comes in Notify and increment the counter
+        // another FlowFiles comes in Notify and increment the counter
         protocol.notify("key", "counter", 1, cachedAttributes);
 
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");

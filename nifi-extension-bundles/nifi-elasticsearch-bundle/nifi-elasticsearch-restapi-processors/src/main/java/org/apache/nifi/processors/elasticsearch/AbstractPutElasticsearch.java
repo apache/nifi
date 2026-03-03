@@ -58,7 +58,7 @@ import java.util.stream.Stream;
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
-            .description("All flowfiles that are sent to Elasticsearch without request failures go to this relationship.")
+            .description("All FlowFiles that are sent to Elasticsearch without request failures go to this relationship.")
             .build();
 
     public static final Relationship REL_SUCCESSFUL = new Relationship.Builder()
@@ -80,7 +80,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
             .name("Output Error Responses")
             .description("If this is enabled, response messages from Elasticsearch marked as \"error\" will be output to the \"" + REL_ERROR_RESPONSES.getName() + "\" relationship." +
-                    "This does not impact the output of flowfiles to the \"" + REL_SUCCESSFUL.getName() + "\" or \"" + REL_ERRORS.getName() + "\" relationships")
+                    "This does not impact the output of FlowFiles to the \"" + REL_SUCCESSFUL.getName() + "\" or \"" + REL_ERRORS.getName() + "\" relationships")
             .allowableValues("true", "false")
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)

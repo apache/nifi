@@ -70,7 +70,7 @@ import java.util.regex.Pattern;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "The MIME type indicated by the record writer"),
-        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
+        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting FlowFile")
 })
 public class SampleRecord extends AbstractProcessor {
 

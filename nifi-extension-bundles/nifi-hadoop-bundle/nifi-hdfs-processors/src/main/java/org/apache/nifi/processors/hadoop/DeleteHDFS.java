@@ -57,7 +57,7 @@ import java.util.stream.Stream;
         + "or a statically set path that is periodically removed. If this processor has an incoming connection, it"
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "
         + "Note that you may use a wildcard character to match multiple files or directories. If there are"
-        + " no incoming connections no flowfiles will be transfered to any output relationships.  If there is an incoming"
+        + " no incoming connections no FlowFiles will be transfered to any output relationships.  If there is an incoming"
         + " flowfile then provided there are no detected failures it will be transferred to success otherwise it will be sent to false. If"
         + " knowledge of globbed files deleted is necessary use ListHDFS first to produce a specific list of files to delete. ")
 @Restricted(restrictions = {

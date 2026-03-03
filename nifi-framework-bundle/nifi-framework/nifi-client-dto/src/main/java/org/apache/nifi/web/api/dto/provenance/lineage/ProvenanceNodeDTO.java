@@ -70,7 +70,7 @@ public class ProvenanceNodeDTO {
     /**
      * @return parent flowfile uuids for this provenance event
      */
-    @Schema(description = "The uuid of the parent flowfiles of the provenance event."
+    @Schema(description = "The uuid of the parent FlowFiles of the provenance event."
     )
     public List<String> getParentUuids() {
         return parentUuids;
@@ -81,9 +81,9 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * @return child flowfile uuids for this provenance event
+     * @return child FlowFile uuids for this provenance event
      */
-    @Schema(description = "The uuid of the childrent flowfiles of the provenance event."
+    @Schema(description = "The uuid of the children FlowFiles of the provenance event."
     )
     public List<String> getChildUuids() {
         return childUuids;

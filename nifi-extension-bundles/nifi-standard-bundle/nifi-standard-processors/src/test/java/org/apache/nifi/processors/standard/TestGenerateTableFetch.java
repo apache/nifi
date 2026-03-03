@@ -106,12 +106,12 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Two flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Two FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (4, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (5, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -194,7 +194,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -215,7 +215,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Two flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Two FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE2 (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE2 (id, name, scale, created_on) VALUES (4, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE2 (id, name, scale, created_on) VALUES (5, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -254,12 +254,12 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Two flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Two FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (4, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (5, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -326,7 +326,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -428,7 +428,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
-        // Set partition size to 1, so we can compare flow files to records
+        // Set partition size to 1, so we can compare FlowFiles to records
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
 
         runner.run();
@@ -642,12 +642,12 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Two flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Two FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (4, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (5, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -691,7 +691,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
@@ -718,7 +718,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
@@ -748,7 +748,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
@@ -776,7 +776,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.enqueue(new byte[0], attrs);
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
@@ -839,12 +839,12 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 2);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Two flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Two FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (3, 'female', 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (4, 'male', 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (5, 'male', 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -1003,12 +1003,12 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, this time no flowfiles/rows should be transferred
+        // Run again, this time no FlowFiles/rows should be transferred
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        // Add 3 new rows with a higher ID and run with a partition size of 2. Three flow files should be transferred
+        // Add 3 new rows with a higher ID and run with a partition size of 2. Three FlowFiles should be transferred
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (20, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (21, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         executeSql("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (24, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
@@ -1062,7 +1062,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
-        // Run again, the same flowfiles should be transferred as we have no maximum-value column
+        // Run again, the same FlowFiles should be transferred as we have no maximum-value column
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
         runner.clearTransferState();

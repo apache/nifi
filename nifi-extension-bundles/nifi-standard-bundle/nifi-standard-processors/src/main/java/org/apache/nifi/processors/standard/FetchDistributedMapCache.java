@@ -62,7 +62,7 @@ import java.util.Set;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Computes cache key(s) from FlowFile attributes, for each incoming FlowFile, and fetches the value(s) from the Map Cache associated "
         + "with each key. If configured without a destination attribute, the incoming FlowFile's content is replaced with the binary data received by the Map Cache. "
-        + "If there is no value stored under that key then the flow file will be routed to 'not-found'. Note that the processor will always attempt to read the entire cached value into "
+        + "If there is no value stored under that key then the FlowFile will be routed to 'not-found'. Note that the processor will always attempt to read the entire cached value into "
         + "memory before placing it in it's destination. This could be potentially problematic if the cached value is very large.")
 @WritesAttribute(attribute = "user-defined", description = "If the 'Put Cache Value In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be whatever the response was from the Map Cache. If multiple cache entry identifiers are selected, "

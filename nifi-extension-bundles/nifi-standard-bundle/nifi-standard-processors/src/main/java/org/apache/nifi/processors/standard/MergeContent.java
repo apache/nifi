@@ -144,7 +144,7 @@ import java.util.zip.ZipOutputStream;
     @WritesAttribute(attribute = "merge.count", description = "The number of FlowFiles that were merged into this bundle"),
     @WritesAttribute(attribute = "merge.bin.age", description = "The age of the bin, in milliseconds, when it was merged and output. Effectively "
         + "this is the greatest amount of time that any FlowFile in this bundle remained waiting in this processor before it was output"),
-    @WritesAttribute(attribute = "merge.uuid", description = "UUID of the merged flow file that will be added to the original flow files attributes."),
+    @WritesAttribute(attribute = "merge.uuid", description = "UUID of the merged FlowFile that will be added to the original FlowFiles attributes."),
     @WritesAttribute(attribute = "merge.reason", description = "This processor allows for several thresholds to be configured for merging FlowFiles. This attribute indicates which of the Thresholds" +
         " resulted in the FlowFiles being merged. For an explanation of each of the possible values and their meanings, see the Processor's Usage / documentation and see the 'Additional Details' " +
         "page.")
@@ -490,7 +490,7 @@ public class MergeContent extends BinFiles {
         if (context.getProperty(MERGE_STRATEGY).asAllowableValue(MergeStrategy.class) == MergeStrategy.DEFRAGMENT) {
             final String error = getDefragmentValidationError(bin.getContents());
 
-            // Fail the flow files and commit them
+            // Fail the FlowFiles and commit them
             if (error != null) {
                 final String binDescription = contents.size() <= 10 ? contents.toString() : contents.size() + " FlowFiles";
                 getLogger().error("{}; routing {} to failure", error, binDescription);

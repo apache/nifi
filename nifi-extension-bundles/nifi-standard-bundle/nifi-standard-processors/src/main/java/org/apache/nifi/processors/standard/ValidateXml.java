@@ -69,7 +69,7 @@ import javax.xml.validation.SchemaFactory;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"xml", "schema", "validation", "xsd"})
 @WritesAttributes({
-    @WritesAttribute(attribute = "validatexml.invalid.error", description = "If the flow file is routed to the invalid relationship "
+    @WritesAttribute(attribute = "validatexml.invalid.error", description = "If the FlowFile is routed to the invalid relationship "
             + "the attribute will contain the error message resulting from the validation failure.")
 })
 @CapabilityDescription("Validates XML contained in a FlowFile. By default, the XML is contained in the FlowFile content. If the 'XML Source Attribute' property is set, the XML to be validated "

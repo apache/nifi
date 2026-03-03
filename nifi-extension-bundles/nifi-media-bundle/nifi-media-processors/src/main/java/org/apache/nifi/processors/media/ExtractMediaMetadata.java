@@ -54,7 +54,7 @@ import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"media", "file", "format", "metadata", "audio", "video", "image", "document", "pdf"})
-@CapabilityDescription("Extract the content metadata from flowfiles containing audio, video, image, and other file "
+@CapabilityDescription("Extract the content metadata from FlowFiles containing audio, video, image, and other file "
         + "types.  This processor relies on the Apache Tika project for file format detection and parsing.  It "
         + "extracts a long list of metadata types for media files including audio, video, and print media "
         + "formats."

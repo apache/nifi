@@ -176,7 +176,7 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
 
         nameToGaugeMap.put("BACKPRESSURE_OBJECT_THRESHOLD",  Gauge.build()
                 .name("nifi_backpressure_object_threshold")
-                .help("The number of flow files that can be queued before backpressure is applied")
+                .help("The number of FlowFiles that can be queued before backpressure is applied")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
                         "source_id", "source_name", "destination_id", "destination_name")
                 .register(registry));

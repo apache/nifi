@@ -595,7 +595,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         // resource claim 1 will have a single claimant count while resource claim 2 will have no claimant counts
-        // because resource claim 2 is referenced only by flowfiles that are swapped out.
+        // because resource claim 2 is referenced only by FlowFiles that are swapped out.
         assertEquals(1, recoveryClaimManager.getClaimantCount(resourceClaim1));
         assertEquals(0, recoveryClaimManager.getClaimantCount(resourceClaim2));
 

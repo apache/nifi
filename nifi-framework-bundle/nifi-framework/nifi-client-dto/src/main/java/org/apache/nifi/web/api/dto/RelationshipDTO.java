@@ -59,7 +59,7 @@ public class RelationshipDTO {
     /**
      * @return true if relationship is auto terminated;false otherwise
      */
-    @Schema(description = "Whether or not flowfiles sent to this relationship should auto terminate."
+    @Schema(description = "Whether or not FlowFiles sent to this relationship should auto terminate."
     )
     public Boolean isAutoTerminate() {
         return autoTerminate;
@@ -72,7 +72,7 @@ public class RelationshipDTO {
     /**
      * @return true if relationship is retry;false otherwise
      */
-    @Schema(description = "Whether or not flowfiles sent to this relationship should retry."
+    @Schema(description = "Whether or not FlowFiles sent to this relationship should retry."
     )
     public Boolean isRetry() {
         return retry;

@@ -228,7 +228,7 @@ public class Bin {
     }
 
     /**
-     * @return the underlying list of flow files within this bin
+     * @return the underlying list of FlowFiles within this bin
      */
     public List<FlowFile> getContents() {
         return binContents;

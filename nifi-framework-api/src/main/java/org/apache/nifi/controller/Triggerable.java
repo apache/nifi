@@ -46,7 +46,7 @@ public interface Triggerable {
      *
      * @param context in which the component is triggered
      * @param sessionFactory used to generate {@link ProcessSession}s to use for
-     * operating on flow files within the repository
+     * operating on FlowFiles within the repository
      *
      * @throws ProcessException if processing did not complete normally though
      * indicates the problem is an understood potential outcome of processing.

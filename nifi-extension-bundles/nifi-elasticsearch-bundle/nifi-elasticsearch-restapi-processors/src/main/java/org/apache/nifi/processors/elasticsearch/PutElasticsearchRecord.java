@@ -133,7 +133,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("Record Reader")
-        .description("The record reader to use for reading incoming records from flowfiles.")
+        .description("The record reader to use for reading incoming records from FlowFiles.")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();

@@ -114,7 +114,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     static final PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("Query Output Attribute")
-            .description("If set, the query will be written to a specified attribute on the output flowfiles.")
+            .description("If set, the query will be written to a specified attribute on the output FlowFiles.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
             .required(false)

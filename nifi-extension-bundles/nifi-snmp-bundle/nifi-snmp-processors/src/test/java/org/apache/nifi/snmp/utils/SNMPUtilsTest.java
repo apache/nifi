@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SNMPUtilsTest {
 
     /**
-     * Test for updating attributes of flow files with {@link PDU}
+     * Test for updating attributes of FlowFiles with {@link PDU}
      */
     @Test
     void validateUpdateFlowFileAttributes() {

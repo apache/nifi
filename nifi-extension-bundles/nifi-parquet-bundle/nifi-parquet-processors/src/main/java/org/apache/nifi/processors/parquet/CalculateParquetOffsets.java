@@ -50,7 +50,7 @@ import java.util.Set;
 @Tags({"parquet", "split", "partition", "break apart", "efficient processing", "load balance", "cluster"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription(
-        "The processor generates N flow files from the input, and adds attributes with the offsets required to read "
+        "The processor generates N FlowFiles from the input, and adds attributes with the offsets required to read "
                 + "the group of rows in the FlowFile's content. Can be used to increase the overall efficiency of "
                 + "processing extremely large Parquet files."
 )

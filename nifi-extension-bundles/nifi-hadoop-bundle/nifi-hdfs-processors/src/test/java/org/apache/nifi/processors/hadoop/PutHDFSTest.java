@@ -446,7 +446,7 @@ public class PutHDFSTest {
             runner.run();
         }
 
-        // assert no flowfiles transferred to outgoing relationships
+        // assert no FlowFiles transferred to outgoing relationships
         runner.assertTransferCount(PutHDFS.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHDFS.REL_FAILURE, 0);
     }

@@ -210,7 +210,7 @@ public interface ProcessGroupDAO {
     void verifyDeleteFlowRegistry(String registryId);
 
     /**
-     * Creates a request to drop flowfiles in all connections (recursively).
+     * Creates a request to drop FlowFiles in all connections (recursively).
      *
      * @param processGroupId process group id
      * @param dropRequestId drop request id
@@ -219,7 +219,7 @@ public interface ProcessGroupDAO {
     DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
 
     /**
-     * Gets the specified request for dropping all flowfiles in all connections (recursively).
+     * Gets the specified request for dropping all FlowFiles in all connections (recursively).
      * @param processGroupId The id of the process group
      * @param dropRequestId The drop request id
      * @return The drop request status
@@ -227,7 +227,7 @@ public interface ProcessGroupDAO {
     DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
 
     /**
-     * Deletes the specified request for dropping all flowfiles in all connections (recursively).
+     * Deletes the specified request for dropping all FlowFiles in all connections (recursively).
      *
      * @param processGroupId The id of the process group
      * @param dropRequestId The drop request id

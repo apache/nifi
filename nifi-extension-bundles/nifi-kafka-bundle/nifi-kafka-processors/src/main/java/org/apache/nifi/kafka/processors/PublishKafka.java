@@ -467,7 +467,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
     private void publishFlowFiles(final ProcessContext context, final ProcessSession session,
             final List<FlowFile> flowFiles, final KafkaProducerService producerService) {
 
-        // Publish all FlowFiles and ensure that we call complete() on the producer and route flowfiles as appropriate, regardless
+        // Publish all FlowFiles and ensure that we call complete() on the producer and route FlowFiles as appropriate, regardless
         // of the outcome. If there are failures, the complete() method will abort the transaction (if transactions are enabled).
         // Otherwise, it will commit the transaction (if transactions are enabled). We then route the FlowFiles based on the results.
         try {

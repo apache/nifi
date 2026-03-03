@@ -696,7 +696,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Creates a request to drop the flowfiles from all connection queues within a process group (recursively).
+     * Creates a request to drop the FlowFiles from all connection queues within a process group (recursively).
      *
      * @param processGroupId The id of the process group to be removed.
      * @return A dropRequestEntity.
@@ -706,7 +706,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/empty-all-connections-requests")
     @Operation(
-            summary = "Creates a request to drop all flowfiles of all connection queues in this process group.",
+            summary = "Creates a request to drop all FlowFiles of all connection queues in this process group.",
             responses = {
                     @ApiResponse(
                             responseCode = "202", description = "The request has been accepted. An HTTP response header will contain the URI where the status can be polled.",
@@ -759,7 +759,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Checks the status of an outstanding request for dropping all flowfiles within a process group.
+     * Checks the status of an outstanding request for dropping all FlowFiles within a process group.
      *
      * @param processGroupId The id of the process group
      * @param dropRequestId The id of the drop request
@@ -770,7 +770,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/empty-all-connections-requests/{drop-request-id}")
     @Operation(
-            summary = "Gets the current status of a drop all flowfiles request.",
+            summary = "Gets the current status of a drop all FlowFiles request.",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = DropRequestEntity.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -815,7 +815,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Cancels the specified request for dropping all flowfiles within a process group.
+     * Cancels the specified request for dropping all FlowFiles within a process group.
      *
      * @param processGroupId The process group id
      * @param dropRequestId The drop request id
@@ -826,7 +826,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/empty-all-connections-requests/{drop-request-id}")
     @Operation(
-            summary = "Cancels and/or removes a request to drop all flowfiles.",
+            summary = "Cancels and/or removes a request to drop all FlowFiles.",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = DropRequestEntity.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),

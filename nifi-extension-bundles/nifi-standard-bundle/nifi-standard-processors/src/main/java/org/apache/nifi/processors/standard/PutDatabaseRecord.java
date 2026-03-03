@@ -111,17 +111,17 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
-@CapabilityDescription("The PutDatabaseRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming flow file. These records are translated to SQL "
-        + "statements and executed as a single transaction. If any errors occur, the flow file is routed to failure or retry, and if the records are transmitted successfully, "
-        + "the incoming flow file is "
+@CapabilityDescription("The PutDatabaseRecord processor uses a specified RecordReader to input (possibly multiple) records from an incoming FlowFile. These records are translated to SQL "
+        + "statements and executed as a single transaction. If any errors occur, the FlowFile is routed to failure or retry, and if the records are transmitted successfully, "
+        + "the incoming FlowFile is "
         + "routed to success.  The type of statement executed by the processor is specified via the Statement Type property, which accepts some hard-coded values such as INSERT, UPDATE, and DELETE, "
-        + "as well as 'Use statement.type Attribute', which causes the processor to get the statement type from a flow file attribute.  IMPORTANT: If the Statement Type is UPDATE, then the incoming "
+        + "as well as 'Use statement.type Attribute', which causes the processor to get the statement type from a FlowFile attribute.  IMPORTANT: If the Statement Type is UPDATE, then the incoming "
         + "records must not alter the value(s) of the primary keys (or user-specified Update Keys). If such records are encountered, the UPDATE statement issued to the database may do nothing "
         + "(if no existing records with the new primary key values are found), or could inadvertently corrupt the existing data (by changing records for which the new values of the primary keys "
         + "exist).")
 @ReadsAttribute(attribute = PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE, description = "If 'Use statement.type Attribute' is selected for the Statement Type property, the value of this attribute "
         + "will be used to determine the type of statement (INSERT, UPDATE, DELETE, SQL, etc.) to generate and execute.")
-@WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the flow file will be routed to failure or retry, and this attribute "
+@WritesAttribute(attribute = PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR, description = "If an error occurs during processing, the FlowFile will be routed to failure or retry, and this attribute "
         + "will be populated with the cause of the error.")
 @UseCase(description = "Insert records into a database")
 public class PutDatabaseRecord extends AbstractProcessor {

@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Exif", "Exchangeable", "image", "file", "format", "JPG", "GIF", "PNG", "BMP", "metadata", "IPTC", "XMP"})
-@CapabilityDescription("Extract the image metadata from flowfiles containing images. This processor relies on this "
+@CapabilityDescription("Extract the image metadata from FlowFiles containing images. This processor relies on this "
         + "metadata extractor library https://github.com/drewnoakes/metadata-extractor. It extracts a long list of "
         + "metadata types including but not limited to EXIF, IPTC, XMP and Photoshop fields. For the full list visit "
         + "the library's website."
