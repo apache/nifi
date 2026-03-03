@@ -209,6 +209,42 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
     }
 
     @Override
+    public void createBranch(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation sourceLocation, final String newBranchName)
+            throws FlowRegistryException, IOException {
+        if (StringUtils.isBlank(newBranchName)) {
+            throw new IllegalArgumentException("Branch name must be specified when creating a new branch");
+        }
+
+        final GitRepositoryClient repositoryClient = getRepositoryClient(context);
+        verifyWritePermissions(repositoryClient);
+
+        final String sourceBranch = resolveSourceBranch(context, sourceLocation);
+        if (StringUtils.isBlank(sourceBranch)) {
+            throw new FlowRegistryException("Unable to determine source branch for new branch creation");
+        }
+
+        final Optional<String> sourceCommitSha = sourceLocation == null ? Optional.empty() : Optional.ofNullable(sourceLocation.getVersion());
+        final String trimmedBranchName = newBranchName.trim();
+        final String trimmedSourceBranch = sourceBranch.trim();
+
+        getLogger().info("Creating branch [{}] from branch [{}]", trimmedBranchName, trimmedSourceBranch);
+
+        try {
+            repositoryClient.createBranch(trimmedBranchName, trimmedSourceBranch, sourceCommitSha);
+        } catch (final UnsupportedOperationException e) {
+            throw new FlowRegistryException("Configured repository client does not support branch creation", e);
+        }
+    }
+
+    private String resolveSourceBranch(final FlowRegistryClientConfigurationContext context, final FlowVersionLocation sourceLocation) {
+        if (sourceLocation != null && StringUtils.isNotBlank(sourceLocation.getBranch())) {
+            return sourceLocation.getBranch();
+        }
+        final String defaultBranch = context.getProperty(REPOSITORY_BRANCH).getValue();
+        return StringUtils.isBlank(defaultBranch) ? null : defaultBranch;
+    }
+
+    @Override
     public Set<FlowRegistryBucket> getBuckets(final FlowRegistryClientConfigurationContext context, final String branch) throws IOException, FlowRegistryException {
         final GitRepositoryClient repositoryClient = getRepositoryClient(context);
         verifyReadPermissions(repositoryClient);
