@@ -576,7 +576,7 @@ public class StandardFlowComparator implements FlowComparator {
 
         final boolean shouldCompareVersioned = flowCoordinateDifferences.stream()
                 .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP;
-        final boolean compareGroupContents = !bothGroupsVersioned || shouldCompareVersioned || hasProcessGroupContents(groupA) || hasProcessGroupContents(groupB);
+        final boolean compareGroupContents = !bothGroupsVersioned || shouldCompareVersioned;
 
         if (compareGroupContents) {
             extractPGComponentsDifferences(groupA, groupB, differences);
@@ -628,22 +628,6 @@ public class StandardFlowComparator implements FlowComparator {
         differences.addAll(compareComponents(groupA == null ? Set.of() : groupA.getRemoteProcessGroups(),
                 groupB == null ? Set.of() : groupB.getRemoteProcessGroups(),
                 this::compare));
-    }
-
-    private boolean hasProcessGroupContents(final VersionedProcessGroup group) {
-        if (group == null) {
-            return false;
-        }
-
-        return !group.getConnections().isEmpty()
-                || !group.getProcessors().isEmpty()
-                || !group.getControllerServices().isEmpty()
-                || !group.getFunnels().isEmpty()
-                || !group.getInputPorts().isEmpty()
-                || !group.getLabels().isEmpty()
-                || !group.getOutputPorts().isEmpty()
-                || !group.getProcessGroups().isEmpty()
-                || !group.getRemoteProcessGroups().isEmpty();
     }
 
     private void compareFlowCoordinates(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB, final Set<FlowDifference> differences) {
