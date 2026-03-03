@@ -1616,35 +1616,38 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
                 final String value;
                 if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
-                    // Need to determine if the component's property descriptor for this service is already set to an id
-                    // of an existing service that is outside the current processor group, and if it is we want to leave
-                    // the property set to that value
-                    String existingExternalServiceId = null;
-                    final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
-                    if (componentDescriptorValue != null) {
-                        final ProcessGroup parentGroup = topLevelGroup.getParent();
-                        if (parentGroup != null) {
-                            final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
-                            if (serviceNode != null) {
-                                existingExternalServiceId = componentDescriptorValue;
-                            }
-                        }
-                    }
+                    // Prefer mapping the proposed Versioned Component ID to an in-scope service instance ID
+                    final String serviceVersionedComponentId = proposedProperties.get(propertyName);
+                    final String inScopeInstanceId = getServiceInstanceId(serviceVersionedComponentId, group);
 
-                    // If the component's property descriptor is not already set to an id of an existing external service,
-                    // then we need to take the Versioned Component ID and resolve this to the instance ID of the service
-                    if (existingExternalServiceId == null) {
-                        final String serviceVersionedComponentId = proposedProperties.get(propertyName);
-                        String instanceId = getServiceInstanceId(serviceVersionedComponentId, group);
-                        value = (instanceId == null) ? serviceVersionedComponentId : instanceId;
-
-                        // Find the same property descriptor in the component's CreatedExtension and replace it with the
-                        // instance ID of the service
+                    if (inScopeInstanceId != null) {
+                        value = inScopeInstanceId;
+                        // Update captured created/modified extension properties with resolved instance id
                         createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
                             createdOrModifiedExtension.propertyValues.replace(propertyName, value);
                         });
                     } else {
-                        value = existingExternalServiceId;
+                        // No in-scope mapping: if the current value references an external service in a parent group, retain it
+                        String existingExternalServiceId = null;
+                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
+                        if (componentDescriptorValue != null) {
+                            final ProcessGroup parentGroup = topLevelGroup.getParent();
+                            if (parentGroup != null) {
+                                final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
+                                if (serviceNode != null) {
+                                    existingExternalServiceId = componentDescriptorValue;
+                                }
+                            }
+                        }
+
+                        value = (existingExternalServiceId != null) ? existingExternalServiceId : serviceVersionedComponentId;
+                        if (existingExternalServiceId == null) {
+                            // When falling back to proposed versioned id, reflect that in created/modified extension
+                            final String finalValue = value;
+                            createdAndModifiedExtensions.stream().filter(ce -> ce.extension.equals(componentNode)).forEach(createdOrModifiedExtension -> {
+                                createdOrModifiedExtension.propertyValues.replace(propertyName, finalValue);
+                            });
+                        }
                     }
                 } else {
                     value = proposedProperties.get(propertyName);
