@@ -17,9 +17,9 @@
 package org.apache.nifi.web.connector.authorization;
 
 import org.apache.nifi.components.connector.DropFlowFileSummary;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
-import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
@@ -86,9 +86,9 @@ public class AuthorizingProcessGroupFacade implements ProcessGroupFacade {
     }
 
     @Override
-    public Set<ControllerServiceFacade> getControllerServices(final ControllerServiceReferenceScope referenceScope, final ControllerServiceReferenceHierarchy hierarchy) {
+    public Set<ControllerServiceFacade> getControllerServices(final ControllerServiceReferenceScope referenceScope, final ComponentHierarchyScope hierarchyScope) {
         authContext.authorizeRead();
-        return delegate.getControllerServices(referenceScope, hierarchy).stream()
+        return delegate.getControllerServices(referenceScope, hierarchyScope).stream()
                 .map(s -> new AuthorizingControllerServiceFacade(s, authContext))
                 .collect(Collectors.toSet());
     }

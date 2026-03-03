@@ -19,9 +19,9 @@ package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.DropFlowFileSummary;
+import org.apache.nifi.components.connector.components.ComponentHierarchyScope;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
-import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
@@ -227,11 +227,10 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
     }
 
     @Override
-    public Set<ControllerServiceFacade> getControllerServices(final ControllerServiceReferenceScope controllerServiceReferenceScope,
-                final ControllerServiceReferenceHierarchy controllerServiceReferenceHierarchy) {
+    public Set<ControllerServiceFacade> getControllerServices(final ControllerServiceReferenceScope referenceScope, final ComponentHierarchyScope hierarchyScope) {
 
-        final boolean recursive = (controllerServiceReferenceHierarchy == ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS);
-        if (controllerServiceReferenceScope == ControllerServiceReferenceScope.INCLUDE_ALL) {
+        final boolean recursive = (hierarchyScope == ComponentHierarchyScope.INCLUDE_CHILD_GROUPS);
+        if (referenceScope == ControllerServiceReferenceScope.INCLUDE_ALL) {
             final Set<ControllerServiceFacade> facades = new HashSet<>();
             collectControllerServiceFacades(this, facades, facade -> true, recursive);
             return facades;
