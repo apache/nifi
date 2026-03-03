@@ -16,21 +16,19 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+record ShardFetchResult(String shardId, List<DeaggregatedRecord> records, long millisBehindLatest) {
 
-class ProvenanceTransitUriFormatTest {
+    String firstSequenceNumber() {
+        return records.getFirst().sequenceNumber();
+    }
 
-    @ParameterizedTest
-    @CsvSource("""
-            streamA,shardId123,kinesis:stream/streamA/shardId123
-            stream-name-b,shardId-000000013,kinesis:stream/stream-name-b/shardId-000000013
-            kinesis,shardId-00000001,kinesis:stream/kinesis/shardId-00000001
-            """)
-    void toTransitUri(final String streamName, final String shardId, final String expectedTransitUri) {
-        final String transitUri = ProvenanceTransitUriFormat.toTransitUri(streamName, shardId);
-        assertEquals(expectedTransitUri, transitUri);
+    String lastSequenceNumber() {
+        return records.getLast().sequenceNumber();
+    }
+
+    long lastSubSequenceNumber() {
+        return records.getLast().subSequenceNumber();
     }
 }

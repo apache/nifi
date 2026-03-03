@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
-import jakarta.annotation.Nullable;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -30,154 +29,132 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
-import org.apache.nifi.migration.ProxyServiceMigration;
+import org.apache.nifi.migration.RelationshipConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
-import org.apache.nifi.processors.aws.kinesis.MemoryBoundRecordBuffer.Lease;
-import org.apache.nifi.processors.aws.kinesis.ReaderRecordProcessor.ProcessingResult;
-import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
-import org.apache.nifi.processors.aws.kinesis.converter.InjectMetadataRecordConverter;
-import org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverter;
-import org.apache.nifi.processors.aws.kinesis.converter.ValueRecordConverter;
-import org.apache.nifi.processors.aws.kinesis.converter.WrapperRecordConverter;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.http.Protocol;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
-import software.amazon.awssdk.http.nio.netty.Http2Configuration;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
-import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClientBuilder;
-import software.amazon.kinesis.common.ConfigsBuilder;
-import software.amazon.kinesis.common.InitialPositionInStream;
-import software.amazon.kinesis.common.InitialPositionInStreamExtended;
-import software.amazon.kinesis.coordinator.Scheduler;
-import software.amazon.kinesis.coordinator.WorkerStateChangeListener;
-import software.amazon.kinesis.lifecycle.events.InitializationInput;
-import software.amazon.kinesis.lifecycle.events.LeaseLostInput;
-import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
-import software.amazon.kinesis.lifecycle.events.ShardEndedInput;
-import software.amazon.kinesis.lifecycle.events.ShutdownRequestedInput;
-import software.amazon.kinesis.metrics.LogMetricsFactory;
-import software.amazon.kinesis.metrics.MetricsFactory;
-import software.amazon.kinesis.metrics.NullMetricsFactory;
-import software.amazon.kinesis.processor.ShardRecordProcessor;
-import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
-import software.amazon.kinesis.processor.SingleStreamTracker;
-import software.amazon.kinesis.retrieval.KinesisClientRecord;
-import software.amazon.kinesis.retrieval.RetrievalSpecificConfig;
-import software.amazon.kinesis.retrieval.fanout.FanOutConfig;
-import software.amazon.kinesis.retrieval.polling.PollingConfig;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
+import software.amazon.awssdk.services.kinesis.model.Shard;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.net.Proxy;
 import java.net.URI;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.APPROXIMATE_ARRIVAL_TIMESTAMP;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.FIRST_SUB_SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.LAST_SUB_SEQUENCE_NUMBER;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.MIME_TYPE;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.PARTITION_KEY;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
-import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SHARD_ID;
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
 @CapabilityDescription("""
-        Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw)
-        or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured.
-        The processor may take a few minutes on the first start and several seconds on subsequent starts
-        to initialize before starting to fetch data.
-        Uses DynamoDB for check pointing and coordination, and (optional) CloudWatch for metrics.
-        """)
+        Consumes records from an Amazon Kinesis Data Stream. Uses \
+        DynamoDB-based checkpointing for reliable resumption after restarts.
+
+        Note: when a shard is split or multiple shards are merged, this processor will consume from \
+        child and parent shards concurrently. It does not wait for parent shards to be fully consumed \
+        before reading child shards, so record ordering is not guaranteed across a split or merge \
+        boundary.""")
 @WritesAttributes({
-        @WritesAttribute(attribute = ConsumeKinesisAttributes.STREAM_NAME,
-                description = "The name of the Kinesis Stream from which all Kinesis Records in the FlowFile were read"),
-        @WritesAttribute(attribute = SHARD_ID,
-                description = "Shard ID from which all Kinesis Records in the FlowFile were read"),
-        @WritesAttribute(attribute = PARTITION_KEY,
+        @WritesAttribute(attribute = "aws.kinesis.stream.name",
+                description = "The name of the Kinesis Stream from which records were read"),
+        @WritesAttribute(attribute = "aws.kinesis.shard.id",
+                description = "Shard ID from which records were read"),
+        @WritesAttribute(attribute = "aws.kinesis.partition.key",
                 description = "Partition key of the last Kinesis Record in the FlowFile"),
-        @WritesAttribute(attribute = FIRST_SEQUENCE_NUMBER,
-                description = "A Sequence Number of the first Kinesis Record in the FlowFile"),
-        @WritesAttribute(attribute = FIRST_SUB_SEQUENCE_NUMBER,
-                description = "A SubSequence Number of the first Kinesis Record in the FlowFile. Generated by KPL when aggregating records into a single Kinesis Record"),
-        @WritesAttribute(attribute = LAST_SEQUENCE_NUMBER,
-                description = "A Sequence Number of the last Kinesis Record in the FlowFile"),
-        @WritesAttribute(attribute = LAST_SUB_SEQUENCE_NUMBER,
-                description = "A SubSequence Number of the last Kinesis Record in the FlowFile. Generated by KPL when aggregating records into a single Kinesis Record"),
-        @WritesAttribute(attribute = APPROXIMATE_ARRIVAL_TIMESTAMP,
+        @WritesAttribute(attribute = "aws.kinesis.first.sequence.number",
+                description = "Sequence Number of the first Kinesis Record in the FlowFile"),
+        @WritesAttribute(attribute = "aws.kinesis.first.subsequence.number",
+                description = "Sub-Sequence Number of the first Kinesis Record in the FlowFile"),
+        @WritesAttribute(attribute = "aws.kinesis.last.sequence.number",
+                description = "Sequence Number of the last Kinesis Record in the FlowFile"),
+        @WritesAttribute(attribute = "aws.kinesis.last.subsequence.number",
+                description = "Sub-Sequence Number of the last Kinesis Record in the FlowFile"),
+        @WritesAttribute(attribute = "aws.kinesis.approximate.arrival.timestamp.ms",
                 description = "Approximate arrival timestamp of the last Kinesis Record in the FlowFile"),
-        @WritesAttribute(attribute = MIME_TYPE,
+        @WritesAttribute(attribute = "mime.type",
                 description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer (if configured)"),
-        @WritesAttribute(attribute = RECORD_COUNT,
-                description = "Number of records written to the FlowFiles by the Record Writer (if configured)"),
-        @WritesAttribute(attribute = RECORD_ERROR_MESSAGE,
-                description = "This attribute provides on failure the error message encountered by the Record Reader or Record Writer (if configured)")
+        @WritesAttribute(attribute = "record.count",
+                description = "Number of records written to the FlowFile"),
+        @WritesAttribute(attribute = "record.error.message",
+                description = "Error message encountered by the Record Reader or Record Writer (if configured)"),
+        @WritesAttribute(attribute = "kinesis.millis.behind",
+                description = "How far behind the stream tail we are, in milliseconds")
 })
 @DefaultSettings(yieldDuration = "100 millis")
 @SystemResourceConsideration(resource = SystemResource.CPU, description = """
-        The processor uses additional CPU resources when consuming data from Kinesis.
-        The consumption is started immediately after this Processor is scheduled. The consumption ends only when the Processor is stopped.""")
+        The processor uses additional CPU resources when consuming data from Kinesis.""")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = """
-        The processor will continually poll for new Records,
-        requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.""")
+        The processor will continually poll for new Records.""")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = """
-        ConsumeKinesis buffers Kinesis Records in memory until they can be processed.
-        The maximum size of the buffer is controlled by the 'Max Bytes to Buffer' property.
-        In addition, the processor may cache some amount of data for each shard when the processor's buffer is full.""")
+        ConsumeKinesis buffers Kinesis Records in memory until they can be processed. \
+        The maximum size of the buffer is controlled by the 'Max Batch Size' property.""")
 public class ConsumeKinesis extends AbstractProcessor {
 
-    private static final Duration HTTP_CLIENTS_CONNECTION_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration HTTP_CLIENTS_READ_TIMEOUT = Duration.ofMinutes(3);
+    static final String ATTR_STREAM_NAME = "aws.kinesis.stream.name";
+    static final String ATTR_SHARD_ID = "aws.kinesis.shard.id";
+    static final String ATTR_FIRST_SEQUENCE = "aws.kinesis.first.sequence.number";
+    static final String ATTR_LAST_SEQUENCE = "aws.kinesis.last.sequence.number";
+    static final String ATTR_FIRST_SUBSEQUENCE = "aws.kinesis.first.subsequence.number";
+    static final String ATTR_LAST_SUBSEQUENCE = "aws.kinesis.last.subsequence.number";
+    static final String ATTR_PARTITION_KEY = "aws.kinesis.partition.key";
+    static final String ATTR_ARRIVAL_TIMESTAMP = "aws.kinesis.approximate.arrival.timestamp.ms";
+    static final String ATTR_MILLIS_BEHIND = "kinesis.millis.behind";
 
-    private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
-    private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
-
-    /**
-     * How long to wait for a Scheduler initialization to complete in the OnScheduled method.
-     * If the initialization takes longer than this, the processor will continue initialization checks in the onTrigger method.
-     */
-    private static final Duration KINESIS_SCHEDULER_ON_SCHEDULED_INITIALIZATION_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT = Duration.ofMinutes(3);
+    private static final long QUEUE_POLL_TIMEOUT_MILLIS = 100;
+    private static final Duration API_CALL_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration API_CALL_ATTEMPT_TIMEOUT = Duration.ofSeconds(10);
+    private static final byte[] NEWLINE_DELIMITER = new byte[] {'\n'};
+    private static final String WRAPPER_VALUE_FIELD = "value";
 
     static final PropertyDescriptor STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Stream Name")
@@ -188,17 +165,14 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor APPLICATION_NAME = new PropertyDescriptor.Builder()
             .name("Application Name")
-            .description("The name of the Kinesis application. This is used for DynamoDB table naming and worker coordination.")
+            .description("The name of the Kinesis application. Used as the DynamoDB table name for checkpoint storage.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider Service")
-            .description("""
-                    The Controller Service that is used to obtain AWS credentials provider.
-                    Ensure that the credentials provided have access to Kinesis, DynamoDB and (optional) CloudWatch.
-                    """)
+            .description("The Controller Service used to obtain AWS credentials provider.")
             .required(true)
             .identifiesControllerService(AwsCredentialsProviderService.class)
             .build();
@@ -221,12 +195,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
-            .description("""
-                    The Record Reader to use for parsing the data received from Kinesis.
-
-                    The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
-                    it might hinder performance of the processor.
-                    """)
+            .description("The Record Reader to use for parsing the data received from Kinesis.")
             .required(true)
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
             .identifiesControllerService(RecordReaderFactory.class)
@@ -252,12 +221,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Message Demarcator")
             .description("""
-                    Specifies the string (interpreted as UTF-8) to use for demarcating multiple Kinesis messages
-                    within a single FlowFile. If not specified, the content of the messages will be concatenated
-                    without any delimiter.
-                    To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.
-                    """)
-            .required(false)
+                    Specifies the string (interpreted as UTF-8) used to separate multiple Kinesis messages \
+                    within a single FlowFile when Processing Strategy is DEMARCATOR.""")
+            .required(true)
             .addValidator(Validator.VALID)
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR)
             .build();
@@ -272,47 +238,49 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor STREAM_POSITION_TIMESTAMP = new PropertyDescriptor.Builder()
             .name("Stream Position Timestamp")
-            .description("Timestamp position in stream from which to start reading Kinesis Records. The timestamp must be in ISO 8601 format.")
+            .description("Timestamp position in stream from which to start reading Kinesis Records. Must be in ISO 8601 format.")
             .required(true)
             .addValidator(StandardValidators.ISO8601_INSTANT_VALIDATOR)
             .dependsOn(INITIAL_STREAM_POSITION, InitialPosition.AT_TIMESTAMP)
             .build();
 
-    static final PropertyDescriptor MAX_BYTES_TO_BUFFER = new PropertyDescriptor.Builder()
-            .name("Max Bytes to Buffer")
-            .description("""
-                    The maximum size of Kinesis Records that can be buffered in memory before being processed by NiFi.
-                    If the buffer size exceeds the limit, the processor will stop consuming new records until free space is available.
-
-                    Using a larger value may increase the throughput, but will do so at the expense of using more memory.
-                    """)
+    static final PropertyDescriptor MAX_RECORDS_PER_REQUEST = new PropertyDescriptor.Builder()
+            .name("Max Records Per Request")
+            .description("The maximum number of records to retrieve per GetRecords call. Maximum is 10,000.")
             .required(true)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("100 MB")
+            .defaultValue("1000")
+            .addValidator(StandardValidators.createLongValidator(1, 10000, true))
             .build();
 
-    static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Checkpoint Interval")
+    static final PropertyDescriptor MAX_BATCH_DURATION = new PropertyDescriptor.Builder()
+            .name("Max Batch Duration")
             .description("""
-                    Interval between checkpointing consumed Kinesis records. To checkpoint records each time the Processor is run, set this value to 0 seconds.
-
-                    More frequent checkpoint may reduce performance and increase DynamoDB costs,
-                    but less frequent checkpointing may result in duplicates when a Shard lease is lost or NiFi is restarted.
-                    """)
+                    The maximum amount of time to spend consuming records in a single invocation before \
+                    committing the session and checkpointing.""")
             .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("5 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor METRICS_PUBLISHING = new PropertyDescriptor.Builder()
-            .name("Metrics Publishing")
-            .description("Specifies where Kinesis usage metrics are published to.")
+    static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Batch Size")
+            .description("""
+                    The maximum amount of data to consume in a single invocation before committing the \
+                    session and checkpointing.""")
             .required(true)
-            .allowableValues(MetricsPublishing.class)
-            .defaultValue(MetricsPublishing.DISABLED)
+            .defaultValue("10 MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
+    static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("Endpoint Override URL")
+            .description("An optional endpoint override URL for both the Kinesis and DynamoDB clients.")
+            .required(false)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE =
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             STREAM_NAME,
@@ -328,10 +296,11 @@ public class ConsumeKinesis extends AbstractProcessor {
             MESSAGE_DEMARCATOR,
             INITIAL_STREAM_POSITION,
             STREAM_POSITION_TIMESTAMP,
-            MAX_BYTES_TO_BUFFER,
-            CHECKPOINT_INTERVAL,
-            PROXY_CONFIGURATION_SERVICE,
-            METRICS_PUBLISHING
+            MAX_RECORDS_PER_REQUEST,
+            MAX_BATCH_DURATION,
+            MAX_BATCH_SIZE,
+            ENDPOINT_OVERRIDE,
+            PROXY_CONFIGURATION_SERVICE
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -347,23 +316,20 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final Set<Relationship> RAW_FILE_RELATIONSHIPS = Set.of(REL_SUCCESS);
     private static final Set<Relationship> RECORD_FILE_RELATIONSHIPS = Set.of(REL_SUCCESS, REL_PARSE_FAILURE);
 
-    private volatile DynamoDbAsyncClient dynamoDbClient;
-    private volatile CloudWatchAsyncClient cloudWatchClient;
-    private volatile KinesisAsyncClient kinesisClient;
-    private volatile Scheduler kinesisScheduler;
-
+    private volatile SdkHttpClient kinesisHttpClient;
+    private volatile SdkHttpClient dynamoHttpClient;
+    private volatile KinesisClient kinesisClient;
+    private volatile DynamoDbClient dynamoDbClient;
+    private volatile SdkAsyncHttpClient asyncHttpClient;
+    private volatile KinesisShardManager shardManager;
+    private volatile KinesisConsumerClient consumerClient;
     private volatile String streamName;
-    private volatile RecordBuffer.ForProcessor<Lease> recordBuffer;
+    private volatile int maxRecordsPerRequest;
+    private volatile String initialStreamPosition;
+    private volatile long maxBatchNanos;
+    private volatile long maxBatchBytes;
 
-    private volatile @Nullable ReaderRecordProcessor readerRecordProcessor;
-    private volatile @Nullable byte[] demarcatorValue;
-
-    private volatile Future<InitializationResult> initializationResultFuture;
-    private final AtomicBoolean initialized = new AtomicBoolean();
-
-    // An instance filed, so that it can be read in getRelationships.
-    private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.from(
-            PROCESSING_STRATEGY.getDefaultValue());
+    private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.valueOf(PROCESSING_STRATEGY.getDefaultValue());
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -371,14 +337,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     @Override
-    public void migrateProperties(final PropertyConfiguration config) {
-        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
-    }
-
-    @Override
     public Set<Relationship> getRelationships() {
         return switch (processingStrategy) {
-            case FLOW_FILE, DEMARCATOR -> RAW_FILE_RELATIONSHIPS;
+            case FLOW_FILE, LINE_DELIMITED, DEMARCATOR -> RAW_FILE_RELATIONSHIPS;
             case RECORD -> RECORD_FILE_RELATIONSHIPS;
         };
     }
@@ -386,506 +347,1090 @@ public class ConsumeKinesis extends AbstractProcessor {
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (descriptor.equals(PROCESSING_STRATEGY)) {
-            processingStrategy = ProcessingStrategy.from(newValue);
+            processingStrategy = ProcessingStrategy.valueOf(newValue);
         }
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        config.renameProperty("Max Bytes to Buffer", "Max Batch Size");
+        config.removeProperty("Checkpoint Interval");
+        config.removeProperty("Metrics Publishing");
+    }
+
+    @Override
+    public void migrateRelationships(final RelationshipConfiguration config) {
+        config.renameRelationship("parse failure", "parse.failure");
     }
 
     @OnScheduled
-    public void setup(final ProcessContext context) {
-        readerRecordProcessor = switch (processingStrategy) {
-            case FLOW_FILE, DEMARCATOR -> null;
-            case RECORD -> createReaderRecordProcessor(context);
-        };
-        demarcatorValue = switch (processingStrategy) {
-            case FLOW_FILE, RECORD -> null;
-            case DEMARCATOR -> {
-                final String demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
-                yield demarcatorValue != null ? demarcatorValue.getBytes(UTF_8) : new byte[0];
-            }
-        };
-
+    public void onScheduled(final ProcessContext context) {
         final Region region = RegionUtil.getRegion(context);
         final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
                 .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
+        final String endpointOverride = context.getProperty(ENDPOINT_OVERRIDE).getValue();
 
-        kinesisClient = KinesisAsyncClient.builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .endpointOverride(getKinesisEndpointOverride())
-                .httpClient(createKinesisHttpClient(context))
+        final ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()
+                .apiCallTimeout(API_CALL_TIMEOUT)
+                .apiCallAttemptTimeout(API_CALL_ATTEMPT_TIMEOUT)
                 .build();
 
-        dynamoDbClient = DynamoDbAsyncClient.builder()
+        final KinesisClientBuilder kinesisBuilder = KinesisClient.builder()
                 .region(region)
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(getDynamoDbEndpointOverride())
-                .httpClient(createHttpClientBuilder(context).build())
-                .build();
+                .overrideConfiguration(clientConfig);
 
-        cloudWatchClient = CloudWatchAsyncClient.builder()
+        final DynamoDbClientBuilder dynamoBuilder = DynamoDbClient.builder()
                 .region(region)
                 .credentialsProvider(credentialsProvider)
-                .endpointOverride(getCloudwatchEndpointOverride())
-                .httpClient(createHttpClientBuilder(context).build())
-                .build();
+                .overrideConfiguration(clientConfig);
 
-        streamName = context.getProperty(STREAM_NAME).getValue();
-        final InitialPositionInStreamExtended initialPositionExtended = getInitialPosition(context);
-        final SingleStreamTracker streamTracker = new SingleStreamTracker(streamName, initialPositionExtended);
-
-        final long maxBytesToBuffer = context.getProperty(MAX_BYTES_TO_BUFFER).asDataSize(DataUnit.B).longValue();
-        final Duration checkpointInterval = context.getProperty(CHECKPOINT_INTERVAL).asDuration();
-        final MemoryBoundRecordBuffer memoryBoundRecordBuffer = new MemoryBoundRecordBuffer(getLogger(), maxBytesToBuffer, checkpointInterval);
-        recordBuffer = memoryBoundRecordBuffer;
-        final ShardRecordProcessorFactory recordProcessorFactory = () -> new ConsumeKinesisRecordProcessor(memoryBoundRecordBuffer);
-
-        final String applicationName = context.getProperty(APPLICATION_NAME).getValue();
-        final String workerId = generateWorkerId();
-        final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
-
-        final MetricsFactory metricsFactory = configureMetricsFactory(context);
-        final RetrievalSpecificConfig retrievalSpecificConfig = configureRetrievalSpecificConfig(context, kinesisClient, streamName, applicationName);
-
-        final InitializationStateChangeListener initializationListener = new InitializationStateChangeListener(getLogger());
-        initialized.set(false);
-        initializationResultFuture = initializationListener.result();
-
-        kinesisScheduler = new Scheduler(
-                configsBuilder.checkpointConfig(),
-                configsBuilder.coordinatorConfig().workerStateChangeListener(initializationListener),
-                configsBuilder.leaseManagementConfig(),
-                configsBuilder.lifecycleConfig(),
-                configsBuilder.metricsConfig().metricsFactory(metricsFactory),
-                configsBuilder.processorConfig(),
-                configsBuilder.retrievalConfig().retrievalSpecificConfig(retrievalSpecificConfig)
-        );
-
-        final String schedulerThreadName = "%s-Scheduler-%s".formatted(getClass().getSimpleName(), getIdentifier());
-        final Thread schedulerThread = new Thread(kinesisScheduler, schedulerThreadName);
-        schedulerThread.setDaemon(true);
-        schedulerThread.start();
-        // The thread is stopped when kinesisScheduler is shutdown in the onStopped method.
-
-        try {
-            final InitializationResult result = initializationResultFuture.get(
-                    KINESIS_SCHEDULER_ON_SCHEDULED_INITIALIZATION_TIMEOUT.getSeconds(), SECONDS);
-            checkInitializationResult(result);
-        } catch (final TimeoutException e) {
-            // During a first run the processor will take more time to initialize. We return from OnSchedule and continue waiting in the onTrigger method.
-            getLogger().warn("Kinesis Scheduler initialization may take up to 10 minutes on a first run, which is caused by AWS resources initialization");
-        } catch (final InterruptedException | ExecutionException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            cleanUpState();
-            throw new ProcessException("Initialization failed for stream [%s]".formatted(streamName), e);
+        if (endpointOverride != null && !endpointOverride.isEmpty()) {
+            final URI endpointUri = URI.create(endpointOverride);
+            kinesisBuilder.endpointOverride(endpointUri);
+            dynamoBuilder.endpointOverride(endpointUri);
         }
-    }
 
-    /**
-     * Creating Kinesis HTTP client, as per
-     * {@link software.amazon.kinesis.common.KinesisClientUtil#adjustKinesisClientBuilder(KinesisAsyncClientBuilder)}.
-     */
-    private static SdkAsyncHttpClient createKinesisHttpClient(final ProcessContext context) {
-        return createHttpClientBuilder(context)
-                .protocol(Protocol.HTTP2)
-                // Since we're using HTTP/2, multiple concurrent requests will reuse the same HTTP connection.
-                // Therefore, the number of real connections is going to be relatively small.
-                .maxConcurrency(Integer.MAX_VALUE)
-                .http2Configuration(Http2Configuration.builder()
-                        .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES)
-                        .healthCheckPingPeriod(KINESIS_HTTP_HEALTH_CHECK_PERIOD)
-                        .build())
-                .build();
-    }
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
 
-    private static NettyNioAsyncHttpClient.Builder createHttpClientBuilder(final ProcessContext context) {
-        final NettyNioAsyncHttpClient.Builder builder = NettyNioAsyncHttpClient.builder()
-                .connectionTimeout(HTTP_CLIENTS_CONNECTION_TIMEOUT)
-                .readTimeout(HTTP_CLIENTS_READ_TIMEOUT);
+        kinesisHttpClient = buildApacheHttpClient(proxyConfig, PollingKinesisClient.MAX_CONCURRENT_FETCHES + 10);
+        dynamoHttpClient = buildApacheHttpClient(proxyConfig, 50);
+        kinesisBuilder.httpClient(kinesisHttpClient);
+        dynamoBuilder.httpClient(dynamoHttpClient);
 
-        final ProxyConfigurationService proxyConfigService = context.getProperty(PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
-        if (proxyConfigService != null) {
-            final ProxyConfiguration proxyConfig = proxyConfigService.getConfiguration();
+        kinesisClient = kinesisBuilder.build();
+        dynamoDbClient = dynamoBuilder.build();
 
-            final software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder proxyConfigBuilder = software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
+        final String checkpointTableName = context.getProperty(APPLICATION_NAME).getValue();
+        streamName = context.getProperty(STREAM_NAME).getValue();
+        maxRecordsPerRequest = context.getProperty(MAX_RECORDS_PER_REQUEST).asInteger();
+        initialStreamPosition = context.getProperty(INITIAL_STREAM_POSITION).getValue();
+        maxBatchNanos = context.getProperty(MAX_BATCH_DURATION).asTimePeriod(TimeUnit.NANOSECONDS);
+        maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B).longValue();
+
+        shardManager = createShardManager(kinesisClient, dynamoDbClient, getLogger(), checkpointTableName, streamName);
+        shardManager.ensureCheckpointTableExists();
+
+        final boolean efoMode = ConsumerType.ENHANCED_FAN_OUT.equals(context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class));
+        consumerClient = createConsumerClient(kinesisClient, getLogger(), efoMode);
+
+        final Instant timestampForPosition = resolveTimestampPosition(context);
+        if (timestampForPosition != null) {
+            if (consumerClient instanceof PollingKinesisClient polling) {
+                polling.setTimestampForInitialPosition(timestampForPosition);
+            } else if (consumerClient instanceof EfoKinesisClient efo) {
+                efo.setTimestampForInitialPosition(timestampForPosition);
+            }
+        }
+
+        if (efoMode) {
+            final NettyNioAsyncHttpClient.Builder nettyBuilder = NettyNioAsyncHttpClient.builder()
+                    .maxConcurrency(500)
+                    .connectionAcquisitionTimeout(Duration.ofSeconds(60));
+
+            if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+                final software.amazon.awssdk.http.nio.netty.ProxyConfiguration.Builder nettyProxyBuilder = software.amazon.awssdk.http.nio.netty.ProxyConfiguration.builder()
                     .host(proxyConfig.getProxyServerHost())
                     .port(proxyConfig.getProxyServerPort());
 
+                if (proxyConfig.hasCredential()) {
+                    nettyProxyBuilder.username(proxyConfig.getProxyUserName());
+                    nettyProxyBuilder.password(proxyConfig.getProxyUserPassword());
+                }
+
+                nettyBuilder.proxyConfiguration(nettyProxyBuilder.build());
+            }
+
+            asyncHttpClient = nettyBuilder.build();
+
+            final KinesisAsyncClientBuilder asyncBuilder = KinesisAsyncClient.builder()
+                    .region(region)
+                    .credentialsProvider(credentialsProvider)
+                    .httpClient(asyncHttpClient);
+
+            if (endpointOverride != null && !endpointOverride.isEmpty()) {
+                asyncBuilder.endpointOverride(URI.create(endpointOverride));
+            }
+
+            final String consumerName = context.getProperty(APPLICATION_NAME).getValue();
+            consumerClient.initialize(asyncBuilder.build(), streamName, consumerName);
+        }
+    }
+
+    private static Instant resolveTimestampPosition(final ProcessContext context) {
+        final InitialPosition position = context.getProperty(INITIAL_STREAM_POSITION).asAllowableValue(InitialPosition.class);
+        if (position == InitialPosition.AT_TIMESTAMP) {
+            return Instant.parse(context.getProperty(STREAM_POSITION_TIMESTAMP).getValue());
+        }
+        return null;
+    }
+
+    /**
+     * Builds an {@link ApacheHttpClient} with the given connection pool size and optional proxy
+     * configuration. Each AWS service client (Kinesis, DynamoDB) should receive its own HTTP client
+     * so their connection pools are isolated and cannot starve each other under high shard counts.
+     */
+    private static SdkHttpClient buildApacheHttpClient(final ProxyConfiguration proxyConfig, final int maxConnections) {
+        final ApacheHttpClient.Builder builder = ApacheHttpClient.builder()
+                .maxConnections(maxConnections);
+
+        if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
+            final URI proxyEndpoint = URI.create(String.format("http://%s:%s", proxyConfig.getProxyServerHost(), proxyConfig.getProxyServerPort()));
+            final software.amazon.awssdk.http.apache.ProxyConfiguration.Builder proxyBuilder =
+                    software.amazon.awssdk.http.apache.ProxyConfiguration.builder().endpoint(proxyEndpoint);
+
             if (proxyConfig.hasCredential()) {
-                proxyConfigBuilder.username(proxyConfig.getProxyUserName());
-                proxyConfigBuilder.password(proxyConfig.getProxyUserPassword());
+                proxyBuilder.username(proxyConfig.getProxyUserName());
+                proxyBuilder.password(proxyConfig.getProxyUserPassword());
             }
 
-            builder.proxyConfiguration(proxyConfigBuilder.build());
+            builder.proxyConfiguration(proxyBuilder.build());
         }
 
-        return builder;
-    }
-
-    private ReaderRecordProcessor createReaderRecordProcessor(final ProcessContext context) {
-        final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final RecordSetWriterFactory recordWriterFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-        final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
-        final KinesisRecordConverter converter = switch (outputStrategy) {
-            case USE_VALUE -> new ValueRecordConverter();
-            case USE_WRAPPER -> new WrapperRecordConverter();
-            case INJECT_METADATA -> new InjectMetadataRecordConverter();
-        };
-
-        return new ReaderRecordProcessor(recordReaderFactory, converter, recordWriterFactory, getLogger());
-    }
-
-    private static InitialPositionInStreamExtended getInitialPosition(final ProcessContext context) {
-        final InitialPosition initialPosition = context.getProperty(INITIAL_STREAM_POSITION).asAllowableValue(InitialPosition.class);
-        return switch (initialPosition) {
-            case TRIM_HORIZON ->
-                InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
-            case LATEST -> InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.LATEST);
-            case AT_TIMESTAMP -> {
-                final String timestampValue = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
-                final Instant timestamp = Instant.parse(timestampValue);
-                yield InitialPositionInStreamExtended.newInitialPositionAtTimestamp(Date.from(timestamp));
-            }
-        };
-    }
-
-    private String generateWorkerId() {
-        final String processorId = getIdentifier();
-        final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
-
-        final String workerId;
-
-        if (nodeTypeProvider.isClustered()) {
-            // If a node id is not available for some reason, generating a random UUID helps to avoid collisions.
-            final String nodeId = nodeTypeProvider.getCurrentNode().orElse(UUID.randomUUID().toString());
-            workerId = "%s@%s".formatted(processorId, nodeId);
-        } else {
-            workerId = processorId;
-        }
-
-        return workerId;
-    }
-
-    private static @Nullable MetricsFactory configureMetricsFactory(final ProcessContext context) {
-        final MetricsPublishing metricsPublishing = context.getProperty(METRICS_PUBLISHING).asAllowableValue(MetricsPublishing.class);
-        return switch (metricsPublishing) {
-            case DISABLED -> new NullMetricsFactory();
-            case LOGS -> new LogMetricsFactory();
-            case CLOUDWATCH -> null; // If no metrics factory was provided, CloudWatch metrics factory is used by default.
-        };
-    }
-
-    private static RetrievalSpecificConfig configureRetrievalSpecificConfig(
-            final ProcessContext context,
-            final KinesisAsyncClient kinesisClient,
-            final String streamName,
-            final String applicationName) {
-        final ConsumerType consumerType = context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class);
-        return switch (consumerType) {
-            case SHARED_THROUGHPUT -> new PollingConfig(kinesisClient).streamName(streamName);
-            case ENHANCED_FAN_OUT -> new FanOutConfig(kinesisClient).streamName(streamName).applicationName(applicationName);
-        };
+        return builder.build();
     }
 
     @OnStopped
     public void onStopped() {
-        cleanUpState();
+        if (shardManager != null) {
+            shardManager.releaseAllLeases();
+            shardManager.close();
+            shardManager = null;
+        }
 
-        initialized.set(false);
-        initializationResultFuture = null;
-    }
+        if (consumerClient != null) {
+            consumerClient.close();
+            consumerClient = null;
+        }
 
-    private void cleanUpState() {
-        if (kinesisScheduler != null) {
-            shutdownScheduler();
-            kinesisScheduler = null;
+        if (asyncHttpClient != null) {
+            asyncHttpClient.close();
+            asyncHttpClient = null;
         }
 
         if (kinesisClient != null) {
             kinesisClient.close();
             kinesisClient = null;
         }
+
         if (dynamoDbClient != null) {
             dynamoDbClient.close();
             dynamoDbClient = null;
         }
-        if (cloudWatchClient != null) {
-            cloudWatchClient.close();
-            cloudWatchClient = null;
-        }
 
-        recordBuffer = null;
-        readerRecordProcessor = null;
-        demarcatorValue = null;
-    }
-
-    private void shutdownScheduler() {
-        if (kinesisScheduler.shutdownComplete()) {
-            return;
-        }
-
-        final long start = System.nanoTime();
-        getLogger().debug("Shutting down Kinesis Scheduler");
-
-        boolean gracefulShutdownSucceeded;
-        try {
-            gracefulShutdownSucceeded = kinesisScheduler.startGracefulShutdown().get(KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT.getSeconds(), SECONDS);
-            if (!gracefulShutdownSucceeded) {
-                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully. See the logs for more details");
-            }
-        } catch (final RuntimeException | InterruptedException | ExecutionException | TimeoutException e) {
-            if (e instanceof TimeoutException) {
-                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully after {} seconds", KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT.getSeconds(), e);
-            } else {
-                getLogger().warn("Failed to shutdown Kinesis Scheduler gracefully", e);
-            }
-            gracefulShutdownSucceeded = false;
-        }
-
-        if (!gracefulShutdownSucceeded) {
-            kinesisScheduler.shutdown();
-        }
-
-        final long finish = System.nanoTime();
-        getLogger().debug("Kinesis Scheduler shutdown finished after {} seconds", NANOSECONDS.toSeconds(finish - start));
+        closeQuietly(kinesisHttpClient);
+        kinesisHttpClient = null;
+        closeQuietly(dynamoHttpClient);
+        dynamoHttpClient = null;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        if (!initialized.get()) {
-            if (!initializationResultFuture.isDone()) {
-                getLogger().debug("Waiting for Kinesis Scheduler to finish initialization");
-                context.yield();
-                return;
-            }
+        final int clusterMemberCount = Math.max(1, getNodeTypeProvider().getClusterMembers().size());
+        shardManager.refreshLeasesIfNecessary(clusterMemberCount);
+        final List<Shard> ownedShards = shardManager.getOwnedShards();
 
-            checkInitializationResult(initializationResultFuture.resultNow());
+        if (ownedShards.isEmpty()) {
+            context.yield();
+            return;
         }
 
-        final Optional<Lease> leaseAcquired = recordBuffer.acquireBufferLease();
+        final Set<String> ownedShardIds = new HashSet<>();
+        for (final Shard shard : ownedShards) {
+            ownedShardIds.add(shard.shardId());
+        }
 
-        leaseAcquired.ifPresentOrElse(
-                lease -> processRecordsFromBuffer(session, lease),
-                context::yield
-        );
+        consumerClient.removeUnownedShards(ownedShardIds);
+        consumerClient.startFetches(ownedShards, streamName, maxRecordsPerRequest, initialStreamPosition, shardManager);
+        consumerClient.logDiagnostics(ownedShards.size(), shardManager.getCachedShardCount());
+
+        final Set<String> claimedShards = new HashSet<>();
+        final List<ShardFetchResult> consumed = consumeRecords(claimedShards);
+        final List<ShardFetchResult> accepted = discardRelinquishedResults(consumed, claimedShards);
+
+        if (accepted.isEmpty()) {
+            consumerClient.releaseShards(claimedShards);
+            context.yield();
+            return;
+        }
+
+        final PartitionedBatch batch = partitionByShardAndCheckpoint(accepted);
+
+        final WriteResult output;
+        try {
+            output = writeResults(session, context, batch.resultsByShard());
+        } catch (final Exception e) {
+            handleWriteFailure(e, accepted, claimedShards, context);
+            return;
+        }
+
+        if (output.produced().isEmpty() && output.parseFailures().isEmpty()) {
+            consumerClient.releaseShards(claimedShards);
+            context.yield();
+            return;
+        }
+
+        session.transfer(output.produced(), REL_SUCCESS);
+        if (!output.parseFailures().isEmpty()) {
+            session.transfer(output.parseFailures(), REL_PARSE_FAILURE);
+            session.adjustCounter("Records Parse Failure", output.parseFailures().size(), false);
+        }
+        session.adjustCounter("Records Consumed", output.totalRecordCount(), false);
+        final long dedupEvents = consumerClient.drainDeduplicatedEventCount();
+        if (dedupEvents > 0) {
+            session.adjustCounter("EFO Deduplicated Events", dedupEvents, false);
+        }
+
+        session.commitAsync(
+                () -> {
+                    try {
+                        shardManager.writeCheckpoints(batch.checkpoints());
+                        consumerClient.acknowledgeResults(accepted);
+                    } finally {
+                        consumerClient.releaseShards(claimedShards);
+                    }
+                },
+                failure -> {
+                    try {
+                        getLogger().error("Session commit failed; resetting shard iterators for re-consumption", failure);
+                        consumerClient.rollbackResults(accepted);
+                    } finally {
+                        consumerClient.releaseShards(claimedShards);
+                    }
+                });
     }
 
-    private void checkInitializationResult(final InitializationResult initializationResult) {
-        switch (initializationResult) {
-            case InitializationResult.Success ignored -> {
-                final boolean wasInitialized = initialized.getAndSet(true);
-                if (!wasInitialized) {
-                    getLogger().info(
-                            "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
-                            streamName, kinesisScheduler.applicationName(), kinesisScheduler.leaseManagementConfig().workerIdentifier());
+    private List<ShardFetchResult> discardRelinquishedResults(final List<ShardFetchResult> consumedResults, final Set<String> claimedShards) {
+        final List<ShardFetchResult> accepted = new ArrayList<>();
+        final List<ShardFetchResult> discarded = new ArrayList<>();
+        for (final ShardFetchResult result : consumedResults) {
+            if (shardManager.shouldProcessFetchedResult(result.shardId())) {
+                accepted.add(result);
+            } else {
+                discarded.add(result);
+            }
+        }
+
+        if (!discarded.isEmpty()) {
+            getLogger().debug("Discarding {} fetched shard result(s) for relinquished shards", discarded.size());
+            consumerClient.rollbackResults(discarded);
+            for (final ShardFetchResult r : discarded) {
+                claimedShards.remove(r.shardId());
+            }
+            consumerClient.releaseShards(discarded.stream().map(ShardFetchResult::shardId).toList());
+        }
+
+        return accepted;
+    }
+
+    private PartitionedBatch partitionByShardAndCheckpoint(final List<ShardFetchResult> accepted) {
+        final Map<String, List<ShardFetchResult>> resultsByShard = new LinkedHashMap<>();
+        for (final ShardFetchResult result : accepted) {
+            resultsByShard.computeIfAbsent(result.shardId(), k -> new ArrayList<>()).add(result);
+        }
+        for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
+            shardResults.sort(Comparator.comparing(r -> new BigInteger(r.firstSequenceNumber())));
+        }
+
+        final Map<String, ShardCheckpoint> checkpoints = new HashMap<>();
+        for (final ShardFetchResult result : accepted) {
+            final ShardCheckpoint incoming = new ShardCheckpoint(result.lastSequenceNumber(), result.lastSubSequenceNumber());
+            checkpoints.merge(result.shardId(), incoming, ShardCheckpoint::max);
+        }
+
+        return new PartitionedBatch(resultsByShard, checkpoints);
+    }
+
+    private List<ShardFetchResult> consumeRecords(final Set<String> claimedShards) {
+        final List<ShardFetchResult> results = new ArrayList<>();
+        final long startNanos = System.nanoTime();
+        long estimatedBytes = 0;
+
+        while (System.nanoTime() < startNanos + maxBatchNanos && estimatedBytes < maxBatchBytes) {
+            boolean foundAny = false;
+
+            for (final String shardId : consumerClient.getShardIdsWithResults()) {
+                if (estimatedBytes >= maxBatchBytes) {
+                    break;
+                }
+                if (!claimedShards.contains(shardId) && !consumerClient.claimShard(shardId)) {
+                    continue;
+                }
+                claimedShards.add(shardId);
+
+                ShardFetchResult result;
+                while ((result = consumerClient.pollShardResult(shardId)) != null) {
+                    results.add(result);
+                    estimatedBytes += estimateResultBytes(result);
+                    foundAny = true;
+                    if (estimatedBytes >= maxBatchBytes) {
+                        break;
+                    }
                 }
             }
-            case InitializationResult.Failure failure -> {
-                cleanUpState();
 
-                final ProcessException ex = failure.error()
-                        .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
-                        // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
-                        // This behavior isn't typical and wasn't observed.
-                        .orElseGet(() -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName)));
+            if (!foundAny) {
+                if (!consumerClient.hasPendingFetches()) {
+                    break;
+                }
 
-                throw ex;
+                try {
+                    consumerClient.awaitResults(QUEUE_POLL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private void handleWriteFailure(final Exception cause, final List<ShardFetchResult> accepted,
+                                    final Set<String> claimedShards, final ProcessContext context) {
+        getLogger().error("Failed to write consumed Kinesis records", cause);
+        consumerClient.rollbackResults(accepted);
+        consumerClient.releaseShards(claimedShards);
+        context.yield();
+    }
+
+    private WriteResult writeResults(final ProcessSession session, final ProcessContext context,
+                                     final Map<String, List<ShardFetchResult>> resultsByShard) {
+        final List<FlowFile> produced = new ArrayList<>();
+        final List<FlowFile> parseFailures = new ArrayList<>();
+        long totalRecordCount = 0;
+        long totalBytesConsumed = 0;
+        long maxMillisBehind = -1;
+
+        try {
+            if (processingStrategy == ProcessingStrategy.FLOW_FILE) {
+                final BatchAccumulator batch = new BatchAccumulator();
+                for (final List<ShardFetchResult> shardResults : resultsByShard.values()) {
+                    for (final ShardFetchResult result : shardResults) {
+                        batch.updateMillisBehind(result.millisBehindLatest());
+                        for (final DeaggregatedRecord record : result.records()) {
+                            batch.addBytes(record.data().length);
+                        }
+                    }
+                    writeFlowFilePerRecord(session, shardResults, streamName, batch, produced);
+                }
+                totalRecordCount = batch.getRecordCount();
+                totalBytesConsumed = batch.getBytesConsumed();
+                maxMillisBehind = batch.getMaxMillisBehind();
+            } else {
+                for (final Map.Entry<String, List<ShardFetchResult>> entry : resultsByShard.entrySet()) {
+                    final BatchAccumulator batch = new BatchAccumulator();
+                    batch.setLastShardId(entry.getKey());
+                    for (final ShardFetchResult result : entry.getValue()) {
+                        batch.updateMillisBehind(result.millisBehindLatest());
+                        batch.updateSequenceRange(result);
+                        for (final DeaggregatedRecord record : result.records()) {
+                            batch.addBytes(record.data().length);
+                            batch.updateRecordRange(record);
+                        }
+                    }
+
+                    if (processingStrategy == ProcessingStrategy.LINE_DELIMITED || processingStrategy == ProcessingStrategy.DEMARCATOR) {
+                        final byte[] delimiter;
+                        if (processingStrategy == ProcessingStrategy.LINE_DELIMITED) {
+                            delimiter = NEWLINE_DELIMITER;
+                        } else {
+                            final String demarcatorValue = context.getProperty(MESSAGE_DEMARCATOR).getValue();
+                            delimiter = demarcatorValue.getBytes(StandardCharsets.UTF_8);
+                        }
+                        writeDelimited(session, entry.getValue(), streamName, batch, delimiter, produced);
+                    } else {
+                        writeRecordOriented(session, context, entry.getValue(), streamName, batch, produced, parseFailures);
+                    }
+
+                    totalRecordCount += batch.getRecordCount();
+                    totalBytesConsumed += batch.getBytesConsumed();
+                    maxMillisBehind = Math.max(maxMillisBehind, batch.getMaxMillisBehind());
+                }
+            }
+        } catch (final Exception e) {
+            session.remove(produced);
+            session.remove(parseFailures);
+            throw e;
+        }
+
+        return new WriteResult(produced, parseFailures, totalRecordCount, totalBytesConsumed, maxMillisBehind);
+    }
+
+    private void writeFlowFilePerRecord(final ProcessSession session, final List<ShardFetchResult> results,
+                                        final String streamName, final BatchAccumulator batch, final List<FlowFile> output) {
+        for (final ShardFetchResult result : results) {
+            for (final DeaggregatedRecord record : result.records()) {
+                final byte[] recordBytes = record.data();
+                FlowFile flowFile = session.create();
+                try {
+                    flowFile = session.write(flowFile, out -> out.write(recordBytes));
+
+                    final Map<String, String> attributes = new HashMap<>();
+                    attributes.put(ATTR_STREAM_NAME, streamName);
+                    attributes.put(ATTR_SHARD_ID, result.shardId());
+                    attributes.put(ATTR_FIRST_SEQUENCE, record.sequenceNumber());
+                    attributes.put(ATTR_LAST_SEQUENCE, record.sequenceNumber());
+                    attributes.put(ATTR_FIRST_SUBSEQUENCE, String.valueOf(record.subSequenceNumber()));
+                    attributes.put(ATTR_LAST_SUBSEQUENCE, String.valueOf(record.subSequenceNumber()));
+                    attributes.put(ATTR_PARTITION_KEY, record.partitionKey());
+                    if (record.approximateArrivalTimestamp() != null) {
+                        attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
+                    }
+                    attributes.put("record.count", "1");
+                    if (result.millisBehindLatest() >= 0) {
+                        attributes.put(ATTR_MILLIS_BEHIND, String.valueOf(result.millisBehindLatest()));
+                    }
+
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    session.getProvenanceReporter().receive(flowFile, buildTransitUri(streamName, result.shardId()));
+                    output.add(flowFile);
+                    batch.incrementRecordCount();
+                } catch (final Exception e) {
+                    session.remove(flowFile);
+                    throw e;
+                }
             }
         }
     }
 
-    private void processRecordsFromBuffer(final ProcessSession session, final Lease lease) {
+    private void writeDelimited(final ProcessSession session, final List<ShardFetchResult> results,
+                                final String streamName, final BatchAccumulator batch, final byte[] delimiter,
+                                final List<FlowFile> output) {
+        FlowFile flowFile = session.create();
         try {
-            final List<KinesisClientRecord> records = recordBuffer.consumeRecords(lease);
+            flowFile = session.write(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    boolean first = true;
+                    for (final ShardFetchResult result : results) {
+                        for (final DeaggregatedRecord record : result.records()) {
+                            if (!first) {
+                                out.write(delimiter);
+                            }
+                            out.write(record.data());
+                            first = false;
+                            batch.incrementRecordCount();
+                        }
+                    }
+                }
+            });
 
-            if (records.isEmpty()) {
-                recordBuffer.returnBufferLease(lease);
-                return;
-            }
-
-            final String shardId = lease.shardId();
-            switch (processingStrategy) {
-                case FLOW_FILE -> processRecordsAsRaw(session, shardId, records);
-                case RECORD -> processRecordsWithReader(session, shardId, records);
-                case DEMARCATOR -> processRecordsAsDemarcated(session, shardId, records);
-            }
-
-            session.adjustCounter("Records Processed", records.size(), false);
-
-            session.commitAsync(
-                    () -> commitRecords(lease),
-                    __ -> rollbackRecords(lease)
-            );
-        } catch (final RuntimeException e) {
-            rollbackRecords(lease);
+            flowFile = session.putAllAttributes(flowFile, createFlowFileAttributes(streamName, batch));
+            session.getProvenanceReporter().receive(flowFile, buildTransitUri(streamName, batch.getLastShardId()));
+            output.add(flowFile);
+        } catch (final Exception e) {
+            session.remove(flowFile);
             throw e;
         }
     }
 
-    private void commitRecords(final Lease lease) {
+    /**
+     * Writes Kinesis records as NiFi records using the configured Record Reader and Record Writer.
+     *
+     * <p>This method may appear unnecessarily complex, but it is intended to address specific requirements:</p>
+     * <ul>
+     *   <li>Keep records ordered in the same order they are received from Kinesis</li>
+     *   <li>Create as few FlowFiles as necessary, keeping many records together in larger FlowFiles for performance reasons.</li>
+     * </ul>
+     *
+     * <p>Alternative options have been considered, as well:</p>
+     * <ul>
+     *   <li>Read each Record one at a time with a separate RecordReader. If its schema is different than the previous
+     *       record, create a new FlowFile. However, when the stream is filled with JSON and many fields are nullable, this
+     *       can look like a different schema for each Record when inference is used, thus creating many tiny FlowFiles.</li>
+     *   <li>Read each Record one at a time with a separate RecordReader. Map the RecordSchema to the existing RecordWriter
+     *       for that schema, if one exists, and write to that writer; if none exists, create a new one. This results in better
+     *       grouping in many cases, but it results in the output being reordered, as we may write records 1, 2, 3 to writers
+     *       A, B, A.</li>
+     *   <li>Create a single InputStream and RecordReader for the entire batch. Create a single Writer for the entire batch.
+     *       This way, we infer a single schema for the entire batch that is appropriate for all records. This bundles all records
+     *       in the batch into a single FlowFile, which is ideal. However, this approach fails when we are not inferring the schema
+     *       and the records do not all have the same schema. In that case, we can fail when attempting to read the records or when
+     *       we attempt to write the records due to schema incompatibility.</li>
+     * </ul>
+     *
+     * <p>
+     *   Additionally, the existing RecordSchema API does not tell us whether or not a schema was inferred,
+     *   so we cannot easily make a decision based on that knowledge. Therefore, we have taken an approach that
+     *   attempts to process data using our preferred method, falling back as necessary to other options.
+     * </p>
+     *
+     * <p>
+     *   The primary path ({@link #writeRecordBatch}) combines all records into a single InputStream
+     *   via {@link KinesisRecordInputStream} and creates one RecordReader. This is optimal for formats
+     *   like JSON where the schema is inferred from the data: a single InputStream lets the reader see
+     *   all records and produce a unified schema for the writer.
+     * </p>
+     *
+     * <p>
+     *   However, this approach fails when records carry incompatible embedded schemas (e.g. Avro
+     *   containers with different field sets). The single reader sees only the first schema and cannot
+     *   parse subsequent records that differ from it. When this happens, the method falls back to
+     *   {@link #writeRecordBatchPerRecord}, which processes each record individually and splits output
+     *   across multiple FlowFiles when schemas change.
+     * </p>
+     */
+    private void writeRecordOriented(final ProcessSession session, final ProcessContext context,
+                                     final List<ShardFetchResult> results, final String streamName,
+                                     final BatchAccumulator batch, final List<FlowFile> output,
+                                     final List<FlowFile> parseFailureOutput) {
+
+        final List<DeaggregatedRecord> allRecords = new ArrayList<>();
+        for (final ShardFetchResult result : results) {
+            allRecords.addAll(result.records());
+        }
+
         try {
-            recordBuffer.commitConsumedRecords(lease);
-        } finally {
-            recordBuffer.returnBufferLease(lease);
+            final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
+            writeRecordBatch(session, readerFactory, writerFactory, outputStrategy,
+                    allRecords, streamName, batch, output);
+        } catch (final Exception e) {
+            getLogger().debug("Combined-stream record processing failed; falling back to per-record processing", e);
+            batch.resetRecordCount();
+            final RecordBatchResult result = writeRecordBatchPerRecord(session, context, allRecords, streamName, batch);
+            output.addAll(result.output());
+            parseFailureOutput.addAll(result.parseFailures());
         }
     }
 
-    private void rollbackRecords(final Lease lease) {
+    private void writeRecordBatch(final ProcessSession session, final RecordReaderFactory readerFactory,
+                                  final RecordSetWriterFactory writerFactory, final OutputStrategy outputStrategy,
+                                  final List<DeaggregatedRecord> records,
+                                  final String streamName, final BatchAccumulator batch, final List<FlowFile> output) {
+
+        FlowFile flowFile = session.create();
         try {
-            recordBuffer.rollbackConsumedRecords(lease);
-        } finally {
-            recordBuffer.returnBufferLease(lease);
-        }
-    }
+            flowFile = session.write(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    try (final InputStream kinesisInput = new KinesisRecordInputStream(records);
+                         final RecordReader reader = readerFactory.createRecordReader(Map.of(), kinesisInput, -1, getLogger())) {
 
-    private void processRecordsAsRaw(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
-        for (final KinesisClientRecord record : records) {
-            FlowFile flowFile = session.create();
-            flowFile = session.putAllAttributes(flowFile, ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, record, record));
+                        RecordSchema writeSchema = reader.getSchema();
+                        if (outputStrategy == OutputStrategy.INJECT_METADATA) {
+                            final List<RecordField> fields = new ArrayList<>(writeSchema.getFields());
+                            fields.add(KinesisRecordMetadata.FIELD_METADATA);
+                            writeSchema = new SimpleRecordSchema(fields);
+                        } else if (outputStrategy == OutputStrategy.USE_WRAPPER) {
+                            writeSchema = new SimpleRecordSchema(List.of(
+                                    KinesisRecordMetadata.FIELD_METADATA,
+                                    new RecordField(WRAPPER_VALUE_FIELD, RecordFieldType.RECORD.getRecordDataType(writeSchema))));
+                        }
 
-            flowFile = session.write(flowFile, out -> {
-                try (final WritableByteChannel channel = Channels.newChannel(out)) {
-                    channel.write(record.data());
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, Map.of())) {
+                            writer.beginRecordSet();
+
+                            int recordIndex = 0;
+                            org.apache.nifi.serialization.record.Record nifiRecord;
+                            while ((nifiRecord = reader.nextRecord()) != null) {
+                                if (recordIndex < records.size()) {
+                                    final DeaggregatedRecord record = records.get(recordIndex);
+                                    nifiRecord = decorateRecord(nifiRecord, record, record.shardId(), streamName, outputStrategy, writeSchema);
+                                    recordIndex++;
+                                }
+
+                                writer.write(nifiRecord);
+                                batch.incrementRecordCount();
+                            }
+
+                            writer.finishRecordSet();
+                        }
+                    } catch (final MalformedRecordException | SchemaNotFoundException e) {
+                        throw new IOException(e);
+                    }
                 }
             });
 
-            session.getProvenanceReporter().receive(flowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
-
-            session.transfer(flowFile, REL_SUCCESS);
+            flowFile = session.putAllAttributes(flowFile, createFlowFileAttributes(streamName, batch));
+            session.getProvenanceReporter().receive(flowFile, buildTransitUri(streamName, batch.getLastShardId()));
+            output.add(flowFile);
+        } catch (final Exception e) {
+            session.remove(flowFile);
+            throw e;
         }
-    }
-
-    private void processRecordsWithReader(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
-        final ReaderRecordProcessor recordProcessor = readerRecordProcessor;
-        if (recordProcessor == null) {
-            throw new IllegalStateException("RecordProcessor has not been initialized");
-        }
-
-        final ProcessingResult result = recordProcessor.processRecords(session, streamName, shardId, records);
-
-        session.transfer(result.successFlowFiles(), REL_SUCCESS);
-        session.transfer(result.parseFailureFlowFiles(), REL_PARSE_FAILURE);
-    }
-
-    private void processRecordsAsDemarcated(final ProcessSession session, final String shardId, final List<KinesisClientRecord> records) {
-        final byte[] demarcator = demarcatorValue;
-        if (demarcator == null) {
-            throw new IllegalStateException("Demarcator has not been initialized");
-        }
-
-        FlowFile flowFile = session.create();
-
-        final Map<String, String> attributes = ConsumeKinesisAttributes.fromKinesisRecords(streamName, shardId, records.getFirst(), records.getLast());
-        attributes.put(RECORD_COUNT, String.valueOf(records.size()));
-        flowFile = session.putAllAttributes(flowFile, attributes);
-
-        flowFile = session.write(flowFile, out -> {
-            try (final WritableByteChannel channel = Channels.newChannel(out)) {
-                boolean writtenData = false;
-                for (final KinesisClientRecord record : records) {
-                    if (writtenData) {
-                        out.write(demarcator);
-                    }
-                    channel.write(record.data());
-                    writtenData = true;
-                }
-            }
-        });
-
-        session.getProvenanceReporter().receive(flowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
-
-        session.transfer(flowFile, REL_SUCCESS);
     }
 
     /**
-     * An adapter between Kinesis Consumer Library and {@link RecordBuffer}.
+     * Fallback path that processes each Kinesis record individually, splitting output across multiple
+     * FlowFiles when the record schema changes between consecutive records.
+     *
+     * <p>This is invoked when the combined-stream approach ({@link #writeRecordBatch}) fails, which
+     * typically happens when the batch contains records with incompatible embedded schemas (e.g. Avro
+     * containers whose field sets differ). Rather than grouping or buffering records up front, this
+     * method makes a single pass: for each record it creates a RecordReader, compares the schema to
+     * the current writer's schema, and either continues writing to the same FlowFile or finalizes the
+     * current FlowFile and starts a new one. This preserves record ordering without demultiplexing.</p>
+     *
+     * <p>Records that cannot be parsed (empty data, malformed content, missing schema) are collected
+     * and routed to the parse-failure relationship at the end.</p>
+     *
+     * @param session    the current process session
+     * @param context    the current process context (used to resolve Record Reader, Record Writer, and Output Strategy)
+     * @param records    the Kinesis records to process, in order
+     * @param streamName the Kinesis stream name, used for FlowFile attributes
+     * @param batch      accumulator for batch-level attributes and record counting
+     * @return a {@link RecordBatchResult} containing the successfully written FlowFiles and any parse-failure FlowFiles
      */
-    private static class ConsumeKinesisRecordProcessor implements ShardRecordProcessor {
+    private RecordBatchResult writeRecordBatchPerRecord(final ProcessSession session, final ProcessContext context,
+                                                        final List<DeaggregatedRecord> records,
+                                                        final String streamName, final BatchAccumulator batch) {
 
-        private final RecordBuffer.ForKinesisClientLibrary recordBuffer;
-        private volatile @Nullable ShardBufferId bufferId;
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final OutputStrategy outputStrategy = context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class);
 
-        ConsumeKinesisRecordProcessor(final MemoryBoundRecordBuffer recordBuffer) {
-            this.recordBuffer = recordBuffer;
-        }
+        final List<FlowFile> output = new ArrayList<>();
+        final List<FlowFile> parseFailureOutput = new ArrayList<>();
+        final List<DeaggregatedRecord> unparseable = new ArrayList<>();
+        FlowFile currentFlowFile = null;
+        OutputStream currentOut = null;
+        RecordSetWriter currentWriter = null;
+        RecordSchema currentReadSchema = null;
+        RecordSchema currentWriteSchema = null;
+        int currentRecordCount = 0;
 
-        @Override
-        public void initialize(final InitializationInput initializationInput) {
-            bufferId = recordBuffer.createBuffer(initializationInput.shardId());
-        }
+        try {
+            for (final DeaggregatedRecord record : records) {
 
-        @Override
-        public void processRecords(final ProcessRecordsInput processRecordsInput) {
-            if (bufferId == null) {
-                throw new IllegalStateException("Buffer ID not found: Record Processor not initialized");
+                if (record.data().length == 0) {
+                    unparseable.add(record);
+                    continue;
+                }
+
+                RecordSchema readSchema = null;
+                final List<org.apache.nifi.serialization.record.Record> parsedRecords = new ArrayList<>();
+                RecordReader reader = null;
+                try {
+                    reader = readerFactory.createRecordReader(Map.of(), new ByteArrayInputStream(record.data()), record.data().length, getLogger());
+                    readSchema = reader.getSchema();
+                    org.apache.nifi.serialization.record.Record nifiRecord;
+                    while ((nifiRecord = reader.nextRecord()) != null) {
+                        parsedRecords.add(nifiRecord);
+                    }
+                } catch (final MalformedRecordException | SchemaNotFoundException | IOException e) {
+                    getLogger().debug("Kinesis record seq {} classified as unparseable: {}",
+                            record.sequenceNumber(), e.getMessage());
+                    unparseable.add(record);
+                    continue;
+                } finally {
+                    closeQuietly(reader);
+                }
+
+                if (parsedRecords.isEmpty()) {
+                    unparseable.add(record);
+                    continue;
+                }
+
+                if (currentWriter == null || !readSchema.equals(currentReadSchema)) {
+                    if (currentWriter != null) {
+                        currentWriter.finishRecordSet();
+                        currentWriter.close();
+                        currentOut.close();
+                        final Map<String, String> attrs = createFlowFileAttributes(streamName, batch);
+                        attrs.put("record.count", String.valueOf(currentRecordCount));
+                        currentFlowFile = session.putAllAttributes(currentFlowFile, attrs);
+                        session.getProvenanceReporter().receive(currentFlowFile, buildTransitUri(streamName, batch.getLastShardId()));
+                        output.add(currentFlowFile);
+                        currentFlowFile = null;
+                    }
+
+                    currentReadSchema = readSchema;
+                    currentWriteSchema = buildWriteSchema(readSchema, outputStrategy);
+                    currentFlowFile = session.create();
+                    currentOut = session.write(currentFlowFile);
+                    currentWriter = writerFactory.createWriter(getLogger(), currentWriteSchema, currentOut, Map.of());
+                    currentWriter.beginRecordSet();
+                    currentRecordCount = 0;
+                }
+
+                for (final org.apache.nifi.serialization.record.Record parsed : parsedRecords) {
+                    // TODO: We need to use decorateRecord above also.
+                    final org.apache.nifi.serialization.record.Record decorated =
+                            decorateRecord(parsed, record, record.shardId(), streamName, outputStrategy, currentWriteSchema);
+                    currentWriter.write(decorated);
+                    currentRecordCount++;
+                    batch.incrementRecordCount();
+                }
             }
-            recordBuffer.addRecords(bufferId, processRecordsInput.records(), processRecordsInput.checkpointer());
-        }
 
-        @Override
-        public void leaseLost(final LeaseLostInput leaseLostInput) {
-            if (bufferId != null) {
-                recordBuffer.consumerLeaseLost(bufferId);
+            if (currentWriter != null) {
+                currentWriter.finishRecordSet();
+                currentWriter.close();
+                currentOut.close();
+                final Map<String, String> attrs = createFlowFileAttributes(streamName, batch);
+                attrs.put("record.count", String.valueOf(currentRecordCount));
+                currentFlowFile = session.putAllAttributes(currentFlowFile, attrs);
+                session.getProvenanceReporter().receive(currentFlowFile, buildTransitUri(streamName, batch.getLastShardId()));
+                output.add(currentFlowFile);
+                currentFlowFile = null;
             }
-        }
-
-        @Override
-        public void shardEnded(final ShardEndedInput shardEndedInput) {
-            if (bufferId != null) {
-                recordBuffer.checkpointEndedShard(bufferId, shardEndedInput.checkpointer());
+        } catch (final Exception e) {
+            closeQuietly(currentWriter);
+            closeQuietly(currentOut);
+            if (currentFlowFile != null) {
+                session.remove(currentFlowFile);
             }
+            if (e instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new ProcessException(e);
         }
 
-        @Override
-        public void shutdownRequested(final ShutdownRequestedInput shutdownRequestedInput) {
-            if (bufferId != null) {
-                recordBuffer.shutdownShardConsumption(bufferId, shutdownRequestedInput.checkpointer());
+        if (!unparseable.isEmpty()) {
+            getLogger().warn("Encountered {} unparseable record(s) in shard {}; routing to parse failure",
+                    unparseable.size(), batch.getLastShardId());
+            writeParseFailures(session, unparseable, streamName, batch, parseFailureOutput);
+        }
+
+        return new RecordBatchResult(output, parseFailureOutput);
+    }
+
+    /**
+     * Adjusts a read schema to the write schema required by the configured OutputStrategy. For
+     * {@code INJECT_METADATA} the metadata field is appended; for {@code USE_WRAPPER} a two-field
+     * wrapper schema is created; for {@code USE_VALUE} the read schema is returned unchanged.
+     */
+    private static RecordSchema buildWriteSchema(final RecordSchema readSchema, final OutputStrategy outputStrategy) {
+        return switch (outputStrategy) {
+            case INJECT_METADATA -> {
+                final List<RecordField> fields = new ArrayList<>(readSchema.getFields());
+                fields.add(KinesisRecordMetadata.FIELD_METADATA);
+                yield new SimpleRecordSchema(fields);
+            }
+            case USE_WRAPPER -> {
+                yield new SimpleRecordSchema(List.of(
+                    KinesisRecordMetadata.FIELD_METADATA,
+                    new RecordField(WRAPPER_VALUE_FIELD, RecordFieldType.RECORD.getRecordDataType(readSchema))));
+            }
+            case USE_VALUE -> readSchema;
+        };
+    }
+
+    /**
+     * Attaches Kinesis metadata to a NiFi record according to the configured OutputStrategy.
+     */
+    private static org.apache.nifi.serialization.record.Record decorateRecord(
+            final org.apache.nifi.serialization.record.Record nifiRecord,
+            final DeaggregatedRecord kinesisRecord, final String shardId,
+            final String streamName, final OutputStrategy outputStrategy,
+            final RecordSchema writeSchema) {
+        return switch (outputStrategy) {
+            case INJECT_METADATA -> {
+                final Map<String, Object> values = new HashMap<>(nifiRecord.toMap());
+                values.put(KinesisRecordMetadata.METADATA,
+                        KinesisRecordMetadata.composeMetadataObject(kinesisRecord, streamName, shardId));
+                yield new MapRecord(writeSchema, values);
+            }
+            case USE_WRAPPER -> {
+                final Map<String, Object> wrapperValues = new HashMap<>(2, 1.0f);
+                wrapperValues.put(KinesisRecordMetadata.METADATA,
+                        KinesisRecordMetadata.composeMetadataObject(kinesisRecord, streamName, shardId));
+                wrapperValues.put(WRAPPER_VALUE_FIELD, nifiRecord);
+                yield new MapRecord(writeSchema, wrapperValues);
+            }
+            case USE_VALUE -> nifiRecord;
+        };
+    }
+
+    private void writeParseFailures(final ProcessSession session, final List<DeaggregatedRecord> unparseable,
+                                    final String streamName, final BatchAccumulator batch, final List<FlowFile> parseFailureOutput) {
+
+        for (final DeaggregatedRecord record : unparseable) {
+            FlowFile flowFile = session.create();
+            try {
+                final byte[] rawBytes = record.data();
+                flowFile = session.write(flowFile, out -> out.write(rawBytes));
+
+                final Map<String, String> attributes = new HashMap<>();
+                attributes.put(ATTR_STREAM_NAME, streamName);
+                attributes.put(ATTR_FIRST_SEQUENCE, record.sequenceNumber());
+                attributes.put(ATTR_LAST_SEQUENCE, record.sequenceNumber());
+                attributes.put(ATTR_FIRST_SUBSEQUENCE, String.valueOf(record.subSequenceNumber()));
+                attributes.put(ATTR_LAST_SUBSEQUENCE, String.valueOf(record.subSequenceNumber()));
+                attributes.put(ATTR_PARTITION_KEY, record.partitionKey());
+                if (record.approximateArrivalTimestamp() != null) {
+                    attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(record.approximateArrivalTimestamp().toEpochMilli()));
+                }
+                attributes.put("record.count", "1");
+                if (batch.getLastShardId() != null) {
+                    attributes.put(ATTR_SHARD_ID, batch.getLastShardId());
+                }
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                parseFailureOutput.add(flowFile);
+            } catch (final Exception e) {
+                session.remove(flowFile);
+                throw e;
             }
         }
     }
 
-    private static final class InitializationStateChangeListener implements WorkerStateChangeListener {
+    private static long estimateResultBytes(final ShardFetchResult result) {
+        long bytes = 0;
+        for (final DeaggregatedRecord record : result.records()) {
+            bytes += record.data().length;
+        }
+        return bytes;
+    }
 
-        private final ComponentLog logger;
+    private static Map<String, String> createFlowFileAttributes(final String streamName, final BatchAccumulator batch) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(ATTR_STREAM_NAME, streamName);
+        attributes.put("record.count", String.valueOf(batch.getRecordCount()));
 
-        private final CompletableFuture<InitializationResult> resultFuture = new CompletableFuture<>();
-
-        private volatile @Nullable Throwable initializationFailure;
-
-        InitializationStateChangeListener(final ComponentLog logger) {
-            this.logger = logger;
+        if (batch.getMaxMillisBehind() >= 0) {
+            attributes.put(ATTR_MILLIS_BEHIND, String.valueOf(batch.getMaxMillisBehind()));
+        }
+        if (batch.getLastShardId() != null) {
+            attributes.put(ATTR_SHARD_ID, batch.getLastShardId());
+        }
+        if (batch.getMinSequenceNumber() != null) {
+            attributes.put(ATTR_FIRST_SEQUENCE, batch.getMinSequenceNumber());
+        }
+        if (batch.getMaxSequenceNumber() != null) {
+            attributes.put(ATTR_LAST_SEQUENCE, batch.getMaxSequenceNumber());
+        }
+        if (batch.getMinSubSequenceNumber() != Long.MAX_VALUE) {
+            attributes.put(ATTR_FIRST_SUBSEQUENCE, String.valueOf(batch.getMinSubSequenceNumber()));
+        }
+        if (batch.getMaxSubSequenceNumber() != Long.MIN_VALUE) {
+            attributes.put(ATTR_LAST_SUBSEQUENCE, String.valueOf(batch.getMaxSubSequenceNumber()));
+        }
+        if (batch.getLastPartitionKey() != null) {
+            attributes.put(ATTR_PARTITION_KEY, batch.getLastPartitionKey());
+        }
+        if (batch.getEarliestArrivalTimestamp() != null) {
+            attributes.put(ATTR_ARRIVAL_TIMESTAMP, String.valueOf(batch.getEarliestArrivalTimestamp().toEpochMilli()));
         }
 
-        @Override
-        public void onWorkerStateChange(final WorkerState newState) {
-            logger.info("Worker state changed to [{}]", newState);
+        return attributes;
+    }
 
-            if (newState == WorkerState.STARTED) {
-                resultFuture.complete(new InitializationResult.Success());
-            } else if (newState == WorkerState.SHUT_DOWN) {
-                resultFuture.complete(new InitializationResult.Failure(Optional.ofNullable(initializationFailure)));
+    private static void closeQuietly(final AutoCloseable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (final Exception ignored) {
+            }
+        }
+    }
+
+    private static String buildTransitUri(final String streamName, final String shardId) {
+        if (shardId == null || shardId.isEmpty()) {
+            return "kinesis://" + streamName;
+        }
+        return "kinesis://" + streamName + "/" + shardId;
+    }
+
+    // Exposed for testing to allow injection of mock Shard Manager
+    protected KinesisShardManager createShardManager(final KinesisClient kinesisClient, final DynamoDbClient dynamoDbClient,
+            final ComponentLog logger, final String checkpointTableName, final String streamName) {
+        return new KinesisShardManager(kinesisClient, dynamoDbClient, logger, checkpointTableName, streamName);
+    }
+
+    // Exposed for testing to allow injection of a mock client
+    protected KinesisConsumerClient createConsumerClient(final KinesisClient kinesisClient, final ComponentLog logger, final boolean efoMode) {
+        if (efoMode) {
+            return new EfoKinesisClient(kinesisClient, logger);
+        }
+        return new PollingKinesisClient(kinesisClient, logger);
+    }
+
+    private record RecordBatchResult(List<FlowFile> output, List<FlowFile> parseFailures) {
+    }
+
+    private static final class KinesisRecordInputStream extends InputStream {
+        private final List<byte[]> chunks;
+        private int chunkIndex;
+        private int positionInChunk;
+        private int markChunkIndex = -1;
+        private int markPositionInChunk;
+
+        KinesisRecordInputStream(final List<DeaggregatedRecord> records) {
+            this.chunks = new ArrayList<>(records.size());
+            for (final DeaggregatedRecord record : records) {
+                final byte[] data = record.data();
+                if (data.length > 0) {
+                    chunks.add(data);
+                }
             }
         }
 
         @Override
-        public void onAllInitializationAttemptsFailed(final Throwable e) {
-            // This method is called before the SHUT_DOWN_STARTED phase.
-            // Memorizing the error until the Scheduler is SHUT_DOWN.
-            initializationFailure = e;
+        public int read() {
+            while (chunkIndex < chunks.size()) {
+                final byte[] current = chunks.get(chunkIndex);
+                if (positionInChunk < current.length) {
+                    return current[positionInChunk++] & 0xFF;
+                }
+                chunkIndex++;
+                positionInChunk = 0;
+            }
+            return -1;
         }
 
-        Future<InitializationResult> result() {
-            return resultFuture;
+        @Override
+        public int read(final byte[] buffer, final int offset, final int length) {
+            if (chunkIndex >= chunks.size()) {
+                return -1;
+            }
+            if (length == 0) {
+                return 0;
+            }
+
+            int totalRead = 0;
+            while (totalRead < length && chunkIndex < chunks.size()) {
+                final byte[] current = chunks.get(chunkIndex);
+                final int remaining = current.length - positionInChunk;
+                if (remaining <= 0) {
+                    chunkIndex++;
+                    positionInChunk = 0;
+                    continue;
+                }
+
+                final int toRead = Math.min(length - totalRead, remaining);
+                System.arraycopy(current, positionInChunk, buffer, offset + totalRead, toRead);
+                positionInChunk += toRead;
+                totalRead += toRead;
+            }
+
+            return totalRead == 0 ? -1 : totalRead;
+        }
+
+        @Override
+        public int available() {
+            if (chunkIndex >= chunks.size()) {
+                return 0;
+            }
+            return chunks.get(chunkIndex).length - positionInChunk;
+        }
+
+        @Override
+        public boolean markSupported() {
+            return true;
+        }
+
+        @Override
+        public void mark(final int readLimit) {
+            markChunkIndex = chunkIndex;
+            markPositionInChunk = positionInChunk;
+        }
+
+        @Override
+        public void reset() throws IOException {
+            if (markChunkIndex < 0) {
+                throw new IOException("Stream not marked");
+            }
+            chunkIndex = markChunkIndex;
+            positionInChunk = markPositionInChunk;
         }
     }
 
-    private sealed interface InitializationResult {
-        record Success() implements InitializationResult {
+    private record PartitionedBatch(Map<String, List<ShardFetchResult>> resultsByShard, Map<String, ShardCheckpoint> checkpoints) {
+    }
+
+    private record WriteResult(List<FlowFile> produced, List<FlowFile> parseFailures,
+            long totalRecordCount, long totalBytesConsumed, long maxMillisBehind) {
+    }
+
+    private static final class BatchAccumulator {
+        private long bytesConsumed;
+        private long recordCount;
+        private long maxMillisBehind = -1;
+        private String minSequenceNumber;
+        private String maxSequenceNumber;
+        private long minSubSequenceNumber = Long.MAX_VALUE;
+        private long maxSubSequenceNumber = Long.MIN_VALUE;
+        private String lastPartitionKey;
+        private Instant earliestArrivalTimestamp;
+        private String lastShardId;
+
+        long getBytesConsumed() {
+            return bytesConsumed;
         }
 
-        record Failure(Optional<Throwable> error) implements InitializationResult {
+        long getRecordCount() {
+            return recordCount;
+        }
+
+        long getMaxMillisBehind() {
+            return maxMillisBehind;
+        }
+
+        String getMinSequenceNumber() {
+            return minSequenceNumber;
+        }
+
+        String getMaxSequenceNumber() {
+            return maxSequenceNumber;
+        }
+
+        long getMinSubSequenceNumber() {
+            return minSubSequenceNumber;
+        }
+
+        long getMaxSubSequenceNumber() {
+            return maxSubSequenceNumber;
+        }
+
+        String getLastPartitionKey() {
+            return lastPartitionKey;
+        }
+
+        Instant getEarliestArrivalTimestamp() {
+            return earliestArrivalTimestamp;
+        }
+
+        String getLastShardId() {
+            return lastShardId;
+        }
+
+        void setLastShardId(final String shardId) {
+            lastShardId = shardId;
+        }
+
+        void addBytes(final long bytes) {
+            bytesConsumed += bytes;
+        }
+
+        void incrementRecordCount() {
+            recordCount++;
+        }
+
+        void resetRecordCount() {
+            recordCount = 0;
+        }
+
+        void updateMillisBehind(final long millisBehindLatest) {
+            maxMillisBehind = Math.max(maxMillisBehind, millisBehindLatest);
+        }
+
+        void updateSequenceRange(final ShardFetchResult result) {
+            final String firstSeq = result.firstSequenceNumber();
+            final String lastSeq = result.lastSequenceNumber();
+            if (minSequenceNumber == null || new BigInteger(firstSeq).compareTo(new BigInteger(minSequenceNumber)) < 0) {
+                minSequenceNumber = firstSeq;
+            }
+            if (maxSequenceNumber == null || new BigInteger(lastSeq).compareTo(new BigInteger(maxSequenceNumber)) > 0) {
+                maxSequenceNumber = lastSeq;
+            }
+        }
+
+        void updateRecordRange(final DeaggregatedRecord record) {
+            final long subSeq = record.subSequenceNumber();
+            if (subSeq < minSubSequenceNumber) {
+                minSubSequenceNumber = subSeq;
+            }
+            if (subSeq > maxSubSequenceNumber) {
+                maxSubSequenceNumber = subSeq;
+            }
+            lastPartitionKey = record.partitionKey();
+            final Instant arrival = record.approximateArrivalTimestamp();
+            if (arrival != null && (earliestArrivalTimestamp == null || arrival.isBefore(earliestArrivalTimestamp))) {
+                earliestArrivalTimestamp = arrival;
+            }
         }
     }
 
@@ -919,6 +1464,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     enum ProcessingStrategy implements DescribedValue {
         FLOW_FILE("Write one FlowFile for each consumed Kinesis Record"),
+        LINE_DELIMITED("Write one FlowFile containing multiple consumed Kinesis Records separated by line delimiters"),
         RECORD("Write one FlowFile containing multiple consumed Kinesis Records processed with Record Reader and Record Writer"),
         DEMARCATOR("Write one FlowFile containing multiple consumed Kinesis Records separated by a configurable demarcator");
 
@@ -943,15 +1489,11 @@ public class ConsumeKinesis extends AbstractProcessor {
             return description;
         }
 
-        private static ProcessingStrategy from(final String name) {
-            // As long as getValue() returns name(), using valueOf is fine.
-            return ProcessingStrategy.valueOf(name);
-        }
     }
 
     enum InitialPosition implements DescribedValue {
-        TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard in the system, which is the oldest data record in the shard."),
-        LATEST("Latest", "Start reading just after the most recent record in the shard, so that you always read the most recent data in the shard."),
+        TRIM_HORIZON("Trim Horizon", "Start reading at the last untrimmed record in the shard."),
+        LATEST("Latest", "Start reading just after the most recent record in the shard."),
         AT_TIMESTAMP("At Timestamp", "Start reading at the record with the specified timestamp.");
 
         private final String displayName;
@@ -978,39 +1520,10 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
-    enum MetricsPublishing implements DescribedValue {
-        DISABLED("Disabled", "No metrics are published"),
-        LOGS("Logs", "Metrics are published to application logs"),
-        CLOUDWATCH("CloudWatch", "Metrics are published to Amazon CloudWatch");
-
-        private final String displayName;
-        private final String description;
-
-        MetricsPublishing(final String displayName, final String description) {
-            this.displayName = displayName;
-            this.description = description;
-        }
-
-        @Override
-        public String getValue() {
-            return name();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        @Override
-        public String getDescription() {
-            return description;
-        }
-    }
-
     enum OutputStrategy implements DescribedValue {
         USE_VALUE("Use Content as Value", "Write only the Kinesis Record value to the FlowFile record."),
         USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record."),
-        INJECT_METADATA("Inject Metadata", "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata.");
+        INJECT_METADATA("Inject Metadata", "Write the Kinesis Record value to the FlowFile record and add a sub-record with metadata.");
 
         private final String displayName;
         private final String description;
@@ -1034,20 +1547,5 @@ public class ConsumeKinesis extends AbstractProcessor {
         public String getDescription() {
             return description;
         }
-    }
-
-    // Visible for tests only.
-    @Nullable URI getKinesisEndpointOverride() {
-        return null;
-    }
-
-    // Visible for tests only.
-    @Nullable URI getDynamoDbEndpointOverride() {
-        return null;
-    }
-
-    // Visible for tests only.
-    @Nullable URI getCloudwatchEndpointOverride() {
-        return null;
     }
 }
